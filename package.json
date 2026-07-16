@@ -1,0 +1,20 @@
+{
+  "name": "digsy-world",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "watch": "vite build --watch",
+    "preview": "vite preview",
+    "test": "node tests/run.mjs"
+  },
+  "devDependencies": {
+    "vite": "^6.0.0"
+  },
+  "dependencies": {
+    "pixelarticons": "^2.2.0",
+    "three": "^0.185.1"
+  }
+}

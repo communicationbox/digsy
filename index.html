@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<title>Digsy World</title>
+<link rel="stylesheet" href="/src/style.css">
+</head>
+<body>
+  <div id="frame">
+    <canvas id="cv"></canvas>
+    <div id="hud">
+      <span class="tag" title="Monete">🪙 <span id="h-coin">0</span><span class="lbl"> monete</span></span>
+      <span class="tag" title="Energia (scavare costa 1)">⚡ <span id="h-en">0</span><span class="lbl"> energia</span></span>
+      <span class="tag" title="Giorno">📅 <span class="lbl">giorno </span><span id="h-day">1</span></span>
+      <span class="tag" title="Zona in cui ti trovi">🌍 <span id="h-zone">…</span></span>
+      <span class="tag" title="Città più vicina">🧭 <span id="h-compass">…</span></span>
+      <span class="tag" id="bagbtn" title="Apri lo zaino (I)">🎒 <span class="lbl">zaino </span><span id="h-bag">0</span></span>
+      <span class="tag" id="menubtn" title="Menu (ESC)">☰<span class="lbl"> menu</span></span>
+      <span class="tag" id="debugtag" style="display:none;background:rgba(140,60,60,.85)">🐞 DEBUG</span>
+    </div>
+    <div id="prompt"></div>
+    <div id="toasts"></div>
+  </div>
+
+  <div id="touch">
+    <div class="dpad"><div class="db du" data-dir="up">▲</div><div class="db dd" data-dir="down">▼</div><div class="db dl" data-dir="left">◀</div><div class="db dr" data-dir="right">▶</div></div>
+    <div id="abtn">A</div>
+  </div>
+
+  <div id="modal"><div class="sheet">
+    <div class="st"><h2 id="m-title">—</h2><button class="x" id="m-close">✕</button></div>
+    <div class="sb" id="m-body"></div>
+  </div></div>
+
+  <div id="bookov">
+    <div id="bookframe">
+      <button class="x" id="bk-close">✕</button>
+      <div id="bk-book">
+        <div class="bk-edge" id="bk-edge-l"></div>
+        <div id="bk-pages"></div>
+        <div class="bk-edge" id="bk-edge-r"></div>
+      </div>
+      <div id="bk-nav"></div>
+    </div>
+  </div>
+
+  <div id="splash">
+    <div class="sp-card">
+      <canvas id="sp-digsy" width="20" height="18"></canvas>
+      <h1 class="sp-title">DIGSY<em>WORLD</em></h1>
+      <div class="sp-sub">scava · scopri · rianima</div>
+      <div id="sp-menu" class="sp-menu"></div>
+    </div>
+  </div>
+
+  <div id="boot"><div style="font-size:20px;font-weight:800">Digsy World</div><div style="margin-top:8px;color:#9fb0bb">Genero il mondo…</div></div>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>
