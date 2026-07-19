@@ -19,6 +19,11 @@ export const DISCORD_URL = 'https://discord.gg/BpZNuVnVz';
    Tutto quello che riguarda l'accesso vive qui dentro e si carica SOLO quando si apre la
    schermata: lo script di Google è l'unica dipendenza esterna del gioco, e chi non usa
    l'account non deve pagarne il costo all'avvio. */
+/* Il salvataggio in cloud è acceso? Si guarda l'interruttore in index.html, che si può
+   cambiare direttamente sul server senza ricostruire il gioco. */
+export function cloudEnabled() {
+  return typeof window !== 'undefined' && window.DIGSY_CLOUD === true;
+}
 export const acc = { user: null, conflict: null, localSum: '', remoteSum: '', msg: '', mod: null };
 let gsiLoading = null;
 
@@ -322,7 +327,9 @@ function buildMenu(inGame) {
     h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Partite', 'Games')}</button>`;
     h += `<button class="sp-btn" id="sp-audio">🎵 Audio</button>`;
     h += `<button class="sp-btn" id="sp-lang">🌍 ${tr('Lingua', 'Language')}</button>`;
-    h += `<button class="sp-btn" id="sp-account">☁️ ${tr('La tua partita', 'Your game')}</button>`;
+    /* la voce compare solo col salvataggio in cloud acceso (window.DIGSY_CLOUD): vedi
+       index.html — senza database sul server l'accesso fallirebbe e basta */
+    if (cloudEnabled()) h += `<button class="sp-btn" id="sp-account">☁️ ${tr('La tua partita', 'Your game')}</button>`;
     h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
     /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */
     h += `<div class="sp-iconrow">`;

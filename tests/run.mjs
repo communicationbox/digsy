@@ -383,6 +383,31 @@ sprites.applyLook();
     ids.includes('bagbtn') && ids.includes('mapbtn') && ids.includes('menubtn'));
 }
 
+/* ---------- il salvataggio in cloud si accende da un interruttore ---------- */
+{
+  /* Finché sul server non c'è il database, la voce "La tua partita" non deve comparire:
+     l'accesso fallirebbe e un tester si troverebbe un errore che non sa spiegarsi.
+     L'interruttore sta in index.html così si accende SUL SERVER, senza ricostruire nulla. */
+  const sp = await import('../src/splash.js');
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  check('l\'interruttore del cloud è nella pagina', /window\.DIGSY_CLOUD\s*=\s*(true|false)/.test(html));
+
+  const prev = typeof window !== 'undefined' ? window.DIGSY_CLOUD : undefined;
+  if (typeof window !== 'undefined') {
+    window.DIGSY_CLOUD = false;
+    check('spento: il gioco non offre l\'accesso', sp.cloudEnabled() === false);
+    window.DIGSY_CLOUD = true;
+    check('acceso: l\'accesso è disponibile', sp.cloudEnabled() === true);
+    /* niente mezze misure: solo true accende (una stringa "false" non deve bastare) */
+    window.DIGSY_CLOUD = 'true';
+    check('solo true vero accende, non una stringa', sp.cloudEnabled() === false);
+    window.DIGSY_CLOUD = prev;
+  }
+  const spSrc = readFileSync(new URL('../src/splash.js', import.meta.url), 'utf8');
+  check('la voce del menu passa dall\'interruttore', /if \(cloudEnabled\(\)\)[\s\S]{0,80}sp-account/.test(spSrc));
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');

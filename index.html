@@ -115,7 +115,16 @@
        NON è un segreto: sta comunque nella pagina, visibile a chiunque. La sicurezza non sta
        nel tenerlo nascosto ma nel fatto che il SERVER verifica che ogni accesso sia stato
        emesso proprio per questo identificativo (server/lib/google.php). -->
-  <script>window.DIGSY_GOOGLE_CLIENT_ID = '559603252887-aft20s0l2oabi9b3dr5p9efk91oufvtb.apps.googleusercontent.com';</script>
+  <script>
+    window.DIGSY_GOOGLE_CLIENT_ID = '559603252887-aft20s0l2oabi9b3dr5p9efk91oufvtb.apps.googleusercontent.com';
+    /* INTERRUTTORE DEL SALVATAGGIO IN CLOUD.
+       Finché è false la voce "La tua partita" non compare nel menu: senza database sul
+       server l'accesso fallirebbe, e un tester si troverebbe davanti un errore che non
+       sa spiegarsi. Il gioco intanto funziona come sempre, salvando in locale.
+       Per accenderlo basta mettere true QUI, direttamente sul server: nessuna
+       ricompilazione, nessun aggiornamento da far scaricare a nessuno. */
+    window.DIGSY_CLOUD = false;
+  </script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>
