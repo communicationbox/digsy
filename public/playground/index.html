@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digsy — Playground mobile</title>
+<style>
+  :root{--bg:#15120d;--panel:#1e1a13;--ink:#f3ecda;--muted:#a89b7e;--line:#3a3123;--ok:#6cc47a;--ko:#e4573d;--warn:#e0a94a;--accent:#57c0b6}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .wrap{max-width:1500px;margin:0 auto;padding:14px}
+  h1{font-size:19px;letter-spacing:2px;margin:0 0 2px}
+  p.lead{color:var(--muted);font-size:12px;margin:0 0 12px;max-width:80ch;line-height:1.5}
+  .bar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px}
+  button{font:700 12px ui-monospace,monospace;background:#3a8c85;color:#fff;border:0;padding:8px 12px;cursor:pointer}
+  button.alt{background:#6b5137}
+  button.on{background:var(--accent);color:#10221f}
+  select{font:700 12px ui-monospace,monospace;background:#241a10;color:var(--ink);border:1px solid var(--line);padding:7px}
+  .cols{display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  .devices{display:flex;gap:14px;flex-wrap:wrap}
+  .dev{background:var(--panel);border:1px solid var(--line);padding:8px}
+  .dev h2{margin:0 0 6px;font-size:11px;letter-spacing:1px;color:var(--accent);text-transform:uppercase}
+  iframe{border:0;background:#000;display:block;box-shadow:0 6px 20px rgba(0,0,0,.5)}
+  .report{flex:1 1 380px;min-width:320px;background:var(--panel);border:1px solid var(--line);padding:10px;max-height:88vh;overflow:auto}
+  .report h3{margin:0 0 8px;font-size:12px;letter-spacing:1px;color:var(--accent)}
+  .grp{margin-bottom:10px}
+  .grp b{display:block;color:var(--warn);font-size:11px;margin-bottom:3px;letter-spacing:.5px}
+  .r{display:flex;gap:7px;padding:3px 0;border-bottom:1px solid #2a2419;line-height:1.35}
+  .r i{font-style:normal;flex:none;width:14px}
+  .r.ok i{color:var(--ok)} .r.ko i{color:var(--ko)} .r.wa i{color:var(--warn)}
+  .r small{color:var(--muted);display:block;font-size:11px}
+  .tot{position:sticky;top:0;background:var(--panel);padding:6px 0;font-weight:700;border-bottom:2px solid var(--line);margin-bottom:8px}
+  .tot .n{color:var(--ok)} .tot .f{color:var(--ko)}
+  code{color:var(--accent)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>PLAYGROUND MOBILE</h1>
+  <p class="lead">Il gioco vero dentro cornici di telefoni reali, con la <b>verifica automatica di ogni schermata</b>:
+  overlay dentro il viewport, elenchi che scorrono col dito, bersagli abbastanza grandi, testo leggibile,
+  niente sbordi. Cambia dispositivo, apri una funzione e rilancia il controllo.</p>
+
+  <div class="bar">
+    <select id="dev">
+      <option value="390,844">iPhone 14/15 — 390×844</option>
+      <option value="360,780">Android medio — 360×780</option>
+      <option value="320,568">iPhone SE (piccolo) — 320×568</option>
+      <option value="430,932">iPhone Pro Max — 430×932</option>
+      <option value="844,390">iPhone orizzontale — 844×390</option>
+      <option value="768,1024">iPad — 768×1024</option>
+    </select>
+    <button id="reload" class="alt">Ricarica</button>
+    <span style="width:10px"></span>
+    <button data-fn="openBag">Zaino</button>
+    <button data-fn="openMap">Mappa</button>
+    <button data-fn="openBook">Libro</button>
+    <button data-fn="openWonderBook">Meraviglie</button>
+    <button data-fn="openGuide">Guida</button>
+    <button data-fn="openQuests">Missioni</button>
+    <button data-fn="openAchievements">Traguardi</button>
+    <button data-fn="openLetters">Lettere</button>
+    <button data-fn="closeAll" class="alt">Chiudi tutto</button>
+    <span style="width:10px"></span>
+    <button id="run" class="on">▶ Controlla tutto</button>
+  </div>
+
+  <div class="cols">
+    <div class="devices" id="devbox"></div>
+    <div class="report" id="report"><div class="tot">premi «Controlla tutto»</div></div>
+  </div>
+</div>
+
+<script>
+/* Il gioco gira dentro un iframe alla dimensione del telefono scelto. La sonda usa
+   window.__digsy (esposto da main.js) per aprire ogni schermata e misurarla davvero. */
+const devSel = document.getElementById('dev'), devbox = document.getElementById('devbox');
+let frame = null;
+
+function mount() {
+  const [w, h] = devSel.value.split(',').map(Number);
+  devbox.innerHTML = '';
+  const d = document.createElement('div'); d.className = 'dev';
+  d.innerHTML = `<h2>${devSel.options[devSel.selectedIndex].text}</h2>`;
+  frame = document.createElement('iframe');
+  frame.width = w; frame.height = h; frame.src = '/?nosplash&pg=1';
+  d.appendChild(frame); devbox.appendChild(d);
+}
+devSel.onchange = mount;
+document.getElementById('reload').onclick = mount;
+mount();
+
+function api() { return (frame.contentWindow && frame.contentWindow.__digsy) || null; }
+document.querySelectorAll('[data-fn]').forEach(b => b.onclick = () => {
+  const g = api(); if (!g) return alert('Il gioco non è ancora pronto: aspetta un istante.');
+  if (b.dataset.fn === 'closeAll') { ['closeBag', 'closeMap', 'closeBook', 'closeModal'].forEach(f => g[f] && g[f]()); return; }
+  ['closeBag', 'closeMap', 'closeBook', 'closeModal'].forEach(f => g[f] && g[f]());
+  try { g[b.dataset.fn](); } catch (e) { alert('errore: ' + e.message); }
+});
+
+/* ---------- il controllo vero e proprio ---------- */
+function check(win, doc) {
+  const out = [];
+  const W = win.innerWidth, H = win.innerHeight;
+  const css = (el, p) => win.getComputedStyle(el).getPropertyValue(p);
+  const vis = el => { if (!el) return false; const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0; };
+  const add = (grp, name, state, note) => out.push({ grp, name, state, note });
+  const G = win.__digsy || {};
+
+  /* pagina */
+  add('Pagina', 'nessuno sbordo orizzontale', doc.documentElement.scrollWidth <= W + 1 ? 'ok' : 'ko',
+    'scrollWidth ' + doc.documentElement.scrollWidth + ' / viewport ' + W);
+  add('Pagina', 'canvas a piena finestra', (() => { const c = doc.getElementById('cv'); if (!c) return 'ko'; const r = c.getBoundingClientRect(); return r.width >= W - 2 && r.height >= H - 2 ? 'ok' : 'wa'; })(),
+    'il gioco deve riempire lo schermo');
+
+  /* HUD */
+  const hud = doc.getElementById('hud');
+  if (hud) {
+    const hr = hud.getBoundingClientRect();
+    add('HUD', 'dentro lo schermo', hr.right <= W + 1 && hr.left >= -1 ? 'ok' : 'ko', Math.round(hr.left) + '→' + Math.round(hr.right));
+    add('HUD', 'non copre più del 40% dell\'altezza', hr.height <= H * 0.4 ? 'ok' : 'ko', Math.round(hr.height) + 'px su ' + H);
+    add('HUD', 'interlinea presente (niente righe sovrapposte)', parseFloat(css(hud, 'line-height')) >= 8 ? 'ok' : 'ko');
+    const tags = [...hud.querySelectorAll('.tag')].filter(t => t.getBoundingClientRect().height > 0);
+    const small = tags.filter(t => t.getBoundingClientRect().height < 28);
+    add('HUD', 'chip toccabili (≥28px)', small.length === 0 ? 'ok' : 'ko', small.length + ' troppo bassi su ' + tags.length);
+    const over = tags.filter(t => t.getBoundingClientRect().right > W + 1);
+    add('HUD', 'nessun chip fuori a destra', over.length === 0 ? 'ok' : 'ko');
+  }
+
+  /* controlli touch */
+  const joy = doc.getElementById('joy'), ab = doc.getElementById('abtn');
+  add('Controlli', 'joystick presente', joy ? 'ok' : 'ko');
+  add('Controlli', 'tasto A presente', ab ? 'ok' : 'ko');
+  if (joy) { const w2 = parseFloat(css(joy, 'width')); add('Controlli', 'joystick ≥120px', w2 >= 120 ? 'ok' : 'ko', Math.round(w2) + 'px'); }
+  if (ab) { const w3 = parseFloat(css(ab, 'width')); add('Controlli', 'tasto A ≥64px', w3 >= 64 ? 'ok' : 'ko', Math.round(w3) + 'px'); }
+  if (joy && ab && vis(joy) && vis(ab)) {
+    const jr = joy.getBoundingClientRect(), ar = ab.getBoundingClientRect();
+    add('Controlli', 'non si sovrappongono', (jr.right < ar.left || ar.right < jr.left) ? 'ok' : 'ko');
+    add('Controlli', 'dentro lo schermo', jr.left >= -2 && ar.right <= W + 2 && jr.bottom <= H + 2 && ar.bottom <= H + 2 ? 'ok' : 'ko');
+    add('Controlli', 'occupano meno di metà altezza', (jr.height + 0) <= H * 0.5 ? 'ok' : 'wa', Math.round(jr.height) + 'px');
+  } else if (joy && ab) {
+    /* headless/desktop: i controlli touch sono nascosti dal CSS, si controllano le misure */
+    const jw = parseFloat(css(joy, 'width')), aw = parseFloat(css(ab, 'width'));
+    const jl = parseFloat(css(joy, 'left')) || 20, ar2 = parseFloat(css(ab, 'right')) || 20;
+    add('Controlli', 'non si sovrappongono (misure CSS)', jl + jw < W - ar2 - aw ? 'ok' : (W < 340 ? 'wa' : 'ko'),
+      Math.round(jw) + 'px + ' + Math.round(aw) + 'px su ' + W);
+  }
+
+  /* ogni schermata: apertura, ingombro, scorrimento, testo, bersagli */
+  const screens = [
+    ['Zaino', 'openBag', '#bagbox', '.bag-scroll', 'closeBag'],
+    ['Mappa', 'openMap', '#mapbox', null, 'closeMap'],
+    ['Libro', 'openBook', '#bookframe', '.bkpage', 'closeBook'],
+    ['Meraviglie', 'openWonderBook', '.sheet', '.sb', 'closeModal'],
+    ['Guida', 'openGuide', '.sheet', '.sb', 'closeModal'],
+    ['Missioni', 'openQuests', '.sheet', '.sb', 'closeModal'],
+    ['Traguardi', 'openAchievements', '.sheet', '.sb', 'closeModal'],
+    ['Lettere', 'openLetters', '.sheet', '.sb', 'closeModal'],
+  ];
+  for (const [label, open, boxSel, scrollSel, close] of screens) {
+    if (!G[open]) { add(label, 'funzione disponibile', 'ko', open + ' non esposta'); continue; }
+    ['closeBag', 'closeMap', 'closeBook', 'closeModal'].forEach(f => G[f] && G[f]());
+    let err = null;
+    try { G[open](); } catch (e) { err = e.message; }
+    if (err) { add(label, 'si apre senza errori', 'ko', err); continue; }
+    const box = doc.querySelector(boxSel);
+    add(label, 'si apre', vis(box) ? 'ok' : 'ko');
+    if (box) {
+      const r = box.getBoundingClientRect();
+      add(label, 'dentro lo schermo', r.left >= -2 && r.right <= W + 2 && r.top >= -2 && r.bottom <= H + 2 ? 'ok' : 'ko',
+        Math.round(r.left) + ',' + Math.round(r.top) + ' → ' + Math.round(r.right) + ',' + Math.round(r.bottom));
+      add(label, 'occupa una porzione sensata', r.width >= W * 0.5 && r.height >= H * 0.3 ? 'ok' : 'wa',
+        Math.round(r.width) + '×' + Math.round(r.height));
+    }
+    const sc = scrollSel ? doc.querySelector(scrollSel) : null;
+    if (sc) {
+      const ta = css(sc, 'touch-action');
+      add(label, 'si scorre col dito', /pan-y|auto|manipulation/.test(ta) ? 'ok' : 'ko', 'touch-action: ' + ta);
+    }
+    /* bersagli e testo dentro la schermata */
+    const root = box || doc;
+    const btns = [...root.querySelectorAll('button, .btn, .bbtn, .bag-tab, .row[data-letter], [data-sel]')]
+      .filter(b => b.getBoundingClientRect().width > 0);
+    const tiny = btns.filter(b => { const r = b.getBoundingClientRect(); return r.height < 30 || r.width < 30; });
+    add(label, 'bersagli ≥30px', btns.length === 0 ? 'wa' : (tiny.length === 0 ? 'ok' : 'ko'),
+      btns.length ? tiny.length + ' piccoli su ' + btns.length : 'nessun bersaglio');
+    const texts = [...root.querySelectorAll('*')].filter(el => el.children.length === 0 && el.textContent.trim().length > 2);
+    const small2 = texts.filter(el => parseFloat(css(el, 'font-size')) < 11);
+    add(label, 'testo ≥11px', small2.length === 0 ? 'ok' : 'wa', small2.length + ' sotto 11px su ' + texts.length);
+    const overflow = [...root.querySelectorAll('*')].filter(el => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.right > W + 2 || r.left < -2); });
+    add(label, 'niente contenuto fuori dai bordi', overflow.length === 0 ? 'ok' : 'ko', overflow.length + ' elementi');
+    if (G[close]) G[close]();
+  }
+
+  /* mappa: comandi di zoom */
+  if (G.openMap) {
+    G.openMap();
+    const zin = doc.getElementById('mp-in'), zout = doc.getElementById('mp-out'), cv = doc.getElementById('mapcv');
+    add('Mappa', 'pulsanti zoom presenti', vis(zin) && vis(zout) ? 'ok' : 'ko');
+    if (zin) { const r = zin.getBoundingClientRect(); add('Mappa', 'zoom toccabile (≥32px)', r.width >= 32 && r.height >= 32 ? 'ok' : 'ko', Math.round(r.width) + 'px'); }
+    if (cv) add('Mappa', 'si trascina e si pizzica', css(cv, 'touch-action') === 'none' ? 'ok' : 'ko', 'touch-action: ' + css(cv, 'touch-action'));
+    if (G.closeMap) G.closeMap();
+  }
+  /* barre di scorrimento a tema */
+  const sb = doc.querySelector('.bag-scroll');
+  if (sb) add('Stile', 'barre di scorrimento a tema', /#|rgb/.test(css(sb, 'scrollbar-color')) ? 'ok' : 'wa', css(sb, 'scrollbar-color'));
+  return out;
+}
+
+document.getElementById('run').onclick = () => {
+  const win = frame.contentWindow, doc = win && win.document;
+  if (!win || !doc || !win.__digsy) return alert('Il gioco non è ancora pronto: aspetta un istante e riprova.');
+  let res;
+  try { res = check(win, doc); } catch (e) { return alert('Errore nel controllo: ' + e.message); }
+  const ok = res.filter(r => r.state === 'ok').length, ko = res.filter(r => r.state === 'ko').length, wa = res.filter(r => r.state === 'wa').length;
+  const grps = [...new Set(res.map(r => r.grp))];
+  let h = `<div class="tot"><span class="n">${ok} ok</span> · <span class="f">${ko} da sistemare</span> · ${wa} da guardare — ${devSel.options[devSel.selectedIndex].text}</div>`;
+  for (const g of grps) {
+    h += `<div class="grp"><b>${g}</b>`;
+    for (const r of res.filter(x => x.grp === g)) {
+      h += `<div class="r ${r.state}"><i>${r.state === 'ok' ? '✓' : r.state === 'ko' ? '✕' : '!'}</i><div>${r.name}${r.note ? `<small>${r.note}</small>` : ''}</div></div>`;
+    }
+    h += `</div>`;
+  }
+  document.getElementById('report').innerHTML = h;
+};
+</script>
+</body>
+</html>

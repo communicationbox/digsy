@@ -2,12 +2,20 @@
 import { drawHero } from './sprites.js';
 import { load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { tr, LANG, setLang } from './i18n.js';
+import { tr, LANG, setLang, LANGS, isTouch } from './i18n.js';
+import { getPrefs, pref, setPref } from './prefs.js';
+import { commandHelp } from './commands.js';
 import { withIcons } from './icons.js';
+import { VERSION } from './version.js';
+import { ACHS, isAchieved, achLabel, achDesc } from './achievements.js';
+import { CHANGELOG } from './changelog.js';
+import { drawTrophy } from './trophy.js';
 
 let on = true, pause = false, onPlayCb = null, animOn = false;
 let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
+/* usata dalle pagine di prova per aprire un sottomenu e verificarne l'uscita */
+export function setView(v) { view = v; buildMenu(inGameMode); }
 
 /* in dev: salta la splash SOLO sui reload innescati da Vite (modifiche ai file) */
 if (import.meta.hot) {
@@ -48,13 +56,29 @@ function startAnim() {
   })(0);
 }
 
+/* SCORCIATOIE da tastiera mostrate nel menu (solo desktop). NIENTE cheat: sono per sviluppatori. */
+const SHORTCUTS = [
+  ['WASD / ←↑→↓', 'muoviti', 'move'],
+  ['E', 'scava · interagisci · entra', 'dig · interact · enter'],
+  ['I / Z', 'zaino', 'bag'],
+  ['L', 'libro dei fossili', 'fossil book'],
+  ['Q', 'missioni', 'missions'],
+  ['ESC', 'menu · indietro', 'menu · back'],
+];
 /* menu del titolo/pausa con sottomenu: main → Partite / Audio */
+/* Nei sottomenu l'unica via d'uscita è la X in alto (closeX): un solo comando, sempre visibile,
+   fuori dall'area che scorre. Il vecchio pulsante "Indietro" in fondo faceva doppione e su
+   mobile finiva sotto il bordo dello schermo. */
+function backBar() { return ''; }
+/* la X sta IN ALTO, fuori dall'area che scorre: da lì si esce sempre */
+function closeX() { return `<button class="sp-x" id="sp-x" aria-label="chiudi">✕</button>`; }
 function buildMenu(inGame) {
   inGameMode = inGame;
   const hasSave = inGame || !!load();
   const menu = document.getElementById('sp-menu');
   let h = '';
   if (view === 'saves') {
+    h += closeX();
     h += `<div class="sp-title2">💾 ${tr('Partite', 'Games')}</div><div id="sp-slots">`;
     for (let n = 1; n <= SLOTS; n++) {
       const d = slotInfo(n);
@@ -66,38 +90,188 @@ function buildMenu(inGame) {
     }
     h += `</div>`;
     if (hasSave) h += `<button class="sp-btn danger" id="sp-new">🌱 ${tr('Nuova partita', 'New game')}</button>`;
-    h += `<button class="sp-btn small" id="sp-back">← ${tr('Indietro', 'Back')}</button>`;
+    h += backBar();
   } else if (view === 'audio') {
+    h += closeX();
     const a = audioOpts();
     h += `<div class="sp-title2">🎵 Audio</div>`;
     h += `<div class="sp-set"><span>${tr('Musica', 'Music')}</span><button class="sp-btn small" id="sp-mus">${a.music ? 'ON' : 'OFF'}</button>
       <input id="sp-vol" type="range" min="0" max="100" value="${Math.round(a.vol * 100)}" title="${tr('Volume musica', 'Music volume')}"></div>`;
     h += `<div class="sp-set"><span>${tr('Effetti', 'Sound FX')}</span><button class="sp-btn small" id="sp-sfx">${a.sfx ? 'ON' : 'OFF'}</button>
       <input id="sp-sfxvol" type="range" min="0" max="100" value="${Math.round(a.sfxVol * 100)}" title="${tr('Volume effetti', 'SFX volume')}"></div>`;
-    h += `<button class="sp-btn small" id="sp-back">← ${tr('Indietro', 'Back')}</button>`;
+    h += backBar();
+  } else if (view === 'settings') {
+    h += closeX();
+    h += `<div class="sp-title2">⚙️ ${tr('Impostazioni', 'Settings')}</div>`;
+    const pf = getPrefs();
+    /* SUGGERIMENTI: alla seconda partita non si vogliono rivedere tutti da capo */
+    h += `<div class="sp-set"><span>${tr('Suggerimenti', 'Tips')}</span>
+      <button class="sp-btn small" id="sp-tips">${pf.tips ? 'ON' : 'OFF'}</button></div>`;
+    h += `<div class="sp-note">${tr('I riquadri che spiegano una meccanica la prima volta che la incontri. Restano sempre nella Guida (zaino → ❔).', 'The boxes explaining a mechanic the first time you meet it. They always stay in the Guide (bag → ❔).')}</div>`;
+    /* CONTROLLI: joystick, tocca dove andare, o entrambi */
+    /* le opzioni cambiano col DISPOSITIVO: le leve non esistono con un mouse, il
+       segui-puntatore non esiste con un dito, e la mano conta solo dove ci sono comandi
+       a schermo da spostare. */
+    if (isTouch()) {
+      h += `<div class="sp-set"><span>${tr('Comandi a schermo', 'On-screen controls')}</span></div>`;
+      h += `<div class="sp-seg">` + [
+        ['joystick', tr('Leva fissa', 'Fixed stick')],
+        ['float', tr('Leva sotto il dito', 'Stick under finger')],
+        ['tap', tr('Tocca dove andare', 'Tap to move')],
+      ].map(([id, lb]) => `<button class="sp-btn small${pf.touch === id ? ' primary' : ''}" data-touch="${id}">${lb}</button>`).join('') + `</div>`;
+      h += `<div class="sp-note">${
+        pf.touch === 'float'
+          ? tr('La leva <b>nasce dove appoggi il dito</b> e non occupa un angolo dello schermo: trascina per guidare Digsy. Un tocco <b>senza trascinare</b> lo manda dove hai toccato.', 'The stick <b>appears where you put your finger</b> instead of sitting in a corner: drag to steer Digsy. A tap <b>without dragging</b> sends him where you tapped.')
+          : pf.touch === 'tap'
+            ? tr('Tocchi un punto della mappa e Digsy ci cammina, aggirando gli ostacoli. Tocca una porta per entrarci.', 'Tap a spot and Digsy walks there, going around obstacles. Tap a door to go in.')
+            : tr('La leva resta in un angolo dello schermo, sempre nello stesso posto.', 'The stick stays in a corner of the screen, always in the same place.')
+      }</div>`;
+      h += `<div class="sp-set"><span>${tr('Mano', 'Hand')}</span></div>`;
+      h += `<div class="sp-seg">` + [
+        ['right', tr('Destro', 'Right-handed')],
+        ['left', tr('Mancino', 'Left-handed')],
+      ].map(([id, lb]) => `<button class="sp-btn small${(pf.hand || 'right') === id ? ' primary' : ''}" data-hand="${id}">${lb}</button>`).join('') + `</div>`;
+      h += `<div class="sp-note">${tr('Sposta il tasto <b>A</b> (e la leva fissa) dalla parte opposta.', 'Moves the <b>A</b> button (and the fixed stick) to the other side.')}</div>`;
+    } else {
+      h += `<div class="sp-set"><span>${tr('Mouse', 'Mouse')}</span></div>`;
+      h += `<div class="sp-seg">` + [
+        ['tap', tr('Clicca dove andare', 'Click to move')],
+        ['follow', tr('Segui il puntatore', 'Follow the pointer')],
+        ['keys', tr('Solo tastiera', 'Keyboard only')],
+      ].map(([id, lb]) => `<button class="sp-btn small${(pf.mouse || 'tap') === id ? ' primary' : ''}" data-mouse="${id}">${lb}</button>`).join('') + `</div>`;
+      h += `<div class="sp-note">${
+        pf.mouse === 'follow'
+          ? tr('<b>Tieni premuto</b> il tasto del mouse e Digsy va verso il puntatore, finché non lo rilasci. WASD funziona sempre.', '<b>Hold</b> the mouse button and Digsy walks towards the pointer until you let go. WASD always works.')
+          : pf.mouse === 'keys'
+            ? tr('Ci si muove solo con WASD o le frecce: il mouse serve alle finestre.', 'You move only with WASD or the arrow keys: the mouse is for windows.')
+            : tr('Clicchi un punto della mappa e Digsy ci cammina, aggirando gli ostacoli. Clicca una porta per entrarci.', 'Click a spot and Digsy walks there, going around obstacles. Click a door to go in.')
+      }</div>`;
+      h += `<div class="sp-note">${tr('In ogni modalità il <b>tasto destro</b> fa quello che fa <kbd>E</kbd>: scava, entra, parla. Così si gioca senza toccare la tastiera.', 'In every mode the <b>right mouse button</b> does what <kbd>E</kbd> does: dig, enter, talk. That way you can play without touching the keyboard.')
+      }</div>`;
+    }
+    h += `<div class="sp-set"><span>${tr('Segnalino della meta', 'Destination marker')}</span>
+      <button class="sp-btn small" id="sp-marker">${pf.marker ? 'ON' : 'OFF'}</button></div>`;
+    h += backBar();
   } else if (view === 'lang') {
+    h += closeX();
     h += `<div class="sp-title2">🌍 ${tr('Lingua', 'Language')}</div>`;
-    h += `<button class="sp-btn${LANG === 'en' ? ' primary' : ''}" id="sp-en">English${LANG === 'en' ? ' ✓' : ''}</button>`;
-    h += `<button class="sp-btn${LANG === 'it' ? ' primary' : ''}" id="sp-it">Italiano${LANG === 'it' ? ' ✓' : ''}</button>`;
-    h += `<button class="sp-btn small" id="sp-back">← ${tr('Indietro', 'Back')}</button>`;
+    /* un bottone per lingua, generati da LANGS: aggiungerne una non tocca più questo file */
+    h += LANGS.map(l => `<button class="sp-btn${LANG === l.id ? ' primary' : ''}" data-lang="${l.id}">${l.label}${LANG === l.id ? ' ✓' : ''}</button>`).join('');
+    h += backBar();
+  } else if (view === 'trophies') {
+    h += closeX();
+    const done = ACHS.filter(a => isAchieved(a.id)).length;
+    h += `<div class="sp-title2">🏆 ${tr('Sala dei Trofei', 'Hall of Fame')} — ${done}/${ACHS.length}</div>`;
+    h += `<div class="sp-hall">`;
+    const PER = 3;
+    for (let i = 0; i < ACHS.length; i += PER) {
+      const row = ACHS.slice(i, i + PER);
+      h += `<div class="sp-shelf"><div class="cups">` + row.map((a, j) => {
+        const ok = isAchieved(a.id), gi = i + j;
+        return `<div class="cup${ok ? ' won' : ''}" title="${ok ? achDesc(a) : tr('Bloccato', 'Locked')}"><canvas class="cupcv" width="44" height="52" data-i="${gi}" data-won="${ok ? 1 : 0}"></canvas><span class="cupname">${ok ? achLabel(a) : '???'}</span></div>`;
+      }).join('') + `</div><div class="plank"></div></div>`;
+    }
+    h += `</div>` + backBar();
+  } else if (view === 'changelog') {
+    h += closeX();
+    h += `<div class="sp-title2">📝 ${tr('Novità', "What's new")}</div><div class="sp-log">`;
+    for (const c of CHANGELOG) h += `<div class="sp-logv"><b>${c.v}</b><ul>` + tr(c.it, c.en).map(l => `<li>${l}</li>`).join('') + `</ul></div>`;
+    h += `</div>` + backBar();
+  } else if (view === 'commands') {
+    h += closeX();
+    h += `<div class="sp-title2">📜 ${tr('Comandi', 'Controls')}</div>`;
+    h += `<div class="sp-keys">`;
+    for (const c of SHORTCUTS) h += `<div class="sp-keyrow"><kbd>${c[0]}</kbd><span>${tr(c[1], c[2])}</span></div>`;
+    h += `</div>`;
+    /* CONSOLE: chi cerca "come faccio a…" apre questa pagina, non la console. Prima i
+       comandi si scoprivano solo scrivendo `help` dentro la console stessa — cioè
+       sapendo già che esisteva. */
+    h += `<div class="sp-title3">${tr('Console', 'Console')} <kbd>\\</kbd></div>`;
+    h += `<div class="sp-note" style="max-width:none"><kbd>\\</kbd> ${tr('apre la console: scrivi un comando e invio. Servono a provare il gioco: attivano i «cheat» e il salvataggio resta congelato finché non scrivi <b>vanilla</b>.', 'opens the console: type a command and hit enter. They are for testing: they turn on cheats and saving stays frozen until you type <b>vanilla</b>.')}</div>`;
+    h += `<div class="sp-cmds">` + commandHelp().map(t => {
+      const i = t.indexOf('—');
+      const name = i > 0 ? t.slice(0, i).trim() : t;
+      const desc = i > 0 ? t.slice(i + 1).trim() : '';
+      return `<div class="sp-cmdrow"><code>${name}</code><span>${desc}</span></div>`;
+    }).join('') + `</div>`;
+    h += backBar();
+  } else if (view === 'credits') {
+    h += closeX();
+    h += `<div class="sp-title2">ℹ️ Credits</div><div class="sp-log sp-credits">`;
+    h += `<p><b>Digsy World</b></p>`;
+    h += `<p>${tr('un cozy game di scavo e scoperta.', 'a cozy game of digging and discovery.')}</p>`;
+    h += `<p>${tr('di', 'by')} <b>Marco Giacobazzi</b></p>`;
+    h += `<p style="opacity:.7">${VERSION}</p>`;
+    /* BETA: aggiornamento forzato, nascosto qui dentro perché serve solo ai tester.
+       Sul telefono non esiste il ricarica-senza-cache e capita di restare su una versione
+       vecchia senza accorgersene. Da togliere a fine test: questa riga, hardRefresh() e il CSS. */
+    h += `<p style="margin-top:14px"><button class="sp-refresh" id="sp-refresh">⟳ ${tr('Aggiorna il gioco', 'Update the game')}</button></p>`;
+    h += `<p class="sp-refresh-note">${tr('scarica di nuovo l\'ultima versione · il salvataggio resta', 'downloads the latest version again · your save is kept')}</p>`;
+    h += `</div>` + backBar();
   } else {
-    h += `<button class="sp-btn primary" id="sp-continue">${inGame ? '▶ ' + tr('Riprendi', 'Resume') : hasSave ? '▶ ' + tr('Continua', 'Continue') : '▶ ' + tr('Gioca', 'Play')}</button>`;
+    h += `<button class="sp-btn primary" id="sp-continue">${inGame ? '▶ ' + tr('Riprendi', 'Resume') : hasSave ? '▶ ' + tr('Continua', 'Continue') : '🌱 ' + tr('Nuova partita', 'New game')}</button>`;
     h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Partite', 'Games')}</button>`;
     h += `<button class="sp-btn" id="sp-audio">🎵 Audio</button>`;
     h += `<button class="sp-btn" id="sp-lang">🌍 ${tr('Lingua', 'Language')}</button>`;
+    h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
+    /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */
+    h += `<div class="sp-iconrow">`;
+    h += `<button class="sp-btn ic" id="sp-troph" title="${tr('Trofei', 'Trophies')}">🏆</button>`;
+    h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝</button>`;
+    h += `<button class="sp-btn ic" id="sp-cmds" title="${tr('Comandi', 'Commands')}">📜</button>`;
+    h += `<button class="sp-btn ic" id="sp-credits" title="Credits">ℹ️</button>`;
+    h += `</div>`;
   }
   menu.innerHTML = withIcons(h);
+  const card = document.querySelector ? document.querySelector('.sp-card') : null; if (card && card.classList) card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits');
+  if (view === 'trophies' && menu.querySelectorAll) menu.querySelectorAll('.cupcv').forEach(cv => drawTrophy(cv, +cv.dataset.i, cv.dataset.won === '1'));
 
   const go = (v) => { view = v; buildMenu(inGame); };
   const bC = document.getElementById('sp-continue'); if (bC) bC.onclick = () => dismiss();
   const bS = document.getElementById('sp-saves'); if (bS) bS.onclick = () => go('saves');
+  const bT = document.getElementById('sp-troph'); if (bT) bT.onclick = () => go('trophies');
+  const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
+  const bCm = document.getElementById('sp-cmds'); if (bCm) bCm.onclick = () => go('commands');
+  const bCr = document.getElementById('sp-credits'); if (bCr) bCr.onclick = () => go('credits');
   const bA = document.getElementById('sp-audio'); if (bA) bA.onclick = () => go('audio');
   const bL = document.getElementById('sp-lang'); if (bL) bL.onclick = () => go('lang');
-  const bEn = document.getElementById('sp-en'); if (bEn) bEn.onclick = () => setLang('en');
-  const bIt = document.getElementById('sp-it'); if (bIt) bIt.onclick = () => setLang('it');
+  const bSet = document.getElementById('sp-settings'); if (bSet) bSet.onclick = () => go('settings');
+  const bTips = document.getElementById('sp-tips');
+  if (bTips) bTips.onclick = () => { setPref('tips', !pref('tips')); buildMenu(inGameMode); };
+  const bMark = document.getElementById('sp-marker');
+  if (bMark) bMark.onclick = () => { setPref('marker', !pref('marker')); buildMenu(inGameMode); };
+  const setBox = document.querySelector('.sp-card');
+  if (setBox && setBox.querySelectorAll) setBox.querySelectorAll('[data-mouse]').forEach(b => {
+    b.onclick = () => { setPref('mouse', b.dataset.mouse); buildMenu(inGameMode); };
+  });
+  if (setBox && setBox.querySelectorAll) setBox.querySelectorAll('[data-hand]').forEach(b => {
+    b.onclick = () => {
+      setPref('hand', b.dataset.hand);
+      import('./ui.js').then(u => u.syncTouchControls());
+      buildMenu(inGameMode);
+    };
+  });
+  if (setBox && setBox.querySelectorAll) setBox.querySelectorAll('[data-touch]').forEach(b => {
+    b.onclick = () => {
+      setPref('touch', b.dataset.touch);
+      import('./ui.js').then(u => u.syncTouchControls());   // la leva compare/sparisce subito
+      buildMenu(inGameMode);
+    };
+  });
+  const rf = document.getElementById('sp-refresh');
+  if (rf) rf.onclick = () => { rf.textContent = '…'; hardRefresh(); };
+  const langBox = document.querySelector('.sp-card');
+  if (langBox && langBox.querySelectorAll) langBox.querySelectorAll('[data-lang]').forEach(b => { b.onclick = () => setLang(b.dataset.lang); });
   const bB = document.getElementById('sp-back'); if (bB) bB.onclick = () => go('main');
+  const bX = document.getElementById('sp-x'); if (bX) bX.onclick = () => go('main');   // via d'uscita sempre in alto
   menu.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
-    if (saveToSlot(parseInt(b.dataset.save, 10))) buildMenu(inGame);
+    const r = saveToSlot(parseInt(b.dataset.save, 10));
+    if (r === true) { buildMenu(inGame); return; }
+    /* sotto cheat il salvataggio è congelato, negli slot compresi: dirlo, non fingere */
+    b.textContent = r === 'cheat'
+      ? tr('Cheat attivi: scrivi `vanilla`', 'Cheats on: type `vanilla`')
+      : tr('Spazio esaurito!', 'Storage full!');
+    setTimeout(() => buildMenu(inGame), 2200);
   });
   menu.querySelectorAll('[data-n]').forEach(b => b.onclick = () =>
     arm(b, tr('Confermi?', 'Confirm?'), () => { if (loadFromSlot(parseInt(b.dataset.n, 10))) reloadInto(); }));
@@ -123,8 +297,32 @@ export function showSplash() {
   startAnim();
 }
 
+/* AGGIORNAMENTO FORZATO — solo per i betatester.
+   Su un telefono non esiste il ricarica-senza-cache (niente Ctrl+Shift+R): capita di restare
+   su una versione vecchia senza accorgersene. Questo bottoncino svuota le cache del browser
+   e ricarica con un parametro nuovo, così l'HTML non può arrivare dalla cache.
+   NON tocca il salvataggio: sta in localStorage, che qui non viene mai sfiorato.
+   Quando i test finiscono si toglie: una riga qui, una in index.html, una nel CSS. */
+export async function hardRefresh() {
+  try {
+    if (typeof caches !== 'undefined' && caches.keys) {
+      const ks = await caches.keys();
+      await Promise.all(ks.map(k => caches.delete(k)));
+    }
+    if (typeof navigator !== 'undefined' && navigator.serviceWorker && navigator.serviceWorker.getRegistrations) {
+      const rs = await navigator.serviceWorker.getRegistrations();
+      await Promise.all(rs.map(r => r.unregister()));
+    }
+  } catch (e) { /* cache non disponibile: si ricarica lo stesso */ }
+  const u = new URL(location.href);
+  u.searchParams.set('v', String(Date.now()));   // URL nuovo = niente HTML dalla cache
+  location.replace(u.toString());
+}
+
 export function initSplash(onPlay) {
   onPlayCb = onPlay;
+  const ve = document.getElementById('sp-ver'); if (ve) ve.textContent = VERSION;
+
   /* skip: auto-reload di Vite, dopo Carica/Nuova o ?nosplash; ?splash la forza sempre */
   const params = new URLSearchParams(location.search);
   let skip = params.has('nosplash');

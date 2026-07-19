@@ -29,6 +29,38 @@ ZDEF.forEach((row, zi) => row.forEach(([id, name], i) => {
 }));
 export const spById = Object.fromEntries(SPECIES.map(s => [s.id, s]));
 export const zonePools = Object.fromEntries(ZONES.map(z => [z.id, SPECIES.filter(s => s.zone === z.id)]));
+/* FONTI speciali: in ogni zona il 1° raro vive negli ALBERI, il 2° raro in ACQUA,
+   il 1° eccezionale nelle ROCCE. Scavando la terra NON escono: servono accetta/piccone/barca.
+   (src undefined = terra) */
+for (const z of ZONES) {
+  const pool = zonePools[z.id];
+  const rari = pool.filter(s => s.r === 'raro'), ecc = pool.filter(s => s.r === 'eccezionale');
+  if (rari[0]) rari[0].src = 'albero';
+  if (rari[1]) rari[1].src = 'acqua';
+  if (ecc[0]) ecc[0].src = 'roccia';
+}
+export const SRC_ICON = { albero: '🌲', roccia: '⛰️', acqua: '🌊' };
+
+/* FINESTRE DI PRESENZA — non tutte le specie sono lì ad aspettarti sempre.
+   In ogni zona: il raro d'ACQUA si pesca solo DI NOTTE, l'eccezionale di ROCCIA si stacca solo
+   in UNA STAGIONE. Serve a dare un motivo per tornare, e a dare un senso a uscire di notte.
+   Le finestre stanno di proposito sulle specie che hanno GIÀ una fonte dedicata (barca,
+   piccone): così ogni rarità resta comunque raggiungibile scavando la terra a qualsiasi ora,
+   e il pity timer non può restare a secco. */
+for (const [zi, z] of ZONES.entries()) {
+  const pool = zonePools[z.id];
+  const acq = pool.find(s => s.src === 'acqua'), roc = pool.find(s => s.src === 'roccia');
+  if (acq) acq.when = { night: true };
+  if (roc) roc.when = { season: zi % 4 };
+}
+/* la specie è pescabile adesso? (night/season arrivano da chi chiama: data.js resta puro) */
+export function availableNow(sp, night, season) {
+  const w = sp && sp.when; if (!w) return true;
+  if (w.night && !night) return false;
+  if (w.season != null && w.season !== season) return false;
+  return true;
+}
+export function hasWindow(sp) { return !!(sp && sp.when); }
 
 export const PARTS = [
   { id: 'cranio', name: 'Cranio', emoji: '💀', mult: 1.5 },
@@ -53,7 +85,37 @@ function hsl2hex(h, s, l) {
   const f = n => Math.round(255 * (l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)))));
   return '#' + ((1 << 24) | (f(0) << 16) | (f(8) << 8) | f(4)).toString(16).slice(1);
 }
-export const spColor = Object.fromEntries(SPECIES.map((s, i) => [s.id, hsl2hex((i * 137.5) % 360, 42, 64)]));
+/* ---------- GROTTE: 6 specie esclusive (fuori dalle 60, non in una zona-museo) ---------- */
+export const CAVE_SPECIES = [
+  ['cavernide', 'Cavernide', 'comune'], ['luceverme', 'Luceverme', 'comune'],
+  ['stalattodonte', 'Stalattodonte', 'raro'], ['pipistrosso', 'Pipistrosso', 'raro'],
+  ['cristallugo', 'Cristallugo', 'eccezionale'], ['abissodonte', 'Abissodonte', 'leggendario'],
+].map(([id, name, r], i) => ({ id, name, r, zone: 'grotta', zi: 6, idx: 60 + i, emoji: '🦴', src: 'grotta' }));
+/* aggiunte a spById/spColor per lookup e sprite voxel (SPECIES resta a 60) */
+for (const s of CAVE_SPECIES) spById[s.id] = s;
+export const CAVE_POOL = CAVE_SPECIES;
+/* Le grotte sono la SETTIMA ala del museo: le loro 6 specie hanno teca, pagina del Libro e
+   risveglio come le altre. SPECIES resta a 60 (le zone di superficie), ALL_SPECIES è il
+   catalogo completo usato da museo/Libro/DNA. */
+export const CAVE_ZONE = { id: 'grotta', name: 'Grotte Profonde', icon: '🕳️', tint: 'rgba(120,150,190,0.10)' };
+export const MUSEUM_ZONES = ZONES.concat([CAVE_ZONE]);
+export const ALL_SPECIES = SPECIES.concat(CAVE_SPECIES);
+zonePools[CAVE_ZONE.id] = CAVE_SPECIES;
+
+export const spColor = Object.fromEntries(SPECIES.concat(CAVE_SPECIES).map((s, i) => [s.id, hsl2hex((i * 137.5) % 360, 42, 64)]));
+
+/* OGGETTI di superficie (NON fossili): si raccolgono a vista con E in overworld e si vendono
+   al Negozio per pochi 🪙 (i primi soldi). Rarità implicita = valore. [id, it, en, val] */
+export const GOODS = {
+  prati: [['fiordaliso', 'Fiordaliso secco', 'Dried cornflower', 1], ['spiga', 'Spiga dorata', 'Golden ear', 2], ['ambra', "Goccia d'ambra", 'Amber drop', 4]],
+  dune: [['conchiglia', 'Conchiglia', 'Seashell', 1], ['vetro', 'Vetro levigato', 'Sea glass', 2], ['scarabeo', "Scarabeo d'osso", 'Bone scarab', 4]],
+  boschi: [['ghianda', 'Ghianda', 'Acorn', 1], ['funghetto', 'Fungo secco', 'Dried mushroom', 2], ['resina', 'Resina scura', 'Dark resin', 4]],
+  terre: [['sassorosso', 'Sasso rosso', 'Red pebble', 1], ['ferro', 'Scaglia di ferro', 'Iron flake', 2], ['granato', 'Granato grezzo', 'Rough garnet', 5]],
+  palude: [['giunco', 'Giunco', 'Reed bundle', 1], ['lumaca', 'Guscio di lumaca', 'Snail shell', 2], ['ninfea', 'Fiore di ninfea', 'Water lily', 4]],
+  ghiacci: [['scheggia', 'Scheggia di ghiaccio', 'Ice shard', 2], ['pigna', 'Pigna innevata', 'Snowy pinecone', 2], ['zaffiro', 'Zaffiro gelato', 'Frozen sapphire', 5]],
+};
+export const goodById = {};
+for (const z in GOODS) for (const g of GOODS[z]) goodById[g[0]] = { id: g[0], it: g[1], en: g[2], val: g[3] };
 
 export const CHIMERA_COST = 40;   // rianimare una chimera al Laboratorio
 export const SERVICE_COST = 8;    // barbiere / sartoria, per modifica
@@ -79,6 +141,9 @@ export const HAIR_COLORS = [
   '#33291f', '#6e4a2a', '#a3744a', '#caa25a', '#e8d29a', '#b5622e',
   '#d8793a', '#8a8a8a', '#e8e4da', '#57648f', '#4e8d7c', '#d98ab0',
 ];
+export const EYE_COLORS = [
+  '#33291f', '#5a3b22', '#3a6a8c', '#3d7a54', '#8a5a2a', '#6b5a7a', '#5a5a5a', '#a83a3a',
+];
 
 export const HAT_STYLES = [
   { id: 'explorer', label: 'Esploratore' },
@@ -86,7 +151,40 @@ export const HAT_STYLES = [
   { id: 'beanie', label: 'Cuffia' },
 ];
 
+/* CAPPELLI PREMIUM: rari, sbloccabili a parte in Sartoria pagando tanto.
+   Provabili GRATIS in anteprima; si sbloccano solo alla Conferma (scala i 🪙). */
+export const PREMIUM_HATS = [
+  { id: 'vikingo', cost: 220 },
+  { id: 'cowboy', cost: 180 },
+  { id: 'sombrero', cost: 160 },
+  { id: 'partyhat', cost: 130 },
+  { id: 'santa', cost: 260 },
+];
+export const PREMIUM_HAT_COST = Object.fromEntries(PREMIUM_HATS.map(h => [h.id, h.cost]));
+
+/* COSMETICI TEMATICI: ogni zona ha un taglio (barbiere) e un cappello (sarto)
+   scopribili solo visitando il negozio IN quella zona; una volta sbloccati
+   restano scegliibili ovunque. Costo di scoperta = SERVICE_COST × 3. */
+export const ZONE_COSMETICS = {
+  prati: { hair: 'meadow', hat: 'flowercrown' },
+  dune: { hair: 'dunespike', hat: 'bandana' },
+  boschi: { hair: 'afro', hat: 'hood' },
+  terre: { hair: 'ember' },
+  palude: { hair: 'algae', hat: 'snorkel' },
+  ghiacci: { hair: 'frost', hat: 'ushanka' },
+};
+export const THEMED_HAIR = ['meadow', 'dunespike', 'afro', 'ember', 'algae', 'frost'];
+export const THEMED_HAT = ['flowercrown', 'bandana', 'hood', 'snorkel', 'ushanka'];
+
+/* Nomi propri per il personaggio (l'editor ne pesca uno a caso, modificabile). */
+export const NAMES = [
+  'Digsy', 'Nell', 'Pip', 'Milo', 'Ada', 'Ondi', 'Tobi', 'Suki', 'Remy', 'Juno',
+  'Bea', 'Cato', 'Wren', 'Enzo', 'Lila', 'Otto', 'Fenn', 'Maya', 'Ciro', 'Vera',
+  'Bruno', 'Ivo', 'Nina', 'Gigi', 'Teo', 'Zoe', 'Lupo', 'Mimi', 'Nico', 'Elsi',
+];
+export function randomName() { return NAMES[Math.floor(Math.random() * NAMES.length)]; }
+
 export const DEFAULT_LOOK = {
   hat: '#d06b43', shirt: '#57a58f', pants: '#c88a44', skin: '#f3cfa0',
-  hairStyle: 'short', hairColor: '#6e4a2a', hatStyle: 'explorer',
+  hairStyle: 'short', hairColor: '#6e4a2a', hatStyle: 'explorer', eyeColor: '#33291f',
 };

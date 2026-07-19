@@ -1,64 +1,111 @@
-/* Lingua: INGLESE di default, italiano secondario. tr(it,en) inline + helper per le etichette dati.
-   I nomi propri (specie, città, chimere) NON si traducono. Cambio lingua → reload. */
+/* Lingua: INGLESE di default, italiano secondario, RUSSO da dizionario.
+   I nomi propri (specie, città, chimere) NON si traducono. Cambio lingua → reload.
+
+   Italiano e inglese stanno inline nelle chiamate `tr(it, en)`: sono le due lingue in cui il
+   gioco è stato scritto. Le lingue AGGIUNTIVE non toccano le 669 chiamate sparse nel codice —
+   arrivano da un dizionario che ha per chiave la stringa INGLESE (il default del gioco).
+   Chiave mancante = si vede l'inglese, mai una stringa vuota o un codice: una traduzione
+   incompleta resta giocabile. */
+import { RU } from './lang/ru.js';
+
+export const LANGS = [
+  { id: 'en', label: 'English' },
+  { id: 'it', label: 'Italiano' },
+  { id: 'ru', label: 'Русский' },
+];
+const DICT = { ru: RU };
 export let LANG = (() => {
   try { return localStorage.getItem('digsy_lang') || 'en'; } catch (e) { return 'en'; }
 })();
-export function tr(it, en) { return LANG === 'it' ? it : en; }
+export function tr(it, en) {
+  if (LANG === 'it') return it;
+  const d = DICT[LANG];
+  if (d) { const v = d[en]; if (v !== undefined) return v; }
+  return en;
+}
+/* quante stringhe mancano alla lingua corrente (usato dai test e dalla pagina di prova) */
+export function dictOf(lang) { return DICT[lang] || null; }
 export function setLang(l) {
   try { localStorage.setItem('digsy_lang', l); } catch (e) { /* ok */ }
   if (typeof location !== 'undefined' && location.reload) location.reload();
 }
 
 /* ---------- etichette dei dati ---------- */
+/* una coppia [it, en] passa dallo stesso dizionario delle frasi: chiave = la voce inglese */
+function lab(e) { return LANG === 'it' ? e[0] : tr(e[0], e[1]); }
 const RARL = {
   comune: ['Comune', 'Common'], raro: ['Raro', 'Rare'],
   eccezionale: ['Eccezionale', 'Exceptional'], leggendario: ['Leggendario', 'Legendary'],
 };
-export function rarLabel(id) { const e = RARL[id]; return e ? (LANG === 'it' ? e[0] : e[1]) : id; }
+export function rarLabel(id) { const e = RARL[id]; return e ? lab(e) : id; }
 
 const PARTL = {
   cranio: ['Cranio', 'Skull'], torace: ['Torace', 'Ribcage'], zampa: ['Zampa', 'Leg'],
   coda: ['Coda', 'Tail'], corno: ['Corno', 'Horn'],
 };
-export function partName(id) { const e = PARTL[id]; return e ? (LANG === 'it' ? e[0] : e[1]) : id; }
+export function partName(id) { const e = PARTL[id]; return e ? lab(e) : id; }
 
 const ZONEL = {
   prati: ['Prati Dorati', 'Golden Meadows'], dune: ['Dune Ossee', 'Bone Dunes'],
   boschi: ['Boschi Cinerei', 'Ashen Woods'], terre: ['Terre Rosse', 'Red Lands'],
   palude: ['Palude Antica', 'Ancient Marsh'], ghiacci: ['Lande Gelide', 'Frozen Wastes'],
+  grotta: ['Grotte Profonde', 'Deep Caves'],
 };
-export function zoneName(id) { const e = ZONEL[id]; return e ? (LANG === 'it' ? e[0] : e[1]) : id; }
+export function zoneName(id) { const e = ZONEL[id]; return e ? lab(e) : id; }
 
 const BLDL = {
   lab: ['Laboratorio', 'Laboratory'], store: ['Negozio', 'Shop'], museum: ['Museo', 'Museum'],
   inn: ['Locanda', 'Inn'], barber: ['Barbiere', 'Barber'], tailor: ['Sartoria', 'Tailor'],
 };
-export function bldName(type) { const e = BLDL[type]; return e ? (LANG === 'it' ? e[0] : e[1]) : type; }
+export function bldName(type) { const e = BLDL[type]; return e ? lab(e) : type; }
 
 const SEASONL = [['primavera', 'spring'], ['estate', 'summer'], ['autunno', 'autumn'], ['inverno', 'winter']];
-export function seasonName(i) { return LANG === 'it' ? SEASONL[i][0] : SEASONL[i][1]; }
+export function seasonName(i) { return lab(SEASONL[i]); }
 
 const LOOKL = {
   hat: ['Cappello', 'Hat'], shirt: ['Maglia', 'Shirt'], pants: ['Pantaloni', 'Pants'], skin: ['Pelle', 'Skin'],
 };
-export function lookLabel(k) { const e = LOOKL[k]; return e ? (LANG === 'it' ? e[0] : e[1]) : k; }
+export function lookLabel(k) { const e = LOOKL[k]; return e ? lab(e) : k; }
 
 const HAIRL = {
   none: ['Rasato', 'Shaved'], short: ['Corto', 'Short'], long: ['Lungo', 'Long'],
   curly: ['Riccio', 'Curly'], punk: ['Punk', 'Punk'], receding: ['Stempiato', 'Balding'],
+  meadow: ['Germogli', 'Sprouts'], dunespike: ['Duna', 'Dune'], afro: ['Boschivo', 'Woodland'],
+  ember: ['Fiamma', 'Ember'], algae: ['Alghe', 'Algae'], frost: ['Gelo', 'Frost'],
 };
-export function hairLabel(id) { const e = HAIRL[id]; return e ? (LANG === 'it' ? e[0] : e[1]) : id; }
+export function hairLabel(id) { const e = HAIRL[id]; return e ? lab(e) : id; }
 
-const HATL = { explorer: ['Esploratore', 'Explorer'], cap: ['Berretto', 'Cap'], beanie: ['Cuffia', 'Beanie'] };
-export function hatLabel(id) { const e = HATL[id]; return e ? (LANG === 'it' ? e[0] : e[1]) : id; }
+const HATL = { explorer: ['Esploratore', 'Explorer'], cap: ['Berretto', 'Cap'], beanie: ['Cuffia', 'Beanie'],
+  vikingo: ['Vichingo', 'Viking'], cowboy: ['Cowboy', 'Cowboy'], sombrero: ['Sombrero', 'Sombrero'],
+  partyhat: ['Festa', 'Party'], santa: ['Babbo Natale', 'Santa'],
+  flowercrown: ['Coroncina', 'Flower crown'], bandana: ['Bandana', 'Bandana'], hood: ['Cappuccio', 'Hood'],
+  snorkel: ['Boccaglio', 'Snorkel'], ushanka: ['Colbacco', 'Ushanka'] };
+export function hatLabel(id) { const e = HATL[id]; return e ? lab(e) : id; }
 
 /* testi statici dell'index.html (HUD, splash, boot) applicati al boot */
 export function applyStaticTexts() {
   const set = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; };
   const lbls = document.querySelectorAll('#hud .lbl');
-  const L = LANG === 'it'
-    ? [' monete', ' energia', 'giorno ', 'zaino ', ' menu']
-    : [' coins', ' energy', 'day ', 'bag ', ' menu'];
+  const L = [tr('zaino ', 'bag '), tr(' menu', ' menu')];
   lbls.forEach((el, i) => { if (L[i] !== undefined) el.textContent = L[i]; });
   set('.sp-sub', tr('scava · scopri · rianima', 'dig · discover · revive'));
+}
+
+/* TASTI NEI TESTI — su un telefono non esiste nessun tasto E: c'è il pulsante A.
+   Ogni testo che nomina un comando deve passare da qui, così dice sempre la verità
+   sul dispositivo che si ha in mano (regola: ogni testo dice cosa fa davvero). */
+export function isTouch() {
+  return (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches)
+    || (typeof innerWidth === 'number' && innerWidth <= 760);
+}
+/* il comando "agisci": E da tastiera, A sul telefono */
+export function actKey() { return isTouch() ? '<kbd>A</kbd>' : '<kbd>E</kbd>'; }
+/* scorciatoie che sul telefono NON esistono: si scrivono solo su desktop */
+export function keyHint(k) { return isTouch() ? '' : ' (<kbd>' + k + '</kbd>)'; }
+/* SEGNAPOSTO nei testi tradotti: {act} = il tasto azione, {key:M} = una scorciatoia.
+   Servono perché la chiave del dizionario deve restare STABILE: se si concatena actKey()
+   dentro la stringa, la chiave cambia da dispositivo a dispositivo e la traduzione non
+   viene più trovata (i suggerimenti restavano in inglese sui telefoni). */
+export function keys(s) {
+  return String(s).replace(/\{act\}/g, actKey()).replace(/\{key:([A-Z])\}/g, (_, k) => keyHint(k));
 }

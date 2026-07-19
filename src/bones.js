@@ -54,6 +54,7 @@ export function clampSpec(spec) {
 
 /* ---------- crani e teste (condivisi) ---------- */
 function skullVoxels(sp, horns, nx, ny, nz, out) {
+  const i0 = out.length; // per il tag parte: cranio, poi corni
   const pp = partParams(sp), t = pp.skull, sz = pp.size; // il cranio scala con la taglia
   const P = (x, y, z, k) => out.push({ x: nx + x, y: ny + y, z: nz + z, k: k || 'bone' });
   if (t === 0) {        // tozzo e largo
@@ -75,9 +76,11 @@ function skullVoxels(sp, horns, nx, ny, nz, out) {
     for (let i = 0; i <= 2 + sz; i++) P(-i, 3 + Math.min(i, 2), 0, 'shade'); // cresta
     P(-2, 1, -1, 'eye'); P(-2, 1, 1, 'eye');
   }
+  const h0 = out.length; // da qui in poi: corni
   const hz = horns === 2 ? [-1, 1] : [0];
   const hlen = 2 + sz;                                        // corni lunghi quanto la taglia
   for (const z of hz) for (let i = 0; i < hlen; i++) P(-1 + Math.floor(i / 2), 3 + i, z, i === hlen - 1 ? 'dark' : 'shade');
+  for (let i = i0; i < out.length; i++) out[i].p = i >= h0 ? 'corno' : 'cranio';
 }
 function fleshHead(sp, horns, nx, ny, nz, out) {
   const pp = partParams(sp), col = spColor[sp.id] || '#c8b078';
@@ -99,6 +102,13 @@ function fleshHead(sp, horns, nx, ny, nz, out) {
    mand/ant/prob: mandibole·antenne·proboscide · tail: none|short|long|club|sting|fin
    extra: sail|spikes|shell|hump · float: fluttua · wave: corpo ondulato · tall: eretto */
 export const BP = {
+  /* GROTTE (specie esclusive delle caverne) */
+  cavernide: { seg: [2, 2], legs: [4, 1], horns: 1, tail: 'short', head: 0 },
+  luceverme: { seg: [2, 2, 2, 2], legs: [0, 0], tail: 'short', head: 'none', wave: true, extra: 'spikes' },
+  stalattodonte: { seg: [3, 3], legs: [4, 2], horns: 2, tail: 'club', head: 0, extra: 'spikes', tall: true },
+  pipistrosso: { seg: [2], legs: [2, 1], wings: [2, 'm'], horns: 1, tail: 'short', head: 0 },
+  cristallugo: { seg: [2, 2], legs: [4, 1], horns: 2, tail: 'fin', head: 3, extra: 'spikes' },
+  abissodonte: { seg: [3, 3, 3], legs: [4, 2], horns: 2, neck: 1, tail: 'long', head: 1, extra: 'sail', tall: true },
   /* PRATI */
   prato: { seg: [2, 2], legs: [4, 1], horns: 2, tail: 'short', head: 0 },
   lepre: { seg: [1, 2], legs: [2, 2], horns: 2, tail: 'short', head: 0, tall: true },
@@ -268,6 +278,9 @@ function headExtras(r, hx, hy, mode, colT, out) {
 
 function buildFromRecipe(spec, mode) {
   const out = [];
+  /* tag della parte (cranio/torace/zampa/coda/corno) sui voxel aggiunti da `i0` in poi:
+     serve al Libro per "accendere" solo i pezzi consegnati al museo */
+  const tagFrom = (i0, p) => { for (let i = i0; i < out.length; i++) if (!out[i].p) out[i].p = p; };
   const chest = spec.chest;
   const r = BP[chest.id] || { seg: [2, 2], legs: [4, 1], tail: 'short', head: 0 };
   const colT = spColor[chest.id] || '#c8b078';
@@ -282,6 +295,7 @@ function buildFromRecipe(spec, mode) {
   const baseY = r.float ? 6 : (nLegs > 0 ? (legLen >= 2 ? 5 : 2 + legLen * 2) : 1);
   /* segmenti SOVRAPPOSTI di 1 → corpo sempre connesso; onda opzionale */
   const segsX = [], segCys = [], segCzs = [], topYs = [];
+  const tSeg = out.length;
   let prevCx = null, prevR = 0;
   segs.forEach((sr, i) => {
     const cx = prevCx === null ? sr : prevCx + prevR + sr - 1;
@@ -296,8 +310,10 @@ function buildFromRecipe(spec, mode) {
     segsX.push(cx); segCys.push(cy); segCzs.push(cz); topYs.push(cy + sr);
     prevCx = cx; prevR = sr;
   });
+  tagFrom(tSeg, 'torace');
   const frontX = segsX[0] - segs[0], backX = segsX[segsX.length - 1] + segs[segs.length - 1];
   /* zampe distribuite sotto i segmenti (con giunzione all'anca) */
+  const tLeg = out.length;
   if (nLegs > 0) {
     const pairs = Math.round(nLegs / 2);
     for (let i = 0; i < pairs; i++) {
@@ -307,15 +323,19 @@ function buildFromRecipe(spec, mode) {
     }
   } else if (!r.float) { // striscia: spuntoni ventrali attaccati al ventre
     segsX.forEach((sx, i) => out.push(mode === 'skel' ? { x: sx, y: Math.max(0, segCys[i] - segs[i]), z: segCzs[i], k: 'shade' } : { x: sx, y: Math.max(0, segCys[i] - segs[i]), z: segCzs[i], col: shadeHex(colT, 0.8) }));
+    tagFrom(tLeg, 'torace');
   }
+  tagFrom(tLeg, 'zampa');
   /* ali (dal blueprint o, per chimere, dalle braccia alate) */
   let wings = isBase ? r.wings : null;
   if (!isBase) {
     const wsp = spec.arms.find(a => (BP[a.id] || {}).wings);
     if (wsp) wings = [Math.min(4, Math.max(2, spec.arms.length)), BP[wsp.id].wings[1]];
   }
-  if (wings) wingVox(segsX[0], topYs[0], wings[0], wings[1], mode, colT, out);
+  const tWing = out.length;
+  if (wings) { wingVox(segsX[0], topYs[0], wings[0], wings[1], mode, colT, out); tagFrom(tWing, 'zampa'); }
   /* collo + teste (ogni testa con lo stile della SUA specie), raccordati */
+  const tNeck = out.length;
   const neck = r.neck || 0;
   let nx = frontX, ny = segCys[0];
   for (let i = 1; i <= neck * 2; i++) {
@@ -323,6 +343,8 @@ function buildFromRecipe(spec, mode) {
     out.push(mode === 'skel' ? { x: nx, y: ny, z: 0, k: 'bone' } : { x: nx, y: ny, z: 0, col: colT });
     if (mode === 'flesh') for (const dz of [-1, 1]) out.push({ x: nx, y: ny, z: dz, col: colT });
   }
+  tagFrom(tNeck, 'torace'); // il collo appartiene al torace
+  const tHead = out.length;
   if (r.head === 'none' && isBase) { // occhi sul davanti del corpo
     const push = (x, y, z) => out.push(mode === 'skel' ? { x, y, z, k: 'eye' } : { x, y, z, col: '#33291f' });
     push(frontX + 1, segCys[0] + 1, -1); push(frontX + 1, segCys[0] + 1, 1);
@@ -337,7 +359,9 @@ function buildFromRecipe(spec, mode) {
     });
     headExtras(r, hx, hy, mode, colT, out);
   }
+  tagFrom(tHead, 'cranio'); // (i corni sono già taggati dentro skullVoxels)
   /* code: parte DENTRO la superficie posteriore (x0=backX-1) → sempre raccordate */
+  const tTail = out.length;
   const tls = isBase ? [chest] : spec.tails;
   const tzs = tls.length === 1 ? [0] : tls.length === 2 ? [-1, 1] : [-2, 0, 2];
   tls.forEach((tsp, i) => {
@@ -348,10 +372,45 @@ function buildFromRecipe(spec, mode) {
     tailVox(backX - 1, segCys[segCys.length - 1], kind, mode, colX, out);
     if (tzs[i]) for (let k2 = before; k2 < out.length; k2++) out[k2].z += tzs[i];
   });
-  if (r.extra) extraVox(maxR, segsX, topYs, r.extra, mode, colT, out);
+  tagFrom(tTail, 'coda');
+  const tExtra = out.length;
+  if (r.extra) { extraVox(maxR, segsX, topYs, r.extra, mode, colT, out); tagFrom(tExtra, 'torace'); }
   const seen = new Set(), ded = [];
   for (const v of out) { const k = v.x + ',' + v.y + ',' + v.z; if (!seen.has(k)) { seen.add(k); ded.push(v); } }
   return ded;
+}
+
+/* voxel del SINGOLO pezzo (zaino/negozio/museo): stesso modello del 3D, isolato */
+export function partVoxels(spId, part) {
+  const out = [];
+  const r = BP[spId] || { seg: [2, 2], legs: [4, 1], tail: 'short' };
+  const colT = spColor[spId] || '#c8b078';
+  if (part === 'cranio') skullVoxels({ id: spId }, Math.min(2, r.horns === undefined ? 1 : r.horns), 6, 2, 0, out);
+  else if (part === 'torace') {
+    const segs = r.seg || [2]; let prevCx = null, prevR = 0;
+    segs.forEach(sr => {
+      const cx = prevCx === null ? sr : prevCx + prevR + sr - 1;
+      segRing(cx, Math.max(...segs), 0, sr, 'skel', colT, out);
+      prevCx = cx; prevR = sr;
+    });
+  } else if (part === 'zampa') legVox(2, 6, 0, 2, 1, Math.max(1, (r.legs || [4, 1])[1] || 1), 'skel', colT, out);
+  else if (part === 'coda') tailVox(0, 3, (r.tail && r.tail !== 'none') ? r.tail : 'short', 'skel', colT, out);
+  else { // corno: spuntone curvo, più lungo per le specie cornute
+    const hlen = 4 + (r.horns ? 2 : 0);
+    for (let i = 0; i < hlen; i++) out.push({ x: Math.floor(i / 2), y: i, z: 0, k: i >= hlen - 2 ? 'shade' : 'bone' });
+  }
+  return out;
+}
+
+/* montaggio museale: SOLO i pezzi consegnati, disposti in posa anatomica */
+const EX_OFF = { torace: [0, 0], cranio: [-7, 3], zampa: [3, -5], coda: [8, 1], corno: [-7, 9] };
+export function composedPartsVox(spId, parts) {
+  const vox = [];
+  for (const p of parts) {
+    const o = EX_OFF[p] || [0, 0];
+    for (const v of partVoxels(spId, p)) vox.push({ x: v.x + o[0], y: v.y + o[1], z: v.z, k: v.k });
+  }
+  return vox;
 }
 
 export function buildVoxels(rawSpec) { return buildFromRecipe(clampSpec(rawSpec), 'skel'); }

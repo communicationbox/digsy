@@ -3,18 +3,18 @@
 import * as THREE from 'three';
 import { buildVoxels, buildFleshVoxels } from './bones.js';
 
-const COLS = { bone: 0xe8e2d0, shade: 0xcbbfa4, dark: 0x8f836b, eye: 0x3a3128 };
+const COLS = { bone: 0xe8e2d0, shade: 0xcbbfa4, dark: 0x8f836b, eye: 0x3a3128, dim: 0x4a4458, dim2: 0x3a3448 };
 const SIL = 0x5a4a3a;
 
 export function mountSkeleton(canvas, spec, opts = {}) {
-  const { silhouette = false, spin = true, flesh = false } = opts;
+  const { silhouette = false, spin = true, flesh = false, lit = null, voxels: given = null } = opts;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false });
   renderer.setPixelRatio(1); // niente retina: pixel grossi = 8-bit
   renderer.setSize(canvas.width, canvas.height, false);
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf6efdd);
 
-  const voxels = flesh ? buildFleshVoxels(spec) : buildVoxels(spec);
+  const voxels = given || (flesh ? buildFleshVoxels(spec) : buildVoxels(spec)); // `given`: meraviglie e altri modelli non-scheletro
   /* bounding box per centrare e inquadrare */
   let mn = [9e9, 9e9, 9e9], mx = [-9e9, -9e9, -9e9];
   for (const v of voxels) { [v.x, v.y, v.z].forEach((c, i) => { mn[i] = Math.min(mn[i], c); mx[i] = Math.max(mx[i], c); }); }
@@ -25,7 +25,12 @@ export function mountSkeleton(canvas, spec, opts = {}) {
   const group = new THREE.Group();
   const geo = new THREE.BoxGeometry(1, 1, 1);
   const byCol = {};
-  for (const v of voxels) { const k = silhouette ? 'sil' : (v.col || v.k); (byCol[k] = byCol[k] || []).push(v); }
+  /* lit = pezzi consegnati al museo: gli altri restano scheletro OSCURATO */
+  for (const v of voxels) {
+    let k = silhouette ? 'sil' : (v.col || v.k);
+    if (!silhouette && !v.col && lit && v.p && !lit.includes(v.p)) k = v.k === 'shade' || v.k === 'dark' ? 'dim2' : 'dim';
+    (byCol[k] = byCol[k] || []).push(v);
+  }
   const dummy = new THREE.Object3D();
   for (const [k, list] of Object.entries(byCol)) {
     const mat = silhouette

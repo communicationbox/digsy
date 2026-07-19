@@ -27,7 +27,22 @@ src/sprites.js      PAL mutabile, shade/applyLook, SPR (fronte/retro/profilo), H
 src/park.js         sim chimere nel recinto (parks Map, refreshVisParks/updatePark)
 src/compass.js      città più vicina, octant, updateCompass (HUD + toast benvenuto)
 src/gameplay.js     tryDig/economia/chimere (chimeraName/assembleChimera), collide, act
-src/render.js       groundTile, drawTree/Building/Fence/Creature, drawPlayer, render, freccia bussola
+src/brush.js        primitive di disegno (snap/px/rect/shadow/shade8, BRUSH)
+src/tiles.js        palette stagionali/bioma, BIOME_BUILD/INT_WOOD, soilDetail, groundTile
+src/props.js        alberi, sassi, fiori, funghi, oggetti a terra, decorazioni di bioma
+src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc)
+src/render.js       composizione della scena: entità, player, veicoli, scavo, bussola, loop
+src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
+src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
+src/mapui.js        mappa del mondo (pergamena, zoom, punti d'interesse)
+src/prefs.js        preferenze del giocatore FUORI dal salvataggio (suggerimenti, comandi, mano)
+src/tapmove.js      "tocca dove andare": meta, cammino, arrivo
+src/path.js         A* su caselle (aggira gli ostacoli, tetto 40 caselle)
+src/fuse.js         fusione dei doppioni (3 uguali → 1 di rarità superiore)
+src/lang/ru.js      dizionario russo (chiave = stringa inglese)
+src/prepui.js       tavolo di preparazione (overlay); logica in prepare.js
+src/prepare.js      crosta/spazzola/gradi (puro, testabile)
+src/commission.js   commissione del Museo a 3 giorni (puro, testabile)
 src/ui.js           toast/HUD/prompt, modale, Lab/Negozio/Museo/Locanda/Barbiere/Sartoria, zaino, editor
 src/splash.js       splash screen (splashActive/initSplash)
 src/input.js        tastiera + touch
@@ -41,6 +56,9 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 ## Come far girare / testare
 - `npm install` (solo la prima volta), poi `npm run dev` → http://localhost:5173
 - `npm run build` → `dist/` statico; `npm run preview` per provarlo.
+- `npm run stress` → limiti veri (mappa, scavi, salvataggio, creature, distanza dall'origine).
+  In gioco: comando `stress=1..5` per caricare il gioco sul dispositivo e misurare gli fps.
+- `npm run cov` → copertura per modulo (V8, zero dipendenze); `--gate` fallisce sotto soglia.
 - `npm test` → suite Node senza browser (stub DOM in `tests/stub.mjs`): mondo/città,
   bussola, chimere/parco, sprite/look, smoke UI e render. Tenerla verde e **aggiornarla
   a ogni feature**.
@@ -49,17 +67,58 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 ## Meccaniche implementate
 - **Mondo procedurale infinito** deterministico (value-noise + fbm, seed salvato).
   Terreni: acqua profonda/acqua/sabbia/prato/foresta/terra/montagna + pavimenti città/parco.
-- **Scava ovunque** con rese per terreno (sabbia .72 / prato .35 / foresta .5 / roccia .6);
+- **Scava ovunque** con rese per terreno (sabbia .62 / prato .30 / foresta .43 / terra .52);
   caselle esauribili (`dugSet` salvato). Reperti grezzi → **Laboratorio** identifica → codex.
   **Scavo animato** (~0.5s, `P.digging` + `beginDig/stepDig` nel loop): piccone alzato/colpo,
   terra che schizza, movimento bloccato, esito alla risoluzione (vale anche per i siti).
-- **Negozio** (vendi, +15⚡ a 15🪙), **Museo** (dona il primo esemplare → taglia 2×),
-  **Locanda** (dormi → energia piena, +1 giorno).
+- **Negozio**: vendi reperti; **ristoro** 15🪙 → va nello ZAINO (`S.snacks`, +15⚡ quando lo usi);
+  **mappe del tesoro** (raro 🪙40 / eccezionale 🪙130 / leggendario 🪙480, `MAP_COST/MAP_DIST`):
+  X scavabile lontana (più raro = più lontano), reperto GARANTITO di quella rarità, X rossa
+  disegnata a terra (`drawXmark`), mappa consumata allo scavo. **Locanda** (dormi → alba, +1 giorno).
+- **Zaino (I o Z) = OVERLAY a forma di zaino** da escursione 8-bit (teal/arancio, patta
+  aperta col rombo, `#bagov/#bagbox`, ESC/✕/fuori per chiudere, `isBagOpen/closeBag`):
+  bocca scura con gli slot dei reperti (miniature = **proiezione 2D del VERO pezzo voxel**,
+  `partVoxels`+`projectVox`/`hydratePv`, canvas `.pv` — anche in negozio), tasca frontale
+  per ristori (click = usa), DNA, attrezzi, **mappe cliccabili** → bussola HUD e freccia
+  a bordo schermo (ROSSA) seguono la X (`S.trackMap`, `trackedMap()`, riclick = città).
+- **Attrezzi** (Negozio, `TOOL_COST` 60/120/150/400, `buyTool`): **pala fortunata** 🪏
+  (S.shovel, 60 cariche, drop ×1.6 cap .95), **accetta** 🪓 (E davanti a un albero →
+  `tryChop`, CHOPPABLE, `S.chopped/choppedSet`), **piccone** ⛏️ (massi/guglie, `tryMine`,
+  MINEABLE, `S.mined`), **barca** ⛵ (mai si rompe: sull'acqua — anche gelata — spawna da
+  sola, `onBoat()`, collide passa su WATER/DEEP, sprite barca con bob+scia, niente camminata;
+  **E sull'acqua = PESCA** `tryFish` con lenza/galleggiante).
+- **Fonti dei fossili** (`sp.src` in data.js): per zona 1 raro vive negli ALBERI, 1 raro in
+  ACQUA, 1 eccezionale nelle ROCCE — lo scavo a terra li ESCLUDE (`makeRaw(zone,dist,rar,src)`,
+  siti/fontana/mappe = 'any'); il **Libro indica la fonte** nella riga meta (accetta/piccone/
+  barca). Nel Libro gli scheletri sono **OSCURATI**: si accendono solo i pezzi consegnati al
+  museo (tag `v.p` per parte in bones.js, `lit` in projectVox/mountSkeleton; VIVO = completo).
+- **Cutscene libro al museo**: prima volta in un museo di bioma nuovo → player bloccato, il
+  Curatore esce dal banco (destra poi giù, waypoint `CUT`), consegna il Libro (animazione:
+  libro che sale con scintille) + **banner centrale** (`showBanner`), poi torna al banco.
+  NPC/player/banco ordinati per y (niente sovrapposizioni). Museo = edificio **5×2 con
+  frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
+  barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
+- **Fontana**: max 10 lanci per città (`S.fountains[key]={n,d0}`), poi riposa e si ricarica
+  dopo 10 giorni. **Identificazione al MUSEO** (non più al Lab): il Lab tiene chimere+risveglio.
 - **Città procedurali** in celle `TCELL=40` (prob 0.45), nomi propri tema terra/ossa (`townName`).
   Taglie: **borgo** (Lab+Negozio), **paese** (+Locanda+**Barbiere**), **città**
-  (6 edifici: +Museo+**Sartoria**, piazza larga 19, + **parco recintato**).
-- **Barbiere** 💈: 6 tagli (Rasato/Corto/Lungo/Riccio/Punk/Stempiato) × 12 colori, 🪙8 a modifica
-  (anteprima senza cappello).
+  (6 edifici: +Museo+**Sartoria**, piazza larga 23, + **parco recintato**). Piazze SPAZIOSE
+  (file di case distanti 5+ tile) con **strade sterrate** (`town.roads` Set, tile `ROAD`):
+  vialetto porta→strada per ogni casa, strada orizzontale davanti a ogni fila, viale centrale
+  x=C.x sempre libero (fila bassa città sfalsata apposta) che scende fino al cancello del parco.
+  Niente arredo sulle strade (`forb`). Città+parco SEMPRE dentro la propria cella (jy 8..27).
+  Sotto gli edifici: lastricato, mai erba, e non ci si scava (`tryDig` rifiuta ogni townInfo).
+  `exitInterior` cerca la prima tile LIBERA davanti alla porta (niente compenetrazioni).
+- **Barbiere** 💈 / **Sartoria** 👕: **prova LIBERA + Conferma** (`beginLook/confirmLook/
+  revertLook`, `lookPaidFields`): provi quanto vuoi gratis, paghi 🪙8 solo per i campi
+  cambiati alla conferma; Annulla/chiudi ripristina. **Cosmetici TEMATICI per zona**
+  (`ZONE_COSMETICS`, `THEMED_HAIR/THEMED_HAT`): ogni zona ha 1 taglio + 1 cappello esclusivi
+  (Boccaglio in palude, Colbacco nelle Lande Gelide, Coroncina nei Prati, Elmetto nelle Terre,
+  Cappuccio nei Boschi, Bandana nelle Dune, tagli Germogli/Duna/Boschivo/Fiamma/Alghe/Gelo)
+  **scopribili solo nel negozio di QUELLA zona** (`discoverBox`, costo ×3, `unlockCosmetic`,
+  `S.unlocked{hats,hairs}`); una volta sbloccati sono scegliibili ovunque (`hairStylesAvail/
+  hatStylesAvail`). Sprite in HAIRS/HATS (righe 16, fronte/retro simmetriche, HAT_CROWN).
+- **Barbiere** 💈: 6 tagli base × 12 colori (anteprima senza cappello).
 - **Sartoria** 👕 (solo città): 3 forme di cappello (Esploratore/Berretto/Cuffia, `HAT_STYLES`
   + overlay `HATS[forma]`), colori, maglia/pantaloni 🪙8; ultimo quadratino ✕ = **senza
   cappello, gratis** (`S.look.hatStyle='none'`; scegliere un colore lo rimette).
@@ -71,7 +130,7 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   splash (`sessionStorage digsy_skipsplash`). In dev la splash si salta (`?splash` la forza,
   `?nosplash` la salta in prod). Prima partita: **editor personaggio** (gratis, `S.lookDone`).
 - **HUD leggibile**: etichette testuali (`.lbl`, nascoste <760px), energia mostrata come
-  `corrente/max`, tooltip `title` su ogni tag.
+  `corrente/max`, tooltip `title` su ogni tag, **orologio HH:MM** nel tag giorno (alba=06:00).
 - **Sprite a layer**: corpo a testa nuda → capelli (`HAIRS`) → cappello (`HATS`, overlay
   removibile); profilo dedicato (occhio singolo, falcata), retro con zaino; `S.look` pilota
   la palette via `applyLook`.
@@ -111,7 +170,10 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 
 - **Zone endemiche** (`regions.js`): 6 tipi stile Minecraft (Prati Dorati 🌾, Dune Ossee 🏜️,
   Boschi Cinerei 🌲, Terre Rosse ⛰️, Palude Antica 🐸, Lande Gelide 🧊) da noise a bassa
-  frequenza, cache per blocchi 8×8; tinta leggera sulle tile, tag HUD 🌍 + toast d'ingresso.
+  frequenza, cache per blocchi 4×4; tag HUD 🌍 + toast d'ingresso. Confini **domain-warped**
+  (serpeggiano, mai a righello) con dithering leggero; **coerenza climatica**: temperatura in
+  3 fasce (freddo Lande/Boschi · temperato Prati/Palude · caldo Terre/Dune, tabella `BAND`)
+  → Lande Gelide e Terre Rosse non si toccano mai (test: 0 violazioni + niente confini dritti).
 - **60 specie** (10 per zona: 4 comuni/3 rare/2 eccezionali/1 LEGGENDARIA, `zonePools`);
   la rarità dell'oggetto = rarità intrinseca della specie. **Gradiente distanza** (`rarWeights`):
   lontano dall'origine → più rari/leggendari e valori più alti. `spColor` generato (hue aureo).
@@ -152,6 +214,14 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   volume di pelle con colori per specie — dorso/pancia, becco giallo, occhi, membrane ali;
   nelle chimere ogni pezzo ha il colore della SUA specie). In debug tutte e 60 attive.
   L'anteprima chimera del Lab è in versione viva. `viewByCv/remount3D` per il toggle.
+- **Creature del parco = proiezione dello STESSO modello voxel VIVO** (`creatureSprite`:
+  buildFleshVoxels della chimera → sprite 2D cache con CONTORNO scuro così staccano dallo
+  sfondo, flip per verso, bob camminata) — coerenti con libro/museo, non più il vecchio 2D.
+- **Ingresso case coi PIEDI sulla porta** (`checkDoorEnter` usa P.y+13, non un blocco prima);
+  sempre **3 blocchi liberi davanti** (`forb` doory+1..+3) + uscita su tile aperta (`exitInterior`
+  con `openArea`). **Acque leggibili come liquido** in tutte le zone (onde/riflessi animati,
+  palude verde-blu non-erba, mare gelato azzurro con lastre di ghiaccio). HUD mobile compatto
+  (tag `white-space:nowrap`, zona/bussola troncate con ellissi <760px).
 - Niente stelline di scavo (rimosse); ~1 albero su 3 ondeggia la chioma (fase da tile).
   Lo **sprite 2D del libro è la proiezione laterale statica dello STESSO modello voxel**
   (`drawVoxel2D`: ossa bianche a 3 toni di profondità z su fondo scuro, nell'intestazione —
@@ -166,7 +236,20 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   in `S.sites` (usati per chiave sito). Interazione adiacente con E (priorità: porta > sito >
   fontana > scavo).
 
-- **Multilingua** (`i18n.js`): **INGLESE di default**, italiano secondario. `tr(it, en)` inline
+- **Scavo sotto i piedi**: `digTarget()` = tile del player (mai il cubetto sbagliato);
+  animazione dedicata (piccone alto → colpo verticale tra i piedi, terra a ventaglio).
+- **Mobile: joystick analogico** (`#joy/#joyknob` in input.js): pointer capture, si trascina
+  senza staccare il dito, knob clampato nel cerchio, zona morta al centro, vettore → 8
+  direzioni (stessi flag `keys` della tastiera). Il d-pad a 4 frecce è stato rimosso.
+- **Editor/barbiere/sartoria**: anteprima GRANDE (360px) e ANIMATA — cammina sul posto in 3
+  pose (2 frame + bob, ritmo del gioco); loop rAF che muore quando la canvas esce dal DOM.
+- **Multilingua** (`i18n.js`): **INGLESE di default**, italiano secondario, **RUSSO** da dizionario
+  (`src/lang/ru.js`, chiave = stringa inglese; chiave mancante → si vede l'inglese). Aggiungere
+  una lingua = un file in `src/lang/` + una riga in `LANGS`, senza toccare le 669 chiamate `tr()`.
+  Nei testi i tasti si scrivono con i **segnaposto** `{act}` e `{key:M}` risolti da `keys()`:
+  concatenare `actKey()` dentro la stringa cambierebbe la chiave del dizionario e la traduzione
+  non verrebbe più trovata. Test: copertura ≥90%, spazi iniziali/finali e tag HTML conservati,
+  nessuna voce orfana. `tr(it, en)` inline
   + helper etichette (`rarLabel/partName/zoneName/bldName/seasonName/lookLabel/hairLabel/
   hatLabel`), `applyStaticTexts()` per l'HUD statico. Cambio lingua: splash → 🌍 Lingua →
   `setLang` (persist `digsy_lang` + reload). I nomi propri (specie/città/chimere) NON si
@@ -208,36 +291,102 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   FIRMATE per zona in `decoAt` (dune: cactus/bonespire · boschi: deadtree/mushroom/stump ·
   terre: redspire/orecrystal · palude: reed ondeggianti/alberi contorti · ghiacci: icecrystal/
   pini innevati · prati: hay/fiori). Velatura tint rimossa.
-- **Museo rifatto**: donazioni **PEZZO PER PEZZO** (`S.museum[spId]=[parti]`, `donateItem` →
-  {bounty, dna, count}): monete per ogni pezzo nuovo, 5/5 → **DNA estratto = specie
-  RISVEGLIATA** (S.awakened, vista VIVA nel libro). Interno multi-stanza: **hall** (6 porte
-  colorate per bioma, banco accoglienza con Curatore, tappeto rosso) → **ali espositive** con
-  10 teche/specie (slot 5 pezzi accesi/spenti, targhetta rarità, stella dorata se completa);
-  navigazione `INT.room` ('hall'|0..5), `HALL_DOORS`, `caseRects` (corsie 12px ≥ hitbox);
-  prompt sulla teca = nome specie + n/5.
+- **Museo v3**: consegni i **GREZZI** al Curatore (`museumDeposit` → `S.museumJob{items,ready}`,
+  bloccati), gli esperti identificano in **1 giorno** (debug: subito); al **ritiro**
+  (`museumCollect`) i doppioni tornano a te identificati (vendibili), i pezzi NUOVI vengono
+  esposti — **niente monete dal museo**. Teca completa 5/5 → **fialetta DNA intera**.
+- **DNA a mezze dosi** (`S.dna[spId]` = mezze, 2 = fialetta intera): **risveglio al Lab =
+  1 fialetta intera** (senza fossili, si consuma, `awakenReady/awakenSpecies`); **chimera =
+  ½ fialetta per ogni specie DISTINTA usata + i 3 pezzi + 🪙40** (mezza avanzata non risveglia);
+  **ricariche al museo** solo per teche complete, prezzo per rarità (`DNA_COST` 30/80/150/300,
+  `buyDna`). Identificazione SOLO via museo (il Lab tiene chimere+risveglio).
+- **Galleria camminabile GRANDE** (niente porte): `GAL_W×GAL_H` 60×48 tile con **camera che
+  segue il player** (`drawMuseumGallery`, culling tile/teche). **6 SALE per bioma** a griglia
+  2×3 (`roomOrigin/ROOM_W/ROOM_H`), ognuna con tappeto del colore bioma, stendardo+emblema
+  sulla parete di fondo, colonne agli angoli, lampadario e panche. **Atrio d'ingresso** con
+  **bancone del Curatore CENTRATO davanti alla porta** (`GAL_DESK` centrato), insegna MUSEO,
+  tappeto rosso e piante. **60 piedistalli** (`pedList`, 2 file da 5 per sala) espongono i
+  **SOLI pezzi consegnati** (`composedPartsVox`+`exhibitSprite`, stella se 5/5); **E → scheda**
+  (`openExhibit`). La cutscene del libro: il Curatore aggira il banco e scende dritto dal player.
 
-## Prossimi passi (decisi, in ordine)
-1. **Missioni del Museo**: fetch quest generate ("Cranio di Magmadonte", taglia ×4).
-2. **Mappe del tesoro**: reperto raro → X lontano → scavo leggendario garantito.
-3. Agganciare gli SFX (`playSfx`) a scavo/monete/ritrovamenti.
+- **Bioma GROTTA** (`cave.js` + `caveEntranceAt` in world): imbocchi rari sulle **montagne**
+  (roccia con terra sotto, camminabili). Entri camminandoci dentro → **dimensione buia**
+  esplorabile (64×48, `CAVE`), camera che segue, **quasi tutto nero salvo l'alone** attorno al
+  player (come notte). Pareti di roccia solide, **giacimenti luminosi** (cristalli) da scavare
+  con E → **6 fossili di grotta ESCLUSIVI** (`CAVE_SPECIES`, fuori dalle 60, `src:'grotta'`,
+  BP dedicati in bones). Uscita dal corridoio in basso. `goto=grotta` e ingressi renderizzati
+  (`drawCaveEntrance`/`drawCaveScene`). HUD zona = 🕳️ Grotta.
+- **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
+  (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
+  (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i
+  cheat e ripristina il save: i cheat sono NON distruttivi, `cheatLock`+snapshot in state).
+  Output multi-linea (`#cmdout`), `\` toggle. Doc in `COMMANDS.md`.
+- **Audio**: tema chiptune **rifatto** (128 ottavi, 4 frasi + variazione, progressione d'accordi,
+  pad+shaker). Riparte in loop **al primo gesto dopo il refresh** (`armAudioResume`). **SFX**
+  agganciati: scavo (dig/found), accetta/piccone, pesca, monete (fontana/vendite/acquisti).
+- **Cosmetici tematici disegnati a mano** (editor `/editor`): overlay HATS con righe da **-3**
+  (svettano sopra la testa) e accenti W/K; anteprima sarto con +4px di headroom.
+
+## Prossimi passi → vedi ROADMAP.md
+Le feature sono **congelate**: nessun sistema nuovo finché i quattro lavori di `ROADMAP.md`
+non sono chiusi. Bug, arte, bilanciamento, test e refactor si fanno sempre.
 
 - **Modalità DEBUG** (Ctrl+Shift+D in game, `debug.js`): energia e monete infinite (∞ nell'HUD,
   tag 🐞), libro completo, sartoria/barbiere gratis, velocità ×3. **Non distruttiva**: override
   runtime ai punti di lettura/spesa (`isDebug()`), il salvataggio non viene mai toccato.
+
+## Prestazioni (pass di ottimizzazione)
+- **Render a UNICA passata tile**: terreno + raccolta entità in un solo loop (`townInfo`/
+  `baseTerrain`/`zoneIdxAt` chiamati 1× per tile in vista, non 2×).
+- **`decoAt` con cache** (`decoCache` Map, deterministica; invalidata solo su chop/mine):
+  niente più tempesta di `vhash` per ogni tile ogni frame.
+- **`pedList` memoizzato** (museo): non rialloca 60 oggetti a ogni frame (render+collisioni+prompt).
+- **Render saltato sotto overlay pieni** (zaino/libro): il mondo è coperto, le animazioni sono
+  in pausa → niente redraw inutile (`isBagOpen/isBookOpen` in main loop).
+- **Culling** tile/teche nella galleria museo; sprite voxel (teche/creature) in cache canvas.
+- NPC e player agganciati alla griglia dei pixel fisici (`snap`): niente sfarfallio in movimento.
 
 ## Semplificazioni note / debito tecnico
 - I borghi non hanno Locanda (il Negozio vende comunque +15⚡).
 - Il barbiere non cambia la pelle: tonalità solo nell'editor iniziale.
 - Le chimere compaiono identiche in tutti i parchi (sono "magiche", va bene così).
 
-## Prossimi passi proposti (in ordine consigliato)
-1. **Multilingua**: dizionario i18n, **inglese di default**, italiano come seconda lingua
-   (tradurre anche nomi specie/parti/rarità e generatori nomi città/chimere).
-2. **Texture più varie**: variazioni per città (pavimenti/tetti), campi, terra, transizioni tra biomi.
-3. Idee future: suoni cozy, stagioni/meteo, missioni del museo, foto alle chimere.
+
+## REGOLE FERREE (già sbagliate in passato — non ripeterle)
+1. **Animazioni: la fase viene SOLO dal tempo.** Mai da `sx`/`sy`/`cx` (coordinate schermo):
+   con la camera in movimento l'animazione "corre" col personaggio. Se serve variare per
+   oggetto, usare le coordinate TILE (`tx`,`ty`) o un indice, mai i pixel schermo.
+2. **Tutto ciò che sta nel mondo va disegnato con `snap()`** (griglia dei pixel fisici).
+   Senza snap, camminando la struttura VIBRA perché la camera scorre di frazioni di pixel.
+3. **Scale pixel INTERE** (×2, ×3, ×4). Le frazionarie spaccano i pixel.
+4. **Contrasto**: ogni cosa nel mondo deve staccare dal proprio sfondo (contorno scuro o
+   tono diverso dal terreno del bioma). Verificare in `/wonders` (prova visiva) prima di dire fatto.
+5. **Autore = solo Marco Giacobazzi** nei credit. Mai Claude o librerie. Commit senza `Co-Authored-By`.
+6. **Cutscene**: si avanza SOLO al click, con "clicca per continuare" e Salta.
+7. **Ogni testo di gioco dice cosa fa davvero** (niente "ristoro" senza dire +15⚡, niente
+   cooldown nascosti: sempre "pronta" / "riposa ancora N giorni").
+8. Bump di `src/version.js` a ogni build; `npm test`, `npm run e2e` e `npm run cov -- --gate` verdi.
+9. **Ogni schermata e ogni scena va DISEGNATA da un test.** Un modulo che nessuno esegue è un
+   crash che aspetta: gli interni sono rimasti rotti con 475 test verdi perché nessuno
+   chiamava `drawInteriorScene`. `npm run cov` elenca i moduli mai toccati.
+10. **Negli e2e headless `requestAnimationFrame` NON avanza** (`--virtual-time-budget`): per
+   disegnare davvero serve chiamare `window.__digsy.frame(t)`, altrimenti i test "visivi"
+   girano su un canvas mai ridisegnato e non provano niente.
+11. **Su mobile non esiste il tasto E**: ogni testo che nomina un comando passa da
+   `actKey()`/`keyHint()` in i18n.js.
+12. **Ogni emoji usata va mappata in `EMAP`** (icons.js): `withIcons` STRIPPA quelle che non
+   conosce e il testo resta muto, senza errori. Un test scandaglia il codice e le trova.
+13. **Il contrasto è responsabilità di chi scrive il colore**, non del giocatore che se ne
+   accorge: gli e2e misurano il rapporto WCAG su cinque schermate, avvisi accesi compresi.
+   Le icone hanno un colore INLINE: sulle superfici chiare va sovrascritto con `!important`.
+14. **Niente due aree che scorrono una dentro l'altra**: su mobile si muove sempre quella
+   sbagliata. Scorre la pagina, non il riquadro.
 
 ## Convenzioni / preferenze
 - Rispondere in italiano.
 - Mantenere lo stile cozy e la coerenza pixel SNES.
 - Zero dipendenze runtime; Vite solo come dev tool.
 - Ogni feature nuova: aggiungere check a `tests/run.mjs` e tenerla verde.
+- Pagine di prova: `/wonders` (meraviglie, mostra gli sprite rifiniti a mano quando ci sono),
+  `/sprites` (Sprite Studio: meraviglie, personaggio, capelli e cappelli nelle TRE viste, icone),
+  `/playground` (mobile).

@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digsy — Sprite Studio</title>
+<style>
+  :root{--bg:#15120d;--panel:#1e1a13;--panel2:#241f16;--ink:#f3ecda;--muted:#a89b7e;--line:#3a3123;--accent:#57c0b6;--accent2:#e0a94a}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,monospace;font-size:13px}
+  .wrap{max-width:1600px;margin:0 auto;padding:14px}
+  h1{font-size:19px;letter-spacing:2px;margin:0 0 2px}
+  p.lead{color:var(--muted);font-size:12px;margin:0 0 12px;max-width:92ch;line-height:1.5}
+  button{font:700 12px ui-monospace,monospace;background:#3a8c85;color:#fff;border:0;padding:8px 12px;cursor:pointer}
+  button.alt{background:#6b5137} button.amber{background:var(--accent2);color:#241a0a}
+  button.on{background:var(--accent);color:#10221f}
+  button:disabled{opacity:.4;cursor:default}
+  .tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .tab{background:var(--panel);color:var(--muted);border:1px solid var(--line);padding:8px 13px;cursor:pointer;font-weight:700}
+  .tab.on{background:var(--accent);color:#10221f;border-color:var(--accent)}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}
+  .cell{background:var(--panel);border:1px solid var(--line);padding:6px;cursor:pointer;text-align:center}
+  .cell:hover{border-color:var(--accent)}
+  .cell canvas{width:100%;height:auto;image-rendering:pixelated;background:#0f1a12;display:block;margin-bottom:4px}
+  .cell span{font-size:10px;color:var(--muted);display:block;word-break:break-word;line-height:1.25}
+  .cell.edited span{color:var(--accent2)}
+  /* editor */
+  #ed{display:none;gap:14px;align-items:flex-start;flex-wrap:wrap}
+  #ed.on{display:flex}
+  .edmain{flex:1 1 520px;min-width:320px;background:var(--panel);border:1px solid var(--line);padding:10px}
+  .edside{flex:0 0 260px;background:var(--panel);border:1px solid var(--line);padding:10px}
+  .edbar{display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:8px}
+  /* la tela resta INTERA nello schermo: si adatta in larghezza e in altezza mantenendo le
+     proporzioni (con le tele alte, come l'albero-mondo, prima usciva dalla pagina) */
+  #cv{max-width:100%;max-height:70vh;width:auto;height:auto;margin:0 auto;display:block;
+    image-rendering:pixelated;background:#12100c;cursor:crosshair;touch-action:none;border:1px solid var(--line)}
+  .edmain{display:flex;flex-direction:column;align-items:center}
+  .edbar{width:100%}
+  .pal{display:grid;grid-template-columns:repeat(auto-fill,minmax(30px,1fr));gap:5px;margin:8px 0}
+  .sw{height:30px;border:2px solid #0e0c08;cursor:pointer;position:relative}
+  .sw.on{border-color:#fff;box-shadow:0 0 0 2px var(--accent)}
+  .sw.era{background:repeating-linear-gradient(45deg,#333 0 5px,#555 5px 10px);color:#fff;font-size:16px;text-align:center;line-height:26px}
+  input[type=color]{width:100%;height:32px;background:none;border:1px solid var(--line);cursor:pointer;padding:0}
+  .row2{display:flex;gap:6px;align-items:center;margin:6px 0;font-size:11px;color:var(--muted)}
+  textarea{width:100%;min-height:150px;background:#12100c;color:var(--ink);border:1px solid var(--line);font:11px/1.45 ui-monospace,monospace;padding:8px;resize:vertical}
+  .hint{color:var(--muted);font-size:11px;line-height:1.45;margin:6px 0}
+  .prev{display:flex;gap:10px;align-items:flex-end;background:#20301c;padding:8px;border:1px solid var(--line);margin-top:8px}
+  .prev canvas{image-rendering:pixelated}
+  h3{margin:10px 0 4px;font-size:11px;letter-spacing:1px;color:var(--accent);text-transform:uppercase}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>SPRITE STUDIO</h1>
+  <p class="lead">Tutti i disegni del gioco in un posto solo. Clicca un elemento per aprirlo nell'editor,
+  ritoccalo pixel per pixel e premi <b>Esporta</b>: il codice che esce si incolla in
+  <code>src/spritebank.js</code> e il gioco userà il tuo disegno al posto di quello generato.
+  Sostituisce i vecchi editor di cappelli e zaino.</p>
+
+  <div class="tabs" id="tabs"></div>
+  <div id="browser"><div class="grid" id="grid"></div></div>
+
+  <div id="ed">
+    <div class="edmain">
+      <div class="edbar">
+        <button id="back" class="alt">← Torna alla lista</button>
+        <b id="edname" style="color:var(--accent2)"></b>
+        <span style="flex:1"></span>
+        <button data-tool="pen" class="tool on">✎ Matita</button>
+        <button data-tool="pick" class="tool alt">◉ Preleva</button>
+        <button data-tool="fill" class="tool alt">▣ Riempi</button>
+        <button data-tool="era" class="tool alt">⌫ Gomma</button>
+        <button id="undo" class="alt">↶ Annulla</button>
+        <button id="grid-t" class="alt">▦ Griglia</button>
+        <!-- capelli e cappelli hanno TRE viste: di fronte, di lato, di spalle. Prima si
+             poteva disegnare solo quella frontale e le altre restavano com'erano. -->
+        <span id="viewsel" style="display:none;margin-left:6px">
+          <button data-view="down" class="vw on">▼ fronte</button>
+          <button data-view="side" class="vw alt">▶ lato</button>
+          <button data-view="up" class="vw alt">▲ retro</button>
+        </span>
+      </div>
+      <canvas id="cv"></canvas>
+      <div class="prev" id="prevbox">
+        <div><div class="hint">1×</div><canvas id="p1"></canvas></div>
+        <div><div class="hint">2×</div><canvas id="p2"></canvas></div>
+        <div><div class="hint">3× con il personaggio accanto</div><canvas id="p3"></canvas></div>
+      </div>
+    </div>
+    <div class="edside">
+      <h3>Colori dello sprite</h3>
+      <div class="pal" id="pal"></div>
+      <input type="color" id="newcol" value="#e8c34a">
+      <div class="row2"><button id="addcol" class="alt" style="flex:1">+ aggiungi colore</button></div>
+      <h3>Strumenti</h3>
+      <div class="row2"><button id="mirror" class="alt" style="flex:1">⇄ Specchia</button><button id="clear" class="alt" style="flex:1">Pulisci</button></div>
+      <div class="row2"><button id="reset" class="alt" style="flex:1">↺ Ricarica l'originale</button></div>
+      <h3>Esporta</h3>
+      <div class="row2"><button id="export" class="amber" style="flex:1">Esporta per il gioco</button></div>
+      <div class="row2"><button id="png" class="alt" style="flex:1">PNG ×8</button><button id="copy" class="alt" style="flex:1">Copia</button></div>
+      <textarea id="out" readonly placeholder="Premi «Esporta per il gioco»…"></textarea>
+      <p class="hint">Il codice va incollato dentro <code>SPRITES</code> in <code>src/spritebank.js</code>.
+      L'ancora è già calcolata: il disegno resterà esattamente dov'è ora nel gioco.</p>
+    </div>
+  </div>
+  <a id="dl" style="display:none"></a>
+</div>
+
+<script type="module">
+import { drawWonder } from '/src/wonderart.js';
+import { WONDERS } from '/src/wonders.js';
+import { SPRITES } from '/src/spritebank.js';
+
+/* ---------- pennello condiviso: le stesse primitive del render del gioco ---------- */
+function brush(ctx) {
+  const px = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+  const rect = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+  const shadow = (cx, cy, rw) => { ctx.fillStyle = 'rgba(15,25,15,.16)';
+    for (let i = -rw; i <= rw; i++) { const h = Math.round(2 * Math.sqrt(Math.max(0, 1 - (i * i) / (rw * rw)))); ctx.fillRect(cx + i, cy - h, 1, h * 2); } };
+  const shade8 = (hex, k) => { const n = parseInt(hex.slice(1), 16);
+    const r = Math.min(255, ((n >> 16) & 255) * k) | 0, g2 = Math.min(255, ((n >> 8) & 255) * k) | 0, b = Math.min(255, (n & 255) * k) | 0;
+    return '#' + (r << 16 | g2 << 8 | b).toString(16).padStart(6, '0'); };
+  return { rect, px, shadow, shade8, ctx };
+}
+
+/* ---------- sprite del personaggio, capelli e cappelli: matrici di caratteri ---------- */
+let SPR_MOD = {}, DATA = {};
+try { SPR_MOD = await import('/src/sprites.js'); } catch (e) { console.warn('sprites.js non caricato', e); }
+try { DATA = await import('/src/data.js'); } catch (e) { /* non serve per disegnare */ }
+
+/* ---------- inventario, per categoria ---------- */
+const CATS = {
+  meraviglie: { label: 'Meraviglie', items: Object.keys(WONDERS).map(id => ({ id: 'wonder:' + id, name: id, kind: 'wonder', w: 150, h: 120 })) },
+  personaggio: { label: 'Personaggio', items: [
+    { id: 'hero:down', name: 'fronte', kind: 'hero', dir: 'down' },
+    { id: 'hero:up', name: 'retro', kind: 'hero', dir: 'up' },
+    { id: 'hero:side', name: 'profilo', kind: 'hero', dir: 'side' },
+  ] },
+  capelli: { label: 'Capelli', items: Object.keys(SPR_MOD.HAIRS || {}).map(k => ({ id: 'hair:' + k, name: k, kind: 'hair', key: k })) },
+  cappelli: { label: 'Cappelli', items: Object.keys(SPR_MOD.HATS || {}).map(k => ({ id: 'hat:' + k, name: k, kind: 'hat', key: k })) },
+  icone: { label: 'Icone', items: [] },   // riempita sotto dagli SVG
+};
+
+/* icone pixel: caricate dagli SVG veri del gioco (le pagine in public/ non passano da Vite,
+   quindi niente import.meta.glob: si scaricano a mano) */
+const ICON_NAMES = ['arD','arDL','arDR','arL','arR','arU','arUL','arUR','axe','bag','barber','bed','bike','bolt','bone','book','bread','bug','cal','cave','check','close','coin','compass','dice','dna','dune','fish','flower','frog','globe','hat','home','horn','ice','info','lab','leaf','map','menu'];
+CATS.icone.items = ICON_NAMES.map(n => ({ id: 'icon:' + n, name: n, kind: 'icon', svg: null, url: '/src/pxicons/' + n + '.svg' }));
+async function loadIcons() {
+  await Promise.all(CATS.icone.items.map(async it => {
+    try { const r = await fetch(it.url); if (r.ok) it.svg = await r.text(); } catch (e) { /* icona assente: si salta */ }
+  }));
+  CATS.icone.items = CATS.icone.items.filter(it => it.svg);
+  buildTabs(); buildGrid();       // sempre: la scheda attiva può essere proprio "Icone"
+}
+
+
+/* CENTRATURA: si disegna prima su un canvas di lavoro trasparente, si misura l'ingombro vero
+   dei pixel (non l'area teorica) e si ridisegna al centro. Senza questo, le meraviglie alte
+   sbordavano in cima e gli sprite del personaggio restavano incollati in alto a sinistra. */
+function boundsOf(ctx, w, h) {
+  const d = ctx.getImageData(0, 0, w, h).data;
+  let x0 = w, y0 = h, x1 = -1, y1 = -1;
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (d[(y * w + x) * 4 + 3] < 12) continue;
+    if (x < x0) x0 = x; if (x > x1) x1 = x;
+    if (y < y0) y0 = y; if (y > y1) y1 = y;
+  }
+  return x1 < 0 ? null : { x0, y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+}
+function paintCentered(it, ctx, W2, H2, opts) {
+  const pad = (opts && opts.pad) || 6;
+  const work = document.createElement('canvas');
+  work.width = Math.max(W2 * 2, 320); work.height = Math.max(H2 * 2, 320);
+  const wc = work.getContext('2d'); wc.imageSmoothingEnabled = false;
+  paintNaked(it, wc, work.width, work.height);
+  const b = boundsOf(wc, work.width, work.height);
+  ctx.imageSmoothingEnabled = false;
+  if (opts && opts.bg) { ctx.fillStyle = opts.bg; ctx.fillRect(0, 0, W2, H2); }
+  if (opts && opts.ground) drawGroundTiles(ctx, W2, H2, opts.ground);
+  if (!b) return;
+  /* scala INTERA (×1, ×2, ×3…): mai frazionaria, altrimenti i pixel si spaccano */
+  const fit = Math.min((W2 - pad * 2) / b.w, (H2 - pad * 2) / b.h);
+  const scale = fit >= 1 ? Math.max(1, Math.floor(fit)) : fit;
+  const dw = Math.round(b.w * scale), dh = Math.round(b.h * scale);
+  ctx.drawImage(work, b.x0, b.y0, b.w, b.h, Math.round((W2 - dw) / 2), Math.round((H2 - dh) / 2), dw, dh);
+}
+/* terreno a scacchi del bioma, per le meraviglie */
+function drawGroundTiles(ctx, W2, H2, pal) {
+  for (let y = 0; y < H2; y += 16) for (let x = 0; x < W2; x += 16) {
+    const k = ((x / 16) * 7 + (y / 16) * 13) % 3;
+    ctx.fillStyle = pal[k]; ctx.fillRect(x, y, 16, 16);
+    ctx.fillStyle = pal[(k + 1) % 3]; ctx.fillRect(x + ((x / 16) % 4) * 3, y + ((y / 16) % 4) * 3, 2, 2);
+  }
+}
+const GROUND_PAL = {
+  prati: ['#7fc46a', '#6fb45c', '#8fd06a'], dune: ['#e0cd9a', '#d4bf88', '#eddcae'],
+  boschi: ['#5e7a58', '#546e4e', '#6a8a62'], terre: ['#b4744a', '#a3663f', '#c48456'],
+  palude: ['#5f7a52', '#546e48', '#6b8a5c'], ghiacci: ['#dfeef2', '#cfe2e8', '#eef8fb'],
+};
+/* il disegno SENZA sfondo: serve per misurarne l'ingombro */
+function paintNaked(it, ctx, w, h) {
+  if (it.kind === 'wonder') drawWonder(brush(ctx), it.id.split(':')[1], Math.round(w / 2) - 8, Math.round(h * 0.72), 0);
+  else if (it.kind === 'hero') drawCharRows(ctx, (SPR_MOD.SPR[it.dir] || SPR_MOD.SPR.down)[0], SPR_MOD.PAL);
+  else if (it.kind === 'hair' || it.kind === 'hat') {
+    const d0 = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
+    const view = it.view || 'down', oy = -overlayTop(d0, view);
+    drawHeadBase(ctx, oy, view); drawOverlaySafe(ctx, d0, view, oy);
+  }
+}
+
+/* ---------- disegno di un elemento su un canvas (la sorgente da cui si parte) ---------- */
+function paintItem(it, ctx, w, h) {
+  ctx.clearRect(0, 0, w, h);
+  if (it.kind === 'wonder') {
+    ctx.fillStyle = '#20301c'; ctx.fillRect(0, 0, w, h);
+    drawWonder(brush(ctx), it.id.split(':')[1], Math.round(w / 2) - 8, h - 40, 0);
+  } else if (it.kind === 'hero') {
+    const rows = (SPR_MOD.SPR[it.dir] || SPR_MOD.SPR.down)[0];
+    drawCharRows(ctx, rows, SPR_MOD.PAL);
+  } else if (it.kind === 'hair' || it.kind === 'hat') {
+    const hh = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
+    const view = it.view || curView;
+    drawOverlaySafe(ctx, hh, view, -overlayTop(hh, view));
+  } else if (it.kind === 'icon') {
+    /* l'SVG si rasterizza in modo asincrono: si disegna appena l'immagine è pronta
+       (il colore `currentColor` va sostituito, altrimenti esce nero su nero) */
+    if (!it.svg) return;
+    /* basta sostituire currentColor: aggiungere un altro fill= al tag <svg> creava un
+       attributo DUPLICATO e l'immagine non veniva nemmeno interpretata */
+    const svg = it.svg.replace(/currentColor/g, '#f3ecda');
+    const img = new Image();
+    img.onload = () => { ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, w, h); ctx.drawImage(img, 0, 0, w, h); };
+    img.onerror = () => { ctx.fillStyle = '#8a2f2a'; ctx.fillRect(0, 0, w, h); };
+    img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  }
+}
+/* testa e spalle del personaggio: serve da riferimento sotto capelli e cappelli */
+function drawHeadBase(ctx, oy, view) {
+  /* la testa di riferimento deve essere quella della VISTA che si sta disegnando: capelli
+     di profilo sopra una faccia frontale non dicono niente su come verranno */
+  const key = view === 'side' ? 'side' : view === 'up' ? 'up' : 'down';
+  const rows = (SPR_MOD.SPR && SPR_MOD.SPR[key]) ? SPR_MOD.SPR[key][0] : null;
+  if (!rows) return;
+  ctx.save(); ctx.translate(0, oy || 0);
+  ctx.globalAlpha = 0.45; drawCharRows(ctx, rows, SPR_MOD.PAL || {}); ctx.globalAlpha = 1;
+  ctx.restore();
+}
+function drawCharRows(ctx, rows, pal) {
+  ctx.imageSmoothingEnabled = false;
+  for (let y = 0; y < rows.length; y++) for (let x = 0; x < rows[y].length; x++) {
+    const c = pal[rows[y][x]]; if (!c || rows[y][x] === '.') continue;
+    ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1);
+  }
+}
+/* capelli e cappelli sono overlay {down, side, up}: ogni vista è una lista [riga, "mappa"].
+   I caratteri si leggono dalla palette del gioco (PAL), con un colore di ripiego se manca. */
+/* alcune righe hanno indice NEGATIVO (corna, creste: stanno sopra la testa). `oy` sposta
+   tutto in giù così non finiscono fuori dalla tela. */
+function overlayTop(def, view) {
+  const rows = (def && (def[view || 'down'] || def.down)) || [];
+  let m = 0;
+  for (const e of rows) if (Array.isArray(e) && e[0] < m) m = e[0];
+  return m;                                   // 0 oppure negativo
+}
+function drawOverlaySafe(ctx, def, view, oy) {
+  if (!def) return;
+  const off = oy || 0;
+  const rows = def[view || 'down'] || def.down || [];
+  const PAL = SPR_MOD.PAL || {};
+  for (const entry of rows) {
+    if (!Array.isArray(entry)) continue;
+    const [rowIdx, map] = entry;
+    const line = String(map);
+    for (let x = 0; x < line.length; x++) {
+      const ch = line[x];
+      if (ch === '.' || ch === ' ') continue;
+      ctx.fillStyle = PAL[ch] || (ch === 'H' || ch === 'h' ? '#8a5a2a' : '#5a4636');
+      ctx.fillRect(x, rowIdx + off, 1, 1);
+    }
+  }
+}
+/* ---------- lista ---------- */
+const tabsEl = document.getElementById('tabs'), gridEl = document.getElementById('grid');
+let cat = (location.hash || '').replace('#', '') || 'meraviglie';   // #capelli apre direttamente quella scheda
+function buildTabs() {
+  tabsEl.innerHTML = '';
+  for (const [k, c] of Object.entries(CATS)) {
+    const b = document.createElement('button');
+    b.className = 'tab' + (k === cat ? ' on' : '');
+    b.textContent = c.label + ' (' + c.items.length + ')';
+    b.onclick = () => { cat = k; const direct = (location.hash || '').replace('#', '');
+if (direct.includes(':')) {                     // #wonder:gianttree apre subito l'editor
+  const found = Object.values(CATS).flatMap(c => c.items).find(i => i.id === direct);
+  cat = 'meraviglie';
+  if (!CATS[cat]) cat = Object.keys(CATS)[0];
+  buildTabs(); buildGrid(); loadIcons();
+  if (found) openEditor(found);
+} else {
+  if (!CATS[cat]) cat = 'meraviglie';
+  buildTabs(); buildGrid(); loadIcons();
+} };
+    tabsEl.appendChild(b);
+  }
+}
+function buildGrid() {
+  gridEl.innerHTML = '';
+  for (const it of CATS[cat].items) {
+    const d = document.createElement('div'); d.className = 'cell' + (SPRITES[it.id] ? ' edited' : '');
+    const cv = document.createElement('canvas');
+    const size = it.kind === 'wonder' ? [230, 200] : it.kind === 'icon' ? [24, 24] : [48, 60];
+    cv.width = size[0]; cv.height = size[1];
+    const c2 = cv.getContext('2d'); c2.imageSmoothingEnabled = false;
+    if (it.kind === 'icon') { c2.fillStyle = '#2a2419'; c2.fillRect(0, 0, size[0], size[1]); paintItem(it, c2, cv.width, cv.height); }
+    else if (it.kind === 'wonder') paintCentered(it, c2, cv.width, cv.height, { ground: GROUND_PAL[WONDERS[it.id.split(':')[1]].zone] || GROUND_PAL.prati, pad: 8 });
+    else paintCentered(it, c2, cv.width, cv.height, { bg: '#0f1a12', pad: 3 });
+    d.appendChild(cv);
+    const s = document.createElement('span'); s.textContent = it.name + (SPRITES[it.id] ? ' ✎' : ''); d.appendChild(s);
+    d.onclick = () => openEditor(it);
+    gridEl.appendChild(d);
+  }
+}
+
+/* dimensione della tela per un elemento: ingombro reale + margine (minimi per comodità) */
+function sizeFor(it) {
+  if (it.kind === 'icon') return [24, 24];
+  const work = document.createElement('canvas');
+  work.width = 640; work.height = 640;
+  const wc = work.getContext('2d'); wc.imageSmoothingEnabled = false;
+  paintNaked(it, wc, work.width, work.height);
+  const b = boundsOf(wc, work.width, work.height);
+  if (!b) return it.kind === 'wonder' ? [160, 130] : [24, 34];
+  const pad = it.kind === 'wonder' ? 8 : 3;
+  return [Math.max(it.kind === 'wonder' ? 96 : 20, b.w + pad * 2),
+          Math.max(it.kind === 'wonder' ? 80 : 30, b.h + pad * 2)];
+}
+/* ---------- EDITOR ---------- */
+const ed = document.getElementById('ed'), browser = document.getElementById('browser');
+const cv = document.getElementById('cv'), out = document.getElementById('out');
+let cur = null, W = 0, H = 0, px = [], pal = [], color = 0, tool = 'pen', showGrid = true, undoStack = [];
+
+let curView = 'down';                      // vista in modifica per capelli/cappelli
+function isOverlay(it) { return it && (it.kind === 'hair' || it.kind === 'hat'); }
+function overlayDef(it) { return it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key]; }
+function openEditor(it) {
+  cur = it;
+  curView = 'down';
+  const vs = document.getElementById('viewsel');
+  if (vs) {
+    vs.style.display = isOverlay(it) ? '' : 'none';
+    vs.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === 'down'));
+  }
+  /* la tela si adatta al disegno: si misura l'ingombro VERO e si aggiunge un margine.
+     Con misure fisse l'albero-mondo (166px) veniva tagliato e i cappelli che sporgono
+     dalla testa (corna, tese larghe) perdevano i bordi. */
+  const size = sizeFor(it);
+  W = size[0]; H = size[1];
+  /* si parte dal disegno ATTUALE del gioco: si rasterizza e si estrae la palette */
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const tc = tmp.getContext('2d'); tc.imageSmoothingEnabled = false;
+  /* il disegno di partenza arriva CENTRATO nella griglia (prima nasceva incollato in alto a
+     sinistra e si lavorava con metà tela vuota) */
+  if (it.kind === 'icon') paintItem(it, tc, W, H);
+  else paintCentered(it, tc, W, H, { pad: 2 });
+  setTimeout(() => {                               // le icone SVG caricano in modo asincrono
+    const data = tc.getImageData(0, 0, W, H).data;
+    pal = []; px = new Array(W * H).fill(-1);
+    for (let i = 0; i < W * H; i++) {
+      const a = data[i * 4 + 3]; if (a < 20) continue;
+      const hex = '#' + [0, 1, 2].map(k => data[i * 4 + k].toString(16).padStart(2, '0')).join('');
+      let idx = pal.indexOf(hex); if (idx < 0) { pal.push(hex); idx = pal.length - 1; }
+      px[i] = idx;
+    }
+    if (SPRITES[it.id]) loadFromBank(SPRITES[it.id]);
+    undoStack = [];
+    document.getElementById('edname').textContent = it.id + '  ' + W + '×' + H;
+    buildPal(); render();
+  }, it.kind === 'icon' ? 260 : 0);
+  browser.style.display = 'none'; ed.classList.add('on');
+}
+function loadFromBank(d) {
+  W = d.w; H = d.h; pal = []; px = new Array(W * H).fill(-1);
+  const keys = Object.keys(d.pal);
+  for (const k of keys) pal.push(d.pal[k]);
+  for (let y = 0; y < d.rows.length; y++) for (let x = 0; x < d.rows[y].length; x++) {
+    const ch = d.rows[y][x]; if (ch === '.') continue;
+    const i = keys.indexOf(ch); if (i >= 0) px[y * W + x] = i;
+  }
+}
+document.getElementById('back').onclick = () => { ed.classList.remove('on'); browser.style.display = ''; buildGrid(); };
+/* CAMBIO VISTA (capelli e cappelli). Quello che si è disegnato resta in memoria per vista,
+   così si passa da fronte a lato e ritorno senza perdere il lavoro. */
+const viewWork = {};                      // { 'hair:short|side': {W,H,pal,px} }
+function viewKey(v) { return cur ? cur.id + '|' + v : ''; }
+function stashView() { if (cur && isOverlay(cur)) viewWork[viewKey(curView)] = { W, H, pal: pal.slice(), px: px.slice() }; }
+function loadView(v) {
+  const saved = viewWork[viewKey(v)];
+  if (saved) { W = saved.W; H = saved.H; pal = saved.pal.slice(); px = saved.px.slice(); buildPal(); render(); return; }
+  /* mai disegnata: si riparte dal disegno del gioco per QUELLA vista */
+  const it = { ...cur, view: v };
+  const size = sizeFor(it);
+  W = size[0]; H = size[1];
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const tc = tmp.getContext('2d'); tc.imageSmoothingEnabled = false;
+  paintCentered(it, tc, W, H, { pad: 2 });
+  const data = tc.getImageData(0, 0, W, H).data;
+  pal = []; px = new Array(W * H).fill(-1);
+  for (let i = 0; i < W * H; i++) {
+    const a = data[i * 4 + 3]; if (a < 20) continue;
+    const hex = '#' + [0, 1, 2].map(k => data[i * 4 + k].toString(16).padStart(2, '0')).join('');
+    let idx = pal.indexOf(hex); if (idx < 0) { pal.push(hex); idx = pal.length - 1; }
+    px[i] = idx;
+  }
+  undoStack = [];
+  buildPal(); render();
+}
+document.querySelectorAll('[data-view]').forEach(b => b.onclick = () => {
+  if (!cur || !isOverlay(cur) || b.dataset.view === curView) return;
+  stashView();
+  curView = b.dataset.view;
+  document.querySelectorAll('[data-view]').forEach(x => x.classList.toggle('on', x === b));
+  document.getElementById('edname').textContent = cur.id + ' · ' + curView + '  ' + W + '×' + H;
+  loadView(curView);
+});
+function buildPal() {
+  const el = document.getElementById('pal'); el.innerHTML = '';
+  pal.forEach((c, i) => {
+    const b = document.createElement('div'); b.className = 'sw' + (i === color ? ' on' : '');
+    b.style.background = c; b.title = c;
+    b.onclick = () => { color = i; buildPal(); };
+    el.appendChild(b);
+  });
+  const e2 = document.createElement('div'); e2.className = 'sw era' + (color === -1 ? ' on' : ''); e2.textContent = '⌫';
+  e2.onclick = () => { color = -1; buildPal(); }; el.appendChild(e2);
+}
+document.getElementById('addcol').onclick = () => { pal.push(document.getElementById('newcol').value); color = pal.length - 1; buildPal(); };
+document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
+  tool = b.dataset.tool; document.querySelectorAll('.tool').forEach(x => { x.classList.toggle('on', x === b); x.classList.toggle('alt', x !== b); });
+});
+document.getElementById('grid-t').onclick = () => { showGrid = !showGrid; render(); };
+document.getElementById('undo').onclick = () => { if (undoStack.length) { px = undoStack.pop(); render(); } };
+document.getElementById('clear').onclick = () => { undoStack.push(px.slice()); px = new Array(W * H).fill(-1); render(); };
+document.getElementById('reset').onclick = () => { if (cur) openEditor(cur); };
+document.getElementById('mirror').onclick = () => {
+  undoStack.push(px.slice());
+  const n = px.slice();
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) n[y * W + x] = px[y * W + (W - 1 - x)];
+  px = n; render();
+};
+
+/* disegno sulla griglia */
+function cellAt(e) {
+  const r = cv.getBoundingClientRect(), s = cv.width / r.width;
+  const cellPx = cv.width / W;
+  return { x: Math.floor((e.clientX - r.left) * s / cellPx), y: Math.floor((e.clientY - r.top) * s / cellPx) };
+}
+let drawing = false, dirty = false;
+function put(x, y) {
+  if (x < 0 || y < 0 || x >= W || y >= H) return;
+  const i = y * W + x;
+  if (tool === 'pick') { if (px[i] >= 0) { color = px[i]; buildPal(); } return; }
+  if (tool === 'fill') { flood(x, y); return; }
+  const v = (tool === 'era' || color === -1) ? -1 : color;
+  if (px[i] === v) return;
+  if (!dirty) { undoStack.push(px.slice()); dirty = true; if (undoStack.length > 40) undoStack.shift(); }
+  px[i] = v; render();
+}
+function flood(x, y) {
+  const from = px[y * W + x], to = (color === -1 ? -1 : color);
+  if (from === to) return;
+  undoStack.push(px.slice());
+  const st = [[x, y]];
+  while (st.length) {
+    const [cx2, cy2] = st.pop();
+    if (cx2 < 0 || cy2 < 0 || cx2 >= W || cy2 >= H) continue;
+    const i = cy2 * W + cx2; if (px[i] !== from) continue;
+    px[i] = to; st.push([cx2 + 1, cy2], [cx2 - 1, cy2], [cx2, cy2 + 1], [cx2, cy2 - 1]);
+  }
+  render();
+}
+cv.addEventListener('pointerdown', e => { e.preventDefault(); cv.setPointerCapture(e.pointerId); drawing = true; dirty = false; const c = cellAt(e); put(c.x, c.y); });
+cv.addEventListener('pointermove', e => { if (!drawing) return; const c = cellAt(e); put(c.x, c.y); });
+cv.addEventListener('pointerup', () => { drawing = false; dirty = false; });
+
+function render() {
+  const cell = Math.max(3, Math.min(14, Math.floor(880 / W), Math.floor(620 / H)));
+  cv.width = W * cell; cv.height = H * cell;
+  const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
+  c.fillStyle = '#12100c'; c.fillRect(0, 0, cv.width, cv.height);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = px[y * W + x];
+    if (v >= 0) { c.fillStyle = pal[v]; c.fillRect(x * cell, y * cell, cell, cell); }
+    else if ((x + y) % 2 === 0) { c.fillStyle = '#1a1710'; c.fillRect(x * cell, y * cell, cell, cell); }
+  }
+  if (showGrid && cell >= 6) {
+    c.strokeStyle = 'rgba(120,110,90,.28)';
+    for (let i = 0; i <= W; i++) { c.beginPath(); c.moveTo(i * cell + .5, 0); c.lineTo(i * cell + .5, cv.height); c.stroke(); }
+    for (let j = 0; j <= H; j++) { c.beginPath(); c.moveTo(0, j * cell + .5); c.lineTo(cv.width, j * cell + .5); c.stroke(); }
+  }
+  previews();
+}
+function previews() {
+  for (const [id, scale, withHero] of [['p1', 1, false], ['p2', 2, false], ['p3', 3, true]]) {
+    const p = document.getElementById(id);
+    p.width = (W + (withHero ? 20 : 0)) * scale; p.height = H * scale;
+    const c = p.getContext('2d'); c.imageSmoothingEnabled = false;
+    c.fillStyle = '#20301c'; c.fillRect(0, 0, p.width, p.height);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const v = px[y * W + x]; if (v < 0) continue;
+      c.fillStyle = pal[v]; c.fillRect(x * scale, y * scale, scale, scale);
+    }
+    if (withHero) {   /* sagoma del personaggio per giudicare la scala */
+      const hx = (W + 3) * scale, hy = (H - 22) * scale;
+      c.fillStyle = '#241a10'; c.fillRect(hx, hy, 12 * scale, 22 * scale);
+      c.fillStyle = '#e3b98a'; c.fillRect(hx + scale, hy + scale, 10 * scale, 8 * scale);
+      c.fillStyle = '#b5622e'; c.fillRect(hx + scale, hy + 9 * scale, 10 * scale, 12 * scale);
+    }
+  }
+}
+
+/* ---------- export ---------- */
+const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-*/=<>?!@#$%&';
+document.getElementById('export').onclick = () => {
+  const used = [...new Set(px.filter(v => v >= 0))];
+  const map = {}; used.forEach((v, i) => map[v] = CHARS[i] || '?');
+  const palOut = {}; used.forEach(v => palOut[map[v]] = pal[v]);
+  const rows = [];
+  for (let y = 0; y < H; y++) {
+    let r = '';
+    for (let x = 0; x < W; x++) { const v = px[y * W + x]; r += v < 0 ? '.' : map[v]; }
+    rows.push(r);
+  }
+  /* ANCORA dal contenuto vero: colonna centrale del disegno e riga che poggia a terra
+     (con una formula fissa il disegno finiva sfalsato rispetto al terreno) */
+  let minX = W, maxX = -1, maxY = -1;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (px[y * W + x] < 0) continue;
+    if (x < minX) minX = x; if (x > maxX) maxX = x; if (y > maxY) maxY = y;
+  }
+  const anchor = maxY < 0 ? [Math.round(W / 2), H] : [Math.round((minX + maxX) / 2), maxY];
+
+  /* CAPELLI E CAPPELLI non vanno nella banca degli sprite: nel gioco sono overlay
+     { down, side, up } con righe [indice, "mappa"]. Si esporta nel LORO formato, con tutte
+     e tre le viste, altrimenti il lavoro sul profilo e sulla nuca non arriva in gioco. */
+  if (isOverlay(cur)) {
+    stashView();
+    const views = ['down', 'side', 'up'];
+    const parts = [];
+    for (const v of views) {
+      const w = viewWork[viewKey(v)];
+      if (!w) {                                   // vista mai toccata: si tiene quella attuale
+        const def = overlayDef(cur);
+        const cur0 = (def && def[v]) || [];
+        parts.push('    ' + v + ': ' + JSON.stringify(cur0) + ',');
+        continue;
+      }
+      /* si riportano le righe al riferimento del gioco: la testa comincia a y=0 */
+      const lines = [];
+      for (let y = 0; y < w.H; y++) {
+        let r = '', any = false;
+        for (let x = 0; x < w.W; x++) {
+          const val = w.px[y * w.W + x];
+          if (val < 0) { r += '.'; continue; }
+          any = true;
+          const hex = w.pal[val];
+          let ch = Object.keys(palOut).find(k => palOut[k] === hex);
+          if (!ch) { ch = CHARS[Object.keys(palOut).length] || '?'; palOut[ch] = hex; }
+          r += ch;
+        }
+        if (any) lines.push('[' + y + ", '" + r.replace(/\.+$/, '') + "']");
+      }
+      parts.push('    ' + v + ': [' + lines.join(', ') + '],');
+    }
+    out.value = "/* " + cur.id + " — incollare in HAIRS/HATS dentro src/sprites.js */\n"
+      + '  ' + cur.key + ": {\n" + parts.join('\n') + "\n  },";
+    return;
+  }
+
+  out.value = `  '${cur.id}': {\n    w: ${W}, h: ${H}, ax: ${anchor[0]}, ay: ${anchor[1]},\n    pal: ${JSON.stringify(palOut)},\n    rows: [\n${rows.map(r => "      '" + r + "',").join('\n')}\n    ],\n  },`;
+};
+document.getElementById('copy').onclick = () => { out.select(); navigator.clipboard && navigator.clipboard.writeText(out.value); };
+document.getElementById('png').onclick = () => {
+  const sc = 8, oc = document.createElement('canvas'); oc.width = W * sc; oc.height = H * sc;
+  const c = oc.getContext('2d'); c.imageSmoothingEnabled = false;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const v = px[y * W + x]; if (v < 0) continue; c.fillStyle = pal[v]; c.fillRect(x * sc, y * sc, sc, sc); }
+  oc.toBlob(b => { const a = document.getElementById('dl'); a.href = URL.createObjectURL(b); a.download = cur.id.replace(':', '-') + '.png'; a.click(); });
+};
+
+const direct = (location.hash || '').replace('#', '');
+if (direct.includes(':')) {                     // #wonder:gianttree apre subito l'editor
+  const found = Object.values(CATS).flatMap(c => c.items).find(i => i.id === direct);
+  cat = 'meraviglie';
+  if (!CATS[cat]) cat = Object.keys(CATS)[0];
+  buildTabs(); buildGrid(); loadIcons();
+  if (found) openEditor(found);
+} else {
+  if (!CATS[cat]) cat = 'meraviglie';
+  buildTabs(); buildGrid(); loadIcons();
+}
+</script>
+</body>
+</html>

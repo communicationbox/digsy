@@ -3,3 +3,4 @@
 export let DEBUG = false;
 export function isDebug() { return DEBUG; }
 export function toggleDebug() { DEBUG = !DEBUG; return DEBUG; }
+export function setDebug(v) { DEBUG = !!v; return DEBUG; }

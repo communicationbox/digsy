@@ -4,12 +4,24 @@ import { S, P, save } from './state.js';
 import { TCELL, townForCell } from './world.js';
 import { zoneAt } from './regions.js';
 import { toast } from './ui.js';
-import { tr, zoneName } from './i18n.js';
+import { tr, zoneName, rarLabel } from './i18n.js';
 import { withIcons } from './icons.js';
+import { CAVE } from './cave.js';
+import { setBiomeMood } from './audio.js';
+import { companionAbility } from './companion.js';
+import { weatherAt, weatherLabel } from './weather.js';
 
 let lastZone = null;
 
-export const compass = { town: null, dist: 0, next: 0 };
+export const compass = { town: null, dist: 0, next: 0, target: null, cityGuide: false };
+
+/* mappa del tesoro seguita; se è stata scavata/consumata si torna alla città */
+export function trackedMap() {
+  if (!S.trackMap) return null;
+  const m = (S.maps || []).find(x => x.uid === S.trackMap);
+  if (!m) { S.trackMap = null; return null; }
+  return m;
+}
 
 export function nearestTown() {
   const ccx = Math.floor(P.x / (TS * TCELL)), ccy = Math.floor(P.y / (TS * TCELL));
@@ -34,22 +46,39 @@ export function playerInTown(t) {
 }
 export function updateCompass(ts) {
   if (ts < compass.next) return; compass.next = ts + 300;
-  /* zona corrente: tag HUD + toast quando ci entri */
+  /* zona corrente: tag HUD + toast quando ci entri (in grotta: Grotta) */
+  if (CAVE.active) { document.getElementById('h-zone').innerHTML = withIcons('🕳️ ' + tr('Grotta', 'Cave')); const tg = document.getElementById('compasstag'); if (tg) tg.style.display = 'none'; return; }
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
-  document.getElementById('h-zone').innerHTML = withIcons(z.icon + ' ' + zoneName(z.id));
+  const wx = weatherLabel(weatherAt(z.id, S.day));
+  document.getElementById('h-zone').innerHTML = withIcons(z.icon + ' ' + zoneName(z.id) + (wx ? ' · ' + wx : ''));
+  setBiomeMood(z.id); // musica col mood del bioma (crossfade al cambio)
   if (z.id !== lastZone) {
     if (lastZone !== null) toast(z.icon + tr(' Stai entrando: ', ' Entering: ') + zoneName(z.id));
     lastZone = z.id;
   }
   nearestTown();
   const el = document.getElementById('h-compass');
-  const t = compass.town;
-  if (!t) { el.textContent = '—'; return; }
-  if (playerInTown(t)) {
-    el.textContent = t.name;
-    if (S.lastTown !== t.key) { S.lastTown = t.key; save(); toast(tr('Benvenuto a ', 'Welcome to ') + t.name + '!'); }
+  const tag = document.getElementById('compasstag');
+  const show = v => { if (tag) tag.style.display = v ? '' : 'none'; };
+  /* mappa del tesoro seguita (click nello zaino): il tag mostra la X (la freccia rossa guida) */
+  const mp = trackedMap();
+  if (mp) {
+    const mx = mp.x * TS + 8, my = mp.y * TS + 8;
+    compass.target = { x: mx, y: my };
+    show(true); el.innerHTML = withIcons('🗺️ X ' + rarLabel(mp.rar));
     return;
   }
-  const arrow = DIRCHARS[octant(t.C.x * TS + TS / 2 - P.x, t.C.y * TS + TS / 2 - P.y)];
-  el.innerHTML = withIcons(arrow + ' ' + t.name + ' · ' + Math.round(compass.dist / TS) + tr(' passi', ' steps'));
+  compass.target = null; // il target (freccia ROSSA) è solo per le mappe del tesoro
+  const t = compass.town;
+  /* benvenuto entrando in città: INDIPENDENTE dalla bussola */
+  if (t && playerInTown(t) && S.lastTown !== t.key) { S.lastTown = t.key; save(); toast(tr('Benvenuto a ', 'Welcome to ') + t.name + '!'); }
+  /* BUSSOLA = oggetto acquistabile e ATTIVABILE (o compagno "bussola"): solo allora nome + freccia città */
+  const cOn = !!(S.tools && S.tools.compass && S.compassOn) || companionAbility() === 'compass';
+  compass.cityGuide = cOn && !!t; // la freccia gialla verso la città (letta in drawCompassIndicator)
+  if (cOn && t) {
+    const inTown = playerInTown(t);
+    show(true); el.innerHTML = withIcons('🧭 ' + t.name + (inTown ? '' : ' · ' + Math.round(compass.dist / TS) + tr(' passi', ' steps')));
+    return;
+  }
+  show(false);
 }

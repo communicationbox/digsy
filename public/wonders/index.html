@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digsy — Meraviglie (prova visiva)</title>
+<style>
+  body{margin:0;background:#15120d;color:#f3ecda;font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1400px;margin:0 auto;padding:18px}
+  h1{font-size:20px;letter-spacing:2px;margin:0 0 4px}
+  p.lead{color:#a89b7e;font-size:12px;margin:0 0 14px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:14px}
+  .cell{background:#1e1a13;border:1px solid #3a3123;padding:8px}
+  .cell h2{margin:0 0 6px;font-size:11px;letter-spacing:1px;color:#57c0b6;text-transform:uppercase}
+  canvas{width:100%;height:auto;image-rendering:pixelated;display:block;border:1px solid #3a3123}
+  .bar{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+  button{font:700 12px ui-monospace,monospace;background:#3a8c85;color:#fff;border:0;padding:7px 12px;cursor:pointer}
+  button.alt{background:#6b5137}
+  .k{font-size:11px;color:#a89b7e}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MERAVIGLIE — prova visiva</h1>
+  <p class="lead">Ognuna sul terreno del suo bioma, di giorno e di notte. Serve a controllare
+  contrasto, leggibilità e dettagli: nessuna deve confondersi con lo sfondo.</p>
+  <div class="bar">
+    <button id="night">Giorno / Notte</button>
+    <button class="alt" id="grid">Griglia tile on/off</button>
+    <span class="k" id="info"></span>
+  </div>
+  <div class="grid" id="grid-out"></div>
+</div>
+<script type="module">
+import { drawWonder, WONDER_SOLID } from '/src/wonderart.js';
+/* se una meraviglia è stata rifinita a mano nello Sprite Studio, la prova visiva deve
+   mostrare QUELLA: altrimenti si continua a giudicare un disegno che in gioco non si vede più */
+import { hasSprite, drawSprite, spriteDef } from '/src/spritebank.js';
+import { WONDERS } from '/src/wonders.js';
+
+/* terreni indicativi per bioma (gli stessi toni del gioco) */
+const GROUND = {
+  prati:   ['#7fc46a', '#6fb45c', '#8fd06a'],
+  dune:    ['#e0cd9a', '#d4bf88', '#eddcae'],
+  boschi:  ['#5e7a58', '#546e4e', '#6a8a62'],
+  terre:   ['#b4744a', '#a3663f', '#c48456'],
+  palude:  ['#5f7a52', '#546e48', '#6b8a5c'],
+  ghiacci: ['#dfeef2', '#cfe2e8', '#eef8fb'],
+};
+/* la tela deve contenere anche l'ALBERO-MONDO (182 px): con 190 px di altezza e il terreno
+   in basso, la chioma finiva tagliata e si giudicava un disegno che in gioco è intero */
+const W = 230, H = 260;
+let night = false, showGrid = false;
+const out = document.getElementById('grid-out');
+
+function brushFor(ctx) {
+  const px = (x, y, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); };
+  const rect = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+  const shadow = (cx, cy, rw) => {
+    ctx.fillStyle = 'rgba(15,25,15,.16)';
+    for (let i = -rw; i <= rw; i++) { const h = Math.round(2 * Math.sqrt(Math.max(0, 1 - (i * i) / (rw * rw)))); ctx.fillRect(cx + i, cy - h, 1, h * 2); }
+  };
+  const shade8 = (hex, k) => {
+    const n = parseInt(hex.slice(1), 16);
+    const r = Math.max(0, Math.min(255, ((n >> 16) & 255) * k)) | 0;
+    const g = Math.max(0, Math.min(255, ((n >> 8) & 255) * k)) | 0;
+    const b = Math.max(0, Math.min(255, (n & 255) * k)) | 0;
+    return '#' + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
+  };
+  return { rect, px, shadow, shade8, ctx };
+}
+function render(time) {
+  out.innerHTML = '';
+  for (const [id, w] of Object.entries(WONDERS)) {
+    const cell = document.createElement('div'); cell.className = 'cell';
+    cell.innerHTML = `<h2>${id} · ${w.zone} · ${w.w} tile${(WONDER_SOLID[id] || []).length ? ' · solido' : ''}</h2>`;
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    const g = brushFor(ctx);
+    const pal = GROUND[w.zone] || GROUND.prati;
+    /* terreno a tile 16px con variazione */
+    for (let y = 0; y < H; y += 16) for (let x = 0; x < W; x += 16) {
+      const k = ((x / 16) * 7 + (y / 16) * 13) % 3;
+      ctx.fillStyle = pal[k]; ctx.fillRect(x, y, 16, 16);
+      ctx.fillStyle = pal[(k + 1) % 3]; ctx.fillRect(x + ((x / 16) % 4) * 3, y + ((y / 16) % 4) * 3, 2, 2);
+      if (showGrid) { ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.strokeRect(x + .5, y + .5, 16, 16); }
+    }
+    /* la meraviglia, ancorata in basso al centro */
+    if (hasSprite('wonder:' + id)) drawSprite(g, 'wonder:' + id, Math.round(W / 2), H - 60 + 16);
+    else drawWonder(g, id, Math.round(W / 2) - 8, H - 60, time);
+    /* riferimento: sagoma del giocatore (16×22) accanto */
+    ctx.fillStyle = '#241a10'; ctx.fillRect(W - 40, H - 44 - 22, 12, 22);
+    ctx.fillStyle = '#e3b98a'; ctx.fillRect(W - 39, H - 44 - 21, 10, 8);
+    ctx.fillStyle = '#b5622e'; ctx.fillRect(W - 39, H - 44 - 13, 10, 12);
+    if (night) { ctx.fillStyle = 'rgba(8,9,24,.62)'; ctx.fillRect(0, 0, W, H); }
+    cell.appendChild(cv); out.appendChild(cell);
+  }
+  document.getElementById('info').textContent = (night ? 'notte' : 'giorno') + ' · 18 meraviglie · la sagoma a destra è il giocatore';
+}
+document.getElementById('night').onclick = () => { night = !night; render(performance.now()); };
+document.getElementById('grid').onclick = () => { showGrid = !showGrid; render(performance.now()); };
+render(0);
+setInterval(() => render(performance.now()), 240);   // animazioni vive
+</script>
+</body>
+</html>

@@ -4,35 +4,75 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
 <title>Digsy World</title>
+<meta name="description" content="Un piccolo archeologo, un mondo infinito, creature estinte da riportare alla luce.">
+<!-- ICONA: la stessa faccia di Digsy in tab, in home e nel menu app (SVG nitido a ogni scala,
+     PNG per iOS e Android che l'SVG non lo prendono sempre) -->
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="apple-touch-icon" href="/icon-180.png">
+<link rel="manifest" href="/manifest.webmanifest">
+<meta name="theme-color" content="#241a10">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Digsy">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>
   <div id="frame">
     <canvas id="cv"></canvas>
     <div id="hud">
-      <span class="tag" title="Monete">🪙 <span id="h-coin">0</span><span class="lbl"> monete</span></span>
-      <span class="tag" title="Energia (scavare costa 1)">⚡ <span id="h-en">0</span><span class="lbl"> energia</span></span>
-      <span class="tag" title="Giorno">📅 <span class="lbl">giorno </span><span id="h-day">1</span></span>
-      <span class="tag" title="Zona in cui ti trovi">🌍 <span id="h-zone">…</span></span>
-      <span class="tag" title="Città più vicina">🧭 <span id="h-compass">…</span></span>
-      <span class="tag" id="bagbtn" title="Apri lo zaino (I)">🎒 <span class="lbl">zaino </span><span id="h-bag">0</span></span>
+      <span class="tag" id="hudtoggle" title="Mostra/nascondi info">📊</span>
+      <span class="tag hud-always" title="Monete">🪙 <span id="h-coin">0</span></span>
+      <span class="tag hud-always" title="Energia (scavare costa 1)">⚡ <span id="h-en">0</span></span>
+      <span class="tag" title="Giorno · orario">📅 <span id="h-day">1</span></span>
+      <span class="tag" id="lvltag" title="Livello archeologo">🎓 <span id="h-lvl">1</span></span>
+      <span class="tag" title="Zona in cui ti trovi"><span id="h-zone">…</span></span>
+      <span class="tag" id="compasstag" title="Città"><span id="h-compass"></span></span>
+      <span class="tag" id="questtag" title="Missioni (Q)" style="display:none;cursor:pointer">📋 <span id="h-quest">0</span></span>
+      <span class="tag" id="companiontag" title="Compagno" style="display:none">🐾 <span id="h-comp"></span></span>
+      <span class="tag hud-always" id="bagbtn" title="Apri lo zaino (I)">🎒 <span class="lbl">zaino </span><span id="h-bag">0</span></span>
       <span class="tag" id="menubtn" title="Menu (ESC)">☰<span class="lbl"> menu</span></span>
-      <span class="tag" id="debugtag" style="display:none;background:rgba(140,60,60,.85)">🐞 DEBUG</span>
+      <span class="tag" id="debugtag" style="display:none;background:rgba(140,60,60,.85)">🐞 CHEAT · NO SAVE</span>
     </div>
     <div id="prompt"></div>
+  <!-- USCITA: per uscire bisogna camminare OLTRE la porta, ma oltre la porta non c'è nulla
+       da cliccare — col solo mouse era impossibile. Questo bottone compare avvicinandosi. -->
+  <button id="exitbtn" type="button">🚪 Esci</button>
     <div id="toasts"></div>
+    <div id="cmd">
+      <div id="cmdout"></div>
+      <div class="cmdrow"><span class="cmark">\</span><input id="cmdi" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><span id="cmdhint"></span></div>
+    </div>
   </div>
 
   <div id="touch">
-    <div class="dpad"><div class="db du" data-dir="up">▲</div><div class="db dd" data-dir="down">▼</div><div class="db dl" data-dir="left">◀</div><div class="db dr" data-dir="right">▶</div></div>
+    <div id="joy"><div id="joyknob"></div></div>
     <div id="abtn">A</div>
   </div>
 
   <div id="modal"><div class="sheet">
-    <div class="st"><h2 id="m-title">—</h2><button class="x" id="m-close">✕</button></div>
+    <div class="st"><h2 id="m-title">—</h2><span class="st-coins" id="m-coins"></span><button class="x" id="m-close">✕</button></div>
     <div class="sb" id="m-body"></div>
   </div></div>
 
+  <div id="bagov"><div class="bagwrap" id="bagbox"></div></div>
+  <!-- tavolo di preparazione: si spazzola via la crosta dal reperto grezzo -->
+  <div id="prepov"><div id="prepbox">
+    <div class="pr-hd"><span id="pr-title">PREPARAZIONE</span><button class="pr-x" id="pr-close">✕</button></div>
+    <div class="pr-stage"><canvas id="pr-cv" width="224" height="192"></canvas></div>
+    <div class="pr-bar"><div class="pr-fill" id="pr-fill"></div></div>
+    <div class="pr-foot"><span id="pr-hint"></span><button class="btn amber" id="pr-done">Fatto</button></div>
+  </div></div>
+  <div id="mapov"><div id="mapbox">
+    <div class="mp-roll top"></div>
+    <div class="mp-paper">
+      <div class="mp-hd"><span id="mp-title">MAPPA</span><span id="mp-sub"></span><button class="mp-x" id="mp-close">✕</button></div>
+      <div class="mp-view"><canvas id="mapcv"></canvas>
+        <div class="mp-zoom"><button id="mp-in">+</button><button id="mp-out">−</button><button id="mp-home">◎</button></div>
+      </div>
+      <div class="mp-legend" id="mp-legend"></div>
+    </div>
+    <div class="mp-roll bot"></div>
+  </div></div>
   <div id="bookov">
     <div id="bookframe">
       <button class="x" id="bk-close">✕</button>
@@ -51,6 +91,7 @@
       <h1 class="sp-title">DIGSY<em>WORLD</em></h1>
       <div class="sp-sub">scava · scopri · rianima</div>
       <div id="sp-menu" class="sp-menu"></div>
+      <div class="sp-ver" id="sp-ver"></div>
     </div>
   </div>
 

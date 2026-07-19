@@ -3,6 +3,10 @@ html,body{margin:0;height:100%;overflow:hidden;background:#1a2730;font-family:ui
 body{touch-action:none;user-select:none}
 #frame{position:fixed;inset:0;background:#111;line-height:0;overflow:hidden}
 canvas{display:block;image-rendering:pixelated;image-rendering:crisp-edges}
+/* #frame ha line-height:0 per il canvas: RIPRISTINA un'interlinea normale su TUTTI i
+   testi in overlay, altrimenti le righe che vanno a capo (toast lunghi, nomi zona) si
+   sovrappongono/spariscono. È la causa storica delle "scritte sovrapposte" su mobile. */
+#hud,#prompt,#toasts,#cmd,.toast,.tag,.banner{line-height:1.3}
 
  /* icone pixel custom (12x12 upscalate nitide) */
 .pxi{width:1.2em;height:1.2em;vertical-align:-0.22em;image-rendering:pixelated}
@@ -13,35 +17,179 @@ svg.pxi{fill:currentColor}
 .btn svg.pxi{color:#fff !important}
 .btn.amber svg.pxi,.btn.ghost svg.pxi{color:#33291f !important}
 .em .pxi,.row .em{font-size:22px}
-.db .pxi,#abtn .pxi{width:22px;height:22px}
+#abtn .pxi{width:22px;height:22px}
 kbd + .pxi{margin-left:2px}
 
 /* HUD — ben leggibile, scala col viewport */
 #hud{position:absolute;top:calc(8px + env(safe-area-inset-top));left:calc(8px + env(safe-area-inset-left));right:calc(8px + env(safe-area-inset-right));
   display:flex;gap:8px;align-items:center;pointer-events:none;
   font-size:clamp(14px,2.2vmin,18px);font-weight:800;letter-spacing:.3px;text-shadow:0 1px 0 #000;flex-wrap:wrap}
-.tag{background:rgba(16,22,16,.78);padding:6px 12px;border-radius:10px;pointer-events:auto;border:1px solid rgba(243,236,218,.18)}
-#bagbtn{margin-left:auto;cursor:pointer;background:rgba(40,60,40,.85)}
-#menubtn{cursor:pointer;background:rgba(60,50,36,.85)}
+.tag{background:rgba(16,22,16,.78);padding:6px 12px;border-radius:10px;pointer-events:auto;border:1px solid rgba(243,236,218,.18);white-space:nowrap;display:inline-flex;align-items:center;gap:2px}
+/* toggle HUD: visibile solo su mobile (touch), ICONA in alto a sinistra; su desktop HUD sempre completo */
+#hudtoggle{display:none;cursor:pointer;background:rgba(58,140,133,.95);border-color:rgba(243,236,218,.45)}
+#hudtoggle .pxi{width:20px;height:20px;color:#fff}
+#bagbtn{margin-left:auto;cursor:pointer;background:rgba(40,60,40,.9)}
+/* DESKTOP: lo zaino è un COMANDO, non un'informazione → sta in basso a sinistra, dove la mano
+   lo cerca, invece che in fondo alla fila dei chip informativi in alto.
+   Su mobile resta nell'HUD (lì il pollice arriva comodo e lo spazio è poco). */
+@media(hover:hover) and (pointer:fine){
+  #hud #bagbtn, #bagbtn{position:fixed;left:calc(14px + env(safe-area-inset-left));bottom:calc(14px + env(safe-area-inset-bottom));
+    margin:0;z-index:12;height:52px;min-height:52px;padding:0 16px;font-size:17px;gap:8px;
+    background:rgba(40,60,40,.95);border:2px solid rgba(243,236,218,.34);box-shadow:0 4px 0 rgba(0,0,0,.45)}
+  #bagbtn:hover{background:rgba(58,110,58,.97);border-color:#8fd06a}
+  #bagbtn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.45)}
+  #bagbtn .pxi{width:24px;height:24px}
+  #bagbtn .lbl{display:inline}
+  /* il prompt centrale si alza un po' per non finire sotto il pulsante */
+  #prompt{bottom:calc(20px + env(safe-area-inset-bottom))}
+}
+/* AVVISI dell'HUD: energia agli sgoccioli (rosso pulsante) e zaino pieno (ambra) */
+.tag.low{background:rgba(150,50,40,.92);border-color:#e4573d;animation:lowpulse 1.1s steps(2,end) infinite}
+@keyframes lowpulse{0%,100%{opacity:1}50%{opacity:.62}}
+/* zaino PIENO: fondo ambra scuro e testo/icona chiari. Le icone prendono il colore del
+   testo (currentColor): con un fondo giallo e l'icona gialla, lo zaino spariva proprio
+   quando era importante vederlo. */
+/* `#hud #bagbtn` (due id) vince su `#bagbtn.full`: senza la stessa specificità l'avviso di
+   zaino pieno non si vedeva proprio, su desktop. */
+#hud #bagbtn.full, #bagbtn.full{background:rgba(122,74,12,.97);border-color:#f2c53d;color:#fff3d6}
+#hud #bagbtn.full .lbl, #bagbtn.full .lbl{color:#f6e2b0}
+/* le icone portano un colore INLINE (ICOL in icons.js): per cambiarlo su uno sfondo
+   d'avviso serve !important, o l'icona resta del suo colore e sparisce nel fondo */
+#hud #bagbtn.full .pxi, #bagbtn.full .pxi{color:#fff3d6 !important}
+#menubtn{margin-left:auto;cursor:pointer;background:rgba(60,50,36,.92)} /* menu sempre in alto a DESTRA */
 .lbl{color:#c9d4c2;font-weight:700}
-@media(max-width:760px){.lbl{display:none}} /* su schermi stretti restano le icone */
+/* su mobile: HUD compatto, zona/bussola troncate */
+@media(max-width:760px){
+  #hud{font-size:12px;gap:6px;row-gap:5px}
+  .lbl{display:none} /* restano le icone */
+  #h-zone,#h-compass{display:inline-block;max-width:40vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;vertical-align:middle}
+}
+/* ---- MOBILE/TOUCH: HUD a tutta larghezza (flex). toggle a SX, menu a DX (margin-left:auto).
+   Da APERTO le info sono una LISTA VERTICALE (ogni voce = riga piena via flex-basis:100%):
+   impossibile sovrapporsi. ---- */
+@media(max-width:760px),(pointer:coarse){
+  #hud{left:0;right:0;top:0;display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px;min-height:50px;
+    padding:calc(5px + env(safe-area-inset-top)) 7px 5px 7px;
+    background:rgba(30,40,36,.96);border-bottom:1px solid rgba(243,236,218,.18);box-shadow:0 3px 10px rgba(0,0,0,.4);z-index:20}
+  /* toggle a SX (order 0), menu a DX (order 1 + margin-left:auto), stessa misura */
+  #hudtoggle{display:flex;order:0;background:rgba(58,140,133,.98)}
+  #menubtn{order:1;margin-left:auto;background:rgba(120,92,54,.98)}
+  #bagbtn{margin-left:0}
+  /* TUTTI i chip dell'HUD alla STESSA altezza (coerenza), compatti per starci tutti */
+  #hud .tag{height:42px;min-height:42px;padding:0 8px;font-size:14px;box-sizing:border-box;display:inline-flex;align-items:center}
+  #hudtoggle,#menubtn{width:42px;min-width:42px;padding:0;justify-content:center;font-size:21px;line-height:1;flex:0 0 auto;border:1px solid rgba(243,236,218,.4)}
+  /* pulsanti SEMPRE accessibili al tocco: libro e zaino */
+  #bagbtn{padding:0 10px;cursor:pointer;font-size:16px}
+  /* COLLASSATO: toggle + menu + info SEMPRE utili (coin, energia, libro, zaino), DISTRIBUITI nello spazio */
+  #hud.collapsed{justify-content:space-between}
+  #hud.collapsed #menubtn{margin-left:0}
+  #hud.collapsed .tag:not(#hudtoggle):not(#menubtn):not(.hud-always){display:none!important}
+  /* APERTO: ogni info su una RIGA PIENA sotto la riga dei bottoni */
+  #hud:not(.collapsed) .tag:not(#hudtoggle):not(#menubtn){
+    order:2;flex:0 0 100%;display:flex;align-items:center;gap:6px;margin:0;padding:8px 12px;font-size:16px;
+    background:rgba(14,20,16,.72);border:1px solid rgba(243,236,218,.12);border-radius:9px;box-sizing:border-box;white-space:nowrap}
+  #hud:not(.collapsed) #h-zone,#hud:not(.collapsed) #h-compass{max-width:none}
+  #toasts{z-index:10}
+}
 #prompt{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);background:#33291f;padding:8px 16px;
   border-radius:10px;font-size:clamp(13px,2vmin,16px);font-weight:800;display:none;text-shadow:0 1px 0 #000;white-space:nowrap;border:1px solid #6b5137}
 #prompt kbd{background:#f3ecda;color:#33291f;border-radius:5px;padding:0 6px;margin-right:5px}
-@media(pointer:coarse){#prompt{bottom:calc(104px + env(safe-area-inset-bottom))}}
+/* MOBILE: il prompt va SOTTO l'HUD, in alto.
+   In basso finiva sotto il joystick, il tasto A e il pulsante dello zaino, e su schermi
+   piccoli spariva del tutto: la riga che dice cosa fare non deve mai stare sotto un dito. */
+@media(pointer:coarse),(max-width:760px){
+  #prompt{top:calc(var(--hudh, 46px) + 16px + env(safe-area-inset-top));bottom:auto;
+    max-width:calc(100vw - 24px);white-space:normal;text-align:center}
+}
+
+/* console comandi (tipo Minecraft): si apre col tasto \ */
+#cmd{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:none;flex-direction:column;gap:6px;
+  background:rgba(12,10,8,.97);border-top:2px solid #6b5137;padding:8px 12px;font-family:ui-monospace,monospace}
+#cmd.on{display:flex}
+/* console SEMPRE sopra tutto: quando è aperta spariscono i controlli touch (joystick/A) */
+body:has(#cmd.on) #touch{display:none!important}
+#cmdout{display:none;white-space:pre-line;color:#dfe2ee;font-size:13px;line-height:1.5;max-height:42vh;overflow:auto;
+  border-bottom:1px solid #3a3448;padding-bottom:6px}
+#cmdout.on{display:block}
+.cmdrow{display:flex;align-items:center;gap:8px}
+.cmdrow .cmark{color:#8fd0a0;font-weight:800;font-size:16px}
+#cmdi{flex:1;background:#1a1712;border:2px solid #6b5137;border-radius:6px;color:#f3ecda;font-family:inherit;font-size:15px;padding:7px 10px;outline:none}
+#cmdi::placeholder{color:#7a6f5a}
+#cmdhint{color:#8fd0a0;font-size:12px;opacity:.85;white-space:nowrap;overflow:hidden;max-width:40vw}
+
+/* BARRE DI SCORRIMENTO a tema: pixel, niente barre di sistema tonde e grigie.
+   Ogni contenitore ha la sua: carta nei pannelli, teal nello zaino, pergamena nella mappa,
+   legno nel libro, notturna nella splash. Larghezza pari (8px) per restare sulla griglia. */
+*{scrollbar-width:thin}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:#3a2f22;box-shadow:inset 2px 0 0 #241a10}
+::-webkit-scrollbar-thumb{background:#8a5f38;border:2px solid #241a10;border-radius:0}
+::-webkit-scrollbar-thumb:hover{background:#a97a4c}
+::-webkit-scrollbar-corner{background:#241a10}
+/* pannelli su carta chiara (modale, guida, negozio…) */
+.sheet,.sb{scrollbar-color:#8a5f38 #e2d4b0}
+.sheet::-webkit-scrollbar-track,.sb::-webkit-scrollbar-track{background:#e2d4b0;box-shadow:inset 2px 0 0 #c9ad76}
+.sheet::-webkit-scrollbar-thumb,.sb::-webkit-scrollbar-thumb{background:#a97a4c;border:2px solid #6b5137}
+/* ZAINO: teal come la stoffa */
+.bag-scroll{scrollbar-color:#4da49e #17141f}
+.bag-scroll::-webkit-scrollbar-track{background:#141620;box-shadow:inset 2px 0 0 #0c0d14}
+.bag-scroll::-webkit-scrollbar-thumb{background:#3a8c85;border:2px solid #17141f}
+.bag-scroll::-webkit-scrollbar-thumb:hover{background:#4da49e}
+/* LIBRO: legno del dorso su carta */
+.bkpage,#bk-pages{scrollbar-color:#8a5f38 #efe3c6}
+.bkpage::-webkit-scrollbar-track,#bk-pages::-webkit-scrollbar-track{background:#efe3c6;box-shadow:inset 2px 0 0 #d8c08a}
+.bkpage::-webkit-scrollbar-thumb,#bk-pages::-webkit-scrollbar-thumb{background:#8a5f38;border:2px solid #5c3d22}
+/* MAPPA: pergamena */
+.mp-view,.mp-legend{scrollbar-color:#8a5f38 #dcc79a}
+.mp-view::-webkit-scrollbar-track{background:#dcc79a;box-shadow:inset 2px 0 0 #c9ad76}
+.mp-view::-webkit-scrollbar-thumb{background:#8a5f38;border:2px solid #5c3d22}
+/* SPLASH e console: notturne */
+.sp-hall,.sp-log,.sp-keys,#sp-slots{scrollbar-color:#6b5137 #1a1e1a}
+.sp-hall::-webkit-scrollbar-track,.sp-log::-webkit-scrollbar-track,.sp-keys::-webkit-scrollbar-track,#sp-slots::-webkit-scrollbar-track{background:#1a1e1a;box-shadow:inset 2px 0 0 #0e120e}
+.sp-hall::-webkit-scrollbar-thumb,.sp-log::-webkit-scrollbar-thumb,.sp-keys::-webkit-scrollbar-thumb,#sp-slots::-webkit-scrollbar-thumb{background:#6b5137;border:2px solid #241a10}
+#cmdout{scrollbar-color:#3a3448 #12100c}
+#cmdout::-webkit-scrollbar-track{background:#12100c}
+#cmdout::-webkit-scrollbar-thumb{background:#3a3448;border:2px solid #0b0a08}
+/* la galleria delle meraviglie e le liste dello zaino */
+.wo-grid,.bag-list{scrollbar-color:#a97a4c #efe3c6}
+
+/* SCORCIATOIE DA TASTIERA: su un telefono non esistono, quindi spariscono (niente "(L)"
+   accanto ai pulsanti). Il tasto azione, che su touch è il bottone A, si adatta da solo. */
+.kbd-only{display:inline}
+@media(max-width:760px),(pointer:coarse){
+  .kbd-only{display:none!important}
+  /* il testo del tasto lo decide actKey() in i18n.js: prima un trucco CSS sostituiva a
+     forza "A" dentro #prompt, e valeva solo lì — tutti gli altri testi dicevano ancora E */
+}
+
+/* SCROLL COL DITO: #frame ha touch-action:none per i controlli di gioco, e l'eredità
+   bloccava il pan in TUTTI gli overlay scrollabili (zaino, negozio, libro, trofei, console):
+   il contenuto sotto la piega era irraggiungibile su mobile. */
+.sheet,.sb,.bag-scroll,.bkpage,#bk-pages,.sp-hall,.sp-log,.sp-keys,#sp-slots,#cmdout,#bagbox,.edcol{touch-action:pan-y}
 
 /* toasts */
 #toasts{position:absolute;bottom:calc(52px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
 .toast{background:rgba(30,24,18,.94);border:1px solid #6b5137;padding:7px 14px;border-radius:10px;font-size:clamp(13px,2vmin,15px);font-weight:700;
   animation:ti .2s ease, to .4s ease 2.1s forwards;max-width:86vw;text-align:center}
-@media(pointer:coarse){#toasts{bottom:calc(150px + env(safe-area-inset-bottom))}}
+/* mobile: i toast vanno IN ALTO (sotto l'HUD), il prompt resta in basso → mai sovrapposti */
+@media(max-width:760px),(pointer:coarse){#toasts{top:calc(64px + env(safe-area-inset-top));bottom:auto}}
 @keyframes ti{from{opacity:0;transform:translateY(8px)}to{opacity:1}}@keyframes to{to{opacity:0}}
+
+/* banner centrale per eventi importanti */
+.banner{position:fixed;left:50%;top:38%;transform:translate(-50%,-50%);z-index:40;pointer-events:none;
+  background:#2a2118;color:#f6efdd;border:3px solid #c9a227;border-radius:12px;box-shadow:0 0 0 3px #2a2118, 0 8px 0 rgba(0,0,0,.35);
+  padding:14px 26px;font-weight:800;font-size:clamp(16px,3vmin,24px);text-align:center;letter-spacing:.5px;
+  animation:bannerin .35s steps(4)}
+.banner .pxi{width:1.1em;height:1.1em}
+.banner.out{opacity:0;transition:opacity .35s}
+@keyframes bannerin{from{opacity:0;transform:translate(-50%,-50%) scale(.6)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
 
 /* touch — tasti comodi, dentro le safe-area */
 #touch{position:fixed;inset:0;pointer-events:none;z-index:5}
-.dpad{position:absolute;left:calc(16px + env(safe-area-inset-left));bottom:calc(20px + env(safe-area-inset-bottom));width:150px;height:150px;pointer-events:auto}
-.db{position:absolute;width:50px;height:50px;background:rgba(58,47,46,.85);border:2px solid #6b5137;border-radius:11px;display:flex;align-items:center;justify-content:center;color:#e8d9b8;font-size:19px}
-.db:active{background:#5fa38f}.du{left:50px;top:0}.dd{left:50px;bottom:0}.dl{left:0;top:50px}.dr{right:0;top:50px}
+/* joystick analogico: cerchio fisso + knob trascinabile senza staccare il dito */
+#joy{position:absolute;left:calc(20px + env(safe-area-inset-left));bottom:calc(24px + env(safe-area-inset-bottom));width:150px;height:150px;border-radius:50%;background:rgba(58,47,46,.5);border:3px solid rgba(232,217,184,.4);pointer-events:auto;touch-action:none}
+#joyknob{position:absolute;left:50%;top:50%;width:58px;height:58px;margin:-29px 0 0 -29px;border-radius:50%;background:#e8d9b8;border:3px solid #6b5137;box-shadow:0 3px 0 rgba(0,0,0,.35), inset 0 -4px 0 #cbb58c;pointer-events:none}
+#joy.on #joyknob{background:#f6efdd}
 #abtn{position:absolute;right:calc(20px + env(safe-area-inset-right));bottom:calc(30px + env(safe-area-inset-bottom));width:80px;height:80px;border-radius:50%;background:#d8973c;border:3px solid #a86e22;color:#3a2f2e;font-weight:800;font-size:24px;pointer-events:auto;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 0 #a86e22}
 #abtn:active{transform:translateY(2px)}
 @media(hover:hover) and (pointer:fine){#touch{display:none}}
@@ -49,7 +197,18 @@ kbd + .pxi{margin-left:2px}
 /* modale */
 #modal{position:fixed;inset:0;z-index:20;background:rgba(18,14,10,.6);display:none;align-items:center;justify-content:center;padding:14px}
 #modal.on{display:flex}
-.sheet{background:#f3ecda;color:#33291f;border:4px solid #6b5137;border-radius:12px;width:min(560px,100%);max-height:88vh;overflow:auto;box-shadow:0 14px 40px rgba(0,0,0,.5);font-family:ui-monospace,monospace}
+#modal.opaque{background:#0a0a10} /* editor iniziale: fondo nero, niente città dietro */
+/* la modale non deve MAI superare lo schermo: su mobile `vh` conta anche la barra del browser,
+   quindi si usa dvh e si tolgono i margini della cornice dal calcolo. */
+.sheet{background:#f3ecda;color:#33291f;border:4px solid #6b5137;border-radius:12px;width:min(560px,100%);
+  max-height:calc(100dvh - 28px);overflow:auto;box-shadow:0 14px 40px rgba(0,0,0,.5);font-family:ui-monospace,monospace;
+  display:flex;flex-direction:column}
+.sheet .sb{overflow:auto;min-height:0}
+.sheet .st{flex:none}
+@media(max-width:760px),(pointer:coarse){
+  #modal{padding:8px}
+  .sheet{max-height:calc(100dvh - 16px);width:100%}
+}
 .st{position:sticky;top:0;background:#e7d9b6;border-bottom:3px solid #6b5137;padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:1}
 .st h2{margin:0;font-size:17px}.st .x{margin-left:auto;border:2px solid #6b5137;background:#f3ecda;border-radius:8px;width:34px;height:34px;font-weight:800;cursor:pointer;font-size:16px}
 .sb{padding:14px}
@@ -61,6 +220,10 @@ kbd + .pxi{margin-left:2px}
 .btn.amber{background:#d8973c;box-shadow:0 3px 0 #a86e22}.btn.clay{background:#b5622e;box-shadow:0 3px 0 #7f421d}
 .btn.ghost{background:#f3ecda;color:#33291f;border:2px solid #6b5137;box-shadow:none}
 .btn.ghost.onbtn{background:#d8973c;color:#3a2f2e;border-color:#a86e22}
+.btn.ghost.locked{border-style:dashed;border-color:#c79a3c}
+.btn.ghost.locked.onbtn{background:#e8c34a;border-color:#a86e22;border-style:solid}
+.lockp{font-size:10px;font-weight:700;color:#8a6a1e;background:#f6e6b0;border-radius:4px;padding:0 3px;margin-left:2px}
+.lockp svg.pxi{width:9px;height:9px;vertical-align:-1px}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .sel{font-family:inherit;font-size:12px;border:2px solid #6b5137;border-radius:7px;background:#fbf5e4;color:#33291f;padding:5px 6px;max-width:31%}
 .hr{border:0;border-top:2px dashed #d8c79c;margin:12px 0}
@@ -69,13 +232,111 @@ kbd + .pxi{margin-left:2px}
 .rar.eccezionale{background:#f3ddc0;color:#a5641f}.rar.leggendario{background:#efd6ea;color:#8a3f86}
 .muted{color:#8a755a;font-size:12px}.center{text-align:center;padding:18px}
 .bighead{font-size:13px;font-weight:800;margin:2px 0 8px;color:#5a4a34;text-transform:uppercase;letter-spacing:1px}
+/* colonna dell'editor: stessa larghezza dell'anteprima del Digsy (.prev = 360px) */
+.edcol{width:360px;max-width:100%;margin:0 auto;display:flex;flex-direction:column;gap:7px}
+.edcol .bighead{margin:6px 0 0}
+.edcol .prev{width:100%}
+.nameinput{font:700 16px ui-monospace,Menlo,monospace;padding:9px 12px;border-radius:9px;border:2px solid #6b5137;background:#efe6d4;color:#2a2016;width:100%;text-align:center}
+.btn.wide{width:100%;justify-content:center}
+.nameinput:focus{outline:none;border-color:#d8973c}
 
 /* editor / barbiere / sartoria */
 .sw{width:28px;height:28px;border-radius:8px;border:2px solid #6b5137;cursor:pointer;padding:0}
 .sw.on{box-shadow:0 0 0 3px #d8973c}
-.sw.swx{background:#f3ecda;color:#8a3f3a;font-weight:800;font-size:15px;line-height:1;font-family:inherit}
+.sw.swx{background:#f3ecda;color:#8a3f3a;font-weight:800;font-size:15px;line-height:1;font-family:inherit;display:flex;align-items:center;justify-content:center}
+.bag-close{display:flex;align-items:center;justify-content:center;color:#fff}
+.st .x{color:#33291f}
+#bk-close{color:#201a14}
+.st .x .pxi,.bag-close .pxi,.sw.swx .pxi,#bk-close .pxi{width:16px;height:16px}
 .swrow{display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 10px}
-.prev{width:240px;height:72px;image-rendering:pixelated;background:#bcd8a8;border:2px solid #6b5137;border-radius:8px}
+.prev{width:360px;max-width:100%;aspect-ratio:30/11;height:auto;image-rendering:pixelated;background:#bcd8a8;border:2px solid #6b5137;border-radius:8px}
+/* miniatura voxel del pezzo (zaino/negozio/museo) */
+.pv{width:44px;height:37px;image-rendering:pixelated;background:#15120d;border:2px solid #6b5137;border-radius:7px;flex:none}
+
+/* ZAINO: a FORMA di zaino (spallacci, patta arancio+fibbia, tasche laterali, tasca frontale)
+   ma con contenuto LEGGIBILE — tile grandi col nome. Tutto 8-bit: bordi netti, zero blur. */
+#bagov{position:fixed;inset:0;z-index:22;background:rgba(18,14,10,.72);display:none;align-items:center;justify-content:center;padding:10px 12px}
+#bagov.on{display:flex}
+/* altezza ADATTIVA: con pochi oggetti il pannello si accorcia (niente vuotone centrale) */
+/* lo zaino occupa quasi tutta l'altezza: più roba in vista, meno scroll */
+#bagbox{position:relative;width:min(560px,94vw);height:96dvh;max-height:96dvh;margin:0;display:flex;flex-direction:column;color:#eef0f5}
+/* TELAIO 9-slice disegnato in /bag-editor: appena --bag-frame è definita prende il posto
+   della grafica CSS (angoli intatti, lati che si ripetono). Finché non c'è, resta l'attuale. */
+.bag-body.framed{background:none!important;box-shadow:none!important;clip-path:none!important;
+  border-style:solid;border-image:var(--bag-frame) var(--bag-slice) fill repeat;border-width:var(--bag-border);
+  image-rendering:pixelated}
+.bag-body.framed .bag-hd{background:none;box-shadow:none;color:#f6efdd;padding:0 2px 8px}
+.bag-body.framed .bag-scroll{margin:0;background:rgba(0,0,0,.28);box-shadow:none}
+.bag-body.framed .bag-foot{display:flex;gap:8px;align-items:center;padding:8px 10px;background:#2c6b66;box-shadow:inset 0 3px 0 #17141f}
+.bag-foot .btn{flex:1 1 0;min-width:0}
+/* stacco fra la mappa e i due libri */
+.bf-sep{flex:0 0 12px}
+/* corpo teal con ANGOLI 8-bit a gradini (clip-path) + contorno navy interno */
+.bag-body{display:flex;flex-direction:column;flex:1 1 auto;min-height:0;max-height:none;background:#3a8c85;
+  box-shadow:inset 0 0 0 3px #17141f, inset 0 0 0 6px #4da49e, inset 0 -9px 0 #2c6b66;
+  clip-path:polygon(0 8px, 4px 8px, 4px 4px, 8px 4px, 8px 0,
+    calc(100% - 8px) 0, calc(100% - 8px) 4px, calc(100% - 4px) 4px, calc(100% - 4px) 8px, 100% 8px,
+    100% calc(100% - 8px), calc(100% - 4px) calc(100% - 8px), calc(100% - 4px) calc(100% - 4px), calc(100% - 8px) calc(100% - 4px), calc(100% - 8px) 100%,
+    8px 100%, 8px calc(100% - 4px), 4px calc(100% - 4px), 4px calc(100% - 8px), 0 calc(100% - 8px))}
+/* patta ARANCIO (niente più spallacci/tasche flottanti: erano pezzi staccati dal corpo) */
+.bag-hd{position:relative;display:flex;align-items:center;gap:10px;padding:12px 12px 15px;background:#f2a13c;color:#3a2410;
+  box-shadow:inset 0 5px 0 #ffc46a, inset 0 -7px 0 #e08a2c}
+.bag-hd .bicn{font-size:22px;line-height:1}.bag-hd .bicn .pxi{width:22px;height:22px}
+.bag-hd h2{margin:0;font-size:16px;font-weight:800;letter-spacing:.5px;text-transform:uppercase}
+.bag-hd .cnt{margin-left:auto;font-size:12px;font-weight:800;opacity:.8}
+.bag-close{width:32px;height:32px;background:#2c6b66;color:#fff;border:0;box-shadow:0 0 0 3px #17141f;
+  font-weight:800;font-size:16px;cursor:pointer;flex:none}
+.bag-close:active{transform:translate(1px,1px)}
+/* corpo interno scuro (dove stanno gli oggetti) */
+.bag-scroll{margin:8px;padding:10px;overflow:auto;flex:1 1 auto;min-height:0;background:#20222e;box-shadow:inset 0 0 0 3px #17141f}
+.bag-sec{margin-bottom:14px}
+.bag-sec>h3{margin:0 0 8px;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:#7fd8cf;
+  border-bottom:2px solid #3a3448;padding-bottom:4px}
+/* griglia reperti: tile grandi con miniatura + nome sotto */
+.bag-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(96px,1fr));gap:8px}
+.bitile{position:relative;background:#171826;box-shadow:0 0 0 2px #0b0c11,inset 0 0 0 2px #2b2d40;padding:5px 5px 6px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bitile .pv{width:100%;aspect-ratio:1;height:auto;background:#0a0710;image-rendering:pixelated;box-shadow:0 0 0 1px #000}
+/* testi dello zaino: mai sotto 11px (illeggibili sul telefono) */
+.bitile .bnm{font-size:10px;font-weight:700;line-height:1.15;text-align:center;color:#dfe2ee;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;min-height:23px}
+.bitile .biq{font-size:11px;font-weight:800;color:#a9adbf}
+.bitile .dot{position:absolute;left:5px;top:5px;width:8px;height:8px;box-shadow:0 0 0 1px #000}
+.dot.comune{background:#b8b0a2}.dot.raro{background:#4e8d7c}.dot.eccezionale{background:#d8973c}.dot.leggendario{background:#8d6ac8}
+.bitile.drag{cursor:grab;touch-action:pan-y} /* il pan verticale resta alla lista: si scorre */
+.bag-hint{font-size:11px;color:#a9adbf;margin:0 0 6px}
+.bag-sec h3 .cap{font-weight:700;color:#d8973c;font-size:12px}
+/* schede dello zaino: accesso rapido, niente scroll infinito */
+.bag-tabs{display:flex;gap:4px;margin:0 0 10px;position:sticky;top:0;z-index:2}
+.bag-tab{flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:1px;cursor:pointer;
+  background:#171826;color:#c9cde0;border:none;box-shadow:inset 0 0 0 2px #2b2d40;padding:6px 4px;font-family:inherit;position:relative}
+.bag-tab .bic{font-size:18px}.bag-tab .bic .pxi{width:17px;height:17px}
+.bag-tab .bt{font-size:11px;font-weight:800;letter-spacing:.3px}
+.bag-tab.on{color:#241a0a;background:#d8973c;box-shadow:inset 0 0 0 2px #a86e22}
+.bag-tab .tn{position:absolute;top:2px;right:4px;font-size:11px;font-weight:800;background:#0b0c11;color:#e8c34a;border-radius:6px;padding:0 3px}
+.bag-tab.on .tn{background:#241a0a;color:#ffe6a8}
+/* liste (attrezzi, DNA, mappe, chimere): riga con icona + testo + azione */
+.bag-list{display:flex;flex-direction:column;gap:6px}
+.brow{display:flex;align-items:center;gap:10px;background:#171826;box-shadow:0 0 0 2px #0b0c11,inset 0 0 0 2px #2b2d40;padding:8px 10px}
+.brow .bic{font-size:22px;flex:none;width:26px;text-align:center}.brow .bic .pxi{width:22px;height:22px}
+.brow .btx{min-width:0;flex:1}.brow .btx .bt1{font-size:13px;font-weight:800}.brow .btx .bt2{font-size:11px;color:#a9adbf;line-height:1.2}
+.brow .bqt{font-size:13px;font-weight:800;color:#e8c34a;flex:none}
+.brow.click{cursor:pointer}.brow.on{box-shadow:0 0 0 2px #e8c34a,inset 0 0 0 2px #2b2d40}
+.bbtn{font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;border:0;padding:6px 10px;color:#0b0c11;background:#e8c34a;box-shadow:0 3px 0 #a8862a;flex:none}
+.bbtn:active{transform:translateY(2px);box-shadow:0 1px 0 #a8862a}
+/* attrezzo/mezzo non ancora comprato: riga in grigio (si vede cosa manca) */
+.brow.miss{opacity:.42;filter:grayscale(1)}
+.bag-empty{color:#8f8aa8;font-size:11px;text-align:center;padding:10px 0}
+/* tasca frontale in basso (rossa con orlo arancio): ospita il tasto Libro */
+.bag-foot{display:flex;align-items:center;gap:7px;justify-content:center;margin:0 8px 8px;padding:10px;background:#d95f43;
+  box-shadow:inset 0 6px 0 #f2a13c, 0 0 0 3px #17141f}
+.bag-foot .btn{flex:1 1 0;min-width:0;white-space:nowrap;padding:11px 8px}
+/* stacco fra la MAPPA (a sinistra) e i due libri */
+.bf-sep{flex:0 0 14px}
+@media(max-width:760px),(pointer:coarse){
+  .bag-foot{flex-wrap:wrap;gap:6px;padding:9px 8px}
+  .bag-foot .btn{flex:1 1 30%;font-size:13px;min-height:46px}
+  .bf-sep{flex:0 0 100%;height:0;margin:0}   /* su schermi stretti la mappa va su una riga sua */
+}
 /* tap target più grandi su touch */
 @media(pointer:coarse){
   .sw{width:38px;height:38px}
@@ -109,6 +370,38 @@ kbd + .pxi{margin-left:2px}
   background:linear-gradient(270deg,transparent 0 2px,#f1e6c8 2px 6px,#e0d1a8 6px 10px)}
 .bkpage:first-child{border-right:4px solid #201a14} /* dorso netto */
 .bkpage.empty{background:#f4ead0}
+/* MOBILE: libro a PAGINA SINGOLA. Meno informazioni ma PIÙ LEGGIBILI: la X sta dentro la
+   pagina (fuori veniva tagliata dal bordo), la scheda mostra solo l'essenziale e la barra in
+   basso diventa un vero comando di navigazione. */
+@media(max-width:760px),(pointer:coarse),(max-height:560px){
+  #bookov{padding:8px}
+  #bookframe{width:100%;height:100%;padding:0 0 6px}
+  #bk-book{border-width:3px;box-shadow:0 4px 0 #d6c390, 0 7px 0 #201a14}
+  #bk-pages{border:0;box-shadow:none}
+  .bkpage{padding:10px 12px 8px}
+  .bkpage:first-child{border-right:none}
+  .bk-edge{display:none!important}
+  /* X DENTRO la pagina, in alto a destra, sempre tutta visibile */
+  #bookframe .x{top:8px;right:8px;width:46px;height:46px;font-size:20px;box-shadow:2px 2px 0 #201a14}
+  /* meno informazioni: via lo schizzo di campo e la descrizione lunga */
+  .bk-sketch{display:none}
+  .bk-head{margin-bottom:4px;padding-right:52px}     /* il titolo non finisce sotto la X */
+  .bk-zone{font-size:13px;letter-spacing:1px}
+  .bk-cvwrap .bp-cv{max-height:38vh}
+  .bk-name{font-size:21px;margin-top:6px;line-height:1.2}
+  .bk-name .rar{display:block;width:fit-content;margin:5px auto 0}
+  .bk-desc{font-size:13px;line-height:1.5;margin-top:6px;padding-top:6px;max-height:22vh;overflow:auto}
+  /* barra in basso: chip grandi su due colonne, numero di pagina staccato */
+  .bk-foot{padding-top:8px;border-top:2px solid #e0d1a8;margin-top:8px}
+  .bk-meta{display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:12px}
+  .bk-meta span{white-space:normal;justify-content:center;text-align:center;padding:7px 6px;line-height:1.25;box-shadow:2px 2px 0 #d6c390}
+  .bk-pageno{margin-top:8px;font-size:12px;letter-spacing:3px;color:#8a755a}
+  #bk-nav{gap:8px;padding-top:10px}
+  .bk-navpage{min-width:92px;font-size:17px}
+  .bk-navinfo{font-size:13px}
+  #bk-nav .btn{min-width:74px;min-height:52px;font-size:26px;padding:8px 12px}
+  .bk-flip3d{right:8px;top:8px;font-size:13px;padding:8px 12px;min-height:38px}
+}
 /* sfogliata 8-bit: la pagina si schiaccia sul dorso a SCATTI (steps), poi la nuova si apre */
 #bk-pages.turn-r .bkpage:last-child{transform-origin:left center;animation:sqOut .16s steps(4,end) forwards}
 #bk-pages.turn-l .bkpage:first-child{transform-origin:right center;animation:sqOut .16s steps(4,end) forwards}
@@ -130,17 +423,23 @@ kbd + .pxi{margin-left:2px}
   padding:3px 8px;border:2px solid #201a14;box-shadow:2px 2px 0 #d6c390;margin-left:6px}
 .bk-desc{margin-top:8px;font-size:13px;line-height:1.55;color:#5a4a34;text-align:left;border-top:2px dashed #cbbfa4;padding-top:8px}
 /* footer di pagina: meta su UNA riga + numero, ancorati in basso alla stessa altezza */
-.bk-foot{margin-top:auto;padding-top:8px}
-.bk-meta{display:flex;flex-wrap:nowrap;white-space:nowrap;gap:6px;justify-content:center;font-size:11px;font-weight:700;color:#5a4a34;overflow:hidden}
-.bk-meta span{background:#f4ead0;border:2px solid #201a14;padding:2px 8px;box-shadow:2px 2px 0 #d6c390;flex:none}
+.bk-foot{margin-top:auto;padding-top:10px}
+/* chip che vanno a capo IN MODO ORDINATO (mai numeri spezzati, mai chip tagliati) */
+.bk-meta{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;font-size:11px;font-weight:700;color:#5a4a34;line-height:1.3}
+.bk-meta span{background:#f4ead0;border:2px solid #201a14;border-radius:4px;padding:3px 8px;box-shadow:2px 2px 0 #d6c390;flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
+.bk-pageno{margin-top:8px;text-align:center}
 .bk-pageno{margin-top:8px;font-size:11px;color:#a8916d;letter-spacing:2px}
 .bk-cvwrap{position:relative}
 .bk-flip3d{position:absolute;right:6px;top:6px;font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;
   background:#d8973c;color:#3a2f2e;border:2px solid #a86e22;padding:4px 8px;box-shadow:2px 2px 0 #7f421d}
 .bk-flip3d:active{transform:translate(1px,1px);box-shadow:1px 1px 0 #7f421d}
-#bk-nav{display:flex;align-items:center;justify-content:center;gap:14px;padding-top:16px;color:#f3ecda;font-weight:800}
+#bk-nav{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:14px;color:#f3ecda;font-weight:800}
+#bk-nav .btn{min-width:56px;min-height:46px;font-size:22px}
+.bk-navrow{display:flex;align-items:center;justify-content:center;gap:14px}
+.bk-navpage{min-width:78px;text-align:center;font-size:15px;letter-spacing:1px}
+.bk-navinfo{font-size:12px;font-weight:700;opacity:.9;text-align:center;line-height:1.35}
 #bk-nav .btn{min-width:52px}
-@media(max-width:700px){#bk-pages{flex-direction:column;align-items:center}.bkpage{max-width:100%}.bkpage:first-child{border-right-width:3px;border-right-color:#cbbfa4}.bkpage:last-child{border-left:3px solid #cbbfa4}}
+/* (rimossa la vecchia impaginazione a 2 pagine impilate: su mobile ora è pagina SINGOLA) */
 
 /* boot */
 #boot{position:fixed;inset:0;z-index:40;background:#1a2730;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#e6dcc4}
@@ -151,8 +450,11 @@ kbd + .pxi{margin-left:2px}
              linear-gradient(180deg,rgba(20,16,10,.35),rgba(20,16,10,.1));
   transition:opacity .65s ease}
 #splash.off{opacity:0;pointer-events:none}
-.sp-card{text-align:center;padding:30px 46px 34px;background:rgba(26,30,24,.58);border:3px solid #6b5137;border-radius:18px;
-  backdrop-filter:blur(4px);box-shadow:0 18px 60px rgba(0,0,0,.55),inset 0 0 0 2px rgba(243,236,218,.06)}
+/* la card non deve MAI uscire dallo schermo: flex column + max-height, le liste scrollano dentro */
+.sp-card{position:relative;text-align:center;padding:30px 46px 34px;background:rgba(26,30,24,.58);border:3px solid #6b5137;border-radius:18px;
+  backdrop-filter:blur(4px);box-shadow:0 18px 60px rgba(0,0,0,.55),inset 0 0 0 2px rgba(243,236,218,.06);
+  display:flex;flex-direction:column;align-items:center;margin:auto;
+  max-height:calc(100dvh - 20px);max-width:calc(100vw - 20px);overflow:hidden}
 .sp-title{margin:6px 0 0;font-size:clamp(44px,9vw,84px);line-height:.95;letter-spacing:5px;color:#f3ecda;font-weight:800;
   text-shadow:0 2px 0 #a86e22,0 4px 0 #7f421d,0 6px 0 #3a2f2e,0 12px 26px rgba(0,0,0,.65);
   animation:spFloat 3.2s ease-in-out infinite}
@@ -162,11 +464,165 @@ kbd + .pxi{margin-left:2px}
 #sp-digsy{width:120px;height:108px;image-rendering:pixelated}
 /* menu del titolo */
 .sp-menu{display:flex;flex-direction:column;gap:10px;align-items:center;margin-top:2px}
+.sp-ver{margin-top:16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;letter-spacing:1px;color:#7f8a86;opacity:.8}
+/* Intro IN-GAME (lore): scena sul canvas + BANDELLE nere cinema + textbox visual-novel */
+#introbox{position:fixed;inset:0;z-index:59;pointer-events:none}
+.introbar{position:absolute;left:0;right:0;height:12vh;background:#000;z-index:60}
+.introbar.top{top:0;animation:barTop .55s cubic-bezier(.2,.7,.2,1) both}
+.introbar.bot{bottom:0;animation:barBot .55s cubic-bezier(.2,.7,.2,1) both}
+@keyframes barTop{from{transform:translateY(-100%)}to{transform:translateY(0)}}
+@keyframes barBot{from{transform:translateY(100%)}to{transform:translateY(0)}}
+/* BANDE CINEMA per le cutscene in-game (es. consegna del Libro al museo) */
+body.cutscene::before,body.cutscene::after{content:'';position:fixed;left:0;right:0;height:11vh;background:#000;z-index:58;pointer-events:none}
+body.cutscene::before{top:0;animation:barTop .5s cubic-bezier(.2,.7,.2,1) both}
+body.cutscene::after{bottom:0;animation:barBot .5s cubic-bezier(.2,.7,.2,1) both}
+/* mini-video: durante la cutscene sparisce TUTTA l'interfaccia (HUD, tasto A, joystick, prompt, toast) */
+body.cutscene #hud,body.cutscene #touch,body.cutscene #prompt,body.cutscene #toasts,body.cutscene #cmd{display:none!important}
+/* overlay cutscene: tap per avanzare, Salta in alto, "clicca per continuare" in basso (come l'intro) */
+#cutfx{position:fixed;inset:0;z-index:59;pointer-events:none}
+#cuttap{position:absolute;inset:0;pointer-events:auto;cursor:pointer}
+#cutskip{position:fixed;top:calc(2vh + env(safe-area-inset-top));right:14px;z-index:62;pointer-events:auto;background:rgba(30,24,18,.92);color:#f3ecda;border:2px solid #6b5137;border-radius:9px;padding:7px 13px;font-family:inherit;font-weight:800;cursor:pointer}
+#cuthint{position:fixed;left:50%;bottom:calc(13.5vh + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:62;pointer-events:none;background:rgba(20,16,12,.82);color:#f3ecda;border:1px solid #6b5137;border-radius:20px;padding:6px 18px;font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:clamp(12px,2.2vmin,15px);white-space:nowrap;animation:hintpulse 1.2s ease-in-out infinite}
+#introtap{position:absolute;inset:0;z-index:61;pointer-events:auto;cursor:pointer}
+#introskip{position:fixed;top:calc(2vh + env(safe-area-inset-top));right:14px;z-index:62;pointer-events:auto;background:rgba(30,24,18,.92);color:#f3ecda;border:2px solid #6b5137;border-radius:9px;padding:7px 13px;font-family:inherit;font-weight:800;cursor:pointer}
+#introdlg{position:absolute;left:12px;right:12px;bottom:calc(12vh + 14px + env(safe-area-inset-bottom));z-index:61;pointer-events:auto;cursor:pointer;max-width:min(680px,94vw);margin:0 auto;background:rgba(24,20,14,.95);border:3px solid #6b5137;border-radius:12px;padding:12px 16px 12px;color:#f3ecda;font-family:ui-monospace,Menlo,monospace;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+#introname{font-weight:800;font-size:14px;margin-bottom:4px;letter-spacing:.5px}
+#introtext{font-size:clamp(14px,2.4vmin,17px);line-height:1.45;min-height:2.9em}
+/* HINT "tocca per continuare": pill centrato sopra la banda inferiore, pulsante */
+#introhint{position:fixed;left:50%;bottom:calc(13.5vh + env(safe-area-inset-bottom));transform:translateX(-50%);z-index:62;pointer-events:none;
+  background:rgba(20,16,12,.82);color:#f3ecda;border:1px solid #6b5137;border-radius:20px;padding:6px 18px;
+  font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:clamp(12px,2.2vmin,15px);white-space:nowrap;animation:hintpulse 1.2s ease-in-out infinite}
+@keyframes hintpulse{0%,100%{opacity:.55}50%{opacity:1}}
+body.introing #hud,body.introing #touch,body.introing #splash,body.introing #prompt,body.introing #toasts{display:none!important}
+/* finale: fadeout 8-bit (a scatti) al nero + scritta */
+#introend{position:fixed;inset:0;z-index:70;background:#000;opacity:0;transition:opacity 2.2s steps(11,end);display:flex;align-items:center;justify-content:center;pointer-events:auto}
+#introend.show{opacity:1}
+#introend .et{color:#f3ecda;font-family:ui-monospace,Menlo,monospace;font-size:clamp(18px,3.6vmin,28px);letter-spacing:1.5px;opacity:0;transition:opacity .8s steps(4,end) 2.1s}
+#introend.show .et{opacity:1}
+/* card più larga per Trofei/Novità */
+.sp-card.wide{max-width:min(860px,96vw);padding:24px 26px 28px}
+/* SOTTOMENU della splash: X sempre in alto a destra e contenuto che scorre DENTRO la card,
+   così il pulsante di uscita non finisce mai sotto il bordo dello schermo (bug su mobile). */
+.sp-card{position:relative}
+.sp-x{position:absolute;top:8px;right:8px;z-index:3;width:38px;height:38px;background:#8a5f38;color:#f3ecda;
+  border:0;box-shadow:0 0 0 3px #241a10;font:800 16px ui-monospace,monospace;cursor:pointer;line-height:1}
+.sp-x:active{transform:translate(1px,1px)}
+/* UNA SOLA barra di scorrimento: la card NON scorre (resta ferma con la X), scorre solo
+   l'elenco al suo interno. Due aree scrollabili annidate = due scrollbar = confusione. */
+.sp-card{max-height:calc(100dvh - 16px);overflow:hidden;display:flex;flex-direction:column}
+.sp-card > .sp-menu{min-height:0;display:flex;flex-direction:column;gap:10px;align-items:center;width:100%}
+.sp-hall,.sp-log,.sp-keys,#sp-slots{flex:1 1 auto;min-height:0;max-height:none;overflow-y:auto;overflow-x:hidden;width:100%}
+@media(max-width:760px),(pointer:coarse){
+  .sp-card{padding:16px 12px 12px}
+  .sp-card.wide{padding:16px 10px 10px;max-width:100vw}
+  .sp-x{width:44px;height:44px;top:6px;right:6px}
+  .sp-title2{padding-right:52px}      /* il titolo non finisce sotto la X */
+}
+/* Sala dei Trofei: MENSOLE di legno con le coppe sopra (dorate = sbloccate) */
+.sp-hall{max-height:60vh;overflow:auto;margin:10px 0;padding:2px 4px}
+.sp-shelf{margin-bottom:20px}
+.sp-shelf .cups{display:flex;justify-content:space-around;align-items:flex-end;gap:10px;padding:0 10px 2px}
+.sp-shelf .plank{height:12px;background:linear-gradient(#a9764a,#6e4a2a 60%,#5a3c22);border:2px solid #241a12;border-radius:3px;box-shadow:0 6px 11px rgba(0,0,0,.5),inset 0 2px 0 rgba(255,220,170,.25)}
+.cup{display:flex;flex-direction:column;align-items:center;width:31%}
+.cup .cupcv{width:64px;height:76px;image-rendering:pixelated;filter:drop-shadow(0 3px 0 rgba(0,0,0,.4))}
+.cup.won .cupcv{filter:drop-shadow(0 3px 0 rgba(0,0,0,.4)) drop-shadow(0 0 6px rgba(232,185,60,.45))}
+.cup .cupname{font-size:11px;margin-top:3px;text-align:center;line-height:1.2;color:#8f8a7e;min-height:2.4em;letter-spacing:.3px}
+.cup.won .cupname{color:#f0e6cf;font-weight:700}
+/* Changelog */
+.sp-log{max-height:52vh;overflow:auto;text-align:left;font-size:12px;margin:6px 0;padding-right:4px}
+.sp-logv{margin-bottom:10px}
+.sp-logv b{color:#d8973c}
+.sp-logv ul{margin:4px 0 0;padding-left:16px}
+.sp-logv li{margin:2px 0;color:#cfd6d2;line-height:1.3}
 .sp-btn{font-family:inherit;font-weight:800;font-size:15px;padding:10px 26px;border:none;border-radius:11px;cursor:pointer;
   background:#4e8d7c;color:#fff;box-shadow:0 4px 0 #37675a;min-width:230px}
 .sp-btn.primary{background:#d8973c;color:#3a2f2e;box-shadow:0 5px 0 #a86e22;font-size:18px;padding:13px 34px;animation:spPulse 1.7s ease-in-out infinite}
 .sp-btn.danger{background:#b5622e;box-shadow:0 4px 0 #7f421d}
 .sp-btn.small{min-width:0;padding:7px 14px;font-size:13px}
+/* riga secondaria: 4 pulsanti SOLO icona, quasi quadrati, stessa riga, peso minore */
+.sp-iconrow{display:flex;gap:8px;width:230px;max-width:88vw;margin-top:2px}
+.sp-btn.ic{flex:1 1 0;min-width:0;height:48px;padding:0;font-size:20px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;background:rgba(78,141,124,.45);box-shadow:0 3px 0 rgba(55,103,90,.5)}
+.sp-btn.ic svg.pxi{width:22px;height:22px}
+/* LIBRO DELLE MERAVIGLIE */
+.wo-view{display:flex;gap:12px;align-items:flex-start;background:#efe3c6;border:2px solid #b99b63;padding:10px;margin-bottom:10px}
+@media(max-width:760px),(pointer:coarse){
+  .wo-view{flex-direction:column;align-items:center}
+  .wo-cv{width:100%}
+  .wo-info{text-align:center}
+}
+.wo-cv{width:230px;max-width:100%;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #8a6a3a;box-shadow:3px 3px 0 #c9ad76;flex:none}
+.wo-info{min-width:0}
+.wo-info .wo-n{font-weight:800;font-size:15px;color:#3f3428}
+.wo-info .wo-z{font-size:11px;color:#8a755a;margin-bottom:4px}
+.wo-info .wo-d{font-size:12px;color:#4a3f30;line-height:1.4;margin-bottom:5px}
+.wo-info .wo-gp{font-size:11px;font-style:italic;color:#6b4a22;line-height:1.4;margin-bottom:5px}
+.wo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px}
+.wo-cell{display:flex;align-items:center;gap:6px;background:#f1e6cc;border:2px solid #d8c08a;padding:6px 8px;font-size:11px;font-weight:700;color:#3f3428;cursor:pointer;line-height:1.2}
+.wo-cell.on{border-color:#d8973c;background:#fbf0d6}
+.wo-cell.lock{opacity:.55;cursor:default;font-weight:600;color:#6b5f4a}
+.wo-cell .wo-ic{font-size:14px;flex:none}
+/* pannello della singola meraviglia (in gioco) */
+.wonder{background:#efe3c6;border:2px solid #b99b63;padding:10px 12px;margin-bottom:10px}
+.wonder .wo-n{font-weight:800;font-size:16px;color:#3f3428}
+.wonder .wo-d{font-size:12px;color:#4a3f30;line-height:1.45;margin:4px 0 6px}
+.wonder .wo-gp{font-size:11px;font-style:italic;color:#6b4a22;line-height:1.45;border-left:3px solid #d8c08a;padding-left:8px}
+.wonder .wo-gp span{display:block;font-style:normal;opacity:.7;margin-top:3px}
+/* MAPPA = PERGAMENA 8-bit: carta ingiallita, bordi bruciati a gradini, rulli di legno */
+#mapov{position:fixed;inset:0;z-index:23;background:rgba(14,12,10,.82);display:none;align-items:center;justify-content:center;padding:12px}
+#mapov.on{display:flex}
+#mapbox{width:min(720px,96vw);max-height:94vh;display:flex;flex-direction:column;filter:drop-shadow(0 10px 0 rgba(0,0,0,.35))}
+/* rulli: legno a fasce dure, mai sfumature */
+.mp-roll{height:14px;background:#8a5f38;box-shadow:inset 0 3px 0 #a97a4c, inset 0 -3px 0 #5c3d22, 0 0 0 3px #241a10;
+  margin:0 -10px;position:relative;z-index:2}
+.mp-roll::before,.mp-roll::after{content:"";position:absolute;top:-3px;width:10px;height:20px;background:#6e4a2a;box-shadow:0 0 0 3px #241a10}
+.mp-roll::before{left:-4px}.mp-roll::after{right:-4px}
+.mp-paper{background:#e8d5a8;color:#3b2f1e;box-shadow:inset 0 0 0 3px #c9ad76, inset 0 0 0 6px #e8d5a8, 0 0 0 3px #241a10;
+  display:flex;flex-direction:column;min-height:0;
+  /* angoli mangiati: gradini netti, niente curve */
+  clip-path:polygon(0 6px,6px 6px,6px 0,calc(100% - 6px) 0,calc(100% - 6px) 6px,100% 6px,
+    100% calc(100% - 6px),calc(100% - 6px) calc(100% - 6px),calc(100% - 6px) 100%,
+    6px 100%,6px calc(100% - 6px),0 calc(100% - 6px))}
+.mp-hd{display:flex;align-items:center;gap:10px;padding:8px 12px 6px;font-weight:800;letter-spacing:1px;color:#5c3d22;
+  border-bottom:3px solid #c9ad76}
+#mp-sub{margin-left:auto;font-size:11px;font-weight:700;color:#7a6242}
+.mp-x{width:34px;height:34px;background:#8a5f38;color:#f3ecda;border:0;box-shadow:0 0 0 2px #241a10;cursor:pointer;font-weight:800;flex:none}
+.mp-view{position:relative;flex:1 1 auto;min-height:0;padding:8px;background:#e8d5a8}
+#mapcv{width:100%;height:auto;max-height:64vh;image-rendering:pixelated;background:#d9c393;
+  box-shadow:0 0 0 3px #a98a54;touch-action:none;cursor:grab;display:block}
+#mapcv:active{cursor:grabbing}
+.mp-zoom{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:5px}
+.mp-zoom button{width:34px;height:34px;background:#8a5f38;color:#f3ecda;border:0;box-shadow:0 0 0 2px #241a10;
+  font:800 17px ui-monospace,monospace;cursor:pointer;line-height:1}
+.mp-zoom button:active{transform:translate(1px,1px)}
+.mp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:7px 12px;font-size:11px;background:#dcc79a;color:#5c3d22;
+  border-top:3px solid #c9ad76;line-height:1.4}
+.mp-legend i{display:inline-block;width:8px;height:8px;margin-right:5px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
+/* SUGGERIMENTO: riquadro con la lampadina */
+.tipbox{background:#fbf0d6;border:2px solid #d8973c;box-shadow:inset 0 0 0 2px #f6e7c4;padding:12px 14px}
+.tipbox .tip-t{font-weight:800;font-size:15px;color:#8a5a12;margin-bottom:5px}
+.tipbox .tip-b{font-size:13px;line-height:1.5;color:#3f3428}
+.tipbox kbd{background:#3f3428;color:#f6efdd;border-radius:4px;padding:1px 6px;font-size:12px}
+/* LETTERA DEL NONNO: foglio ingiallito con piega e bordi consumati */
+.letter{background:#f6e7c4;color:#3b2f1e;border:2px solid #b99b63;box-shadow:inset 0 0 0 1px #e8d5a8, 0 3px 0 rgba(0,0,0,.18);
+  padding:14px 16px;font-family:ui-monospace,Menlo,monospace;line-height:1.55;font-size:13px}
+.letter .lt-h{font-weight:800;font-size:15px;letter-spacing:.5px;margin-bottom:8px;color:#6b4a22;border-bottom:2px solid #d8c08a;padding-bottom:5px}
+.letter p{margin:0 0 8px}
+.letter .lt-sign{text-align:right;font-weight:800;color:#6b4a22;margin-top:6px}
+/* barra XP nel pannello del Maestro */
+.xpwrap{margin:4px 0 12px}
+.xphead{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;color:#3f3428}
+.xpbar{height:14px;background:#e0d3af;border:2px solid #6b5137;border-radius:8px;overflow:hidden}
+.xpbar i{display:block;height:100%;background:linear-gradient(#8fd06a,#5fa04e);border-right:2px solid #3f7d33}
+.sp-credits p{margin:0 0 10px;line-height:1.4;color:#e6dcc4}
+.sp-credits b{color:#d8973c}
+/* scorciatoie tastiera (menu Comandi, solo desktop) */
+.sp-keys{text-align:left;margin:8px 0;display:flex;flex-direction:column;gap:9px;font-size:14px}
+.sp-keyrow{display:flex;align-items:center;gap:12px}
+.sp-keyrow kbd{background:#f3ecda;color:#33291f;border-radius:6px;padding:5px 10px;font-weight:800;font-family:ui-monospace,monospace;min-width:96px;text-align:center;box-shadow:0 2px 0 #a88b5a;flex:none}
+.sp-keyrow span{color:#dfe3da}
+/* "Comandi" (scorciatoie tastiera) SOLO su desktop: su mobile non c'è la tastiera */
+@media(pointer:coarse),(max-width:760px){#sp-cmds{display:none!important}}
 .sp-btn:active{transform:translateY(2px)}
 #sp-slots{margin-top:4px;max-height:200px;overflow:auto;width:100%}
 .sp-slot{display:flex;align-items:center;justify-content:space-between;gap:10px;background:rgba(243,236,218,.08);
@@ -181,3 +637,108 @@ kbd + .pxi{margin-left:2px}
 .sp-hint{margin-top:16px;color:#8fa0aa;font-size:11px;letter-spacing:1px}
 @keyframes spFloat{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
 @keyframes spPulse{0%,100%{filter:brightness(1)}50%{filter:brightness(1.14)}}
+
+/* ---------- TAVOLO DI PREPARAZIONE (spazzolare il reperto) ---------- */
+#prepov{position:fixed;inset:0;z-index:24;background:rgba(14,12,10,.86);display:none;align-items:center;justify-content:center;padding:12px}
+#prepov.on{display:flex}
+#prepbox{width:min(420px,94vw);max-height:94dvh;display:flex;flex-direction:column;
+  background:#e8d5a8;color:#3b2f1e;box-shadow:inset 0 0 0 3px #c9ad76, inset 0 0 0 6px #e8d5a8, 0 0 0 3px #241a10}
+.pr-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;font-weight:800;letter-spacing:1px;
+  color:#5c3d22;border-bottom:3px solid #c9ad76}
+.pr-x{background:#c9553f;color:#fff;border:0;box-shadow:0 0 0 3px #241a10;width:26px;height:26px;font:inherit;cursor:pointer}
+.pr-stage{padding:12px;display:flex;justify-content:center}
+#pr-cv{width:min(336px,80vw);height:auto;image-rendering:pixelated;background:#15120d;box-shadow:0 0 0 3px #241a10;touch-action:none;cursor:crosshair}
+.pr-bar{height:14px;margin:0 12px;background:#c9ad76;box-shadow:inset 0 0 0 2px #8a6f42}
+.pr-fill{height:100%;width:0;background:#6fae5a;transition:width .08s steps(4)}
+.pr-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 12px;font-size:14px}
+
+/* BETA: aggiornamento forzato, nascosto nei Credits (serve solo ai tester).
+   Blocco isolato di proposito: a fine test si cancella tutto questo. */
+.sp-refresh{background:#2c3a36;color:#cfe0da;border:0;box-shadow:0 0 0 2px #16211e;
+  font:inherit;font-size:13px;padding:9px 14px;min-height:38px;cursor:pointer;opacity:.85}
+.sp-refresh:hover,.sp-refresh:active{opacity:1;background:#3a4c47}
+.sp-refresh-note{opacity:.55;font-size:11px;margin-top:6px}
+
+/* IMPOSTAZIONI: righe con etichetta a sinistra e comando a destra, note leggibili sotto */
+.sp-note{opacity:.6;font-size:11.5px;line-height:1.5;margin:-2px 0 10px;text-align:left;max-width:420px}
+.sp-seg{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:4px}
+.sp-seg .sp-btn{flex:1 1 auto;min-width:96px}
+
+/* MONETE nell'intestazione dei pannelli: aperta una modale l'HUD sparisce sotto, e su
+   mobile non si vedeva più quanto si poteva spendere proprio mentre si comprava. */
+.st-coins{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;gap:5px;
+  font-weight:800;font-size:14px;height:34px;box-sizing:border-box;   /* stessa altezza della X */
+  color:#3b2f1e;background:#f3ecda;border:2px solid #6b5137;border-radius:8px;padding:0 10px;white-space:nowrap}
+.st-coins .pxi{width:1.1em;height:1.1em}
+.st .x{margin-left:8px}
+
+/* il titolo non deve spingere fuori le monete: su schermo stretto si accorcia lui */
+.st h2{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st-coins{flex:none}
+@media(max-width:420px){ .st h2{font-size:15px} .st-coins{font-size:13px;padding:0 8px} }
+
+/* "lascia a terra" sulla tile del reperto: su un telefono lo zaino copre tutto lo schermo,
+   quindi trascinare FUORI è materialmente impossibile — serve un comando esplicito. */
+.bitile{position:relative}
+.bdrop{position:absolute;top:3px;right:3px;width:30px;height:30px;line-height:1;padding:0;
+  border:2px solid #0b0c11;border-radius:8px;background:#2b2d40;color:#e9d7c0;font:inherit;font-size:14px;
+  cursor:pointer;opacity:.55;z-index:2}
+.bdrop:hover,.bdrop:active{opacity:1;background:#7a3a34;border-color:#c9553f}
+@media(pointer:coarse){ .bdrop{opacity:.9;width:34px;height:34px;font-size:16px} }
+
+/* leva nascosta quando si gioca col "tocca dove andare" */
+#joy.off{display:none}
+
+/* LEVA FLUTTUANTE: nasce dove appoggi il dito, quindi la posizione la scrive il JS.
+   A riposo non esiste a schermo: niente cerchio fisso che copre il mondo. */
+#joy.floating{position:fixed;left:0;top:0;bottom:auto;width:124px;height:124px;
+  background:rgba(58,47,46,.42);border-color:rgba(232,217,184,.5)}
+#joy.floating #joyknob{width:48px;height:48px;margin:-24px 0 0 -24px}
+
+/* MANCINI: i comandi si specchiano. Vale solo dove i comandi a schermo esistono. */
+@media(pointer:coarse),(max-width:760px){
+  body.lefty #joy{left:auto;right:calc(20px + env(safe-area-inset-right))}
+  body.lefty #abtn{right:auto;left:calc(20px + env(safe-area-inset-left))}
+}
+
+/* ICONE SU SUPERFICI CHIARE — le icone hanno un colore tematico fisso (ICOL in icons.js),
+   pensato per il fondo scuro del mondo. Sulle superfici chiare (carta dei pannelli,
+   intestazione dello zaino, schede attive) lo stesso colore diventa illeggibile: qui
+   prendono il colore del TESTO del contenitore, che è già in contrasto per costruzione.
+   Serve !important perché il colore tematico è inline. */
+.sheet .pxi, .st .pxi, .st-coins .pxi,
+.bag-hd .pxi, .bag-tab.on .pxi,
+.mp-paper .pxi, #prepbox .pxi, .bk-page .pxi{color:currentColor !important}
+
+/* elenco dei comandi della console nella pagina Comandi */
+.sp-title3{margin:16px 0 6px;font-weight:800;letter-spacing:1px;font-size:13px;color:#cfe0da;text-transform:uppercase}
+/* NIENTE scorrimento proprio: scorre la pagina. Due aree che scorrono una dentro l'altra
+   sono una trappola su mobile (si muove quella sbagliata). */
+.sp-cmds{display:flex;flex-direction:column;gap:6px;text-align:left;overflow:visible;
+  width:100%;box-sizing:border-box;
+  background:rgba(12,16,14,.5);padding:8px 10px;box-shadow:inset 0 0 0 2px rgba(243,236,218,.1)}
+/* i nomi dei comandi sono lunghi (`dupes[=comune|raro|eccezionale]`): su schermo stretto
+   vanno a capo sotto il nome invece di sbordare fuori dal riquadro */
+.sp-cmdrow{display:flex;gap:8px;align-items:baseline;font-size:12px;line-height:1.45;min-width:0;flex-wrap:wrap}
+.sp-cmdrow span{min-width:0;flex:1 1 140px}
+/* il COMANDO in chiaro (è quello che si copia), la descrizione un tono sotto: l'occhio
+   scorre i nomi e legge la spiegazione solo quando serve */
+.sp-cmdrow code{color:#f6efdd;font-weight:700;font-family:ui-monospace,Menlo,monospace;flex:none;
+  overflow-wrap:anywhere;white-space:normal;max-width:100%}
+.sp-cmdrow span{color:#9fb0a8}
+@media(max-width:520px){ .sp-cmdrow{flex-direction:column;gap:0} .sp-cmdrow span{flex:1 1 auto;padding-left:10px} }
+
+/* USCITA dagli interni: compare avvicinandosi alla porta. Serve perché per uscire si deve
+   camminare oltre la soglia, e oltre la soglia non c'è schermo da cliccare. */
+/* in basso a DESTRA, non al centro: al centro copriva esattamente la porta e lo zerbino,
+   cioè il punto su cui si deve poter cliccare */
+#exitbtn{position:absolute;right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));
+  display:none;align-items:center;gap:6px;z-index:14;
+  background:#3a2f1e;color:#f6efdd;border:2px solid #c9a227;border-radius:10px;
+  font:inherit;font-weight:800;font-size:15px;padding:10px 18px;cursor:pointer;
+  box-shadow:0 4px 0 rgba(0,0,0,.45)}
+#exitbtn.on{display:inline-flex}
+#exitbtn:hover{background:#4d3f28}
+#exitbtn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.45)}
+#exitbtn .pxi{width:1.1em;height:1.1em}
+@media(pointer:coarse){ #exitbtn{font-size:16px;padding:12px 20px;bottom:calc(120px + env(safe-area-inset-bottom))} }

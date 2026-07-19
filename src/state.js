@@ -1,13 +1,17 @@
 /* Stato di gioco (salvato in localStorage) + player/camera runtime */
 import { setSeed } from './noise.js';
+import { packExplored, unpackExplored } from './packmap.js';
 import { DEFAULT_LOOK } from './data.js';
 
 export const SK = 'ossa_world_pixel_v1';
 
 export let S = null;
 export let dugSet = new Set();
+export let choppedSet = new Set(); // alberi abbattuti (accetta)
+export let minedSet = new Set();   // massi/guglie spaccati (piccone)
+export let pickedSet = new Set();  // oggetti di superficie raccolti (E)
 
-export const P = { x: 0, y: 0, dir: 'down', moving: false, anim: 0, speed: 46, digging: null };
+export const P = { x: 0, y: 0, dir: 'down', moving: false, anim: 0, speed: 46, digging: null, speedMul: 1, fly: false };
 export const cam = { x: 0, y: 0 };
 
 export function fresh() {
@@ -15,14 +19,75 @@ export function fresh() {
     seed: (Math.random() * 1e9) | 0, coins: 0, energy: 30, maxEnergy: 30, day: 1,
     raw: [], items: [], codex: [], donated: [], dug: [], creatures: [],
     uid: 1, px: 0, py: 0, started: false, lastTown: null, tod: 0.25, book: {}, sites: {}, awakened: [], museum: {},
-    look: { ...DEFAULT_LOOK }, lookDone: false,
+    look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false,
   };
 }
-export function save() {
-  try { S.px = P.x; S.py = P.y; S.started = true; localStorage.setItem(SK, JSON.stringify(S)); } catch (e) { /* quota/priv */ }
+/* CHEAT LOCK: in modalità cheat/god NON si salva (non distruttivo) — al ritorno "vanilla"
+   si ripristina lo stato salvato (snapshot). */
+let cheatLock = false;
+export function isCheatLock() { return cheatLock; }
+export function setCheatLock(v) { cheatLock = !!v; }
+export function snapshotState() { return JSON.parse(JSON.stringify(S)); }
+export function restoreState(obj) {
+  /* in-place: mantiene lo STESSO riferimento S (i binding importati restano validi) */
+  for (const k of Object.keys(S)) if (!(k in obj)) delete S[k];
+  Object.assign(S, obj);
+  dugSet = new Set(S.dug || []);
+  choppedSet = new Set(S.chopped || []);
+  minedSet = new Set(S.mined || []);
+  pickedSet = new Set(S.picked || []);
 }
+/* Versione dello SCHEMA del salvataggio (non del gioco): si alza solo quando cambia la forma
+   dei dati e serve una migrazione. Permette di riconoscere save vecchi e save dal futuro. */
+export const SAVE_V = 1;
+export const BAK = SK + '_bak';       // copia del salvataggio precedente (rete di sicurezza)
+export const BROKEN = SK + '_broken'; // save illeggibile messo da parte, mai buttato
+
+/* Gli elenchi di tile scavate/abbattute crescono a ogni azione: senza dedup arrivano a
+   riempire la quota di localStorage in una partita lunga. I Set sono la verità. */
+function packSets() {
+  if (dugSet.size) S.dug = [...dugSet];
+  if (choppedSet.size) S.chopped = [...choppedSet];
+  if (minedSet.size) S.mined = [...minedSet];
+  if (pickedSet.size) S.picked = [...pickedSet];
+}
+let saveFail = null;                  // ultimo errore di scrittura (null = tutto bene)
+export function saveError() { return saveFail; }
+/* onSaveError: la UI si registra qui per avvisare il giocatore (una volta sola) */
+let onSaveError = null;
+export function setSaveErrorHandler(fn) { onSaveError = fn; }
+export function save() {
+  if (cheatLock) return false; // cheat attivi: il salvataggio è congelato
+  try {
+    S.px = P.x; S.py = P.y; S.started = true; S.v = SAVE_V;
+    packSets();
+    /* la mappa esplorata si salva COMPRESSA (intervalli per riga): senza, una partita
+       molto esplorata supera la quota di localStorage e smette di salvarsi — proprio a chi
+       ha giocato di più. In RAM resta l'oggetto veloce da consultare. */
+    const json = JSON.stringify({ ...S, explored: packExplored(S.explored) });
+    /* backup rotante: il save buono di prima resta recuperabile se questo si corrompe */
+    try { const prev = localStorage.getItem(SK); if (prev) localStorage.setItem(BAK, prev); } catch (e) { /* il backup è un extra */ }
+    localStorage.setItem(SK, json);
+    if (saveFail) { saveFail = null; }   // ripreso a funzionare
+    return true;
+  } catch (e) {
+    const first = !saveFail;
+    saveFail = (e && e.name) || 'error';
+    if (first && onSaveError) { try { onSaveError(saveFail); } catch (e2) { /* mai bloccare il gioco */ } }
+    return false;
+  }
+}
+/* Legge il salvataggio. Se il principale è ILLEGGIBILE non lo si butta: si mette da parte in
+   `_broken` e si prova il backup. Così l'autosave non cancella una partita recuperabile. */
 export function load() {
-  try { const r = localStorage.getItem(SK); if (r) return JSON.parse(r); } catch (e) { /* corrotto */ }
+  let raw = null;
+  try { raw = localStorage.getItem(SK); } catch (e) { return null; }
+  if (raw) {
+    try { return JSON.parse(raw); } catch (e) {
+      try { localStorage.setItem(BROKEN, raw); localStorage.removeItem(SK); } catch (e2) { /* ok */ }
+    }
+  }
+  try { const b = localStorage.getItem(BAK); if (b) return JSON.parse(b); } catch (e) { /* niente backup */ }
   return null;
 }
 
@@ -32,31 +97,102 @@ function slotKey(n) { return SK + '_slot' + n; }
 export function slotInfo(n) {
   try { const r = localStorage.getItem(slotKey(n)); if (!r) return null; return JSON.parse(r); } catch (e) { return null; }
 }
+/* Sotto cheat NON si scrive nemmeno negli slot: altrimenti la promessa "i cheat non toccano
+   il salvataggio" sarebbe falsa (bastava passare dal menu Salva per renderli permanenti). */
 export function saveToSlot(n) {
+  if (cheatLock) return 'cheat';
   save();
-  try { localStorage.setItem(slotKey(n), JSON.stringify({ ...S, savedAt: Date.now() })); return true; } catch (e) { return false; }
+  packSets();
+  try { localStorage.setItem(slotKey(n), JSON.stringify({ ...S, explored: packExplored(S.explored), v: SAVE_V, savedAt: Date.now() })); return true; } catch (e) { return false; }
 }
 /* copia lo slot nella chiave principale: al reload il boot riparte da lì */
 export function loadFromSlot(n) {
-  try { const r = localStorage.getItem(slotKey(n)); if (!r) return false; localStorage.setItem(SK, r); return true; } catch (e) { return false; }
+  try {
+    const r = localStorage.getItem(slotKey(n)); if (!r) return false;
+    localStorage.setItem(SK, r);
+    localStorage.removeItem(BAK);      // il backup è della partita PRECEDENTE: non deve tornare
+    return true;
+  } catch (e) { return false; }
 }
-export function newGame() { try { localStorage.removeItem(SK); } catch (e) { /* ok */ } }
+/* NUOVA PARTITA: va cancellato ANCHE il backup, altrimenti al riavvio load() ripesca da lì
+   la partita appena abbandonata (il backup serve solo contro i save corrotti). */
+export function newGame() {
+  for (const k of [SK, BAK, BROKEN]) { try { localStorage.removeItem(k); } catch (e) { /* ok */ } }
+}
 
 /* Carica (o crea) lo stato, applica default per i save vecchi. Ritorna true se caricato. */
+/* RETE DI SICUREZZA: se per qualunque motivo la posizione diventa non valida (NaN/Infinity),
+   il gioco diventerebbe ingiocabile — schermo nero, camera impazzita e salvataggio corrotto.
+   Qui si ripara invece di propagare il guasto. */
+export function sanitizePos() {
+  if (Number.isFinite(P.x) && Number.isFinite(P.y)) return false;
+  P.x = Number.isFinite(S.px) ? S.px : 0;
+  P.y = Number.isFinite(S.py) ? S.py : 0;
+  if (!Number.isFinite(P.x) || !Number.isFinite(P.y)) { P.x = 0; P.y = 0; }
+  return true;
+}
+
 export function initState() {
   const loaded = load(); S = loaded || fresh();
+  /* SCHEMA: `v` dice con che forma di dati è stato scritto il save. Se manca è un save
+     pre-versionamento (v0), e le migrazioni qui sotto lo portano al presente. Un save dal
+     FUTURO (v maggiore) non si tocca: meglio caricarlo com'è che romperlo. */
+  const from = S.v || 0;
+  S.v = Math.max(from, SAVE_V);
   if (!S.raw) S.raw = []; if (!S.items) S.items = []; if (!S.codex) S.codex = [];
   if (!S.donated) S.donated = []; if (!S.dug) S.dug = []; if (!S.creatures) S.creatures = [];
   if (!S.look) S.look = { ...DEFAULT_LOOK };
   if (S.look.hairStyle === undefined) { S.look.hairStyle = DEFAULT_LOOK.hairStyle; S.look.hairColor = DEFAULT_LOOK.hairColor; }
   /* migrazione: hatOn (bool) → hatStyle ('none' | forma) */
   if (S.look.hatStyle === undefined) S.look.hatStyle = S.look.hatOn === false ? 'none' : 'explorer';
+  if (S.look.eyeColor === undefined) S.look.eyeColor = DEFAULT_LOOK.eyeColor;
   if (S.tod === undefined) S.tod = 0.25;
   if (!S.book) S.book = {};
+  /* la mappa arriva compressa dal disco (o nel vecchio formato: unpack li gestisce entrambi) */
+  S.explored = unpackExplored(S.explored);
   if (!S.sites) S.sites = {};
   if (!S.awakened) S.awakened = [];
   if (!S.museum) S.museum = {};
+  if (!S.fountains) S.fountains = {}; // lanci nella fontana per città {n, d0}
+  if (!S.maps) S.maps = []; // mappe del tesoro attive {x, y, rar, uid}
+  if (!S.snacks) S.snacks = 0; // ristori nello zaino
+  if (!S.npcSeen) S.npcSeen = {}; // edifici già visitati (tutorial 1-volta)
+  if (S.compassOn === undefined) S.compassOn = true; // bussola-oggetto accesa quando la possiedi
+  if (S.museumIntroSeen === undefined) S.museumIntroSeen = Object.keys(S.book || {}).length > 0; // spiegone museo 1-volta
+  if (S.trackMap === undefined) S.trackMap = null; // mappa seguita dalla bussola
+  if (!S.dna) S.dna = {}; // DNA per specie in FIALETTE INTERE
+  if (S.vials) { for (const id of S.vials) S.dna[id] = (S.dna[id] || 0) + 1; delete S.vials; } // migrazione vecchia
+  /* migrazione mezze→intere: i vecchi save avevano dna in mezze dosi (2 = 1 fialetta) */
+  if (!S.dnaV2) { for (const id in S.dna) S.dna[id] = Math.round((S.dna[id] || 0) / 2); S.dnaV2 = true; }
+  if (S.museumJob === undefined) S.museumJob = null; // consegna in lavorazione {items, ready}
+  if (!S.tools) S.tools = {}; // pala/accetta/piccone/barca (permanenti)
+  if (!S.shovel) S.shovel = 0; // cariche della pala fortunata
+  /* GATING PALA: le partite NUOVE partono senza pala; i save già avviati la ricevono
+     (una tantum, alla prima apertura post-update) per non perdere lo scavo. */
+  if (S.spadeGate === undefined) {
+    const hadProgress = (S.dug && S.dug.length) || (S.items && S.items.length) || S.coins > 0 || S.day > 1 || (S.codex && S.codex.length);
+    if (hadProgress) S.tools.spade = true;
+    S.spadeGate = true;
+  }
+  if (!S.chopped) S.chopped = []; if (!S.mined) S.mined = []; if (!S.picked) S.picked = [];
+  if (!S.goods) S.goods = []; // oggetti di superficie da vendere (non fossili)
+  if (!S.drops) S.drops = []; // fossili/oggetti lasciati a terra (zaino pieno o scartati)
+  if (!S.bagCap) S.bagCap = 10; // capacità zaino (fossili); zaini più grandi al Negozio
+  if (!S.wrecks) S.wrecks = {}; // relitti frugati (chiave sito)
+  if (!S.level) S.level = 1; if (S.xp === undefined) S.xp = 0; // progressione archeologo
+  if (!S.achieved) S.achieved = []; if (S.questTotal === undefined) S.questTotal = 0; // traguardi
+  if (S.introSeen === undefined) S.introSeen = !!S.started; // i save già avviati non rivedono l'intro
+  if (S.gear === undefined) S.gear = null;
+  /* i natanti non sono più un "gear attivabile": in acqua si sale da soli (v0.16.5) */
+  if (S.gear === 'boat' || S.gear === 'motorboat') S.gear = null;
+  delete S.gearOn; // vecchio modello (mezzi indipendenti) rimosso
+  if (!S.unlocked) S.unlocked = { hats: [], hairs: [] }; // cosmetici tematici scoperti
+  // pulizia cosmetici rimossi dal gioco (es. elmetto): non devono più comparire nei save
+  const REMOVED_HATS = ['minerhelm'];
+  if (S.unlocked.hats) S.unlocked.hats = S.unlocked.hats.filter(id => !REMOVED_HATS.includes(id));
+  if (S.look && REMOVED_HATS.includes(S.look.hatStyle)) S.look.hatStyle = 'explorer';
   setSeed(S.seed || 1);
   dugSet = new Set(S.dug);
+  choppedSet = new Set(S.chopped); minedSet = new Set(S.mined); pickedSet = new Set(S.picked);
   return !!loaded;
 }
