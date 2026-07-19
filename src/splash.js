@@ -240,6 +240,15 @@ function buildMenu(inGame) {
     }
     h += `<div class="sp-set"><span>${tr('Segnalino della meta', 'Destination marker')}</span>
       <button class="sp-btn small" id="sp-marker">${pf.marker ? 'ON' : 'OFF'}</button></div>`;
+    /* AGGIORNAMENTO FORZATO. Stava nascosto nei Credits, dove nessuno lo cerca: chi resta
+       su una versione vecchia non va a leggere i ringraziamenti, va nelle Impostazioni.
+       Serve perché sul telefono non esiste il "ricarica senza cache" e capita di giocare
+       per giorni a una versione superata senza accorgersene.
+       La versione è scritta accanto: è la prima cosa da chiedere a un tester che segnala
+       un bug già corretto. */
+    h += `<div class="sp-set" style="margin-top:16px"><span>${tr('Aggiorna il gioco', 'Update the game')}</span>
+      <button class="sp-btn small" id="sp-refresh">⟳ ${VERSION}</button></div>`;
+    h += `<div class="sp-note">${tr('Scarica di nuovo l\'ultima versione del gioco. Il salvataggio resta dov\'è.', 'Downloads the latest version of the game again. Your save stays where it is.')}</div>`;
     h += backBar();
   } else if (view === 'lang') {
     h += closeX();
@@ -291,11 +300,6 @@ function buildMenu(inGame) {
     h += `<p>${tr('un cozy game di scavo e scoperta.', 'a cozy game of digging and discovery.')}</p>`;
     h += `<p>${tr('di', 'by')} <b>Marco Giacobazzi</b></p>`;
     h += `<p style="opacity:.7">${VERSION}</p>`;
-    /* BETA: aggiornamento forzato, nascosto qui dentro perché serve solo ai tester.
-       Sul telefono non esiste il ricarica-senza-cache e capita di restare su una versione
-       vecchia senza accorgersene. Da togliere a fine test: questa riga, hardRefresh() e il CSS. */
-    h += `<p style="margin-top:14px"><button class="sp-refresh" id="sp-refresh">⟳ ${tr('Aggiorna il gioco', 'Update the game')}</button></p>`;
-    h += `<p class="sp-refresh-note">${tr('scarica di nuovo l\'ultima versione · il salvataggio resta', 'downloads the latest version again · your save is kept')}</p>`;
     h += `</div>` + backBar();
   } else if (view === 'account') {
     /* LA PARTITA SU PIÙ DISPOSITIVI. Il testo dice cosa succede DAVVERO: chi entra si aspetta

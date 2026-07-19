@@ -420,6 +420,8 @@ export const RU = {
   'Done': 'Готово',
   'Exit': 'Выход',
   'CHEAT · NO SAVE': 'ЧИТ · БЕЗ СОХРАНЕНИЯ',
+  'Update the game': 'Обновить игру',
+  'Downloads the latest version of the game again. Your save stays where it is.': 'Заново скачивает последнюю версию игры. Сохранение остаётся на месте.',
   'museum': 'музей',
   ' map': ' карта',
   /* intro: dove si porta il primo fossile */
@@ -755,9 +757,6 @@ export const RU = {
   'tap to continue': 'нажмите, чтобы продолжить',
   'little one': 'малыш',
   'A few years later…': 'Несколько лет спустя…',
-  'Update the game': 'Обновить игру',
-  'downloads the latest version again · your save is kept':
-    'заново скачивает последнюю версию · сохранение остаётся',
 
   /* ---- MERAVIGLIE: nome · descrizione · frase del nonno · potere ---- */
   'Yggdrasil': 'Иггдрасиль',

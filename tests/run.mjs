@@ -3407,14 +3407,20 @@ sprites.applyLook();
   S.explored = {};
 }
 
-/* ---------- BETA: aggiornamento forzato nascosto nei Credits ---------- */
+/* ---------- BETA: aggiornamento forzato, nelle Impostazioni ---------- */
 {
+  /* Stava nascosto nei Credits, dove nessuno lo cerca: chi resta su una versione vecchia
+     non va a leggere i ringraziamenti. Ora è nelle Impostazioni, con la versione accanto —
+     che è la prima cosa da chiedere a un tester che segnala un bug già corretto. */
   const sp2 = await import('../src/splash.js');
   sp2.showSplash();
-  sp2.setView('credits');
+  sp2.setView('settings');
   const menu = document.getElementById('sp-menu');
-  check('nei Credits c\'è il tasto di aggiornamento', /id="sp-refresh"/.test(menu.innerHTML || ''));
-  check('e dice che il salvataggio resta', /salvataggio resta|save is kept/.test(menu.innerHTML || ''));
+  check('nelle Impostazioni c\'è il tasto di aggiornamento', /id="sp-refresh"/.test(menu.innerHTML || ''));
+  check('e dice che il salvataggio resta', /salvataggio resta|save stays/.test(menu.innerHTML || ''));
+  check('accanto c\'è la versione, per chi segnala un bug', /v\d+\.\d+\.\d+/.test(menu.innerHTML || ''));
+  sp2.setView('credits');
+  check('nei Credits non c\'è più', !/id="sp-refresh"/.test(menu.innerHTML || ''));
   sp2.setView('main');
   check('nel menu principale non si vede: è roba da tester', !/id="sp-refresh"/.test(menu.innerHTML || ''));
   /* l'aggiornamento NON deve toccare il salvataggio: si controlla che la chiave resti */
