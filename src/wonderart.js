@@ -6,6 +6,7 @@
    Regole di stile: ogni materiale ha 3-4 toni (luce / base / ombra / contorno scuro), i volumi
    hanno sempre un lato illuminato e uno in ombra, e alla base c'è appoggio (erba, sassi, brina)
    perché nulla sembri incollato sopra il terreno. Animazioni: fase SOLO dal tempo. */
+import { hasSprite, spriteDef, drawSprite } from './spritebank.js';
 
 /* ---------- ingombro SOLIDO (in tile, relativo all'ancora) ----------
    Le parti massicce non si attraversano: il ghiaccio, la roccia, i tronchi. Sotto gli archi
@@ -43,6 +44,16 @@ export function wonderSolidTile(type, ax, ay, tx, ty) {
 
 /* ---------- disegno ---------- */
 export function drawWonder(g, type, sx, sy, time) {
+  /* DISEGNO RIFINITO A MANO, se esiste. Il controllo stava solo nel render del mondo:
+     nel Libro delle Meraviglie e nelle pagine di prova si continuava a vedere la versione
+     generata a codice, cioè proprio quella che il disegno a mano doveva sostituire.
+     Stando qui vale per chiunque chiami drawWonder, e non c'è più un posto da ricordarsi. */
+  if (hasSprite('wonder:' + type)) {
+    const d = spriteDef('wonder:' + type);
+    if (g.shadow) g.shadow(sx + 8, sy + 16, Math.min(15, Math.round(d.w / 3)));  // ombra ≤ 1 tile
+    drawSprite(g, 'wonder:' + type, sx + 8, sy + 16);
+    return;
+  }
   const { rect, px, shadow } = g;
   const cx = sx + 8, base = sy + 16;
   /* CONTATTO COL TERRENO (la causa n.1 dell'effetto "adesivo"):

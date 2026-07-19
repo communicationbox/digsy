@@ -257,6 +257,60 @@ sprites.applyLook();
     map.includes('townSizeLabel(best.size)') && !/\+ best\.size \+/.test(map));
 }
 
+/* ---------- i disegni rifiniti a mano valgono OVUNQUE ---------- */
+{
+  /* Il controllo della banca stava solo nel render del mondo: nel Libro delle Meraviglie e
+     nelle pagine di prova si continuava a vedere la versione generata a codice — cioè
+     proprio quella che il disegno a mano doveva sostituire. Ora sta dentro drawWonder, e
+     qui si verifica che chiunque la chiami ottenga il disegno vero. */
+  const { drawWonder } = await import('../src/wonderart.js');
+  const bank = await import('../src/spritebank.js');
+  const brush = () => {
+    const used = new Set();
+    return { used,
+      rect: (x, y, w, h, col) => used.add(col),
+      px: (x, y, col) => used.add(col),
+      shadow: () => {},
+      shade8: (hex) => hex,
+      ctx: { fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, closePath() {}, fill() {}, save() {}, restore() {}, set fillStyle(v) {} },
+    };
+  };
+  let wrong = 0;
+  const handmade = Object.keys(bank.SPRITES).filter(k => k.startsWith('wonder:')).map(k => k.slice(7));
+  for (const type of handmade) {
+    const g = brush();
+    drawWonder(g, type, 0, 0, 0);
+    /* i colori della banca sono la firma: se si vedono, è stato usato il disegno a mano */
+    const pal = Object.values(bank.spriteDef('wonder:' + type).pal);
+    const hits = pal.filter(col => g.used.has(col)).length;
+    if (hits < pal.length / 2) wrong++;
+  }
+  check(`drawWonder usa i disegni a mano (${handmade.length}: ${handmade.join(', ')})`,
+    handmade.length > 0 && wrong === 0);
+  /* e il render del mondo non deve tenersene una copia propria */
+  const { readFileSync } = await import('node:fs');
+  const rsrc = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
+  check('il render del mondo non duplica il controllo della banca',
+    !/hasSprite\('wonder:/.test(rsrc));
+
+  /* Con un disegno a mano nella banca, il codice PROCEDURALE di quella meraviglia non gira
+     più. Non si butta — serve se un domani si toglie uno sprite dalla banca — ma va provato
+     lo stesso: qui si svuota la banca per un giro e si disegnano tutte, così il ripiego
+     resta funzionante invece di marcire senza che nessuno se ne accorga. */
+  {
+    const saved = {};
+    for (const k of Object.keys(bank.SPRITES)) { saved[k] = bank.SPRITES[k]; delete bank.SPRITES[k]; }
+    let boom = '';
+    try {
+      const { WONDERS: WO } = await import('../src/wonders.js');
+      for (const type of Object.keys(WO)) drawWonder(brush(), type, 0, 0, 1000);
+    } catch (e) { boom = e.message; }
+    for (const k of Object.keys(saved)) bank.SPRITES[k] = saved[k];
+    check('senza banca ogni meraviglia ha ancora il suo disegno generato' + (boom ? ' → ' + boom : ''), boom === '');
+    check('la banca è tornata a posto', bank.spriteCount() === Object.keys(saved).length);
+  }
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');

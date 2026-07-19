@@ -373,13 +373,61 @@ export function openWonderBook(sel) {
   const cv = document.getElementById('woCv');
   if (cv && cur && cv.getContext) drawWonderCard(cv, cur);
 }
-/* illustrazione di una meraviglia su carta: terreno del suo bioma, la struttura al centro e
-   la sagoma del giocatore accanto per far capire quanto è grande. Animata come nel mondo. */
+/* Illustrazione di una meraviglia su carta: terreno del suo bioma e la struttura, ingrandita
+   quanto basta a riempire il riquadro. Animata come nel mondo.
+   La sagoma del giocatore accanto "per dare la scala" è stata tolta: rubava spazio proprio al
+   soggetto della scheda, e la scala si legge già dal mondo vero. */
 const WO_GROUND = {
   prati: ['#7fc46a', '#6fb45c', '#8fd06a'], dune: ['#e0cd9a', '#d4bf88', '#eddcae'],
   boschi: ['#5e7a58', '#546e4e', '#6a8a62'], terre: ['#b4744a', '#a3663f', '#c48456'],
   palude: ['#5f7a52', '#546e48', '#6b8a5c'], ghiacci: ['#dfeef2', '#cfe2e8', '#eef8fb'],
 };
+/* Dove si disegna la meraviglia sulla tela di servizio, e quanto è grande quella tela.
+   Larga: l'Albero-Mondo è alto 182 px e le sue fronde sbordano ai lati. */
+const WO_PROBE_X = 130, WO_PROBE_Y = 250, WO_PROBE_W = 260, WO_PROBE_H = 270;
+const woBoundsCache = new Map();
+/* Rettangolo dei pixel DAVVERO dipinti, in coordinate relative al punto di disegno.
+   Serve per ingrandire ogni meraviglia quanto basta e centrarla sul suo ingombro vero:
+   ognuna ha la propria ancora, quindi centrare le coordinate di disegno lascia le figure
+   sbilenche e con mezzo riquadro vuoto. */
+function wonderBounds(type) {
+  const hit = woBoundsCache.get(type);
+  if (hit) return hit;
+  const fallback = { x: -40, y: -80, w: 80, h: 80 };
+  let out = fallback;
+  try {
+    const cv2 = document.createElement('canvas');
+    cv2.width = WO_PROBE_W; cv2.height = WO_PROBE_H;
+    const c2 = cv2.getContext('2d');
+    if (c2 && c2.getImageData) {
+      const g2 = {
+        ctx: c2,
+        rect: (x, y, w, h, col) => { c2.fillStyle = col; c2.fillRect(x, y, w, h); },
+        px: (x, y, col) => { c2.fillStyle = col; c2.fillRect(x, y, 1, 1); },
+        shadow: () => { /* l'ombra non conta come ingombro: allargherebbe il rettangolo a vuoto */ },
+        shade8: (hex, kk) => { const n = parseInt(hex.slice(1), 16);
+          const r = Math.min(255, ((n >> 16) & 255) * kk) | 0, gg = Math.min(255, ((n >> 8) & 255) * kk) | 0,
+            b = Math.min(255, (n & 255) * kk) | 0;
+          return '#' + (r << 16 | gg << 8 | b).toString(16).padStart(6, '0'); },
+      };
+      drawWonder(g2, type, WO_PROBE_X, WO_PROBE_Y, 0);
+      const d = c2.getImageData(0, 0, WO_PROBE_W, WO_PROBE_H).data;
+      let x0 = WO_PROBE_W, y0 = WO_PROBE_H, x1 = -1, y1 = -1;
+      for (let y = 0; y < WO_PROBE_H; y++) for (let x = 0; x < WO_PROBE_W; x++) {
+        if (d[(y * WO_PROBE_W + x) * 4 + 3] > 8) {
+          if (x < x0) x0 = x; if (x > x1) x1 = x;
+          if (y < y0) y0 = y; if (y > y1) y1 = y;
+        }
+      }
+      if (x1 >= x0 && y1 >= y0) {
+        out = { x: x0 - WO_PROBE_X, y: y0 - WO_PROBE_Y, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+      }
+    }
+  } catch (e) { /* niente canvas (test con DOM finto): si usa la stima */ }
+  woBoundsCache.set(type, out);
+  return out;
+}
+
 function drawWonderCard(cv, type) {
   const c = cv.getContext('2d'); if (!c) return;
   const W2 = cv.width, H2 = cv.height;
@@ -394,18 +442,34 @@ function drawWonderCard(cv, type) {
       return '#' + (r << 16 | g2 << 8 | b).toString(16).padStart(6, '0'); },
   };
   const pal = WO_GROUND[WONDERS[type].zone] || WO_GROUND.prati;
+  /* INGOMBRO REALE della meraviglia. Le taglie vanno da una trentina di pixel all'Albero-Mondo
+     (182): con una scala fissa o le piccole restano francobolli o le grandi escono dal
+     riquadro. Si disegna una volta su una tela di servizio, si misura il rettangolo dei pixel
+     davvero dipinti e si ricava di quanto ingrandire. Il risultato si tiene in cache: la
+     scheda è animata, misurare a ogni fotogramma sarebbe uno spreco. */
+  const box = wonderBounds(type);
+  /* scala INTERA (mai frazionaria: spaccherebbe i pixel), con un margine di respiro */
+  const kx = Math.floor((W2 - 12) / Math.max(1, box.w));
+  const ky = Math.floor((H2 - 12) / Math.max(1, box.h));
+  const k = Math.max(1, Math.min(4, Math.min(kx, ky)));
   const paint = () => {
+    c.setTransform(1, 0, 0, 1, 0, 0);
     c.imageSmoothingEnabled = false;
-    for (let y = 0; y < H2; y += 16) for (let x = 0; x < W2; x += 16) {
-      const k = ((x / 16) * 7 + (y / 16) * 13) % 3;
-      c.fillStyle = pal[k]; c.fillRect(x, y, 16, 16);
-      c.fillStyle = pal[(k + 1) % 3]; c.fillRect(x + ((x / 16) % 4) * 3, y + ((y / 16) % 4) * 3, 2, 2);
+    const VW2 = Math.ceil(W2 / k), VH2 = Math.ceil(H2 / k);
+    c.setTransform(k, 0, 0, k, 0, 0);
+    for (let y = 0; y < VH2; y += 16) for (let x = 0; x < VW2; x += 16) {
+      const t = ((x / 16) * 7 + (y / 16) * 13) % 3;
+      c.fillStyle = pal[t]; c.fillRect(x, y, 16, 16);
+      c.fillStyle = pal[(t + 1) % 3]; c.fillRect(x + ((x / 16) % 4) * 3, y + ((y / 16) % 4) * 3, 2, 2);
     }
-    drawWonder(g, type, Math.round(W2 / 2) - 8, H2 - 52, performance.now ? performance.now() : Date.now());
-    const hx = W2 - 34, hy = H2 - 60;                       // sagoma del giocatore: dà la scala
-    c.fillStyle = '#241a10'; c.fillRect(hx, hy, 12, 22);
-    c.fillStyle = '#e3b98a'; c.fillRect(hx + 1, hy + 1, 10, 8);
-    c.fillStyle = '#b5622e'; c.fillRect(hx + 1, hy + 9, 10, 12);
+    /* il soggetto CENTRATO sul suo ingombro vero, non sulle coordinate con cui viene disegnato:
+       ogni meraviglia ha la sua ancora, e centrare quella lascerebbe le figure sbilenche */
+    /* `box` è già RELATIVO al punto di disegno, quindi il punto giusto si ricava da lì:
+       sommarci anche l'offset della tela di misura spedirebbe la figura fuori dal riquadro. */
+    const dx = Math.round(VW2 / 2 - (box.x + box.w / 2));
+    const dy = Math.round(VH2 - 5 - (box.y + box.h));
+    drawWonder(g, type, dx, dy, performance.now ? performance.now() : Date.now());
+    c.setTransform(1, 0, 0, 1, 0, 0);
   };
   paint();
   /* animazione viva finché la scheda resta aperta */

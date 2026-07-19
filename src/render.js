@@ -237,13 +237,8 @@ function drawLandmark(type, sx, sy, time) {
      scorre di frazioni di pixel e tutta la struttura VIBRA (sembra che l'animazione corra
      con te). Le fasi delle animazioni vengono SOLO dal tempo, mai dalle coordinate. */
   const x = snap(sx), y = snap(sy);
-  /* se esiste un disegno rifinito a mano nella banca (pagina /sprites) si usa quello */
-  if (hasSprite('wonder:' + type)) {
-    const d = spriteDef('wonder:' + type);
-    shadow(x + 8, y + 16, Math.min(15, Math.round(d.w / 3)));   // ombra ≤1 tile, come le altre
-    drawSprite(BRUSH, 'wonder:' + type, x + 8, y + 16);
-    return;
-  }
+  /* il disegno rifinito a mano lo sceglie drawWonder stessa: così vale anche nel Libro e
+     nelle pagine di prova, non solo qui */
   drawWonder(BRUSH, type, x, y, time);
 }
 export function drawFence(sx, sy) {
