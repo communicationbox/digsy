@@ -59,6 +59,17 @@ const BLDL = {
 };
 export function bldName(type) { const e = BLDL[type]; return e ? lab(e) : type; }
 
+/* TAGLIE DEGLI ABITATI — le chiavi interne sono in italiano (borgo/paese/città) e finivano
+   dritte nell'interfaccia: un inglese si leggeva "borgo" sulla mappa. I nomi dicono anche
+   cosa ci si trova, che è l'unica cosa che interessa a chi guarda la mappa per decidere dove
+   andare: solo la città grande ha il Museo, e il Museo è il posto dove si identifica tutto. */
+const TOWNSIZEL = {
+  borgo: ['Borgo', 'Hamlet'],
+  paese: ['Paese', 'Town'],
+  'città': ['Città', 'City'],
+};
+export function townSizeLabel(id) { const e = TOWNSIZEL[id]; return e ? lab(e) : id; }
+
 const SEASONL = [['primavera', 'spring'], ['estate', 'summer'], ['autunno', 'autumn'], ['inverno', 'winter']];
 export function seasonName(i) { return lab(SEASONL[i]); }
 

@@ -223,6 +223,40 @@ sprites.applyLook();
   tap.clearGoal();
 }
 
+/* ---------- le taglie degli abitati si traducono ---------- */
+{
+  /* Le chiavi interne sono in italiano (borgo/paese/città) e finivano dritte nella mappa:
+     un inglese leggeva "borgo" nel messaggio al tocco.
+     La lingua non si può commutare a runtime (LANG si fissa al caricamento e setLang
+     ricarica la pagina), quindi qui si verifica il DATO: per ogni taglia devono esistere
+     la forma italiana, quella inglese diversa dall'italiana, e la voce nel dizionario
+     russo. È esattamente ciò che serve perché townSizeLabel dia la parola giusta. */
+  const i18n = await import('../src/i18n.js');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/i18n.js', import.meta.url), 'utf8');
+  const blk = (src.match(/const TOWNSIZEL = \{([\s\S]*?)\};/) || [, ''])[1];
+  const pairs = [...blk.matchAll(/'?([\wàèéìòù]+)'?:\s*\['([^']+)',\s*'([^']+)'\]/g)]
+    .map(m => ({ id: m[1], it: m[2], en: m[3] }));
+  check('le tre taglie hanno un\'etichetta (' + pairs.map(p => p.id).join(',') + ')', pairs.length === 3);
+
+  const ru = i18n.dictOf('ru') || {};
+  const noEn = pairs.filter(p => p.en === p.it || !p.en);
+  const noRu = pairs.filter(p => ru[p.en] === undefined);
+  check('ogni taglia ha una forma inglese sua' + (noEn.length ? ' → ' + noEn.map(p => p.id) : ''), noEn.length === 0);
+  check('ogni taglia è nel dizionario russo' + (noRu.length ? ' → ' + noRu.map(p => p.en) : ''), noRu.length === 0);
+  check('le tre taglie restano distinguibili in inglese', new Set(pairs.map(p => p.en)).size === 3);
+  check('le tre taglie restano distinguibili in russo', new Set(pairs.map(p => ru[p.en])).size === 3);
+
+  /* in italiano l'etichetta si vede davvero (i test girano in italiano) */
+  check('townSizeLabel dà la parola, non la chiave', i18n.townSizeLabel('paese') === 'Paese');
+  check('una taglia sconosciuta non rompe niente', i18n.townSizeLabel('boh') === 'boh');
+
+  /* e la mappa non deve stampare la chiave grezza */
+  const map = readFileSync(new URL('../src/mapui.js', import.meta.url), 'utf8');
+  check('la mappa passa la taglia da townSizeLabel',
+    map.includes('townSizeLabel(best.size)') && !/\+ best\.size \+/.test(map));
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');

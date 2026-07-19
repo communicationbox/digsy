@@ -12,7 +12,7 @@ import { tr } from './i18n.js';
 import { playSfx } from './audio.js';
 import { toast, setPromptFromMap as setPrompt, showBanner, openWonderBook } from './ui.js';
 import { dirTo } from './gameplay.js';
-import { rarLabel } from './i18n.js';
+import { rarLabel, townSizeLabel } from './i18n.js';
 
 let mapOpenFlag = false;
 export function isMapOpen() { return mapOpenFlag; }
@@ -109,7 +109,7 @@ export function openMap() {
   drawMapCanvas();
   const tt = document.getElementById('mp-title'); if (tt) tt.textContent = tr('MAPPA DEL MONDO', 'WORLD MAP');
   const lg = document.getElementById('mp-legend');
-  if (lg) lg.innerHTML = withIcons(`<span><i style="background:#e8c34a"></i>${tr('città', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('città col Museo', 'town with Museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
+  if (lg) lg.innerHTML = withIcons(`<span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
   ov.classList.add('on'); mapOpenFlag = true; setPrompt(null);
   const x = document.getElementById('mp-close'); if (x) x.onclick = () => closeMap();
   const bi = document.getElementById('mp-in'); if (bi) bi.onclick = () => mapZoomBy(1);
@@ -143,7 +143,7 @@ export function openMap() {
       if (best.kind === 'town') {
         /* il Museo si dice a parole, non solo col colore: è il motivo per cui ci si torna */
         const mus = best.museum ? ' · ' + tr('col Museo', 'has a Museum') : '';
-        toast('🏘️ ' + best.name + ' · ' + best.size + mus + ' · ' + dirTo(best.tx, best.ty)); return;
+        toast('🏘️ ' + best.name + ' · ' + townSizeLabel(best.size) + mus + ' · ' + dirTo(best.tx, best.ty)); return;
       }
       if (best.kind === 'map') { toast('🗺️ ' + tr('X del tesoro ', 'Treasure X ') + rarLabel(best.rar) + ' · ' + dirTo(best.tx, best.ty)); return; }
       if (best.kind === 'wonder') { closeMap(); openWonderBook(best.type); }
