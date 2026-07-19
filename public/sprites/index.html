@@ -80,7 +80,7 @@
           <button data-view="up" class="vw alt">▲ retro</button>
         </span>
       </div>
-      <canvas id="cv"></canvas>
+      <canvas id="edcv"></canvas>
       <div class="prev" id="prevbox">
         <div><div class="hint">1×</div><canvas id="p1"></canvas></div>
         <div><div class="hint">2×</div><canvas id="p2"></canvas></div>
@@ -107,6 +107,7 @@
 </div>
 
 <script type="module">
+
 import { drawWonder } from '/src/wonderart.js';
 import { WONDERS } from '/src/wonders.js';
 import { SPRITES } from '/src/spritebank.js';
@@ -123,10 +124,51 @@ function brush(ctx) {
   return { rect, px, shadow, shade8, ctx };
 }
 
+/* I moduli del gioco, appena importati, agganciano i loro pulsanti: `getElementById('bagbtn')
+   .onclick = …` e una ventina di righe simili. In una pagina che non è il gioco quegli
+   elementi non esistono, l'import ESPLODE alla prima e lo strumento resta senza disegni.
+   Invece di riempire il motore di guardie (e di ricordarsene per sempre a ogni pulsante
+   nuovo), qui si porta dentro il MARKUP VERO del gioco in un contenitore fuori schermo:
+   ogni elemento che il motore cerca lo trova davvero, compresa la canvas #cv su cui
+   disegna. Costa una fetch e vale per qualsiasi pulsante venga aggiunto in futuro. */
+async function loadGameDom() {
+  const html = await (await fetch('/index.html')).text();
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  doc.querySelectorAll('script, link, style').forEach(n => n.remove());
+  const box = document.createElement('div');
+  box.id = 'gamedom';
+  /* fuori schermo ma con dimensioni vere: screen.js misura la finestra, non questo box */
+  box.style.cssText = 'position:absolute;left:-99999px;top:0;width:640px;height:480px;overflow:hidden';
+  box.innerHTML = doc.body.innerHTML;
+  document.body.appendChild(box);
+}
+try { await loadGameDom(); } catch (e) { console.warn('markup del gioco non caricato', e); }
+
 /* ---------- sprite del personaggio, capelli e cappelli: matrici di caratteri ---------- */
 let SPR_MOD = {}, DATA = {};
 try { SPR_MOD = await import('/src/sprites.js'); } catch (e) { console.warn('sprites.js non caricato', e); }
 try { DATA = await import('/src/data.js'); } catch (e) { /* non serve per disegnare */ }
+/* ALBERI, ROCCE, CASE: sono ciò che il giocatore ha sotto gli occhi per tutta la partita,
+   e non si potevano modificare da qui. I disegni stanno in props.js (natura) e render.js
+   (edifici e arredo urbano). */
+let PROPS = {}, REND = {}, SCREEN = {};
+const GAME_CV = document.getElementById('cv');
+try { PROPS = await import('/src/props.js'); } catch (e) { console.warn('props.js non caricato', e); }
+try { REND = await import('/src/render.js'); } catch (e) { console.warn('render.js non caricato', e); }
+try { SCREEN = await import('/src/screen.js'); } catch (e) { /* niente canvas di gioco qui */ }
+/* Le funzioni del gioco disegnano sulla canvas #cv e basta: non accettano un contesto.
+   Quindi si disegna là sopra (nascosta), e si copia il risultato sulla tela richiesta.
+   Semplice, e soprattutto non obbliga a toccare il motore per far funzionare uno strumento. */
+function viaGameCanvas(ctx2, w, h, fn) {
+  if (!GAME_CV) return;
+  if (GAME_CV.width < w) GAME_CV.width = w;
+  if (GAME_CV.height < h) GAME_CV.height = h;
+  const g = GAME_CV.getContext('2d');
+  g.clearRect(0, 0, GAME_CV.width, GAME_CV.height);
+  try { fn(); } catch (e) { /* firme diverse fra un disegno e l'altro */ }
+  ctx2.imageSmoothingEnabled = false;
+  ctx2.drawImage(GAME_CV, 0, 0, w, h, 0, 0, w, h);
+}
 
 /* ---------- inventario, per categoria ---------- */
 const CATS = {
@@ -138,6 +180,35 @@ const CATS = {
   ] },
   capelli: { label: 'Capelli', items: Object.keys(SPR_MOD.HAIRS || {}).map(k => ({ id: 'hair:' + k, name: k, kind: 'hair', key: k })) },
   cappelli: { label: 'Cappelli', items: Object.keys(SPR_MOD.HATS || {}).map(k => ({ id: 'hat:' + k, name: k, kind: 'hat', key: k })) },
+  natura: { label: 'Natura', items: [
+    { id: 'deco:tree', name: 'albero', kind: 'deco', fn: 'drawTree', w: 40, h: 40 },
+    { id: 'deco:boulder', name: 'masso', kind: 'deco', fn: 'drawBoulder', w: 40, h: 40 },
+    { id: 'deco:stump', name: 'ceppo', kind: 'deco', fn: 'drawStump', w: 40, h: 40 },
+    { id: 'deco:deadtree', name: 'albero secco', kind: 'deco', fn: 'drawDeadtree', w: 40, h: 40 },
+    { id: 'deco:cactus', name: 'cactus', kind: 'deco', fn: 'drawCactus', w: 40, h: 40 },
+    { id: 'deco:bonespire', name: 'guglia d\'osso', kind: 'deco', fn: 'drawBonespire', w: 40, h: 40 },
+    { id: 'deco:redspire', name: 'guglia rossa', kind: 'deco', fn: 'drawRedspire', w: 40, h: 44 },
+    { id: 'deco:orecrystal', name: 'cristallo', kind: 'deco', fn: 'drawOrecrystal', w: 40, h: 40 },
+    { id: 'deco:icecrystal', name: 'ghiaccio', kind: 'deco', fn: 'drawIcecrystal', w: 40, h: 40 },
+    { id: 'deco:mushroom', name: 'fungo', kind: 'deco', fn: 'drawMushroom', w: 32, h: 32, anim: true },
+    { id: 'deco:reed', name: 'canne', kind: 'deco', fn: 'drawReed', w: 32, h: 36, anim: true },
+    { id: 'deco:flower', name: 'fiore', kind: 'deco', fn: 'drawFlower', w: 32, h: 32, tile: true },
+    { id: 'deco:shell', name: 'conchiglia', kind: 'deco', fn: 'drawShell', w: 32, h: 32 },
+    { id: 'deco:hay', name: 'covone', kind: 'deco', fn: 'drawHay', w: 40, h: 40 },
+  ] },
+  citta: { label: 'Città', items: [
+    { id: 'town:store', name: 'negozio', kind: 'building', bld: 'store', w: 100, h: 80 },
+    { id: 'town:lab', name: 'laboratorio', kind: 'building', bld: 'lab', w: 100, h: 80 },
+    { id: 'town:museum', name: 'museo', kind: 'building', bld: 'museum', w: 116, h: 80 },
+    { id: 'town:inn', name: 'locanda', kind: 'building', bld: 'inn', w: 100, h: 84 },
+    { id: 'town:barber', name: 'barbiere', kind: 'building', bld: 'barber', w: 100, h: 80 },
+    { id: 'town:tailor', name: 'sartoria', kind: 'building', bld: 'tailor', w: 100, h: 80 },
+    { id: 'town:fountain', name: 'fontana', kind: 'deco', fn: 'drawFountain', from: 'rend', w: 48, h: 48, anim: true },
+    { id: 'town:bench', name: 'panchina', kind: 'deco', fn: 'drawBench', from: 'rend', w: 40, h: 32 },
+    { id: 'town:lamp', name: 'lampione', kind: 'deco', fn: 'drawLamp', from: 'rend', w: 32, h: 44 },
+    { id: 'town:fence', name: 'staccionata', kind: 'deco', fn: 'drawFence', from: 'rend', w: 32, h: 32 },
+    { id: 'town:cave', name: 'imbocco grotta', kind: 'deco', fn: 'drawCaveEntrance', from: 'rend', w: 40, h: 40, anim: true },
+  ] },
   icone: { label: 'Icone', items: [] },   // riempita sotto dagli SVG
 };
 
@@ -201,6 +272,20 @@ const GROUND_PAL = {
 function paintNaked(it, ctx, w, h) {
   if (it.kind === 'wonder') drawWonder(brush(ctx), it.id.split(':')[1], Math.round(w / 2) - 8, Math.round(h * 0.72), 0);
   else if (it.kind === 'hero') drawCharRows(ctx, (SPR_MOD.SPR[it.dir] || SPR_MOD.SPR.down)[0], SPR_MOD.PAL);
+  else if (it.kind === 'deco') {
+    const mod = it.from === 'rend' ? REND : PROPS, f = mod[it.fn];
+    if (f) viaGameCanvas(ctx, w, h, () => f(Math.round(w / 2) - 8, Math.round(h * 0.7), 0, 3, 5, true));
+  }
+  else if (it.kind === 'building') {
+    /* la casa arriva col suo rettangolo di caselle (x0,y0)-(x1,y1): da lì il disegno ricava
+       larghezza, altezza e i materiali del bioma. La locanda ha il tetto alto e il camino che
+       salgono SOPRA la riga di partenza, perciò si lascia respiro in cima. */
+    if (REND.drawBuilding) viaGameCanvas(ctx, w, h, () => {
+      const tw = it.bld === 'museum' ? 5 : 3, th = 2;
+      const b = { type: it.bld, x0: 0, y0: 0, x1: tw - 1, y1: th - 1, doorx: 1, doory: th };
+      REND.drawBuilding(b, Math.round((w - tw * 16) / 2), Math.round(h - th * 16 - 10));
+    });
+  }
   else if (it.kind === 'hair' || it.kind === 'hat') {
     const d0 = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
     const view = it.view || 'down', oy = -overlayTop(d0, view);
@@ -217,6 +302,8 @@ function paintItem(it, ctx, w, h) {
   } else if (it.kind === 'hero') {
     const rows = (SPR_MOD.SPR[it.dir] || SPR_MOD.SPR.down)[0];
     drawCharRows(ctx, rows, SPR_MOD.PAL);
+  } else if (it.kind === 'deco' || it.kind === 'building') {
+    paintNaked(it, ctx, w, h);
   } else if (it.kind === 'hair' || it.kind === 'hat') {
     const hh = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
     const view = it.view || curView;
@@ -335,7 +422,7 @@ function sizeFor(it) {
 }
 /* ---------- EDITOR ---------- */
 const ed = document.getElementById('ed'), browser = document.getElementById('browser');
-const cv = document.getElementById('cv'), out = document.getElementById('out');
+const cv = document.getElementById('edcv'), out = document.getElementById('out');
 let cur = null, W = 0, H = 0, px = [], pal = [], color = 0, tool = 'pen', showGrid = true, undoStack = [];
 
 let curView = 'down';                      // vista in modifica per capelli/cappelli

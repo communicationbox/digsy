@@ -25,7 +25,7 @@ export function applyLook() {
 
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
 /* fronte */
-const bDown = ["....FFFFFF......", "...FFFFFFFF.....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFEFFFFEFF....", "..FFFFFFFFFF....", "..FFfFFFFfFF....", "...KFFFFFFK.....", "...SSSSSSSS.....", "..SSSSSSSSSS....", "..SSsSSSSsSS....", "..SSSSSSSSSS...."];
+const bDown = ["....FFFFFF......", "...FFFFFFFF.....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFEFFFFEFF....", "..FFFFFFFFFF....", "...FfFFFFfF.....", "...KFFFFFFK.....", "...SSSSSSSS.....", "..SSSSSSSSSS....", "..SSsSSSSsSS....", "..SSSSSSSSSS...."];
 /* retro: nuca + zaino */
 const bUp = ["....FFFFFF......", "...FFFFFFFF.....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FFFFFFFFFF....", "..FfFFFFFFfF....", "...KFFFFFFK.....", "...SBBBBBBS.....", "..SSBBBBBBSS....", "..SSBbbbbBSS....", "..SSBBBBBBSS...."];
 /* profilo (guarda a destra; flip per sinistra): occhio singolo, naso */

@@ -5,7 +5,7 @@
 import { S, P, save } from './state.js';
 import { TS } from './data.js';
 import { CH, isExplored, exploredTiles, revealArea } from './map.js';
-import { townForCell, TCELL, landmarkForCell, LCELL, townInfo, townForTile, baseTerrain } from './world.js';
+import { townForCell, TCELL, landmarkForCell, LCELL, townInfo, townForTile, baseTerrain, hasMuseum } from './world.js';
 import { wonderName, isDiscovered, WONDERS } from './wonders.js';
 import { withIcons } from './icons.js';
 import { tr } from './i18n.js';
@@ -64,13 +64,38 @@ function drawMapCanvas() {
       { kind: 'wonder', type: lm.type, tx: lm.x, ty: lm.y });
   }
   for (const m of S.maps || []) mark(m.x, m.y, '#e4573d', false, { kind: 'map', rar: m.rar, tx: m.x, ty: m.y });
-  /* le CITTÀ esplorate: un pin con il nome */
+  /* le CITTÀ esplorate: un pin con il nome.
+     Il MUSEO è l'unico posto dove si fanno identificare i reperti, si riempiono le teche e si
+     comprano le fialette di DNA — cioè il motivo per cui si torna in città. Ma ce l'hanno solo
+     le città grandi, e sulla mappa erano un puntino giallo identico a quello di un borgo: per
+     sapere dove tornare bisognava andarci. Qui prendono un pin loro: avorio come il marmo, col
+     FRONTONE del tempio sopra. Si riconosce anche a due pixel, e senza leggere il nome. */
+  const museumPin = (tx, ty) => {
+    const x = (tx - x0) * S2, y = (ty - y0) * S2, r = Math.max(2, S2 + 2);
+    if (x < -8 || y < -8 || x > cv.width + 8 || y > cv.height + 8) return;
+    const w = r * 2 + 1, top = y - r - 1;
+    /* timpano BASSO e LARGO: alto come un tetto, non come una torre — altrimenti a zoom 1
+       il pin sembra un lampione invece che un tempio */
+    const hh = Math.max(2, Math.round(r * 0.8)), hw = r + 2;
+    c.fillStyle = '#241a10';
+    c.beginPath(); c.moveTo(x - hw - 1, top); c.lineTo(x, top - hh - 1); c.lineTo(x + hw + 1, top); c.closePath(); c.fill();
+    c.fillStyle = '#efe8d6';
+    c.beginPath(); c.moveTo(x - hw, top - 1); c.lineTo(x, top - hh); c.lineTo(x + hw, top - 1); c.closePath(); c.fill();
+    /* colonne: due tacche scure sul corpo del pin, così non è un quadrato liscio */
+    c.fillStyle = '#8d7f61';
+    c.fillRect(Math.round(x - r + 1), y - r + 1, 1, w - 2);
+    c.fillRect(Math.round(x + r - 1), y - r + 1, 1, w - 2);
+  };
   { const seen = new Set();
     for (let y = 0; y < VHt; y += 4) for (let x = 0; x < VWt; x += 4) {
       const tx = x0 + x, ty = y0 + y;
       if (!isExplored(tx, ty)) continue;
       const tw = townForTile(tx, ty); if (!tw || seen.has(tw.key)) continue;
-      seen.add(tw.key); mark(tw.C.x, tw.C.y, '#e8c34a', true, { kind: 'town', name: tw.name, size: tw.size, tx: tw.C.x, ty: tw.C.y });
+      seen.add(tw.key);
+      const museum = hasMuseum(tw);
+      mark(tw.C.x, tw.C.y, museum ? '#efe8d6' : '#e8c34a', true,
+        { kind: 'town', name: tw.name, size: tw.size, museum, tx: tw.C.x, ty: tw.C.y });
+      if (museum) museumPin(tw.C.x, tw.C.y);
     } }
   mark(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS), '#ffffff', true, { kind: 'me' }); // dove sei
   const sub = document.getElementById('mp-sub');
@@ -84,7 +109,7 @@ export function openMap() {
   drawMapCanvas();
   const tt = document.getElementById('mp-title'); if (tt) tt.textContent = tr('MAPPA DEL MONDO', 'WORLD MAP');
   const lg = document.getElementById('mp-legend');
-  if (lg) lg.innerHTML = withIcons(`<span><i style="background:#e8c34a"></i>${tr('città', 'town')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
+  if (lg) lg.innerHTML = withIcons(`<span><i style="background:#e8c34a"></i>${tr('città', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('città col Museo', 'town with Museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
   ov.classList.add('on'); mapOpenFlag = true; setPrompt(null);
   const x = document.getElementById('mp-close'); if (x) x.onclick = () => closeMap();
   const bi = document.getElementById('mp-in'); if (bi) bi.onclick = () => mapZoomBy(1);
@@ -115,7 +140,11 @@ export function openMap() {
       for (const p2 of mapPins) { const d = Math.hypot(p2.x - mx, p2.y - my); if (d < p2.r && d < bd) { bd = d; best = p2; } }
       if (!best) return;
       if (best.kind === 'me') { toast('🧭 ' + tr('Sei qui', 'You are here')); return; }
-      if (best.kind === 'town') { toast('🏘️ ' + best.name + ' · ' + best.size + ' · ' + dirTo(best.tx, best.ty)); return; }
+      if (best.kind === 'town') {
+        /* il Museo si dice a parole, non solo col colore: è il motivo per cui ci si torna */
+        const mus = best.museum ? ' · ' + tr('col Museo', 'has a Museum') : '';
+        toast('🏘️ ' + best.name + ' · ' + best.size + mus + ' · ' + dirTo(best.tx, best.ty)); return;
+      }
       if (best.kind === 'map') { toast('🗺️ ' + tr('X del tesoro ', 'Treasure X ') + rarLabel(best.rar) + ' · ' + dirTo(best.tx, best.ty)); return; }
       if (best.kind === 'wonder') { closeMap(); openWonderBook(best.type); }
     });

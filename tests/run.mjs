@@ -51,6 +51,43 @@ sprites.applyLook();
   check('nomi deterministici', world.townName(3, 7) === world.townName(3, 7));
 }
 
+/* ---------- il Museo si riconosce dalla mappa ---------- */
+{
+  /* sulla mappa le città col Museo hanno un pin loro (avorio + frontone): il segno deve
+     seguire gli EDIFICI, non la taglia, e nessun borgo deve prenderselo per sbaglio */
+  let withMus = 0, wrong = 0, cities = 0;
+  for (let cx = -10; cx < 10; cx++) for (let cy = -10; cy < 10; cy++) {
+    const t = world.townForCell(cx, cy); if (!t) continue;
+    const m = world.hasMuseum(t), real = t.buildings.some(b => b.type === 'museum');
+    if (m !== real) wrong++;
+    if (m) withMus++;
+    if (t.size === 'città') { cities++; if (!m) wrong++; }
+    if (t.size !== 'città' && m) wrong++;
+  }
+  check(`hasMuseum: ${withMus} città col Museo su ${cities} grandi`, wrong === 0 && withMus > 0 && withMus === cities);
+  check('hasMuseum regge input vuoti', world.hasMuseum(null) === false && world.hasMuseum({}) === false);
+
+  /* la mappa va DISEGNATA per davvero: il pin del museo è codice di disegno, e senza un test
+     che apra la schermata un errore lì resterebbe invisibile fino a che non lo trova un
+     giocatore (già successo con l'estrazione di mapui.js). */
+  const mapui = await import('../src/mapui.js');
+  const mapmod = await import('../src/map.js');
+  /* città grande sotto i piedi, e dintorni esplorati: senza, sulla mappa non c'è nessun pin */
+  let big = null;
+  for (let cx = -12; cx < 12 && !big; cx++) for (let cy = -12; cy < 12 && !big; cy++) {
+    const t = world.townForCell(cx, cy); if (t && world.hasMuseum(t)) big = t;
+  }
+  const oldPos = { x: P.x, y: P.y };
+  if (big) { P.x = big.C.x * TS; P.y = big.C.y * TS; }
+  for (let dy = -40; dy <= 40; dy += 4) for (let dx = -60; dx <= 60; dx += 4)
+    mapmod.markExplored(Math.floor(P.x / TS) + dx, Math.floor(P.y / TS) + dy);
+  let drew = true;
+  try { mapui.openMap(); mapui.mapZoomBy(1); mapui.mapZoomBy(-1); mapui.mapReset(); mapui.closeMap(); }
+  catch (e) { drew = false; check('mappa disegnata senza errori', false, e.message); }
+  if (drew) check('mappa aperta e disegnata (pin del Museo compreso)', big !== null && !mapui.isMapOpen());
+  P.x = oldPos.x; P.y = oldPos.y; S.explored = {};
+}
+
 /* ---------- bussola ---------- */
 {
   let miss = 0, mismatch = 0;

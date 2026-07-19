@@ -63,7 +63,7 @@ function drawSign(type, cx, y) {
   drawSignIcon(type, cx, y + 1);
 }
 /* Edifici RICONOSCIBILI a colpo d'occhio: ogni mestiere ha la sua sagoma */
-function drawBuilding(b, sx, sy) {
+export function drawBuilding(b, sx, sy) {
   const w = (b.x1 - b.x0 + 1) * TS, h = (b.y1 - b.y0 + 1) * TS; // il museo è 5 tile largo
   const BB = biomeBuild(b.x0, b.y0);   // materiali del bioma (tetto, zoccolo, neve)
   const bv = vhash(b.x0, b.y0, 77), bw = vhash(b.x0, b.y0, 78), bc = vhash(b.x0, b.y0, 79);
@@ -133,7 +133,7 @@ function drawBuilding(b, sx, sy) {
   drawSign(b.type, dcx, sy + 12);
 }
 /* ---------- arredo urbano ---------- */
-function drawFountain(sx, sy, time) {
+export function drawFountain(sx, sy, time) {
   shadow(sx + 16, sy + 31, 13);
   rect(sx + 2, sy + 10, 28, 20, '#aaa294');            // bordo esterno
   rect(sx + 3, sy + 11, 26, 18, '#9a9285');
@@ -151,20 +151,20 @@ function drawFountain(sx, sy, time) {
   px(sx + 12 + (j & 1), sy + 6 + (j >> 1), '#bfe9f4'); px(sx + 19 - (j & 1), sy + 7 - (j >> 1), '#bfe9f4');
   px(sx + 10, sy + 9 + j, '#bfe9f4'); px(sx + 21, sy + 12 - j, '#bfe9f4');
 }
-function drawBench(sx, sy) {
+export function drawBench(sx, sy) {
   shadow(sx + 8, sy + 14, 6);
   rect(sx + 2, sy + 4, 12, 2, '#c79a66'); px(sx + 2, sy + 4, '#a97a4c'); px(sx + 13, sy + 4, '#a97a4c'); // schienale
   rect(sx + 2, sy + 8, 12, 3, '#c79a66'); rect(sx + 2, sy + 8, 12, 1, '#dcb27e');                        // seduta
   rect(sx + 3, sy + 11, 2, 3, '#8a5f38'); rect(sx + 11, sy + 11, 2, 3, '#8a5f38');                       // gambe
 }
-function drawBushDeco(sx, sy) {
+export function drawBushDeco(sx, sy) {
   shadow(sx + 8, sy + 14, 6);
   rect(sx + 3, sy + 6, 10, 7, '#4a9a55'); rect(sx + 4, sy + 4, 8, 4, '#54ab5f');
   px(sx + 5, sy + 5, '#7cd07f'); px(sx + 9, sy + 4, '#7cd07f');
   px(sx + 6, sy + 9, '#e05a7a'); px(sx + 10, sy + 8, '#f2dd7a'); // bacche/fiori
   rect(sx + 3, sy + 12, 10, 1, '#2f6b3b');
 }
-function drawLamp(sx, sy) {
+export function drawLamp(sx, sy) {
   shadow(sx + 8, sy + 15, 4);
   rect(sx + 7, sy + 3, 2, 12, '#5a5248');                        // palo
   rect(sx + 5, sy, 6, 4, '#3f3a33'); rect(sx + 6, sy + 1, 4, 2, night() > 0.4 ? '#ffdf8a' : '#c9c2b4'); // lanterna
@@ -172,7 +172,7 @@ function drawLamp(sx, sy) {
   rect(sx + 5, sy + 14, 6, 1, '#3f3a33');
 }
 /* affioramento d'ossa: cranio semisepolto + costole; scintilla se ha ancora scavi */
-function drawSite(sx, sy, remaining, time, tx, ty) {
+export function drawSite(sx, sy, remaining, time, tx, ty) {
   const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx: scatterebbe con la camera)
   shadow(sx + 8, sy + 14, 7);
   rect(sx + 2, sy + 9, 12, 5, '#c9a06a'); rect(sx + 3, sy + 8, 10, 2, '#d8b581'); // montarolo di terra
@@ -188,7 +188,7 @@ function drawSite(sx, sy, remaining, time, tx, ty) {
   }
 }
 /* RELITTO in mare: scafo spezzato e albero pendente che affiorano dall'acqua (bob leggero) */
-function drawWreck(sx, sy, time, tx, ty) {
+export function drawWreck(sx, sy, time, tx, ty) {
   const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx)
   const bob = Math.round(Math.sin(time / 500 + ph) * 1);
   const y = sy + bob;
@@ -246,7 +246,7 @@ function drawLandmark(type, sx, sy, time) {
   }
   drawWonder(BRUSH, type, x, y, time);
 }
-function drawFence(sx, sy) {
+export function drawFence(sx, sy) {
   rect(sx, sy + 7, TS, 2, '#a97a4c'); rect(sx, sy + 11, TS, 2, '#8a5f38');
   rect(sx + 2, sy + 3, 2, 11, '#8a5f38'); px(sx + 2, sy + 3, '#c79a66'); px(sx + 3, sy + 3, '#c79a66');
   rect(sx + 11, sy + 3, 2, 11, '#8a5f38'); px(sx + 11, sy + 3, '#c79a66'); px(sx + 12, sy + 3, '#c79a66');
@@ -344,7 +344,7 @@ function drawCreature(a, sx, sy, swim) {
 }
 
 /* imbocco di grotta sulla montagna: arco scuro nella roccia, con qualche scintillio */
-function drawCaveEntrance(sx, sy, time) {
+export function drawCaveEntrance(sx, sy, time) {
   shadow(sx + 8, sy + 15, 8);
   rect(sx + 1, sy + 2, 14, 14, '#6b6560'); rect(sx + 1, sy + 2, 14, 2, '#837c74');   // roccia
   rect(sx + 3, sy + 5, 10, 11, '#15131a'); rect(sx + 4, sy + 4, 8, 2, '#242030');    // arco buio

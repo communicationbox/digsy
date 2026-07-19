@@ -278,6 +278,13 @@ export function townForTile(tx, ty) { return townForCell(Math.floor(tx / TCELL),
 /* cache per tile: townInfo gira 2+ volte per tile per frame (render, collisioni, decorazioni)
    e ogni chiamata scandisce edifici, arredi e strade della città. */
 const tiCache = new Map();
+/* la città ha il Museo? È l'unico posto dove si identificano i reperti, si riempiono le teche
+   e si comprano le fialette: sapere quali città ce l'hanno vale un segno a parte sulla mappa.
+   Si guardano gli edifici veri, non la taglia: se un domani il museo comparisse altrove, la
+   mappa lo segnala da sola. */
+export function hasMuseum(town) {
+  return !!town && (town.buildings || []).some(b => b.type === 'museum');
+}
 export function townInfo(tx, ty) {
   const k = tx + ',' + ty; const c = tiCache.get(k);
   if (c !== undefined) return c;

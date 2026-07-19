@@ -316,6 +316,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   con E → **6 fossili di grotta ESCLUSIVI** (`CAVE_SPECIES`, fuori dalle 60, `src:'grotta'`,
   BP dedicati in bones). Uscita dal corridoio in basso. `goto=grotta` e ingressi renderizzati
   (`drawCaveEntrance`/`drawCaveScene`). HUD zona = 🕳️ Grotta.
+- **Mappa: le città col Museo hanno un pin loro** (`hasMuseum` in world.js, `museumPin` in
+  mapui.js): avorio come il marmo, timpano basso a casetta e due colonne, contro il quadratino
+  giallo delle altre città. Il Museo è l'unico posto dove si identificano i reperti, si riempiono
+  le teche e si comprano le fialette: si deve vedere da lontano dove tornare. Anche in legenda
+  (sagoma a casa via clip-path) e nel toast al click ("col Museo").
 - **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
   (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
   (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i
@@ -388,5 +393,11 @@ non sono chiusi. Bug, arte, bilanciamento, test e refactor si fanno sempre.
 - Zero dipendenze runtime; Vite solo come dev tool.
 - Ogni feature nuova: aggiungere check a `tests/run.mjs` e tenerla verde.
 - Pagine di prova: `/wonders` (meraviglie, mostra gli sprite rifiniti a mano quando ci sono),
-  `/sprites` (Sprite Studio: meraviglie, personaggio, capelli e cappelli nelle TRE viste, icone),
-  `/playground` (mobile).
+  `/sprites` (Sprite Studio: meraviglie, personaggio, capelli e cappelli nelle TRE viste, icone,
+  **Natura** 14 = alberi/rocce/funghi/canne… e **Città** 11 = i 6 edifici + fontana/panchina/
+  lampione/staccionata/imbocco grotta), `/playground` (mobile).
+  Lo Studio si tira dentro il **markup vero del gioco** (fetch di `index.html` in un contenitore
+  fuori schermo) prima di importare i moduli: così `getElementById('bagbtn').onclick = …` e
+  simili trovano i loro elementi e l'import non esplode. Le funzioni di disegno scrivono solo
+  sulla canvas `#cv`, quindi si disegna là e si copia (`viaGameCanvas`). Gli edifici vogliono
+  il rettangolo di caselle `{x0,y0,x1,y1}`, non `{x,y,w,h}`.
