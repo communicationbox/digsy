@@ -82,6 +82,38 @@ sprites.applyLook();
   check('il pulsante del minigioco si traduce', typeof i18n.applyStaticTexts === 'function');
 }
 
+/* ---------- il giocatore non finisce mai sotto la barra dell'HUD ---------- */
+{
+  /* Segnalato da un giocatore, con foto: in grotta si sale fino in cima, la camera è già
+     ferma al bordo della mappa e Digsy resta NASCOSTO dietro i tag delle monete. Stessa
+     riga nella galleria del museo. La regola: dovunque si arrivi, la testa del giocatore
+     deve restare sotto il bordo inferiore dell'HUD. */
+  const screen = await import('../src/screen.js');
+  const cave = await import('../src/cave.js');
+  const interiors = await import('../src/interiors.js');
+  const { INT } = await import('../src/interior.js');
+  const pad = screen.hudPad();
+  check('hudPad: margine positivo anche a HUD non misurabile (' + pad + ' px)', pad > 0);
+
+  cave.enterCave(1, 0, 0);
+  let worstCave = Infinity;
+  for (const y of [0, 4, 8, 16, 40, 100]) {
+    cave.CAVE.y = y; cave.CAVE.x = (cave.CAVE.w * TS) / 2;
+    const sy = cave.CAVE.y - cave.caveCam().y;      // dove finisce sullo schermo
+    worstCave = Math.min(worstCave, sy);
+  }
+  check('grotta: il giocatore resta sotto la barra (min ' + Math.round(worstCave) + ' ≥ ' + pad + ')', worstCave >= pad);
+  cave.exitCave();
+
+  /* galleria del museo: stessa formula, si controlla la camera in cima alla sala */
+  const H = 200, rh = 48 * TS;
+  const before = INT.y;
+  INT.y = 8;
+  const camy = interiors.galleryCamY(H, rh);
+  check('museo: la camera lascia spazio alla barra (' + Math.round(INT.y - camy) + ' ≥ ' + pad + ')', INT.y - camy >= pad);
+  INT.y = before;
+}
+
 /* ---------- il Museo si riconosce dalla mappa ---------- */
 {
   /* sulla mappa le città col Museo hanno un pin loro (avorio + frontone): il segno deve

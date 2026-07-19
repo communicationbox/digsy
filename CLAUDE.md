@@ -333,6 +333,12 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 - **Niente testo murato in index.html**: i testi statici passano da `applyStaticTexts()`
   (`#pr-done`, `#exitbtn`, `#debugtag`); la schermata di boot si traduce con uno script inline
   che legge `digsy_lang` (i moduli non sono ancora caricati). Un test scandisce il markup.
+- **Niente giocatore sotto la barra** (`hudPad()` in screen.js, usata da `caveCam` e
+  `galleryCamY`): dove la camera si ferma al bordo della mappa (grotte, galleria del museo)
+  si continuava a salire e Digsy finiva NASCOSTO dietro i tag dell'HUD (segnalato con foto da
+  un giocatore). Ora la camera può salire oltre il bordo quanto è alta la barra. `hudPad`
+  RICORDA l'ultima misura buona: con una modale aperta l'HUD è display:none e misurarlo lì
+  darebbe margine zero proprio dove serve.
 - **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
   (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
   (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i

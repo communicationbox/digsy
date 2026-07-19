@@ -4,7 +4,7 @@
    nessuna di loro serve al mondo aperto. */
 import { TS, spById, ZONES, MUSEUM_ZONES, zonePools } from './data.js';
 import { S, P } from './state.js';
-import { ctx, view } from './screen.js';
+import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8 } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { drawHero, applyLook } from './sprites.js';
@@ -528,7 +528,10 @@ export function drawNpc(x, y, type, time, forceDir) {
    la stanza è centrata e sotto la porta resta spazio. */
 export const GAL_FOOT = 40;
 export function galleryCamY(H, rh) {
-  return rh <= H ? (rh - H) / 2 : Math.max(0, Math.min(rh - H + GAL_FOOT, INT.y - H / 2));
+  /* come nelle grotte: la camera sale oltre il bordo quanto è alta la barra dell'HUD,
+     altrimenti in fondo alla galleria il giocatore finisce nascosto sotto i tag */
+  const pad = hudPad();
+  return rh <= H ? (rh - H) / 2 - pad : Math.max(-pad, Math.min(rh - H + GAL_FOOT, INT.y - H / 2));
 }
 export function interiorCam() {
   const W = view.W, H = view.H;

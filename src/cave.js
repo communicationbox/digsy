@@ -2,7 +2,7 @@
    Si entra dagli ingressi sulle montagne (o col comando goto=grotta). Coordinate separate:
    il player nel mondo resta sull'ingresso (save/bussola intatti), come per gli interni. */
 import { TS, CAVE_POOL, RAR, PARTS, ptById } from './data.js';
-import { view } from './screen.js';
+import { view, hudPad } from './screen.js';
 import { P, S, save } from './state.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
 import { fbm, vhash } from './noise.js';
@@ -165,9 +165,14 @@ export function updateCave(dt, keys, speed) {
 /* camera della grotta: stessa formula del disegno (serve al "tocca dove andare") */
 export function caveCam() {
   const W = view.W, H = view.H, rw = CAVE.w * TS, rh = CAVE.h * TS;
+  /* la camera può salire OLTRE il bordo della grotta quanto è alta la barra dell'HUD:
+     senza, arrivati in cima il giocatore continua a camminare ma la camera è già ferma, e
+     Digsy sparisce dietro i tag delle monete. Sopra il bordo c'è solo il nero della roccia,
+     quindi non si scopre nessun vuoto. */
+  const pad = hudPad();
   return {
     x: rw <= W ? (rw - W) / 2 : Math.max(0, Math.min(rw - W, CAVE.x - W / 2)),
-    y: rh <= H ? (rh - H) / 2 : Math.max(0, Math.min(rh - H, CAVE.y - H / 2)),
+    y: rh <= H ? (rh - H) / 2 - pad : Math.max(-pad, Math.min(rh - H, CAVE.y - H / 2)),
   };
 }
 export function checkCaveEnter(caveEntranceAt) {
