@@ -21,6 +21,15 @@ const LINES = [
   { s: 'D', it: 'E possiamo… riportarle indietro?', en: 'And can we… bring them back?' },
   { s: 'G', it: 'Con pazienza e un pizzico di magia… sì.', en: 'With patience and a spark of magic… yes.', act: 'dig' },
   { s: 'G', it: 'Tienilo, {n}: un fossile leggendario, il tuo primo tesoro.', en: 'Take it, {n}: a legendary fossil, your first treasure.', act: 'give' },
+  /* DOVE SI PORTA IL PRIMO FOSSILE: il regalo del nonno è GREZZO, e un reperto grezzo non
+     serve a niente finché qualcuno non lo identifica. Si identifica SOLO al Museo, che sta
+     solo nelle città grandi — e la città grande può essere lontana. Se non lo dice il nonno,
+     il giocatore gira con un leggendario in tasca senza sapere che farsene. */
+  { s: 'G', it: 'È grezzo, però. Così non sai ancora di che creatura sia.', en: 'It is raw, though. You still do not know which creature it is.' },
+  { s: 'G', it: 'Portalo al Museo: gli esperti lì te lo identificano.', en: 'Take it to the Museum: the experts there will identify it.' },
+  { s: 'G', it: 'Un Museo c\'è in ogni città grande. Borghi e paesi non ne hanno.', en: 'Every big city has a Museum. Hamlets and towns do not.' },
+  { s: 'D', it: 'E come la trovo, una città grande?', en: 'And how do I find a big city?' },
+  { s: 'G', it: 'La mappa te la segna: cerca il tempietto chiaro.', en: 'The map marks it for you: look for the pale little temple.' },
   /* I PRIMI GIOCATORI NON CAPIVANO DA DOVE ARRIVANO LE PRIME MONETE: giravano senza
      attrezzi perché nessuno diceva che per terra c'è roba da raccogliere e rivendere.
      Il nonno lo spiega qui, che è il primo posto in cui uno ascolta. */

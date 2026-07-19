@@ -400,6 +400,12 @@ export const RU = {
   'City': 'город',
   'Museum': 'Музей',
   'museum': 'музей',
+  /* intro: dove si porta il primo fossile */
+  'It is raw, though. You still do not know which creature it is.': 'Но он необработанный. Ты ещё не знаешь, чьи это кости.',
+  'Take it to the Museum: the experts there will identify it.': 'Отнеси его в Музей: тамошние знатоки его определят.',
+  'Every big city has a Museum. Hamlets and towns do not.': 'Музей есть в каждом большом городе. В деревушках и посёлках — нет.',
+  'And how do I find a big city?': 'А как найти большой город?',
+  'The map marks it for you: look for the pale little temple.': 'Карта его отметит: ищи светлый храмик.',
   'has a Museum': 'есть Музей',
   'wonder': 'чудо',
   'arch (travel)': 'арка (переход)',

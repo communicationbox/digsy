@@ -3157,6 +3157,25 @@ sprites.applyLook();
   const fs4 = (await import('node:fs'));
   const isrc = fs4.readFileSync('src/intro.js', 'utf8');
   check('l\'intro dice di raccogliere le cose da terra', /Mushrooms, wheat ears, shells|Funghi, spighe, conchiglie/.test(isrc));
+  /* IL NONNO REGALA UN FOSSILE GREZZO. Un grezzo non serve a niente finché non lo si fa
+     identificare, e si identifica SOLO al Museo, che sta SOLO nelle città grandi. Senza
+     dirlo, si gira con un leggendario in tasca senza sapere che farsene. E le battute
+     devono restare VERE: se domani il Museo comparisse anche altrove, questo test cade. */
+  check('il nonno manda al Museo a far identificare il fossile', /Museo|Museum/.test(isrc));
+  check('il nonno dice che il Museo sta nelle città grandi',
+    /città grande|big city/i.test(isrc));
+  {
+    /* la promessa del nonno regge sul mondo vero? */
+    let cities = 0, withMus = 0, smallWithMus = 0;
+    for (let cx = -8; cx < 8; cx++) for (let cy = -8; cy < 8; cy++) {
+      const t = world.townForCell(cx, cy); if (!t) continue;
+      const m = world.hasMuseum(t);
+      if (t.size === 'città') { cities++; if (m) withMus++; }
+      else if (m) smallWithMus++;
+    }
+    check(`ogni città grande ha davvero il Museo (${withMus}/${cities})`, cities > 0 && withMus === cities);
+    check('borghi e paesi davvero non ne hanno', smallWithMus === 0);
+  }
   check('e di venderle al Negozio per i primi attrezzi',
     /sell them at the Shop|vendila al Negozio/.test(isrc) && /spade before anything|pala prima di tutto/.test(isrc));
 }
