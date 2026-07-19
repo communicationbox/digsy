@@ -177,7 +177,11 @@ export function initState() {
   if (!S.chopped) S.chopped = []; if (!S.mined) S.mined = []; if (!S.picked) S.picked = [];
   if (!S.goods) S.goods = []; // oggetti di superficie da vendere (non fossili)
   if (!S.drops) S.drops = []; // fossili/oggetti lasciati a terra (zaino pieno o scartati)
-  if (!S.bagCap) S.bagCap = 10; // capacità zaino (fossili); zaini più grandi al Negozio
+  /* capacità zaino (fossili); zaini più grandi al Negozio. Le taglie sono state alzate
+     (10/18/28 → 14/22/30): chi ha un salvataggio vecchio sale alla taglia corrispondente,
+     invece di restare con uno zaino che non esiste più in nessun listino. */
+  if (!S.bagCap) S.bagCap = 14;
+  else { const OLD = { 10: 14, 18: 22, 28: 30 }; if (OLD[S.bagCap]) S.bagCap = OLD[S.bagCap]; }
   if (!S.wrecks) S.wrecks = {}; // relitti frugati (chiave sito)
   if (!S.level) S.level = 1; if (S.xp === undefined) S.xp = 0; // progressione archeologo
   if (!S.achieved) S.achieved = []; if (S.questTotal === undefined) S.questTotal = 0; // traguardi

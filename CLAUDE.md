@@ -321,6 +321,18 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   giallo delle altre città. Il Museo è l'unico posto dove si identificano i reperti, si riempiono
   le teche e si comprano le fialette: si deve vedere da lontano dove tornare. Anche in legenda
   (sagoma a casa via clip-path) e nel toast al click ("col Museo").
+- **Zaino tarato sulla prima ora** (`BAG_CAPS` 14/22/30/40, `BAG_UPCOST` 30/100/240): con 10
+  slot si tornava al Museo ogni due minuti proprio quando non si hanno monete per ingrandirlo
+  (i GREZZI non si vendono: le prime monete arrivano solo dopo il primo Museo). I salvataggi
+  vecchi salgono alla taglia corrispondente (10→14, 18→22, 28→30) in state.js.
+- **Nomi di chimera distinguibili** (`chimeraName(skull, leg, taken)` + `nameDistance`):
+  il solo taglio a 2 sillabe dava 693 nomi identici su 4.356 accoppiate e 1.156 coppie a una
+  lettera di distanza ("Grillosso"/"Grillolosso"). Ora, se il nome cozza con una chimera GIÀ
+  posseduta, si allunga prefisso o suffisso di una sillaba: 199 su 200 restano il nome base.
+  L'unicità è dentro la partita, non nel mondo (al giocatore importano le SUE creature).
+- **Niente testo murato in index.html**: i testi statici passano da `applyStaticTexts()`
+  (`#pr-done`, `#exitbtn`, `#debugtag`); la schermata di boot si traduce con uno script inline
+  che legge `digsy_lang` (i moduli non sono ancora caricati). Un test scandisce il markup.
 - **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
   (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
   (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i

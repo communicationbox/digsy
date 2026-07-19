@@ -95,7 +95,17 @@
     </div>
   </div>
 
-  <div id="boot"><div style="font-size:20px;font-weight:800">Digsy World</div><div style="margin-top:8px;color:#9fb0bb">Genero il mondo…</div></div>
+  <div id="boot"><div style="font-size:20px;font-weight:800">Digsy World</div><div id="bootmsg" style="margin-top:8px;color:#9fb0bb">Genero il mondo…</div></div>
+  <!-- Questa schermata si vede PRIMA che i moduli siano caricati, quindi tr() non esiste
+       ancora: la lingua si legge direttamente dalla stessa chiave che usa i18n.js. Poche
+       righe, ma è l'unica cosa che un russo vede per primo. -->
+  <script>
+    (function () {
+      var L = { en: 'Generating the world…', ru: 'Создаю мир…' };
+      try { var l = localStorage.getItem('digsy_lang') || 'en'; if (L[l]) document.getElementById('bootmsg').textContent = L[l]; }
+      catch (e) { /* niente localStorage: resta il testo scritto nel markup */ }
+    })();
+  </script>
 
   <script type="module" src="/src/main.js"></script>
 </body>

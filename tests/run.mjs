@@ -51,6 +51,37 @@ sprites.applyLook();
   check('nomi deterministici', world.townName(3, 7) === world.townName(3, 7));
 }
 
+/* ---------- niente testo italiano murato nell'HTML ---------- */
+{
+  /* Un testo scritto a mano in index.html non passa da tr() e resta in italiano per tutti:
+     è successo col pulsante "Fatto" del tavolo di preparazione, invisibile finché un russo
+     non ha aperto il minigioco. Qui si scandisce il markup e si pretende che ogni testo
+     visibile o sia tradotto da applyStaticTexts, o venga riscritto a runtime da chi apre
+     quella schermata. */
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const i18n = await import('../src/i18n.js');
+  /* id che vengono riscritti dal codice quando la schermata si apre */
+  const RUNTIME = ['pr-title', 'mp-title', 'sp-ver', 'bootmsg'];  // bootmsg: tradotto dallo script inline, prima che i moduli esistano
+  const orphans = [];
+  const re = /<([a-z]+)([^>]*)>([^<>{}]{3,})<\/\1>/g;
+  let m;
+  while ((m = re.exec(html))) {
+    const attrs = m[2], txt = m[3].trim();
+    if (!/[a-zà-ù]/i.test(txt)) continue;                    // solo simboli: niente da tradurre
+    if (/^(DIGSY|WORLD|Digsy World)$/.test(txt)) continue;   // nome proprio: non si traduce
+    const id = (attrs.match(/id="([^"]+)"/) || [])[1] || '';
+    if (RUNTIME.includes(id)) continue;
+    /* è coperto da applyStaticTexts? si guarda se il sorgente lo nomina */
+    const src = readFileSync(new URL('../src/i18n.js', import.meta.url), 'utf8');
+    if (id && src.includes('#' + id)) continue;
+    if (src.includes(JSON.stringify(txt).slice(1, -1))) continue;
+    orphans.push(id ? '#' + id + ' "' + txt + '"' : '"' + txt + '"');
+  }
+  check('nessun testo murato in index.html' + (orphans.length ? ' → ' + orphans.join(', ') : ''), orphans.length === 0);
+  check('il pulsante del minigioco si traduce', typeof i18n.applyStaticTexts === 'function');
+}
+
 /* ---------- il Museo si riconosce dalla mappa ---------- */
 {
   /* sulla mappa le città col Museo hanno un pin loro (avorio + frontone): il segno deve
@@ -117,6 +148,23 @@ sprites.applyLook();
     if (!nm || nm.length < 5 || !/^[A-Z]/.test(nm)) badNames++;
   }
   check('chimeraName: 100 coppie ben formate', badNames === 0);
+  /* NOMI DISTINGUIBILI: due chimere nel parco non devono chiamarsi "Grillosso" e
+     "Grillolosso". Il nome base può ripetersi nel mondo, ma MAI dentro la stessa partita:
+     si simula un giocatore che ne assembla 60 e si pretende che nessuna coppia stia a
+     distanza di edit ≤1 da un'altra. */
+  {
+    const taken = [], all = [...SPECIES];
+    for (let k = 0; k < 60; k++) {
+      const a = all[(k * 13) % all.length], b = all[(k * 7) % all.length];
+      taken.push(gameplay.chimeraName(a, b, taken));
+    }
+    let ambiguous = 0, worst = '';
+    for (let i = 0; i < taken.length; i++) for (let j = i + 1; j < taken.length; j++)
+      if (gameplay.nameDistance(taken[i], taken[j]) <= 1) { ambiguous++; worst = taken[i] + ' / ' + taken[j]; }
+    check(`60 chimere in una partita: nessun nome ambiguo${worst ? ' → ' + worst : ''}`, ambiguous === 0);
+    check('la distanza fra nomi è misurata davvero',
+      gameplay.nameDistance('Grillosso', 'Grillolosso') === 2 && gameplay.nameDistance('Osso', 'Osso') === 0);
+  }
   S.coins = 100; S.items = [
     { uid: 1, s: 'gastro', t: 'cranio', q: 'raro', val: 10 },
     { uid: 2, s: 'prato', t: 'torace', q: 'comune', val: 8 },
@@ -2618,7 +2666,11 @@ sprites.applyLook();
   check('i testi del DNA dicono che ne servono 2',
     /2 fialette|2 DNA vials|2 risvegliano|2</.test(all));
   /* zaino: la capienza mostrata deve venire dalla funzione, non da un numero scritto */
-  check('la capienza dello zaino non è scritta a mano', /bagCap\(\)/.test(uiSrc) && gpN.BAG_CAPS[0] === 10);
+  /* il numero esatto è una manopola di bilanciamento: qui si pretende solo che l'interfaccia
+     lo CHIEDA al gioco (bagCap()) e che le taglie siano una scala crescente col suo listino */
+  check('la capienza dello zaino non è scritta a mano', /bagCap\(\)/.test(uiSrc)
+    && gpN.BAG_CAPS.length === gpN.BAG_UPCOST.length + 1
+    && gpN.BAG_CAPS.every((c, i) => i === 0 || c > gpN.BAG_CAPS[i - 1]));
 }
 
 /* ---------- MINIATURE: dove c'è un pezzo, si deve vedere il pezzo ---------- */

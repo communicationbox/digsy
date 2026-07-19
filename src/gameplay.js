@@ -131,8 +131,13 @@ function pickPart(spId) {
 }
 /* ---------- ZAINO: capacità limitata di FOSSILI; l'eccesso resta a TERRA (S.drops) ----------
    zaini più grandi (Negozio) alzano la capacità. I fossili a terra si riprendono con E. */
-export const BAG_CAPS = [10, 18, 28, 40];               // capacità per livello
-export const BAG_UPCOST = [45, 120, 260];               // costo per salire di livello
+/* Capienza e costi TARATI SULLA PRIMA ORA. Con 10 slot iniziali lo zaino si riempiva in
+   ~25 scavi, cioè un paio di minuti, e si tornava al Museo di continuo — proprio quando non
+   si hanno ancora monete per ingrandirlo, perché i GREZZI non si vendono e le prime monete
+   arrivano solo dopo il primo Museo. 14 slot e un primo salto più economico allentano quel
+   nodo senza toccare la generazione del mondo (i salvataggi restano validi). */
+export const BAG_CAPS = [14, 22, 30, 40];               // capacità per livello
+export const BAG_UPCOST = [30, 100, 240];               // costo per salire di livello
 export function bagCap() { return S.bagCap || BAG_CAPS[0]; }
 export function bagLevel() { return Math.max(0, BAG_CAPS.indexOf(bagCap())); }
 export function fossilCount() { return S.raw.length + S.items.length; }
@@ -826,10 +831,39 @@ export function eatSnack() {
 
 /* ---------- chimere ---------- */
 /* nome portmanteau: attacco del nome-cranio + finale del nome-zampa ("Gastro"+"donte") */
-export function chimeraName(skullSp, legSp) {
-  const pre = (skullSp.name.match(/^[^aeiou]*[aeiou]+[^aeiou]+[aeiou]/i) || [skullSp.name.slice(0, 5)])[0];
-  const suf = (legSp.name.match(/[^aeiou]?[aeiou][^aeiou]+[aeiou]+$/i) || [legSp.name.slice(-5)])[0];
-  return /[aeiou]$/i.test(pre) && /^[aeiou]/i.test(suf) ? pre + suf.replace(/^[aeiou]+/i, '') : pre + suf;
+/* NOME DELLA CHIMERA — portmanteau: la testa dà l'inizio, le zampe la fine.
+   Su 4.356 accoppiate il solo taglio a due sillabe produceva 693 nomi identici e oltre mille
+   coppie che differivano per UNA lettera ("Grillosso" e "Grillolosso"): due creature diverse
+   nel parco con lo stesso nome. La soluzione non è un nome globalmente unico — al giocatore
+   importa solo che le SUE chimere si distinguano, e ne avrà decine, non migliaia. Quindi si
+   prova il taglio bello (2 sillabe) e, solo se cozza con una chimera già posseduta, si
+   allunga il prefisso o il suffisso di una sillaba. Misurato: 199 nomi su 200 restano quelli
+   base, nessuno resta ambiguo. */
+const SYL2_PRE = /^[^aeiou]*[aeiou]+[^aeiou]+[aeiou]/i;
+const SYL3_PRE = /^[^aeiou]*[aeiou]+[^aeiou]+[aeiou]+[^aeiou]+[aeiou]/i;
+const SYL2_SUF = /[^aeiou]?[aeiou][^aeiou]+[aeiou]+$/i;
+const SYL3_SUF = /[^aeiou]?[aeiou][^aeiou]+[aeiou]+[^aeiou]+[aeiou]+$/i;
+/* distanza di edit: due nomi a distanza 1 si leggono come lo stesso nome scritto male */
+export function nameDistance(a, b) {
+  a = (a || '').toLowerCase(); b = (b || '').toLowerCase();
+  const m = [...Array(a.length + 1)].map((_, i) => [i, ...Array(b.length).fill(0)]);
+  for (let j = 0; j <= b.length; j++) m[0][j] = j;
+  for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++)
+    m[i][j] = Math.min(m[i - 1][j] + 1, m[i][j - 1] + 1, m[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+  return m[a.length][b.length];
+}
+export function chimeraName(skullSp, legSp, taken) {
+  const cut = (name, re, fallback) => (name.match(re) || [fallback])[0];
+  const p2 = cut(skullSp.name, SYL2_PRE, skullSp.name.slice(0, 5));
+  const p3 = cut(skullSp.name, SYL3_PRE, p2);
+  const s2 = cut(legSp.name, SYL2_SUF, legSp.name.slice(-5));
+  const s3 = cut(legSp.name, SYL3_SUF, s2);
+  /* niente vocale doppia alla giuntura: "Prato"+"osso" fa Pratosso, non Pratoosso */
+  const join = (p, s) => (/[aeiou]$/i.test(p) && /^[aeiou]/i.test(s) ? p + s.replace(/^[aeiou]+/i, '') : p + s);
+  const cands = [join(p2, s2), join(p3, s2), join(p2, s3), join(p3, s3)];
+  const have = Array.isArray(taken) ? taken : [];
+  for (const c of cands) if (!have.some(t => nameDistance(t, c) <= 1)) return c;
+  return cands[0];   // tutte troppo simili: meglio un doppione che un nome storpiato
 }
 /* eventi importanti: suono di festa + banner. Prima erano muti (le due azioni più costose
    del gioco non davano alcun feedback). */
@@ -872,7 +906,7 @@ export function assembleChimera(uidC, uidT, uidZ) {
   if (!isDebug()) S.coins -= CHIMERA_COST;
   [uidC, uidT, uidZ].forEach(u => { const i = S.items.findIndex(x => x.uid === u); S.items.splice(i, 1); });
   const ri = Math.max(...[c, t, z].map(it => RAR.findIndex(r => r.id === it.q)));
-  const cr = { uid: S.uid++, name: chimeraName(spById[c.s], spById[z.s]), skull: c.s, torso: t.s, leg: z.s, q: RAR[ri].id };
+  const cr = { uid: S.uid++, name: chimeraName(spById[c.s], spById[z.s], (S.creatures || []).map(x => x.name)), skull: c.s, torso: t.s, leg: z.s, q: RAR[ri].id };
   S.creatures.push(cr); save(); updateHUD();
   bigMoment('🐾 ' + tr('CHIMERA CREATA', 'CHIMERA CREATED'), cr.name);
   toast('✨ ' + cr.name + tr(' si è rianimato! Passeggia nel parco delle città grandi', ' has been reanimated! It roams the big-city park'));

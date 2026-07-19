@@ -89,6 +89,12 @@ export function applyStaticTexts() {
   const L = [tr('zaino ', 'bag '), tr(' menu', ' menu')];
   lbls.forEach((el, i) => { if (L[i] !== undefined) el.textContent = L[i]; });
   set('.sp-sub', tr('scava · scopri · rianima', 'dig · discover · revive'));
+  /* Testi scritti a mano dentro index.html: da soli non passano MAI da tr() e restano in
+     italiano per tutti. Vanno riscritti qui, PRIMA di hydrateIcons(), altrimenti si
+     cancellerebbero le <img> delle icone già montate. */
+  set('#pr-done', tr('Fatto', 'Done'));
+  set('#exitbtn', '🚪 ' + tr('Esci', 'Exit'));
+  set('#debugtag', '🐞 ' + tr('CHEAT · NIENTE SALVATAGGIO', 'CHEAT · NO SAVE'));
 }
 
 /* TASTI NEI TESTI — su un telefono non esiste nessun tasto E: c'è il pulsante A.
