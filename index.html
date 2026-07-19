@@ -107,6 +107,11 @@
     })();
   </script>
 
+  <!-- Identificativo dell'applicazione presso Google, per il pulsante "Entra con Google".
+       NON è un segreto: sta comunque nella pagina, visibile a chiunque. La sicurezza non sta
+       nel tenerlo nascosto ma nel fatto che il SERVER verifica che ogni accesso sia stato
+       emesso proprio per questo identificativo (server/lib/google.php). -->
+  <script>window.DIGSY_GOOGLE_CLIENT_ID = '559603252887-aft20s0l2oabi9b3dr5p9efk91oufvtb.apps.googleusercontent.com';</script>
   <script type="module" src="/src/main.js"></script>
 </body>
 </html>

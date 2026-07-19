@@ -59,7 +59,10 @@ sprites.applyLook();
      visibile o sia tradotto da applyStaticTexts, o venga riscritto a runtime da chi apre
      quella schermata. */
   const { readFileSync } = await import('node:fs');
-  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  /* si guarda solo ciò che il giocatore LEGGE: dentro <script> e <style> non c'è testo
+     d'interfaccia, e prenderli darebbe falsi allarmi su codice e selettori */
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8')
+    .replace(/<script[\s\S]*?<\/script>/g, '').replace(/<style[\s\S]*?<\/style>/g, '');
   const i18n = await import('../src/i18n.js');
   /* id che vengono riscritti dal codice quando la schermata si apre */
   const RUNTIME = ['pr-title', 'mp-title', 'sp-ver', 'bootmsg'];  // bootmsg: tradotto dallo script inline, prima che i moduli esistano

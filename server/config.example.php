@@ -26,7 +26,7 @@ return [
        Non è un segreto — sta anche nella pagina — ma il server DEVE controllare che il token
        ricevuto sia stato emesso proprio per questo ID: senza, vale un token ottenuto da
        un'altra applicazione qualsiasi. */
-    'google_client_id' => 'DA_COMPILARE.apps.googleusercontent.com',
+    'google_client_id' => '559603252887-aft20s0l2oabi9b3dr5p9efk91oufvtb.apps.googleusercontent.com',
 
     /* Durata della sessione. 30 giorni: un gioco non è una banca, e rifare l'accesso a ogni
        partita sarebbe proprio l'attrito che stiamo togliendo. */
