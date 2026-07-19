@@ -341,7 +341,6 @@ body:has(#cmd.on) #touch{display:none!important}
 @media(pointer:coarse){
   .sw{width:38px;height:38px}
   .btn{padding:11px 16px;font-size:14px}
-  .st .x{width:42px;height:42px;font-size:18px}
   .sel{padding:8px;font-size:14px}
 }
 
@@ -675,7 +674,19 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
 /* il titolo non deve spingere fuori le monete: su schermo stretto si accorcia lui */
 .st h2{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .st-coins{flex:none}
-@media(max-width:420px){ .st h2{font-size:15px} .st-coins{font-size:13px;padding:0 8px} }
+/* SCHERMO PICCOLO — la X e le monete crescono INSIEME.
+   Erano su due regole diverse: la X passava a 42px sotto `pointer:coarse`, il contatore
+   restava a 34 e accanto sembrava rimpicciolito. Le monete sono l'informazione che si
+   controlla di più mentre si compra: devono pesare almeno quanto il pulsante per chiudere.
+   La condizione è doppia (larghezza O dito) come nel resto del foglio: un telefono stretto
+   con un mouse collegato non esiste, ma un browser che non dichiara il dito sì. */
+@media(max-width:760px),(pointer:coarse){
+  .st .x{width:42px;height:42px;font-size:18px}
+  .st-coins{height:42px;font-size:16px;padding:0 12px}
+  .st-coins .pxi{width:1.25em;height:1.25em}
+}
+/* schermo strettissimo: si accorcia il TITOLO, non le monete */
+@media(max-width:420px){ .st h2{font-size:15px} .st-coins{padding:0 9px} }
 
 /* "lascia a terra" sulla tile del reperto: su un telefono lo zaino copre tutto lo schermo,
    quindi trascinare FUORI è materialmente impossibile — serve un comando esplicito. */

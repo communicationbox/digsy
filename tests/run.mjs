@@ -169,6 +169,29 @@ sprites.applyLook();
   check('lo Studio non ha una copia scritta a mano dell\'elenco', handmade === false);
 }
 
+/* ---------- monete e X: stessa taglia sul telefono ---------- */
+{
+  /* Stavano su due regole diverse: la X cresceva a 42px sotto `pointer:coarse`, il
+     contatore delle monete restava a 34 e accanto sembrava rimpicciolito. Le monete sono
+     l'informazione che si guarda di più mentre si compra: devono pesare almeno quanto il
+     pulsante per chiudere. */
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  /* di blocchi con questa media query ce n'è più d'uno: serve quello che tocca le monete */
+  const blocks = css.match(/@media\(max-width:760px\),\(pointer:coarse\)\{[\s\S]*?\n\}/g) || [];
+  const blk = blocks.find(b => b.includes('.st-coins')) || '';
+  const hOf = (sel) => {
+    const m = blk.match(new RegExp(sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\{[^}]*height:(\\d+)px'));
+    return m ? +m[1] : 0;
+  };
+  const hx = hOf('.st .x'), hc = hOf('.st-coins');
+  check(`monete e X alte uguali sul telefono (${hc} vs ${hx})`, hx > 0 && hc === hx);
+  /* e nessuna regola successiva deve rimpicciolire le monete sotto quella misura */
+  const narrow = (css.match(/@media\(max-width:420px\)\{([^}]*\}[^}]*)\}/) || [, ''])[1];
+  check('sullo schermo strettissimo si accorcia il titolo, non le monete',
+    !/\.st-coins\{[^}]*height/.test(narrow) && !/\.st-coins\{[^}]*font-size:1[0-4]px/.test(narrow));
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');
