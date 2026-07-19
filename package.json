@@ -12,7 +12,8 @@
     "e2e": "node tests/e2e.mjs",
     "cov": "node tests/coverage.mjs",
     "stress": "node --expose-gc tests/stress.mjs",
-    "test:php": "php server/tests/run.php"
+    "test:php": "php server/tests/run.php",
+    "test:php:mysql": "DIGSY_TEST_MYSQL=1 php server/tests/run.php"
   },
   "devDependencies": {
     "vite": "^6.0.0"

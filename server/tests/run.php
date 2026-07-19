@@ -13,11 +13,24 @@ function check(string $name, bool $cond, string $extra = ''): void
     else { $fail++; echo "  FAIL $name" . ($extra ? " | $extra" : '') . "\n"; }
 }
 
-/* configurazione di prova: database in un file temporaneo, buttato alla fine */
+/* Configurazione di prova. Di serie SQLite (nessun servizio da avviare), ma con
+ * DIGSY_TEST_MYSQL=1 la stessa suite gira su MySQL/MariaDB VERO — che è quello che poi
+ * risponde in produzione. Le differenze fra i due motori (tipi, AUTO_INCREMENT, indici) si
+ * scoprono qui invece che sul server.
+ *   DIGSY_TEST_MYSQL=1 DIGSY_TEST_DB=digsy_localtest php server/tests/run.php
+ */
+$useMysql = getenv('DIGSY_TEST_MYSQL') === '1';
 $tmp = sys_get_temp_dir() . '/digsy_test_' . getmypid() . '.sqlite';
 $cfgFile = sys_get_temp_dir() . '/digsy_test_cfg_' . getmypid() . '.php';
+$dbCfg = $useMysql
+    ? ['driver' => 'mysql', 'host' => getenv('DIGSY_TEST_HOST') ?: '127.0.0.1',
+       'port' => (int)(getenv('DIGSY_TEST_PORT') ?: 3306),
+       'name' => getenv('DIGSY_TEST_DB') ?: 'digsy_localtest',
+       'user' => getenv('DIGSY_TEST_USER') ?: get_current_user(),
+       'pass' => getenv('DIGSY_TEST_PASS') ?: '']
+    : ['driver' => 'sqlite', 'path' => $tmp];
 file_put_contents($cfgFile, '<?php return ' . var_export([
-    'db' => ['driver' => 'sqlite', 'path' => $tmp],
+    'db' => $dbCfg,
     'google_client_id' => 'test-client.apps.googleusercontent.com',
     'session_days' => 30,
     'cookie_secure' => false,
@@ -29,11 +42,16 @@ require_once __DIR__ . '/../lib/session.php';
 require_once __DIR__ . '/../lib/users.php';
 require_once __DIR__ . '/../lib/saves.php';
 
-echo "\nBACKEND DIGSY\n" . str_repeat('-', 60) . "\n";
+echo "\nBACKEND DIGSY" . ($useMysql ? ' — su MySQL/MariaDB' : ' — su SQLite') . "\n" . str_repeat('-', 60) . "\n";
+if ($useMysql) {   // si riparte puliti: la suite crea utenti e partite con dati fissi
+    foreach (['saves', 'sessions', 'users'] as $t) { try { db()->exec("DROP TABLE IF EXISTS $t"); } catch (Throwable $e) { /* non c'era */ } }
+}
 
 /* ---------- schema ---------- */
 migrate();
-$tables = db()->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
+$tables = $useMysql
+    ? db()->query('SHOW TABLES')->fetchAll(PDO::FETCH_COLUMN)
+    : db()->query("SELECT name FROM sqlite_master WHERE type='table'")->fetchAll(PDO::FETCH_COLUMN);
 check('le tre tabelle esistono', count(array_intersect(['users', 'sessions', 'saves'], $tables)) === 3,
     implode(',', $tables));
 migrate();   // due volte di fila non deve esplodere: gira a ogni avvio
