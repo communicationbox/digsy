@@ -1209,6 +1209,8 @@ function confirmDrop(d) {
   const yes = document.getElementById('dropYes'); if (yes) yes.onclick = () => { discardToGround(d.uid, d.kind); closeModal(); openBag(); };
 }
 document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
+{ const mb = document.getElementById('mapbtn');
+  if (mb) mb.onclick = () => { if (!isModalOpen()) { playSfx('ui'); openMap(); } }; }
 /* il Libro non sta più nell'HUD: si apre dallo zaino (📖) o col tasto L */
 { const qt = document.getElementById('questtag'); if (qt) qt.onclick = () => { if (!isModalOpen()) openQuests(); }; }
 /* HUD mobile: una sola icona espande/collassa; da collassato restano solo toggle + menu */

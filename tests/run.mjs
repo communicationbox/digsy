@@ -355,6 +355,23 @@ sprites.applyLook();
   check('una zona sconosciuta non rompe niente', tiles.groundPalette('boh').length === 3);
 }
 
+/* ---------- la mappa si apre anche col dito ---------- */
+{
+  /* Da tastiera basta M, ma su un telefono quel tasto non esiste: l'unica via era passare
+     dallo zaino. Ora c'è un pulsante nella barra, e deve restare visibile anche a barra
+     ripiegata (come lo zaino) e grande abbastanza da centrarlo col pollice. */
+  const { readFileSync } = await import('node:fs');
+  const html = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const tag = (html.match(/<span[^>]*id="mapbtn"[^>]*>/) || [''])[0];
+  check('la barra ha il pulsante della mappa', tag !== '');
+  check('resta visibile anche a barra ripiegata', tag.includes('hud-always'));
+  const css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+  const m = css.match(/#hud #mapbtn\{[^}]*min-width:(\d+)px/);
+  check('è abbastanza grande per il pollice (' + (m ? m[1] : '?') + 'px ≥ 44)', !!m && +m[1] >= 44);
+  const ui = readFileSync(new URL('../src/ui.js', import.meta.url), 'utf8');
+  check('il pulsante apre davvero la mappa', /mapbtn[\s\S]{0,120}openMap\(\)/.test(ui));
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');

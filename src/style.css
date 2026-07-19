@@ -681,6 +681,9 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
    La condizione è doppia (larghezza O dito) come nel resto del foglio: un telefono stretto
    con un mouse collegato non esiste, ma un browser che non dichiara il dito sì. */
 @media(max-width:760px),(pointer:coarse){
+  /* La mappa è una sola icona, senza numero accanto: senza un minimo restava un bersaglio
+     da 35 px, sotto la soglia di 44 che rende un tocco affidabile col pollice. */
+  #hud #mapbtn{min-width:44px;justify-content:center}
   .st .x{width:42px;height:42px;font-size:18px}
   .st-coins{height:42px;font-size:16px;padding:0 12px}
   .st-coins .pxi{width:1.25em;height:1.25em}
