@@ -6,7 +6,7 @@ import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt } from './world.js';
-import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach } from './cave.js';
+import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionAbility } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile } from './gameplay.js';
@@ -577,8 +577,10 @@ function drawCompassIndicator(time) {
 /* ---------- GROTTA: area buia esplorabile, camera che segue, solo alone attorno al player ---------- */
 function drawCaveScene(time) {
   const W = view.W, H = view.H, rw = CAVE.w * TS, rh = CAVE.h * TS;
-  const camx = snap(rw <= W ? (rw - W) / 2 : Math.max(0, Math.min(rw - W, CAVE.x - W / 2)));
-  const camy = snap(rh <= H ? (rh - H) / 2 : Math.max(0, Math.min(rh - H, CAVE.y - H / 2)));
+  /* La camera la calcola caveCam(), NON questa funzione: la formula era copiata qui e le due
+     hanno finito per divergere (il tocco puntava dove il disegno non guardava). Una sola. */
+  const cam2 = caveCam();
+  const camx = snap(cam2.x), camy = snap(cam2.y);
   ctx.setTransform(view.K, 0, 0, view.K, 0, 0);
   ctx.fillStyle = '#0a0a10'; ctx.fillRect(0, 0, W, H);
   ctx.save(); ctx.translate(-camx, -camy);
@@ -626,15 +628,40 @@ function drawCaveScene(time) {
   shadow(px0, py0 + 16, 6);
   if (CAVE.digging) { const st = Math.floor((CAVE.digging.t / CAVE.digging.dur) * 4) % 2; drawHero(null, px0 - 8, py0 + st, 'down', 0); rect(px0 + 4, py0 + (st ? 10 : 6), 2, 6, '#8a5f38'); rect(px0 + 2, py0 + (st ? 8 : 4), 6, 3, '#9a9285'); }
   else drawHero(null, px0 - 8, py0, CAVE.dir, fr);
-  /* imbocco d'uscita in basso (bagliore diurno) */
+  /* USCITA — un pezzo di MONDO ESTERNO oltre l'imbocco.
+     Prima l'uscita era una linguetta di 4 pixel sull'ultima riga: con il solo mouse non
+     c'era niente da cliccare "fuori" per uscire (lo stesso guaio della porta del museo), e
+     al buio non si capiva nemmeno dove fosse. Adesso la camera scende di CAVE_FOOT e qui
+     si disegna quello che si vede là sotto: terra illuminata dal giorno ed erba. */
   const ex = (CAVE.w >> 1) * TS;
-  rect(ex - 8, rh - 4, 16, 4, '#c9b48a'); ctx.fillStyle = 'rgba(230,220,170,.12)'; ctx.fillRect(ex - 16, rh - 30, 32, 30);
-  /* BUIO: quasi nero ovunque tranne l'alone attorno al player (a scalini, 8-bit) */
+  const gw = 3 * TS;                                    // larghezza del varco (3 caselle)
+  rect(ex - gw / 2, rh - 2, gw, CAVE_FOOT + 2, '#8a7350');          // terra battuta del passaggio
+  rect(ex - gw / 2, rh + 10, gw, CAVE_FOOT - 10, '#6f9a52');        // erba: si è già fuori
+  rect(ex - gw / 2, rh + 10, gw, 2, '#82ad60');
+  for (let i = 0; i < gw; i += 6) px(ex - gw / 2 + i + 2, rh + 16 + ((i / 6) & 1) * 5, '#87b566');
+  /* stipiti di roccia ai lati del varco, così il passaggio si legge come un'apertura */
+  rect(ex - gw / 2 - TS, rh - 2, TS, CAVE_FOOT + 2, '#2c2942');
+  rect(ex + gw / 2, rh - 2, TS, CAVE_FOOT + 2, '#2c2942');
+  rect(ex - gw / 2 - TS, rh - 2, TS, 3, '#3d3960');
+  rect(ex + gw / 2, rh - 2, TS, 3, '#3d3960');
+  /* alone di luce diurna che risale dentro la grotta: è il richiamo che dice "di qua si esce" */
+  for (let i = 0; i < 5; i++) {
+    ctx.fillStyle = 'rgba(240,232,190,' + (0.05 + i * 0.045) + ')';
+    ctx.fillRect(ex - gw / 2 - 4 + i, rh - 34 + i * 7, gw + 8 - i * 2, 8);
+  }
+
+  /* BUIO: quasi nero ovunque tranne l'alone attorno al player (a scalini, 8-bit).
+     L'uscita fa eccezione: da lì entra il giorno, quindi il buio si apre. Senza, il varco
+     appena disegnato tornerebbe nero e non servirebbe a niente. */
+  const exTx = CAVE.w >> 1;
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
     const tR = S.tools && S.tools.torch ? 1.7 : 1; // torcia = alone più ampio in grotta
     const d = (Math.hypot(sx + 8 - CAVE.x, sy + 8 - CAVE.y) / TS) / tR;
-    const a = d < 2 ? 0 : d < 3.2 ? 0.4 : d < 4.4 ? 0.72 : d < 5.6 ? 0.9 : 0.98;
+    let a = d < 2 ? 0 : d < 3.2 ? 0.4 : d < 4.4 ? 0.72 : d < 5.6 ? 0.9 : 0.98;
+    /* vicinanza all'imbocco: quanto più si è in fondo e in mezzo, tanto più c'è luce */
+    const dEx = Math.hypot(tx - exTx, ty - (CAVE.h - 1));
+    if (dEx < 5) a = Math.min(a, dEx < 2 ? 0 : dEx < 3 ? 0.35 : dEx < 4 ? 0.7 : 0.88);
     if (a > 0) { ctx.fillStyle = 'rgba(4,4,8,' + a + ')'; ctx.fillRect(sx, sy, TS, TS); }
   }
   ctx.restore();

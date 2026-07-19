@@ -192,6 +192,37 @@ sprites.applyLook();
     !/\.st-coins\{[^}]*height/.test(narrow) && !/\.st-coins\{[^}]*font-size:1[0-4]px/.test(narrow));
 }
 
+/* ---------- dalla grotta si esce anche col solo mouse ---------- */
+{
+  /* Segnalato da un giocatore: con il solo mouse non si usciva. Per uscire bisogna
+     camminare OLTRE l'ultima casella, ma là fuori non c'era niente da cliccare — l'uscita
+     era una linguetta di quattro pixel sull'ultimo bordo, al buio. Ora la camera scende di
+     CAVE_FOOT e sotto l'imbocco si vede un pezzo di mondo esterno: c'è dove cliccare, e si
+     vede dov'è. Qui si prova proprio quel gesto. */
+  const cave = await import('../src/cave.js');
+  const tap = await import('../src/tapmove.js');
+
+  check('la grotta mostra un pezzo di esterno oltre l\'imbocco', cave.CAVE_FOOT > 16);
+
+  cave.enterCave(7, 0, 0);
+  check('si entra in grotta', cave.CAVE.active === true);
+  /* la camera deve scendere OLTRE il fondo, altrimenti non c'è nulla da cliccare */
+  const rh = cave.CAVE.h * TS;
+  cave.CAVE.x = (cave.CAVE.w >> 1) * TS + 8;
+  cave.CAVE.y = (cave.CAVE.h - 4) * TS;
+  const camBottom = cave.caveCam().y + 200;              // 200 = altezza vista di prova
+  check('sotto l\'imbocco c\'è spazio visibile (' + Math.round(camBottom - rh) + ' px)', camBottom > rh);
+
+  /* il giocatore clicca FUORI, sull'erba: meta oltre l'ultima casella */
+  const exTx = cave.CAVE.w >> 1;
+  const c = tap.tileCenter(exTx, cave.CAVE.h);
+  tap.setGoal(c.x, c.y);
+  let steps = 0;
+  while (cave.CAVE.active && steps < 400) { cave.updateCave(1 / 60, {}, 60); steps++; }
+  check('cliccando fuori dall\'imbocco si esce davvero (' + steps + ' passi)', cave.CAVE.active === false);
+  tap.clearGoal();
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');

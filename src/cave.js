@@ -167,6 +167,11 @@ export function updateCave(dt, keys, speed) {
 }
 /* ingresso sul mondo: si entra CAMMINANDO nell'imbocco (verso l'alto), come per le porte */
 /* camera della grotta: stessa formula del disegno (serve al "tocca dove andare") */
+/* Quanto si vede OLTRE l'imbocco, in fondo alla grotta. Serve a far entrare in scena un
+   pezzo di mondo esterno: senza, l'uscita sta sull'ultimo pixel dello schermo e con il solo
+   mouse non si può cliccare "fuori" per uscire — lo stesso guaio che aveva la porta del
+   museo. Vedere la luce del giorno dice anche DOVE si esce, che al buio non è ovvio. */
+export const CAVE_FOOT = 44;
 export function caveCam() {
   const W = view.W, H = view.H, rw = CAVE.w * TS, rh = CAVE.h * TS;
   /* la camera può salire OLTRE il bordo della grotta quanto è alta la barra dell'HUD:
@@ -176,7 +181,7 @@ export function caveCam() {
   const pad = hudPad();
   return {
     x: rw <= W ? (rw - W) / 2 : Math.max(0, Math.min(rw - W, CAVE.x - W / 2)),
-    y: rh <= H ? (rh - H) / 2 - pad : Math.max(-pad, Math.min(rh - H, CAVE.y - H / 2)),
+    y: rh <= H ? (rh - H) / 2 - pad : Math.max(-pad, Math.min(rh - H + CAVE_FOOT, CAVE.y - H / 2)),
   };
 }
 export function checkCaveEnter(caveEntranceAt) {

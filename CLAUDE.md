@@ -347,6 +347,12 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   nel game loop, quindi là sotto la barra restava congelata (si scavava fino a zero energia
   continuando a leggere "46/60"). Ora sta prima di entrambi i rami, e `cave.js` aggiorna
   anche subito dopo lo scavo.
+- **Uscita della grotta come la porta del museo** (`CAVE_FOOT` in cave.js): la camera scende
+  oltre il fondo e sotto l'imbocco si vede un pezzo di MONDO ESTERNO (terra, erba, stipiti di
+  roccia, alone di luce diurna che risale). Prima l'uscita era una linguetta di 4 px
+  sull'ultimo bordo, al buio: con il solo mouse non c'era niente da cliccare "fuori" per
+  uscire. Il pass del buio si apre vicino all'imbocco, altrimenti il varco tornerebbe nero.
+  `render.js` ora usa `caveCam()` invece di ricopiarne la formula (le due erano divergute).
 - **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
   (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
   (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i
