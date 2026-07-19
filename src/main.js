@@ -74,6 +74,10 @@ function loop(ts) {
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
   if (!isModalOpen() && !splashActive()) {
     steerFollow();                  // col mouse tenuto premuto si va verso il puntatore
+    /* HUD: va rinfrescato in QUALSIASI scena. Stava dopo i `return` di grotte e interni,
+       quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un
+       giocatore ha scavato in grotta fino a zero energia continuando a leggere "46/60". */
+    hudAcc += dt; if (hudAcc > 2) { hudAcc = 0; updateHUD(); }
     if (CAVE.active) { // dentro una grotta: area buia esplorabile
       updateCave(dt, keys, P.speed * gearSpeedMul() * (P.speedMul || 1));
       updatePrompt();
@@ -108,7 +112,6 @@ function loop(ts) {
       /* commissione scaduta: lo si dice, non si scopre tornando al museo */
       if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
     }
-    hudAcc += dt; if (hudAcc > 2) { hudAcc = 0; updateHUD(); } // aggiorna icone fase/stagione
   }
   /* overlay a tutto schermo (zaino/libro): il mondo è coperto → salta il render pesante
      (le animazioni sono comunque in pausa). La modale edifici è semitrasparente: si continua. */

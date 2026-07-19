@@ -2,7 +2,7 @@
 import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, CHIMERA_COST, GOODS, goodById, availableNow, hasWindow } from './data.js';
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
-import { S, P, save, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
+import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE } from './world.js';
 import { compass } from './compass.js';
 import { landmarkNear, harvestDecoAt } from './world.js';
@@ -184,7 +184,7 @@ export function tryDig() {
   if (dugSet.has(key)) { toast(tr('Già scavato qui', 'Already dug here')); return; }
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); showTip('energy'); return; }
   beginDig(0.45, () => {
-    if (!isDebug()) S.energy--;
+    if (!isDebug()) spendEnergy(1);
     dugSet.add(key); S.dug.push(key);
     const mp = mapAt(tx, ty);
     if (mp) { // la X della mappa: reperto GARANTITO della rarità comprata
@@ -305,7 +305,7 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
   if (!S.tools[tool]) { toast(missMsg); return true; } // consumato l'input: serve l'attrezzo
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); return true; }
   beginDig(0.5, () => {
-    if (!isDebug()) S.energy--;
+    if (!isDebug()) spendEnergy(1);
     setAdd.add(tx + ',' + ty); arr.push(tx + ',' + ty);
     if (Math.random() < 0.5) {
       const raw = makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, src);
@@ -350,7 +350,7 @@ export function onBoat() {
 export function tryFish() {
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.9, () => {
-    if (!isDebug()) S.energy--;
+    if (!isDebug()) spendEnergy(1);
     const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + 13) / TS);
     const raw = Math.random() < 0.4 ? makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, 'acqua') : null;
     if (raw) {
@@ -505,7 +505,7 @@ export function digSite() {
   if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.55, () => {
-    if (!isDebug()) S.energy--;
+    if (!isDebug()) spendEnergy(1);
     S.sites[s.key] = (S.sites[s.key] || 0) + 1;
     const dist = Math.hypot(s.x, s.y);
     const w = siteRarWeights(dist);
@@ -617,7 +617,7 @@ export function digWreck() {
   if (rem <= 0) { toast('🚢 ' + tr('Relitto ripulito', 'Wreck picked clean')); return; }
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.6, () => {
-    if (!isDebug()) S.energy--;
+    if (!isDebug()) spendEnergy(1);
     if (!S.wrecks) S.wrecks = {}; S.wrecks[w.key] = (S.wrecks[w.key] || 0) + 1;
     const dist = Math.hypot(w.x, w.y), wt = siteRarWeights(dist);
     const tot = wt.raro + wt.eccezionale + wt.leggendario;

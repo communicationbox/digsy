@@ -339,6 +339,14 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   un giocatore). Ora la camera può salire oltre il bordo quanto è alta la barra. `hudPad`
   RICORDA l'ultima misura buona: con una modale aperta l'HUD è display:none e misurarlo lì
   darebbe margine zero proprio dove serve.
+- **Energia: un solo punto di spesa** (`spendEnergy(n)` in state.js): il controllo
+  `energy <= 0` sta PRIMA dell'azione, quindi copre solo chi consuma 1 — staccare un
+  cristallo in grotta ne costa 2 e da 1 si finiva a **-1/65** (visto da un giocatore).
+  `spendEnergy` ha lo zero come fondo; un test vieta ogni `S.energy--/-=` fuori da lì.
+- **HUD vivo in ogni scena**: il refresh periodico stava DOPO i `return` di grotte e interni
+  nel game loop, quindi là sotto la barra restava congelata (si scavava fino a zero energia
+  continuando a leggere "46/60"). Ora sta prima di entrambi i rami, e `cave.js` aggiorna
+  anche subito dopo lo scavo.
 - **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
   (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
   (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i

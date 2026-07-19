@@ -114,6 +114,41 @@ sprites.applyLook();
   INT.y = before;
 }
 
+/* ---------- l'energia non va mai sotto zero ---------- */
+{
+  /* Segnalato con foto: "-1/65" nell'HUD. Il controllo `energy <= 0` sta PRIMA dell'azione,
+     quindi protegge solo chi consuma 1; staccare un cristallo in grotta ne costa 2 e da 1
+     si finiva a -1. Ogni consumo passa da spendEnergy, che ha lo zero come fondo. */
+  const before = S.energy;
+  S.energy = 1; state.spendEnergy(2);
+  check('energia: 1 − 2 = 0, non −1 (era ' + S.energy + ')', S.energy === 0);
+  S.energy = 0; state.spendEnergy(5);
+  check('energia: non scende sotto zero nemmeno da zero', S.energy === 0);
+  S.energy = 10; state.spendEnergy(3);
+  check('energia: la spesa normale funziona', S.energy === 7);
+  /* Nessun modulo deve SPENDERE energia per conto proprio: è lì che nasce il numero
+     negativo. Le ricariche (riposo, ristoro, comandi) assegnano un valore già limitato
+     dall'alto e non c'entrano. */
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const dir = new URL('../src/', import.meta.url);
+  const offenders = readdirSync(dir).filter(f => f.endsWith('.js')).filter(f => {
+    if (f === 'state.js') return false;                       // è casa sua
+    return /S\.energy\s*(--|-=)/.test(readFileSync(new URL(f, dir), 'utf8'));
+  });
+  check('nessuno spende S.energy fuori da spendEnergy' + (offenders.length ? ' → ' + offenders.join(', ') : ''),
+    offenders.length === 0);
+  /* L'altra metà dello stesso guasto: il giocatore leggeva "46/60" mentre l'energia era già
+     a zero, perché il refresh dell'HUD stava DOPO i `return` di grotte e interni e là sotto
+     non veniva mai eseguito. Qui si pretende che stia prima di entrambi. */
+  const mainSrc = readFileSync(new URL('main.js', dir), 'utf8');
+  const iHud = mainSrc.indexOf('hudAcc > 2');
+  const iCave = mainSrc.indexOf('if (CAVE.active)');
+  const iInt = mainSrc.indexOf('if (INT.active)');
+  check('l\'HUD si aggiorna anche in grotta e negli interni',
+    iHud > 0 && iCave > 0 && iInt > 0 && iHud < iCave && iHud < iInt);
+  S.energy = before;
+}
+
 /* ---------- il Museo si riconosce dalla mappa ---------- */
 {
   /* sulla mappa le città col Museo hanno un pin loro (avorio + frontone): il segno deve

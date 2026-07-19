@@ -3,14 +3,14 @@
    il player nel mondo resta sull'ingresso (save/bussola intatti), come per gli interni. */
 import { TS, CAVE_POOL, RAR, PARTS, ptById } from './data.js';
 import { view, hudPad } from './screen.js';
-import { P, S, save } from './state.js';
+import { P, S, save, spendEnergy } from './state.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
 import { fbm, vhash } from './noise.js';
 import { isDebug } from './debug.js';
 import { zoneAt } from './regions.js';
 import { addXp, XP_BY_RAR, digDurationMul } from './progress.js';
 import { playSfx, setBiomeMood } from './audio.js';
-import { toast } from './ui.js';
+import { toast, updateHUD } from './ui.js';
 import { tr } from './i18n.js';
 
 export const CAVE = {
@@ -114,7 +114,11 @@ export function stepCave(dt) {
   d.t += dt;
   if (d.t >= d.dur) {
     CAVE.digging = null;
-    if (!isDebug()) S.energy -= 2;   // la roccia è dura: costa il doppio
+    /* la roccia è dura: costa il doppio. Passa da spendEnergy, che non scende sotto zero
+       (con 1 di energia si finiva a -1), e l'HUD va avvisato SUBITO: quaggiù il refresh
+       periodico del loop non gira, e la barra restava ferma sul valore di prima. */
+    if (!isDebug()) spendEnergy(2);
+    updateHUD();
     if (!S.caveDug) S.caveDug = []; S.caveDug.push(caveNodeKey(d.cx, d.cy));
     /* NON tutti i giacimenti danno un fossile (~55%) */
     if (Math.random() < 0.55) {

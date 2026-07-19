@@ -14,6 +14,17 @@ export let pickedSet = new Set();  // oggetti di superficie raccolti (E)
 export const P = { x: 0, y: 0, dir: 'down', moving: false, anim: 0, speed: 46, digging: null, speedMul: 1, fly: false };
 export const cam = { x: 0, y: 0 };
 
+/* SPESA DI ENERGIA — unico punto che tocca S.energy. Prima ogni azione faceva `S.energy--`
+   per conto suo: chi ne toglieva DUE (staccare un cristallo in grotta, la roccia è dura)
+   partendo da 1 arrivava a **-1**, e l'HUD mostrava "-1/65" a un giocatore. Il controllo
+   `energy <= 0` sta a monte, ma non protegge da un costo maggiore di 1.
+   Qui il fondo è zero, sempre. */
+export function spendEnergy(n) {
+  const cost = Math.max(0, n | 0);
+  S.energy = Math.max(0, (S.energy || 0) - cost);
+  return S.energy;
+}
+
 export function fresh() {
   return {
     seed: (Math.random() * 1e9) | 0, coins: 0, energy: 30, maxEnergy: 30, day: 1,
