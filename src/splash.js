@@ -15,6 +15,86 @@ import { drawTrophy } from './trophy.js';
    si cambia, e deve esserci un posto solo da aggiornare. */
 export const DISCORD_URL = 'https://discord.gg/BpZNuVnVz';
 
+/* ---------- ACCOUNT (partita su più dispositivi) ----------
+   Tutto quello che riguarda l'accesso vive qui dentro e si carica SOLO quando si apre la
+   schermata: lo script di Google è l'unica dipendenza esterna del gioco, e chi non usa
+   l'account non deve pagarne il costo all'avvio. */
+export const acc = { user: null, conflict: null, localSum: '', remoteSum: '', msg: '', mod: null };
+let gsiLoading = null;
+
+export function accountStatus() { return acc.mod ? acc.mod.statusLabel() : ''; }
+
+/* carica lo script di Google una volta sola, e solo se serve */
+function loadGoogle() {
+  if (typeof document === 'undefined') return Promise.resolve(false);
+  if (window.google && window.google.accounts) return Promise.resolve(true);
+  if (gsiLoading) return gsiLoading;
+  gsiLoading = new Promise((res) => {
+    const sc = document.createElement('script');
+    sc.src = 'https://accounts.google.com/gsi/client';
+    sc.async = true; sc.defer = true;
+    sc.onload = () => res(true);
+    sc.onerror = () => res(false);       // senza rete o con Google bloccato: si dice e basta
+    document.head.appendChild(sc);
+  });
+  return gsiLoading;
+}
+
+export async function openAccount() {
+  if (!acc.mod) { try { acc.mod = await import('./account.js'); } catch (e) { return; } }
+  const me = await acc.mod.refreshMe();
+  acc.user = me;
+  buildMenu(inGameMode);
+  if (me) return;
+  const ok = await loadGoogle();
+  if (!ok || !window.google || !window.google.accounts) {
+    acc.msg = tr('Google non raggiungibile. Riprova più tardi.', 'Google is unreachable. Try again later.');
+    buildMenu(inGameMode); return;
+  }
+  const holder = document.getElementById('sp-gbtn'); if (!holder) return;
+  try {
+    window.google.accounts.id.initialize({
+      client_id: (window.DIGSY_GOOGLE_CLIENT_ID || ''),
+      callback: async (resp) => {
+        const r = await acc.mod.signIn(resp.credential);
+        if (!r.ok) { acc.msg = tr('Accesso non riuscito', 'Sign-in failed'); buildMenu(inGameMode); return; }
+        acc.user = r.user;
+        /* la partita locale non si tocca senza chiedere: 'ask' apre la scelta */
+        if (r.action === 'pull') acc.mod.applyRemote(r.remote);
+        else if (r.action === 'push') await acc.mod.keepLocal();
+        else if (r.action === 'ask') {
+          acc.conflict = r.remote;
+          acc.localSum = acc.mod.saveSummary(S);
+          try { acc.remoteSum = acc.mod.saveSummary(JSON.parse(r.remote.data)); } catch (e) { acc.remoteSum = '?'; }
+        }
+        buildMenu(inGameMode);
+      },
+    });
+    window.google.accounts.id.renderButton(holder, { theme: 'filled_black', size: 'large', text: 'signin_with' });
+  } catch (e) {
+    acc.msg = tr('Accesso non disponibile', 'Sign-in unavailable');
+    buildMenu(inGameMode);
+  }
+}
+
+/* i pulsanti della schermata: si ricollegano a ogni ridisegno del menu */
+export function wireAccountButtons(redraw) {
+  const kl = document.getElementById('sp-keeplocal');
+  if (kl) kl.onclick = async () => { await acc.mod.keepLocal(); acc.conflict = null; redraw(); };
+  const kr = document.getElementById('sp-keepremote');
+  if (kr) kr.onclick = () => { acc.mod.applyRemote(acc.conflict); };
+  const so = document.getElementById('sp-signout');
+  if (so) so.onclick = async () => { await acc.mod.signOut(); acc.user = null; redraw(); };
+  const da = document.getElementById('sp-delacc');
+  if (da) da.onclick = async () => {
+    /* cancella l'account, NON la partita su questo dispositivo: chi se ne va non deve
+       ritrovarsi il gioco azzerato */
+    if (!confirm(tr('Cancello account e partite salvate sul server? La partita su questo dispositivo resta.',
+      'Delete your account and the games saved on the server? The game on this device stays.'))) return;
+    await acc.mod.removeAccount(); acc.user = null; redraw();
+  };
+}
+
 let on = true, pause = false, onPlayCb = null, animOn = false;
 let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
@@ -212,11 +292,37 @@ function buildMenu(inGame) {
     h += `<p style="margin-top:14px"><button class="sp-refresh" id="sp-refresh">⟳ ${tr('Aggiorna il gioco', 'Update the game')}</button></p>`;
     h += `<p class="sp-refresh-note">${tr('scarica di nuovo l\'ultima versione · il salvataggio resta', 'downloads the latest version again · your save is kept')}</p>`;
     h += `</div>` + backBar();
+  } else if (view === 'account') {
+    /* LA PARTITA SU PIÙ DISPOSITIVI. Il testo dice cosa succede DAVVERO: chi entra si aspetta
+       di ritrovare la partita, e va detto prima che il salvataggio viaggia su un server. */
+    h += closeX();
+    h += `<div class="sp-title2">☁️ ${tr('La tua partita', 'Your game')}</div>`;
+    h += `<div class="sp-acc">`;
+    if (acc.user) {
+      h += `<p class="sp-acc-who">${acc.user.email || acc.user.name || ''}</p>`;
+      h += `<p class="sp-acc-st">${accountStatus()}</p>`;
+      if (acc.conflict) {
+        /* DUE PARTITE DIVERSE: non si sceglie per lui. Si mostrano le due con quello che
+           riconosce (giorno, monete, reperti) e decide. */
+        h += `<p class="sp-acc-warn">${tr('Su questo dispositivo e sul server ci sono due partite diverse. Quale tieni?', 'This device and the server have two different games. Which one do you keep?')}</p>`;
+        h += `<button class="sp-btn" id="sp-keeplocal">${tr('questa', 'this one')} · ${acc.localSum}</button>`;
+        h += `<button class="sp-btn" id="sp-keepremote">${tr('quella salvata', 'the saved one')} · ${acc.remoteSum}</button>`;
+      } else {
+        h += `<button class="sp-btn" id="sp-signout">${tr('Esci dall\'account', 'Sign out')}</button>`;
+        h += `<button class="sp-btn danger" id="sp-delacc">${tr('Cancella account e partite', 'Delete account and games')}</button>`;
+      }
+    } else {
+      h += `<p class="sp-acc-st">${tr('Entra e ritrovi la stessa partita sul telefono e sul computer. Il salvataggio viene copiato su digsy.dev-box.it.', 'Sign in and find the same game on your phone and computer. Your save is copied to digsy.dev-box.it.')}</p>`;
+      h += `<div id="sp-gbtn"></div>`;
+      h += `<p class="sp-acc-note" id="sp-accmsg">${acc.msg || ''}</p>`;
+    }
+    h += `</div>` + backBar();
   } else {
     h += `<button class="sp-btn primary" id="sp-continue">${inGame ? '▶ ' + tr('Riprendi', 'Resume') : hasSave ? '▶ ' + tr('Continua', 'Continue') : '🌱 ' + tr('Nuova partita', 'New game')}</button>`;
     h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Partite', 'Games')}</button>`;
     h += `<button class="sp-btn" id="sp-audio">🎵 Audio</button>`;
     h += `<button class="sp-btn" id="sp-lang">🌍 ${tr('Lingua', 'Language')}</button>`;
+    h += `<button class="sp-btn" id="sp-account">☁️ ${tr('La tua partita', 'Your game')}</button>`;
     h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
     /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */
     h += `<div class="sp-iconrow">`;
@@ -244,6 +350,8 @@ function buildMenu(inGame) {
   const bA = document.getElementById('sp-audio'); if (bA) bA.onclick = () => go('audio');
   const bL = document.getElementById('sp-lang'); if (bL) bL.onclick = () => go('lang');
   const bSet = document.getElementById('sp-settings'); if (bSet) bSet.onclick = () => go('settings');
+  const bAcc = document.getElementById('sp-account'); if (bAcc) bAcc.onclick = () => { go('account'); openAccount(); };
+  wireAccountButtons(() => buildMenu(inGameMode));
   const bTips = document.getElementById('sp-tips');
   if (bTips) bTips.onclick = () => { setPref('tips', !pref('tips')); buildMenu(inGameMode); };
   const bMark = document.getElementById('sp-marker');

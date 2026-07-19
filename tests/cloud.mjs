@@ -171,6 +171,55 @@ export async function runCloudTests(check) {
     check('cloud: il dispositivo ha un nome riconoscibile', typeof cl.deviceName() === 'string' && cl.deviceName().length > 2);
   }
 
+  /* ---------- IL PRIMO ACCESSO: nessuno deve perdere la partita che ha già ---------- */
+  {
+    const acc = await import('../src/account.js');
+
+    /* peso: distingue una partita vera da una appena nata */
+    const nuova = { day: 1, coins: 0, items: [], raw: [], codex: [], creatures: [] };
+    const vera = { day: 12, coins: 400, items: [1, 2, 3], raw: [4], codex: [1, 2], creatures: [{}] };
+    check('account: una partita appena nata pesa poco', acc.saveWeight(nuova) < acc.KEEP_THRESHOLD);
+    check('account: una partita giocata pesa', acc.saveWeight(vera) > acc.KEEP_THRESHOLD);
+    check('account: il nulla pesa zero', acc.saveWeight(null) === 0);
+
+    const srvSave = { version: 3, data: '{"day":9}', summary: 'g9' };
+    /* il caso che conta: ho giocato QUI e c'è anche una partita sul server */
+    check('account: due partite vere → decide il giocatore',
+      acc.decideAfterLogin(vera, srvSave) === 'ask');
+    /* entro da un dispositivo nuovo: si scarica, senza disturbare nessuno */
+    check('account: dispositivo nuovo → scarica dal server',
+      acc.decideAfterLogin(nuova, srvSave) === 'pull');
+    /* primo accesso in assoluto: si carica la mia partita */
+    check('account: server vuoto e partita locale → la carica',
+      acc.decideAfterLogin(vera, null) === 'push');
+    /* niente da nessuna parte */
+    check('account: niente da nessuna parte → non si fa nulla',
+      acc.decideAfterLogin(nuova, null) === 'none');
+    /* mai buttare via in silenzio: con una partita locale vera non si scarica MAI da soli */
+    check('account: con una partita locale vera non si sovrascrive mai in automatico',
+      acc.decideAfterLogin(vera, srvSave) !== 'pull');
+
+    /* NESSUNO PERDE LA PARTITA CHE HA GIÀ: prima di sovrascrivere il salvataggio locale con
+       quello del server se ne tiene una copia, e la copia non si rovina mai. */
+    try { localStorage.removeItem(acc.BACKUP_KEY); } catch (e) { /* ok */ }
+    localStorage.setItem('ossa_world_pixel_v1', '{"day":42,"coins":999}');
+    const applied = acc.applyRemote({ version: 2, data: '{"day":3}' }, false);
+    check('account: la partita del server viene applicata', applied === true
+      && localStorage.getItem('ossa_world_pixel_v1').includes('"day":3'));
+    check('account: la partita che c\'era prima è al sicuro',
+      acc.hasBackup() && localStorage.getItem(acc.BACKUP_KEY).includes('"day":42'));
+    /* una seconda sovrascrittura non deve mangiarsi la copia buona */
+    acc.applyRemote({ version: 3, data: '{"day":4}' }, false);
+    check('account: la copia di riserva resta la PRIMA, non l\'ultima',
+      localStorage.getItem(acc.BACKUP_KEY).includes('"day":42'));
+    check('account: la partita di prima si può rimettere', acc.restoreBackup(false) === true
+      && localStorage.getItem('ossa_world_pixel_v1').includes('"day":42'));
+    try { localStorage.removeItem(acc.BACKUP_KEY); localStorage.removeItem('ossa_world_pixel_v1'); } catch (e) { /* ok */ }
+
+    check('account: il riassunto è leggibile', /g12/.test(acc.saveSummary(vera)));
+    check('account: lo stato ha un\'etichetta', typeof acc.statusLabel() === 'string' && acc.statusLabel().length > 3);
+  }
+
   reset();
   cl.setFetch((...a) => (typeof fetch === 'function' ? fetch(...a) : Promise.reject(new Error('no fetch'))));
 }
