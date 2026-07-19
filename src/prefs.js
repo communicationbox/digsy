@@ -1,3 +1,4 @@
+import { isTouch } from './i18n.js';
 /* IMPOSTAZIONI — preferenze del GIOCATORE, non della partita.
    Stanno fuori dal salvataggio (come l'audio): valgono per questo dispositivo e restano
    anche iniziando una partita nuova. È il punto: chi è alla seconda o terza partita non
@@ -57,8 +58,7 @@ export function tapToMoveOn() {
 /* tenere premuto e farsi seguire dal puntatore: solo col mouse */
 export function followMouseOn() { return !isTouchDevice() && prefs.mouse === 'follow'; }
 export function leftHanded() { return prefs.hand === 'left'; }
-/* qui non si importa i18n per non creare un anello di dipendenze: la domanda è la stessa */
-function isTouchDevice() {
-  return (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches)
-    || (typeof innerWidth === 'number' && innerWidth <= 760);
-}
+/* La domanda "è un dispositivo touch?" ha UNA risposta sola, in i18n.js. Qui c'era una copia,
+   giustificata dal timore di un anello di import: i18n.js non importa prefs.js, quindi
+   l'anello non c'è — e la copia era il modo sicuro per farle divergere. */
+function isTouchDevice() { return isTouch(); }

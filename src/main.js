@@ -1,5 +1,6 @@
 /* Boot + game loop */
 import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos } from './state.js';
+import { FOOT_DY } from './body.js';
 import { fit } from './screen.js';
 import { findStart, openArea } from './world.js';
 import { TS } from './data.js';
@@ -95,7 +96,7 @@ function loop(ts) {
     if (sanitizePos()) clearGoal();  // posizione impazzita: riparata prima che rompa tutto
     trackPlayer();                  // la mappa si scopre camminando
     /* suggerimenti al PRIMO incontro: acqua davanti, imbocco di grotta, notte */
-    { const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+    { const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
       if (!S.tips || !S.tips.dig) showTip('dig');
       else if (waterTile(ptx, pty + 1) || waterTile(ptx, pty - 1)) showTip('water');
       else if (caveEntranceAt(ptx, pty - 1)) showTip('cave');

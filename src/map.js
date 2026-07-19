@@ -2,6 +2,7 @@
    Il mondo è infinito: si tiene traccia dei BLOCCHI 8×8 tile già visti (`S.explored`), e la
    mappa disegna solo quelli. Le meraviglie rivelano interi cerchi di mappa (Menhir, Guglia). */
 import { S, P, save } from './state.js';
+import { FOOT_DY } from './body.js';
 import { TS } from './data.js';
 
 export const CH = 8;                       // lato del blocco di esplorazione, in tile
@@ -37,7 +38,7 @@ export function exploredCount() { return Object.keys(S.explored || {}).length; }
 export function exploredTiles() { return exploredCount() * CH * CH; }
 /* il player, chiamato dal game loop */
 export function trackPlayer() {
-  return markExplored(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS), 1);
+  return markExplored(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), 1);
 }
 
 /* la compressione della mappa vive in packmap.js (nessuna dipendenza: la usa anche state.js) */

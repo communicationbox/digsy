@@ -3,6 +3,7 @@
    Estratta da ui.js perché è una schermata a sé, con uno stato proprio (zoom, centro,
    trascinamento) che non c'entra con il resto dell'interfaccia. */
 import { S, P, save } from './state.js';
+import { FOOT_DY } from './body.js';
 import { TS } from './data.js';
 import { CH, isExplored, exploredTiles, revealArea } from './map.js';
 import { townForCell, TCELL, landmarkForCell, LCELL, townInfo, townForTile, baseTerrain, hasMuseum } from './world.js';
@@ -38,7 +39,7 @@ function drawMapCanvas() {
   const S2 = mapZoom, VWt = Math.round(560 / S2), VHt = Math.round(360 / S2);   // tile inquadrate
   cv.width = VWt * S2; cv.height = VHt * S2;
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
-  const px0 = Math.floor(P.x / TS) + Math.round(mapOff.x), py0 = Math.floor((P.y + 13) / TS) + Math.round(mapOff.y);
+  const px0 = Math.floor(P.x / TS) + Math.round(mapOff.x), py0 = Math.floor((P.y + FOOT_DY) / TS) + Math.round(mapOff.y);
   const x0 = px0 - (VWt >> 1), y0 = py0 - (VHt >> 1);
   c.fillStyle = '#c9b184'; c.fillRect(0, 0, cv.width, cv.height);               // carta non esplorata
   for (let y = 0; y < VHt; y++) for (let x = 0; x < VWt; x++) {
@@ -97,7 +98,7 @@ function drawMapCanvas() {
         { kind: 'town', name: tw.name, size: tw.size, museum, tx: tw.C.x, ty: tw.C.y });
       if (museum) museumPin(tw.C.x, tw.C.y);
     } }
-  mark(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS), '#ffffff', true, { kind: 'me' }); // dove sei
+  mark(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), '#ffffff', true, { kind: 'me' }); // dove sei
   const sub = document.getElementById('mp-sub');
   if (sub) sub.textContent = 'zoom ×' + mapZoom + ' · ' + tr('esplorato ', 'explored ') + exploredTiles().toLocaleString() +
     ' · ' + tr('meraviglie ', 'wonders ') + (S.wonders || []).length + '/' + Object.keys(WONDERS).length;

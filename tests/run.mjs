@@ -311,6 +311,47 @@ sprites.applyLook();
   }
 }
 
+/* ---------- una cosa sola, in un posto solo ---------- */
+{
+  /* Quattro difetti in un giorno avevano la stessa forma: la stessa conoscenza scritta in
+     due posti, che a un certo punto smette di combaciare — e se ne accorge il giocatore,
+     non il test. Qui si sorvegliano i casi già corretti. */
+  const { readFileSync, readdirSync } = await import('node:fs');
+  const dir = new URL('../src/', import.meta.url);
+  const files = readdirSync(dir).filter(f => f.endsWith('.js'));
+  const read = (f) => readFileSync(new URL(f, dir), 'utf8');
+  const body = await import('../src/body.js');
+
+  /* 1. l'altezza dei piedi: un numero solo */
+  const hard13 = files.filter(f => f !== 'body.js' && /\.y \+ 13\b|\(y \+ 13\)/.test(read(f)));
+  check('l\'offset dei piedi non è più scritto a mano' + (hard13.length ? ' → ' + hard13.join(', ') : ''),
+    hard13.length === 0);
+  check('FOOT_DY vale quello che valeva', body.FOOT_DY === 13);
+
+  /* 2. la scatola di collisione: mondo e grotta la prendono da body.js */
+  for (const f of ['gameplay.js', 'cave.js']) {
+    check(`${f} usa la scatola di body.js`, /bodyHits\(/.test(read(f)));
+  }
+  check('la scatola è quella bassa (piedi, non petto)',
+    body.bodyHits(0, 0, (x, y) => y >= 10) === true && body.bodyHits(0, 0, (x, y) => y < 6) === false);
+
+  /* 3. "è touch?" una domanda sola */
+  const dupTouch = files.filter(f => f !== 'i18n.js' && /matchMedia\('\(pointer:coarse\)'\)/.test(read(f)));
+  check('nessuno reimplementa isTouch()' + (dupTouch.length ? ' → ' + dupTouch.join(', ') : ''),
+    dupTouch.length === 0);
+
+  /* 4. i colori del terreno: quelli veri, non una copia */
+  const tiles = await import('../src/tiles.js');
+  const uiSrc2 = read('ui.js');
+  check('il Libro non tiene una sua tabella di colori del terreno', !/WO_GROUND\s*=/.test(uiSrc2));
+  const gp = tiles.groundPalette('dune');
+  check('groundPalette dà i colori VERI del mondo (' + gp[0] + ')',
+    Array.isArray(gp) && gp.length === 3 && gp[0] === tiles.ZONE_TILES[1].g[0]);
+  check('per i Prati Dorati segue le stagioni',
+    tiles.groundPalette('prati', 0)[0] !== tiles.groundPalette('prati', 2)[0]);
+  check('una zona sconosciuta non rompe niente', tiles.groundPalette('boh').length === 3);
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');

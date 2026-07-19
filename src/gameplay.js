@@ -2,6 +2,7 @@
 import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, CHIMERA_COST, GOODS, goodById, availableNow, hasWindow } from './data.js';
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
+import { bodyHits, feetTile, FOOT_DY } from './body.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE } from './world.js';
 import { compass } from './compass.js';
@@ -171,7 +172,7 @@ export function stepDig(dt) {
 /* si scava sempre SOTTO I PIEDI: mai il cubetto sbagliato.
    P.x/P.y è l'ancora ALTA dello sprite: i piedi stanno a +13 (vedi collide) */
 export function digTarget() {
-  return { tx: Math.floor(P.x / TS), ty: Math.floor((P.y + 13) / TS) };
+  return { tx: Math.floor(P.x / TS), ty: Math.floor((P.y + FOOT_DY) / TS) };
 }
 export function tryDig() {
   const { tx, ty } = digTarget();
@@ -296,7 +297,7 @@ export function useTeleport() {
 export function facingTile() {
   const fx = P.dir === 'left' ? -1 : P.dir === 'right' ? 1 : 0;
   const fy = P.dir === 'up' ? -1 : P.dir === 'down' ? 1 : 0;
-  return { tx: Math.floor(P.x / TS) + fx, ty: Math.floor((P.y + 13) / TS) + fy };
+  return { tx: Math.floor(P.x / TS) + fx, ty: Math.floor((P.y + FOOT_DY) / TS) + fy };
 }
 function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
   const { tx, ty } = facingTile();
@@ -345,13 +346,13 @@ export function waterTile(tx, ty) {
   return (t === DEEP || t === WATER) && !townInfo(tx, ty);
 }
 export function onBoat() {
-  return hasBoat() && waterTile(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS));
+  return hasBoat() && waterTile(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
 }
 export function tryFish() {
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.9, () => {
     if (!isDebug()) spendEnergy(1);
-    const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + 13) / TS);
+    const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
     const raw = Math.random() < 0.4 ? makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, 'acqua') : null;
     if (raw) {
       if (addFossil(raw, tx, ty)) toast('🎣 ' + tr('Un fossile acquatico! (da identificare)', 'An aquatic fossil! (needs identifying)'));
@@ -396,7 +397,7 @@ export function nearbyBoard() {
 }
 /* dentro (o al bordo del) parco recintato: da qui si sceglie il compagno */
 export function nearbyPark() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   const tw = townForTile(ptx, pty);
   if (tw && tw.pen) { const p = tw.pen; if (ptx >= p.x0 - 1 && ptx <= p.x1 + 1 && pty >= p.y0 - 1 && pty <= p.y1 + 1) return tw; }
   return null;
@@ -451,7 +452,7 @@ export function dirTo(tx, ty) {
 /* punto scavabile a distanza giusta: angolo casuale + spirale corta di aggiustamento */
 function mapSpot(rar) {
   const [d0, d1] = MAP_DIST[rar];
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   for (let tries = 0; tries < 40; tries++) {
     const a = Math.random() * Math.PI * 2, d = d0 + Math.random() * (d1 - d0);
     const cx = Math.round(ptx + Math.cos(a) * d), cy = Math.round(pty + Math.sin(a) * d);
@@ -519,7 +520,7 @@ export function digSite() {
 }
 /* oggetto di superficie a portata (tile sotto i piedi o adiacente) */
 export function nearbyPickup() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   for (const [dx, dy] of [[0, 0], [0, 1], [0, -1], [1, 0], [-1, 0]]) {
     const tx = ptx + dx, ty = pty + dy;
     if (pickupAt(tx, ty)) return { tx, ty };
@@ -528,14 +529,14 @@ export function nearbyPickup() {
 }
 /* fossile/oggetto lasciato a TERRA (drop) a portata */
 export function nearbyDrop() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   return (S.drops || []).find(d => Math.max(Math.abs(d.tx - ptx), Math.abs(d.ty - pty)) <= 1) || null;
 }
 /* c'è qualcosa da raccogliere con E qui vicino? (drop o oggetto di superficie) */
 export function nearbyGround() { return nearbyDrop() || nearbyHarvest() || nearbyPickup(); }
 /* decorazione raccoglibile sotto i piedi o a un passo */
 export function nearbyHarvest() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   for (const [dx, dy] of [[0, 0], [0, 1], [0, -1], [1, 0], [-1, 0]]) {
     const id = harvestDecoAt(ptx + dx, pty + dy);
     if (id) return { tx: ptx + dx, ty: pty + dy, id };
@@ -594,7 +595,7 @@ export function discardToGround(uid, kind) {
   const arr = kind === 'item' ? S.items : kind === 'good' ? S.goods : S.raw;
   const i = (arr || []).findIndex(x => x.uid === uid); if (i < 0) return false;
   const payload = arr.splice(i, 1)[0];
-  dropAt(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS), kind, payload);
+  dropAt(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), kind, payload);
   toast('🎒 ' + tr('Lasciato a terra', 'Left on the ground')); save(); updateHUD(); return true;
 }
 /* vendita oggetti (non fossili) al Negozio */
@@ -602,7 +603,7 @@ export function sellGood(uid) { const i = (S.goods || []).findIndex(x => x.uid =
 export function sellAllGoods() { let g = 0; (S.goods || []).forEach(x => g += x.val); S.coins += g; const n = (S.goods || []).length; S.goods = []; if (n) playSfx('coin'); save(); updateHUD(); return { g, n }; }
 /* ---------- RELITTI in mare: si frugano dalla barca (E), reperti garantiti mai comuni ---------- */
 export function nearbyWreck() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   const cx = Math.floor(ptx / WCELL), cy = Math.floor(pty / WCELL);
   for (let yy = cy - 1; yy <= cy + 1; yy++) for (let xx = cx - 1; xx <= cx + 1; xx++) {
     const w = wreckForCell(xx, yy);
@@ -662,7 +663,7 @@ export function act() {
 export function nearbyWonder() {
   /* si interagisce da VICINO: 2 tile attorno alla base, non l'intero ingombro della struttura
      (una meraviglia da 9 tile dava un'area di interazione larga mezzo schermo) */
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   const lm = landmarkNear(ptx, pty, 2);
   if (!lm) return null;
   return (Math.abs(ptx - lm.x) <= 2 && pty >= lm.y - 1 && pty <= lm.y + 2) ? lm : null;
@@ -972,4 +973,4 @@ function passable(px2, py2) {
    prova il punto dove finirebbero i piedi E i due fianchi, perché il personaggio è largo
    (col solo centro il percorso prometteva passaggi in cui poi ci si incastrava). */
 export function tileBlocked(tx, ty) { return !fits(tx, ty, TS, collide); }
-export function collide(x, y) { if (P.fly) return false; return !passable(x - 5, y + 10) || !passable(x + 5, y + 10) || !passable(x - 5, y + 15) || !passable(x + 5, y + 15); }
+export function collide(x, y) { if (P.fly) return false; return bodyHits(x, y, (px, py) => !passable(px, py)); }

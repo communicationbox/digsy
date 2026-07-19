@@ -1,5 +1,6 @@
 /* Rendering: tile, decorazioni, edifici, parco, eroe, indicatore bussola */
 import { TS, spColor, spById } from './data.js';
+import { FOOT_DY } from './body.js';
 import { partParams, composedPartsVox, buildFleshVoxels, clampSpec, BP } from './bones.js';
 import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
@@ -581,7 +582,7 @@ function drawCaveScene(time) {
   ctx.save(); ctx.translate(-camx, -camy);
   const t0x = Math.max(0, Math.floor(camx / TS) - 1), t1x = Math.min(CAVE.w, Math.ceil((camx + W) / TS) + 1);
   const t0y = Math.max(0, Math.floor(camy / TS) - 1), t1y = Math.min(CAVE.h, Math.ceil((camy + H) / TS) + 1);
-  const pcx = Math.floor(CAVE.x / TS), pcy = Math.floor((CAVE.y + 13) / TS);
+  const pcx = Math.floor(CAVE.x / TS), pcy = Math.floor((CAVE.y + FOOT_DY) / TS);
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
     if (caveSolid(tx, ty)) { // PARETE = roccia FREDDA e scura, con CIMA illuminata e base in ombra
@@ -765,7 +766,7 @@ export function render(time) {
   }
   /* la meta si disegna PRIMA di tutto il resto (sta a terra, sotto ai piedi di chiunque) */
   if (goalMark.on && markerOn()) {
-    const gx = snap(goalMark.x - cam.x), gy = snap(goalMark.y - cam.y + 13);
+    const gx = snap(goalMark.x - cam.x), gy = snap(goalMark.y - cam.y + FOOT_DY);
     ents.push({ y: -9e9, f: () => drawGoalMark(gx, gy, time) });
   }
   ents.push({ y: P.y - cam.y + 16, f: drawPlayer });
@@ -774,13 +775,13 @@ export function render(time) {
   if (compObj) {
     const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ab = companionAbility();
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
-    const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + 13) / TS));
+    const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
     ents.push({ y: COMP.y - cam.y + 15, f: () => { drawCreature(compObj, cxs - 8, cys - 13, cswim); drawCompanionGlyph(ab, cxs, cys - 16, time); } });
   }
   ents.sort((a, b) => a.y - b.y).forEach(e => e.f());
   /* FIUTO: il compagno segnala il reperto a terra più vicino entro pochi tile */
   if (compObj && companionAbility() === 'sniff') {
-    const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+    const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
     /* la scansione 15×15 costava 225 pickupAt PER FRAME (e ognuna tocca terreno, città,
        decorazioni e zona): si rifà 4 volte al secondo, o quando cambi casella. */
     if (time - sniffAt > 250 || sniffKey !== ptx + ',' + pty) {

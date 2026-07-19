@@ -11,6 +11,7 @@
 
    Modulo PURO nella parte che conta (la decisione di direzione), così è testabile. */
 import { P } from './state.js';
+import { FOOT_DY } from './body.js';
 import { TS } from './data.js';
 
 export const goal = { on: false, x: 0, y: 0, t: 0, stuck: 0, path: [], step: 0 };
@@ -44,12 +45,12 @@ export function pathLeft() { return Math.max(0, goal.path.length - goal.step); }
    criterio è l'INTENZIONE: si entra se la porta è proprio dove si è toccato. */
 export function goalIsTile(tx, ty) {
   if (!goal.on) return false;
-  const gx = Math.floor(goal.x / TS), gy = Math.floor((goal.y + 13) / TS);
+  const gx = Math.floor(goal.x / TS), gy = Math.floor((goal.y + FOOT_DY) / TS);
   return Math.abs(gx - tx) <= 1 && Math.abs(gy - ty) <= 1;
 }
 /* la casella su cui il giocatore ha messo il dito (piedi compresi) */
 export function goalTile() {
-  return { tx: Math.floor(goal.x / TS), ty: Math.floor((goal.y + 13) / TS) };
+  return { tx: Math.floor(goal.x / TS), ty: Math.floor((goal.y + FOOT_DY) / TS) };
 }
 
 /* direzione da tenere per avvicinarsi alla meta (vettore normalizzato), o null se si è

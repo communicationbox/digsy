@@ -37,6 +37,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM } from './commission.js';
 import { icon, withIcons } from './icons.js';
+import { groundPalette } from './tiles.js';
 import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel } from './i18n.js';
 
 /* ---------- toast / HUD / prompt ---------- */
@@ -44,7 +45,11 @@ export function toast(m) {
   const box = document.getElementById('toasts');
   const t = document.createElement('div'); t.className = 'toast'; t.innerHTML = withIcons(m);
   /* mai pile illeggibili: mobile 1 solo toast, desktop max 2. I nuovi sfrattano i vecchi. */
-  const maxT = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) ? 1 : 2;
+  /* su schermo piccolo un solo toast per volta: due coprirebbero mezzo gioco.
+     Passa da isTouch() come tutto il resto — questa riga guardava solo il dito e ignorava
+     la larghezza, quindi su una finestra stretta i toast si comportavano diversamente da
+     HUD, testi e CSS, che il breakpoint lo rispettano. */
+  const maxT = isTouch() ? 1 : 2;
   while (box.children && box.children.length >= maxT && box.firstChild) box.firstChild.remove();
   box.appendChild(t); setTimeout(() => t.remove(), 2600);
 }
@@ -189,7 +194,7 @@ export function showBanner(html, ms = 2600) {
 }
 export function welcomeToasts() {
   const nm = S.name || 'Digsy';
-  const mob = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) || (typeof innerWidth === 'number' && innerWidth <= 760);
+  const mob = isTouch();
   setTimeout(() => toast(tr('Benvenuto, ' + nm + '! Il primo tesoro del nonno è nel tuo zaino ⛏️', 'Welcome, ' + nm + "! Grandpa's first treasure is in your bag ⛏️")), 400);
   setTimeout(() => toast(mob
     ? tr('Joystick per muoverti · A per interagire · 📖 e 🎒 in alto', 'Joystick to move · A to interact · 📖 and 🎒 up top')
@@ -377,11 +382,9 @@ export function openWonderBook(sel) {
    quanto basta a riempire il riquadro. Animata come nel mondo.
    La sagoma del giocatore accanto "per dare la scala" è stata tolta: rubava spazio proprio al
    soggetto della scheda, e la scala si legge già dal mondo vero. */
-const WO_GROUND = {
-  prati: ['#7fc46a', '#6fb45c', '#8fd06a'], dune: ['#e0cd9a', '#d4bf88', '#eddcae'],
-  boschi: ['#5e7a58', '#546e4e', '#6a8a62'], terre: ['#b4744a', '#a3663f', '#c48456'],
-  palude: ['#5f7a52', '#546e48', '#6b8a5c'], ghiacci: ['#dfeef2', '#cfe2e8', '#eef8fb'],
-};
+/* i colori del terreno arrivano da tiles.js, gli stessi che il gioco usa davvero: la
+   tabella copiata qui aveva smesso di combaciare e le meraviglie si vedevano su un'erba
+   che nel mondo non esiste */
 /* Dove si disegna la meraviglia sulla tela di servizio, e quanto è grande quella tela.
    Larga: l'Albero-Mondo è alto 182 px e le sue fronde sbordano ai lati. */
 const WO_PROBE_X = 130, WO_PROBE_Y = 250, WO_PROBE_W = 260, WO_PROBE_H = 270;
@@ -441,7 +444,7 @@ function drawWonderCard(cv, type) {
       const r = Math.min(255, ((n >> 16) & 255) * k) | 0, g2 = Math.min(255, ((n >> 8) & 255) * k) | 0, b = Math.min(255, (n & 255) * k) | 0;
       return '#' + (r << 16 | g2 << 8 | b).toString(16).padStart(6, '0'); },
   };
-  const pal = WO_GROUND[WONDERS[type].zone] || WO_GROUND.prati;
+  const pal = groundPalette(WONDERS[type].zone, seasonOf(S.day || 1));
   /* INGOMBRO REALE della meraviglia. Le taglie vanno da una trentina di pixel all'Albero-Mondo
      (182): con una scala fissa o le piccole restano francobolli o le grandi escono dal
      riquadro. Si disegna una volta su una tela di servizio, si misura il rettangolo dei pixel
@@ -1211,7 +1214,7 @@ document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
 /* HUD mobile: una sola icona espande/collassa; da collassato restano solo toggle + menu */
 { const ht = document.getElementById('hudtoggle'), hud = document.getElementById('hud');
   if (ht && hud) {
-    const isMobile = (typeof matchMedia === 'function' && matchMedia('(pointer:coarse)').matches) || (typeof innerWidth === 'number' && innerWidth <= 760);
+    const isMobile = isTouch();
     if (isMobile) hud.classList.add('collapsed');
     ht.onclick = () => hud.classList.toggle('collapsed');
   } }

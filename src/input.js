@@ -1,5 +1,6 @@
 /* Input: tastiera (WASD/frecce, E/spazio, I, Esc) + touch (joystick, tasto A) + console (\) */
 import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare } from './ui.js';
+import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach } from './tapmove.js';
 import { findPath, fits } from './path.js';
 import { tileBlocked } from './gameplay.js';
@@ -211,7 +212,7 @@ if (cv && cv.addEventListener) {
        un punto dello schermo, non l'ancora dello sprite. Applicando +13 anche qui il bersaglio
        finiva una casella più in basso, e per entrare bisognava toccare l'INSEGNA invece della
        porta. */
-    const stx = Math.floor(sc.pos.x / TS), sty = Math.floor((sc.pos.y + 13) / TS);
+    const stx = Math.floor(sc.pos.x / TS), sty = Math.floor((sc.pos.y + FOOT_DY) / TS);
     const gtx = Math.floor(w.x / TS), gty = Math.floor(w.y / TS);
     const path = findPath(stx, sty, gtx, gty, sc.blocked, sc.maxLen);
     if (path) setGoal(w.x, w.y - 13, path);          // i PIEDI vanno sulla casella toccata
@@ -265,7 +266,7 @@ export function steerFollow() {
   const r = cv2.getBoundingClientRect();
   const sc = currentScene();
   const w = screenToWorld(followX, followY, r, view, sc.cam);
-  const dx = w.x - sc.pos.x, dy = w.y - (sc.pos.y + 13);
+  const dx = w.x - sc.pos.x, dy = w.y - (sc.pos.y + FOOT_DY);
   joyKeys(dx, dy, 6);                        // zona morta piccola: col mouse si è precisi
   return true;
 }

@@ -2,6 +2,7 @@
    sulla porta): salvataggi, bussola e titoli non cambiano. Si entra CAMMINANDO sulla porta,
    si esce ripassando dalla porta in basso (o ESC). */
 import { TS } from './data.js';
+import { BODY_HW, FOOT_DY } from './body.js';
 import { P } from './state.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
 import { townInfo, townForTile, isSolidTile, openArea } from './world.js';
@@ -331,13 +332,21 @@ export function goalIsExit() {
 /* si è vicini all'uscita? (per il suggerimento a schermo) */
 export function nearExit() {
   if (!INT.active) return false;
-  const tx = Math.floor(INT.x / TS), ty = Math.floor((INT.y + 13) / TS);
+  const tx = Math.floor(INT.x / TS), ty = Math.floor((INT.y + FOOT_DY) / TS);
   return ty >= INT.h - 5 && Math.abs(tx - (INT.w >> 1)) <= 2;
 }
 /* hitbox dei piedi (4 punti): lo sprite non compenetra i mobili */
 export function intCollide(x, y) {
   if (P.fly) return false;
-  return interiorSolid(x - 5, y) || interiorSolid(x + 5, y) || interiorSolid(x - 5, y + 5) || interiorSolid(x + 5, y + 5);
+  /* ATTENZIONE — QUESTA SCATOLA È DIVERSA DA QUELLA DEL MONDO (body.js: y+10..15).
+     Qui si prova y+0..5, cioè più in alto sul corpo. NON è una svista da correggere al volo:
+     le stanze sono 10×7 e le soglie di `nearNpc` e `nearExit` sono tarate sul punto in cui
+     il personaggio SI FERMA contro i mobili — cambiando la scatola si sposta quel punto e
+     saltano il bancone, l'uscita e la cutscene del Curatore (provato: 5 test rossi).
+     Allinearla a body.js si può, ma vuol dire ritarare le stanze e guardarle una per una;
+     va fatto come lavoro a sé, non come effetto collaterale. */
+  return interiorSolid(x - BODY_HW, y) || interiorSolid(x + BODY_HW, y)
+    || interiorSolid(x - BODY_HW, y + 5) || interiorSolid(x + BODY_HW, y + 5);
 }
 export function updateInterior(dt, keys, speed) {
   if (INT.say) { INT.say.t -= dt; if (INT.say.t <= 0) INT.say = null; } // scade il fumetto
@@ -375,7 +384,7 @@ export function checkDoorEnter() {
   if (INT.active) return;
   /* si entra coi PIEDI sulla porta (P.y è l'ancora alta: i piedi stanno +13),
      non un blocco prima */
-  const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + 13) / TS);
+  const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
   const ti = townInfo(tx, ty);
   if (ti && ti.door) {
     if (INT.justLeft) return;                        // appena usciti: serve allontanarsi

@@ -4,6 +4,7 @@
 import { TS, CAVE_POOL, RAR, PARTS, ptById } from './data.js';
 import { view, hudPad } from './screen.js';
 import { P, S, save, spendEnergy } from './state.js';
+import { bodyHits, FOOT_DY } from './body.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
 import { fbm, vhash } from './noise.js';
 import { isDebug } from './debug.js';
@@ -67,15 +68,15 @@ export function exitCave() {
 }
 /* hitbox piedi (4 punti) */
 function cSolidPx(px, py) { return caveSolid(Math.floor(px / TS), Math.floor(py / TS)); }
-function cCollide(x, y) { if (P.fly) return false; return cSolidPx(x - 5, y + 10) || cSolidPx(x + 5, y + 10) || cSolidPx(x - 5, y + 15) || cSolidPx(x + 5, y + 15); }
+function cCollide(x, y) { if (P.fly) return false; return bodyHits(x, y, cSolidPx); }
 /* vicini al corridoio d'uscita (per il bottone Esci) */
 export function nearCaveExit() {
   if (!CAVE.active) return false;
-  const cx = Math.floor(CAVE.x / TS), cy = Math.floor((CAVE.y + 13) / TS);
+  const cx = Math.floor(CAVE.x / TS), cy = Math.floor((CAVE.y + FOOT_DY) / TS);
   return cy >= CAVE.h - 5 && Math.abs(cx - (CAVE.w >> 1)) <= 2;
 }
 export function onCaveExit() {
-  const cx = Math.floor(CAVE.x / TS), cy = Math.floor((CAVE.y + 13) / TS);
+  const cx = Math.floor(CAVE.x / TS), cy = Math.floor((CAVE.y + FOOT_DY) / TS);
   return cy >= CAVE.h - 2 && Math.abs(cx - (CAVE.w >> 1)) <= 1;
 }
 
@@ -93,7 +94,7 @@ function makeCaveRaw(dist) {
 }
 /* giacimento raggiungibile: la casella sotto i piedi o una delle 8 adiacenti (più tollerante) */
 export function caveNodeReach() {
-  const cx = Math.floor(CAVE.x / TS), cy = Math.floor((CAVE.y + 13) / TS);
+  const cx = Math.floor(CAVE.x / TS), cy = Math.floor((CAVE.y + FOOT_DY) / TS);
   for (const [dx, dy] of [[0, 0], [0, -1], [0, 1], [-1, 0], [1, 0], [-1, -1], [1, -1], [-1, 1], [1, 1]]) {
     if (caveNodeAt(cx + dx, cy + dy) && !caveNodeDone(cx + dx, cy + dy)) return [cx + dx, cy + dy];
   }
@@ -145,7 +146,7 @@ export function updateCave(dt, keys, speed) {
     CAVE.anim += dt; CAVE.moving = true;
     /* ORME: lascia una traccia sul pavimento (aiuta a ritrovare la strada) */
     CAVE.lastFoot = (CAVE.lastFoot || 0) + Math.hypot(dx, dy) * speed * dt;
-    if (CAVE.lastFoot > 9) { CAVE.lastFoot = 0; CAVE.trail.push({ x: CAVE.x, y: CAVE.y + 13, s: CAVE.dir === 'left' || CAVE.dir === 'right' ? 1 : 0, t: 0 }); if (CAVE.trail.length > 60) CAVE.trail.shift(); }
+    if (CAVE.lastFoot > 9) { CAVE.lastFoot = 0; CAVE.trail.push({ x: CAVE.x, y: CAVE.y + FOOT_DY, s: CAVE.dir === 'left' || CAVE.dir === 'right' ? 1 : 0, t: 0 }); if (CAVE.trail.length > 60) CAVE.trail.shift(); }
   } else if (hasGoal()) {
     /* "tocca dove andare" anche sottoterra: stesse regole, muri della grotta */
     const gEx = goalTile();
@@ -157,7 +158,7 @@ export function updateCave(dt, keys, speed) {
     if (moved) {
       CAVE.anim += dt; CAVE.moving = true; CAVE.dir = P.dir;
       CAVE.lastFoot = (CAVE.lastFoot || 0) + speed * dt;
-      if (CAVE.lastFoot > 9) { CAVE.lastFoot = 0; CAVE.trail.push({ x: CAVE.x, y: CAVE.y + 13, s: CAVE.dir === 'left' || CAVE.dir === 'right' ? 1 : 0, t: 0 }); if (CAVE.trail.length > 60) CAVE.trail.shift(); }
+      if (CAVE.lastFoot > 9) { CAVE.lastFoot = 0; CAVE.trail.push({ x: CAVE.x, y: CAVE.y + FOOT_DY, s: CAVE.dir === 'left' || CAVE.dir === 'right' ? 1 : 0, t: 0 }); if (CAVE.trail.length > 60) CAVE.trail.shift(); }
     } else CAVE.moving = false;
     /* come per le porte: il corridoio d'uscita sta oltre l'ultima casella camminabile */
     if (toExit && !hasGoal() && Math.abs(CAVE.x - (CAVE.w >> 1) * TS) < 24) { clearGoal(); exitCave(); return; }
@@ -186,7 +187,7 @@ export function caveCam() {
 }
 export function checkCaveEnter(caveEntranceAt) {
   if (CAVE.active) return;
-  const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + 13) / TS);
+  const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
   const e = caveEntranceAt(tx, ty);
   if (e) {
     if (CAVE.justLeft) return;

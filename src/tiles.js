@@ -4,7 +4,7 @@
    nell'ultimo 30% della stagione, così il mondo non cambia colore di scatto. */
 import { vhash } from './noise.js';
 import { px, rect, shade8 } from './brush.js';
-import { TS } from './data.js';
+import { TS, ZONES } from './data.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD } from './world.js';
 import { SEASON_LEN } from './daynight.js';
 import { zoneIdxAt } from './regions.js';
@@ -36,6 +36,9 @@ const SEASON_TILES = [
   { g: ['#dfe5ea', '#e6ecf0', '#d7dee3'], gd: '#b9c4cc', gh: '#f2f6f8', f: ['#9fb3ab', '#a7bbb2'], fd: '#8aa096' },
 ];
 /* palette TERRENO per zona (0 prati usa le stagioni): erba[3]+dettagli, foresta[2]+dettaglio, dirt[2] */
+/* ZONE_TILES è indicizzata come ZONES di data.js: l'ordine contava e non lo diceva nessuno.
+   Qui si dichiara, così chi cerca per id non deve indovinare la posizione. */
+export const ZONE_IDS = ZONES.map(z => z.id);
 export const ZONE_TILES = [
   null, // prati → stagionale
   { g: ['#d8c48c', '#dcc994', '#d2bd82'], gd: '#b9a468', gh: '#e8dcae', f: ['#c2ae76', '#c8b47c'], fd: '#a89460', dirt: ['#d2b078', '#c2a068'] },
@@ -44,6 +47,20 @@ export const ZONE_TILES = [
   { g: ['#5f7a52', '#657f58', '#59744c'], gd: '#4a6340', gh: '#6f8a62', f: ['#465c3e', '#4c6244'], fd: '#39492f', dirt: ['#7a7050', '#6a6044'] },
   { g: ['#dfe5ea', '#e6ecf0', '#d7dee3'], gd: '#b9c4cc', gh: '#f2f6f8', f: ['#9fb3ab', '#a7bbb2'], fd: '#8aa096', dirt: ['#b8c2c8', '#a6b2ba'] },
 ];
+/* I TRE TONI D'ERBA DI UNA ZONA, per chi disegna anteprime fuori dal mondo (il Libro delle
+   Meraviglie, la pagina /wonders). Prima quelle schede si portavano dietro una tabella di
+   colori scritta a mano, che aveva smesso di combaciare con questa: nel Libro le dune erano
+   #e0cd9a e nel mondo #d8c48c, i prati #7fc46a contro #79bb63. Le meraviglie si guardavano
+   posate su un'erba che nel gioco non esiste.
+   `season` serve solo ai Prati Dorati, che seguono le stagioni. */
+export function groundPalette(zoneId, season = 0) {
+  const i = ZONE_IDS.indexOf(zoneId);
+  const zp = i >= 0 ? ZONE_TILES[i] : null;
+  if (zp) return zp.g.slice();
+  const st = SEASON_TILES[season % SEASON_TILES.length] || SEASON_TILES[0];
+  return st.g.slice();
+}
+
 /* chiome degli alberi per zona (null → stagionale) */
 const ZONE_TREE = [null, null,
   ['#4c5c48', '#556653', '#5e7059', '#66785f', '#7a8c70', '#39492f'],   // boschi cinerei

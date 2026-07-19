@@ -2,6 +2,7 @@
    Due forme: `chiave=valore` (money, energy, day, goto) e comandi secchi
    (godmode, goddna, goditem, gotocity, heal, help). Aggiungerne di nuovi qui. */
 import { S, P, save, snapshotState, restoreState, setCheatLock, isCheatLock, dugSet } from './state.js';
+import { FOOT_DY } from './body.js';
 import { packExplored } from './packmap.js';
 import { WONDERS } from './wonders.js';
 import { allLetters } from './letters.js';
@@ -88,7 +89,7 @@ function completeMuseumAndBook() {
 
 /* teletrasporto: prima tile CAMMINABILE del bioma `zid`, cercata a spirale attorno al player */
 function teleportToZone(zid) {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   for (let r = 0; r <= 900; r += 2) {
     for (let a = -r; a <= r; a += 2) {
       for (const [x, y] of [[ptx + a, pty - r], [ptx + a, pty + r], [ptx - r, pty + a], [ptx + r, pty + a]]) {
@@ -103,7 +104,7 @@ function teleportToZone(zid) {
 }
 /* imbocco di grotta più vicino al player (a spirale sulle montagne) */
 function findCaveEntrance() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   for (let r = 0; r <= 700; r += 2) for (let a = -r; a <= r; a += 2) {
     for (const [x, y] of [[ptx + a, pty - r], [ptx + a, pty + r], [ptx - r, pty + a], [ptx + r, pty + a]]) {
       if (caveEntranceAt(x, y)) return [x, y];
@@ -166,7 +167,7 @@ function teleportToLandmark() {
    porta alla prossima. `toured` è per-sessione (comodo per provare il gioco). */
 const toured = new Set();
 function tourNext() {
-  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + 13) / TS);
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   for (let r = 0; r <= 600; r += 2) {
     for (let a = -r; a <= r; a += 2) {
       for (const [x, y] of [[ptx + a, pty - r], [ptx + a, pty + r], [ptx - r, pty + a], [ptx + r, pty + a]]) {
@@ -296,7 +297,7 @@ export const COMMANDS = {
       if (v === 'grotta' || v === 'cave') {
         const e = findCaveEntrance();                 // porta a un imbocco VERO → all'uscita ci torni
         if (e) { P.x = e[0] * TS + 8; P.y = (e[1] + 1) * TS + 10; enterCave((e[0] + e[1]) | 0, e[0], e[1]); }
-        else enterCave((P.x / TS + P.y / TS) | 0, Math.floor(P.x / TS), Math.floor((P.y + 13) / TS));
+        else enterCave((P.x / TS + P.y / TS) | 0, Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
         return '🕳️ ' + tr('Grotta', 'Cave');
       }
       const z = ZONES.find(z => z.id === v || z.name.toLowerCase() === v);
