@@ -149,6 +149,12 @@ sprites.applyLook();
   S.energy = before;
 }
 
+/* ---------- partita in cloud: accesso, rete assente, conflitti ---------- */
+{
+  const { runCloudTests } = await import('./cloud.mjs');
+  await runCloudTests(check);
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');
