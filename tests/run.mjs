@@ -149,6 +149,23 @@ sprites.applyLook();
   S.energy = before;
 }
 
+/* ---------- il collegamento a Discord ---------- */
+{
+  const sp = await import('../src/splash.js');
+  check('l\'invito Discord è uno solo, in un posto solo',
+    typeof sp.DISCORD_URL === 'string' && /^https:\/\/discord\.gg\/[A-Za-z0-9]+$/.test(sp.DISCORD_URL));
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../src/splash.js', import.meta.url), 'utf8');
+  /* un link esterno che apre una scheda nuova SENZA rel="noopener" lascia alla pagina
+     aperta la possibilità di manovrare quella che l'ha aperta */
+  const tag = (src.match(/<a[^>]*sp-discord[^>]*>/) || [''])[0];
+  check('il link Discord apre una scheda nuova e non lascia appigli',
+    tag.includes('target="_blank"') && tag.includes('noopener'));
+  /* l'indirizzo non deve essere scritto due volte: si aggiorna in un posto solo */
+  const hardcoded = (src.match(/discord\.gg/g) || []).length;
+  check('l\'indirizzo non è ripetuto nel codice (' + hardcoded + ')', hardcoded === 1);
+}
+
 /* ---------- il Museo si riconosce dalla mappa ---------- */
 {
   /* sulla mappa le città col Museo hanno un pin loro (avorio + frontone): il segno deve

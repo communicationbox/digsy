@@ -11,6 +11,10 @@ import { ACHS, isAchieved, achLabel, achDesc } from './achievements.js';
 import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
 
+/* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
+   si cambia, e deve esserci un posto solo da aggiornare. */
+export const DISCORD_URL = 'https://discord.gg/BpZNuVnVz';
+
 let on = true, pause = false, onPlayCb = null, animOn = false;
 let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
@@ -220,6 +224,10 @@ function buildMenu(inGame) {
     h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝</button>`;
     h += `<button class="sp-btn ic" id="sp-cmds" title="${tr('Comandi', 'Commands')}">📜</button>`;
     h += `<button class="sp-btn ic" id="sp-credits" title="Credits">ℹ️</button>`;
+    /* Discord: si apre in una scheda nuova, mai al posto del gioco — una partita in corso
+       non deve sparire perché si è toccata un'icona. `noopener` è d'obbligo sui link
+       esterni: senza, la pagina aperta può manovrare quella che l'ha aperta. */
+    h += `<a class="sp-btn ic" id="sp-discord" href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer" title="Discord">💬</a>`;
     h += `</div>`;
   }
   menu.innerHTML = withIcons(h);
