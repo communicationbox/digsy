@@ -96,9 +96,16 @@ export function hatLabel(id) { const e = HATL[id]; return e ? lab(e) : id; }
 /* testi statici dell'index.html (HUD, splash, boot) applicati al boot */
 export function applyStaticTexts() {
   const set = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; };
-  const lbls = document.querySelectorAll('#hud .lbl');
-  const L = [tr('zaino ', 'bag '), tr(' menu', ' menu')];
-  lbls.forEach((el, i) => { if (L[i] !== undefined) el.textContent = L[i]; });
+  /* Le etichette dell'HUD si assegnano per ID, non per POSIZIONE. Erano un elenco ordinato
+     e bastava infilare un pulsante nuovo in mezzo perché tutte slittassero di uno: appena
+     aggiunta la mappa fra zaino e menu, la mappa si è ritrovata scritto "menu". Con gli id
+     l'ordine nel markup non conta più. */
+  const HUD_LBL = { bagbtn: tr('zaino ', 'bag '), mapbtn: tr(' mappa', ' map'), menubtn: tr(' menu', ' menu') };
+  for (const [id, txt] of Object.entries(HUD_LBL)) {
+    const host = document.getElementById(id);
+    const el = host && host.querySelector ? host.querySelector('.lbl') : null;
+    if (el) el.textContent = txt;
+  }
   set('.sp-sub', tr('scava · scopri · rianima', 'dig · discover · revive'));
   /* Testi scritti a mano dentro index.html: da soli non passano MAI da tr() e restano in
      italiano per tutti. Vanno riscritti qui, PRIMA di hydrateIcons(), altrimenti si

@@ -421,6 +421,7 @@ export const RU = {
   'Exit': 'Выход',
   'CHEAT · NO SAVE': 'ЧИТ · БЕЗ СОХРАНЕНИЯ',
   'museum': 'музей',
+  ' map': ' карта',
   /* intro: dove si porta il primo fossile */
   'It is raw, though. You still do not know which creature it is.': 'Но он необработанный. Ты ещё не знаешь, чьи это кости.',
   'Take it to the Museum: the experts there will identify it.': 'Отнеси его в Музей: тамошние знатоки его определят.',

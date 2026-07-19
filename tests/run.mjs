@@ -370,6 +370,17 @@ sprites.applyLook();
   check('è abbastanza grande per il pollice (' + (m ? m[1] : '?') + 'px ≥ 44)', !!m && +m[1] >= 44);
   const ui = readFileSync(new URL('../src/ui.js', import.meta.url), 'utf8');
   check('il pulsante apre davvero la mappa', /mapbtn[\s\S]{0,120}openMap\(\)/.test(ui));
+
+  /* Le etichette dell'HUD si assegnavano per POSIZIONE: infilando la mappa fra zaino e menu
+     tutte slittavano di uno, e sul desktop la mappa si è ritrovata scritto "menu".
+     Ora si assegnano per id, e questo test lo pretende. */
+  const i18nSrc = readFileSync(new URL('../src/i18n.js', import.meta.url), 'utf8');
+  check('le etichette dell\'HUD si assegnano per id, non per posizione',
+    /HUD_LBL\s*=\s*\{/.test(i18nSrc) && !/querySelectorAll\('#hud \.lbl'\)/.test(i18nSrc));
+  /* ogni pulsante con un'etichetta deve averne una sua */
+  const ids = [...(i18nSrc.match(/HUD_LBL = \{([^}]*)\}/) || [, ''])[1].matchAll(/(\w+):/g)].map(m => m[1]);
+  check('ogni pulsante della barra ha la sua etichetta (' + ids.join(', ') + ')',
+    ids.includes('bagbtn') && ids.includes('mapbtn') && ids.includes('menubtn'));
 }
 
 /* ---------- il collegamento a Discord ---------- */
