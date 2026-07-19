@@ -11,7 +11,8 @@
     "test": "node tests/run.mjs",
     "e2e": "node tests/e2e.mjs",
     "cov": "node tests/coverage.mjs",
-    "stress": "node --expose-gc tests/stress.mjs"
+    "stress": "node --expose-gc tests/stress.mjs",
+    "test:php": "php server/tests/run.php"
   },
   "devDependencies": {
     "vite": "^6.0.0"

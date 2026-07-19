@@ -3,3 +3,7 @@ dist/
 .DS_Store
 .idea/
 .coverage/
+
+# backend: credenziali e dati dei giocatori — MAI nel repository
+server/config.php
+server/data/

@@ -1,0 +1,25 @@
+# SOLO /api DEVE ESSERE RAGGIUNGIBILE DAL WEB.
+#
+# Senza queste righe basta che PHP non sia attivo su questa cartella (aggiornamento del
+# server, configurazione cambiata, un vhost diverso) perché `config.php` venga servito come
+# TESTO: password del database e client id, in chiaro, a chiunque conosca l'indirizzo.
+# È il modo più comune di perdere le credenziali, e non lascia nemmeno traccia.
+#
+# Vale come rete di sicurezza. La difesa vera è tenere data/ e config.php FUORI dalla
+# cartella pubblicata: vedi server/README.md.
+
+<FilesMatch "^config.*\.php$">
+  Require all denied
+</FilesMatch>
+
+# librerie, test, schema e database: niente di tutto questo va servito
+<IfModule mod_alias.c>
+  RedirectMatch 404 /(lib|tests|data)/
+</IfModule>
+
+<FilesMatch "\.(sqlite|sqlite3|db|sql|md)$">
+  Require all denied
+</FilesMatch>
+
+# niente elenco dei file
+Options -Indexes
