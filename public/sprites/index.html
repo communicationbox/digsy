@@ -209,12 +209,18 @@ const CATS = {
     { id: 'town:fence', name: 'staccionata', kind: 'deco', fn: 'drawFence', from: 'rend', w: 32, h: 32 },
     { id: 'town:cave', name: 'imbocco grotta', kind: 'deco', fn: 'drawCaveEntrance', from: 'rend', w: 40, h: 40, anim: true },
   ] },
-  icone: { label: 'Icone', items: [] },   // riempita sotto dagli SVG
+  icone: { label: 'Icone', items: [] },   // riempita sotto, dall'elenco vero di icons.js
 };
 
 /* icone pixel: caricate dagli SVG veri del gioco (le pagine in public/ non passano da Vite,
    quindi niente import.meta.glob: si scaricano a mano) */
-const ICON_NAMES = ['arD','arDL','arDR','arL','arR','arU','arUL','arUR','axe','bag','barber','bed','bike','bolt','bone','book','bread','bug','cal','cave','check','close','coin','compass','dice','dna','dune','fish','flower','frog','globe','hat','home','horn','ice','info','lab','leaf','map','menu'];
+/* L'elenco delle icone lo tiene icons.js, ed è la stessa lista che usa il gioco. Prima qui
+   ce n'era una copia scritta a mano, ferma a 40 nomi: tutto quello che viene dopo "menu"
+   in ordine alfabetico (scroll, store, trash, save…) non si poteva aprire nell'editor, e la
+   copia sarebbe rimasta indietro a ogni icona nuova. */
+let ICON_NAMES = [];
+try { ICON_NAMES = (await import('/src/icons.js')).ICON_NAMES || []; }
+catch (e) { console.warn('elenco icone non caricato', e); }
 CATS.icone.items = ICON_NAMES.map(n => ({ id: 'icon:' + n, name: n, kind: 'icon', svg: null, url: '/src/pxicons/' + n + '.svg' }));
 async function loadIcons() {
   await Promise.all(CATS.icone.items.map(async it => {

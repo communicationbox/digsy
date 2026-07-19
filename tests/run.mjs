@@ -155,6 +155,20 @@ sprites.applyLook();
   await runCloudTests(check);
 }
 
+/* ---------- lo Sprite Studio vede TUTTE le icone ---------- */
+{
+  /* Lo Studio aveva una copia scritta a mano dell'elenco icone, ferma a 40 nomi: tutto
+     quello che veniva dopo "menu" in ordine alfabetico non si poteva aprire nell'editor,
+     e nessuno se ne accorgeva finché non serviva proprio quell'icona. L'elenco dev'essere
+     uno solo, quello di icons.js. */
+  const { readFileSync } = await import('node:fs');
+  const studio = readFileSync(new URL('../public/sprites/index.html', import.meta.url), 'utf8');
+  check('lo Studio prende l\'elenco icone da icons.js', /ICON_NAMES\s*=\s*\(await import\('\/src\/icons\.js'\)\)/.test(studio));
+  /* nessuna lista di nomi icona scritta a mano: si riconosce da più nomi noti di fila */
+  const handmade = /\['arD'\s*,|"arD"\s*,\s*"arDL"/.test(studio);
+  check('lo Studio non ha una copia scritta a mano dell\'elenco', handmade === false);
+}
+
 /* ---------- il collegamento a Discord ---------- */
 {
   const sp = await import('../src/splash.js');
