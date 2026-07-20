@@ -329,8 +329,15 @@ function buildMenu(inGame) {
         + `1. ${tr('tocca <b>Condividi</b> in basso', 'tap <b>Share</b> at the bottom')}<br>`
         + `2. ${tr('scorri e tocca <b>Aggiungi a Home</b>', 'scroll and tap <b>Add to Home Screen</b>')}<br>`
         + `3. ${tr('conferma con <b>Aggiungi</b>', 'confirm with <b>Add</b>')}</div>`;
-    } else {
+    } else if (pwa.invito) {
       h += `<button class="sp-btn primary" id="sp-install-go">🏠 ${tr('Installa adesso', 'Install now')}</button>`;
+    } else {
+      /* niente invito e non è iOS: o è già installata, o il browser non sa farlo. In ogni
+         caso si spiega, invece di lasciare una schermata vuota. */
+      h += `<div class="sp-hint2">${pwa.installata
+        ? tr('Il gioco è già installato su questo dispositivo.', 'The game is already installed on this device.')
+        : tr('Cerca <b>Installa</b> o <b>Aggiungi a schermata Home</b> nel menu del browser (i tre puntini in alto).',
+          'Look for <b>Install</b> or <b>Add to Home screen</b> in your browser menu (the three dots at the top).')}</div>`;
     }
     h += `</div></div>` + backBar();
   } else if (view === 'stats') {
@@ -432,7 +439,9 @@ function buildMenu(inGame) {
        scritta sul pulsante: è la prima cosa da chiedere a un tester che segnala un bug già
        corretto. */
     h += grp('💾 ' + tr('Versione', 'Version'),
-      riga(tr('Aggiorna il gioco', 'Update the game'),
+      riga(tr('Installa sul dispositivo', 'Install on device'),
+        `<button class="sp-btn small" id="sp-install">🏠 ${pwa.installata ? tr('Fatto', 'Done') : tr('Come', 'How')}</button>`)
+      + riga(tr('Aggiorna il gioco', 'Update the game'),
         `<button class="sp-btn small" id="sp-refresh">⟳ ${VERSION}</button>`)
       + `<div class="sp-hint2">${tr('Riscarica il gioco. Il salvataggio resta dov\'è.', 'Downloads the game again. Your save stays where it is.')}</div>`);
 

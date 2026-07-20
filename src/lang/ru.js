@@ -1233,4 +1233,9 @@ export const RU = {
   'On iPhone you need Safari.': 'На iPhone нужен Safari.',
   'It is an Apple rule: other browsers cannot install. Open <b>digsy.dev-box.it</b> in Safari and come back here.': 'Это правило Apple: другие браузеры не умеют устанавливать. Открой <b>digsy.dev-box.it</b> в Safari и вернись сюда.',
   'Then, in Safari:': 'Затем, в Safari:',
+  'Install on device': 'Установить на устройство',
+  'Done': 'Готово',
+  'How': 'Как',
+  'The game is already installed on this device.': 'Игра уже установлена на этом устройстве.',
+  'Look for <b>Install</b> or <b>Add to Home screen</b> in your browser menu (the three dots at the top).': 'Найди <b>Установить</b> или <b>Добавить на главный экран</b> в меню браузера (три точки вверху).',
 };
