@@ -50,7 +50,9 @@ function versioneOnline() {
   const html = corpo(SITO + '/play/');
   const js = /assets\/index-[A-Za-z0-9_-]+\.js/.exec(html);
   if (!js) return null;
-  const m = /v\d+\.\d+\.\d+/.exec(corpo(SITO + '/' + js[0]));
+  /* l'indirizzo va composto con /play/, non con la radice: dopo lo spostamento il controllo
+     cercava gli asset dove ora c'è la vetrina e non trovava nessuna versione */
+  const m = /v\d+\.\d+\.\d+/.exec(corpo(SITO + '/play/' + js[0]));
   return m ? m[0] : null;
 }
 
