@@ -65,8 +65,11 @@ function verifica(atteso) {
   const esiti = [];
   const dai = (nome, ok, extra) => esiti.push({ nome, ok, extra: extra || '' });
 
-  dai('la vetrina risponde', stato(SITO + '/') === '200');
-  dai('la vetrina porta al gioco', corpo(SITO + '/').includes('/play/'));
+  dai('la radice risponde', stato(SITO + '/') === '200');
+  /* alla radice non c'è più una vetrina (quella fatta era mediocre e l'abbiamo tolta):
+     resta un passaggio verso il gioco, che vive in /play/ e lì deve restare — chi ha
+     l'icona sulla schermata ha start_url /play/. */
+  dai('la radice porta al gioco', corpo(SITO + '/').includes('/play/'));
   dai('il gioco risponde', stato(SITO + '/play/') === '200');
   const v = versioneOnline();
   dai('online c\'è la versione appena pubblicata', v === atteso, (v || 'nessuna') + ' vs ' + atteso);

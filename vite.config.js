@@ -8,17 +8,6 @@ import { resolve } from 'path';
    senza questo middleware la history-fallback di Vite risponde con il GIOCO. */
 export default defineConfig({
   base: './',
-  /* DUE PAGINE: il gioco e la vetrina. La vetrina importa i moduli veri (le creature 3D sono
-     le stesse del Libro), quindi deve passare dalla build come il gioco — non può essere un
-     file statico che carica sorgenti che in produzione non esistono. */
-  build: {
-    rollupOptions: {
-      input: {
-        main: resolve(__dirname, 'index.html'),
-        vetrina: resolve(__dirname, 'site/index.html'),
-      },
-    },
-  },
   /* IN SVILUPPO IL BACKEND NON C'È: Vite serve file statici, PHP non lo esegue. Senza questo
      inoltro ogni chiamata a `server/api/…` da localhost:5173 torna 404 e l'accesso fallisce
      con un "login_failed" che sembra un problema di credenziali e non lo è.
