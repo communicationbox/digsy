@@ -423,8 +423,11 @@ contati, senza niente che dica chi è la persona.
 pubblica, 700). Controlla pagina, API e `health.php`; **riprova tre volte** prima di
 dichiarare un guasto (un pacchetto perso non è un'emergenza) e **avvisa solo quando lo stato
 CAMBIA** — un servizio giù sei ore manderebbe 72 mail, e alla settima nessuno le legge più.
-Mail a `dev@communicationbox.it` (si cambia con `DIGSY_ALERT_TO`). Registro in
-`.watch-log`, tenuto agli ultimi 500 controlli.
+Avvisa su **Discord** (canale `#guardian`) e non per posta: una mail da un server che non ne
+manda quasi mai finisce nello spam o viene rifiutata, e un avviso che non arriva è peggio di
+nessun avviso, perché ci si fida. L'indirizzo del webhook è una CHIAVE — chi ce l'ha scrive
+nel canale — e sta in `.webhook` (600), fuori dalla cartella pubblicata e fuori dal
+repository, come la password del database. Registro in `.watch-log`, ultimi 500 controlli.
 
 ## GUARDARE le schermate prima di consegnarle
 `npm run shot -- <vista> [larghezza,altezza]` fotografa una schermata vera del gioco in

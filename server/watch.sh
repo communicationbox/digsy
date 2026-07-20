@@ -1,23 +1,40 @@
 #!/bin/bash
-# GUARDIANO — controlla che il gioco sia in piedi e avvisa quando non lo è.
+# GUARDIANO — controlla che il gioco sia in piedi e avvisa su DISCORD quando non lo è.
 #
 # Gira dal cron ogni cinque minuti. Senza, un guasto si scopre quando un giocatore si prende
 # la briga di scriverlo: possono passare giorni.
 #
+# Discord e non la posta: una mail da un server che non ne manda quasi mai finisce nello spam
+# o viene rifiutata, e un avviso che non arriva è PEGGIO di nessun avviso — perché ci si fida.
+# Su Discord arriva sul telefono in due secondi.
+#
+# L'indirizzo del webhook è una CHIAVE (chi ce l'ha scrive nel canale): sta in `.webhook`,
+# permessi 600, fuori dalla cartella pubblicata e fuori dal repository.
+#
 # Due regole che fanno la differenza fra un guardiano utile e uno che si finisce per zittire:
 #
 #   1. AVVISA UNA VOLTA SOLA. Un servizio giù per sei ore sono 72 controlli falliti: mandare
-#      72 mail vuol dire che alla settima nessuno le legge più. Si avvisa quando CAMBIA lo
+#      72 messaggi vuol dire che al settimo nessuno li legge più. Si avvisa quando CAMBIA lo
 #      stato — quando cade e quando torna.
 #   2. NON GRIDA AL PRIMO INCIAMPO. Una singola richiesta può fallire per un pacchetto perso.
 #      Si riprova tre volte a distanza prima di dichiarare un guasto.
 #
 # Installazione (già fatta):  */5 * * * * /var/www/digsy.dev-box.it/watch.sh
 
-DEST="${DIGSY_ALERT_TO:-dev@communicationbox.it}"
+BASE="/var/www/digsy.dev-box.it"
 SITO="https://digsy.dev-box.it"
-STATO="/var/www/digsy.dev-box.it/.watch-stato"     # 'su' oppure 'giu'
-LOG="/var/www/digsy.dev-box.it/.watch-log"
+STATO="$BASE/.watch-stato"     # 'su' oppure 'giu'
+QUANDO="$BASE/.watch-da"       # da quando è giù, per poter dire quanto è durata
+LOG="$BASE/.watch-log"
+HOOK=$(cat "$BASE/.webhook" 2>/dev/null)
+
+# $1 testo · $2 colore · $3 titolo
+avvisa() {
+  [ -z "$HOOK" ] && return
+  curl -s -m 15 -H 'Content-Type: application/json' \
+    -d "$(printf '{"username":"Guardiano Digsy","embeds":[{"title":"%s","description":"%s","color":%s}]}' "$3" "$1" "$2")" \
+    "$HOOK" >/dev/null 2>&1
+}
 
 # --- il controllo: tre tentativi, poi si decide -------------------------------
 guasti=""
@@ -57,24 +74,15 @@ echo "$adesso" > "$STATO"        # sempre, anche al primo giro: così lo stato e
 [ "$prima" = "$adesso" ] && exit 0
 
 if [ "$adesso" = "giu" ]; then
-  {
-    echo "Digsy World non risponde."
-    echo
-    echo "Cosa non va:$guasti"
-    echo "Quando:      $(date '+%F %T %Z')"
-    echo
-    echo "Da guardare:"
-    echo "  $SITO/server/health.php   (segni vitali: database, tabelle, scrittura)"
-    echo "  ultimi controlli: tail -20 $LOG"
-    echo
-    echo "Se il database è irraggiungibile, il gioco resta giocabile in locale:"
-    echo "nessuno perde la partita, ma i salvataggi non salgono più."
-  } | mail -s "[Digsy] il gioco non risponde" "$DEST"
+  date +%s > "$QUANDO"
+  avvisa "Cosa non va:$guasti\\n\\nDa guardare: $SITO/server/health.php\\nIl gioco resta giocabile in locale: nessuno perde la partita, ma i salvataggi non salgono piu." \
+    15548997 "Digsy non risponde"
 else
-  {
-    echo "Digsy World è tornato su."
-    echo
-    echo "Quando: $(date '+%F %T %Z')"
-    echo "Quanto è durata: vedi $LOG"
-  } | mail -s "[Digsy] tornato su" "$DEST"
+  durata=""
+  if [ -f "$QUANDO" ]; then
+    m=$(( ($(date +%s) - $(cat "$QUANDO")) / 60 ))
+    durata="\\n\\nEra giu da ${m} minuti."
+    rm -f "$QUANDO"
+  fi
+  avvisa "Tutto di nuovo in piedi.$durata" 5763719 "Digsy e tornato"
 fi
