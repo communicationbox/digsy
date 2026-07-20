@@ -529,7 +529,11 @@ sprites.applyLook();
   const campi = Object.keys(d).sort();
   check('battito: manda SOLO questi campi (' + campi.join(',') + ')',
     campi.join(',') === 'app,day,id,lvl,min,spec,tocco,ver');
-  const testo = JSON.stringify(d);
+  /* l'identificativo è CASUALE: prima o poi conterrà per caso una delle stringhe cercate
+     (è già successo con "px") e il controllo fallirebbe su un dato innocuo. Si guarda tutto
+     il resto, che è la parte che può davvero contenere qualcosa di personale. */
+  const { id, ...senzaId } = d;
+  const testo = JSON.stringify(senzaId);
   const vietati = ['email', 'name', 'nome', '@', 'coins', 'seed', 'px', 'py'];
   const trovati = vietati.filter(v => testo.toLowerCase().includes(v));
   check('battito: niente che dica chi sei o cosa hai' + (trovati.length ? ' → ' + trovati.join(',') : ''),

@@ -132,11 +132,13 @@ function main() {
     console.log('· pubblico ' + v);
     /* `--exclude`: la dist contiene anche gli strumenti (Vite copia tutta public/), ma in
        produzione non devono arrivare. Restano in locale, dove servono. */
-    execSync(`cd ${ROOT}/dist && COPYFILE_DISABLE=1 tar czf - ` +
-      `--exclude=sprites --exclude=wonders --exclude=playground --exclude=editor ` +
-      `--exclude=bag-editor --exclude='__*.html' . | ` +
+    execSync(`cd ${ROOT}/dist && COPYFILE_DISABLE=1 tar czf - . | ` +
       `ssh -o ControlMaster=no -o ControlPath=${MUX} ${HOST} ` +
-      `"cd ${REMOTO} && tar xzf - && find . -name '._*' -delete && chmod -R a+rX ."`,
+      /* gli strumenti si tolgono DOPO l'estrazione invece di escluderli dal tar: i pattern
+         di `--exclude` si comportano diversamente fra il tar di macOS e quello di Linux, e
+         un'esclusione che silenziosamente non funziona è peggio di nessuna esclusione. */
+      `"cd ${REMOTO} && tar xzf - && rm -rf __*.html src sprites wonders playground editor bag-editor .DS_Store && ` +
+      `find . -name '._*' -delete && chmod -R a+rX ."`,
       { stdio: 'pipe', shell: '/bin/bash' });
 
 
