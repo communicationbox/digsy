@@ -382,6 +382,22 @@ function buildMenu(inGame) {
 
     h += `<div class="sp-cfg">`;
 
+    /* LINGUA per prima: i nomi sono già nella loro lingua, non serve spiegare nulla */
+    h += grp('🌍 ' + tr('Lingua', 'Language'),
+      seg('data-lang', LANGS.map(l => [l.id, l.label]), LANG));
+
+    /* AUDIO: qui dentro, non in una pagina sua — erano due schermate per quattro comandi */
+    /* il cursore PRIMA dell'interruttore: così gli ON/OFF cadono tutti sulla stessa colonna
+       a destra, in ogni gruppo. Con l'ordine inverso quelli dell'audio restavano indietro di
+       un centinaio di pixel e la colonna sembrava rotta. */
+    h += grp('🎵 Audio',
+      riga(tr('Musica', 'Music'),
+        `<input id="sp-vol" type="range" min="0" max="100" value="${Math.round(a.vol * 100)}" title="${tr('Volume musica', 'Music volume')}">`
+        + sw('sp-mus', a.music))
+      + riga(tr('Effetti', 'Sound FX'),
+        `<input id="sp-sfxvol" type="range" min="0" max="100" value="${Math.round(a.sfxVol * 100)}" title="${tr('Volume effetti', 'SFX volume')}">`
+        + sw('sp-sfx', a.sfx)));
+
     /* COMANDI: le opzioni cambiano col DISPOSITIVO — le leve non esistono con un mouse, il
        segui-puntatore non esiste con un dito, e la mano conta solo dove ci sono comandi a
        schermo da spostare. */
@@ -414,33 +430,10 @@ function buildMenu(inGame) {
     }
 
     /* SCHERMO: le due cose che si vedono mentre si gioca */
-    /* IL BATTITO si spegne da qui. Raccogliere quanto si gioca è utile a chi il gioco lo fa
-       provare, ma dev'essere una cosa che si può dire di no — e che si legge in chiaro,
-       non nascosta in fondo a una pagina di condizioni. */
-    h += grp('📊 ' + tr('Statistiche anonime', 'Anonymous stats'),
-      riga(tr('Manda come sta andando', 'Send how it is going'), sw('sp-beat', battitoAcceso()))
-      + `<div class="sp-hint2">${tr('Quanto hai giocato e a che giorno sei arrivato, per capire dove il gioco annoia. <b>Niente</b> che dica chi sei: nessun nome, nessuna email, nessun indirizzo.', 'How long you played and how far you got, to see where the game drags. <b>Nothing</b> that says who you are: no name, no email, no address.')}</div>`);
-
     h += grp('✨ ' + tr('A schermo', 'On screen'),
       riga(tr('Segnalino della meta', 'Destination marker'), sw('sp-marker', pf.marker))
       + riga(tr('Suggerimenti', 'Tips'), sw('sp-tips', pf.tips))
       + `<div class="sp-hint2">${tr('I riquadri che spiegano una meccanica la prima volta. Restano nella Guida (zaino → ❔).', 'The boxes explaining a mechanic the first time. They stay in the Guide (bag → ❔).')}</div>`);
-
-    /* AUDIO: qui dentro, non in una pagina sua — erano due schermate per quattro comandi */
-    /* il cursore PRIMA dell'interruttore: così gli ON/OFF cadono tutti sulla stessa colonna
-       a destra, in ogni gruppo. Con l'ordine inverso quelli dell'audio restavano indietro di
-       un centinaio di pixel e la colonna sembrava rotta. */
-    h += grp('🎵 Audio',
-      riga(tr('Musica', 'Music'),
-        `<input id="sp-vol" type="range" min="0" max="100" value="${Math.round(a.vol * 100)}" title="${tr('Volume musica', 'Music volume')}">`
-        + sw('sp-mus', a.music))
-      + riga(tr('Effetti', 'Sound FX'),
-        `<input id="sp-sfxvol" type="range" min="0" max="100" value="${Math.round(a.sfxVol * 100)}" title="${tr('Volume effetti', 'SFX volume')}">`
-        + sw('sp-sfx', a.sfx)));
-
-    /* LINGUA: i nomi sono già nella loro lingua, non serve spiegare nulla */
-    h += grp('🌍 ' + tr('Lingua', 'Language'),
-      seg('data-lang', LANGS.map(l => [l.id, l.label]), LANG));
 
     /* AGGIORNAMENTO. Stava nei Credits, dove nessuno lo cerca: sul telefono non esiste il
        "ricarica senza cache" e si gioca per giorni a una versione superata. La versione è
@@ -452,6 +445,13 @@ function buildMenu(inGame) {
       + riga(tr('Aggiorna il gioco', 'Update the game'),
         `<button class="sp-btn small" id="sp-refresh">⟳ ${VERSION}</button>`)
       + `<div class="sp-hint2">${tr('Riscarica il gioco. Il salvataggio resta dov\'è.', 'Downloads the game again. Your save stays where it is.')}</div>`);
+
+    /* STATISTICHE ANONIME in fondo a tutto: il battito si spegne da qui. Raccogliere quanto
+       si gioca è utile a chi il gioco lo fa provare, ma dev'essere una cosa che si può dire
+       di no — e che si legge in chiaro, non nascosta in fondo a una pagina di condizioni. */
+    h += grp('📊 ' + tr('Statistiche anonime', 'Anonymous stats'),
+      riga(tr('Manda come sta andando', 'Send how it is going'), sw('sp-beat', battitoAcceso()))
+      + `<div class="sp-hint2">${tr('Quanto hai giocato e a che giorno sei arrivato, per capire dove il gioco annoia. <b>Niente</b> che dica chi sei: nessun nome, nessuna email, nessun indirizzo.', 'How long you played and how far you got, to see where the game drags. <b>Nothing</b> that says who you are: no name, no email, no address.')}</div>`);
 
     h += `</div>` + backBar();
   } else if (view === 'trophies') {

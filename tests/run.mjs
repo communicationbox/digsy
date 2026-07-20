@@ -2880,6 +2880,20 @@ sprites.applyLook();
   check('ogni mood ha tempo/shift/lead', Object.values(audio.MOODS).every(m => m.tempo > 0 && typeof m.shift === 'number' && (m.lead === 'square' || m.lead === 'triangle')));
   let threw = false; try { for (const z of ZONES) audio.setBiomeMood(z.id); audio.setBiomeMood('grotta'); audio.setBiomeMood('prati'); } catch (e) { threw = true; }
   check('setBiomeMood non lancia senza audio avviato', threw === false);
+  /* REGOLA MUSICALE: si modula solo verso tonalita VICINE sul circolo delle quinte.
+     keyDistance in semitoni: 0=stessa, 1=quinta/quarta (vicinissime), 6=tritono (lontane). */
+  check('keyDistance: stessa tonalita = 0', audio.keyDistance(0, 0) === 0 && audio.keyDistance(-5, -5) === 0);
+  check('keyDistance: quinta = 1', audio.keyDistance(0, 7) === 1 && audio.keyDistance(0, -5) === 1);
+  check('keyDistance: tritono = 6', audio.keyDistance(0, 6) === 6);
+  check('keyDistance: simmetrica e in ottava', audio.keyDistance(0, -7) === audio.keyDistance(0, 5) && audio.keyDistance(0, -12) === 0);
+  // il semitono e la tonalita PIU LONTANA: era il difetto (palude -3 = FA#, ghiacci +4 = DO#)
+  check('un semitono e lontano (5 quinte)', audio.keyDistance(0, 1) === 5 && audio.keyDistance(0, -3) === 3 && audio.keyDistance(0, 4) === 4);
+  // OGNI mood deve stare nel vicinato della tonica (prati = 0): distanza <= 2 quinte
+  const tonica = audio.MOODS.prati.shift;
+  const lontani = Object.entries(audio.MOODS).filter(([, m]) => audio.keyDistance(tonica, m.shift) > 2);
+  check('ogni bioma e in una tonalita vicina alla tonica (<=2)', lontani.length === 0);
+  // i due colpevoli segnalati ora sono vicini
+  check('palude e ghiacci non piu tonalita lontane', audio.keyDistance(tonica, audio.MOODS.palude.shift) <= 1 && audio.keyDistance(tonica, audio.MOODS.ghiacci.shift) <= 1);
 }
 
 /* ---------- SMOKE del tasto E: act() non deve MAI lanciare (un identificatore rimosto a
@@ -3479,6 +3493,17 @@ sprites.applyLook();
 }
 
 /* ---------- SPLASH: titolo e menu di pausa, tutte le viste ---------- */
+/* NOVITÀ non deve restare indietro: la voce in cima al changelog deve combaciare con la
+   versione corrente (major.minor). Bumpi la versione ma scordi le note = i tester non le vedono. */
+{
+  const { CHANGELOG } = await import('../src/changelog.js');
+  const { VERSION } = await import('../src/version.js');
+  const mm = s => (String(s).match(/v?(\d+)\.(\d+)/) || []).slice(1, 3).join('.');
+  check('il changelog ha una voce in cima', CHANGELOG.length > 0 && !!CHANGELOG[0].v);
+  check('la voce in cima al changelog è la versione corrente', mm(CHANGELOG[0].v) === mm(VERSION));
+  check('ogni voce del changelog ha testo IT ed EN', CHANGELOG.every(c => Array.isArray(c.it) && Array.isArray(c.en) && c.it.length === c.en.length && c.it.length > 0));
+}
+
 {
   const sp = await import('../src/splash.js');
   let spErr = '';

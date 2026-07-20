@@ -61,7 +61,7 @@ async function main() {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});
     }
-    /* il badge è uno strumento di lavoro: con `--pulito` non si mette, perché queste foto
+    /* il badge è uno strumento di lavoro: con --pulito non si mette, perché queste foto
        finiscono anche nella vetrina e là un riquadro verde di debug stona parecchio */
     if (${JSON.stringify(process.argv.includes('--pulito'))}) return;
     var b=document.createElement('div');

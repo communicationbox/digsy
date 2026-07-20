@@ -7,22 +7,31 @@ const persist = () => { try { localStorage.setItem(OKEY, JSON.stringify(opts)); 
 
 let actx = null, master = null, musicGain = null, timer = 0, step = 0;
 
-/* MOOD per bioma: STESSO tema, ma tempo/tonalità/timbro diversi. Al cambio bioma → crossfade.
-   shift = semitoni (tonalità/umore), tempo = ms per ottavo (più basso = più rapido). */
+/* MOOD per bioma: STESSO tema, ma tempo/tonalità/timbro diversi.
+   shift = semitoni (tonalità/umore), tempo = ms per ottavo (più basso = più rapido).
+   REGOLA MUSICALE: il tema è in LA minore pentatonica; ogni shift trasporta l'INTERA musica,
+   quindi la "tonalità" del bioma è la minore con radice a `shift` semitoni da LA. Si modula
+   SOLO verso tonalità VICINE sul circolo delle quinte (distanza ≤ 2): la minore un semitono
+   via è distante 5 quinte = stona. Perciò niente FA# (-3, era palude) né DO# (+4, era ghiacci),
+   che stanno a 3-4 quinte: al posto loro MI e RE, che con LA condividono quasi tutte le note.
+   keyDistance() sotto misura la distanza; un test tiene ogni mood entro il vicinato. */
 export const MOODS = {
-  prati:   { tempo: 210, shift: 0,  lead: 'square' },     // sereno, di base
-  dune:    { tempo: 198, shift: 2,  lead: 'square' },     // caldo, un po' più brillante
-  boschi:  { tempo: 232, shift: -2, lead: 'triangle' },   // cupo, morbido
-  terre:   { tempo: 254, shift: -4, lead: 'square' },     // grave e LENTO
-  palude:  { tempo: 236, shift: -3, lead: 'triangle' },   // torbido, ovattato
-  ghiacci: { tempo: 176, shift: 4,  lead: 'square' },     // cristallino e RAPIDO
-  grotta:  { tempo: 206, shift: -5, lead: 'square', cave: true }, // profondo, avventuroso
+  prati:   { tempo: 210, shift: 0,   lead: 'square' },     // LA min · sereno, casa (tonica)
+  dune:    { tempo: 198, shift: 2,   lead: 'square' },     // SI min · caldo, brillante (d2)
+  boschi:  { tempo: 232, shift: -2,  lead: 'triangle' },   // SOL min · cupo, morbido (d2)
+  terre:   { tempo: 254, shift: -5,  lead: 'square' },     // MI min basso · grave e LENTO (d1)
+  palude:  { tempo: 236, shift: -7,  lead: 'triangle' },   // RE min basso · torbido (d1)
+  ghiacci: { tempo: 176, shift: 7,   lead: 'square' },     // MI min alto · cristallino, RAPIDO (d1)
+  grotta:  { tempo: 206, shift: -12, lead: 'square', cave: true }, // LA min sotto · profondo (d0)
 };
 let curMoodId = 'prati', targetId = 'prati', liveTempo = MOODS.prati.tempo;
 let pendId = null, pendN = 0;
 function mood() { return MOODS[curMoodId] || MOODS.prati; }
-/* cambia bioma SENZA fade: la stessa musica si TRASFORMA — il tempo scivola dolce (in tick),
-   tonalità e timbro modulano puliti sul primo tempo della frase successiva.
+/* cambia bioma SENZA taglio: la stessa musica si TRASFORMA. Il TEMPO glissa continuo (il ritmo
+   scivola). La TONALITÀ modula in un colpo solo, ma SUL primo tempo della frase (downbeat) e
+   SOLO verso tonalità vicine (garantito dai valori di MOODS): una modulazione a tonalità
+   vicina su un tempo forte è consonante — è la regola, niente rampe inventate. Il timbro cambia
+   con la tonalità. Nessun drone sostenuto scavalca il cambio (stonerebbe sulla frase nuova).
    DEBOUNCE: si cambia solo se resti nel nuovo bioma per qualche chiamata (non ai bordi di intermezzo). */
 export function setBiomeMood(id) {
   if (!MOODS[id]) id = 'prati';
@@ -110,30 +119,48 @@ export function armAudioResume() {
 function note(semi, dur, type, vol) {
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = type; o.frequency.value = 440 * Math.pow(2, semi / 12);
-  g.gain.setValueAtTime(vol, actx.currentTime);
-  g.gain.exponentialRampToValueAtTime(0.001, actx.currentTime + dur);
+  /* ATTACCO MORBIDO: prima la gain saltava a piena su un fronte netto = "click" a ogni nota.
+     Piccola rampa d'attacco (~1/3 della nota, max 28ms) e coda lunga: niente ticchettii. */
+  const t = actx.currentTime, atk = Math.min(0.028, dur * 0.35);
+  g.gain.setValueAtTime(0.0001, t);
+  g.gain.exponentialRampToValueAtTime(Math.max(0.0004, vol), t + atk);
+  g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
   o.connect(g); g.connect(musicGain || master);
-  o.start(); o.stop(actx.currentTime + dur);
+  o.start(t); o.stop(t + dur + 0.02);
+}
+/* DISTANZA sul CIRCOLO DELLE QUINTE fra due tonalità (in semitoni). Pura e testabile.
+   Moltiplicare per 7 (l'inverso della quinta, 7·7≡1 mod 12) manda i semitoni sulle quinte;
+   il risultato 0..6 dice quante quinte separano le due tonalità: 1 = vicinissime (dominante/
+   sottodominante, quasi tutte le note in comune), 6 = tritono (lontanissime, dissonanti). */
+export function keyDistance(a, b) {
+  const d = ((((b - a) * 7) % 12) + 12) % 12;
+  return Math.min(d, 12 - d);
 }
 function tick() {
   if (!actx || !opts.music) return;
-  const i = step % LEAD.length;
-  /* MODULAZIONE pulita: tonalità/timbro cambiano solo sul 1° tempo della frase (ogni 16 ottavi) */
-  if (i % 16 === 0 && curMoodId !== targetId) curMoodId = targetId;
-  /* TEMPO che scivola dolce verso il target (niente scatti, niente fade) */
-  const tt = MOODS[targetId].tempo;
-  if (Math.abs(liveTempo - tt) > 0.6) {
-    liveTempo += (tt - liveTempo) * 0.10;
+  const i = step % LEAD.length, bnd = i % 16;
+  const pending = curMoodId !== targetId;
+  const tgt = MOODS[targetId];
+  /* TEMPO: glissa CONTINUO verso il target (il ritmo cambia scivolando, non a scatti) */
+  if (Math.abs(liveTempo - tgt.tempo) > 0.6) {
+    liveTempo += (tgt.tempo - liveTempo) * 0.08;
     if (timer) { clearInterval(timer); timer = setInterval(tick, Math.round(liveTempo)); }
   }
+  /* TONALITÀ + timbro: modulano insieme SUL downbeat (1° tempo della frase). Le tonalità di
+     MOODS sono già tutte vicine, quindi la modulazione cade consonante senza altri accorgimenti. */
+  if (bnd === 0 && pending) curMoodId = targetId;
   const m = mood(), sh = m.shift;
   const l = LEAD[i];
   if (l !== null) note(l - 12 + sh, 0.22, m.lead, 0.07);             // lead (timbro/tonalità del bioma)
   const bar = Math.floor(i / 8) % BASS.length, root = BASS[bar] + sh;
   if (i % 4 === 0) note(root, 0.5, 'triangle', 0.15);                 // basso, 2 volte per battuta
   if (i % 8 === 6) note(root + 7, 0.28, 'triangle', 0.11);           // quinta di passaggio
-  if (i % 8 === 0) { note(root + 7, 1.7, 'triangle', 0.05); note(root + 12, 1.7, 'triangle', 0.04); } // pad drone (quinta+ottava)
-  if (m.cave && i % 8 === 4) note(root - 12, 1.0, 'triangle', 0.06);  // grotta: drone profondo (avventuroso)
+  /* nessun drone LUNGO deve scavalcare il downbeat del cambio: la sua coda resterebbe nella
+     vecchia tonalità sopra la frase nuova. Nella 2ª metà della frase, se c'è un cambio in
+     attesa, si saltano i sostenuti; tornano dalla frase nuova. */
+  const longPad = !(pending && bnd >= 8);
+  if (i % 8 === 0 && longPad) { note(root + 7, 1.7, 'triangle', 0.05); note(root + 12, 1.7, 'triangle', 0.04); } // pad drone (quinta+ottava)
+  if (m.cave && i % 8 === 4 && longPad) note(root - 12, 1.0, 'triangle', 0.06); // grotta: drone profondo (avventuroso)
   if (i % 2 === 1) note(31, 0.03, 'triangle', 0.012);                // shaker leggero sull'off
   step++;
 }
@@ -146,7 +173,7 @@ export function startAudio() {
   if (!actx) {
     actx = new AC();
     master = actx.createGain(); master.gain.value = opts.vol * 0.5; master.connect(actx.destination);
-    musicGain = actx.createGain(); musicGain.gain.value = 1; musicGain.connect(master); // fade per il crossfade di bioma
+    musicGain = actx.createGain(); musicGain.gain.value = 1; musicGain.connect(master);
   }
   if (curMoodId == null) curMoodId = targetId = 'prati';
   liveTempo = MOODS[targetId].tempo;

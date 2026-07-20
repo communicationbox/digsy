@@ -1,6 +1,19 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.83', it: [
+      'La MUSICA cambia bioma con ARMONIA: la tonalità passa a una vicina e sul tempo giusto, niente più stacchi stonati',
+      'Il ritmo scivola da un bioma all\'altro invece di scattare di colpo',
+      'Ogni nota ha un attacco più morbido: via i piccoli "click" fra un suono e l\'altro',
+      'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
+    ], en: [
+      'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
+      'The tempo slides from one biome to the next instead of snapping',
+      'Every note has a softer attack: gone are the little clicks between sounds',
+      'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
+    ],
+  },
+  {
     v: 'v0.80', it: [
       'DIGSY SI INSTALLA: icona sulla schermata, a tutto schermo, e funziona ANCHE SENZA RETE',
       'Il pulsante "Installa Digsy" nel menu (su iPhone spiega i passi, che lì nessuno indovina)',
@@ -256,6 +269,7 @@ export const CHANGELOG = [
       'Pulsanti Libro e Zaino sempre accessibili (anche a tocco); coin/energia sempre in vista',
       'Menu: "Nuova partita" + riga icone (Trofei, Novità, Comandi, Credits)',
       'Il Maestro Scavatore ora sta nell\'atrio del Museo (niente più cappello volante)',
+      'Zaino: tolte le cinghie svolazzanti e le tasche laterali',
     ], en: [
       'REALLY fixed overlapping text on mobile (it was the canvas line-height)',
       'Automated E2E tests on the HUD (no more surprise regressions)',
