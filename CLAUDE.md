@@ -418,6 +418,19 @@ tabelle presenti, scrittura possibile) ed è pensato per un controllo automatico
 minuti. Gli errori JavaScript dei giocatori arrivano a `server/api/oops.php`, raggruppati e
 contati, senza niente che dica chi è la persona.
 
+## Si installa come app (PWA)
+`public/sw.js` + il manifest rendono il gioco installabile su Android, desktop e iPhone
+("Aggiungi a Home"): icona propria, niente barra del browser, e si gioca **senza rete** —
+il mondo è procedurale e il salvataggio sta nel dispositivo.
+La regola che governa il service worker: **nessuno deve restare su una versione vecchia**.
+`index.html` e `sw.js` si chiedono SEMPRE alla rete (la copia serve solo offline); gli asset
+sotto `assets/` hanno l'hash nel nome e si tengono per sempre. Le istruzioni di cache stanno
+nell'`.htaccess` della webroot, e in Apache fra più `<FilesMatch>` che combaciano vince
+**l'ultimo**: la regola di `sw.js` deve stare DOPO quella generica `\.js$`, altrimenti viene
+annullata in silenzio e il service worker resta in cache un anno. Il deploy lo verifica.
+Il gioco chiede anche lo storage persistente: senza, il sistema può ripulire il salvataggio
+quando lo spazio scarseggia.
+
 ## Il guardiano (cron sul server)
 `server/watch.sh` gira ogni 5 minuti dal cron di `digsy.dev-box.it` (fuori dalla cartella
 pubblica, 700). Controlla pagina, API e `health.php`; **riprova tre volte** prima di

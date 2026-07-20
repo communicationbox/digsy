@@ -67,6 +67,27 @@ function verifica(atteso) {
   const h = corpo(SITO + '/server/health.php');
   dai('database e scrittura funzionano', h.includes('"ok":true'), h.slice(0, 60));
   dai('la privacy è raggiungibile', stato(SITO + '/privacy.html') === '200');
+
+  /* SI INSTALLA COME APP? Servono tre cose e basta una fuori posto perché "Installa" non
+     compaia — senza che nessuno dica perché. */
+  dai('il manifest c\'è', stato(SITO + '/manifest.webmanifest') === '200');
+  dai('il service worker c\'è', stato(SITO + '/sw.js') === '200');
+
+  /* LE ISTRUZIONI DI CACHE. Sono la differenza fra pubblicare e RAGGIUNGERE i giocatori.
+     Il service worker soprattutto: se resta in cache lui, decide cosa vedono tutti per un
+     anno intero. Ci è già cascato — la regola generica `.js` stava DOPO e lo annullava,
+     perché fra più <FilesMatch> Apache applica l'ultimo. */
+  const cache = (url) => {
+    try {
+      const h = execFileSync('curl', ['-sI', SITO + url], { encoding: 'utf8' });
+      const m = /cache-control:\s*(.+)/i.exec(h);
+      return m ? m[1].trim() : '(nessuna)';
+    } catch (e) { return '(errore)'; }
+  };
+  for (const [nome, url] of [['l\'HTML', '/'], ['il service worker', '/sw.js']]) {
+    const c = cache(url);
+    dai(nome + ' si ricontrolla sempre', /no-cache|no-store|max-age=0/.test(c), c);
+  }
   /* e le cose che NON devono vedersi */
   for (const [nome, url] of [['il config', '/server/config.php'], ['le librerie', '/server/lib/db.php'],
     ['i test', '/server/tests/run.php']]) {

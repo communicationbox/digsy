@@ -56,6 +56,28 @@ if (typeof window !== 'undefined') {
   addEventListener('unhandledrejection', e => racconta((e.reason && e.reason.message) || e.reason, 'promise'));
 }
 
+/* IL GIOCO SI INSTALLA. Con il service worker, digsy.dev-box.it diventa un'app: icona sulla
+   schermata, niente barra del browser, e si gioca senza rete — il mondo è procedurale e il
+   salvataggio sta nel dispositivo.
+   Si registra DOPO il caricamento: durante l'avvio ogni millisecondo va al gioco, e questo
+   può aspettare. In sviluppo si tiene spento, altrimenti si finisce per provare una versione
+   in cache invece di quella appena scritta.
+   `updateViaCache: 'none'` è la riga che conta: senza, il browser tiene in cache il service
+   worker STESSO fino a un giorno, e una versione nuova può restare invisibile. */
+if (typeof navigator !== 'undefined' && navigator.serviceWorker && location.protocol === 'https:') {
+  addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then(reg => { try { reg.update(); } catch (e) { /* niente rete: pazienza */ } })
+      .catch(() => { /* il gioco funziona lo stesso: non è un errore da mostrare */ });
+  });
+  /* Il salvataggio non deve poter sparire. Senza questo, il sistema può ripulire i dati di un
+     sito quando lo spazio scarseggia — e una partita da quaranta ore è irrecuperabile.
+     È una richiesta: il browser decide, ma con un'app installata di solito dice di sì. */
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persisted().then(gia => { if (!gia) navigator.storage.persist(); }).catch(() => {});
+  }
+}
+
 /* niente menu del tasto destro e niente scorciatoie devtools in gioco (esperienza "app") */
 if (typeof addEventListener === 'function') {
   addEventListener('contextmenu', e => e.preventDefault());
