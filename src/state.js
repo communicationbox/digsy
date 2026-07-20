@@ -257,6 +257,7 @@ export function initState() {
      invece di restare con uno zaino che non esiste più in nessun listino. */
   if (!S.bagCap) S.bagCap = 14;
   else { const OLD = { 10: 14, 18: 22, 28: 30 }; if (OLD[S.bagCap]) S.bagCap = OLD[S.bagCap]; }
+  if (S.fireflies == null) S.fireflies = 0; // lucciole raccolte di notte (#5)
   if (!S.wrecks) S.wrecks = {}; // relitti frugati (chiave sito)
   if (!S.level) S.level = 1; if (S.xp === undefined) S.xp = 0; // progressione archeologo
   if (!S.achieved) S.achieved = []; if (S.questTotal === undefined) S.questTotal = 0; // traguardi

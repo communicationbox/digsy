@@ -8,7 +8,7 @@ import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift } from './gameplay.js';
 import { updateCompanion } from './companion.js';
 import { playIntro, introActive } from './intro.js';
-import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, openEditor, welcomeToasts, showBanner } from './ui.js';
+import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner } from './ui.js';
 import { updateCompass } from './compass.js';
 import { trackPlayer } from './map.js';
 import { checkWonderDiscovery } from './gameplay.js';
@@ -133,7 +133,7 @@ let last = 0, hudAcc = 0;
 function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
-  if (!isModalOpen() && !splashActive()) {
+  if (!isModalOpen() && !splashActive() && !isTossOpen()) {
     steerFollow();                  // col mouse tenuto premuto si va verso il puntatore
     /* HUD: va rinfrescato in QUALSIASI scena. Stava dopo i `return` di grotte e interni,
        quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un
@@ -190,7 +190,7 @@ function loop(ts) {
   }
   /* overlay a tutto schermo (zaino/libro): il mondo è coperto → salta il render pesante
      (le animazioni sono comunque in pausa). La modale edifici è semitrasparente: si continua. */
-  if (isBagOpen() || isBookOpen() || isPrepOpen()) { requestAnimationFrame(loop); return; }
+  if (isBagOpen() || isBookOpen() || isPrepOpen() || isTossOpen()) { requestAnimationFrame(loop); return; }
   updateCompass(ts);
   refreshVisParks();
   for (const t of visParks) updatePark(t, dt);

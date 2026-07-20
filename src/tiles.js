@@ -18,13 +18,16 @@ export const INT_WOOD = [
   ['#8e8c62', '#99976c', '#736f4c'],   // Palude: assi verdastre
   ['#a8a094', '#b3aa9e', '#8c857a'],   // Lande: legno grigio di gelo
 ];
+/* `mat` = MATERIALE del tetto per bioma (oltre al colore): lo disegna roofMat in render.js.
+   coppi (Prati) · conci di pietra (Dune) · scandole di legno (Boschi) · tegole (Terre) ·
+   paglia (Palude) · ardesia (Lande, + neve). */
 export const BIOME_BUILD = [
-  { roof: '#9c6636', roof2: '#b5784a', base: '#c9b98f', floor: ['#d8c49a', '#d2bd90', '#dfcda6'], road: ['#cfa96e', '#c7a166', '#d7b47a'], snow: false }, // Prati: coppi caldi
-  { roof: '#d8b26a', roof2: '#e8c98a', base: '#e0cd9a', floor: ['#e4d3a6', '#dcc899', '#ecdcb4'], road: ['#e0c48a', '#d8ba7e', '#e8d09a'], snow: false }, // Dune: pietra chiara e sabbia
-  { roof: '#4e5f4a', roof2: '#63775c', base: '#6b6a58', floor: ['#c6c0a4', '#bcb69a', '#cec8ac'], road: ['#a99a72', '#a0916a', '#b3a47c'], snow: false }, // Boschi: assi scure
-  { roof: '#a3512e', roof2: '#c06a3a', base: '#a3663f', floor: ['#dcb894', '#d2ac88', '#e4c4a0'], road: ['#c98a58', '#bd7f4e', '#d59a68'], snow: false }, // Terre: tegole rosse
-  { roof: '#5c6b46', roof2: '#71805a', base: '#6f7a56', floor: ['#c8c69c', '#bfbd93', '#d1cfa6'], road: ['#a89e6e', '#9d9366', '#b3a97a'], snow: false }, // Palude: legno umido
-  { roof: '#6d7f92', roof2: '#899bb0', base: '#b9c9d4', floor: ['#dfe7ea', '#d6dee2', '#e9f1f4'], road: ['#cfd8dc', '#c5ced2', '#dae3e7'], snow: true },  // Lande: ardesia e NEVE
+  { roof: '#9c6636', roof2: '#b5784a', base: '#c9b98f', floor: ['#d8c49a', '#d2bd90', '#dfcda6'], road: ['#cfa96e', '#c7a166', '#d7b47a'], snow: false, mat: 'coppi' },   // Prati: coppi caldi
+  { roof: '#d8b26a', roof2: '#e8c98a', base: '#e0cd9a', floor: ['#e4d3a6', '#dcc899', '#ecdcb4'], road: ['#e0c48a', '#d8ba7e', '#e8d09a'], snow: false, mat: 'stone' },   // Dune: pietra chiara e sabbia
+  { roof: '#4e5f4a', roof2: '#63775c', base: '#6b6a58', floor: ['#c6c0a4', '#bcb69a', '#cec8ac'], road: ['#a99a72', '#a0916a', '#b3a47c'], snow: false, mat: 'shingle' }, // Boschi: assi scure
+  { roof: '#a3512e', roof2: '#c06a3a', base: '#a3663f', floor: ['#dcb894', '#d2ac88', '#e4c4a0'], road: ['#c98a58', '#bd7f4e', '#d59a68'], snow: false, mat: 'tile' },    // Terre: tegole rosse
+  { roof: '#5c6b46', roof2: '#71805a', base: '#6f7a56', floor: ['#c8c69c', '#bfbd93', '#d1cfa6'], road: ['#a89e6e', '#9d9366', '#b3a97a'], snow: false, mat: 'thatch' },  // Palude: legno umido/paglia
+  { roof: '#6d7f92', roof2: '#899bb0', base: '#b9c9d4', floor: ['#dfe7ea', '#d6dee2', '#e9f1f4'], road: ['#cfd8dc', '#c5ced2', '#dae3e7'], snow: true, mat: 'slate' },    // Lande: ardesia e NEVE
 ];
 export function biomeBuild(tx, ty) { return BIOME_BUILD[zoneIdxAt(tx, ty)] || BIOME_BUILD[0]; }
 

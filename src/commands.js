@@ -1,6 +1,6 @@
 /* Console comandi (tipo Minecraft): si apre col tasto \ .
    Due forme: `chiave=valore` (money, energy, day, goto) e comandi secchi
-   (godmode, goddna, goditem, gotocity, heal, help). Aggiungerne di nuovi qui. */
+   (godmode, goddna, goditem, heal, help). Aggiungerne di nuovi qui. */
 import { S, P, save, snapshotState, restoreState, setCheatLock, isCheatLock, dugSet } from './state.js';
 import { FOOT_DY } from './body.js';
 import { packExplored } from './packmap.js';
@@ -274,6 +274,12 @@ export const COMMANDS = {
         + '\n' + tr('In gioco si apre al MUSEO, su UN pezzo per consegna e solo da raro in su.',
                     'In game it opens at the MUSEUM, on ONE piece per hand-in and only from rare upwards.');
     } },
+  /* MINIGIOCO fontana (#3): lo apre ovunque, per provarlo senza cercare una città */
+  toss: { aliases: ['fontana', 'fountain'], type: 'action', cheat: true, help: 'toss — apre il minigioco della fontana (mira)',
+    run: () => {
+      Promise.all([import('./ui.js'), import('./gameplay.js')]).then(([u, g]) => { if (u.openToss) u.openToss(luck => g.grantToss(luck)); });
+      return '⛲ ' + tr('Fontana: ferma il cursore sulla zona d\'oro', 'Fountain: stop the marker on the golden zone');
+    } },
   /* doppioni pronti da fondere: serve a provare la fusione senza scavare per mezz'ora */
   dupes: { aliases: ['doppioni', 'fuse', 'fondi'], type: 'both', cheat: true,
     help: 'dupes[=comune|raro|eccezionale] — 3 pezzi uguali per provare la fusione',
@@ -292,7 +298,12 @@ export const COMMANDS = {
     } },
   heal: { type: 'action', cheat: true, help: 'heal — energia al massimo',
     run: () => { S.energy = S.maxEnergy; return '⚡ ' + tr('Energia piena', 'Full energy'); } },
-  goto: { type: 'str', help: 'goto=palude — vai al bioma (o grotta)', suggest: p => ['grotta', ...ZONES.map(z => z.id)].filter(id => id.startsWith(p)),
+  /* NOTTE/ALBA: per provare le LUCCIOLE (#5), che compaiono solo di notte, all'aperto */
+  night: { aliases: ['notte'], type: 'action', cheat: true, help: 'night — notte fonda (per le lucciole)',
+    run: () => { S.tod = 0.85; return tr('Notte fonda — esci all\'aperto e cammina fra le lucciole', 'Deep night — go outdoors and walk among the fireflies'); } },
+  dawn: { aliases: ['alba'], type: 'action', cheat: true, help: 'dawn — riporta all\'alba',
+    run: () => { S.tod = 0.05; return tr('Alba', 'Dawn'); } },
+  goto: { type: 'str', help: 'goto=palude — vai al bioma, alla grotta o alla città (goto=city)', suggest: p => ['grotta', 'city', ...ZONES.map(z => z.id)].filter(id => id.startsWith(p)),
     run: v => {
       if (v === 'grotta' || v === 'cave') {
         const e = findCaveEntrance();                 // porta a un imbocco VERO → all'uscita ci torni
@@ -300,12 +311,13 @@ export const COMMANDS = {
         else enterCave((P.x / TS + P.y / TS) | 0, Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
         return '🕳️ ' + tr('Grotta', 'Cave');
       }
+      if (v === 'city' || v === 'città' || v === 'citta') {
+        const n = teleportToCity(); return n ? '🏛️ ' + n : tr('Nessuna città grande trovata', 'No big city found');
+      }
       const z = ZONES.find(z => z.id === v || z.name.toLowerCase() === v);
-      if (!z) return tr('Biomi: ', 'Biomes: ') + ['grotta', ...ZONES.map(z => z.id)].join(', ');
+      if (!z) return tr('Mete: ', 'Targets: ') + ['grotta', 'city', ...ZONES.map(z => z.id)].join(', ');
       return teleportToZone(z.id) ? '🌍 ' + z.name : tr('Bioma non trovato vicino', 'Biome not found nearby');
     } },
-  gotocity: { type: 'action', help: 'gotocity — vai alla città grande più vicina',
-    run: () => { const n = teleportToCity(); return n ? '🏛️ ' + n : tr('Nessuna città grande trovata', 'No big city found'); } },
   gotosite: { type: 'action', help: 'gotosite — vai al sito di scavo più vicino',
     run: () => teleportToSite() ? '⛏️ ' + tr('Sito di scavo', 'Dig site') : tr('Nessun sito trovato vicino', 'No site found nearby') },
   gotowreck: { type: 'action', help: 'gotowreck — vai al relitto in mare più vicino (attiva la barca)',

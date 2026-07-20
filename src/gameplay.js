@@ -413,6 +413,34 @@ export function fountainState() {
   if (!f || S.day - f.d0 >= FOUNTAIN_REST) f = S.fountains[t.key] = { n: 0, d0: S.day }; // ricarica
   return f;
 }
+/* MINIGIOCO DI MIRA (#3): fermare il cursore sulla zona d'oro dà FORTUNA (0..1), che sposta
+   le probabilità verso i rari. Puro e testabile. tossLuck: quanto sei vicino al bersaglio. */
+export function tossLuck(markerPos, targetPos) { return Math.max(0, Math.min(1, 1 - Math.abs(markerPos - targetPos) / 0.35)); }
+/* probabilità interpolate con la fortuna. A fortuna 0 sono le stesse di sempre
+   (60% nulla · 25% comune · 10% raro · 4% eccezionale · 1% leggendario). */
+export function tossRarity(luck, roll) {
+  const L = Math.max(0, Math.min(1, luck));
+  let a = 0.60 - 0.40 * L; if (roll < a) return null;         // nulla:  .60 → .20
+  a += 0.25 + 0.05 * L; if (roll < a) return 'comune';        // comune: .25 → .30
+  a += 0.10 + 0.18 * L; if (roll < a) return 'raro';          // raro:   .10 → .28
+  a += 0.04 + 0.11 * L; if (roll < a) return 'eccezionale';   // ecc:    .04 → .15
+  return 'leggendario';                                       // legg:   .01 → .07
+}
+/* assegna l'esito del lancio con la fortuna del timing (la moneta l'ha già scalata tossCoin) */
+export function grantToss(luck) {
+  const rar = tossRarity(luck, Math.random());
+  if (!rar) {
+    toast(tr('🪙 Plin! …solo cerchi nell\'acqua', '🪙 Plink! …just ripples'));
+  } else {
+    const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
+    /* GREZZO come ogni altro ritrovamento: si identifica al Museo e rispetta il limite zaino */
+    const it = makeRaw(zoneAt(ptx, pty).id, Math.hypot(ptx, pty), rar, 'any');
+    if (addFossil(it, ptx, pty)) { playSfx('found');
+      toast(tr('✨ La fontana ti dona un reperto ', '✨ The fountain grants you a ') + rarLabel(rar) + tr(' (da identificare)', ' find (needs identifying)'));
+    }
+  }
+  save(); updateHUD();
+}
 export function tossCoin() {
   const f = fountainState();
   if (f && f.n >= FOUNTAIN_MAX && !isDebug()) {
@@ -424,21 +452,9 @@ export function tossCoin() {
   if (!isDebug()) S.coins -= FOUNTAIN_COST;
   playSfx('coin');
   if (f) { if (f.n === 0) f.d0 = S.day; f.n++; } // la finestra dei 10 gg parte dal 1° lancio
-  const r = Math.random();
-  // 60% nulla · 25% comune · 10% raro · 4% eccezionale · 1% leggendario
-  const rar = r < 0.60 ? null : r < 0.85 ? 'comune' : r < 0.95 ? 'raro' : r < 0.99 ? 'eccezionale' : 'leggendario';
-  if (!rar) {
-    toast(tr('🪙 Plin! …solo cerchi nell\'acqua', '🪙 Plink! …just ripples'));
-  } else {
-    const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
-    /* GREZZO come ogni altro ritrovamento: si identifica al Museo (prima la fontana
-       scavalcava il museo regalando pezzi già catalogati) e rispetta il limite dello zaino */
-    const it = makeRaw(zoneAt(ptx, pty).id, Math.hypot(ptx, pty), rar, 'any');
-    if (addFossil(it, ptx, pty)) { playSfx('found');
-      toast(tr('✨ La fontana ti dona un reperto ', '✨ The fountain grants you a ') + rarLabel(rar) + tr(' (da identificare)', ' find (needs identifying)'));
-    }
-  }
   save(); updateHUD();
+  /* apre il minigioco di mira; alla fine grantToss con la fortuna. Se l'UI non c'è → fortuna 0. */
+  import('./ui.js').then(u => { if (u.openToss) u.openToss(luck => grantToss(luck)); else grantToss(0); }).catch(() => grantToss(0));
 }
 /* ---------- mappe del tesoro: X lontana, scavo garantito della rarità comprata ---------- */
 export const MAP_COST = { raro: 30, eccezionale: 90, leggendario: 260 };

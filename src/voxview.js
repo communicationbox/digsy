@@ -9,7 +9,10 @@ import { shadeHex } from './bones.js';
 export function projectVox(cv, vox, silhouette, lit, bg, maxS) {
   const c2 = cv.getContext && cv.getContext('2d'); if (!c2) return;
   c2.imageSmoothingEnabled = false;
-  c2.fillStyle = bg || '#15120d'; c2.fillRect(0, 0, cv.width, cv.height);
+  /* bg === false → NON riempie lo sfondo: resta trasparente, così la silhouette dei voxel si
+     legge dall'alpha (serve al tavolo di preparazione per sapere DOVE c'è l'osso). */
+  if (bg !== false) { c2.fillStyle = bg || '#15120d'; c2.fillRect(0, 0, cv.width, cv.height); }
+  else c2.clearRect(0, 0, cv.width, cv.height);
   if (!vox.length) return;
   let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
   for (const v of vox) {

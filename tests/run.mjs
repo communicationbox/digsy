@@ -1318,18 +1318,23 @@ sprites.applyLook();
   }
   S.sleepBlockHalf = null;
 
-  // fontana: lancio monetina con esiti forzati
+  // fontana: minigioco di mira (#3). Le probabilità sono pure e testabili.
   const om = Math.random;
-  /* la fontana costa FOUNTAIN_COST e dà GREZZI (si identificano al museo, come ogni scavo) */
   const FC = gameplay.FOUNTAIN_COST;
+  check('tossRarity: fortuna 0 = probabilità di sempre (0.999→leggendario, 0.3→nulla, 0.9→raro)',
+    gameplay.tossRarity(0, 0.999) === 'leggendario' && gameplay.tossRarity(0, 0.3) === null && gameplay.tossRarity(0, 0.9) === 'raro');
+  check('il timing (fortuna) sposta le probabilità verso i rari', gameplay.tossRarity(1, 0.5) !== null && gameplay.tossRarity(0, 0.5) === null);
+  check('tossLuck: centro del bersaglio = fortuna piena, lontano = zero', gameplay.tossLuck(0.5, 0.5) === 1 && gameplay.tossLuck(0, 1) === 0);
+  /* grantToss dà un GREZZO della rarità estratta (si identifica al museo, come ogni scavo) */
   S.coins = 30; const raw0 = S.raw.length, items0 = S.items.length;
-  Math.random = () => 0.999; gameplay.tossCoin();
-  check('monetina: 0.999 → leggendario GREZZO', S.raw.length === raw0 + 1 && S.raw[S.raw.length - 1].q === 'leggendario' && S.coins === 30 - FC);
-  check('la fontana non regala pezzi già identificati', S.items.length === items0);
-  Math.random = () => 0.3; gameplay.tossCoin();
-  check('monetina: 0.3 → nulla (solo cerchi nell\'acqua)', S.raw.length === raw0 + 1 && S.coins === 30 - FC * 2);
-  Math.random = () => 0.9; gameplay.tossCoin();
-  check('monetina: 0.9 → raro', S.raw[S.raw.length - 1].q === 'raro' && S.coins === 30 - FC * 3);
+  Math.random = () => 0.999; gameplay.grantToss(0);
+  check('la fontana dà un reperto GREZZO leggendario, mai già identificato', S.raw.length === raw0 + 1 && S.raw[S.raw.length - 1].q === 'leggendario' && S.items.length === items0);
+  Math.random = () => 0.3; gameplay.grantToss(0);
+  check('roll basso → nulla, niente nello zaino', S.raw.length === raw0 + 1);
+  /* tossCoin scala la moneta e conta il lancio (poi aprirebbe il minigioco) */
+  Math.random = om; S.fountains = {}; S.coins = 30;
+  gameplay.tossCoin();
+  check('tossCoin scala 1 moneta', S.coins === 30 - FC);
 
   // limite: max 10 lanci per città, poi riposo 10 giorni
   {
@@ -3045,7 +3050,14 @@ sprites.applyLook();
     (tsrc.match(/roof:/g) || []).length === 6);
   check('lastricato e strade prendono il materiale del bioma', /biomeBuild\(tx, ty\)\.floor/.test(tsrc) && /biomeBuild\(tx, ty\)\.road/.test(tsrc));
   check('i tetti cambiano col bioma, e nelle Lande si innevano', /BB\.roof/.test(rsrc) && /snowCap/.test(rsrc));
+  check('ogni bioma ha un MATERIALE di tetto (mat)', (tsrc.match(/mat:\s*'/g) || []).length === 6);
+  check('i tetti disegnano il materiale del bioma (roofMat)', /roofMat\s*=/.test(rsrc) && /roofMat\(sy/.test(rsrc));
   check('il legno degli interni cambia col bioma', /export const INT_WOOD = \[/.test(tsrc) && (tsrc.match(/#/g) || []).length > 100);
+  /* DISEGNO VERO: i 6 edifici si disegnano senza errori (materiale tetto + neve inclusi) */
+  const render3 = await import('../src/render.js');
+  let drew = true, drewErr = '';
+  try { for (const t of ['museum', 'store', 'inn', 'barber', 'tailor', 'lab']) render3.drawBuilding({ type: t, x0: 0, y0: 0, x1: 4, y1: 1 }, 120, 120); } catch (e) { drew = false; drewErr = e.message; }
+  check('i 6 edifici si disegnano senza errori', drew, drewErr);
 }
 
 /* ---------- ONBOARDING: ogni meccanica si spiega quando la incontri, e resta nella Guida ---------- */
@@ -4566,20 +4578,25 @@ sprites.applyLook();
   const S = state.S;
   const pr = await import('../src/prepare.js');
   const b = pr.newBoard(7);
-  check('crosta: quasi tutta sporca all\'inizio', pr.cleanPct(b) < 0.12);
+  check('crosta: all\'inizio quasi nessun osso scoperto', pr.cleanPct(b) < 0.2);
+  check('integrità piena all\'inizio', pr.integrity(b) === 1);
   check('stessa crosta per lo stesso reperto', JSON.stringify(pr.newBoard(7)) === JSON.stringify(b));
-  const n = pr.brush(b, 5, 5, 2);
-  check('una passata pulisce un\'area', n > 0 && pr.cleanPct(b) > 0.05);
-  check('ripassare sullo stesso punto non conta due volte', pr.brush(b, 5, 5, 2) === 0);
-  for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(b, x, y, 1);
-  check('pulendo tutto si arriva al 100%', pr.cleanPct(b) === 1);
-  check('grado: 100% = perfetto ×1.5', pr.gradeFor(1).id === 'perfetto' && pr.gradeFor(1).mult === 1.5);
-  check('grado: niente pulizia = nessun bonus, MAI una penalità', pr.gradeFor(0).mult === 1 && pr.gradeFor(0).xp === 0);
+  check('una passata toglie terra', pr.brush(b, 5, 5, { r: 2 }) > 0);
+  check('grado: pulito e intatto = perfetto ×1.5', pr.gradeFor(1, 1).id === 'perfetto' && pr.gradeFor(1, 1).mult === 1.5);
+  check('grado: niente pulizia = nessun bonus, MAI una penalità', pr.gradeFor(0, 1).mult === 1 && pr.gradeFor(0, 1).xp === 0);
+  /* SKILL del restauro: la stecca gentile scopre senza rovinare; la spazzola sull'osso scoperto scheggia */
+  {
+    const bb = pr.newBoard(3);
+    for (let k = 0; k < 12; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(bb, x, y, { r: 1.2, gentle: true });
+    check('la stecca fine scopre l\'osso senza scheggiare', pr.cleanPct(bb) > 0.9 && pr.integrity(bb) === 1);
+    for (let k = 0; k < 10; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(bb, x, y, { r: 1.2 });
+    check('la spazzola sull\'osso scoperto lo scheggia (integrità cala)', pr.integrity(bb) < 1);
+  }
   {
     const it = { uid: 1, s: 'lepre', t: 'cranio', q: 'raro', val: 40 };
-    const g = pr.applyPrep(it, 1);
-    check('preparato: valore ×1.5 e marchio sul pezzo', g.id === 'perfetto' && it.val === 60 && it.prep === 100);
-    check('e non si prepara due volte', pr.applyPrep(it, 1) === null && it.val === 60);
+    const g = pr.applyPrep(it, 1, 1);
+    check('preparato: valore ×1.5 e marchio (pulizia+integrità)', g.id === 'perfetto' && it.val === 60 && it.prep === 100 && it.prepInteg === 100);
+    check('e non si prepara due volte', pr.applyPrep(it, 1, 1) === null && it.val === 60);
   }
   /* la regola anti-tedio: UN pezzo per consegna, e solo da raro in su */
   {
@@ -4597,6 +4614,26 @@ sprites.applyLook();
     check('i comuni non vanno mai al tavolo (niente catena di montaggio)', ui.prepCandidate() === null);
     S.raw = [];
   }
+}
+
+/* ---------- LUCCIOLE (#5): compaiono di notte all'aperto e si raccolgono ---------- */
+{
+  const ff = await import('../src/firefly.js');
+  const S = state.S;
+  ff.resetFireflies();
+  P.x = 0; P.y = 0;
+  ff.updateFireflies(0, 0.9);
+  check('di notte compaiono lucciole', ff.fireflyCount() > 0);
+  ff.updateFireflies(120, 0.1);
+  check('di giorno le lucciole spariscono', ff.fireflyCount() === 0);
+  ff.updateFireflies(240, 0.9);
+  const flies = ff._fliesForTest();
+  flies[0].x = P.x; flies[0].y = P.y + 8;                 // metti una lucciola SUL player
+  const before = S.fireflies || 0;
+  ff.updateFireflies(260, 0.9);
+  check('passandoci sopra, la lucciola si raccoglie (il conteggio sale)', (S.fireflies || 0) > before);
+  check('il conteggio delle lucciole è un numero (sta nel salvataggio)', typeof S.fireflies === 'number');
+  ff.resetFireflies();
 }
 
 /* ---------- FINESTRE DI PRESENZA (specie notturne e stagionali) ---------- */

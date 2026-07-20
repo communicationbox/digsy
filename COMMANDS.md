@@ -18,11 +18,14 @@ suggerimenti mentre scrivi (es. `goto=pal` → `goto=palude`).
 | `day=10` | ✔ | Imposta il giorno di gioco |
 | `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
 | `heal` | ✔ | Energia al massimo |
+| `night` | ✔ | Notte fonda — per provare le **lucciole** (esci all'aperto e camminaci fra; alias `notte`) |
+| `dawn` | ✔ | Riporta all'alba (alias `alba`) |
+| `toss` | ✔ | Apre il **minigioco della fontana** (mira) ovunque (alias `fontana`) |
 | `godmode` | ✔ | Sblocca e completa **tutto**, infinito, velocità ×5, **volo** (alias `god`). Comprende `goditem` (fossili + attrezzi + barca + mezzi + mappe) e `goddna`, più: cosmetici sbloccati, museo completo, libro completo, specie risvegliate, e `fly` attivo |
 | `goddna` | ✔ | DNA infinito per tutte le specie |
 | `goditem` | ✔ | Ogni pezzo di ogni specie, già identificato, nello zaino |
 | `goto=palude` | ✖ | Teletrasporto al bioma indicato (`prati`, `dune`, `boschi`, `terre`, `palude`, `ghiacci`) |
-| `gotocity` | ✖ | Teletrasporto alla città grande più vicina |
+| `goto=city` | ✖ | Teletrasporto alla città grande più vicina |
 | `vanilla` | ✖ | Toglie i cheat e **ripristina il salvataggio** (alias `reset`, `ungod`) |
 | `help` | ✖ | Elenco dei comandi |
 

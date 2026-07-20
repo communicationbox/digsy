@@ -11,7 +11,7 @@ import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achiev
 import { weatherAt, weatherLabel } from './weather.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, debugSpawnAll, dirTo, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
 import { letterTitle, letterBody, hasLetter, allLetters } from './letters.js';
@@ -591,6 +591,38 @@ export function openMentor() {
   mTitle.innerHTML = withIcons('🎓 ' + tr('Maestro Scavatore', 'Master Digger'));
   mBody.innerHTML = withIcons(h); openModal();
 }
+
+/* ---------- FONTANA: minigioco di mira (#3) ---------- */
+let tossOpen = false, tossRAF = 0, tossPos = 0, tossDir = 1, tossTarget = 0.5, tossOnDone = null, tossWired = false;
+export function isTossOpen() { return tossOpen; }
+export function openToss(onDone) {
+  const ov = document.getElementById('tossov'); if (!ov) { if (onDone) onDone(0); return; }
+  if (typeof requestAnimationFrame === 'undefined') { if (onDone) onDone(0); return; } // niente animazione = niente mira
+  tossOnDone = onDone || null; tossOpen = true; tossPos = 0; tossDir = 1;
+  tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni volta
+  const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana della fortuna', 'Wishing fountain'));
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Tocca per fermare il cursore sulla zona d\'oro', 'Tap to stop the marker on the golden zone'));
+  const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
+  ov.classList.add('on');
+  if (!tossWired) { tossWired = true; ov.onclick = () => stopToss(); }
+  const mk = document.getElementById('toss-marker');
+  const step = () => {
+    if (!tossOpen) return;
+    tossPos += tossDir * 0.02; if (tossPos >= 1) { tossPos = 1; tossDir = -1; } else if (tossPos <= 0) { tossPos = 0; tossDir = 1; }
+    if (mk) mk.style.left = 'calc(' + (tossPos * 100) + '% - 2px)';
+    tossRAF = (typeof requestAnimationFrame !== 'undefined') ? requestAnimationFrame(step) : 0;
+  };
+  if (typeof requestAnimationFrame !== 'undefined') step();
+}
+function stopToss() {
+  if (!tossOpen) return;
+  const luck = tossLuck(tossPos, tossTarget);
+  tossOpen = false;
+  if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
+  const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
+  const cb = tossOnDone; tossOnDone = null;
+  if (cb) cb(luck);
+}
 /* click sulle statistiche dell'HUD (non su zaino/menu) → guida */
 if (typeof document !== 'undefined' && document.getElementById) {
   for (const id of ['h-coin', 'h-en', 'h-day', 'h-lvl', 'h-zone', 'h-compass', 'h-comp']) {
@@ -1107,6 +1139,7 @@ export function openBag(tab) {
   const orows = [];
   if (S.snacks > 0) orows.push(row('🍞', tr('Ristoro', 'Snack') + ' ×' + S.snacks, '+15 ⚡', `<button class="bbtn" data-eat="1">${tr('Usa', 'Use')}</button>`, ''));
   if (S.teleports > 0) orows.push(row('📜', tr('Pergamena di ritorno', 'Return scroll') + ' ×' + S.teleports, tr('alla città più vicina', 'to the nearest city'), `<button class="bbtn" data-tp="1">${tr('Usa', 'Use')}</button>`, ''));
+  if (S.fireflies > 0) orows.push(row('✨', tr('Lucciole', 'Fireflies') + ' ×' + S.fireflies, tr('raccolte di notte', 'caught at night'), '', '', ''));
   (S.goods || []).forEach(g => orows.push(row('🐚', goodName(g.id) + ((g.n || 1) > 1 ? ' ×' + g.n : ''), '🪙 ' + g.val + ' · ' + tr('vendi al Negozio', 'sell at the Shop'), '', '', '')));
   (S.maps || []).forEach(m => { const on = S.trackMap === m.uid;
     orows.push(row('🗺️', tr('Mappa', 'Map') + ' ' + rarLabel(m.rar) + (on ? ' · 🧭' : ''), '✨ ' + dirTo(m.x, m.y),

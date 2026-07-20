@@ -27,6 +27,7 @@ import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
+import { updateFireflies, drawFireflies } from './firefly.js';
 import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
 
 /* stato del frame: oscurità (0..1) e stagione corrente, letti dalle funzioni di disegno */
@@ -70,7 +71,21 @@ export function drawBuilding(b, sx, sy) {
   const bv = vhash(b.x0, b.y0, 77), bw = vhash(b.x0, b.y0, 78), bc = vhash(b.x0, b.y0, 79);
   shadow(sx + w / 2, sy + h + 2, Math.floor(w / 2) - 2);
   const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
-  const snowCap = () => { if (!BB.snow) return; rect(sx, sy + 1, w, 2, '#eef7fa'); for (let i = 0; i < w; i += 5) px(sx + i + 2, sy + 3, '#dfeef2'); };
+  /* NEVE (clima delle Lande) sul bordo alto del tetto, a qualsiasi altezza esso stia */
+  const snowCap = (ry) => { if (!BB.snow) return; const y = ry == null ? sy + 1 : ry; rect(sx, y, w, 2, '#eef7fa'); for (let i = 0; i < w; i += 5) px(sx + i + 2, y + 2, '#dfeef2'); };
+  /* MATERIALE del tetto per bioma (coppi/conci/scandole/tegole/paglia/ardesia): dettaglio a
+     pixel sopra il tetto colorato. ry = bordo alto del tetto, th = spessore della falda. */
+  const roofMat = (ry, th) => {
+    const d = shade8(BB.roof, 0.72), l = shade8(BB.roof2 || BB.roof, 1.1), bot = ry + th - 1;
+    switch (BB.mat) {
+      case 'coppi':   for (let i = 0; i < w; i += 4) { px(sx + i, bot, d); px(sx + i + 2, ry + 2, l); } break;                                   // coppi curvi
+      case 'stone':   rect(sx, ry + Math.floor(th / 2), w, 1, d); for (let i = 3; i < w; i += 7) rect(sx + i, ry + 1, 1, th - 2, d); break;       // conci di pietra
+      case 'shingle': for (let r = ry + 2; r < bot; r += 3) { rect(sx, r, w, 1, d); for (let i = (r % 2) * 2; i < w; i += 4) px(sx + i, r + 1, d); } break; // scandole sfalsate
+      case 'tile':    for (let i = 2; i < w; i += 3) rect(sx + i, ry + 1, 1, th - 2, d); rect(sx, ry + Math.floor(th / 2), w, 1, d); break;        // tegole a griglia
+      case 'thatch':  for (let i = 0; i < w; i += 2) rect(sx + i, ry, 1, th + (i % 4 ? 0 : 1), i % 4 ? d : l); break;                             // paglia (bordo irregolare)
+      case 'slate':   rect(sx, ry + 2, w, 1, d); rect(sx, ry + Math.max(3, Math.floor(th * 0.7)), w, 1, d); break;                                // ardesia
+    }
+  };
   const dcx = sx + w / 2;
   const door = (col1, col2) => { rect(dcx - 5, sy + h - 12, 10, 12, col1 || '#7a5a3a'); rect(dcx - 3, sy + h - 10, 6, 10, col2 || '#5c4229'); px(dcx + 1, sy + h - 6, '#d9b98a'); };
 
@@ -88,9 +103,10 @@ export function drawBuilding(b, sx, sy) {
     }
     rect(sx + 4, sy + h - 1, w - 8, 1, '#b8ac90'); // gradino
     rect(dcx - 5, sy + h - 12, 10, 12, '#3a3a44'); rect(dcx - 3, sy + h - 10, 6, 10, '#23232c'); // portale scuro
+    if (BB.snow) { rect(sx - 2, sy + 10, w + 4, 1, '#eef7fa'); px(dcx, sy - 5, '#eef7fa'); px(dcx - 1, sy - 4, '#eef7fa'); px(dcx + 1, sy - 4, '#eef7fa'); } // neve sul timpano
   } else if (b.type === 'store') { /* NEGOZIO: pareti VERDE SALVIA (staccano dal pavimento) + tenda a strisce */
     rect(sx + 2, sy + 8, w - 4, h - 6, '#7fa06a'); rect(sx + 2, sy + 8, w - 4, 2, '#93b47c'); rect(sx + 2, sy + h - 2, w - 4, 2, '#5f7d4c');
-    rect(sx, sy + 2, w, 7, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2);
+    rect(sx, sy + 2, w, 7, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); roofMat(sy + 2, 7);
     for (let i = 0; i < w; i += 8) { rect(sx + i, sy + 9, 4, 6, '#c65a54'); rect(sx + i + 4, sy + 9, 4, 6, '#f1e6cc'); px(sx + i + 1, sy + 15, '#a3494e'); px(sx + i + 5, sy + 15, '#cdbd97'); } // tenda
     rect(sx + 5, sy + 18, 9, 8, glass); rect(sx + 5, sy + 18, 9, 1, '#efe6cf'); rect(sx + 5, sy + 25, 9, 1, '#cdbd97'); // vetrina
     rect(sx + 6, sy + 22, 3, 3, '#b98d59'); rect(sx + 10, sy + 21, 3, 4, '#8a5f38'); // merci esposte
@@ -98,7 +114,7 @@ export function drawBuilding(b, sx, sy) {
     snowCap(); door();
   } else if (b.type === 'inn') { /* LOCANDA: pareti MATTONE CALDO a due piani (staccano dal pavimento) */
     rect(sx + 2, sy - 2, w - 4, h + 2, '#c07a52'); rect(sx + 2, sy - 2, w - 4, 2, '#d0906a'); rect(sx + 2, sy + 10, w - 4, 2, '#7a4526'); // marcapiano
-    rect(sx, sy - 8, w, 8, BB.roof); rect(sx, sy - 8, w, 2, BB.roof2); rect(sx - 1, sy - 1, w + 2, 2, shade8(BB.roof, 0.75)); // tetto alto
+    rect(sx, sy - 8, w, 8, BB.roof); rect(sx, sy - 8, w, 2, BB.roof2); rect(sx - 1, sy - 1, w + 2, 2, shade8(BB.roof, 0.75)); roofMat(sy - 8, 8); snowCap(sy - 7); // tetto alto
     rect(sx + 6, sy - 6, 4, 9, '#9a8874'); rect(sx + 6, sy - 6, 4, 2, '#7f6f5e'); // camino
     px(sx + 7, sy - 8 - (Math.floor(bv * 2)), '#cfcabf'); px(sx + 8, sy - 10, '#dcd8cf');
     for (const wx of [sx + 6, sx + w / 2 - 2, sx + w - 11]) { rect(wx, sy + 2, 5, 5, glass); rect(wx, sy + 6, 5, 1, '#cdbd97'); } // finestre piano alto
@@ -113,14 +129,14 @@ export function drawBuilding(b, sx, sy) {
     /* palo del barbiere accanto alla porta */
     rect(dcx + 8, sy + h - 14, 3, 14, '#d9d0bb'); rect(dcx + 7, sy + h - 15, 5, 2, '#8fb0bd');
     for (let i = 0; i < 5; i++) { const yy = sy + h - 13 + i * 2; rect(dcx + 8, yy, 3, 1, i % 2 ? '#c65a54' : '#5a86c8'); }
-    door('#5b7e99', '#3d5a72');
+    door('#5b7e99', '#3d5a72'); snowCap(sy + 1);
   } else if (b.type === 'tailor') { /* SARTORIA: vetrina col manichino + rullo di stoffa */
     rect(sx + 2, sy + 8, w - 4, h - 6, '#f2e4ea'); rect(sx + 2, sy + h - 2, w - 4, 2, '#cfb4c0');
     rect(sx, sy + 2, w, 8, '#b06a8c'); rect(sx, sy + 2, w, 2, '#c887a4'); rect(sx - 1, sy + 9, w + 2, 2, '#8c4e6c');
     rect(sx + 4, sy + 14, 11, 12, glass); rect(sx + 4, sy + 14, 11, 1, '#efe6cf'); rect(sx + 4, sy + 25, 11, 1, '#cfb4c0'); // vetrina grande
     rect(sx + 8, sy + 17, 3, 5, '#e08aa8'); px(sx + 9, sy + 16, '#f3cfa0'); rect(sx + 7, sy + 22, 5, 2, '#8a5f38'); // manichino vestito
     rect(sx + w - 10, sy + h - 8, 4, 8, '#8fd0a0'); rect(sx + w - 9, sy + h - 8, 1, 8, '#6faa80'); // rullo di stoffa
-    door('#8c5a74', '#6a4056');
+    door('#8c5a74', '#6a4056'); snowCap(sy + 1);
   } else { /* LABORATORIO: torretta con alambicco e fumo verde */
     rect(sx + 2, sy + 10, w - 4, h - 8, '#e0e4d4'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b9c0a8');
     rect(sx, sy + 4, w, 8, '#5f7a52'); rect(sx, sy + 4, w, 2, '#78966a'); rect(sx - 1, sy + 11, w + 2, 2, '#485e3e');
@@ -128,7 +144,7 @@ export function drawBuilding(b, sx, sy) {
     rect(sx + w - 12, sy - 3, 5, 5, glass); px(sx + w - 10, sy - 9, '#8fd0a0'); px(sx + w - 9, sy - 11, '#b2e4be'); // oblò + fumo verde
     rect(sx + 6, sy + 16, 5, 5, glass); rect(sx + 6, sy + 19, 5, 1, '#b9c0a8');
     rect(sx + w - 11, sy + 16, 5, 5, glass);
-    door('#5f7a52', '#3f5434');
+    door('#5f7a52', '#3f5434'); snowCap(sy + 3);
   }
   // insegna appesa sopra la porta (comunque utile da lontano)
   drawSign(b.type, dcx, sy + 12);
@@ -827,6 +843,10 @@ export function render(time) {
       ctx.fillStyle = 'rgba(255,225,150,' + (0.16 * night()) + ')'; ctx.fillRect(g.x - 7, g.y - 6, 14, 16);
     }
   }
+  /* LUCCIOLE (#5): di notte, all'aperto, luci che si raccolgono passandoci vicino. Sopra il
+     buio (così brillano), sotto meteo e bussola. */
+  updateFireflies(time, night());
+  drawFireflies(ctx, cam.x, cam.y);
   { const tgt = weatherAt(zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS)).id, S.day); const st = weatherStep(tgt, time); drawWeather(st.w, time, st.level); }
   drawCompassIndicator(time);
 }

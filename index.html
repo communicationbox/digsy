@@ -63,8 +63,23 @@
   <div id="prepov"><div id="prepbox">
     <div class="pr-hd"><span id="pr-title">PREPARAZIONE</span><button class="pr-x" id="pr-close">✕</button></div>
     <div class="pr-stage"><canvas id="pr-cv" width="224" height="192"></canvas></div>
-    <div class="pr-bar"><div class="pr-fill" id="pr-fill"></div></div>
+    <div class="pr-tools">
+      <button class="pr-tool on" id="pr-brush" data-tool="brush">Spazzola</button>
+      <button class="pr-tool" id="pr-pick" data-tool="pick">Stecca</button>
+    </div>
+    <div class="pr-meters">
+      <div class="pr-meter"><span class="pr-mlab" id="pr-lab-clean">Pulizia</span><div class="pr-bar"><div class="pr-fill" id="pr-fill"></div></div></div>
+      <div class="pr-meter"><span class="pr-mlab" id="pr-lab-integ">Integrità</span><div class="pr-bar"><div class="pr-fill integ" id="pr-integ" style="width:100%"></div></div></div>
+    </div>
     <div class="pr-foot"><span id="pr-hint"></span><button class="btn amber" id="pr-done">Fatto</button></div>
+  </div></div>
+  <div id="tossov"><div id="tossbox">
+    <div class="toss-hd" id="toss-title"></div>
+    <div class="toss-track" id="toss-track">
+      <div class="toss-target" id="toss-target"></div>
+      <div class="toss-marker" id="toss-marker"></div>
+    </div>
+    <div class="toss-hint" id="toss-hint"></div>
   </div></div>
   <div id="mapov"><div id="mapbox">
     <div class="mp-roll top"></div>

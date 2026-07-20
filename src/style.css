@@ -793,9 +793,29 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
 .pr-x{background:#c9553f;color:#fff;border:0;box-shadow:0 0 0 3px var(--c-deep);width:26px;height:26px;font:inherit;cursor:pointer}
 .pr-stage{padding:12px;display:flex;justify-content:center}
 #pr-cv{width:min(336px,80vw);height:auto;image-rendering:pixelated;background:#15120d;box-shadow:0 0 0 3px var(--c-deep);touch-action:none;cursor:crosshair}
-.pr-bar{height:14px;margin:0 12px;background:var(--c-parch);box-shadow:inset 0 0 0 2px #8a6f42}
+.pr-tools{display:flex;gap:8px;padding:0 12px}
+.pr-tool{flex:1;font:inherit;font-weight:700;font-size:13px;color:var(--c-line-3);background:var(--c-parch);
+  border:0;padding:8px;cursor:pointer;box-shadow:inset 0 0 0 2px #8a6f42}
+.pr-tool.on{color:#3b2f1e;background:var(--c-amber);box-shadow:inset 0 0 0 2px #a9761f}
+.pr-meters{display:flex;flex-direction:column;gap:6px;padding:10px 12px 0}
+.pr-meter{display:grid;grid-template-columns:70px 1fr;align-items:center;gap:8px}
+.pr-mlab{font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--c-line-3)}
+.pr-bar{height:14px;margin:0;background:var(--c-parch);box-shadow:inset 0 0 0 2px #8a6f42}
 .pr-fill{height:100%;width:0;background:#6fae5a;transition:width .08s steps(4)}
+.pr-fill.integ{width:100%;background:#6fbf73}
 .pr-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px 12px;font-size:14px}
+
+/* FONTANA — minigioco di mira: ferma il cursore sulla zona d'oro */
+#tossov{position:fixed;inset:0;z-index:24;background:rgba(14,12,10,.86);display:none;align-items:center;justify-content:center;padding:12px}
+#tossov.on{display:flex}
+#tossbox{width:min(420px,94vw);padding:18px;text-align:center;background:var(--c-parch-3);color:#3b2f1e;cursor:pointer;
+  box-shadow:inset 0 0 0 3px var(--c-parch), inset 0 0 0 6px var(--c-parch-3), 0 0 0 3px var(--c-deep)}
+.toss-hd{font-weight:800;letter-spacing:1px;color:var(--c-line-3);margin-bottom:14px}
+.toss-track{position:relative;height:26px;background:linear-gradient(90deg,#2c4a6e,#3a6e8c 20%,#3a8c85 50%,#3a6e8c 80%,#2c4a6e);
+  box-shadow:inset 0 0 0 3px var(--c-deep);overflow:hidden}
+.toss-target{position:absolute;top:0;bottom:0;width:12%;background:repeating-linear-gradient(45deg,#e6b23c,#e6b23c 4px,var(--c-gold) 4px,var(--c-gold) 8px);box-shadow:inset 0 0 0 2px #fff5;transform:translateX(-50%)}
+.toss-marker{position:absolute;top:-3px;bottom:-3px;width:5px;left:0;background:#fff;box-shadow:0 0 0 2px #23180d}
+.toss-hint{margin-top:12px;font-size:13px;color:var(--c-line-3);font-weight:700}
 
 /* BETA: aggiornamento forzato, nascosto nei Credits (serve solo ai tester).
    Blocco isolato di proposito: a fine test si cancella tutto questo. */
