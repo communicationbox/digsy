@@ -418,6 +418,14 @@ tabelle presenti, scrittura possibile) ed è pensato per un controllo automatico
 minuti. Gli errori JavaScript dei giocatori arrivano a `server/api/oops.php`, raggruppati e
 contati, senza niente che dica chi è la persona.
 
+## Il guardiano (cron sul server)
+`server/watch.sh` gira ogni 5 minuti dal cron di `digsy.dev-box.it` (fuori dalla cartella
+pubblica, 700). Controlla pagina, API e `health.php`; **riprova tre volte** prima di
+dichiarare un guasto (un pacchetto perso non è un'emergenza) e **avvisa solo quando lo stato
+CAMBIA** — un servizio giù sei ore manderebbe 72 mail, e alla settima nessuno le legge più.
+Mail a `dev@communicationbox.it` (si cambia con `DIGSY_ALERT_TO`). Registro in
+`.watch-log`, tenuto agli ultimi 500 controlli.
+
 ## GUARDARE le schermate prima di consegnarle
 `npm run shot -- <vista> [larghezza,altezza]` fotografa una schermata vera del gioco in
 `.shots/`. Viste: `main saves stats settings trophies changelog credits account`.
