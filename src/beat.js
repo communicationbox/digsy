@@ -11,7 +11,8 @@
  * a caso e serve a distinguere due sessioni, non a riconoscere qualcuno.
  * Si spegne dalle Impostazioni, e da spento non parte niente.
  */
-import { S } from './state.js';
+import { S, isCheatLock } from './state.js';
+import { isDebug } from './debug.js';
 import { VERSION } from './version.js';
 import { getPrefs, setPref } from './prefs.js';
 import { isTouch } from './i18n.js';
@@ -55,8 +56,16 @@ export function datiBattito() {
 }
 
 let timer = null;
+/* esposta apposta: una regola che decide se mandare o no dei dati dev'essere provabile
+   da un test, non solo dal comportamento a runtime */
+export async function mandaOra() { return manda(); }
 async function manda() {
   if (!battitoAcceso()) return false;
+  /* SOTTO HACKS NON SI MANDA NIENTE. Con `godmode` o `goditem` i numeri diventano una
+     bugia — nove specie scoperte e ancora livello 1, quaranta minuti di partita che sono
+     stati venti di prove — e inquinano proprio i dati per cui il battito esiste.
+     Stessa regola del salvataggio, che sotto cheat è congelato. */
+  if (isCheatLock() || isDebug()) return false;
   const d = datiBattito();
   if (!d.id) return false;
   /* una partita appena aperta e mai giocata non dice niente a nessuno */

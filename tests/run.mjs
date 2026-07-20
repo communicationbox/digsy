@@ -547,6 +547,20 @@ sprites.applyLook();
   check('battito: da spento la preferenza resta spenta anche dopo', prefs2.getPrefs().battito === false);
   beat.accendiBattito(true);
 
+  /* SOTTO HACKS NON SI MANDA NIENTE. È successo alla prima riga raccolta: nove specie con
+     `goditem` e ancora livello 1, quaranta minuti che erano venti di prove. Numeri così non
+     sono inutili, sono PEGGIO — fanno prendere decisioni sbagliate sul bilanciamento. */
+  {
+    const st4 = await import('../src/state.js');
+    const dbg4 = await import('../src/debug.js');
+    st4.setCheatLock(true);
+    check('battito: sotto cheat non parte', beat.battitoAcceso() && (await beat.mandaOra()) === false);
+    st4.setCheatLock(false);
+    if (!dbg4.isDebug()) dbg4.toggleDebug();
+    check('battito: in debug non parte', (await beat.mandaOra()) === false);
+    dbg4.toggleDebug();
+  }
+
   /* una partita aperta e mai giocata non racconta niente a nessuno */
   S.playSec = 0; S.day = 1;
   const vuota = beat.datiBattito();

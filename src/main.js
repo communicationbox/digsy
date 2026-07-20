@@ -149,7 +149,11 @@ function loop(ts) {
     /* ORE DI GIOCO: si contano qui, dove si conta anche l'orologio del mondo — cioè solo
        mentre si gioca davvero, non con una modale aperta o il gioco in pausa. È il numero
        che i giocatori guardano per primo nelle statistiche. */
-    S.playSec = (S.playSec || 0) + dt;
+    /* solo col gioco DAVANTI: una scheda lasciata aperta mentre si fa altro non è tempo
+       giocato, e gonfiava proprio la misura che serve a capire quanto si gioca davvero */
+    if (typeof document === 'undefined' || document.visibilityState !== 'hidden') {
+      S.playSec = (S.playSec || 0) + dt;
+    }
     if (advanceTime(dt)) {
       toast(tr('📅 Giorno ', '📅 Day ') + S.day + ' — ' + seasonName(seasonOf(S.day)));
       /* commissione scaduta: lo si dice, non si scopre tornando al museo */
