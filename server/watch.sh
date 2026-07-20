@@ -80,8 +80,12 @@ if [ "$adesso" = "giu" ]; then
 else
   durata=""
   if [ -f "$QUANDO" ]; then
-    m=$(( ($(date +%s) - $(cat "$QUANDO")) / 60 ))
-    durata="\\n\\nEra giu da ${m} minuti."
+    sec=$(( $(date +%s) - $(cat "$QUANDO") ))
+    # "0 minuti" si legge come un guasto del guardiano, non come una buona notizia
+    if   [ "$sec" -lt 60 ];   then durata="\\n\\nE' stato giu meno di un minuto."
+    elif [ "$sec" -lt 3600 ]; then durata="\\n\\nE' stato giu $(( sec / 60 )) minuti."
+    else durata="\\n\\nE' stato giu $(( sec / 3600 ))h $(( (sec % 3600) / 60 ))m."
+    fi
     rm -f "$QUANDO"
   fi
   avvisa "Tutto di nuovo in piedi.$durata" 5763719 "Digsy e tornato"
