@@ -407,6 +407,17 @@ una chiave assente è un buco che nessuno nota, una a null è una decisione che 
 Un test pretende che ogni zona compaia in ogni tabella, che ogni cosmetico nominato abbia il
 suo disegno e che ognuna stia in una fascia di temperatura.
 
+## Pubblicare
+`npm run deploy` — prove verdi, mette da parte la versione online, pubblica, **verifica otto
+cose** (gioco raggiungibile, versione giusta, API viva, database che scrive, privacy, e che
+config/librerie/test restino chiusi) e se qualcosa non torna **rimette la versione di prima**.
+`npm run deploy -- --check` verifica soltanto, senza toccare niente.
+Prima si faceva `tar | ssh` a mano: nessun controllo dopo e nessun modo rapido di tornare
+indietro. `server/health.php` risponde 200/503 sui segni vitali (database raggiungibile,
+tabelle presenti, scrittura possibile) ed è pensato per un controllo automatico ogni pochi
+minuti. Gli errori JavaScript dei giocatori arrivano a `server/api/oops.php`, raggruppati e
+contati, senza niente che dica chi è la persona.
+
 ## GUARDARE le schermate prima di consegnarle
 `npm run shot -- <vista> [larghezza,altezza]` fotografa una schermata vera del gioco in
 `.shots/`. Viste: `main saves stats settings trophies changelog credits account`.

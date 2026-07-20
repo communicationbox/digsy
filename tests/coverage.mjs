@@ -23,6 +23,15 @@ const FLOOR = 55;
    e2e nel browser, dove il libro monta la vista 3D. Escluso di proposito, non dimenticato. */
 const EXCLUDE = new Set(['skeleton3d.js']);
 const MIN = {
+  /* I MODULI GIOVANI, sui dati che il giocatore NON può rifarsi. `cloud.js` e `account.js`
+     sono la sincronia col server: sono l'unica parte che può far sparire una partita, sono
+     i più recenti (cioè quelli che cambieranno di più) e stavano al minimo di casa — 55% —
+     mentre girano sopra l'85. Potevano crollare di trenta punti col gate ancora verde.
+     Le soglie qui sotto sono appena sotto la copertura vera: proteggono, non frenano. */
+  'cloud.js': 90, 'account.js': 82, 'stats.js': 95, 'packmap.js': 95,
+  'path.js': 95, 'tapmove.js': 92, 'fuse.js': 90, 'prefs.js': 90,
+  'mapui.js': 85, 'body.js': 88,
+
   'achievements.js': 90, 'audio.js': 65, 'bones.js': 95, 'bookui.js': 88,
   'brush.js': 95, 'cave.js': 90, 'changelog.js': 95, 'commands.js': 80,
   'commission.js': 90, 'companion.js': 85, 'compass.js': 85, 'data.js': 95,

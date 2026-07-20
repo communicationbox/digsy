@@ -30,6 +30,31 @@ import { pruneExpired } from './commission.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
 import { toast } from './ui.js';
 import { isDebug } from './debug.js';
+import { VERSION } from './version.js';
+
+/* GLI SCHIANTI VANNO RACCONTATI. Un errore JavaScript sul telefono di un giocatore è
+   invisibile: non si può riprodurre e spesso non si sa nemmeno che è successo. Tutti i guasti
+   corretti finora li ha segnalati qualcuno che si è preso la briga di scrivere — per uno che
+   scrive, dieci chiudono la scheda.
+   Si manda il minimo per capire (messaggio, dove, versione) e NIENTE che dica chi è. Una
+   volta sola per sessione: gli errori si ripetono a ogni fotogramma, e non serve saperlo
+   diecimila volte. Se la rete non c'è, pazienza: il gioco non deve accorgersene. */
+if (typeof window !== 'undefined') {
+  let raccontato = false;
+  const racconta = (msg, dove) => {
+    if (raccontato || !msg) return;
+    raccontato = true;
+    try {
+      fetch('./server/api/oops.php', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ msg: String(msg).slice(0, 300), dove: String(dove || '').slice(0, 200), ver: VERSION }),
+        keepalive: true,
+      }).catch(() => {});
+    } catch (e) { /* mai far pesare al giocatore un problema di segnalazione */ }
+  };
+  addEventListener('error', e => racconta(e.message, (e.filename || '') + ':' + (e.lineno || '')));
+  addEventListener('unhandledrejection', e => racconta((e.reason && e.reason.message) || e.reason, 'promise'));
+}
 
 /* niente menu del tasto destro e niente scorciatoie devtools in gioco (esperienza "app") */
 if (typeof addEventListener === 'function') {
