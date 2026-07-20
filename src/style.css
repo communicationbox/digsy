@@ -231,9 +231,9 @@ body:has(#cmd.on) #touch{display:none!important}
 .mp-view::-webkit-scrollbar-track{background:#dcc79a;box-shadow:inset 2px 0 0 var(--c-parch)}
 .mp-view::-webkit-scrollbar-thumb{background:var(--c-line-2);border:2px solid var(--c-line-3)}
 /* SPLASH e console: notturne */
-.sp-hall,.sp-log,.sp-keys,#sp-slots{scrollbar-color:var(--c-line) #1a1e1a}
-.sp-hall::-webkit-scrollbar-track,.sp-log::-webkit-scrollbar-track,.sp-keys::-webkit-scrollbar-track,#sp-slots::-webkit-scrollbar-track{background:#1a1e1a;box-shadow:inset 2px 0 0 #0e120e}
-.sp-hall::-webkit-scrollbar-thumb,.sp-log::-webkit-scrollbar-thumb,.sp-keys::-webkit-scrollbar-thumb,#sp-slots::-webkit-scrollbar-thumb{background:var(--c-line);border:2px solid var(--c-deep)}
+.sp-hall,.sp-log,.sp-keys,#sp-slots,.sp-cfg{scrollbar-color:var(--c-line) #1a1e1a}
+.sp-hall::-webkit-scrollbar-track,.sp-log::-webkit-scrollbar-track,.sp-keys::-webkit-scrollbar-track,#sp-slots::-webkit-scrollbar-track,.sp-cfg::-webkit-scrollbar-track{background:#1a1e1a;box-shadow:inset 2px 0 0 #0e120e}
+.sp-hall::-webkit-scrollbar-thumb,.sp-log::-webkit-scrollbar-thumb,.sp-keys::-webkit-scrollbar-thumb,#sp-slots::-webkit-scrollbar-thumb,.sp-cfg::-webkit-scrollbar-thumb{background:var(--c-line);border:2px solid var(--c-deep)}
 #cmdout{scrollbar-color:#3a3448 #12100c}
 #cmdout::-webkit-scrollbar-track{background:#12100c}
 #cmdout::-webkit-scrollbar-thumb{background:#3a3448;border:2px solid #0b0a08}

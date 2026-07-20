@@ -3,7 +3,7 @@ import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, CHIMER
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
 import { bodyHits, feetTile, FOOT_DY } from './body.js';
-import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
+import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE } from './world.js';
 import { compass } from './compass.js';
 import { landmarkNear, harvestDecoAt } from './world.js';
@@ -547,15 +547,14 @@ function pickDeco(h) {
   const key = h.tx + ',' + h.ty;
   pickedSet.add(key); if (!S.picked) S.picked = []; S.picked.push(key);
   choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key);  // sparisce dalla mappa
-  if (!S.goods) S.goods = [];
   const g = makeGoodById(h.id); if (companionAbility() === 'luck') g.val += 1;
-  S.goods.push(g); gainXp(1);
+  addGood(g); gainXp(1);
   toast('✨ ' + tr('Raccolto: ', 'Picked up: ') + goodName(h.id) + ' (🪙' + g.val + ')'); playSfx('found');
   save(); updateHUD(); return true;
 }
 /* riprende un drop da terra (rispetta la capacità per i fossili) */
 function collectDrop(dr) {
-  if (dr.kind === 'good') { if (!S.goods) S.goods = []; S.goods.push(dr.payload); }
+  if (dr.kind === 'good') { if (!S.goods) S.goods = []; S.goods.push(dr.payload); compactGoods(); } // rientra nello stack
   else { // 'raw' | 'item' = fossile: serve posto in zaino
     if (bagFull()) { toast('🎒 ' + tr('Zaino pieno: libera spazio prima', 'Bag full: free some space first')); return true; }
     (dr.kind === 'item' ? S.items : S.raw).push(dr.payload);
@@ -575,6 +574,14 @@ export function makeGood(zoneId) {
 }
 export function goodName(id) { const g = goodById[id]; return g ? tr(g.it, g.en) : id; }
 export function makeGoodById(id) { const g = goodById[id]; return { uid: S.uid++, id, val: g ? g.val : 3, good: true }; }
+/* aggiunge UNA unità di good impilandola: cerca uno stack dello stesso id non ancora pieno
+   (< 64) e ne alza quantità e valore totale; altrimenti apre una pila nuova. */
+export function addGood(g) {
+  if (!S.goods) S.goods = [];
+  const st = S.goods.find(x => x.id === g.id && (x.n || 1) < GOOD_STACK);
+  if (st) { st.n = (st.n || 1) + 1; st.val += g.val; }
+  else S.goods.push({ uid: g.uid, id: g.id, val: g.val, n: 1, good: true });
+}
 /* raccogli con E: prima i drop a terra, poi l'OGGETTO VERO che vedi disegnato a terra. */
 export function collectPickup() {
   const dr = nearbyDrop(); if (dr) return collectDrop(dr);
@@ -584,8 +591,7 @@ export function collectPickup() {
   const p = nearbyPickup(); if (!p) return false;
   const id = pickupAt(p.tx, p.ty); if (!id) return false;    // esattamente ciò che è disegnato
   pickedSet.add(p.tx + ',' + p.ty); S.picked.push(p.tx + ',' + p.ty);
-  if (!S.goods) S.goods = [];
-  const g = makeGoodById(id); if (companionAbility() === 'luck') g.val += 1; S.goods.push(g); // compagno fortunato: +valore
+  const g = makeGoodById(id); if (companionAbility() === 'luck') g.val += 1; addGood(g); // compagno fortunato: +valore
   gainXp(1);
   toast('✨ ' + tr('Raccolto: ', 'Picked up: ') + goodName(id) + ' (🪙' + g.val + ')'); playSfx('found');
   save(); updateHUD(); return true;
@@ -600,7 +606,7 @@ export function discardToGround(uid, kind) {
 }
 /* vendita oggetti (non fossili) al Negozio */
 export function sellGood(uid) { const i = (S.goods || []).findIndex(x => x.uid === uid); if (i < 0) return; S.coins += S.goods[i].val; S.goods.splice(i, 1); playSfx('coin'); save(); updateHUD(); }
-export function sellAllGoods() { let g = 0; (S.goods || []).forEach(x => g += x.val); S.coins += g; const n = (S.goods || []).length; S.goods = []; if (n) playSfx('coin'); save(); updateHUD(); return { g, n }; }
+export function sellAllGoods() { let g = 0, n = 0; (S.goods || []).forEach(x => { g += x.val; n += (x.n || 1); }); S.coins += g; const had = (S.goods || []).length; S.goods = []; if (had) playSfx('coin'); save(); updateHUD(); return { g, n }; }
 /* ---------- RELITTI in mare: si frugano dalla barca (E), reperti garantiti mai comuni ---------- */
 export function nearbyWreck() {
   const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);

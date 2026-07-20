@@ -578,19 +578,16 @@ export function openHudGuide() {
   mTitle.innerHTML = withIcons('❔ ' + tr('Guida rapida', 'Quick guide'));
   mBody.innerHTML = withIcons(h); openModal();
 }
-/* MAESTRO SCAVATORE: spiega i livelli archeologo con una barra XP */
+/* MAESTRO SCAVATORE: livello archeologo, barra XP e cosa dà il prossimo livello.
+   Asciutto: la barra + quanto manca + i vantaggi del livello dopo (con i numeri veri).
+   Prima ripeteva gli stessi tre vantaggi in quattro righe di spiegazione: muro di testo. */
 export function openMentor() {
   const lv = playerLevel(), xp = playerXp(), nx = xpToNext(), pct = Math.max(3, Math.min(100, Math.round(xp / nx * 100)));
-  const rowg = (ic, k, v) => `<div class="row"><span class="em">${ic}</span><div><div class="nm">${k}</div><div class="sub">${v}</div></div></div>`;
-  let h = `<div class="muted" style="margin-bottom:6px">“${tr('Ah, un giovane scavatore! Lascia che ti spieghi come si diventa esperti.', 'Ah, a young digger! Let me explain how one becomes an expert.')}”</div>`;
-  h += `<div class="xpwrap"><div class="xphead"><b>${tr('Livello', 'Level')} ${lv}</b><span>XP ${xp}/${nx}</span></div><div class="xpbar"><i style="width:${pct}%"></i></div></div>`;
-  h += `<div class="row" style="background:#f1e6cc"><span class="em">🎯</span><div><div class="nm">${tr('Ti mancano ', 'You need ')}<b>${Math.max(0, nx - xp)} XP</b>${tr(' per il livello ', ' for level ')}${lv + 1}</div><div class="sub">${tr('circa ', 'about ')}${Math.max(1, Math.ceil((nx - xp) / 5))}${tr(' reperti comuni, o ', ' common finds, or ')}${Math.max(1, Math.ceil((nx - xp) / 34))}${tr(' leggendari', ' legendary ones')}</div></div></div>`;
-  h += `<div class="row"><span class="em">🎁</span><div><div class="nm">${tr('Al livello ', 'At level ')}${lv + 1}${tr(' ottieni', ' you get')}</div><div class="sub">+5 ⚡ ${tr('energia massima (e ricarica piena)', 'max energy (and a full refill)')} · ${tr('scavo più rapido', 'faster digging')} (×${digDurationMul(lv + 1).toFixed(2)}) · ${tr('più rari', 'more rares')} (×${rareBonus(lv + 1).toFixed(2)})</div></div></div>`;
-  h += rowg('⛏️', tr('Come sali di livello', 'How you level up'), tr('Guadagni XP scavando reperti (più rari = più XP) e completando le missioni.', 'Earn XP by digging finds (rarer = more XP) and completing missions.'));
-  h += rowg('⚡', tr('Più energia', 'More energy'), tr('Ogni livello alza l\'energia massima: puoi scavare più a lungo.', 'Each level raises your max energy: dig for longer.'));
-  h += rowg('🪏', tr('Scavo più veloce', 'Faster digging'), tr('Da giovane sei lento; più cresci, più il colpo di scavo è rapido.', 'You start slow; the higher you go, the quicker each dig.'));
-  h += rowg('✨', tr('Più reperti rari', 'More rare finds'), tr('Salendo aumenti le probabilità di trovare pezzi rari e leggendari.', 'Leveling up boosts your odds of rare and legendary pieces.'));
-  h += `<div class="muted" style="margin-top:8px">${tr('Torna quando vuoi: ti dirò a che punto sei.', 'Come back anytime: I\'ll tell you where you stand.')}</div>`;
+  const need = Math.max(0, nx - xp);
+  let h = `<div class="xpwrap"><div class="xphead"><b>${tr('Livello', 'Level')} ${lv}</b><span>XP ${xp}/${nx}</span></div><div class="xpbar"><i style="width:${pct}%"></i></div></div>`;
+  h += `<div class="row" style="background:#f1e6cc"><span class="em">🎯</span><div><div class="nm">${tr('Ti mancano ', 'You need ')}<b>${need} XP</b>${tr(' per il livello ', ' for level ')}${lv + 1}</div><div class="sub">${tr('circa ', 'about ')}${Math.max(1, Math.ceil(need / 5))}${tr(' reperti comuni', ' common finds')}</div></div></div>`;
+  h += `<div class="row"><span class="em">🎁</span><div><div class="nm">${tr('Al livello ', 'At level ')}${lv + 1}</div><div class="sub">+5 ⚡ ${tr('energia max', 'max energy')} · ${tr('scavo', 'dig')} ×${digDurationMul(lv + 1).toFixed(2)} · ${tr('rari', 'rares')} ×${rareBonus(lv + 1).toFixed(2)}</div></div></div>`;
+  h += `<div class="muted" style="margin-top:6px">${tr('XP scavando (più raro = più XP) e con le missioni.', 'XP from digging (rarer = more XP) and missions.')}</div>`;
   mTitle.innerHTML = withIcons('🎓 ' + tr('Maestro Scavatore', 'Master Digger'));
   mBody.innerHTML = withIcons(h); openModal();
 }
@@ -844,7 +841,7 @@ function renderStore() {
   if (S.goods && S.goods.length) {
     h += `<div class="bighead">🐚 ${tr('Oggetti raccolti', 'Collected objects')}</div>`;
     h += `<div class="row" style="background:#f1e6cc"><div class="nm">${tr('Totale', 'Total')}: 🪙 ${S.goods.reduce((a, x) => a + x.val, 0)}</div><div class="rt"><button class="btn" id="sellAllGoods">${tr('Vendi tutti', 'Sell all')}</button></div></div>`;
-    h += S.goods.map(g => `<div class="row"><span class="em">🐚</span><div><div class="nm">${goodName(g.id)}</div></div><div class="rt"><button class="btn ghost" data-sellg="${g.uid}">${tr('Vendi', 'Sell')} 🪙${g.val}</button></div></div>`).join('');
+    h += S.goods.map(g => `<div class="row"><span class="em">🐚</span><div><div class="nm">${goodName(g.id)}${(g.n || 1) > 1 ? ' ×' + g.n : ''}</div></div><div class="rt"><button class="btn ghost" data-sellg="${g.uid}">${tr('Vendi', 'Sell')} 🪙${g.val}</button></div></div>`).join('');
   }
   {
     /* il prezzo sale a ogni ristoro della giornata: va scritto, non scoperto alla cassa */
@@ -1110,7 +1107,7 @@ export function openBag(tab) {
   const orows = [];
   if (S.snacks > 0) orows.push(row('🍞', tr('Ristoro', 'Snack') + ' ×' + S.snacks, '+15 ⚡', `<button class="bbtn" data-eat="1">${tr('Usa', 'Use')}</button>`, ''));
   if (S.teleports > 0) orows.push(row('📜', tr('Pergamena di ritorno', 'Return scroll') + ' ×' + S.teleports, tr('alla città più vicina', 'to the nearest city'), `<button class="bbtn" data-tp="1">${tr('Usa', 'Use')}</button>`, ''));
-  (S.goods || []).forEach(g => orows.push(row('🐚', goodName(g.id), '🪙 ' + g.val + ' · ' + tr('vendi al Negozio', 'sell at the Shop'), '', '', '')));
+  (S.goods || []).forEach(g => orows.push(row('🐚', goodName(g.id) + ((g.n || 1) > 1 ? ' ×' + g.n : ''), '🪙 ' + g.val + ' · ' + tr('vendi al Negozio', 'sell at the Shop'), '', '', '')));
   (S.maps || []).forEach(m => { const on = S.trackMap === m.uid;
     orows.push(row('🗺️', tr('Mappa', 'Map') + ' ' + rarLabel(m.rar) + (on ? ' · 🧭' : ''), '✨ ' + dirTo(m.x, m.y),
       `<button class="bbtn">${on ? tr('Smetti', 'Stop') : tr('Segui', 'Track')}</button>`, `data-track="${m.uid}"`, 'click' + (on ? ' on' : ''))); });
@@ -1205,7 +1202,7 @@ function dropNeedsConfirm(d) {
 function confirmDrop(d) {
   const arr = d.kind === 'item' ? S.items : d.kind === 'good' ? S.goods : S.raw;
   const it = (arr || []).find(x => x.uid === d.uid); if (!it) return;
-  const nm = d.kind === 'good' ? goodName(it.id)
+  const nm = d.kind === 'good' ? (goodName(it.id) + ((it.n || 1) > 1 ? ' ×' + it.n : ''))
     : (partName(it.t) + ' ' + tr('di', 'of') + ' ' + (spById[it.s] ? spById[it.s].name : '?'));
   mTitle.innerHTML = withIcons('🎒 ' + tr('Lasciare a terra?', 'Leave it on the ground?'));
   mBody.innerHTML = withIcons(`<div class="row"><div><div class="nm">${nm}</div><div class="sub">${it.q ? rarSpan(it.q) + ' · ' : ''}${tr('resta per terra: lo riprendi con E', 'it stays on the ground: pick it up with E')}</div></div></div>

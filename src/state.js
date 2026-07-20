@@ -65,6 +65,32 @@ export const SAVE_V = 1;
 export const BAK = SK + '_bak';       // copia del salvataggio precedente (rete di sicurezza)
 export const BROKEN = SK + '_broken'; // save illeggibile messo da parte, mai buttato
 
+/* STACK degli oggetti di superficie (goods): identici → UNA voce con quantità (max 64), per
+   non avere liste infinite di conchiglie. I REPERTI (raw/items) NON si impilano mai, apposta.
+   Un good impilato è { uid, id, val, n, good:true } dove `val` = valore TOTALE delle n unità. */
+export const GOOD_STACK = 64;
+export function compactGoods() {
+  if (!Array.isArray(S.goods)) { S.goods = []; return; }
+  if (!S.uid) S.uid = 1;
+  const by = new Map();                                   // raccogli n e valore totale per id
+  for (const g of S.goods) {
+    if (!g || !g.id) continue;
+    const e = by.get(g.id) || { id: g.id, n: 0, val: 0 };
+    e.n += (g.n || 1); e.val += (g.val || 0); by.set(g.id, e);
+  }
+  const out = [];
+  for (const e of by.values()) {
+    let left = e.n, valLeft = e.val;
+    while (left > 0) {                                     // oltre 64 → pila successiva
+      const take = Math.min(GOOD_STACK, left);
+      const v = (left === take) ? valLeft : Math.round(e.val * take / e.n); // l'ultima pila assorbe l'arrotondamento
+      out.push({ uid: S.uid++, id: e.id, n: take, val: v, good: true });
+      valLeft -= v; left -= take;
+    }
+  }
+  S.goods = out;
+}
+
 /* Gli elenchi di tile scavate/abbattute crescono a ogni azione: senza dedup arrivano a
    riempire la quota di localStorage in una partita lunga. I Set sono la verità. */
 function packSets() {
@@ -224,6 +250,7 @@ export function initState() {
   }
   if (!S.chopped) S.chopped = []; if (!S.mined) S.mined = []; if (!S.picked) S.picked = [];
   if (!S.goods) S.goods = []; // oggetti di superficie da vendere (non fossili)
+  compactGoods();             // save vecchi: comprime le liste di goods uguali in stack (max 64)
   if (!S.drops) S.drops = []; // fossili/oggetti lasciati a terra (zaino pieno o scartati)
   /* capacità zaino (fossili); zaini più grandi al Negozio. Le taglie sono state alzate
      (10/18/28 → 14/22/30): chi ha un salvataggio vecchio sale alla taglia corrispondente,

@@ -486,31 +486,16 @@ export const RU = {
   'Quick guide': 'Краткая справка',
 
   /* ---- maestro scavatore ---- */
-  'Ah, a young digger! Let me explain how one becomes an expert.':
-    'А, юный копатель! Давай объясню, как становятся мастером.',
   'Level': 'Уровень',
   ' for level ': ' до уровня ',
   'about ': 'примерно ',
-  ' common finds, or ': ' обычных находок или ',
-  ' legendary ones': ' легендарных',
+  ' common finds': ' обычных находок',
   'At level ': 'На уровне ',
-  ' you get': ' вы получите',
-  'max energy (and a full refill)': 'больше максимума энергии (и полное восполнение)',
-  'faster digging': 'более быстрые раскопки',
-  'more rares': 'больше редкостей',
-  'How you level up': 'Как растёт уровень',
-  'Earn XP by digging finds (rarer = more XP) and completing missions.':
-    'Опыт даётся за находки (чем реже — тем больше) и за выполненные задания.',
-  'More energy': 'Больше энергии',
-  'Each level raises your max energy: dig for longer.':
-    'Каждый уровень поднимает максимум энергии: копать можно дольше.',
-  'Faster digging': 'Быстрее раскопки',
-  'You start slow; the higher you go, the quicker each dig.':
-    'Сначала медленно; чем выше уровень, тем быстрее каждая раскопка.',
-  'More rare finds': 'Больше редких находок',
-  'Leveling up boosts your odds of rare and legendary pieces.':
-    'С уровнем растёт шанс редких и легендарных частей.',
-  "Come back anytime: I'll tell you where you stand.": 'Заходи в любое время: скажу, как у тебя дела.',
+  'max energy': 'макс. энергия',
+  'dig': 'копка',
+  'rares': 'редкости',
+  'XP from digging (rarer = more XP) and missions.':
+    'Опыт за находки (чем реже — тем больше) и за задания.',
   'Master Digger': 'Мастер раскопок',
 
   /* ---- laboratorio ---- */

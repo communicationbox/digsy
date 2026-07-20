@@ -1543,10 +1543,33 @@ sprites.applyLook();
     for (let x = -90; x < 90 && !pk; x++) for (let y = -90; y < 90 && !pk; y++) if (world.pickupAt(x, y)) pk = [x, y];
     P.x = pk[0] * TS + 8; P.y = pk[1] * TS - 8;
     check('pickup a portata rilevato', !!gameplay.nearbyPickup());
-    const goods0 = (S.goods || []).length, raw0b = S.raw.length;
-    check('raccolta pickup → +1 OGGETTO (non fossile) e sparisce', gameplay.collectPickup() === true && S.goods.length === goods0 + 1 && S.raw.length === raw0b && world.pickupAt(pk[0], pk[1]) === null);
-    const gv = S.goods[S.goods.length - 1].val, c0 = S.coins;
-    check('vendita oggetto → +val monete', (gameplay.sellGood(S.goods[S.goods.length - 1].uid), S.coins === c0 + gv && S.goods.length === goods0));
+    S.goods = [];
+    const raw0b = S.raw.length;
+    check('raccolta pickup → +1 OGGETTO (non fossile) e sparisce', gameplay.collectPickup() === true && S.goods.length === 1 && (S.goods[0].n || 1) === 1 && S.raw.length === raw0b && world.pickupAt(pk[0], pk[1]) === null);
+    const gv = S.goods[0].val, c0 = S.coins;
+    check('vendita stack oggetti → +valore totale monete', (gameplay.sellGood(S.goods[0].uid), S.coins === c0 + gv && S.goods.length === 0));
+
+    /* STACK DEI GOODS: identici → 1 voce con quantità (max 64). I reperti NON si impilano. */
+    const stt = await import('../src/state.js');
+    S.goods = [];
+    const mk = (id, val) => ({ uid: S.uid++, id, val: val === undefined ? 1 : val, good: true });
+    gameplay.addGood(mk('conchiglia', 1)); gameplay.addGood(mk('conchiglia', 1)); gameplay.addGood(mk('conchiglia', 2));
+    check('3 goods uguali → 1 stack con n=3 e valore sommato', S.goods.length === 1 && S.goods[0].n === 3 && S.goods[0].val === 4);
+    gameplay.addGood(mk('vetro', 5));
+    check('id diverso → stack separato', S.goods.length === 2);
+    // overflow: oltre 64 apre una pila nuova
+    S.goods = []; for (let k = 0; k < 65; k++) gameplay.addGood(mk('conchiglia', 1));
+    check('65 goods → 2 stack (64 + 1), max ' + stt.GOOD_STACK, S.goods.length === 2 && S.goods[0].n === stt.GOOD_STACK && S.goods[1].n === 1);
+    // compactGoods comprime una lista piatta (save vecchio) e conserva il valore totale
+    S.goods = [mk('lumaca', 2), mk('lumaca', 2), mk('lumaca', 3), mk('giunco', 1)];
+    const totBefore = S.goods.reduce((a, x) => a + x.val, 0);
+    stt.compactGoods();
+    check('compactGoods: lista piatta → stack per id, valore totale intatto', S.goods.length === 2 && S.goods.reduce((a, x) => a + (x.n || 1), 0) === 4 && S.goods.reduce((a, x) => a + x.val, 0) === totBefore);
+    // vendere tutto restituisce il conteggio in UNITÀ, non in pile
+    S.goods = []; gameplay.addGood(mk('conchiglia', 1)); gameplay.addGood(mk('conchiglia', 1));
+    const rSell = gameplay.sellAllGoods();
+    check('sellAllGoods conta le unità vendute, non le pile', rSell.n === 2 && S.goods.length === 0);
+    S.goods = [];
 
     /* CAPACITÀ ZAINO: pieno → il fossile va a TERRA; ripreso con E; zaino più grande alza il cap */
     S.raw = []; S.items = []; S.drops = []; S.bagCap = 2;
