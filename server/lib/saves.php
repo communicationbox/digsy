@@ -16,7 +16,10 @@
 
 require_once __DIR__ . '/db.php';
 
-const SAVE_MAX_BYTES = 4 * 1024 * 1024;   // una partita da 40 ore sta in 175 KB: 4 MB è già larghissimo
+/* Una partita da 40 ore sta in 175 KB, e la mappa esplorata ora viaggia compressa (state.js).
+   1 MB resta larghissimo per il gioco e taglia di quattro volte il danno che un account può
+   fare al database riempiendolo di proposito. */
+const SAVE_MAX_BYTES = 1024 * 1024;
 
 function saveLoad(int $userId, int $slot = 0): ?array
 {
@@ -28,6 +31,28 @@ function saveLoad(int $userId, int $slot = 0): ?array
     $row['version'] = (int)$row['version'];
     $row['updated_at'] = (int)$row['updated_at'];
     return $row;
+}
+
+/* TUTTE le partite dell'utente, indicizzate per slot: 0 è quella in corso, 1..3 sono i
+ * salvataggi manuali. Serve all'accesso, dove vanno riconciliati tutti insieme.
+ * I dati NON si accorciano: chi entra da un dispositivo nuovo deve poterli caricare davvero,
+ * non solo vederli elencati. */
+function savesAll(int $userId): array
+{
+    $st = db()->prepare('SELECT slot, version, data, summary, device, updated_at
+                         FROM saves WHERE user_id = ? ORDER BY slot');
+    $st->execute([$userId]);
+    $out = [];
+    foreach ($st->fetchAll() as $row) {
+        $out[(string)(int)$row['slot']] = [
+            'version'    => (int)$row['version'],
+            'data'       => $row['data'],
+            'summary'    => $row['summary'],
+            'device'     => $row['device'],
+            'updated_at' => (int)$row['updated_at'],
+        ];
+    }
+    return $out;
 }
 
 /* Scrive la partita. $baseVersion è la versione da cui parte il client.

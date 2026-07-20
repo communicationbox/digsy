@@ -15,7 +15,7 @@ import { checkWonderDiscovery } from './gameplay.js';
 import { wonderName } from './wonders.js';
 import { refreshVisParks, visParks, updatePark } from './park.js';
 import { render } from './render.js';
-import { initSplash, splashActive } from './splash.js';
+import { initSplash, splashActive, cloudEnabled } from './splash.js';
 import { keys, steerFollow } from './input.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
@@ -79,6 +79,22 @@ function loop(ts) {
        quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un
        giocatore ha scavato in grotta fino a zero energia continuando a leggere "46/60". */
     hudAcc += dt; if (hudAcc > 2) { hudAcc = 0; updateHUD(); }
+    /* OROLOGIO: sta qui sopra, PRIMA dei `return` di grotte e interni — stesso posto e
+       stessa ragione dell'HUD. Il tempo scorre dovunque si stia giocando: sottoterra si
+       passano dieci minuti veri a staccare cristalli, e prima si riemergeva alla stessa ora
+       di quando si era scesi, con la commissione del Museo che non scadeva mai finché si
+       restava dentro. Le grotte e gli interni NON sono una modale: là si gioca.
+       Sotto non cambia niente a vedersi (la grotta è buia per conto suo, la stanza resta
+       illuminata): solo le finestre virano al blu, così quando esci lo sapevi già. */
+    /* ORE DI GIOCO: si contano qui, dove si conta anche l'orologio del mondo — cioè solo
+       mentre si gioca davvero, non con una modale aperta o il gioco in pausa. È il numero
+       che i giocatori guardano per primo nelle statistiche. */
+    S.playSec = (S.playSec || 0) + dt;
+    if (advanceTime(dt)) {
+      toast(tr('📅 Giorno ', '📅 Day ') + S.day + ' — ' + seasonName(seasonOf(S.day)));
+      /* commissione scaduta: lo si dice, non si scopre tornando al museo */
+      if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
+    }
     if (CAVE.active) { // dentro una grotta: area buia esplorabile
       updateCave(dt, keys, P.speed * gearSpeedMul() * (P.speedMul || 1));
       updatePrompt();
@@ -107,12 +123,6 @@ function loop(ts) {
       toast('📖 ' + tr('Aggiunta alle Meraviglie del Libro', 'Added to the Wonders in your Book'));
     }
     updatePrompt();
-    /* orologio: il tempo scorre solo giocando (non in modale/splash) */
-    if (advanceTime(dt)) {
-      toast(tr('📅 Giorno ', '📅 Day ') + S.day + ' — ' + seasonName(seasonOf(S.day)));
-      /* commissione scaduta: lo si dice, non si scopre tornando al museo */
-      if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
-    }
   }
   /* overlay a tutto schermo (zaino/libro): il mondo è coperto → salta il render pesante
      (le animazioni sono comunque in pausa). La modale edifici è semitrasparente: si continua. */
@@ -160,6 +170,17 @@ function boot() {
     else runIntro(startGame);
   });
   setInterval(save, 5000);
+  /* PARTITA IN CLOUD: se il giocatore è già entrato in una sessione precedente, la sincronia
+     deve ripartire DA SOLA all'avvio — non solo quando si apre il menu dell'account. Senza
+     questo si scaricava la partita entrando e poi si giocava per ore senza che il server ne
+     sapesse più niente. Caricato solo se il cloud è acceso: chi gioca in locale non si tira
+     dietro un pezzo di rete che non userà mai. */
+  if (cloudEnabled()) {
+    import('./account.js').then(async (a) => {
+      a.wireSync();                      // il salvataggio locale ora avvisa il server
+      try { await a.refreshMe(); } catch (e) { /* offline: si riproverà al prossimo salvataggio */ }
+    }).catch(() => { /* senza rete si gioca lo stesso, in locale */ });
+  }
 }
 
 /* SONDA per i test visivi/mobile: la pagina di prova apre gli overlay veri senza simulare

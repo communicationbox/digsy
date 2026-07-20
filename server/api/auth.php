@@ -14,6 +14,7 @@ require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/session.php';
 require_once __DIR__ . '/../lib/users.php';
 require_once __DIR__ . '/../lib/google.php';
+require_once __DIR__ . '/../lib/ratelimit.php';
 
 migrate();
 
@@ -21,6 +22,10 @@ $do = $_GET['do'] ?? '';
 
 if ($do === 'google') {
     requireMethod('POST');
+    /* L'UNICO endpoint pubblico: chiunque può chiamarlo senza account, e ogni chiamata tiene
+       occupato un worker PHP finché Google non risponde. Dieci tentativi al minuto per
+       indirizzo: un accesso normale ne fa uno. */
+    if (!rateLimitOk('google:' . clientIp())) jsonErr('too_many', 429);
     $body = jsonBody();
     $res = googleVerify((string)($body['credential'] ?? ''));
     if (!$res['ok']) jsonErr($res['error'], 401);

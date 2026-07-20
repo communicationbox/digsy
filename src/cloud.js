@@ -18,23 +18,43 @@
  *    dire cancellare in silenzio mezz'ora giocata sull'altro dispositivo.
  */
 
-const API = './api';
+/* DOVE VIVE L'API. Il backend PHP sta in `server/api/` accanto al gioco, non in `api/`:
+   con il percorso sbagliato ogni chiamata tornava 404 e l'accesso falliva con un generico
+   "login_failed", che manda a cercare il guasto fra Google e le credenziali invece che nella
+   riga qui sotto. Si può cambiare da index.html (window.DIGSY_API) senza ricompilare, per
+   chi serve il gioco e il backend da due posti diversi. */
+const API = (typeof window !== 'undefined' && window.DIGSY_API) || './server/api';
 export const SYNC_DEBOUNCE = 4000;    // ms di quiete prima di mandare
 const TIMEOUT = 12000;
 
 /* stato del collegamento, leggibile da chi disegna l'interfaccia */
 export const cloud = {
   user: null,          // { email, name } quando si è collegati
-  version: 0,          // versione del salvataggio che il gioco ha in mano
+  version: 0,          // versione della partita IN CORSO (slot 0) — quella che si salva sempre
+  slotVersion: {},     // versione degli slot manuali: { '1': n, '2': n, '3': n }
   status: 'off',       // off · syncing · ok · offline · conflict · error
   lastError: '',
   pending: false,      // c'è un salvataggio da mandare
   conflict: null,      // { server, local } quando serve la scelta del giocatore
 };
+/* La partita in corso è lo slot 0; 1..3 sono i salvataggi manuali del giocatore. Ogni slot
+   ha il SUO numero di versione: sono partite indipendenti, e un conflitto su uno non deve
+   bloccare gli altri. */
+export const CUR_SLOT = 0;
+export function slotVersionOf(slot) {
+  return slot === CUR_SLOT ? cloud.version : (cloud.slotVersion[String(slot)] || 0);
+}
+export function setSlotVersion(slot, v) {
+  if (slot === CUR_SLOT) cloud.version = v; else cloud.slotVersion[String(slot)] = v;
+}
 
 /* fetch iniettabile: i test passano il loro */
 let doFetch = (...a) => (typeof fetch === 'function' ? fetch(...a) : Promise.reject(new Error('no fetch')));
 export function setFetch(fn) { doFetch = fn; }
+
+/* Avvisato quando il server ci scollega perché si è entrati da un altro dispositivo. */
+let onKicked = null;
+export function setKickedHandler(fn) { onKicked = fn; }
 
 async function api(path, opts = {}) {
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
@@ -87,12 +107,12 @@ export async function loginWithGoogle(credential) {
 
 export async function logout() {
   await api('/auth.php?do=logout', { method: 'POST' });
-  cloud.user = null; cloud.version = 0; cloud.status = 'off'; cloud.conflict = null;
+  cloud.user = null; cloud.version = 0; cloud.slotVersion = {}; cloud.status = 'off'; cloud.conflict = null;
 }
 
 export async function deleteAccount() {
   const r = await api('/auth.php?do=delete', { method: 'POST' });
-  if (r.ok) { cloud.user = null; cloud.version = 0; cloud.status = 'off'; }
+  if (r.ok) { cloud.user = null; cloud.version = 0; cloud.slotVersion = {}; cloud.status = 'off'; }
   return !!r.ok;
 }
 
@@ -100,25 +120,46 @@ export async function deleteAccount() {
 
 /* Scarica la partita dal server. Non la applica: decidere se sovrascrivere quella locale è
    una scelta che spetta a chi chiama (e a volte al giocatore). */
-export async function pullSave() {
-  const r = await api('/save.php');
+export async function pullSave(slot = CUR_SLOT) {
+  const r = await api('/save.php?slot=' + slot);
   if (r.offline) { cloud.status = 'offline'; return null; }
   if (r.status === 401) { cloud.user = null; cloud.status = 'off'; return null; }
   const save = (r.data && r.data.save) || null;
-  if (save) cloud.version = save.version;
+  if (save) setSlotVersion(slot, save.version);
   return save;
 }
 
+/* TUTTE le partite in un colpo solo: quella in corso e i tre salvataggi manuali. All'accesso
+   servono tutte insieme, e chiederle una per una sono quattro viaggi di rete su una
+   connessione che magari è quella del telefono in giro. */
+export async function pullAllSaves() {
+  const r = await api('/save.php?slot=all');
+  if (r.offline) { cloud.status = 'offline'; return null; }
+  if (r.status === 401) { cloud.user = null; cloud.status = 'off'; return null; }
+  const saves = (r.data && r.data.saves) || {};
+  for (const k of Object.keys(saves)) setSlotVersion(Number(k), saves[k].version);
+  return saves;
+}
+
 /* Manda la partita. `force` solo dopo una scelta esplicita del giocatore. */
-export async function pushSave(json, summary, device, force = false) {
+export async function pushSave(json, summary, device, force = false, slot = CUR_SLOT) {
   if (!cloud.user) return { ok: false, error: 'not_logged' };
   cloud.status = 'syncing';
-  const r = await api('/save.php', {
+  const r = await api('/save.php?slot=' + slot, {
     method: 'POST',
-    body: { data: json, summary, device, base_version: cloud.version, force: !!force },
+    body: { data: json, summary, device, base_version: slotVersionOf(slot), force: !!force },
   });
   if (r.offline) { cloud.status = 'offline'; cloud.pending = true; return { ok: false, offline: true }; }
-  if (r.status === 401) { cloud.user = null; cloud.status = 'off'; return { ok: false, error: 'not_logged' }; }
+  if (r.status === 401) {
+    /* SCOLLEGATO MENTRE GIOCAVA. Entrare da un altro dispositivo chiude questa sessione: da
+       qui in poi il gioco continua tranquillamente in locale, ma va DETTO — altrimenti si
+       gioca per ore convinti che tutto stia salendo sul server, e non sale più niente.
+       Chi disegna l'interfaccia si registra con `onKicked`. */
+    const era = !!cloud.user;
+    cloud.user = null; cloud.status = 'off';
+    if (era && onKicked) { try { onKicked(); } catch (e) { /* mai bloccare il gioco */ } }
+    return { ok: false, error: 'not_logged' };
+  }
   if (r.status === 409) {
     /* QUI si decide se un giocatore perde mezz'ora di gioco: non si tocca niente, si
        registra il conflitto e si aspetta la sua risposta */
@@ -131,11 +172,13 @@ export async function pushSave(json, summary, device, force = false) {
     cloud.lastError = (r.data && r.data.error) || 'save_failed';
     return { ok: false, error: cloud.lastError };
   }
-  cloud.version = r.data.version || cloud.version + 1;
+  const v = r.data.version || slotVersionOf(slot) + 1;
+  setSlotVersion(slot, v);
   cloud.status = 'ok';
-  cloud.pending = false;
-  cloud.conflict = null;
-  return { ok: true, version: cloud.version };
+  /* `pending` e `conflict` riguardano la partita IN CORSO: salvare uno slot manuale non deve
+     far credere che sia stata sincronizzata anche quella */
+  if (slot === CUR_SLOT) { cloud.pending = false; cloud.conflict = null; }
+  return { ok: true, version: v };
 }
 
 /* ---------- ritmo della sincronizzazione ---------- */

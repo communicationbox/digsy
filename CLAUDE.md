@@ -54,6 +54,11 @@ Attenzione ai cicli import ui↔gameplay: sono ok solo perché le chiamate incro
 avvengono a runtime dentro le funzioni, mai a top-level.
 
 ## Come far girare / testare
+- **A INIZIO SESSIONE, da soli e senza chiedere**: `bash dbssh/dbssh.sh up` apre l'accesso al
+  database di produzione (profilo `digsy-oracle`, password già in cache). Serve per qualunque
+  verifica sul cloud. Letture `./dbssh.sh q "SQL"`; per SCRIVERE serve `DBSH_ALLOW_WRITE=1`
+  davanti (la protezione sola-lettura è voluta). Il DB si chiama **`digsy_dev_box_it`**, non
+  `digsy`. Modalità `remote`: `mysql` gira sul server via SSH, niente tunnel.
 - `npm install` (solo la prima volta), poi `npm run dev` → http://localhost:5173
 - `npm run build` → `dist/` statico; `npm run preview` per provarlo.
 - `npm run stress` → limiti veri (mappa, scavi, salvataggio, creature, distanza dall'origine).
@@ -113,7 +118,8 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   revertLook`, `lookPaidFields`): provi quanto vuoi gratis, paghi 🪙8 solo per i campi
   cambiati alla conferma; Annulla/chiudi ripristina. **Cosmetici TEMATICI per zona**
   (`ZONE_COSMETICS`, `THEMED_HAIR/THEMED_HAT`): ogni zona ha 1 taglio + 1 cappello esclusivi
-  (Boccaglio in palude, Colbacco nelle Lande Gelide, Coroncina nei Prati, Elmetto nelle Terre,
+  (Boccaglio in palude, Colbacco nelle Lande Gelide, Coroncina nei Prati, NESSUN cappello nelle
+  Terre Rosse — l'elmetto è stato tolto, vedi REMOVED_HATS in state.js,
   Cappuccio nei Boschi, Bandana nelle Dune, tagli Germogli/Duna/Boschivo/Fiamma/Alghe/Gelo)
   **scopribili solo nel negozio di QUELLA zona** (`discoverBox`, costo ×3, `unlockCosmetic`,
   `S.unlocked{hats,hairs}`); una volta sbloccati sono scegliibili ovunque (`hairStylesAvail/
@@ -388,6 +394,42 @@ non sono chiusi. Bug, arte, bilanciamento, test e refactor si fanno sempre.
 - Il barbiere non cambia la pelle: tonalità solo nell'editor iniziale.
 - Le chimere compaiono identiche in tutti i parchi (sono "magiche", va bene così).
 
+
+## Le ZONE hanno UN elenco solo
+`ZONE_LIST` (= `ZONES`) in data.js è l'ordine ufficiale: chi indicizza per POSIZIONE
+(`ZONE_TILES`, `ZONE_TREE`, `BAND`) lo deve seguire, chi indicizza per ID
+(`ZONE_COSMETICS`, `zonePools`) deve avere una voce per ognuna. Gli elenchi piatti
+(`THEMED_HAIR`, `THEMED_HAT`) si DERIVANO dalla tabella, non si riscrivono: erano due liste a
+mano accanto ai dati che le contenevano già, e una si è ritrovata con 5 voci per 6 zone senza
+che nulla lo segnalasse — l'Elmetto delle Terre Rosse risultava documentato qui e non esisteva.
+Un campo che non si applica a una zona si scrive `null` (`terre: { hair:'ember', hat:null }`):
+una chiave assente è un buco che nessuno nota, una a null è una decisione che si legge.
+Un test pretende che ogni zona compaia in ogni tabella, che ogni cosmetico nominato abbia il
+suo disegno e che ognuna stia in una fascia di temperatura.
+
+## GUARDARE le schermate prima di consegnarle
+`npm run shot -- <vista> [larghezza,altezza]` fotografa una schermata vera del gioco in
+`.shots/`. Viste: `main saves stats settings trophies changelog credits account`.
+Serve perché i test misurano che i comandi ESISTANO, non che siano messi bene: sono passati
+tre salvataggi schiacciati fino a sparire, riquadri di larghezze diverse e tre taglie di
+pulsante nella stessa schermata, tutti con la suite verde. Build → foto → **guardarla** →
+poi dire che è fatto. E quando si trova un difetto visivo, aggiungere anche una misura agli
+e2e (larghezze uguali, spazi uniformi, stessa altezza): la foto la si guarda una volta, la
+misura resta.
+
+## Coerenza visiva (design system)
+I valori dell'interfaccia stanno in `:root` (in cima a `src/style.css`): colori (`--c-ink`,
+`--c-line`, `--c-gold`, `--c-amber`, `--c-teal`, `--c-clay`), spazi in scala di 4
+(`--sp-1..5`), raggi (`--r-1..3`), testo (`--fs-note/sm/md/lg`), larghezze (`--w-menu`,
+`--w-panel`). Il CSS aveva 29 copie del marrone dei bordi e 17 dell'ambra: bastava sbagliare
+una cifra perché un pannello stonasse senza che si capisse perché.
+La conversione è FATTA: 191 usi sparsi (27 copie del marrone dei bordi, 20 della carta, 15
+dell'ambra) ora passano dai token. Un test lo sorveglia: se un colore del tema ricompare
+scritto a mano nel foglio, fallisce e dice quale e quante volte. Se serve una tinta nuova si
+aggiunge un token, non una costante in mezzo a una regola. I colori usati UNA volta sola (le
+sfumature dei singoli pannelli) restano dove sono: un token per un posto solo è un nome in più
+da ricordare e basta. Niente riquadri dove il resto del gioco non ne ha: per separare bastano un titoletto
+in oro maiuscolo e una riga `.sp-sep`.
 
 ## REGOLE FERREE (già sbagliate in passato — non ripeterle)
 1. **Animazioni: la fase viene SOLO dal tempo.** Mai da `sx`/`sy`/`cx` (coordinate schermo):

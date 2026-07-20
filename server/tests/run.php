@@ -118,10 +118,58 @@ check('dopo il rifiuto il salvataggio sul server è intatto',
 $r4 = saveStore($u1['id'], 0, '{"day":9,"coins":10}', 'giorno 9 · 10 monete', 'telefono', 1, true);
 check('con la forzatura esplicita la scrittura passa', $r4['ok'] === true && $r4['version'] === 3);
 
+/* ---------- i tre salvataggi manuali (slot 1..3) ----------
+   Sono partite indipendenti: ognuna col suo numero di versione, e un conflitto su una non
+   deve toccare le altre. Chi salva nello slot 2 sul computer deve ritrovarlo sul telefono. */
+saveStore($u1['id'], 1, '{"day":20,"coins":500}', 'giorno 20', 'pc', 0);
+saveStore($u1['id'], 2, '{"day":7,"coins":70}', 'giorno 7', 'pc', 0);
+check('ogni slot ha la sua partita',
+    str_contains(saveLoad($u1['id'], 1)['data'], '"day":20')
+    && str_contains(saveLoad($u1['id'], 2)['data'], '"day":7'));
+check('gli slot hanno versioni indipendenti',
+    saveLoad($u1['id'], 1)['version'] === 1 && saveLoad($u1['id'], 0)['version'] === 3);
+/* un conflitto sullo slot 1 non deve intaccare né lo slot 2 né la partita in corso */
+$c = saveStore($u1['id'], 1, '{"day":99}', 'g99', 'telefono', 0);
+check('conflitto su uno slot: rifiutato', empty($c['ok']) && !empty($c['conflict']));
+check('e gli altri slot restano intatti',
+    str_contains(saveLoad($u1['id'], 1)['data'], '"day":20')
+    && str_contains(saveLoad($u1['id'], 2)['data'], '"day":7')
+    && str_contains(saveLoad($u1['id'], 0)['data'], '"day":9'));
+/* `savesAll`: tutte insieme, che è come le chiede il gioco all'accesso */
+$all = savesAll($u1['id']);
+check('savesAll restituisce partita in corso e slot, indicizzati per slot',
+    isset($all['0'], $all['1'], $all['2']) && !isset($all['3'])
+    && str_contains($all['1']['data'], '"day":20'));
+check('savesAll porta i dati veri, non solo i riassunti',
+    strlen($all['0']['data']) > 5 && $all['1']['version'] === 1);
+check('savesAll di chi non ha nulla è vuoto, non esplode', savesAll($u3['id']) === []);
+
 /* i salvataggi non si mescolano fra utenti */
 saveStore($u3['id'], 0, '{"day":1}', 'giorno 1', 'altro', 0);
 check('ogni utente vede solo la propria partita',
     str_contains(saveLoad($u1['id'])['data'], '"day":9') && str_contains(saveLoad($u3['id'])['data'], '"day":1'));
+
+/* ---------- il freno sull'accesso ----------
+   `?do=google` è l'unico endpoint che chiunque può chiamare senza avere un account, e ogni
+   chiamata tiene occupato un worker PHP finché Google non risponde: senza un freno bastano
+   poche decine di richieste parallele per fermare il gioco a tutti. */
+require_once __DIR__ . '/../lib/ratelimit.php';
+$rlDir = sys_get_temp_dir() . '/digsy-rl-test-' . getmypid();
+@mkdir($rlDir, 0700, true);
+$GLOBALS['__rl_dir'] = $rlDir;
+$ip = 'prova-' . getmypid();
+$passati = 0;
+for ($i = 0; $i < RL_MAX; $i++) if (rateLimitOk($ip, RL_MAX, 60)) $passati++;
+check('i tentativi normali passano tutti', $passati === RL_MAX);
+check('oltre il limite si viene fermati', rateLimitOk($ip, RL_MAX, 60) === false);
+check('un altro indirizzo non è toccato', rateLimitOk($ip . '-altro', RL_MAX, 60) === true);
+/* il conteggio è per finestra: passata quella si ricomincia */
+check('nella finestra dopo si riparte da zero', rateLimitOk($ip, RL_MAX, 1) === true);
+/* l'indirizzo non si conserva in chiaro: sui dischi resta solo un'impronta */
+$files = (array)glob(rlDir() . '/*');
+$inChiaro = 0;
+foreach ($files as $f) if (strpos(basename($f), $ip) !== false) $inChiaro++;
+check('l\'indirizzo non finisce in chiaro sul disco', $inChiaro === 0);
 
 /* ---------- cancellazione dell'account ---------- */
 userDelete($u3['id']);

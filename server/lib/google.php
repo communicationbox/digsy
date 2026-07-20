@@ -30,9 +30,16 @@ const GOOGLE_ISSUERS = ['accounts.google.com', 'https://accounts.google.com'];
 function googleFetchTokenInfo(string $idToken): ?array
 {
     $ch = curl_init(GOOGLE_TOKENINFO . urlencode($idToken));
+    /* TIMEOUT CORTI. Questa chiamata parte da un endpoint PUBBLICO (?do=google) e blocca un
+       worker PHP per tutta la sua durata: con otto secondi bastavano poche decine di
+       richieste parallele — senza avere un account — per occupare l'intero pool e rendere il
+       gioco irraggiungibile a tutti. Tre secondi sono già larghi per una chiamata che
+       normalmente risponde in meno di uno; se Google è lento, meglio un accesso fallito che
+       il sito fermo. */
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT        => 8,
+        CURLOPT_CONNECTTIMEOUT => 2,
+        CURLOPT_TIMEOUT        => 3,
         CURLOPT_SSL_VERIFYPEER => true,
         CURLOPT_SSL_VERIFYHOST => 2,
     ]);

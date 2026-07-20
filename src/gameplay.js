@@ -635,6 +635,7 @@ export function act() {
     const r = digCave();
     if (r === 'nopick') toast('⛏️ ' + tr('Serve il piccone per staccare i cristalli (Negozio)', 'You need the pickaxe to break the crystals (Shop)'));
     else if (r === 'noenergy') toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn'));
+    else if (r === 'bagfull') { toast('🎒 ' + tr('Zaino pieno: il cristallo resta qui, torna a prenderlo', 'Bag full: the crystal stays here, come back for it')); playSfx('nope'); }
     else if (r === false) toast(tr('Avvicinati a un giacimento luminoso', 'Get close to a glowing deposit'));
     return;
   }
@@ -765,12 +766,18 @@ export function museumDeposit() {
 export function museumJobReady() { return !!S.museumJob && (isDebug() || S.day >= S.museumJob.ready); }
 export function museumCollect() {
   if (!museumJobReady()) return null;
-  const back = [], shown = [], vials = [];
+  const back = [], shown = [], vials = [], left = [];
   for (const it of S.museumJob.items) {
     if (!S.codex.includes(it.s)) S.codex.push(it.s); // identificato in ogni caso
     const col = S.museum[it.s] || (S.museum[it.s] = []);
-    if (col.includes(it.t)) { S.items.push(it); back.push(it); } // doppione: torna a te
-    else {
+    if (col.includes(it.t)) {
+      /* doppione: torna a te — ma solo se ci sta. Depositare svuota lo zaino (i pezzi in
+         lavorazione non contano), quindi si poteva riempirlo di nuovo e al ritiro sfondare
+         la capienza: era l'unico punto del gioco che aggiungeva reperti senza guardarla.
+         Quello che non entra RESTA al museo e si ritira al prossimo giro. */
+      if (bagFull()) { left.push(it); continue; }
+      S.items.push(it); back.push(it);
+    } else {
       col.push(it.t); shown.push(it); // pezzo nuovo: esposto
       if (col.length === PARTS.length) {
         if (!S.donated.includes(it.s)) S.donated.push(it.s);
@@ -778,9 +785,11 @@ export function museumCollect() {
       }
     }
   }
-  S.museumJob = null;
+  /* se qualcosa è rimasto al museo la commessa resta aperta: si torna a ritirarlo */
+  S.museumJob = left.length ? { items: left, ready: S.day } : null;
+  if (left.length) toast('🎒 ' + tr('Zaino pieno: ', 'Bag full: ') + left.length + tr(' pezzi restano al Museo, torna a ritirarli', ' pieces stay at the Museum, come back for them'));
   save(); updateHUD();
-  return { back, shown, vials };
+  return { back, shown, vials, left };
 }
 /* Sonno alternato: metà-giornata = giorno [0,0.5) o notte [0.5,1). halfIndex monotòno crescente. */
 function curHalf() { return S.day * 2 + (isNight() ? 1 : 0); }
@@ -910,7 +919,7 @@ export function assembleChimera(uidC, uidT, uidZ) {
   const cr = { uid: S.uid++, name: chimeraName(spById[c.s], spById[z.s], (S.creatures || []).map(x => x.name)), skull: c.s, torso: t.s, leg: z.s, q: RAR[ri].id };
   S.creatures.push(cr); save(); updateHUD();
   bigMoment('🐾 ' + tr('CHIMERA CREATA', 'CHIMERA CREATED'), cr.name);
-  toast('✨ ' + cr.name + tr(' si è rianimato! Passeggia nel parco delle città grandi', ' has been reanimated! It roams the big-city park'));
+  toast('✨ ' + cr.name + tr(' si è risvegliato! Passeggia nel parco delle città grandi', ' has woken up! It roams the big-city park'));
   return true;
 }
 

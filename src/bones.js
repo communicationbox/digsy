@@ -1,7 +1,7 @@
 /* Ossa voxel: logica PURA (niente Three.js) — generazione pezzi, socket, limiti, assemblaggio.
    Ogni specie ha varianti deterministiche di cranio/arti/coda; gli arti possono essere
    ossa, PINNE o ALI. I pezzi si ricombinano entro i limiti (chimere strane).
-   buildVoxels = scheletro · buildFleshVoxels = versione RIANIMATA (pelle e colori). */
+   buildVoxels = scheletro · buildFleshVoxels = versione RISVEGLIATA (pelle e colori). */
 import { spColor } from './data.js';
 
 export const LIMITS = { heads: 3, chest: 1, arms: 6, legs: 4, tails: 3, hornsPerHead: 2 };

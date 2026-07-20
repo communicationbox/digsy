@@ -9,7 +9,7 @@ import { fbm, vhash } from './noise.js';
 import { ZONES } from './data.js';
 
 /* [secco, umido] per fascia: 0 freddo → 1 temperato → 2 caldo */
-const BAND = [
+export const BAND = [
   [5, 2], // Lande Gelide · Boschi Cinerei
   [0, 4], // Prati Dorati · Palude Antica
   [3, 1], // Terre Rosse  · Dune Ossee

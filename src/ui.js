@@ -1,5 +1,5 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
-import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, RAR, ZONES, zonePools, CHIMERA_COST, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
+import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, CHIMERA_COST, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
@@ -155,7 +155,7 @@ export function updatePrompt() {
   if (INT.active) {
     if (nearMentorInt()) { setPrompt(withIcons(actKey() + ' ' + tr('Parla col Maestro Scavatore 🎓', 'Talk to the Master Digger 🎓'))); return; }
     const nc = nearCase();
-    if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/5' + (nc.n === 5 ? ' 💫' : ''))); return; }
+    if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/' + PARTS.length + (nc.n === PARTS.length ? ' 💫' : ''))); return; }
     if (nearNpc()) {
       if (!INT.greeted && INT.b) { sayGreet(INT.b.type); INT.greeted = true; } // saluto (una frase a caso) avvicinandosi
       setPrompt(withIcons(actKey() + ' ' + tr('Parla con ', 'Talk to ') + npcName(INT.b.type))); return;
@@ -269,7 +269,10 @@ export function openQuestBoard() {
   });
   mBody.querySelectorAll('[data-deliver]').forEach(b => b.onclick = () => {
     const q = deliverQuest(b.dataset.deliver);
-    if (q) { playSfx('coin'); gainXp(Math.max(4, Math.round(q.reward / 3))); save(); updateHUD(); toast('✅ ' + tr('Consegnata! +🪙 ', 'Delivered! +🪙 ') + q.reward); }
+    /* l'XP la dà `deliverQuest` (quests.js): qui ce n'era una SECONDA, e ogni consegna ne
+       pagava due — col totem della doppia XP attivo bruciava anche 2 dei 10 carichi invece
+       di 1. L'esperienza si conta in un posto solo, quello testato. */
+    if (q) { playSfx('coin'); save(); updateHUD(); toast('✅ ' + tr('Consegnata! +🪙 ', 'Delivered! +🪙 ') + q.reward); }
     openQuestBoard();
   });
 }
@@ -747,7 +750,7 @@ export function openBuilding(b) {
 }
 
 function renderLab() {
-  let h = `<div class="muted" style="margin-bottom:10px">${tr('Il laboratorio rianima: chimere e specie complete. (I reperti grezzi si identificano al <b>Museo</b>.)', 'The laboratory reanimates: chimeras and complete species. (Raw finds are identified at the <b>Museum</b>.)')}</div>`;
+  let h = `<div class="muted" style="margin-bottom:10px">${tr('Il laboratorio risveglia: chimere e specie complete. (I reperti grezzi si identificano al <b>Museo</b>.)', 'The laboratory awakens: chimeras and complete species. (Raw finds are identified at the <b>Museum</b>.)')}</div>`;
   /* FUSIONE DEI DOPPIONI: dà uno scopo ai pezzi ripetuti quando le monete non servono più */
   {
     const groups = fusibleGroups(S.items);
@@ -769,7 +772,7 @@ function renderLab() {
       }).join('');
     }
   }
-  h += `<div class="bighead">${tr('Rianima una chimera', 'Reanimate a chimera')}</div>`;
+  h += `<div class="bighead">${tr('Risveglia una chimera', 'Awaken a chimera')}</div>`;
   h += `<div class="muted" style="margin-bottom:8px">${tr('Monta <b>Cranio + Torace + Zampa</b> identificati', 'Assemble an identified <b>Skull + Ribcage + Leg</b>')} (🪙 ${CHIMERA_COST} + 🧬 ${tr('1 fialetta per ogni specie usata', '1 vial per species used')}): ${tr('la creatura rivive nel <b>parco</b> delle città grandi. Chimere create', 'the creature comes alive in the big-city <b>park</b>. Chimeras created')}: ${S.creatures.length}</div>`;
   const crn = S.items.filter(i => i.t === 'cranio'), tor = S.items.filter(i => i.t === 'torace'), zmp = S.items.filter(i => i.t === 'zampa');
   if (!crn.length || !tor.length || !zmp.length) {
@@ -779,11 +782,11 @@ function renderLab() {
     const opt = list => list.map(i => `<option value="${i.uid}">${spById[i.s].name} (${rarLabel(i.q)})</option>`).join('');
     h += `<div class="row" style="flex-wrap:wrap;gap:6px">
       <select id="selC" class="sel">${opt(crn)}</select><select id="selT" class="sel">${opt(tor)}</select><select id="selZ" class="sel">${opt(zmp)}</select>
-      <div class="rt"><button class="btn clay" id="doChimera">${tr('Rianima!', 'Reanimate!')} 🪙${CHIMERA_COST}</button></div></div>`;
+      <div class="rt"><button class="btn clay" id="doChimera">${tr('Risveglia!', 'Awaken!')} 🪙${CHIMERA_COST}</button></div></div>`;
     h += `<div class="center" style="padding:4px 0"><canvas id="chimPrev" class="bp-cv" width="120" height="90"></canvas><div class="muted" style="font-size:11px">${tr('Anteprima della creatura assemblata', 'Preview of the assembled creature')}</div></div>`;
   }
   h += `<hr class="hr"><div class="bighead">${tr('Risveglia una specie', 'Awaken a species')}</div>`;
-  h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('Servono <b>2 fialette di DNA</b> della stessa specie (una teca completa 5/5 ne dà una; le altre si comprano al Museo): qui le iniettiamo e la specie torna <b>VIVA</b> nel Libro. Risvegliate', 'You need <b>2 DNA vials</b> of the same species (a complete case 5/5 gives one; more can be bought at the Museum): we inject them here and the species comes back <b>ALIVE</b> in the Book. Awakened')}: ${S.awakened.length}/${SPECIES.length}</div>`;
+  h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('Servono <b>2 fialette di DNA</b> della stessa specie (una teca completa 5/5 ne dà una; le altre si comprano al Museo): qui le iniettiamo e la specie torna <b>VIVA</b> nel Libro. Risvegliate', 'You need <b>2 DNA vials</b> of the same species (a complete case 5/5 gives one; more can be bought at the Museum): we inject them here and the species comes back <b>ALIVE</b> in the Book. Awakened')}: ${S.awakened.length}/${ALL_SPECIES.length}</div>`;
   /* in debug il DNA è infinito: elenca i fossili SCOPERTI (non tutti e 60) ancora da risvegliare */
   const ready = ALL_SPECIES.filter(s => !S.awakened.includes(s.id) && (isDebug() ? S.codex.includes(s.id) : awakenReady(s.id)));
   if (!ready.length) h += `<div class="center muted">${isDebug() ? tr('Scopri qualche fossile e potrai risvegliarlo.', 'Discover some fossils to awaken them.') : tr('Nessuna fialetta DNA nello zaino.', 'No DNA vials in your bag.')}</div>`;
@@ -901,7 +904,7 @@ function renderMuseum() {
   /* il museo INDICIZZA la sua zona nel Libro dei Fossili (sagome ???) */
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
   if (!S.book[z.id]) { S.book[z.id] = true; save(); toast(tr('📖 Nuove pagine nel libro: ', '📖 New pages in the book: ') + zoneName(z.id) + '!'); }
-  const complete = Object.keys(S.museum).filter(k => (S.museum[k] || []).length === 5).length;
+  const complete = Object.keys(S.museum).filter(k => (S.museum[k] || []).length === PARTS.length).length;
   let h = `<div class="muted" style="margin-bottom:10px">${tr('Consegna i reperti <b>grezzi</b>: gli esperti li identificano <b>subito</b>. I pezzi che il museo ha già tornano a te (vendibili); i nuovi vengono <b>esposti in galleria</b>. Teca completa 5/5 → <b>fialetta di DNA</b> da usare al Laboratorio.', 'Hand in your <b>raw</b> finds: the experts identify them <b>instantly</b>. Pieces the museum already has come back to you (sellable); new ones go <b>on display</b>. Complete case 5/5 → a <b>DNA vial</b> to use at the Laboratory.')}</div>`;
   if (!S.museumJob) {
     h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div><div class="sub">${tr('Scoperte', 'Discovered')}: ${S.codex.length}/${ALL_SPECIES.length}</div></div>
@@ -931,7 +934,7 @@ function renderMuseum() {
   h += `<div class="row" style="background:#f1e6cc"><div class="nm">${tr('Specie complete', 'Complete species')}: ${complete}/${ALL_SPECIES.length}</div>
     <div class="rt"><button class="btn ghost" id="mbook">📖 ${tr('Libro', 'Book')}</button></div></div>`;
   /* ricariche di DNA: solo per specie con teca completa, prezzo per rarità */
-  const rechargeable = ALL_SPECIES.filter(s => (S.museum[s.id] || []).length === 5);
+  const rechargeable = ALL_SPECIES.filter(s => (S.museum[s.id] || []).length === PARTS.length);
   if (rechargeable.length) {
     h += `<div class="bighead" style="margin-top:10px">🧬 ${tr('Ricariche DNA', 'DNA refills')}</div><div class="muted" style="margin-bottom:6px">${tr('Ogni fialetta serve al Laboratorio: <b>2</b> risvegliano la specie, <b>1</b> basta per usarla in una chimera.', 'Each vial is used at the Laboratory: <b>2</b> awaken the species, <b>1</b> is enough to use it in a chimera.')}</div>`;
     h += rechargeable.map(s => `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name} ${dnaBadge(s.id)}</div><div class="sub">${rarSpan(s.r)}</div></div><div class="rt"><button class="btn amber" data-dna="${s.id}">🪙 ${DNA_COST[s.r]}</button></div></div>`).join('');
@@ -1008,8 +1011,8 @@ export function openExhibit(spId) {
   const zone = ZONES.find(z => z.id === sp.zone);
   let h = `<div class="center" style="padding:4px"><canvas id="exhCv" width="72" height="60" style="width:216px;height:180px;image-rendering:pixelated;background:#15120d;border:2px solid #6b5137;border-radius:8px"></canvas></div>`;
   h += `<div class="row"><div class="nm">${rarSpan(sp.r)} · ${zone ? zone.icon + ' ' + zoneName(zone.id) : ''}</div></div>`;
-  h += `<div class="row"><div class="sub">${tr('Pezzi esposti', 'Pieces on display')}: ${parts.length}/5 — ${PARTS.map(pt => (parts.includes(pt.id) ? '✓ ' : '· ') + partName(pt.id)).join(' · ')}</div></div>`;
-  if (parts.length === 5) h += `<div class="row" style="background:#f1e6cc"><div class="sub">🧬 ${tr('Teca completa: DNA disponibile al banco del Curatore', 'Case complete: DNA available at the Curator\'s desk')} ${dnaBadge(spId)}</div></div>`;
+  h += `<div class="row"><div class="sub">${tr('Pezzi esposti', 'Pieces on display')}: ${parts.length}/${PARTS.length} — ${PARTS.map(pt => (parts.includes(pt.id) ? '✓ ' : '· ') + partName(pt.id)).join(' · ')}</div></div>`;
+  if (parts.length === PARTS.length) h += `<div class="row" style="background:#f1e6cc"><div class="sub">🧬 ${tr('Teca completa: DNA disponibile al banco del Curatore', 'Case complete: DNA available at the Curator\'s desk')} ${dnaBadge(spId)}</div></div>`;
   h += `<div class="muted" style="margin-top:6px">${descFor(sp)}</div>`;
   mBody.innerHTML = withIcons(h); openModal();
   const cv = document.getElementById('exhCv');
@@ -1162,7 +1165,12 @@ export function openBag(tab) {
   bagOpenFlag = true; setPrompt(null);
   const bx = document.getElementById('bagX'); if (bx) bx.onclick = () => closeBag();
   if (ov && ov.addEventListener && !ov._wired) { ov._wired = true; ov.addEventListener('click', e => { if (e.target === ov) closeBag(); }); }
-  const bb = document.getElementById('bagBook'); if (bb) bb.onclick = () => { closeBag(); bookPage = 0; openBook(); };
+  /* `openBook(0)` riparte dalla prima pagina. Qui c'era `bookPage = 0`, ma `bookPage` vive
+     dentro bookui.js e non è mai stata importata: in un modulo ES (sempre strict) assegnare
+     un identificatore non dichiarato lancia ReferenceError. L'eccezione partiva DOPO
+     closeBag() e PRIMA di openBook(), quindi lo zaino si chiudeva e il Libro non si apriva
+     mai — il pulsante sembrava morto e in console non guardava nessuno. */
+  const bb = document.getElementById('bagBook'); if (bb) bb.onclick = () => { closeBag(); openBook(0); };
   const bm = document.getElementById('bagMap'); if (bm) bm.onclick = () => { closeBag(); openMap(); };
   const bw = document.getElementById('bagWonders'); if (bw) bw.onclick = () => { closeBag(); openWonderBook(); };
   if (box.querySelectorAll) {

@@ -2,7 +2,7 @@
    Erano quasi 500 righe dentro render.js: qui stanno insieme perché condividono la stessa
    idea (una stanza a tile con arredi solidi e un NPC che pattuglia dietro il bancone) e
    nessuna di loro serve al mondo aperto. */
-import { TS, spById, ZONES, MUSEUM_ZONES, zonePools } from './data.js';
+import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools } from './data.js';
 import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8 } from './brush.js';
@@ -154,7 +154,7 @@ export function drawMuseumGallery(time) {
        sono indistinguibili e non si capisce a quale zona appartengano le teche. */
     {
       const pool = zonePools[z.id] || [];
-      const done = pool.filter(sp => (S.museum[sp.id] || []).length === 5).length;
+      const done = pool.filter(sp => (S.museum[sp.id] || []).length === PARTS.length).length;
       const label = zoneName(z.id).toUpperCase(), sub = done + '/' + pool.length;
       ctx.font = '700 7px ui-monospace, Menlo, monospace'; ctx.textBaseline = 'top';
       /* measureText può non esserci (o non ritornare nulla) fuori dal browser: fallback sempre */
@@ -222,7 +222,7 @@ export function drawMuseumGallery(time) {
   const drawCase = (pd) => {
     const bx = pd.tx * TS, by = pd.ty * TS;
     const parts = S.museum[pd.sp.id] || [];
-    const full = parts.length === 5;
+    const full = parts.length === PARTS.length;
     shadow(bx + 8, by + 15, 9);
     rect(bx, by + 8, 16, 7, '#9a9285'); rect(bx, by + 8, 16, 2, '#b5ad9e'); rect(bx - 1, by + 13, 18, 2, '#7f776a');
     rect(bx, by + 10, 16, 1, '#c9a227');

@@ -106,7 +106,7 @@ export function applyStaticTexts() {
     const el = host && host.querySelector ? host.querySelector('.lbl') : null;
     if (el) el.textContent = txt;
   }
-  set('.sp-sub', tr('scava · scopri · rianima', 'dig · discover · revive'));
+  set('.sp-sub', tr('esplora · scava · scopri', 'explore · dig · discover'));
   /* Testi scritti a mano dentro index.html: da soli non passano MAI da tr() e restano in
      italiano per tutti. Vanno riscritti qui, PRIMA di hydrateIcons(), altrimenti si
      cancellerebbero le <img> delle icone già montate. */

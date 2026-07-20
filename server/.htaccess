@@ -8,6 +8,14 @@
 # Vale come rete di sicurezza. La difesa vera è tenere data/ e config.php FUORI dalla
 # cartella pubblicata: vedi server/README.md.
 
+# DOVE STA LA CONFIGURAZIONE, su questo hosting.
+#
+# `open_basedir` chiude PHP dentro httpdocs/ e la cartella del pool: un config messo "un
+# livello sopra la webroot" non sarebbe nemmeno leggibile. La cartella del pool invece è
+# FUORI da quella pubblicata e dentro open_basedir — è il posto giusto, e nessuna URL ci
+# arriva. Cambia il percorso se il sito viene spostato.
+SetEnv DIGSY_CONFIG /var/lib/php-pools/digsy_dev_box_it/digsy-config.php
+
 <FilesMatch "^config.*\.php$">
   Require all denied
 </FilesMatch>

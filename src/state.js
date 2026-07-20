@@ -38,7 +38,18 @@ export function fresh() {
 let cheatLock = false;
 export function isCheatLock() { return cheatLock; }
 export function setCheatLock(v) { cheatLock = !!v; }
-export function snapshotState() { return JSON.parse(JSON.stringify(S)); }
+/* Lo stato pronto da SPEDIRE: identico a quello che si scrive in localStorage, mappa
+   esplorata COMPRESSA compresa. Prima il salvataggio locale la impacchettava per riga e
+   quello per il server no: la stessa partita viaggiava molte volte più grande del necessario
+   e, con abbastanza mondo scoperto, andava a sbattere contro il tetto del server.
+   `packExplored` è idempotente sul formato vecchio, quindi non si corre il rischio di
+   comprimere due volte. */
+export function snapshotState() {
+  const copia = JSON.parse(JSON.stringify(S));
+  copia.explored = packExplored(S.explored);
+  copia.v = SAVE_V;
+  return copia;
+}
 export function restoreState(obj) {
   /* in-place: mantiene lo STESSO riferimento S (i binding importati restano validi) */
   for (const k of Object.keys(S)) if (!(k in obj)) delete S[k];
@@ -67,6 +78,12 @@ export function saveError() { return saveFail; }
 /* onSaveError: la UI si registra qui per avvisare il giocatore (una volta sola) */
 let onSaveError = null;
 export function setSaveErrorHandler(fn) { onSaveError = fn; }
+/* Chi vuole sapere che è appena stato salvato si registra qui — oggi è la sincronia col
+   server (account.js). Un gancio invece di una chiamata diretta perché il salvataggio è la
+   cosa più in basso di tutto il gioco: se importasse account.js, ogni partita si tirerebbe
+   dietro anche la parte di rete, che alla stragrande maggioranza dei giocatori non serve. */
+let onSaved = null;
+export function setSaveHook(fn) { onSaved = fn; }
 export function save() {
   if (cheatLock) return false; // cheat attivi: il salvataggio è congelato
   try {
@@ -80,6 +97,9 @@ export function save() {
     try { const prev = localStorage.getItem(SK); if (prev) localStorage.setItem(BAK, prev); } catch (e) { /* il backup è un extra */ }
     localStorage.setItem(SK, json);
     if (saveFail) { saveFail = null; }   // ripreso a funzionare
+    /* salvato qui: ora, se c'è un account collegato, la partita va anche sul server.
+       Mai lasciar passare un'eccezione: un problema di rete non deve rompere il gioco. */
+    if (onSaved) { try { onSaved(); } catch (e) { /* la partita locale è già al sicuro */ } }
     return true;
   } catch (e) {
     const first = !saveFail;
@@ -114,7 +134,24 @@ export function saveToSlot(n) {
   if (cheatLock) return 'cheat';
   save();
   packSets();
-  try { localStorage.setItem(slotKey(n), JSON.stringify({ ...S, explored: packExplored(S.explored), v: SAVE_V, savedAt: Date.now() })); return true; } catch (e) { return false; }
+  try {
+    localStorage.setItem(slotKey(n), JSON.stringify({ ...S, explored: packExplored(S.explored), v: SAVE_V, savedAt: Date.now() }));
+    /* anche gli slot vanno sul server: sono partite a tutti gli effetti, e chi ne salva una
+       sul computer si aspetta di ritrovarla sul telefono. Mai bloccare il salvataggio locale
+       se la rete non va: quello è già riuscito. */
+    if (onSlotSaved) { try { onSlotSaved(n); } catch (e) { /* la copia locale è al sicuro */ } }
+    return true;
+  } catch (e) { return false; }
+}
+/* chi vuole sapere che uno slot è stato salvato (la sincronia col server) si registra qui */
+let onSlotSaved = null;
+export function setSlotSaveHook(fn) { onSlotSaved = fn; }
+/* il contenuto grezzo di uno slot, per mandarlo al server senza reinterpretarlo */
+export function slotRaw(n) {
+  try { return localStorage.getItem(slotKey(n)); } catch (e) { return null; }
+}
+export function setSlotRaw(n, json) {
+  try { localStorage.setItem(slotKey(n), json); return true; } catch (e) { return false; }
 }
 /* copia lo slot nella chiave principale: al reload il boot riparte da lì */
 export function loadFromSlot(n) {

@@ -2,6 +2,16 @@
 export const TS = 16;
 
 /* ---------- zone del mondo (tipo biomi Minecraft: ripetibili, ampiezze variabili) ---------- */
+/* LE ZONE: UN ELENCO SOLO.
+ *
+ * Le informazioni su una zona vivevano in sei tabelle sparse fra tre file, metà indicizzate
+ * per POSIZIONE (ZONE_TILES, ZONE_TREE, BAND) e metà per ID (ZONE_COSMETICS, zonePools).
+ * Aggiungere o riordinare una zona voleva dire ricordarsele tutte, e THEMED_HAT si era già
+ * ritrovata con cinque voci contro sei zone senza che niente lo segnalasse.
+ *
+ * `ZONE_LIST` è l'ordine ufficiale: chi indicizza per posizione DEVE seguirlo, e un test
+ * pretende che ogni zona abbia ogni campo. `ZONES` resta il nome storico (lo importano in
+ * venti punti) ed è la stessa cosa. */
 export const ZONES = [
   { id: 'prati', name: 'Prati Dorati', icon: '🌾', tint: 'rgba(246,220,120,0.08)' },
   { id: 'dune', name: 'Dune Ossee', icon: '🏜️', tint: 'rgba(240,200,120,0.13)' },
@@ -10,6 +20,9 @@ export const ZONES = [
   { id: 'palude', name: 'Palude Antica', icon: '🐸', tint: 'rgba(80,135,85,0.14)' },
   { id: 'ghiacci', name: 'Lande Gelide', icon: '🧊', tint: 'rgba(180,210,235,0.16)' },
 ];
+/* stesso elenco, nome che dice cosa garantisce: l'ORDINE */
+export const ZONE_LIST = ZONES;
+export const ZONE_IDS = ZONES.map(z => z.id);
 
 /* ---------- specie: 10 per zona — 4 comuni, 3 rare, 2 eccezionali, 1 LEGGENDARIA ---------- */
 const ZDEF = [
@@ -78,7 +91,7 @@ export const RAR = [
   { id: 'leggendario', label: 'Leggendario', mult: 9, w: 3 },
 ];
 
-/* colore pelliccia/pelle per le chimere rianimate: generato per specie (hue a passo aureo) */
+/* colore pelliccia/pelle per le chimere risvegliate: generato per specie (hue a passo aureo) */
 function hsl2hex(h, s, l) {
   s /= 100; l /= 100;
   const k = n => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
@@ -117,7 +130,7 @@ export const GOODS = {
 export const goodById = {};
 for (const z in GOODS) for (const g of GOODS[z]) goodById[g[0]] = { id: g[0], it: g[1], en: g[2], val: g[3] };
 
-export const CHIMERA_COST = 40;   // rianimare una chimera al Laboratorio
+export const CHIMERA_COST = 40;   // risvegliare una chimera al Laboratorio
 export const SERVICE_COST = 8;    // barbiere / sartoria, per modifica
 
 /* palette scelte per l'editor / negozi */
@@ -169,12 +182,19 @@ export const ZONE_COSMETICS = {
   prati: { hair: 'meadow', hat: 'flowercrown' },
   dune: { hair: 'dunespike', hat: 'bandana' },
   boschi: { hair: 'afro', hat: 'hood' },
-  terre: { hair: 'ember' },
+  /* Le Terre Rosse NON hanno un cappello esclusivo: l'elmetto da minatore è stato tolto dal
+     gioco (vedi REMOVED_HATS in state.js, che lo ripulisce anche dai salvataggi vecchi).
+     Il `null` è scritto APPOSTA: una chiave che manca è un buco che nessuno nota, una chiave
+     a null è una decisione che si legge. Il test pretende la chiave, non il valore. */
+  terre: { hair: 'ember', hat: null },
   palude: { hair: 'algae', hat: 'snorkel' },
   ghiacci: { hair: 'frost', hat: 'ushanka' },
 };
-export const THEMED_HAIR = ['meadow', 'dunespike', 'afro', 'ember', 'algae', 'frost'];
-export const THEMED_HAT = ['flowercrown', 'bandana', 'hood', 'snorkel', 'ushanka'];
+/* Gli elenchi piatti si DERIVANO, non si riscrivono: erano due liste a mano accanto alla
+   tabella che le contiene già, e la seconda aveva 5 voci per 6 zone. Nessuno se n'era
+   accorto perché niente le confrontava. */
+export const THEMED_HAIR = ZONE_LIST.map(z => ZONE_COSMETICS[z.id].hair).filter(Boolean);
+export const THEMED_HAT = ZONE_LIST.map(z => ZONE_COSMETICS[z.id].hat).filter(Boolean);
 
 /* Nomi propri per il personaggio (l'editor ne pesca uno a caso, modificabile). */
 export const NAMES = [

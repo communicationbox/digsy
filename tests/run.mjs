@@ -149,6 +149,14 @@ sprites.applyLook();
   const iInt = mainSrc.indexOf('if (INT.active)');
   check('l\'HUD si aggiorna anche in grotta e negli interni',
     iHud > 0 && iCave > 0 && iInt > 0 && iHud < iCave && iHud < iInt);
+  /* Stesso guasto, terza faccia: l'OROLOGIO. Stava anche lui dopo quei `return`, quindi
+     sottoterra il tempo non passava — si stavano dieci minuti veri a staccare cristalli e
+     si riemergeva alla stessa ora, con la commissione del Museo che non scadeva mai finché
+     si restava dentro. Grotte e interni non sono una modale: là si gioca. */
+  const iTime = mainSrc.indexOf('advanceTime(dt)');
+  check('il tempo scorre anche in grotta e negli interni',
+    iTime > 0 && iTime < iCave && iTime < iInt);
+  check('l\'orologio avanza in un posto solo', mainSrc.split('advanceTime(dt)').length - 1 === 1);
   S.energy = before;
 }
 
@@ -156,6 +164,12 @@ sprites.applyLook();
 {
   const { runCloudTests } = await import('./cloud.mjs');
   await runCloudTests(check);
+}
+
+/* ---------- nomi usati senza importarli: pulsanti morti che non fanno rumore ---------- */
+{
+  const { runImportTests } = await import('./imports.mjs');
+  runImportTests(check);
 }
 
 /* ---------- lo Sprite Studio vede TUTTE le icone ---------- */
@@ -404,8 +418,215 @@ sprites.applyLook();
     check('solo true vero accende, non una stringa', sp.cloudEnabled() === false);
     window.DIGSY_CLOUD = prev;
   }
-  const spSrc = readFileSync(new URL('../src/splash.js', import.meta.url), 'utf8');
-  check('la voce del menu passa dall\'interruttore', /if \(cloudEnabled\(\)\)[\s\S]{0,80}sp-account/.test(spSrc));
+  /* Si guarda il MENU VERO, non la forma del codice: il controllo di prima pretendeva
+     `if (cloudEnabled())` entro 80 caratteri da `sp-account` e si è rotto appena il codice
+     è cambiato restando giusto. Un test che cade quando il comportamento è corretto insegna
+     solo a disattivarlo. */
+  if (typeof window !== 'undefined') {
+    const menuEl = () => document.getElementById('sp-menu');
+    window.DIGSY_CLOUD = false; sp.showSplash();
+    check('spento: nessuna voce dell\'account nel menu', !menuEl().innerHTML.includes('sp-account'));
+    window.DIGSY_CLOUD = true; sp.resumeSplash(); sp.showSplash();
+    check('acceso: la voce dell\'account compare', menuEl().innerHTML.includes('sp-account'));
+    /* E DICE COME SEI MESSO senza doverci entrare: chiedere "Entra con Google" a chi è già
+       entrato è una bugia, e far aprire un pannello per sapere se si è collegati è lavoro
+       scaricato sul giocatore. */
+    sp.acc.user = { email: 'tizio@example.com' }; sp.acc.known = true;
+    sp.resumeSplash(); sp.showSplash();
+    check('collegato: il pulsante mostra con chi sei entrato',
+      menuEl().innerHTML.includes('tizio@example.com'));
+    sp.acc.user = null;
+    sp.resumeSplash(); sp.showSplash();
+    check('scollegato: il pulsante invita a entrare',
+      /Entra con Google|Sign in with Google/.test(menuEl().innerHTML));
+    sp.acc.known = false;
+    window.DIGSY_CLOUD = prev;
+    sp.resumeSplash();
+  }
+}
+
+/* ---------- statistiche della partita ---------- */
+{
+  const stats = await import('../src/stats.js');
+  const { ALL_SPECIES: ASP, PARTS: PT } = await import('../src/data.js');
+
+  /* il tempo si legge come lo direbbe una persona, e non dice mai "0h 0m" */
+  check('tempo: sotto il minuto si contano i secondi', stats.playTime(42) === '42s');
+  check('tempo: sotto l\'ora i minuti', stats.playTime(150) === '2m');
+  check('tempo: oltre l\'ora ore e minuti', stats.playTime(3600 * 3 + 60 * 24) === '3h 24m');
+  check('tempo: niente tempo non è un guasto', stats.playTime(undefined) === '0s' && stats.playTime(-5) === '0s');
+
+  /* UN SALVATAGGIO VECCHIO non ha i campi nuovi: le statistiche non devono esplodere né
+     inventare numeri. È il caso che si presenta a chi gioca da prima di questa schermata. */
+  const vecchio = { day: 4, coins: 30 };
+  const righe = stats.gameStats(vecchio);
+  check('statistiche: un salvataggio vecchio non fa esplodere niente',
+    Array.isArray(righe) && righe.length > 6 && righe.every(r => typeof r.value === 'string' && r.value !== ''));
+  check('statistiche: senza contatore, il tempo è zero, non "NaN"',
+    righe.find(r => r.id === 'time').value === '0s');
+  check('statistiche: il nulla non conta come una scoperta',
+    righe.find(r => r.id === 'codex').value === '0/' + ASP.length);
+  check('statistiche: nemmeno lo stato inesistente esplode', stats.gameStats(null).length > 6);
+
+  /* i numeri sono quelli veri dello stato */
+  const piena = {
+    playSec: 7265, day: 12, level: 4, coins: 340,
+    codex: ['a', 'b', 'c'], creatures: [{}, {}], awakened: ['a'], wonders: ['w'],
+    caves: { x: true, y: true }, dug: [1, 2, 3, 4], questTotal: 6,
+    museum: { a: PT.map(p => p.id), b: ['cranio'] },
+  };
+  const r2 = Object.fromEntries(stats.gameStats(piena).map(x => [x.id, x.value]));
+  check('statistiche: le ore di gioco', r2.time === '2h 1m');
+  check('statistiche: chimere, grotte, scavi, missioni',
+    r2.chimeras === '2' && r2.caves === '2' && r2.dug === '4' && r2.quests === '6');
+  check('statistiche: conta le teche COMPLETE, non quelle iniziate',
+    stats.completeCases(piena) === 1 && r2.cases === '1/' + ASP.length);
+  check('statistiche: le specie si contano sul catalogo VERO (grotte comprese)',
+    r2.codex === '3/' + ASP.length && r2.awake === '1/' + ASP.length);
+  check('statistiche: il riassunto in una riga si legge', /2h 1m/.test(stats.statsHeadline(piena)));
+
+  /* OGNI ICONA DEVE ESISTERE DAVVERO. `withIcons` cancella in silenzio le emoji che non
+     conosce: la riga resta senza simbolo e nessuno se ne accorge finché non guarda lo
+     schermo. Era già successo con ⏳ (nessun orologio nel set) e con 🎓, che diventava un
+     GERMOGLIO. Qui si controlla che ognuna sia mappata su un'icona che c'è. */
+  {
+    const icons = await import('../src/icons.js');
+    const { readFileSync } = await import('node:fs');
+    const isrc = readFileSync(new URL('../src/icons.js', import.meta.url), 'utf8');
+    const rotte = [];
+    for (const r of stats.gameStats(piena)) {
+      const m = new RegExp("'" + r.icon + "'\\s*:\\s*'([a-zA-Z]+)'").exec(isrc);
+      if (!m) { rotte.push(r.id + ' (' + r.icon + ' non mappata)'); continue; }
+      if (!icons.ICON_NAMES.includes(m[1])) rotte.push(r.id + ' → ' + m[1] + ' non esiste');
+      /* (il giro completo per `withIcons` non si può provare qui: in Node gli SVG non si
+         caricano — `import.meta.glob` è roba di Vite — e il registro resta vuoto. Il
+         controllo utile è che l'emoji sia nella mappa e punti a un'icona esistente.) */
+    }
+    check('statistiche: ogni icona esiste davvero' + (rotte.length ? ' → ' + rotte.join(', ') : ''),
+      rotte.length === 0);
+  }
+
+  /* il contatore delle ore avanza DAVVERO mentre si gioca: sta nel loop, accanto
+     all'orologio del mondo — cioè solo quando si gioca sul serio */
+  const mainSrc2 = (await import('node:fs')).readFileSync(new URL('../src/main.js', import.meta.url), 'utf8');
+  const iPlay = mainSrc2.indexOf('S.playSec');
+  const iCave2 = mainSrc2.indexOf('if (CAVE.active)');
+  check('le ore di gioco si contano anche in grotta e negli interni', iPlay > 0 && iPlay < iCave2);
+}
+
+/* ---------- le zone: nessun buco nelle tabelle ---------- */
+{
+  /* Le informazioni su una zona vivono in tabelle diverse, in tre file, metà indicizzate per
+     POSIZIONE e metà per ID. `THEMED_HAT` si era già ritrovata con cinque voci contro sei
+     zone — l'Elmetto delle Terre Rosse risultava documentato in CLAUDE.md e non esisteva —
+     e nessuno dei test se n'era accorto, perché niente confrontava le tabelle fra loro.
+     Qui si pretende che OGNI zona compaia in OGNI tabella. */
+  const d = await import('../src/data.js');
+  const tiles = await import('../src/tiles.js');
+  const reg = await import('../src/regions.js');
+  const N = d.ZONES.length;
+
+  check('zone: l\'elenco ufficiale e quello storico sono la stessa cosa',
+    d.ZONE_LIST === d.ZONES && d.ZONE_IDS.length === N);
+
+  /* le tabelle indicizzate per POSIZIONE devono essere lunghe quanto le zone */
+  const perIndice = [['ZONE_TILES', tiles.ZONE_TILES]];
+  for (const [nome, tab] of perIndice) {
+    check('zone: ' + nome + ' copre tutte le ' + N + ' zone (' + (tab ? tab.length : '?') + ')',
+      Array.isArray(tab) && tab.length === N);
+  }
+
+  /* le tabelle per ID devono avere una voce per ogni zona, con TUTTE le chiavi previste:
+     una chiave assente è un buco silenzioso, una a null è una scelta dichiarata */
+  const buchi = [];
+  for (const z of d.ZONES) {
+    const c = d.ZONE_COSMETICS[z.id];
+    if (!c) { buchi.push(z.id + ' non è in ZONE_COSMETICS'); continue; }
+    for (const campo of ['hair', 'hat']) {
+      if (!(campo in c)) buchi.push(z.id + ' non dichiara "' + campo + '"');
+    }
+    if (!d.zonePools[z.id] || !d.zonePools[z.id].length) buchi.push(z.id + ' non ha specie');
+  }
+  check('zone: ogni zona dichiara ogni campo' + (buchi.length ? ' → ' + buchi.join(', ') : ''),
+    buchi.length === 0);
+
+  /* gli elenchi piatti si DERIVANO dalla tabella: erano scritti a mano accanto ad essa, ed è
+     così che uno dei due è rimasto indietro di una voce */
+  const attesiHair = d.ZONES.map(z => d.ZONE_COSMETICS[z.id].hair).filter(Boolean);
+  const attesiHat = d.ZONES.map(z => d.ZONE_COSMETICS[z.id].hat).filter(Boolean);
+  check('zone: i capelli tematici combaciano con la tabella',
+    d.THEMED_HAIR.join() === attesiHair.join());
+  check('zone: i cappelli tematici combaciano con la tabella (' + d.THEMED_HAT.length + ')',
+    d.THEMED_HAT.join() === attesiHat.join());
+  /* e ogni cosmetico nominato deve ESISTERE davvero come disegno */
+  const spr = await import('../src/sprites.js');
+  const fantasmi = [...d.THEMED_HAIR.filter(h => !spr.HAIRS[h]), ...d.THEMED_HAT.filter(h => !spr.HATS[h])];
+  check('zone: ogni cosmetico tematico ha il suo disegno' + (fantasmi.length ? ' → ' + fantasmi.join(', ') : ''),
+    fantasmi.length === 0);
+
+  /* la temperatura: ogni zona deve stare in una fascia, o i confini climatici non tengono */
+  const inFascia = new Set(reg.BAND ? reg.BAND.flat() : []);
+  if (reg.BAND) {
+    const senzaFascia = d.ZONES.map((z, i) => i).filter(i => !inFascia.has(i));
+    check('zone: ogni zona ha una fascia di temperatura' + (senzaFascia.length ? ' → indici ' + senzaFascia.join(',') : ''),
+      senzaFascia.length === 0);
+  }
+}
+
+/* ---------- coerenza visiva: i valori stanno in un posto solo ---------- */
+{
+  const { readFileSync } = await import('node:fs');
+  const css = readFileSync(new URL('../src/style.css', import.meta.url), 'utf8');
+
+  /* I TOKEN ESISTONO e sono dichiarati una volta sola */
+  const root = (css.match(/:root\{[\s\S]*?\}/) || [''])[0];
+  const attesi = ['--c-ink', '--c-line', '--c-gold', '--c-amber', '--c-teal',
+    '--sp-1', '--sp-2', '--r-2', '--fs-sm', '--w-menu'];
+  const senza = attesi.filter(t => !root.includes(t + ':'));
+  check('design: i valori del gioco sono dichiarati in :root' + (senza.length ? ' → mancano ' + senza.join(',') : ''),
+    senza.length === 0);
+
+  /* I COLORI DEL TEMA NON SI RISCRIVONO A MANO, in nessun punto del foglio.
+     Erano 191 usi sparsi: 27 copie del marrone dei bordi, 20 della carta, 15 dell'ambra.
+     Bastava sbagliare una cifra perché un pannello stonasse senza che nessuno sapesse dire
+     dove fosse l'errore. Ora ognuno ha un nome, e questo controllo impedisce che tornino:
+     se serve DAVVERO una tinta nuova, si aggiunge un token — non una costante nascosta in
+     mezzo a una regola.
+     I colori usati una volta sola (le decine di sfumature dei singoli pannelli) restano
+     scritti dove sono: un token che serve a un posto solo è un nome in più da ricordare. */
+  const root2 = (css.match(/:root\{[\s\S]*?\n\}/) || [''])[0];
+  const dopoRoot = css.slice(css.indexOf(root2) + root2.length);
+  const tematici = (root2.match(/--c-[a-z0-9-]+:\s*(#[0-9a-fA-F]{3,6})\b/g) || [])
+    .map(r => (r.match(/#[0-9a-fA-F]{3,6}/) || [''])[0].toLowerCase());
+  const ricomparsi = [];
+  for (const col of [...new Set(tematici)]) {
+    const usi = (dopoRoot.match(new RegExp(col + '\\b', 'gi')) || []).length;
+    if (usi) ricomparsi.push(col + ' ×' + usi);
+  }
+  check('design: nessun colore del tema è riscritto a mano nel foglio'
+    + (ricomparsi.length ? ' → ' + ricomparsi.join(', ') : ''), ricomparsi.length === 0);
+
+  /* UNA LARGHEZZA SOLA per la colonna dei menu: se ognuno si sceglie la sua, le schermate
+     "ballano" passando dall'una all'altra */
+  check('design: la colonna dei menu ha una larghezza sola', /--w-menu:\s*\d+px/.test(root));
+}
+
+/* ---------- perché l'accesso non è riuscito ---------- */
+{
+  /* Detto in modo che si capisca CHI deve fare cosa: quasi tutte queste cause sono di
+     configurazione, cioè dell'autore, e al giocatore va detto che non è colpa sua invece di
+     lasciarlo a riprovare all'infinito. */
+  const sp2 = await import('../src/splash.js');
+  const orig = sp2.signInError('origin_mismatch');
+  check('errore: l\'origine non autorizzata si spiega e non dà la colpa al giocatore',
+    /autorizzat|authoris/.test(orig) && /non dipende da te|not something you did/.test(orig));
+  check('errore: senza rete si dice che la partita è al sicuro qui',
+    /questo dispositivo|this device/.test(sp2.signInError('offline')));
+  check('errore: Google che non conferma invita a riprovare',
+    /iprova|ry again/.test(sp2.signInError('unverified')));
+  check('errore: una causa sconosciuta si mostra comunque, col suo codice',
+    sp2.signInError('boh_42').includes('boh_42'));
+  check('errore: senza codice non restano parentesi vuote', !/\(\s*\)/.test(sp2.signInError('')));
 }
 
 /* ---------- il collegamento a Discord ---------- */
@@ -549,6 +770,30 @@ sprites.applyLook();
   check('parco nei visParks', park.visParks.includes(big));
   const list = park.parkList(big);
   check('una chimera nel parco', list.length === S.creatures.length && list.length === 1);
+
+  /* LE SPECIE RISVEGLIATE VIVONO NEL PARCO. Costano cinque pezzi e una fialetta intera di
+     DNA, e per mesi il recinto le ha ignorate: comparivano solo nel Libro e fra i compagni.
+     Un giocatore ne aveva risvegliate dieci e le credeva perse. */
+  {
+    const before = park.parkList(big).length;
+    S.awakened.push('fangodonte', 'brontorana');
+    const after = park.parkList(big);
+    check('le specie risvegliate entrano nel parco',
+      after.length === before + 2 && S.creatures.length + S.awakened.length === after.length);
+    const nomi = after.map(a => a.c.name);
+    check('nel parco ci sono col loro nome di specie',
+      nomi.includes('Fangodonte') && nomi.includes('Brontorana'));
+    check('una specie risvegliata ha lo sprite della specie (cranio=torace=zampa)',
+      after.some(a => a.c.skull === 'fangodonte' && a.c.torso === 'fangodonte' && a.c.leg === 'fangodonte'));
+    /* parco e selettore dei compagni devono pescare dalla STESSA lista: quando erano due
+       elenchi scritti a mano sono divergute proprio così */
+    const comp = (await import('../src/companion.js')).companionCandidates();
+    check('parco e compagni: stessa popolazione',
+      comp.length === after.length && comp.every((c, i) => c.key === after[i].c.key));
+    S.awakened.length = 0;
+    check('tolte le risvegliate il parco torna alle sole chimere',
+      park.parkList(big).length === S.creatures.length);
+  }
   let out = 0;
   for (let i = 0; i < 3600; i++) {
     park.updatePark(big, 1 / 60);
@@ -675,7 +920,7 @@ sprites.applyLook();
   check('sartoria: forme cappello + ✕ senza cappello', tHtml.includes('hatStyle') && tHtml.includes('hatOff'));
   ui.openBuilding({ type: 'lab', name: 'Laboratorio' });
   const labHtml = document.getElementById('m-body').innerHTML;
-  check('laboratorio: chimere sì, identifica NO (spostata al museo)', labHtml.includes('Rianima') && !labHtml.includes('idAll'));
+  check('laboratorio: chimere sì, identifica NO (spostata al museo)', labHtml.includes('Risveglia') && !labHtml.includes('idAll'));
   ui.openBuilding({ type: 'museum', name: 'Museo' });
   check('museo: bottone Consegna (identificazione in 1 giorno)', document.getElementById('m-body').innerHTML.includes('mudep'));
   check('museo: il Curatore propone la commissione', document.getElementById('m-body').innerHTML.includes('cmacc'));
@@ -732,17 +977,127 @@ sprites.applyLook();
   const splash = await import('../src/splash.js');
   const menuEl = () => document.getElementById('sp-menu');
   splash.showSplash();
-  check('splash-pausa: Riprendi + Partite + Audio', splash.splashActive() &&
-    ['Riprendi', 'sp-saves', 'sp-audio'].every(k => menuEl().innerHTML.includes(k)));
+  /* Il menu principale tiene solo ciò che riguarda il GIOCARE. Audio e Lingua sono
+     impostazioni e stanno dentro Impostazioni: in prima schermata rubavano posto e
+     schiacciavano l'accesso in cloud fra due voci che si aprono una volta l'anno. */
+  check('splash-pausa: Riprendi + Partite + Impostazioni', splash.splashActive() &&
+    ['Riprendi', 'sp-saves', 'sp-settings'].every(k => menuEl().innerHTML.includes(k)));
+  check('audio e lingua NON sono nel menu principale',
+    !menuEl().innerHTML.includes('sp-audio') && !menuEl().innerHTML.includes('sp-lang'));
+  document.getElementById('sp-settings').onclick();
+  /* Audio e Lingua sono DENTRO le impostazioni, non due sottopagine da aprire: erano due
+     schermate per quattro interruttori. Qui si pretende che i comandi veri siano subito lì. */
+  const cfg = () => menuEl().innerHTML;
+  check('audio nelle impostazioni, senza sottopagine',
+    ['sp-mus', 'sp-vol', 'sp-sfx', 'sp-sfxvol'].every(k => cfg().includes(k)));
+  check('lingua nelle impostazioni, con quella attiva evidenziata',
+    cfg().includes('data-lang') && /data-lang="it"[^>]*|primary[^>]*data-lang/.test(cfg()));
+  check('tutte le impostazioni in una schermata sola',
+    ['sp-marker', 'sp-tips', 'sp-refresh'].every(k => cfg().includes(k)));
+  /* e devono starci DAVVERO: il contenitore scorre, invece di far finire i comandi fuori
+     dallo schermo com'era prima (su mobile "Aggiorna il gioco" non si raggiungeva) */
+  check('le impostazioni stanno in un contenitore che scorre', cfg().includes('sp-cfg'));
+  /* LE OPZIONI CAMBIANO COL DISPOSITIVO: le leve a schermo non esistono col mouse, il
+     segui-puntatore non esiste col dito. Vanno provate ENTRAMBE le versioni, altrimenti
+     metà schermata non viene mai disegnata da nessuno — ed è lì che si rompe. */
+  {
+    const i18n = await import('../src/i18n.js');
+    const prefs = await import('../src/prefs.js');
+    /* `isTouch()` guarda matchMedia('(pointer:coarse)') oppure innerWidth <= 760: si finge
+       uno schermo stretto, che è la via che funziona anche con lo stub */
+    const eraW = typeof innerWidth !== 'undefined' ? innerWidth : undefined;
+    const stretto = (v) => { try { globalThis.innerWidth = v; if (typeof window !== 'undefined') window.innerWidth = v; } catch (e) { /* ok */ } };
+    check('col mouse: si sceglie come muoversi col puntatore',
+      cfg().includes('data-mouse') && !cfg().includes('data-touch'));
+    /* si finge un dispositivo a tocco e si ridisegna */
+    {
+      stretto(390);
+      check('lo schermo stretto è riconosciuto come "col dito"', i18n.isTouch() === true);
+      for (const t of ['joystick', 'float', 'tap']) {
+        prefs.setPref('touch', t);
+        splash.setView('settings');
+        check('col dito: la modalità "' + t + '" si disegna con la sua spiegazione',
+          cfg().includes('data-touch') && cfg().includes('sp-hint2'));
+      }
+      check('col dito: c\'è anche la scelta della mano', cfg().includes('data-hand'));
+      stretto(eraW === undefined ? 1200 : eraW);
+      for (const m of ['follow', 'keys', 'tap']) { prefs.setPref('mouse', m); splash.setView('settings'); }
+      check('col mouse: ogni modalità ha la sua spiegazione', cfg().includes('sp-hint2'));
+    }
+  }
+  splash.showSplash();
+  /* LA CONSOLE COMANDI NON SI OFFRE AI GIOCATORI. `money`, `godmode`, `goto=…` servono
+     all'autore per provare il gioco: elencarli in un menu invita a usarli, e una partita con
+     le monete infinite non dice più niente su come il gioco è bilanciato. Nessun pulsante,
+     in nessuna schermata, deve portarci — resta il tasto ` per chi sa che c'è. */
+  {
+    /* `showSplash()` NON riporta al menu principale se la splash è già aperta (esce subito,
+       vedi splash.js): girando il ciclo con quella si restava fermi sull'ultimo pannello e
+       il controllo passava sempre, anche col pulsante rimesso. Si torna indietro con
+       `resumeSplash`, che è quello che fa ESC. */
+    const home = () => { splash.resumeSplash(); if (!document.getElementById('sp-saves')) splash.showSplash(); };
+    const apri = { main: null, saves: 'sp-saves', settings: 'sp-settings', credits: 'sp-credits' };
+    let esposto = null;
+    for (const v of Object.keys(apri)) {
+      home();
+      const b = apri[v];
+      if (b) { const el = document.getElementById(b); if (el && el.onclick) el.onclick(); }
+      const html = menuEl().innerHTML || '';
+      if (/sp-cmds|data-cmd=|godmode/.test(html)) esposto = v;
+    }
+    check('nessuna schermata del menu porta alla console comandi'
+      + (esposto ? ' → esposta in "' + esposto + '"' : ''), esposto === null);
+    home();
+  }
+  splash.showSplash();
   document.getElementById('sp-saves').onclick();
   /* dai sottomenu si esce con la X in alto (una sola via d'uscita, sempre nello schermo:
      il vecchio pulsante "Indietro" in fondo su mobile finiva sotto il bordo) */
-  check('sottomenu Partite: Salva/Carica/Nuova + X per uscire', ['data-save', 'data-n', 'sp-new', 'sp-x'].every(k => menuEl().innerHTML.includes(k)));
+  check('sottomenu Salvataggi: Salva/Carica/Nuova + X per uscire', ['data-save', 'data-n', 'sp-new', 'sp-x'].every(k => menuEl().innerHTML.includes(k)));
+  /* GLI SLOT NON DEVONO MAI SPARIRE da questa schermata. Ci sono spariti davvero: dodici
+     righe di statistiche in fondo hanno schiacciato `#sp-slots`, che sta in un contenitore
+     flessibile, fino a farlo collassare. Qui si pretende che i tre slot ci siano e che le
+     statistiche NON siano in mezzo ai piedi. */
+  S.started = true; S.playSec = 3700; S.day = 9;
+  document.getElementById('sp-saves').onclick();
+  const htmlSaves = menuEl().innerHTML;
+  check('i salvataggi restano i protagonisti della loro schermata',
+    (htmlSaves.match(/sp-slot"/g) || []).length === 3 && htmlSaves.includes('sp-slots'));
+  check('le statistiche non invadono la schermata dei salvataggi',
+    !htmlSaves.includes('sp-stat-l') && htmlSaves.includes('sp-stats-btn'));
+  /* e si DISEGNANO davvero nella loro (regola 9: un modulo che nessuno esegue è un crash
+     che aspetta) */
+  document.getElementById('sp-stats-btn').onclick();
+  check('le statistiche hanno una schermata loro, e si disegna',
+    menuEl().innerHTML.includes('sp-stat-l') && /1h 1m/.test(menuEl().innerHTML));
+  splash.resumeSplash();
+
+  /* SOVRASCRIVERE UNO SLOT PIENO CHIEDE CONFERMA. "Carica" ce l'aveva già; "Salva", che è
+     quello che DISTRUGGE, no: un tocco di troppo e una partita spariva senza un avviso.
+     È successo davvero, a Marco, su una partita vera. Su uno slot VUOTO non si chiede
+     niente: non c'è nulla da perdere, e un attrito inutile insegna solo a premere due volte
+     senza leggere. */
+  {
+    S.day = 12;
+    state.saveToSlot(1);                                    // slot 1 pieno
+    try { localStorage.removeItem('ossa_world_pixel_v1_slot3'); } catch (e) { /* ok */ }
+    check('slot pieno: si chiede conferma prima di sovrascrivere', splash.slotNeedsConfirm(1) === true);
+    check('slot vuoto: nessun attrito, si salva e basta', splash.slotNeedsConfirm(3) === false);
+    /* la conferma dice COSA sta per sparire: "Sicuro?" non aiuta chi ha tre slot simili */
+    check('la conferma nomina la partita che sta per sparire',
+      /Sovrascriv|Overwrit/.test(splash.slotConfirmLabel(1))
+      && splash.slotConfirmLabel(1).includes('12'));
+    /* e il pulsante deve DAVVERO passare di lì: la regola non serve se il gestore la salta */
+    const spSrc2 = (await import('node:fs')).readFileSync(new URL('../src/splash.js', import.meta.url), 'utf8');
+    const handler = spSrc2.slice(spSrc2.indexOf("querySelectorAll('[data-save]')"), spSrc2.indexOf("querySelectorAll('[data-n]')"));
+    check('il pulsante Salva passa dalla conferma', /slotNeedsConfirm/.test(handler) && /arm\(/.test(handler));
+  }
+  document.getElementById('sp-saves').onclick();      // si rientra in un sottomenu
   check('nessun doppione di uscita nei sottomenu', !menuEl().innerHTML.includes('sp-back'));
   splash.resumeSplash(); // ESC nel sottomenu → torna al principale
-  check('ESC nel sottomenu: torna al principale', splash.splashActive() && menuEl().innerHTML.includes('sp-audio'));
-  document.getElementById('sp-audio').onclick();
-  check('sottomenu Audio: musica + effetti', ['sp-mus', 'sp-vol', 'sp-sfx', 'sp-sfxvol'].every(k => menuEl().innerHTML.includes(k)));
+  check('ESC nel sottomenu: torna al principale', splash.splashActive() && menuEl().innerHTML.includes('sp-saves'));
+  document.getElementById('sp-settings').onclick();
+  check('i comandi audio sono nelle impostazioni', ['sp-mus', 'sp-vol', 'sp-sfx', 'sp-sfxvol'].every(k => menuEl().innerHTML.includes(k)));
   splash.resumeSplash(); splash.resumeSplash(); // indietro, poi riprendi
   check('ESC dal principale: riprende il gioco', splash.splashActive() === false);
   // audio: settaggi clampati e persistenti
@@ -1439,6 +1794,29 @@ sprites.applyLook();
   check('ritiro: doppione restituito identificato, 5 nuovi esposti, NIENTE monete',
     r && r.back.length === 1 && r.back[0].uid === 710 && r.shown.length === 5 && S.items.length === 1 && S.coins === 0 && (S.museum.lepre || []).length === 5);
   check('teca completa → 1 fialetta DNA in premio', r.vials.includes('lepre') && S.dna.lepre === 1);
+
+  /* IL RITIRO NON PUÒ SFONDARE LO ZAINO. Depositare lo svuota (i pezzi in lavorazione non
+     contano), quindi si può riempirlo di nuovo e tornare a ritirare: era l'unico punto del
+     gioco che aggiungeva reperti senza guardare la capienza. Quel che non entra resta al
+     Museo e la commessa resta aperta. */
+  {
+    S.items = []; S.raw = []; S.museum = { lepre: PARTS.map(p => p.id) }; S.bagCap = 14;
+    for (let i = 0; i < 4; i++) S.raw.push({ uid: 800 + i, s: 'lepre', t: 'cranio', q: 'comune', val: 5 });
+    gameplay.museumDeposit();
+    while (gameplay.fossilCount() < gameplay.bagCap()) S.raw.push({ uid: 900 + S.raw.length, s: 'prato', t: 'coda', q: 'comune', val: 3 });
+    check('zaino pieno prima del ritiro', gameplay.bagFull() === true);
+    const rr = gameplay.museumCollect();
+    check('il ritiro non sfonda mai la capienza dello zaino',
+      gameplay.fossilCount() <= gameplay.bagCap() && rr.left.length === 4 && rr.back.length === 0);
+    check('quel che non entra resta al Museo, la commessa resta aperta',
+      !!S.museumJob && S.museumJob.items.length === 4 && gameplay.museumJobReady() === true);
+    /* liberato lo zaino, si ritira il resto */
+    S.raw = [];
+    const r3 = gameplay.museumCollect();
+    check('liberato lo zaino si ritira il resto', r3.back.length === 4 && S.museumJob === null);
+  }
+  S.items = []; S.raw = []; S.museum = {}; S.dna = {}; S.donated = []; S.museumJob = null;
+  S.museum = { lepre: PARTS.map(p => p.id) }; S.dna.lepre = 1;
   /* ricarica DNA: solo teche complete, prezzo per rarità */
   S.coins = 1000;
   check('buyDna specie non completa rifiuta', gameplay.buyDna('prato') === false);
@@ -1722,6 +2100,373 @@ sprites.applyLook();
   check('fit copre la finestra a scala intera', view.W * view.K >= 1440 && view.H * view.K >= 900);
 }
 
+/* ---------- PENNELLATE VERE: le entità e i mezzi vanno DIPINTI, non solo "non crashati" ----------
+   Lo smoke qui sopra prova solo che render() non lancia: se un ramo non viene MAI raggiunto
+   (la barca senza acqua, lo scavo senza P.digging, la X senza mappe) passa verde anche quando
+   il disegno è rotto — è la stessa trappola che aveva tenuto in piedi gli interni rotti con
+   475 test verdi. Qui si SPIA il pennello: brush.js scrive il colore in ctx.fillStyle e poi
+   chiama fillRect, quindi registrando i colori si sa cosa è finito davvero sullo schermo.
+   Ogni prova confronta due fotogrammi (con e senza la cosa da disegnare): il colore che
+   compare SOLO nel secondo dimostra che è stata quella funzione a dipingerlo. */
+{
+  const { render } = await import('../src/render.js');
+  const { ctx, view: vw } = await import('../src/screen.js');
+  const props = await import('../src/props.js');
+  const tap = await import('../src/tapmove.js');
+  const prefsMod = await import('../src/prefs.js');
+  const { cam } = state;
+
+  const seen = new Set();
+  /* la spia sostituisce fillRect sul contesto stub e lo rimette sempre (anche se il disegno
+     esplode): un contesto lasciato sporco falserebbe tutte le prove successive.
+     Si registrano anche i drawImage: gli sprite voxel (chimere, compagno) sono canvas
+     preparate una volta sola e poi TIMBRATE, quindi il pennello a colori non le vedrebbe
+     e un recinto pieno risulterebbe identico a uno vuoto. */
+  const crashes = [];
+  const spy = fn => {
+    seen.clear();
+    let img = 0;
+    ctx.fillRect = () => seen.add(String(ctx.fillStyle));
+    ctx.drawImage = () => seen.add('<sprite ' + (++img) + '>');
+    /* un disegno che esplode viene ANNOTATO, non lasciato salire: se buttasse giù il
+       processo si perderebbero tutte le prove successive, e col crash di una sola entità
+       non si saprebbe più nulla di tutte le altre */
+    try { fn(); } catch (e) { crashes.push(e.message); } finally { delete ctx.fillRect; delete ctx.drawImage; }
+    return new Set(seen);
+  };
+  const at = (tx, ty) => { P.x = tx * TS + 8; P.y = ty * TS + 8; cam.x = P.x; cam.y = P.y; };
+  const frame = (tx, ty, t = 1000) => spy(() => { at(tx, ty); render(t); });
+  /* "solo qui": il colore c'è nel fotogramma A e non nel controllo B */
+  const only = (a, b, c) => a.has(c) && !b.has(c);
+
+  /* stato da rimettere a posto: questo blocco muove il giocatore in capo al mondo e gli
+     regala mezzi che non ha — i test che vengono dopo devono ritrovare tutto com'era */
+  const keep = {
+    x: P.x, y: P.y, dir: P.dir, moving: P.moving, digging: P.digging,
+    gear: S.gear, tools: { ...S.tools }, maps: S.maps, tod: S.tod, marker: prefsMod.pref('marker'),
+  };
+
+  /* posti VERI del mondo (deterministici col seed dei test): mai coordinate inventate a mano,
+     che al primo ritocco del worldgen punterebbero su un prato vuoto senza che nessuno se ne accorga */
+  let site = null, wreck = null, willow = null, cave = null;
+  for (let cx = -6; cx <= 6 && !site; cx++) for (let cy = -6; cy <= 6 && !site; cy++) site = world.siteForCell(cx, cy);
+  for (let cx = -6; cx <= 6 && !wreck; cx++) for (let cy = -6; cy <= 6 && !wreck; cy++) wreck = world.wreckForCell(cx, cy);
+  for (let cx = -14; cx <= 14 && !willow; cx++) for (let cy = -14; cy <= 14 && !willow; cy++) {
+    const l = world.landmarkForCell(cx, cy); if (l && l.type === 'willow') willow = l;
+  }
+  for (let x = -200; x <= 200 && !cave; x++) for (let y = -200; y <= 200 && !cave; y++) if (world.caveEntranceAt(x, y)) cave = [x, y];
+  check('il mondo di prova offre sito, relitto, meraviglia e imbocco di grotta', !!site && !!wreck && !!willow && !!cave);
+
+  /* terra ferma di riferimento: è il "prima" di quasi tutte le prove */
+  const land = [site.x, site.y];
+  P.dir = 'down'; P.moving = false; P.digging = null; S.gear = null; S.maps = [];
+  const plain = frame(land[0], land[1]);
+
+  /* ---- SCAVO: l'animazione parte a OGNI scavata, ed è la più vista del gioco ---- */
+  {
+    P.digging = { t: 0.3, dur: 1, kind: 'dig' };          // ph .3 → colpo assestato
+    const dig = frame(land[0], land[1]);
+    P.digging = { t: 0.05, dur: 1, kind: 'dig' };         // ph .05 → pala alzata
+    const up = frame(land[0], land[1]);
+    check('scavo: la terra schizza ai piedi sul colpo', only(dig, plain, '#8a6a42'));
+    check('scavo: la pala alzata è un fotogramma diverso dal colpo', up.has('#b8b0a2') && !up.has('#8a6a42'));
+    P.dir = 'right';
+    P.digging = { t: 0.3, dur: 1, kind: 'chop' };
+    const chop = frame(land[0], land[1]);
+    P.digging = { t: 0.3, dur: 1, kind: 'mine' };
+    const mine = frame(land[0], land[1]);
+    check('accetta: testa rossiccia, non la pala', only(chop, plain, '#b5622e') && !chop.has('#8a6a42'));
+    check('piccone: testa grigia, non la terra della pala', only(mine, plain, '#9a9285') && !mine.has('#8a6a42'));
+    P.digging = null; P.dir = 'down';
+  }
+
+  /* ---- MEZZI: si comprano con le monete di ore di gioco, e nessuno li aveva mai disegnati ---- */
+  {
+    S.tools.bike = true; S.tools.skates = true; P.moving = true;
+    S.gear = 'bike'; P.dir = 'right';
+    const bikeSide = frame(land[0], land[1]);
+    P.dir = 'down';
+    const bikeFront = frame(land[0], land[1]);
+    P.dir = 'up';
+    const bikeBack = frame(land[0], land[1]);
+    S.gear = 'skates'; P.dir = 'right';
+    const skate = frame(land[0], land[1]);
+    check('bici di profilo: telaio a V rosso + ruote', only(bikeSide, plain, '#d1655f') && bikeSide.has('#2a2016'));
+    check('bici di fronte: manubrio, NON il telaio di profilo', only(bikeFront, plain, '#c94f4a') && !bikeFront.has('#d1655f'));
+    check('bici di spalle: catarifrangente giallo', only(bikeBack, plain, '#f2c53d'));
+    check('pattini: quattro rotelle sotto i piedi', only(skate, plain, '#e0b040'));
+    S.gear = null; P.moving = false;
+  }
+
+  /* ---- BARCA E MOTOSCAFO: l'acqua è mezzo mondo, e la barca ci si spawna da sola ---- */
+  {
+    S.tools.boat = false; S.tools.motorboat = false;
+    const swimming = frame(wreck.x, wreck.y);              // stesso punto, ma a piedi: è il controllo
+    S.tools.boat = true;
+    P.moving = true;
+    const boat = frame(wreck.x, wreck.y);
+    P.digging = { t: 0.5, dur: 1, kind: 'fish' };
+    const fish = frame(wreck.x, wreck.y);
+    P.digging = null;
+    S.tools.motorboat = true;
+    const moto = frame(wreck.x, wreck.y);
+    check('barca: scafo di legno con bordo chiaro sull\'acqua', only(boat, swimming, '#a97a4c'));
+    check('barca: pescando compaiono canna, filo e galleggiante', only(fish, boat, '#e8e2d0'));
+    check('motoscafo: scafo bianco con banda azzurra (e non quello di legno)', only(moto, boat, '#eef2f4') && moto.has('#3d8ba0'));
+    check('relitto: lo scafo spezzato affiora davvero dal mare', only(boat, plain, '#4a382a'));
+    S.tools.boat = false; S.tools.motorboat = false; P.moving = false;
+  }
+
+  /* ---- ENTITÀ DEL MONDO: la logica era testata, il disegno mai ---- */
+  {
+    const siteFar = frame(site.x + 60, site.y + 60);        // fuori vista: il sito non c'entra
+    check('sito di scavo: ossa che affiorano dal montarolo', only(plain, siteFar, '#ece5d2'));
+    const caveF = frame(cave[0], cave[1]);
+    check('imbocco di grotta: arco buio nella roccia', only(caveF, plain, '#15131a'));
+    const lmF = frame(willow.x, willow.y);
+    check('meraviglia: il salice della palude è dipinto per intero', only(lmF, plain, '#86b552'));
+    /* X del tesoro: si paga fino a 🪙480 per una mappa, se la X non si vede è denaro buttato */
+    S.maps = [{ x: land[0] + 1, y: land[1], rar: 'raro', uid: 991 }];
+    const xF = frame(land[0], land[1]);
+    S.maps = [];
+    check('X del tesoro: croce rossa dipinta a terra', only(xF, plain, '#b8402e'));
+    /* buca dello scavo: senza, una casella esaurita è indistinguibile da una intatta */
+    const holeKey = land[0] + ',' + land[1];
+    const had = state.dugSet.has(holeKey);
+    state.dugSet.add(holeKey);
+    const holeF = frame(land[0], land[1]);
+    if (!had) state.dugSet.delete(holeKey);
+    check('buca: la casella già scavata si vede', only(holeF, plain, '#4d371f'));
+  }
+
+  /* ---- ROBA A TERRA E CHIMERE DEL PARCO: due liste che il render disegna a parte ---- */
+  {
+    /* i reperti caduti (zaino pieno) DEVONO vedersi: sono già tuoi, e se non li vedi li perdi */
+    const keepDrops = S.drops;
+    S.drops = [{ tx: land[0] + 1, ty: land[1], kind: 'good', payload: { id: 'spiga' } }];
+    const dropped = frame(land[0], land[1]);
+    S.drops = keepDrops;
+    check('oggetti lasciati a terra: si vedono e si possono ritrovare', dropped.size > plain.size && !!dropped.size);
+
+    /* il parco è la vetrina del gioco: è lì che le chimere "tornano a vivere" */
+    let pen = null;
+    for (let cx = -8; cx <= 8 && !pen; cx++) for (let cy = -8; cy <= 8 && !pen; cy++) {
+      const t = world.townForCell(cx, cy); if (t && t.pen) pen = t;
+    }
+    /* nel recinto vivono chimere E specie risvegliate: per avere un recinto DAVVERO vuoto
+       come controllo vanno azzerate tutte e due (i test precedenti risvegliano parecchio) */
+    const keepCre = S.creatures, keepAwk = S.awakened;
+    const px0 = Math.floor((pen.pen.x0 + pen.pen.x1) / 2), py0 = Math.floor((pen.pen.y0 + pen.pen.y1) / 2);
+    S.creatures = []; S.awakened = []; park.parks.clear();
+    at(px0, py0); park.refreshVisParks();
+    const empty = spy(() => render(2000));
+    S.creatures = [{ uid: 5, name: 'Parcosauro', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
+    park.parks.clear();
+    for (const t of park.visParks) park.parkList(t);
+    const full = spy(() => render(2000));
+    S.creatures = keepCre; S.awakened = keepAwk; park.parks.clear();
+    check('parco: la chimera assemblata passeggia davvero nel recinto', full.size > empty.size);
+  }
+
+  /* ---- MERAVIGLIA OLTRE IL BORDO: sono alte 9 caselle, se si disegnano solo "dentro"
+     spariscono di colpo proprio mentre le stai guardando ---- */
+  {
+    /* appena fuori dal bordo destro, ma dentro il margine di cortesia: la distanza si
+       calcola dalla vista corrente, non da un numero scritto a mano */
+    const off = frame(willow.x - (Math.floor(vw.VW / 2) + 4), willow.y);
+    check('meraviglia: si dipinge anche con l\'ancora appena fuori schermo', off.has('#86b552'));
+  }
+
+  /* ---- FRECCIA A BORDO SCHERMO: è l'unico modo di ritrovare la città o la X pagata 🪙480 ---- */
+  {
+    const keepTarget = compassMod.compass.target, keepGuide = compassMod.compass.cityGuide;
+    /* terra vuota, lontano dal sito di scavo: la sua scintilla è dello stesso giallo della
+       freccia e falserebbe il confronto */
+    at(land[0] + 60, land[1] + 60);
+    compassMod.compass.target = null; compassMod.compass.cityGuide = false;
+    const noArrow = spy(() => render(1000));
+    compassMod.compass.target = { x: P.x + 4000, y: P.y };      // X della mappa lontanissima
+    const redArrow = spy(() => render(1000));
+    compassMod.compass.target = null; compassMod.compass.cityGuide = true;
+    compassMod.nearestTown();
+    const goldArrow = spy(() => render(1000));
+    compassMod.compass.target = keepTarget; compassMod.compass.cityGuide = keepGuide;
+    check('bussola: freccia ROSSA verso la X della mappa seguita', only(redArrow, noArrow, '#e4573d'));
+    check('bussola: freccia gialla verso la città quando è fuori vista', only(goldArrow, noArrow, '#f6d95c'));
+  }
+
+  /* ---- SEGNALINO DELLA META: senza, col mouse si tocca due o tre volte lo stesso punto ---- */
+  {
+    tap.goal.on = true; tap.goal.x = P.x + 32; tap.goal.y = P.y;
+    const goalOn = frame(land[0], land[1]);
+    prefsMod.setPref('marker', false);
+    const goalOff = frame(land[0], land[1]);
+    prefsMod.setPref('marker', true);
+    tap.clearGoal();
+    check('meta: l\'anello pulsante è dipinto sotto i piedi', only(goalOn, plain, '#f2c53d'));
+    check('meta: spegnendo il segnalino dalle preferenze sparisce', !goalOff.has('#f2c53d'));
+  }
+
+  /* ---- DECORAZIONI DI BIOMA: firmano le zone, e nessun test le aveva mai dipinte ----
+     si cercano nel mondo vero a spirale dall'origine: se un giorno una zona smettesse di
+     produrle, il test lo direbbe invece di passare su coordinate scritte a mano */
+  {
+    const wanted = { redspire: null, orecrystal: null, icecrystal: null, hay: null };
+    for (let r = 1; r <= 420 && Object.values(wanted).some(v => !v); r++) {
+      const hit = (x, y) => { const d = world.decoAt(x, y); if (d && d in wanted && !wanted[d]) wanted[d] = [x, y]; };
+      for (let x = -r; x <= r; x++) { hit(x, -r); hit(x, r); }
+      for (let y = -r + 1; y <= r - 1; y++) { hit(-r, y); hit(r, y); }
+    }
+    check('le decorazioni di bioma esistono ancora nel mondo', Object.values(wanted).every(Boolean),
+      Object.keys(wanted).filter(k => !wanted[k]).join(', '));
+    let drawnOk = true, missing = '';
+    /* colore-firma di ciascuna: se la funzione smette di dipingerlo, la decorazione è sparita
+       dal mondo pur restando "presente" nella logica */
+    for (const [type, col] of [['redspire', '#cc7854'], ['orecrystal', '#9ad0c8'], ['icecrystal', '#8fd0e6'], ['hay', '#b99b2e']]) {
+      const p = wanted[type]; if (!p) { drawnOk = false; missing += type + ' '; continue; }
+      const f = frame(p[0], p[1]);
+      if (!f.has(col)) { drawnOk = false; missing += type + ' '; }
+    }
+    check('guglie, cristalli, ghiaccio e balle di fieno vengono dipinti dal render', drawnOk, missing);
+    /* e le stesse funzioni, chiamate da sole, devono dipingere il loro colore anche fuori
+       dal mondo (le usano anche le pagine di prova /sprites) */
+    const direct = [
+      ['drawRedspire', '#b05e3e'], ['drawOrecrystal', '#e8f6fb'],
+      ['drawIcecrystal', '#bfe9f4'], ['drawHay', '#d4b13c'], ['drawHole', '#6d4f30'],
+    ];
+    let dOk = true, dBad = '';
+    for (const [fn, col] of direct) { const s = spy(() => props[fn](0, 0)); if (!s.has(col)) { dOk = false; dBad += fn + ' '; } }
+    check('le decorazioni si disegnano anche fuori dal mondo (Sprite Studio)', dOk, dBad);
+  }
+
+  /* ---- LIBRO DEI FOSSILI: in Node WebGL non c'è, quindi DEVE scattare il ripiego 2D ----
+     è metà del valore della pagina: se il fallback non dipinge, chi apre il Libro su un
+     dispositivo senza WebGL vede sessanta riquadri neri e crede che il gioco sia rotto */
+  {
+    const bookui = await import('../src/bookui.js');
+    const { baseSpec } = await import('../src/bones.js');
+    const { ALL_SPECIES } = await import('../src/data.js');
+    const sp = ALL_SPECIES[0];
+    const cv = document.createElement('canvas'); cv.width = 220; cv.height = 165;
+    const bones = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, false, null));
+    const sil = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), true, false, null));
+    const flesh = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, true, null));
+    check('libro: la proiezione 2D dipinge le ossa a tre toni', bones.has('#ffffff') && bones.has('#8f887a'));
+    check('libro: la specie non identificata resta una silhouette', sil.has('#4a4438') && !sil.has('#ffffff'));
+    check('libro: la vista VIVA usa i colori della specie, non le ossa', flesh.size > 1 && !flesh.has('#d6d0c2'));
+    /* remount3D → mount3D: l'import di Three riesce anche in Node, ma senza WebGL
+       mountSkeleton esplode e va preso il ramo di ripiego. È asincrono: si aspetta. */
+    const painted = new Set();
+    ctx.fillRect = () => painted.add(String(ctx.fillStyle));
+    const target = bookui.remount3D(cv, baseSpec(sp), false, false, null);
+    for (let i = 0; i < 200 && !painted.size; i++) await new Promise(r => setTimeout(r, 10));
+    delete ctx.fillRect;
+    bookui.disposeViews();
+    check('libro: senza WebGL il 3D ripiega sulla proiezione 2D (e disegna)', painted.has('#ffffff'), [...painted].join(' '));
+    check('libro: il rimontaggio riusa la canvas quando non c\'è un genitore', target === cv);
+
+    /* IL LIBRO APERTO PER DAVVERO. Lo stub restituisce sempre [] da querySelectorAll, quindi
+       il ciclo che riempie le canvas delle pagine non veniva mai eseguito: openBook passava
+       verde anche con gli schizzi rotti. Qui si consegnano al modulo due canvas vere per
+       quella sola chiamata, e si guarda cosa ci finisce sopra. */
+    const pagesEl = document.getElementById('bk-pages');
+    const origQSA = pagesEl.querySelectorAll;
+    const mkCv = ds => { const c = document.createElement('canvas'); c.width = 220; c.height = 165; c.dataset = ds; return c; };
+    const cvBig = mkCv({ sp: sp.id }), cvSketch = mkCv({ sp2: sp.id });
+    /* il pulsante ▶ Vivo: rimonta il modello nella versione rianimata. Senza un elemento
+       vero non veniva mai premuto, e il premio del risveglio (5 pezzi + una fialetta intera)
+       è proprio quel bottone. */
+    const flipBtn = { dataset: { fs: sp.id }, textContent: '', parentElement: { querySelector: () => cvBig } };
+    pagesEl.querySelectorAll = sel => (sel === '.bp-cv' ? [cvBig] : sel === '.bk-sketch' ? [cvSketch]
+      : sel === '.bk-flip3d' ? [flipBtn] : []);
+    const keepCodex = S.codex, keepMuseum = S.museum[sp.id];
+    S.codex = ALL_SPECIES.slice(0, 4).map(x => x.id);   // 4 specie = 2 pagine: si può sfogliare
+    S.museum[sp.id] = ['cranio'];              // un solo pezzo consegnato: il resto resta spento
+    const page = spy(() => bookui.openBook(0));
+    check('libro: aprendo una pagina lo schizzo della specie viene dipinto', page.has('#ffffff') || page.has('#d6d0c2'));
+    /* il senso dell'oscuramento: si accende solo ciò che hai davvero portato al Museo */
+    check('libro: i pezzi non ancora consegnati restano spenti', page.has('#403a55') || page.has('#332e42'));
+    /* SFOGLIATA: la pagina si piega e il contenuto cambia a metà giro, quindi il numero
+       arriva dopo l'animazione — si aspetta invece di scavalcarla, perché è proprio il
+       giro completo (piega, cambio, rientro) che deve finire senza incastrarsi */
+    const pageNo = () => Number((String(document.getElementById('bk-nav').innerHTML).match(/([0-9]+) \/ /) || [])[1]);
+    const settle = async () => { for (let i = 0; i < 60; i++) await new Promise(r => setTimeout(r, 20)); };
+    flipBtn.onclick();
+    const toFlesh = flipBtn.dataset.mode === 'flesh' && flipBtn.textContent.startsWith('\u25c0');
+    flipBtn.onclick();
+    const toBones = flipBtn.dataset.mode !== 'flesh' && flipBtn.textContent.startsWith('\u25b6');
+    check('libro: \u25b6 Vivo mostra l\'animale rianimato e \u25c0 riporta alle ossa', toFlesh && toBones);
+    /* un test molto più in alto aveva già lanciato una sfogliata: i suoi timer sono ancora
+       in volo e bookFlip ignora i clic mentre una pagina gira. Prima si lascia atterrare. */
+    await settle(); bookui.openBook(0);
+    const p0 = pageNo();
+    document.getElementById('bkNext').onclick(); await settle();
+    const p1 = pageNo();
+    document.getElementById('bkPrev').onclick(); await settle();
+    check('libro: le frecce sfogliano avanti e indietro', p1 === p0 + 1 && pageNo() === p0, `${p0} → ${p1} → ${pageNo()}`);
+    S.codex = keepCodex;
+    if (keepMuseum === undefined) delete S.museum[sp.id]; else S.museum[sp.id] = keepMuseum;
+    pagesEl.querySelectorAll = origQSA;
+    /* si chiude anche cliccando fuori dal libro: sul telefono è il gesto naturale */
+    const ov = document.getElementById('bookov');
+    ov.dispatchEvent({ type: 'click', target: ov });
+    check('libro: il clic fuori dalle pagine lo chiude', bookui.isBookOpen() === false);
+    bookui.openBook(0);
+    document.getElementById('bk-close').onclick();
+    check('libro: il pulsante di chiusura è collegato', bookui.isBookOpen() === false);
+  }
+
+  /* ---- PANNELLI MAI APERTI: ogni schermata che il giocatore può aprire va DISEGNATA ---- */
+  {
+    const mBody = document.getElementById('m-body');
+    /* apre un pannello e restituisce quello che il giocatore si troverebbe davanti; se il
+       pannello esplode lo si annota invece di far cadere tutta la suite */
+    const panel = fn => { mBody.innerHTML = ''; try { fn(); } catch (e) { crashes.push(e.message); } return String(mBody.innerHTML); };
+    at(land[0], land[1]);
+
+    const inn = panel(() => ui.openBuilding({ type: 'inn', name: 'Locanda' }));
+    check('Locanda: il pannello dice cosa fa il riposo e mostra l\'energia', /Dormi/.test(inn) && inn.includes(S.energy + '/' + S.maxEnergy));
+
+    const board = panel(() => ui.openQuestBoard());
+    check('Cartello delle missioni: bacheca del giorno con le offerte', board.includes('Bacheca') && board.includes('data-accept'));
+
+    const achs = panel(() => ui.openAchievements());
+    check('Traguardi: elenco completo con quelli sbloccati', achs.includes('Traguardi sbloccati'));
+
+    const guide = panel(() => ui.openHudGuide());
+    check('Guida HUD: spiega monete, energia e zona a chi inizia', guide.includes('Monete') && guide.includes('Energia') && guide.includes('Zona'));
+
+    const keepCre = S.creatures;
+    S.creatures = [];
+    const noComp = panel(() => ui.openCompanionPicker());
+    check('Compagno: senza chimere spiega come ottenerne una', noComp.includes('Nessuna chimera'));
+    S.creatures = [{ uid: 77, name: 'Provolone', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
+    const withComp = panel(() => ui.openCompanionPicker());
+    check('Compagno: con una chimera la si può scegliere', withComp.includes('Provolone') && withComp.includes('data-comp'));
+    S.creatures = keepCre;
+
+    const exSp = SPECIES[0].id;
+    const keepMus = S.museum[exSp];
+    S.museum[exSp] = ['cranio'];
+    const exh = panel(() => ui.openExhibit(exSp));
+    check('Teca del museo: scheda col pezzo esposto e la descrizione', exh.includes('exhCv') && /1\/\d/.test(exh));
+    if (keepMus === undefined) delete S.museum[exSp]; else S.museum[exSp] = keepMus;
+
+    /* si guarda la classe del riquadro, non isModalOpen(): quello risponde anche per zaino,
+       libro e mappa, che qui non c'entrano */
+    ui.closeModal(true);
+    check('e alla fine la modale si richiude', document.getElementById('modal').classList.contains('on') === false);
+  }
+
+  check('nessuna funzione di disegno è esplosa lungo il percorso', crashes.length === 0, crashes[0]);
+
+  /* stato globale come lo si era trovato */
+  P.x = keep.x; P.y = keep.y; P.dir = keep.dir; P.moving = keep.moving; P.digging = keep.digging;
+  S.gear = keep.gear; S.tools = keep.tools; S.maps = keep.maps; S.tod = keep.tod;
+  prefsMod.setPref('marker', keep.marker);
+  cam.x = P.x; cam.y = P.y;
+}
+
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */
 {
   const cmds = await import('../src/commands.js');
@@ -1790,6 +2535,21 @@ sprites.applyLook();
   check('scavo grotta: parte', cave.digCave() === true);
   cave.stepCave(1); Math.random = om3;
   check('scavo grotta → fossile di grotta grezzo', S.raw.length === 1 && spById[S.raw[0].s].src === 'grotta' && cave.caveNodeDone(node[0], node[1]));
+  /* LO ZAINO VALE ANCHE SOTTOTERRA. Qui `S.raw.push` era diretto: l'unica fonte di reperti
+     che scavalcava la capienza, cioè proprio ciò per cui si pagano gli ingrandimenti.
+     Quaggiù non c'è terra su cui posarlo, quindi il cristallo resta al suo posto. */
+  {
+    let node2 = null;
+    for (let x = 1; x < cave.CAVE.w - 1 && !node2; x++) for (let y = 1; y < cave.CAVE.h - 1 && !node2; y++) if (cave.caveNodeAt(x, y) && !cave.caveNodeDone(x, y)) node2 = [x, y];
+    cave.CAVE.x = node2[0] * TS + 8; cave.CAVE.y = node2[1] * TS - 5;
+    S.items = []; S.bagCap = 14; S.energy = 30;
+    while (gameplay.fossilCount() < gameplay.bagCap()) S.raw.push({ uid: 950 + S.raw.length, s: 'prato', t: 'coda', q: 'comune', val: 3 });
+    const nRaw = S.raw.length, en = S.energy;
+    check('grotta a zaino pieno: il cristallo resta al suo posto', cave.digCave() === 'bagfull'
+      && !cave.CAVE.digging && S.raw.length === nRaw && S.energy === en
+      && !cave.caveNodeDone(node2[0], node2[1]));
+    S.raw = []; S.caveDug = [];
+  }
   // uscita dal corridoio in basso
   cave.CAVE.x = (cave.CAVE.w >> 1) * TS + 8; cave.CAVE.y = (cave.CAVE.h - 1.3) * TS;
   for (let i = 0; i < 200 && cave.CAVE.active; i++) cave.updateCave(1 / 60, { down: true }, 46);
@@ -1893,6 +2653,23 @@ sprites.applyLook();
   check('traguardo non si ri-sblocca', !unlocked.includes('first_find'));
   S.coins = 600; ach.checkAchievements();
   check('traguardo "danaroso" a 500+', ach.isAchieved('rich'));
+
+  /* "LE HAI SCOPERTE TUTTE" DEVE VOLER DIRE TUTTE. Il traguardo confrontava il codex col
+     numero 60 scritto a mano, ma nel codex finiscono anche le 6 specie di grotta: bastava
+     identificarne cinque per farlo scattare con cinque specie di superficie ancora da
+     trovare. Il totale si chiede ai dati. */
+  {
+    const { ALL_SPECIES: ASP, SPECIES: SUP, CAVE_SPECIES: CSP } = await import('../src/data.js');
+    S.achieved = []; S.codex = SUP.slice(0, SUP.length - CSP.length).map(s => s.id).concat(CSP.map(s => s.id));
+    check('codex pieno di superficie+grotta ma incompleto', S.codex.length === SUP.length && S.codex.length < ASP.length);
+    ach.checkAchievements();
+    check('mescolare le specie di grotta NON fa scattare "le hai scoperte tutte"', !ach.isAchieved('all60'));
+    S.codex = ASP.map(s => s.id); ach.checkAchievements();
+    check('col catalogo davvero completo il traguardo arriva', ach.isAchieved('all60'));
+    check('la descrizione dice il totale VERO, senza rompere la traduzione',
+      ach.achDesc(ach.ACHS.find(a => a.id === 'all60')).includes(String(ASP.length)));
+  }
+  S.achieved = []; S.codex = [];
 }
 
 /* ---------- progressione archeologo: XP → livelli → capacità ---------- */
@@ -1937,6 +2714,15 @@ sprites.applyLook();
   const xpQ = S.xp || 0, lvQ = S.level || 1;
   check('consegna: ricompensa e chiusura', q.canComplete(a) && !!q.deliverQuest(a.qid) && S.coins === a.reward && q.isDone(a.qid) && !q.isActive(a.qid));
   check('le missioni danno XP', (S.level || 1) > lvQ || (S.xp || 0) > xpQ);
+  /* L'ESPERIENZA SI CONTA IN UN POSTO SOLO. `deliverQuest` la dava già, e il pulsante di
+     consegna gliene aggiungeva una seconda: ogni missione ne pagava due, e col totem della
+     doppia XP attivo bruciava 2 dei 10 carichi invece di 1. Nessun `gainXp` fuori da qui. */
+  {
+    const { readFileSync: rfs } = await import('node:fs');
+    const src = rfs(new URL('../src/ui.js', import.meta.url), 'utf8');
+    const near = src.split('\n').filter(l => /data-deliver|deliverQuest/.test(l)).join('\n');
+    check('il pulsante di consegna non raddoppia l\'esperienza', !/gainXp/.test(near));
+  }
   /* una missione non deve mangiarti il pezzo migliore: si consuma il meno prezioso */
   {
     const { PARTS: PRT } = await import('../src/data.js');

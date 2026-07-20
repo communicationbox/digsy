@@ -8,6 +8,23 @@ import { resolve } from 'path';
    senza questo middleware la history-fallback di Vite risponde con il GIOCO. */
 export default defineConfig({
   base: './',
+  /* IN SVILUPPO IL BACKEND NON C'È: Vite serve file statici, PHP non lo esegue. Senza questo
+     inoltro ogni chiamata a `server/api/…` da localhost:5173 torna 404 e l'accesso fallisce
+     con un "login_failed" che sembra un problema di credenziali e non lo è.
+     `changeOrigin` fa arrivare al server l'Host giusto; `cookieDomainRewrite` toglie il
+     dominio dal cookie di sessione, altrimenti il browser lo scarterebbe (arriva marcato
+     digsy.dev-box.it mentre la pagina sta su localhost) e si resterebbe scollegati dopo un
+     accesso in apparenza riuscito. */
+  server: {
+    proxy: {
+      '/server/api': {
+        target: 'https://digsy.dev-box.it',
+        changeOrigin: true,
+        secure: true,
+        cookieDomainRewrite: '',
+      },
+    },
+  },
   plugins: [{
     name: 'serve-public-tools',
     configureServer(server) {

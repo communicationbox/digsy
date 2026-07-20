@@ -28,6 +28,12 @@ return [
        un'altra applicazione qualsiasi. */
     'google_client_id' => '559603252887-aft20s0l2oabi9b3dr5p9efk91oufvtb.apps.googleusercontent.com',
 
+    /* Segreto per install.php (crea le tabelle). Serve UNA VOLTA, poi install.php va
+       cancellato dal server. Generane uno tuo con:
+           php -r 'echo bin2hex(random_bytes(16)), "\n";'
+       Senza questo, install.php rifiuta ogni richiesta dal web. */
+    'install_token' => 'DA_COMPILARE',
+
     /* Durata della sessione. 30 giorni: un gioco non è una banca, e rifare l'accesso a ogni
        partita sarebbe proprio l'attrito che stiamo togliendo. */
     'session_days' => 30,

@@ -23,17 +23,17 @@ const FLOOR = 55;
    e2e nel browser, dove il libro monta la vista 3D. Escluso di proposito, non dimenticato. */
 const EXCLUDE = new Set(['skeleton3d.js']);
 const MIN = {
-  'achievements.js': 90, 'audio.js': 65, 'bones.js': 95, 'bookui.js': 80,
+  'achievements.js': 90, 'audio.js': 65, 'bones.js': 95, 'bookui.js': 88,
   'brush.js': 95, 'cave.js': 90, 'changelog.js': 95, 'commands.js': 80,
   'commission.js': 90, 'companion.js': 85, 'compass.js': 85, 'data.js': 95,
   'daynight.js': 90, 'debug.js': 95, 'gameplay.js': 85, 'i18n.js': 90,
   'icons.js': 90, 'input.js': 80, 'interior.js': 85, 'interiors.js': 90,
   'intro.js': 55, 'letters.js': 95, 'main.js': 65, 'map.js': 90,
   'noise.js': 95, 'park.js': 95, 'prepare.js': 95, 'prepui.js': 95,
-  'progress.js': 90, 'props.js': 80, 'quests.js': 85, 'regions.js': 95,
-  'render.js': 75, 'screen.js': 95, 'splash.js': 85, 'spritebank.js': 90,
+  'progress.js': 90, 'props.js': 90, 'quests.js': 85, 'regions.js': 95,
+  'render.js': 90, 'screen.js': 95, 'splash.js': 85, 'spritebank.js': 90,
   'sprites.js': 95, 'state.js': 90, 'tiles.js': 90, 'tips.js': 95,
-  'trophy.js': 95, 'ui.js': 70, 'version.js': 95, 'voxview.js': 95,
+  'trophy.js': 95, 'ui.js': 80, 'version.js': 95, 'voxview.js': 95,
   'weather.js': 95, 'wonderart.js': 95, 'wonders.js': 95, 'wonders3d.js': 95,
   'world.js': 90,
 };

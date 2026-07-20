@@ -1,6 +1,6 @@
 /* Splash = schermo titolo E menu pausa (ESC): Riprendi / Salva / Carica / Nuova / Musica */
 import { drawHero } from './sprites.js';
-import { load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
+import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
 import { tr, LANG, setLang, LANGS, isTouch } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -10,6 +10,7 @@ import { VERSION } from './version.js';
 import { ACHS, isAchieved, achLabel, achDesc } from './achievements.js';
 import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
+import { gameStats } from './stats.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
    si cambia, e deve esserci un posto solo da aggiornare. */
@@ -24,10 +25,58 @@ export const DISCORD_URL = 'https://discord.gg/BpZNuVnVz';
 export function cloudEnabled() {
   return typeof window !== 'undefined' && window.DIGSY_CLOUD === true;
 }
-export const acc = { user: null, conflict: null, localSum: '', remoteSum: '', msg: '', mod: null };
+/* `known`: il server ha già risposto a "chi sono?". Finché è false non si sa se si è
+   collegati, e il pulsante non deve affermare né una cosa né l'altra. */
+export const acc = { user: null, known: false, conflict: null, localSum: '', remoteSum: '', msg: '', mod: null };
 let gsiLoading = null;
 
+/* Chiede al server chi siamo e ridisegna il menu. Si fa all'AVVIO, non quando si apre il
+   pannello: il pulsante deve poter dire com'è messo prima che uno ci clicchi sopra. */
+let probing = null;
+export function probeAccount() {
+  if (!cloudEnabled() || acc.known || probing) return probing || Promise.resolve(null);
+  probing = (async () => {
+    try {
+      if (!acc.mod) acc.mod = await import('./account.js');
+      acc.user = await acc.mod.refreshMe();
+    } catch (e) { acc.user = null; }        // senza rete resta "non collegato", e va bene
+    acc.known = true;
+    if (on) buildMenu(inGameMode);          // il menu è già a schermo: si aggiorna da sé
+    return acc.user;
+  })();
+  return probing;
+}
+
 export function accountStatus() { return acc.mod ? acc.mod.statusLabel() : ''; }
+
+/* Il nome e l'indirizzo dell'account Google sono testo scritto da qualcun altro: finivano in
+   `innerHTML` così com'erano. Il danno possibile è piccolo (sono i propri dati, e il cookie
+   di sessione è httpOnly), ma mettere testo altrui dentro del markup senza ripulirlo è una
+   cosa che non si fa e basta. */
+function esc(t) {
+  return String(t).replace(/[&<>"']/g, c =>
+    ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+/* SOVRASCRIVERE UNO SLOT PIENO CHIEDE CONFERMA.
+ *
+ * "Carica" la conferma ce l'aveva già; "Salva" — che è quello che DISTRUGGE — no: un tocco
+ * di troppo e una partita spariva senza un avviso. È successo davvero, su una partita vera.
+ * Su uno slot VUOTO non si chiede niente: non c'è nulla da perdere, e un attrito inutile
+ * insegna solo a premere due volte senza leggere.
+ *
+ * Sta qui, fuori dal gestore del clic, perché una regola che protegge dalla perdita di dati
+ * dev'essere verificabile da un test senza passare per un pulsante.
+ */
+export function slotNeedsConfirm(n) { return !!slotInfo(n); }
+/* La conferma dice COSA sta per sparire — "Sicuro?" non aiuta chi ha tre slot simili.
+   Il testo tradotto resta una chiave FISSA: il numero si concatena fuori da `tr`, altrimenti
+   la chiave cambia a ogni giorno di gioco e la traduzione non si trova più. */
+export function slotConfirmLabel(n) {
+  const d = slotInfo(n);
+  if (!d) return tr('Salva', 'Save');
+  return tr('Sovrascrivi', 'Overwrite') + ' ' + tr('g', 'd') + (d.day || 1) + '?';
+}
 
 /* carica lo script di Google una volta sola, e solo se serve */
 function loadGoogle() {
@@ -45,8 +94,34 @@ function loadGoogle() {
   return gsiLoading;
 }
 
+/* Perché l'accesso non è riuscito, detto in modo che si capisca chi deve fare cosa.
+   Quasi tutte queste cause sono di configurazione, cioè dell'autore: al giocatore va detto
+   che non è colpa sua e che non deve riprovare all'infinito. */
+export function signInError(code) {
+  switch (code) {
+    case 'wrong_audience':
+    case 'origin_mismatch':
+      /* L'ORIGINE VA MOSTRATA. Google rifiuta l'accesso quando l'indirizzo da cui si è aperto
+         il gioco non è fra quelli autorizzati, ma non dice QUALE fosse — e uno passa mezz'ora
+         a controllare una configurazione giusta mentre stava semplicemente su un'altra porta.
+         Scritta qui, la si confronta con la Console in due secondi. */
+      return tr('Questo indirizzo non è autorizzato da Google: ', 'This address is not authorised with Google: ')
+        + (typeof location !== 'undefined' ? location.origin : '?')
+        + tr('. È una configurazione da sistemare, non dipende da te.', '. That is a setup problem, not something you did.');
+    case 'unverified':
+      return tr('Google non ha confermato l\'accesso. Riprova.', 'Google did not confirm the sign-in. Try again.');
+    case 'not_logged':
+    case 'offline':
+      return tr('Nessuna rete: la partita resta salvata su questo dispositivo.',
+        'No connection: your game stays saved on this device.');
+    default:
+      return tr('Accesso non riuscito', 'Sign-in failed') + (code ? ' (' + code + ')' : '');
+  }
+}
+
 export async function openAccount() {
   if (!acc.mod) { try { acc.mod = await import('./account.js'); } catch (e) { return; } }
+  acc.mod.wireSync();                    // idempotente: aggancia il salvataggio al server
   const me = await acc.mod.refreshMe();
   acc.user = me;
   buildMenu(inGameMode);
@@ -61,17 +136,18 @@ export async function openAccount() {
     window.google.accounts.id.initialize({
       client_id: (window.DIGSY_GOOGLE_CLIENT_ID || ''),
       callback: async (resp) => {
+        /* Senza credenziale non c'è stato nessun accesso: Google ha rifiutato PRIMA, di
+           solito perché l'origine non è autorizzata. Chiamare il server con `undefined`
+           darebbe "unverified", che manda a cercare il guasto dalla parte sbagliata. */
+        if (!resp || !resp.credential) { acc.msg = signInError('origin_mismatch'); buildMenu(inGameMode); return; }
         const r = await acc.mod.signIn(resp.credential);
-        if (!r.ok) { acc.msg = tr('Accesso non riuscito', 'Sign-in failed'); buildMenu(inGameMode); return; }
+        /* "non riuscito" e basta non aiuta nessuno: si dice COSA è andato storto, perché le
+           cause sono diverse e una sola dipende dal giocatore (la rete). */
+        if (!r.ok) { acc.msg = signInError(r.error); buildMenu(inGameMode); return; }
         acc.user = r.user;
-        /* la partita locale non si tocca senza chiedere: 'ask' apre la scelta */
-        if (r.action === 'pull') acc.mod.applyRemote(r.remote);
-        else if (r.action === 'push') await acc.mod.keepLocal();
-        else if (r.action === 'ask') {
-          acc.conflict = r.remote;
-          acc.localSum = acc.mod.saveSummary(S);
-          try { acc.remoteSum = acc.mod.saveSummary(JSON.parse(r.remote.data)); } catch (e) { acc.remoteSum = '?'; }
-        }
+        /* la riconciliazione l'ha già fatta signIn: qui si dice solo COSA è successo, perché
+           nessuno deve restare a chiedersi quale delle due partite sta giocando */
+        acc.msg = r.msg || '';
         buildMenu(inGameMode);
       },
     });
@@ -168,7 +244,7 @@ function buildMenu(inGame) {
   let h = '';
   if (view === 'saves') {
     h += closeX();
-    h += `<div class="sp-title2">💾 ${tr('Partite', 'Games')}</div><div id="sp-slots">`;
+    h += `<div class="sp-title2">💾 ${tr('Salvataggi', 'Saves')}</div><div id="sp-slots">`;
     for (let n = 1; n <= SLOTS; n++) {
       const d = slotInfo(n);
       const info = d ? `${tr('Giorno', 'Day')} ${d.day} · 🪙 ${d.coins}<br><small>${d.savedAt ? new Date(d.savedAt).toLocaleString('it-IT') : ''}</small>` : '<small>— ' + tr('vuoto', 'empty') + ' —</small>';
@@ -178,84 +254,128 @@ function buildMenu(inGame) {
         `</span></div>`;
     }
     h += `</div>`;
+    /* Dove vivono questi salvataggi: chi è collegato deve sapere che se li ritrova ovunque,
+       e chi non lo è deve sapere che restano su QUESTO dispositivo — prima non lo diceva
+       nessuno e ci si contava sopra sbagliando. */
+    if (cloudEnabled()) {
+      h += `<div class="sp-note">${acc.user
+        ? tr('Questi salvataggi sono anche sul server: li ritrovi su ogni dispositivo.',
+          'These games are on the server too: you will find them on every device.')
+        : tr('Questi salvataggi restano su questo dispositivo. Entra con Google per ritrovarli ovunque.',
+          'These games stay on this device. Sign in with Google to find them anywhere.')}</div>`;
+    }
+    /* LE STATISTICHE HANNO UNA SCHERMATA LORO, raggiunta da qui.
+       Messe in fondo a questa, dodici righe schiacciavano i tre slot fino a farli sparire:
+       `#sp-slots` sta in un contenitore flessibile e con troppa roba sotto si riduce a
+       niente. Una schermata dovrebbe rispondere a una domanda sola — qui "dove salvo?", di
+       là "come sto andando?". */
+    if (S && S.started) h += `<button class="sp-btn" id="sp-stats-btn">📊 ${tr('Statistiche', 'Stats')}</button>`;
     if (hasSave) h += `<button class="sp-btn danger" id="sp-new">🌱 ${tr('Nuova partita', 'New game')}</button>`;
     h += backBar();
-  } else if (view === 'audio') {
+  } else if (view === 'stats') {
     h += closeX();
-    const a = audioOpts();
-    h += `<div class="sp-title2">🎵 Audio</div>`;
-    h += `<div class="sp-set"><span>${tr('Musica', 'Music')}</span><button class="sp-btn small" id="sp-mus">${a.music ? 'ON' : 'OFF'}</button>
-      <input id="sp-vol" type="range" min="0" max="100" value="${Math.round(a.vol * 100)}" title="${tr('Volume musica', 'Music volume')}"></div>`;
-    h += `<div class="sp-set"><span>${tr('Effetti', 'Sound FX')}</span><button class="sp-btn small" id="sp-sfx">${a.sfx ? 'ON' : 'OFF'}</button>
-      <input id="sp-sfxvol" type="range" min="0" max="100" value="${Math.round(a.sfxVol * 100)}" title="${tr('Volume effetti', 'SFX volume')}"></div>`;
+    h += `<div class="sp-title2">📊 ${tr('La tua partita', 'Your game')}</div>`;
+    h += `<div class="sp-stats">` + gameStats(S).map(r =>
+      `<div class="sp-stat"><span class="sp-stat-l">${r.icon} ${r.label}</span><b>${r.value}</b></div>`).join('') + `</div>`;
     h += backBar();
   } else if (view === 'settings') {
+    /* IMPOSTAZIONI — rifatte.
+     *
+     * Com'erano: una colonna stretta con, sotto ogni voce, un paragrafo di spiegazione lungo
+     * tre righe. Il risultato era una pagina altissima in cui gli ultimi comandi finivano
+     * fuori dallo schermo (su mobile "Aggiorna il gioco" non si raggiungeva), mentre su
+     * desktop restavano vuoti due terzi della larghezza.
+     *
+     * Adesso: SCHEDE, una per argomento, in una griglia che si adatta da sola — una colonna
+     * sul telefono, due o tre sul computer, senza media query scritte a mano. Le spiegazioni
+     * lunghe sono sparite: resta una riga sola, e solo dove serve davvero capire cosa cambia
+     * (le modalità dei comandi). Audio e Lingua stanno QUI dentro invece di aprire due
+     * sottopagine: erano due schermate per quattro interruttori.
+     */
     h += closeX();
     h += `<div class="sp-title2">⚙️ ${tr('Impostazioni', 'Settings')}</div>`;
     const pf = getPrefs();
-    /* SUGGERIMENTI: alla seconda partita non si vogliono rivedere tutti da capo */
-    h += `<div class="sp-set"><span>${tr('Suggerimenti', 'Tips')}</span>
-      <button class="sp-btn small" id="sp-tips">${pf.tips ? 'ON' : 'OFF'}</button></div>`;
-    h += `<div class="sp-note">${tr('I riquadri che spiegano una meccanica la prima volta che la incontri. Restano sempre nella Guida (zaino → ❔).', 'The boxes explaining a mechanic the first time you meet it. They always stay in the Guide (bag → ❔).')}</div>`;
-    /* CONTROLLI: joystick, tocca dove andare, o entrambi */
-    /* le opzioni cambiano col DISPOSITIVO: le leve non esistono con un mouse, il
-       segui-puntatore non esiste con un dito, e la mano conta solo dove ci sono comandi
-       a schermo da spostare. */
+    const a = audioOpts();
+    /* Niente riquadri: nel resto del gioco non ce ne sono, e cinque scatole incolonnate
+       pesavano più di quello che contenevano. Un titoletto e una riga sottile bastano a
+       separare gli argomenti. La riga si disegna PRIMA del gruppo e mai sopra il primo. */
+    let primo = true;
+    const grp = (titolo, dentro) => {
+      const hr = primo ? '' : '<hr class="sp-sep">';
+      primo = false;
+      return `${hr}<div class="sp-grp"><h4>${titolo}</h4>${dentro}</div>`;
+    };
+    const riga = (etichetta, controllo) => `<div class="sp-row"><span>${etichetta}</span>${controllo}</div>`;
+    /* `sp-sw`: larghezza fissa, così ON e OFF non ballano e le righe restano incolonnate */
+    const sw = (id, acceso) => `<button class="sp-btn small sp-sw${acceso ? ' primary' : ''}" id="${id}">${acceso ? 'ON' : 'OFF'}</button>`;
+    const seg = (attr, voci, scelto) => `<div class="sp-seg">` + voci.map(([id, lb]) =>
+      `<button class="sp-btn small${scelto === id ? ' primary' : ''}" ${attr}="${id}">${lb}</button>`).join('') + `</div>`;
+
+    h += `<div class="sp-cfg">`;
+
+    /* COMANDI: le opzioni cambiano col DISPOSITIVO — le leve non esistono con un mouse, il
+       segui-puntatore non esiste con un dito, e la mano conta solo dove ci sono comandi a
+       schermo da spostare. */
     if (isTouch()) {
-      h += `<div class="sp-set"><span>${tr('Comandi a schermo', 'On-screen controls')}</span></div>`;
-      h += `<div class="sp-seg">` + [
-        ['joystick', tr('Leva fissa', 'Fixed stick')],
-        ['float', tr('Leva sotto il dito', 'Stick under finger')],
-        ['tap', tr('Tocca dove andare', 'Tap to move')],
-      ].map(([id, lb]) => `<button class="sp-btn small${pf.touch === id ? ' primary' : ''}" data-touch="${id}">${lb}</button>`).join('') + `</div>`;
-      h += `<div class="sp-note">${
-        pf.touch === 'float'
-          ? tr('La leva <b>nasce dove appoggi il dito</b> e non occupa un angolo dello schermo: trascina per guidare Digsy. Un tocco <b>senza trascinare</b> lo manda dove hai toccato.', 'The stick <b>appears where you put your finger</b> instead of sitting in a corner: drag to steer Digsy. A tap <b>without dragging</b> sends him where you tapped.')
-          : pf.touch === 'tap'
-            ? tr('Tocchi un punto della mappa e Digsy ci cammina, aggirando gli ostacoli. Tocca una porta per entrarci.', 'Tap a spot and Digsy walks there, going around obstacles. Tap a door to go in.')
-            : tr('La leva resta in un angolo dello schermo, sempre nello stesso posto.', 'The stick stays in a corner of the screen, always in the same place.')
-      }</div>`;
-      h += `<div class="sp-set"><span>${tr('Mano', 'Hand')}</span></div>`;
-      h += `<div class="sp-seg">` + [
-        ['right', tr('Destro', 'Right-handed')],
-        ['left', tr('Mancino', 'Left-handed')],
-      ].map(([id, lb]) => `<button class="sp-btn small${(pf.hand || 'right') === id ? ' primary' : ''}" data-hand="${id}">${lb}</button>`).join('') + `</div>`;
-      h += `<div class="sp-note">${tr('Sposta il tasto <b>A</b> (e la leva fissa) dalla parte opposta.', 'Moves the <b>A</b> button (and the fixed stick) to the other side.')}</div>`;
+      h += grp('🚶 ' + tr('Comandi', 'Controls'),
+        seg('data-touch', [
+          ['joystick', tr('Leva fissa', 'Fixed stick')],
+          ['float', tr('Leva sotto il dito', 'Stick under finger')],
+          ['tap', tr('Tocca dove andare', 'Tap to move')],
+        ], pf.touch)
+        + `<div class="sp-hint2">${
+          pf.touch === 'float' ? tr('La leva nasce dove appoggi il dito.', 'The stick appears where you put your finger.')
+            : pf.touch === 'tap' ? tr('Tocchi un punto e Digsy ci cammina.', 'Tap a spot and Digsy walks there.')
+              : tr('La leva resta sempre nello stesso angolo.', 'The stick stays in the same corner.')}</div>`
+        + riga(tr('Mano', 'Hand'), seg('data-hand', [
+          ['right', tr('Destra', 'Right')], ['left', tr('Sinistra', 'Left')],
+        ], pf.hand || 'right')));
     } else {
-      h += `<div class="sp-set"><span>${tr('Mouse', 'Mouse')}</span></div>`;
-      h += `<div class="sp-seg">` + [
-        ['tap', tr('Clicca dove andare', 'Click to move')],
-        ['follow', tr('Segui il puntatore', 'Follow the pointer')],
-        ['keys', tr('Solo tastiera', 'Keyboard only')],
-      ].map(([id, lb]) => `<button class="sp-btn small${(pf.mouse || 'tap') === id ? ' primary' : ''}" data-mouse="${id}">${lb}</button>`).join('') + `</div>`;
-      h += `<div class="sp-note">${
-        pf.mouse === 'follow'
-          ? tr('<b>Tieni premuto</b> il tasto del mouse e Digsy va verso il puntatore, finché non lo rilasci. WASD funziona sempre.', '<b>Hold</b> the mouse button and Digsy walks towards the pointer until you let go. WASD always works.')
-          : pf.mouse === 'keys'
-            ? tr('Ci si muove solo con WASD o le frecce: il mouse serve alle finestre.', 'You move only with WASD or the arrow keys: the mouse is for windows.')
-            : tr('Clicchi un punto della mappa e Digsy ci cammina, aggirando gli ostacoli. Clicca una porta per entrarci.', 'Click a spot and Digsy walks there, going around obstacles. Click a door to go in.')
-      }</div>`;
-      h += `<div class="sp-note">${tr('In ogni modalità il <b>tasto destro</b> fa quello che fa <kbd>E</kbd>: scava, entra, parla. Così si gioca senza toccare la tastiera.', 'In every mode the <b>right mouse button</b> does what <kbd>E</kbd> does: dig, enter, talk. That way you can play without touching the keyboard.')
-      }</div>`;
+      h += grp('🎯 ' + tr('Comandi', 'Controls'),
+        seg('data-mouse', [
+          ['tap', tr('Clicca dove andare', 'Click to move')],
+          ['follow', tr('Segui il puntatore', 'Follow the pointer')],
+          ['keys', tr('Solo tastiera', 'Keyboard only')],
+        ], pf.mouse || 'tap')
+        + `<div class="sp-hint2">${
+          pf.mouse === 'follow' ? tr('Tieni premuto e Digsy va verso il puntatore.', 'Hold the button and Digsy walks towards the pointer.')
+            : pf.mouse === 'keys' ? tr('Ci si muove con WASD o le frecce.', 'You move with WASD or the arrow keys.')
+              : tr('Clicchi un punto e Digsy ci cammina.', 'Click a spot and Digsy walks there.')}</div>`
+        + `<div class="sp-hint2">${tr('Il tasto destro fa quello che fa <kbd>E</kbd>.', 'The right mouse button does what <kbd>E</kbd> does.')}</div>`);
     }
-    h += `<div class="sp-set"><span>${tr('Segnalino della meta', 'Destination marker')}</span>
-      <button class="sp-btn small" id="sp-marker">${pf.marker ? 'ON' : 'OFF'}</button></div>`;
-    /* AGGIORNAMENTO FORZATO. Stava nascosto nei Credits, dove nessuno lo cerca: chi resta
-       su una versione vecchia non va a leggere i ringraziamenti, va nelle Impostazioni.
-       Serve perché sul telefono non esiste il "ricarica senza cache" e capita di giocare
-       per giorni a una versione superata senza accorgersene.
-       La versione è scritta accanto: è la prima cosa da chiedere a un tester che segnala
-       un bug già corretto. */
-    h += `<div class="sp-set" style="margin-top:16px"><span>${tr('Aggiorna il gioco', 'Update the game')}</span>
-      <button class="sp-btn small" id="sp-refresh">⟳ ${VERSION}</button></div>`;
-    h += `<div class="sp-note">${tr('Scarica di nuovo l\'ultima versione del gioco. Il salvataggio resta dov\'è.', 'Downloads the latest version of the game again. Your save stays where it is.')}</div>`;
-    h += backBar();
-  } else if (view === 'lang') {
-    h += closeX();
-    h += `<div class="sp-title2">🌍 ${tr('Lingua', 'Language')}</div>`;
-    /* un bottone per lingua, generati da LANGS: aggiungerne una non tocca più questo file */
-    h += LANGS.map(l => `<button class="sp-btn${LANG === l.id ? ' primary' : ''}" data-lang="${l.id}">${l.label}${LANG === l.id ? ' ✓' : ''}</button>`).join('');
-    h += backBar();
+
+    /* SCHERMO: le due cose che si vedono mentre si gioca */
+    h += grp('✨ ' + tr('A schermo', 'On screen'),
+      riga(tr('Segnalino della meta', 'Destination marker'), sw('sp-marker', pf.marker))
+      + riga(tr('Suggerimenti', 'Tips'), sw('sp-tips', pf.tips))
+      + `<div class="sp-hint2">${tr('I riquadri che spiegano una meccanica la prima volta. Restano nella Guida (zaino → ❔).', 'The boxes explaining a mechanic the first time. They stay in the Guide (bag → ❔).')}</div>`);
+
+    /* AUDIO: qui dentro, non in una pagina sua — erano due schermate per quattro comandi */
+    /* il cursore PRIMA dell'interruttore: così gli ON/OFF cadono tutti sulla stessa colonna
+       a destra, in ogni gruppo. Con l'ordine inverso quelli dell'audio restavano indietro di
+       un centinaio di pixel e la colonna sembrava rotta. */
+    h += grp('🎵 Audio',
+      riga(tr('Musica', 'Music'),
+        `<input id="sp-vol" type="range" min="0" max="100" value="${Math.round(a.vol * 100)}" title="${tr('Volume musica', 'Music volume')}">`
+        + sw('sp-mus', a.music))
+      + riga(tr('Effetti', 'Sound FX'),
+        `<input id="sp-sfxvol" type="range" min="0" max="100" value="${Math.round(a.sfxVol * 100)}" title="${tr('Volume effetti', 'SFX volume')}">`
+        + sw('sp-sfx', a.sfx)));
+
+    /* LINGUA: i nomi sono già nella loro lingua, non serve spiegare nulla */
+    h += grp('🌍 ' + tr('Lingua', 'Language'),
+      seg('data-lang', LANGS.map(l => [l.id, l.label]), LANG));
+
+    /* AGGIORNAMENTO. Stava nei Credits, dove nessuno lo cerca: sul telefono non esiste il
+       "ricarica senza cache" e si gioca per giorni a una versione superata. La versione è
+       scritta sul pulsante: è la prima cosa da chiedere a un tester che segnala un bug già
+       corretto. */
+    h += grp('💾 ' + tr('Versione', 'Version'),
+      riga(tr('Aggiorna il gioco', 'Update the game'),
+        `<button class="sp-btn small" id="sp-refresh">⟳ ${VERSION}</button>`)
+      + `<div class="sp-hint2">${tr('Riscarica il gioco. Il salvataggio resta dov\'è.', 'Downloads the game again. Your save stays where it is.')}</div>`);
+
+    h += `</div>` + backBar();
   } else if (view === 'trophies') {
     h += closeX();
     const done = ACHS.filter(a => isAchieved(a.id)).length;
@@ -308,7 +428,7 @@ function buildMenu(inGame) {
     h += `<div class="sp-title2">☁️ ${tr('La tua partita', 'Your game')}</div>`;
     h += `<div class="sp-acc">`;
     if (acc.user) {
-      h += `<p class="sp-acc-who">${acc.user.email || acc.user.name || ''}</p>`;
+      h += `<p class="sp-acc-who">${esc(acc.user.email || acc.user.name || '')}</p>`;
       h += `<p class="sp-acc-st">${accountStatus()}</p>`;
       if (acc.conflict) {
         /* DUE PARTITE DIVERSE: non si sceglie per lui. Si mostrano le due con quello che
@@ -325,21 +445,48 @@ function buildMenu(inGame) {
       h += `<div id="sp-gbtn"></div>`;
       h += `<p class="sp-acc-note" id="sp-accmsg">${acc.msg || ''}</p>`;
     }
+    /* Che fine fanno i dati: sta QUI, accanto al pulsante di accesso, non sepolto nei
+       crediti. Chi sta per entrare con Google deve poterlo leggere PRIMA, non dopo.
+       Google lo pretende per tenere l'applicazione pubblicata, ma vale a prescindere. */
+    h += `<p class="sp-acc-note"><a href="privacy.html" target="_blank" rel="noopener">${tr('Che fine fanno i tuoi dati', 'What happens to your data')}</a></p>`;
     h += `</div>` + backBar();
   } else {
     h += `<button class="sp-btn primary" id="sp-continue">${inGame ? '▶ ' + tr('Riprendi', 'Resume') : hasSave ? '▶ ' + tr('Continua', 'Continue') : '🌱 ' + tr('Nuova partita', 'New game')}</button>`;
-    h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Partite', 'Games')}</button>`;
-    h += `<button class="sp-btn" id="sp-audio">🎵 Audio</button>`;
-    h += `<button class="sp-btn" id="sp-lang">🌍 ${tr('Lingua', 'Language')}</button>`;
-    /* la voce compare solo col salvataggio in cloud acceso (window.DIGSY_CLOUD): vedi
-       index.html — senza database sul server l'accesso fallirebbe e basta */
-    if (cloudEnabled()) h += `<button class="sp-btn" id="sp-account">☁️ ${tr('La tua partita', 'Your game')}</button>`;
+    /* L'ACCESSO SI VEDE SUBITO, MA NON SBARRA LA STRADA.
+       Stava in fondo al menu, indistinguibile da Audio e Lingua: nessuno lo trovava e si
+       giocava per giorni senza sapere che la partita si può portare sul telefono. Metterlo
+       come muro davanti al gioco però sarebbe peggio — questo è un gioco tranquillo, la
+       prima cosa che si vede non può essere «identificati», e senza account funziona tutto.
+       Quindi: appena sotto Gioca, con scritto COSA fa, e si ignora con un clic. */
+    /* IL PULSANTE DICE GIÀ COME STAI MESSO, senza doverci entrare per scoprirlo: chiedere
+       "Entra con Google" a chi è già entrato è una bugia, e obbligare ad aprire un pannello
+       per sapere se si è collegati è lavoro scaricato sul giocatore.
+       Tre stati, uno per riga:
+         collegato    → l'indirizzo con cui sei entrato
+         scollegato   → l'invito a entrare
+         non si sa    → mentre si chiede al server (un attimo all'avvio)
+       Nessuna classe speciale e nessun sottotitolo: è un pulsante come gli altri, e non c'è
+       ragione perché sia più grande — l'importanza gliela dà la posizione, non la taglia. */
+    if (cloudEnabled()) {
+      const et = acc.user
+        ? esc(acc.user.email || acc.user.name || tr('Collegato', 'Signed in'))
+        : acc.known
+          ? tr('Entra con Google', 'Sign in with Google')
+          : tr('La tua partita', 'Your game');
+      h += `<button class="sp-btn" id="sp-account">☁️ ${et}</button>`;
+    }
+    h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Salvataggi', 'Saves')}</button>`;
     h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
     /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */
     h += `<div class="sp-iconrow">`;
     h += `<button class="sp-btn ic" id="sp-troph" title="${tr('Trofei', 'Trophies')}">🏆</button>`;
     h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝</button>`;
-    h += `<button class="sp-btn ic" id="sp-cmds" title="${tr('Comandi', 'Commands')}">📜</button>`;
+    /* NIENTE VOCE "COMANDI" NEL MENU. La console (`money`, `godmode`, `goto=…`) è uno
+       strumento dell'autore per provare il gioco, non una funzione da offrire: un elenco di
+       cheat in bella vista invita a usarli, e una partita con le monete infinite non racconta
+       più niente su come il gioco è bilanciato. Resta raggiungibile con il tasto ` per chi
+       sa che c'è; la sua schermata (view 'commands') è ancora nel codice ma non ha più
+       nessun pulsante che la apra. */
     h += `<button class="sp-btn ic" id="sp-credits" title="Credits">ℹ️</button>`;
     /* Discord: si apre in una scheda nuova, mai al posto del gioco — una partita in corso
        non deve sparire perché si è toccata un'icona. `noopener` è d'obbligo sui link
@@ -358,8 +505,7 @@ function buildMenu(inGame) {
   const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
   const bCm = document.getElementById('sp-cmds'); if (bCm) bCm.onclick = () => go('commands');
   const bCr = document.getElementById('sp-credits'); if (bCr) bCr.onclick = () => go('credits');
-  const bA = document.getElementById('sp-audio'); if (bA) bA.onclick = () => go('audio');
-  const bL = document.getElementById('sp-lang'); if (bL) bL.onclick = () => go('lang');
+  const bSt = document.getElementById('sp-stats-btn'); if (bSt) bSt.onclick = () => go('stats');
   const bSet = document.getElementById('sp-settings'); if (bSet) bSet.onclick = () => go('settings');
   const bAcc = document.getElementById('sp-account'); if (bAcc) bAcc.onclick = () => { go('account'); openAccount(); };
   wireAccountButtons(() => buildMenu(inGameMode));
@@ -392,13 +538,18 @@ function buildMenu(inGame) {
   const bB = document.getElementById('sp-back'); if (bB) bB.onclick = () => go('main');
   const bX = document.getElementById('sp-x'); if (bX) bX.onclick = () => go('main');   // via d'uscita sempre in alto
   menu.querySelectorAll('[data-save]').forEach(b => b.onclick = () => {
-    const r = saveToSlot(parseInt(b.dataset.save, 10));
-    if (r === true) { buildMenu(inGame); return; }
-    /* sotto cheat il salvataggio è congelato, negli slot compresi: dirlo, non fingere */
-    b.textContent = r === 'cheat'
-      ? tr('Cheat attivi: scrivi `vanilla`', 'Cheats on: type `vanilla`')
-      : tr('Spazio esaurito!', 'Storage full!');
-    setTimeout(() => buildMenu(inGame), 2200);
+    const n = parseInt(b.dataset.save, 10);
+    const scrivi = () => {
+      const r = saveToSlot(n);
+      if (r === true) { buildMenu(inGame); return; }
+      /* sotto cheat il salvataggio è congelato, negli slot compresi: dirlo, non fingere */
+      b.textContent = r === 'cheat'
+        ? tr('Cheat attivi: scrivi `vanilla`', 'Cheats on: type `vanilla`')
+        : tr('Spazio esaurito!', 'Storage full!');
+      setTimeout(() => buildMenu(inGame), 2200);
+    };
+    if (!slotNeedsConfirm(n)) { scrivi(); return; }
+    arm(b, slotConfirmLabel(n), scrivi);
   });
   menu.querySelectorAll('[data-n]').forEach(b => b.onclick = () =>
     arm(b, tr('Confermi?', 'Confirm?'), () => { if (loadFromSlot(parseInt(b.dataset.n, 10))) reloadInto(); }));
@@ -421,6 +572,7 @@ export function showSplash() {
   pause = true; view = 'main';
   if (!on) { on = true; sp().classList.remove('off'); }
   buildMenu(true);
+  probeAccount();          // anche il menu di pausa dice subito se sei collegato
   startAnim();
 }
 
@@ -459,6 +611,7 @@ export function initSplash(onPlay) {
   view = 'main';
   buildMenu(false);
   startAnim();
+  probeAccount();          // il pulsante dell'account dirà da solo se sei già collegato
 }
 
 /* ☰ nell'HUD apre il menu pausa */

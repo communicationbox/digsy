@@ -18,12 +18,27 @@ require_once __DIR__ . '/db.php';
 
 const SESSION_COOKIE = 'digsy_sid';
 
-function sessionCreate(int $userId, string $userAgent = ''): string
+/* UN SOLO DISPOSITIVO ALLA VOLTA.
+ *
+ * Entrando da un dispositivo si chiudono le sessioni aperte altrove. Prima restavano tutte
+ * valide e si poteva giocare in due posti insieme: entrambi salvavano la stessa partita e uno
+ * dei due lavorava su uno stato già superato, scoprendolo solo al conflitto successivo.
+ * Chiudere le altre sessioni rende la regola una sola e leggibile — «la partita è dove stai
+ * giocando adesso» — al prezzo di rifare l'accesso quando si cambia dispositivo.
+ *
+ * Il salvataggio dell'altro dispositivo NON viene toccato: resta nel suo browser e la prima
+ * volta che rientra viene riconciliato. Si chiude la sessione, non si butta via una partita.
+ */
+function sessionCreate(int $userId, string $userAgent = '', bool $exclusive = true): string
 {
     $c = config();
     $token = bin2hex(random_bytes(32));
     $days  = (int)($c['session_days'] ?? 30);
     $exp   = nowTs() + $days * 86400;
+    if ($exclusive) {
+        $st = db()->prepare('DELETE FROM sessions WHERE user_id = ?');
+        $st->execute([$userId]);
+    }
     $st = db()->prepare('INSERT INTO sessions (token_hash, user_id, created_at, expires_at, user_agent)
                          VALUES (?, ?, ?, ?, ?)');
     $st->execute([hash('sha256', $token), $userId, nowTs(), $exp, substr($userAgent, 0, 255)]);

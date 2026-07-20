@@ -2,8 +2,8 @@
    Abilità (dall'hash del compagno): fiuto (segnala i reperti a terra vicini),
    bussola (mostra sempre passi/nome anche da lontano), fortuna (+scavo, +valore oggetti). */
 import { S, P } from './state.js';
-import { spById } from './data.js';
 import { save } from './state.js';
+import { parkPopulation } from './park.js';
 
 export const COMP = { x: 0, y: 0, dir: -1, anim: 0, init: false };
 
@@ -15,13 +15,10 @@ export function companionAbility() { return abilityOf(S.companion); }
 export function setCompanion(spec) { S.companion = spec || null; COMP.init = false; save(); }
 export function clearCompanion() { setCompanion(null); }
 
-/* candidati selezionabili dal parco: chimere create + specie risvegliate */
-export function companionCandidates() {
-  const out = [];
-  for (const c of (S.creatures || [])) out.push({ name: c.name, skull: c.skull, torso: c.torso, leg: c.leg, q: c.q, key: 'chi' + c.uid });
-  for (const id of (S.awakened || [])) { const sp = spById[id]; if (sp) out.push({ name: sp.name, skull: id, torso: id, leg: id, q: sp.r, key: 'sp' + id }); }
-  return out;
-}
+/* Candidati: esattamente CHI VIVE NEL PARCO — si sceglie il compagno fra le creature che si
+   vedono passeggiare là dentro. Lista unica in park.js: quando le due erano scritte a mano in
+   due posti sono divergute, e le specie risvegliate comparivano qui ma non nel recinto. */
+export function companionCandidates() { return parkPopulation(); }
 export function isCurrentCompanion(key) { return !!S.companion && S.companion.key === key; }
 
 /* il compagno insegue il player restando un po' indietro rispetto al verso di marcia */

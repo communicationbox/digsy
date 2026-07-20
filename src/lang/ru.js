@@ -214,14 +214,14 @@ export const RU = {
   'Missing DNA of: ': 'Не хватает ДНК: ',
   ' (museum, case 5/5)': ' (музей, витрина 5/5)',
   'CHIMERA CREATED': 'ХИМЕРА СОЗДАНА',
-  ' has been reanimated! It roams the big-city park': ' оживлена! Она гуляет в парке большого города',
+  ' has woken up! It roams the big-city park': ' оживлена! Она гуляет в парке большого города',
   'SPECIES AWAKENED': 'ВИД ПРОБУЖДЁН',
   ' has been awakened! See it ALIVE in the Book (L)': ' пробуждён! Посмотрите на него ЖИВЫМ в Книге (L)',
 
   /* ---- HUD e intro ---- */
   'bag ': 'рюкзак ',
   ' menu': ' меню',
-  'dig · discover · revive': 'копай · открывай · оживляй',
+  'explore · dig · discover': 'исследуй · копай · открывай',
   'Skip ⏭': 'Пропустить ⏭',
   'click to continue': 'нажмите, чтобы продолжить',
   'Hold on! I must give you something I have kept for years.':
@@ -271,7 +271,7 @@ export const RU = {
   '(any species)': '(любого вида)',
 
   /* ---- menu / splash ---- */
-  'Games': 'Сохранения',
+  'Saves': 'Сохранения',
   'Day': 'День',
   'empty': 'пусто',
   'Save': 'Сохранить',
@@ -290,7 +290,6 @@ export const RU = {
   'Resume': 'Продолжить игру',
   'Continue': 'Продолжить',
   'Trophies': 'Трофеи',
-  'Commands': 'Команды',
   'Cheats on: type `vanilla`': 'Читы включены: введите `vanilla`',
   'Storage full!': 'Хранилище переполнено!',
   'Confirm?': 'Подтвердить?',
@@ -421,7 +420,6 @@ export const RU = {
   'Exit': 'Выход',
   'CHEAT · NO SAVE': 'ЧИТ · БЕЗ СОХРАНЕНИЯ',
   'Update the game': 'Обновить игру',
-  'Downloads the latest version of the game again. Your save stays where it is.': 'Заново скачивает последнюю версию игры. Сохранение остаётся на месте.',
   'museum': 'музей',
   ' map': ' карта',
   /* intro: dove si porta il primo fossile */
@@ -516,15 +514,15 @@ export const RU = {
   'Master Digger': 'Мастер раскопок',
 
   /* ---- laboratorio ---- */
-  'The laboratory reanimates: chimeras and complete species. (Raw finds are identified at the <b>Museum</b>.)':
+  'The laboratory awakens: chimeras and complete species. (Raw finds are identified at the <b>Museum</b>.)':
     'Лаборатория оживляет: химеры и целые виды. (Необработанные находки определяют в <b>Музее</b>.)',
-  'Reanimate a chimera': 'Оживить химеру',
+  'Awaken a chimera': 'Оживить химеру',
   'Assemble an identified <b>Skull + Ribcage + Leg</b>': 'Соберите определённые <b>Череп + Грудная клетка + Лапа</b>',
   '1 vial per species used': '1 пробирка на каждый использованный вид',
   'the creature comes alive in the big-city <b>park</b>. Chimeras created':
     'существо оживает в <b>парке</b> большого города. Химер создано',
   'Missing': 'Не хватает',
-  'Reanimate!': 'Оживить!',
+  'Awaken!': 'Оживить!',
   'Preview of the assembled creature': 'Предпросмотр собранного существа',
   'Awaken a species': 'Пробудить вид',
   'DEBUG: infinite DNA vials. Awakened': 'ОТЛАДКА: бесконечные пробирки ДНК. Пробуждено',
@@ -871,7 +869,7 @@ export const RU = {
   'Expert': 'Знаток',
   'Discover 30 species': 'Откройте 30 видов',
   'Encyclopedic': 'Энциклопедист',
-  'Discover all 60 species': 'Откройте все 60 видов',
+  'Discover all {n} species': 'Откройте все {n} видов',
   'Creator': 'Творец',
   'Assemble your first chimera': 'Соберите первую химеру',
   'Reviver': 'Воскреситель',
@@ -986,9 +984,6 @@ export const RU = {
   /* ---- impostazioni ---- */
   'Settings': 'Настройки',
   'Tips': 'Подсказки',
-  'The boxes explaining a mechanic the first time you meet it. They always stay in the Guide (bag → ❔).':
-    'Окошки, которые объясняют механику при первой встрече с ней. Их всегда можно перечитать в Справке (рюкзак → ❔).',
-  'On-screen controls': 'Экранное управление',
   'Tap to move': 'Идти по касанию',
   'Destination marker': 'Метка цели',
 
@@ -1023,32 +1018,13 @@ export const RU = {
   'go to the Laboratory and press «Fuse 3»': 'идите в Лабораторию и нажмите «Сплавить 3»',
 
   /* ---- comandi a schermo: leva fissa, leva sotto il dito, tocco ---- */
-  'Fixed stick': 'Джойстик на месте',
-  'Stick under finger': 'Джойстик под пальцем',
-  'The stick <b>appears where you put your finger</b> instead of sitting in a corner: drag to steer Digsy. A tap <b>without dragging</b> sends him where you tapped.':
-    'Джойстик <b>появляется там, где вы поставили палец</b>, а не сидит в углу: ведите пальцем, чтобы управлять Digsy. Короткое касание <b>без ведения</b> отправит его туда, куда вы нажали.',
-  'Tap a spot and Digsy walks there, going around obstacles. Tap a door to go in.':
-    'Коснитесь точки — и Digsy пойдёт туда, обходя препятствия. Коснитесь двери, чтобы войти.',
-  'The stick stays in a corner of the screen, always in the same place.':
-    'Джойстик остаётся в углу экрана, всегда на одном месте.',
   'Hand': 'Рука',
-  'Right-handed': 'Правша',
-  'Left-handed': 'Левша',
-  'Moves the <b>A</b> button (and the fixed stick) to the other side.':
-    'Переносит кнопку <b>A</b> (и джойстик) на другую сторону.',
   '3 × ': '3 × ',
 
   /* ---- comandi col mouse (desktop) ---- */
-  'Mouse': 'Мышь',
   'Click to move': 'Клик — идти туда',
   'Follow the pointer': 'Идти за курсором',
   'Keyboard only': 'Только клавиатура',
-  '<b>Hold</b> the mouse button and Digsy walks towards the pointer until you let go. WASD always works.':
-    '<b>Удерживайте</b> кнопку мыши — и Digsy идёт к курсору, пока вы её не отпустите. WASD работает всегда.',
-  'You move only with WASD or the arrow keys: the mouse is for windows.':
-    'Передвижение только на WASD или стрелках: мышь нужна для окон.',
-  'Click a spot and Digsy walks there, going around obstacles. Click a door to go in.':
-    'Кликните по точке — Digsy пойдёт туда, обходя препятствия. Кликните по двери, чтобы войти.',
 
   /* ---- pagina Comandi: console ---- */
   'Console': 'Консоль',
@@ -1200,8 +1176,51 @@ export const RU = {
   /* ---- comandi: col mouse si gioca senza tastiera ---- */
   'Keys: <kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions · <kbd>ESC</kbd> menu<br>With the mouse: <b>click</b> to walk, <b>right click</b> to act.':
     'Клавиши: <kbd>WASD</kbd> движение · <kbd>E</kbd> действие · <kbd>I</kbd> рюкзак · <kbd>L</kbd> книга · <kbd>M</kbd> карта · <kbd>Q</kbd> задания · <kbd>ESC</kbd> меню<br>Мышью: <b>клик</b> — идти, <b>правая кнопка</b> — действие.',
-  'In every mode the <b>right mouse button</b> does what <kbd>E</kbd> does: dig, enter, talk. That way you can play without touching the keyboard.':
-    'В любом режиме <b>правая кнопка мыши</b> делает то же, что <kbd>E</kbd>: копать, войти, поговорить. Так можно играть, не касаясь клавиатуры.',
 
   /* ---- uscita dagli interni ---- */
+  /* ---- partita in cloud e zaino pieno in grotta ---- */
+  'Picked up your saved game (': 'Загружена сохранённая игра (',
+  "Kept this device's game (": 'Оставлена игра с этого устройства (',
+  'Bag full: the crystal stays here, come back for it': 'Рюкзак полон: кристалл останется здесь, вернись за ним',
+  'Sign in with Google': 'Войти через Google',
+  'This address is not authorised with Google: ': 'Этот адрес не разрешён в Google: ',
+  '. That is a setup problem, not something you did.': '. Это ошибка настройки, а не твоя вина.',
+  'Google did not confirm the sign-in. Try again.': 'Google не подтвердил вход. Попробуй ещё раз.',
+  'No connection: your game stays saved on this device.': 'Нет сети: игра сохраняется на этом устройстве.',
+  'What happens to your data': 'Что происходит с твоими данными',
+  'These games are on the server too: you will find them on every device.': 'Эти сохранения есть и на сервере: ты найдёшь их на любом устройстве.',
+  'These games stay on this device. Sign in with Google to find them anywhere.': 'Эти сохранения остаются на этом устройстве. Войди через Google, чтобы найти их везде.',
+  'You signed in on another device: here the game stays saved locally.': 'Ты вошёл на другом устройстве: здесь игра сохраняется локально.',
+  /* ---- statistiche, conferme, museo ---- */
+  'Bag full: ': 'Рюкзак полон: ',
+  ' pieces stay at the Museum, come back for them': ' предметов останутся в Музее, вернись за ними',
+  'Overwrite': 'Перезаписать',
+  'Time played': 'Время в игре',
+  'Species discovered': 'Открыто видов',
+  'Complete cases': 'Полных витрин',
+  'Species awakened': 'Пробуждено видов',
+  'Chimeras created': 'Создано химер',
+  'Wonders found': 'Найдено чудес',
+  'Caves explored': 'Исследовано пещер',
+  'Tiles dug': 'Раскопано клеток',
+  'Missions delivered': 'Выполнено заданий',
+  'species': 'видов',
+  /* ---- impostazioni rifatte ---- */
+  'Stats': 'Статистика',
+  'd': 'д',
+  'Controls': 'Управление',
+  'On screen': 'На экране',
+  'Version': 'Версия',
+  'Update the game': 'Обновить игру',
+  'Downloads the game again. Your save stays where it is.': 'Игра скачается заново. Сохранение останется на месте.',
+  'The stick appears where you put your finger.': 'Джойстик появляется там, где ты касаешься.',
+  'Tap a spot and Digsy walks there.': 'Коснись точки — и Дигси туда пойдёт.',
+  'The stick stays in the same corner.': 'Джойстик всегда в одном углу.',
+  'Hold the button and Digsy walks towards the pointer.': 'Удерживай кнопку — Дигси пойдёт к указателю.',
+  'You move with WASD or the arrow keys.': 'Движение на WASD или стрелках.',
+  'Click a spot and Digsy walks there.': 'Кликни по точке — и Дигси туда пойдёт.',
+  'The right mouse button does what <kbd>E</kbd> does.': 'Правая кнопка мыши делает то же, что <kbd>E</kbd>.',
+  'The boxes explaining a mechanic the first time. They stay in the Guide (bag → ❔).': 'Подсказки при первой встрече с механикой. Остаются в Справке (рюкзак → ❔).',
+  'Right': 'Правая',
+  'Left': 'Левая',
 };

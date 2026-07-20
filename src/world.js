@@ -207,7 +207,7 @@ export function townForCell(cx, cy) {
         C, buildings: B, name: townName(cx, cy), size: size.id, key,
         x0: C.x + size.w[0], y0: C.y + size.h[0], x1: C.x + size.w[1], y1: C.y + size.h[1],
       };
-      /* le città grandi hanno un parco recintato sotto la piazza (chimere rianimate) */
+      /* le città grandi hanno un parco recintato sotto la piazza (chimere risvegliate) */
       if (size.id === 'città') town.pen = { x0: C.x - 5, y0: C.y + 5, x1: C.x + 4, y1: C.y + 10 };
       /* strade sterrate: vialetto porta→strada per ogni casa, strada orizzontale davanti a
          ogni fila e viale centrale che scende a sud (fino al cancello del parco nelle città) */

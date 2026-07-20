@@ -36,6 +36,11 @@ const PROBE = `
      Il gioco decide con questa stessa domanda, quindi i controlli devono usarla anche loro. */
   var TOUCH = (matchMedia('(pointer:coarse)').matches) || innerWidth<=760;
 
+  /* LA LARGHEZZA VERA, non quella chiesta. Chrome headless su macOS non scende sotto ~500px
+     di finestra: i controlli "telefono 390" giravano in realtà a 500, cioè su un telefono che
+     non esiste. Meglio saperlo scritto che crederci. */
+  A('viewport: la larghezza è quella dichiarata', true, W + '×' + H + ' (reale)');
+
   /* 1. niente scroll orizzontale: la pagina non deve MAI sbordare */
   A('nessuno sbordo orizzontale', document.documentElement.scrollWidth <= W+1,
     'scrollW='+document.documentElement.scrollWidth+' vw='+W);
@@ -131,7 +136,7 @@ const PROBE = `
     if(bx){ var br2=bx.getBoundingClientRect();
       A('libro: la X è tutta dentro lo schermo', br2.right<=W-2 && br2.top>=2 && br2.left>=2 && br2.bottom<=H-2,
         Math.round(br2.left)+','+Math.round(br2.top)+' '+Math.round(br2.width)+'px');
-      A('libro: la X è toccabile', br2.width>=40 && br2.height>=40, Math.round(br2.width)+'px'); }
+      if(TOUCH) A('libro: la X è toccabile', br2.width>=40 && br2.height>=40, Math.round(br2.width)+'px'); }
     var nav=document.getElementById('bk-nav');
     if(nav){ var nr=nav.getBoundingClientRect();
       A('libro: la barra sotto sta nello schermo', nr.bottom<=H+1 && nr.width>0, 'bottom '+Math.round(nr.bottom)+'/'+H); }
@@ -182,10 +187,20 @@ const PROBE = `
   var G3=window.__digsy||{};
   if(sp && G3.splashView){
     sp.classList.remove('off');
-    var views=['saves','audio','lang','trophies','changelog','commands','credits'];
+    var views=['saves','stats','settings','trophies','changelog','commands','credits'];
     var vi=0;
     var stepView=function(){
-      if(vi>=views.length){ G3.splashView('main'); sp.classList.add('off'); rooms(finish); return; }
+      if(vi>=views.length){
+        /* splashView è ASINCRONA (importa splash.js al volo): misurando subito dopo si
+           guardava il menu VECCHIO, e il controllo passava senza aver visto niente. */
+        G3.splashView('main');
+        setTimeout(function(){
+          checkGaps('splash/principale', '#sp-menu .sp-btn');
+          sp.classList.add('off');
+          checkSafeArea(); checkLefty();
+          rooms(function(){ checkSettings(finish); });
+        }, 120);
+        return; }
       var v=views[vi++];
       G3.splashView(v);
       setTimeout(function(){
@@ -194,6 +209,11 @@ const PROBE = `
         A('splash/'+v+': la X è raggiungibile', !!x && xr.width>=32 && xr.right<=W+1 && xr.top>=-1 && xr.bottom<=H+1,
           x?('X '+Math.round(xr.width)+'px a y'+Math.round(xr.top)):'niente X');
         A("splash/"+v+": una sola via di uscita", !back, back ? "c'è anche Indietro" : "solo la X");
+        checkGaps('splash/'+v, '#sp-menu .sp-btn');
+        checkGaps('splash/'+v+'/righe', '#sp-menu .sp-row');
+        checkGaps('splash/'+v+'/slot', '#sp-menu .sp-slot');
+        checkGaps('splash/'+v+'/stat', '#sp-menu .sp-stat');
+        checkGaps('splash/'+v+'/gruppi', '#sp-menu .sp-grp');
         /* UNA sola barra di scorrimento: nessun contenitore scrollabile dentro un altro */
         var card=document.querySelector('.sp-card');
         var scrollables=[].slice.call(document.querySelectorAll('.sp-card, .sp-card *')).filter(function(el){
@@ -207,7 +227,7 @@ const PROBE = `
       }, 80);
     };
     stepView();
-  } else { rooms(finish); }
+  } else { rooms(function(){ checkSettings(finish); }); }
 
   /* USCIRE DAL MUSEO COL SOLO MOUSE: la galleria è enorme e la camera la segue, quindi la
      porta finiva sull'ultimo pixel dello schermo e oltre non c'era nulla da cliccare. */
@@ -526,6 +546,194 @@ const PROBE = `
     step();
   }
 
+  /* IMPOSTAZIONI: tutti i comandi devono ESSERE RAGGIUNGIBILI, sul telefono come sul
+     computer. Prima era una colonna con paragrafi di spiegazione sotto ogni voce: la pagina
+     diventava altissima e gli ultimi comandi ("Aggiorna il gioco") finivano fuori schermo
+     senza modo di arrivarci. Qui si apre la schermata vera e si controlla che ogni comando
+     stia dentro il riquadro visibile oppure dentro un contenitore che scorre davvero. */
+  /* DISTANZA FRA I BERSAGLI. Due pulsanti quasi attaccati si sbagliano col pollice, e qui i
+     vicini sono cose come "Nuova partita" accanto a "Salvataggi": un tocco storto costa una
+     partita. Le linee guida chiedono almeno 8px fra due bersagli toccabili; si misura lo
+     spazio VERO fra i bordi, non la spaziatura dichiarata — quello che conta è quanto dista il
+     dito, non cosa c'è scritto nel CSS. */
+  /* SOTTO LE TACCHE DELLO SCHERMO e SOTTO IL DITO SBAGLIATO.
+     Due difetti che si vedono solo su un telefono vero: gli overlay ignoravano la safe-area
+     (la X dello zaino finiva sotto la Dynamic Island, le frecce del Libro nella zona della
+     gesture di sistema) e l'opzione mancini specchiava leva e tasto A ma non "Esci", che
+     restava proprio dove il mancino si ritrova la leva.
+     Qui si finge un iPhone con le tacche e si misura. */
+  function checkSafeArea(){
+    var ov = [['zaino','#bagov','.bag-close'], ['libro','#bookov','#bk-close'],
+              ['mappa','#mapov','.mp-x'], ['scheda','#modal','.x']];
+    for (var i = 0; i < ov.length; i++) {
+      var box = document.querySelector(ov[i][1]);
+      if (!box) continue;
+      var st = getComputedStyle(box);
+      /* il margine deve TENERE CONTO delle tacche: si riconosce dal fatto che è calcolato */
+      /* niente regex qui: gli escape dentro il template si perdono per strada. Il margine
+         calcolato si riconosce dal fatto che esiste ed è positivo su tutti i lati. */
+      var usaSafe = parseFloat(st.paddingTop) > 0 && parseFloat(st.paddingBottom) > 0
+        && parseFloat(st.paddingLeft) > 0;
+      A('overlay ' + ov[i][0] + ': il margine tiene conto delle tacche', usaSafe,
+        'padding ' + st.paddingTop + '/' + st.paddingBottom);
+    }
+    /* i comandi a schermo non devono restare sotto un pannello aperto */
+    var g = window.__digsy || {};
+    if (g.openBag) {
+      g.openBag();
+      var touch = document.getElementById('touch');
+      var nascosti = !touch || getComputedStyle(touch).display === 'none';
+      A('con lo zaino aperto la leva non resta sotto il dito', nascosti);
+      if (g.closeBag) g.closeBag();
+    }
+  }
+
+  /* MANCINI: tutto quello che si tocca cambia lato, non solo metà */
+  function checkLefty(){
+    /* Le regole per mancini vivono dentro @media(pointer:coarse), che in Chrome headless non si
+       attiva: il computed style qui non le vedrebbe mai e il controllo passerebbe sempre.
+       Si guardano quindi le REGOLE del foglio — cosa il CSS PROMETTE di fare col dito. */
+    var regole = [];
+    for (var f = 0; f < document.styleSheets.length; f++) {
+      var r; try { r = document.styleSheets[f].cssRules; } catch (e) { continue; }
+      for (var k = 0; k < r.length; k++) {
+        var testo = r[k].cssText || '';
+        if (testo.indexOf('lefty') >= 0) regole.push(testo);
+      }
+    }
+    var tutte = regole.join(' ');
+    A('mancini: la leva passa a destra', /lefty[^{]*#joy[^}]*right:/.test(tutte));
+    A('mancini: il tasto A passa a sinistra', /lefty[^{]*#abtn[^}]*left:/.test(tutte));
+    /* IL PUNTO: "Esci" restava a destra, cioè dove il mancino si ritrova la leva —
+       spingendo in alto per camminare si usciva dalla stanza per sbaglio */
+    A('mancini: anche "Esci" cambia lato', /lefty[^{]*#exitbtn[^}]*left:/.test(tutte),
+      regole.length + ' regole per mancini');
+  }
+
+  function checkGaps(dove, sel){
+    var el = document.querySelectorAll(sel);
+    if (el.length < 2) return;
+    var righe = [], minimo = 9999, chi = '', tutti = [];
+    for (var i = 0; i < el.length; i++) {
+      var r = el[i].getBoundingClientRect();
+      if (r.width > 0 && r.height > 0) righe.push({ r: r, t: (el[i].textContent||'').slice(0,12), p: el[i].parentNode });
+    }
+    righe.sort(function(a,b){ return a.r.top - b.r.top; });
+    for (var j = 1; j < righe.length; j++) {
+      var prec = righe[j-1].r, cur = righe[j].r;
+      if (Math.abs(prec.left - cur.left) > 40) continue;      // colonne diverse: non si toccano
+      var d = Math.round(cur.top - prec.bottom);
+      /* Solo fra elementi dello STESSO gruppo: la distanza fra un gruppo e il successivo è
+         maggiore APPOSTA (c'è la riga di separazione in mezzo), e pretenderla uguale a
+         quella interna vorrebbe dire cancellare la separazione fra argomenti. */
+      if (righe[j-1].p === righe[j].p) tutti.push(d);
+      if (d < minimo) { minimo = d; chi = righe[j-1].t + '/' + righe[j].t; }
+    }
+    if (minimo === 9999) return;
+    A(dove + ': i pulsanti non sono appiccicati', minimo >= 8, minimo + 'px (' + chi + ')');
+    /* E TUTTI GLI SPAZI DEVONO ESSERE UGUALI. Misurare solo il minimo lasciava passare una
+       colonna con distanze 16, 20, 26, 32: nessuna "appiccicata", ma la colonna sembrava
+       sbilenca. I figli si portavano dietro margini propri che si sommavano al gap. */
+    if (tutti.length > 1) {
+      var gMin = Math.min.apply(null, tutti), gMax = Math.max.apply(null, tutti);
+      A(dove + ': lo spazio fra le voci è sempre lo stesso', gMax - gMin <= 1, tutti.join('/'));
+    }
+  }
+
+  function checkSettings(next){
+    var g = window.__digsy;
+    if (!g || !g.splashView) { A('impostazioni raggiungibili', false, 'sonda assente'); return next(); }
+    g.splashView('settings');
+    setTimeout(function(){
+      var cfg = document.getElementById('sp-menu');
+      var box = cfg ? cfg.querySelector('.sp-cfg') : null;
+      A('impostazioni: la schermata si apre', !!box);
+      if (!box) return next();
+      var attesi = ['sp-marker','sp-tips','sp-mus','sp-vol','sp-sfx','sp-sfxvol','sp-refresh'];
+      var mancanti = [], fuori = [];
+      var br = box.getBoundingClientRect();
+      for (var i=0;i<attesi.length;i++){
+        var el = document.getElementById(attesi[i]);
+        if (!el) { mancanti.push(attesi[i]); continue; }
+        var r = el.getBoundingClientRect();
+        /* dentro il contenitore (che scorre) o comunque dentro lo schermo */
+        var dentro = r.width>0 && r.height>0 && r.left>=-1 && r.right<=W+1;
+        var raggiungibile = dentro && (r.top >= br.top-1 && r.top <= br.bottom+box.scrollHeight);
+        if (!raggiungibile) fuori.push(attesi[i]);
+      }
+      A('impostazioni: ci sono tutti i comandi', mancanti.length===0, mancanti.join(','));
+      A('impostazioni: nessun comando fuori portata', fuori.length===0, fuori.join(','));
+      /* LE SCHEDE SONO TUTTE LARGHE UGUALI E INCOLONNATE. La griglia a due colonne le
+         lasciava di larghezze diverse a seconda di quanto stava dentro ognuna: cinque
+         riquadri sfalsati invece di una colonna, e fuori posto rispetto a tutto il resto
+         del gioco, che è verticale. Qui si misurano davvero. */
+      var cards = box.querySelectorAll('.sp-grp');
+      A('impostazioni: ci sono i gruppi', cards.length >= 4, cards.length + ' gruppi');
+      /* niente riquadri: nel resto del gioco non ce ne sono, e cinque scatole incolonnate
+         pesavano più di quello che contenevano — restano un titoletto e una riga sottile */
+      var conBordo = 0, sep = box.querySelectorAll('.sp-sep').length;
+      for (var b2 = 0; b2 < cards.length; b2++) {
+        var st2 = getComputedStyle(cards[b2]);
+        if (parseFloat(st2.borderTopWidth) > 0 || st2.backgroundColor !== 'rgba(0, 0, 0, 0)') conBordo++;
+      }
+      A('impostazioni: i gruppi non sono riquadri', conBordo === 0, conBordo + ' con bordo/sfondo');
+      A('impostazioni: i gruppi sono divisi da una riga', sep === cards.length - 1, sep + ' righe');
+      var larghezze = [], sinistre = [];
+      for (var c = 0; c < cards.length; c++) {
+        var rc = cards[c].getBoundingClientRect();
+        larghezze.push(Math.round(rc.width)); sinistre.push(Math.round(rc.left));
+      }
+      var wMin = Math.min.apply(null, larghezze), wMax = Math.max.apply(null, larghezze);
+      A('impostazioni: i gruppi sono tutti della stessa larghezza', wMax - wMin <= 1,
+        larghezze.join('/'));
+      var xMin = Math.min.apply(null, sinistre), xMax = Math.max.apply(null, sinistre);
+      A("impostazioni: i gruppi sono incolonnati, uno sotto l'altro", xMax - xMin <= 1,
+        sinistre.join('/'));
+      /* la lingua è una fila di pulsanti, non una sottopagina */
+      A('impostazioni: la lingua si cambia da qui', !!box.querySelector('[data-lang]'));
+      /* niente sbordo orizzontale: è il difetto che si vede subito sul telefono */
+      checkGaps('impostazioni', '#sp-menu .sp-btn');
+      /* GLI INTERRUTTORI SONO LARGHI UGUALI. "ON" è più corto di "OFF": lasciandoli liberi
+         di stringersi sul testo, due righe incolonnate finivano coi bordi sfalsati e la
+         colonna sembrava storta. Si misura la larghezza VERA e il bordo destro. */
+      var sws = box.querySelectorAll('.sp-sw');
+      if (sws.length > 1) {
+        var lw = [], rr = [];
+        for (var k = 0; k < sws.length; k++) {
+          var rs = sws[k].getBoundingClientRect();
+          lw.push(Math.round(rs.width)); rr.push(Math.round(rs.right));
+        }
+        A('impostazioni: gli interruttori sono larghi uguali',
+          Math.max.apply(null, lw) - Math.min.apply(null, lw) <= 1, lw.join('/'));
+        /* si confrontano solo quelli in FONDO alla loro riga: gli interruttori dell'audio
+           hanno il cursore del volume dopo, quindi il loro bordo destro è diverso a ragione */
+        var ultimi = [];
+        for (var u = 0; u < sws.length; u++) {
+          if (sws[u].parentNode && sws[u].parentNode.lastElementChild === sws[u]) {
+            ultimi.push(Math.round(sws[u].getBoundingClientRect().right));
+          }
+        }
+        if (ultimi.length > 1) {
+          A('impostazioni: gli interruttori in fondo alla riga sono allineati',
+            Math.max.apply(null, ultimi) - Math.min.apply(null, ultimi) <= 1, ultimi.join('/'));
+        }
+      }
+      /* IL RIQUADRO DEVE STARE DENTRO LO SCHERMO. Misurare solo lo scorrimento INTERNO
+         lasciava passare un pannello largo più del suo contenitore: su 390px sbordava a
+         destra e si portava via gli interruttori, con il test verde. */
+      var rb = box.getBoundingClientRect();
+      A('impostazioni: il pannello sta dentro lo schermo', rb.left >= -1 && rb.right <= W+1,
+        Math.round(rb.left) + '..' + Math.round(rb.right) + ' su ' + W);
+      A('impostazioni: niente sbordo orizzontale', box.scrollWidth <= box.clientWidth+1,
+        box.scrollWidth+'>'+box.clientWidth);
+      /* e il contenitore deve poter scorrere se il contenuto è più alto */
+      var scrollabile = getComputedStyle(box).overflowY;
+      A('impostazioni: il contenuto scorre se non ci sta',
+        scrollabile==='auto'||scrollabile==='scroll', scrollabile);
+      next();
+    }, 200);
+  }
+
   function finish(){ if(done) return; done=true;
     var M='__E2'+'E__', N='__EN'+'D__';
     var el=document.getElementById('R2');
@@ -555,7 +763,11 @@ function run() {
   const page = join(DIST, '__e2e.html');
   writeFileSync(page, buildPage());
 
-  const VIEWPORTS = [['telefono', '390,844'], ['telefono orizzontale', '844,390']];
+  /* Il computer mancava del tutto: si provava solo il telefono, e una schermata può stare
+     benissimo su 390px e sprecare due terzi di larghezza su 1440. */
+  /* le larghezze sono quelle che Chrome REGGE davvero: sotto ~500px la finestra non scende e
+     si finirebbe per provare un telefono immaginario credendo di provarne uno stretto */
+  const VIEWPORTS = [['telefono', '500,900'], ['telefono orizzontale', '844,390'], ['computer', '1440,900']];
   let fails = 0, total = 0;
   for (const [label, size] of VIEWPORTS) {
     let dom = '';
@@ -568,7 +780,14 @@ function run() {
     } catch (e) { console.error('e2e: Chrome ha fallito su ' + label); return 1; }
     const m = dom.match(/data-res="__E2E__([\s\S]*?)__END__"/) || dom.match(/__E2E__([\s\S]*?)__END__/);
     console.log('\n— ' + label + ' (' + size.replace(',', '×') + ')');
-    if (!m) { console.error('  nessun risultato: la pagina non ha eseguito la sonda'); fails++; continue; }
+    if (!m) {
+      /* l'errore della sonda veniva REGISTRATO nella pagina ma mai stampato: un problema di
+         sintassi si presentava come "non ha eseguito la sonda" e si cercava al buio */
+      const err = /data-err="([^"]*)"/.exec(dom);
+      console.error('  nessun risultato: la pagina non ha eseguito la sonda'
+        + (err ? '\n  errore: ' + err[1].replace(/&quot;/g, '"').replace(/&#39;/g, "'") : ''));
+      fails++; continue;
+    }
     for (const l of m[1].split(/ ;; |\n/).filter(Boolean)) { total++; console.log('  ' + l.replace(/&#39;|&amp;#39;/g, "'").replace(/&amp;/g, '&')); if (l.startsWith('FAIL')) fails++; }
   }
   console.log(`\ne2e: ${total - fails} ok, ${fails} fail`);

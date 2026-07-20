@@ -10,6 +10,9 @@ import { fbm, vhash } from './noise.js';
 import { isDebug } from './debug.js';
 import { zoneAt } from './regions.js';
 import { addXp, XP_BY_RAR, digDurationMul } from './progress.js';
+/* anello con gameplay.js (che importa questo file per digCave): va bene perché la chiamata
+   avviene a runtime dentro digCave, mai al caricamento del modulo */
+import { bagFull } from './gameplay.js';
 import { playSfx, setBiomeMood } from './audio.js';
 import { toast, updateHUD } from './ui.js';
 import { tr } from './i18n.js';
@@ -107,6 +110,11 @@ export function digCave() {
   if (!n) return false;
   if (!S.tools.pick && !isDebug()) return 'nopick'; // i cristalli si staccano SOLO col piccone
   if (S.energy <= 0 && !isDebug()) return 'noenergy';
+  /* Quaggiù non c'è terra dove posare quello che non entra: se lo zaino è pieno il cristallo
+     si LASCIA AL SUO POSTO, così si torna a prenderlo. Prima `stepCave` faceva `S.raw.push`
+     diretto — l'unica fonte di reperti che scavalcava del tutto la capienza dello zaino,
+     cioè proprio la cosa per cui si pagano gli ingrandimenti. */
+  if (bagFull()) return 'bagfull';
   CAVE.digging = { t: 0, dur: 0.5 * digDurationMul(), cx: n[0], cy: n[1] }; // il livello vale anche qui
   return true;
 }

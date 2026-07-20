@@ -17,9 +17,20 @@ require_once __DIR__ . '/../lib/saves.php';
 
 migrate();
 $user = requireUser();
-$slot = max(0, min(9, (int)($_GET['slot'] ?? 0)));
+/* Il gioco usa lo slot 0 (partita in corso) e 1..3 (salvataggi manuali): accettarne dieci
+   voleva dire dieci volte lo spazio per account, per slot che nessuno può nemmeno vedere. */
+$slot = max(0, min(3, (int)($_GET['slot'] ?? 0)));
 
 if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'GET') {
+    /* `?slot=all` restituisce partita corrente E slot manuali in un colpo solo. All'accesso
+       servono tutti e quattro: chiederli uno per uno sono quattro viaggi di rete su una
+       connessione che magari è quella del telefono in giro. */
+    if (($_GET['slot'] ?? '') === 'all') {
+        /* (object): senza, un elenco VUOTO diventa `[]` invece di `{}` in JSON, perché PHP
+           non distingue array e dizionario. Il client sopravvive lo stesso, ma un campo che
+           cambia forma quando è vuoto è una trappola per il prossimo che lo legge. */
+        jsonOut(['ok' => true, 'saves' => (object)savesAll((int)$user['id'])]);
+    }
     jsonOut(['ok' => true, 'save' => saveLoad((int)$user['id'], $slot)]);
 }
 
