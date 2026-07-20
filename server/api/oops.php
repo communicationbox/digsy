@@ -34,6 +34,9 @@ $riga = [
   'dove' => mb_substr((string)($body['dove'] ?? ''), 0, 200),
   'ver'  => mb_substr((string)($body['ver'] ?? ''), 0, 20),
   'ua'   => mb_substr((string)($_SERVER['HTTP_USER_AGENT'] ?? ''), 0, 160),
+  /* dove si trovava il giocatore: lo stesso errore in grotta o nel Libro sono due bug
+     diversi, e senza questo si cerca alla cieca */
+  'scena' => mb_substr((string)($body['scena'] ?? ''), 0, 20),
 ];
 
 $c = config();

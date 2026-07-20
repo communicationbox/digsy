@@ -125,7 +125,7 @@ function main() {
 
     console.log('· metto da parte la versione online');
     ssh(`cd ${REMOTO} && rm -rf .prev && mkdir .prev && ` +
-        `tar cf - --exclude=.prev --exclude=server . | (cd .prev && tar xf -)`);
+        `tar cf - --exclude=.prev --exclude=server . | (cd .prev && tar xf -) && chmod -R a+rX .prev`);
 
     console.log('· pubblico ' + v);
     /* `--exclude`: la dist contiene anche gli strumenti (Vite copia tutta public/), ma in
@@ -151,7 +151,12 @@ function main() {
 
   console.log('\n' + rotti.length + ' controlli falliti → TORNO INDIETRO');
   try {
-    ssh(`cd ${REMOTO}/.prev && tar cf - . | (cd ${REMOTO} && tar xf -)`);
+    /* `chmod` DOPO il ripristino: `tar` conserva i permessi del backup, che nasce da una
+       copia fatta con l'umask del momento. È successo davvero — il ripristino ha rimesso i
+       file giusti con permessi 640, Apache non poteva leggerli e il sito è rimasto giù con
+       403 su tutto. Un ritorno indietro che lascia il sito rotto è peggio di nessun ritorno
+       indietro, perché fa credere di essere al sicuro. */
+    ssh(`cd ${REMOTO}/.prev && tar cf - . | (cd ${REMOTO} && tar xf -) && cd ${REMOTO} && chmod -R a+rX .`);
     const dopo = verifica(versioneOnline() || '?').filter(e => !e.ok && e.nome !== 'online c\'è la versione appena pubblicata');
     console.log(dopo.length ? '  ATTENZIONE: il ripristino non ha sistemato tutto' : '  versione precedente rimessa, il sito è di nuovo in piedi');
   } catch (e) {

@@ -1,2 +1,2 @@
 /* Versione del gioco. DA AGGIORNARE A OGNI MODIFICA (mostrata in fondo alla splash). */
-export const VERSION = 'v0.80.3';
+export const VERSION = 'v0.81.0';

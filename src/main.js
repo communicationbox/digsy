@@ -43,11 +43,24 @@ if (typeof window !== 'undefined') {
   let raccontato = false;
   const racconta = (msg, dove) => {
     if (raccontato || !msg) return;
+    /* "Script error." NUDO non serve a niente: è quello che il browser dice quando l'errore
+       viene da un altro dominio (per noi: lo script di Google per l'accesso). Nasconde
+       messaggio, file e riga per sicurezza. Segnalarlo vuol dire riempire l'elenco di righe
+       che non si possono nemmeno cercare — e coprire quelle vere. */
+    if (/^Script error\.?$/i.test(String(msg).trim()) && !dove) return;
     raccontato = true;
     try {
       fetch('./server/api/oops.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg: String(msg).slice(0, 300), dove: String(dove || '').slice(0, 200), ver: VERSION }),
+        /* il CONTESTO vale quanto il messaggio: lo stesso errore in grotta o nel Libro sono
+           due bug diversi, e senza sapere dove si cerca alla cieca */
+        body: JSON.stringify({
+          msg: String(msg).slice(0, 300),
+          dove: String(dove || '').slice(0, 200),
+          ver: VERSION,
+          scena: (CAVE && CAVE.active) ? 'grotta' : (INT && INT.active) ? 'interno'
+            : splashActive() ? 'menu' : 'mondo',
+        }),
         keepalive: true,
       }).catch(() => {});
     } catch (e) { /* mai far pesare al giocatore un problema di segnalazione */ }
