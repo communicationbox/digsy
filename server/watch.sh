@@ -29,11 +29,26 @@ LOG="$BASE/.watch-log"
 HOOK=$(cat "$BASE/.webhook" 2>/dev/null)
 
 # $1 testo · $2 colore · $3 titolo
+#
+# IL TESTO VA RIPULITO. La descrizione di un guasto contiene la risposta del server, che
+# quando qualcosa si rompe è una pagina d'errore HTML — piena di VIRGOLETTE. Finivano dentro
+# il JSON e lo spezzavano: Discord rispondeva "invalid JSON" e l'allarme non partiva. In
+# silenzio, e proprio nel momento in cui serviva. Il messaggio di ritorno, che è testo
+# scritto da noi, arrivava sempre: il guardiano sembrava funzionare.
 avvisa() {
   [ -z "$HOOK" ] && return
-  curl -s -m 15 -H 'Content-Type: application/json' \
-    -d "$(printf '{"username":"Guardiano Digsy","embeds":[{"title":"%s","description":"%s","color":%s}]}' "$3" "$1" "$2")" \
-    "$HOOK" >/dev/null 2>&1
+  local testo titolo risposta
+  # via virgolette, barre rovesce e a capo: sono i tre caratteri che rompono il JSON
+  testo=$(printf '%s' "$1" | tr -d '\r' | sed 's/\\/\\\\/g; s/"/'"'"'/g' | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
+  titolo=$(printf '%s' "$3" | tr -d '"\\')
+  risposta=$(curl -s -m 15 -H 'Content-Type: application/json' \
+    -d "$(printf '{"username":"Guardiano Digsy","embeds":[{"title":"%s","description":"%s","color":%s}]}' "$titolo" "$testo" "$2")" \
+    "$HOOK" 2>&1)
+  # se Discord si lamenta lo si SCRIVE nel registro: un avviso che non parte in silenzio è
+  # peggio di nessun avviso, perché ci si fida
+  case "$risposta" in
+    *'"code"'*|*error*) echo "$(date '+%F %T') AVVISO NON PARTITO: $(echo "$risposta" | cut -c1-120)" >> "$LOG" ;;
+  esac
 }
 
 # --- il controllo: tre tentativi, poi si decide -------------------------------
