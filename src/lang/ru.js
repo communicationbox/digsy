@@ -1223,4 +1223,12 @@ export const RU = {
   'The boxes explaining a mechanic the first time. They stay in the Guide (bag → ❔).': 'Подсказки при первой встрече с механикой. Остаются в Справке (рюкзак → ❔).',
   'Right': 'Правая',
   'Left': 'Левая',
+  /* ---- installazione come app ---- */
+  'Install Digsy': 'Установить Digsy',
+  'Install now': 'Установить сейчас',
+  'With the icon on your home screen the game opens full-screen and works <b>even offline</b>: the world and your save live on your device.': 'С иконкой на экране игра открывается на весь экран и работает <b>даже без сети</b>: мир и сохранение живут на твоём устройстве.',
+  'tap <b>Share</b> at the bottom': 'нажми <b>Поделиться</b> внизу',
+  'scroll and tap <b>Add to Home Screen</b>': 'прокрути и нажми <b>На экран «Домой»</b>',
+  'confirm with <b>Add</b>': 'подтверди кнопкой <b>Добавить</b>',
+  'On iPhone this only works in <b>Safari</b>: Chrome does not offer it.': 'На iPhone это работает только в <b>Safari</b>: в Chrome такого пункта нет.',
 };

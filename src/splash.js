@@ -28,6 +28,38 @@ export function cloudEnabled() {
 /* `known`: il server ha già risposto a "chi sono?". Finché è false non si sa se si è
    collegati, e il pulsante non deve affermare né una cosa né l'altra. */
 export const acc = { user: null, known: false, conflict: null, localSum: '', remoteSum: '', msg: '', mod: null };
+
+/* SI PUÒ INSTALLARE — ma nessuno lo sa se non glielo si dice.
+ *
+ * Una PWA è invisibile: chi apre il gioco vede una scheda del browser come tutte le altre, e
+ * l'invito di sistema ("Installa app") è nascosto in un menu che nessuno apre. Chi si mette
+ * l'icona sulla schermata torna a giocare il giorno dopo; chi deve ricordarsi un indirizzo,
+ * no — e per una prova coi beta tester questa è la differenza fra sapere se il gioco piace e
+ * non saperlo.
+ *
+ * Il browser avvisa quando l'installazione è possibile (`beforeinstallprompt`): si mette da
+ * parte quell'avviso e lo si usa quando il giocatore tocca il nostro pulsante.
+ * iPhone non ha quell'evento: là si può solo SPIEGARE come si fa (Condividi → Aggiungi a
+ * Home), e solo da Safari. */
+export const pwa = { invito: null, installata: false, ios: false };
+
+if (typeof window !== 'undefined') {
+  /* già in esecuzione come app? allora non si propone niente */
+  pwa.installata = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || window.navigator.standalone === true;
+  pwa.ios = /iPad|iPhone|iPod/.test(navigator.userAgent || '')
+    && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent || '');   // solo Safari sa installare, su iOS
+  addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();                 // niente banner automatico: lo si offre quando SERVE
+    pwa.invito = e;
+    if (on) buildMenu(inGameMode);      // il menu è a schermo: ora può mostrare il pulsante
+  });
+  addEventListener('appinstalled', () => { pwa.installata = true; pwa.invito = null; });
+}
+/* c'è qualcosa da proporre? */
+export function pwaProponibile() {
+  return !pwa.installata && (!!pwa.invito || pwa.ios);
+}
 let gsiLoading = null;
 
 /* Chiede al server chi siamo e ridisegna il menu. Si fa all'AVVIO, non quando si apre il
@@ -272,6 +304,21 @@ function buildMenu(inGame) {
     if (S && S.started) h += `<button class="sp-btn" id="sp-stats-btn">📊 ${tr('Statistiche', 'Stats')}</button>`;
     if (hasSave) h += `<button class="sp-btn danger" id="sp-new">🌱 ${tr('Nuova partita', 'New game')}</button>`;
     h += backBar();
+  } else if (view === 'install') {
+    h += closeX();
+    h += `<div class="sp-title2">🏠 ${tr('Installa Digsy', 'Install Digsy')}</div>`;
+    h += `<div class="sp-cfg"><div class="sp-grp">`;
+    h += `<div class="sp-hint2">${tr('Con l\'icona sulla schermata il gioco si apre a tutto schermo e funziona <b>anche senza rete</b>: il mondo e il salvataggio stanno nel tuo dispositivo.', 'With the icon on your home screen the game opens full-screen and works <b>even offline</b>: the world and your save live on your device.')}</div>`;
+    if (pwa.ios) {
+      /* iOS non ha l'invito automatico: si può solo spiegare, e solo da Safari */
+      h += `<div class="sp-hint2">1. ${tr('tocca <b>Condividi</b> in basso', 'tap <b>Share</b> at the bottom')}<br>`
+        + `2. ${tr('scorri e tocca <b>Aggiungi a Home</b>', 'scroll and tap <b>Add to Home Screen</b>')}<br>`
+        + `3. ${tr('conferma con <b>Aggiungi</b>', 'confirm with <b>Add</b>')}</div>`;
+      h += `<div class="sp-hint2">${tr('Su iPhone funziona solo da <b>Safari</b>: da Chrome la voce non c\'è.', 'On iPhone this only works in <b>Safari</b>: Chrome does not offer it.')}</div>`;
+    } else {
+      h += `<button class="sp-btn primary" id="sp-install-go">🏠 ${tr('Installa adesso', 'Install now')}</button>`;
+    }
+    h += `</div></div>` + backBar();
   } else if (view === 'stats') {
     h += closeX();
     h += `<div class="sp-title2">📊 ${tr('La tua partita', 'Your game')}</div>`;
@@ -475,6 +522,11 @@ function buildMenu(inGame) {
           : tr('La tua partita', 'Your game');
       h += `<button class="sp-btn" id="sp-account">☁️ ${et}</button>`;
     }
+    /* L'INVITO A INSTALLARE sta qui, sotto Gioca: si vede, e sparisce da solo una volta
+       installato. Non è un banner che compare da sé — quelli si chiudono per riflesso. */
+    if (pwaProponibile()) {
+      h += `<button class="sp-btn" id="sp-install">🏠 ${tr('Installa Digsy', 'Install Digsy')}</button>`;
+    }
     h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Salvataggi', 'Saves')}</button>`;
     h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
     /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */
@@ -505,6 +557,15 @@ function buildMenu(inGame) {
   const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
   const bCm = document.getElementById('sp-cmds'); if (bCm) bCm.onclick = () => go('commands');
   const bCr = document.getElementById('sp-credits'); if (bCr) bCr.onclick = () => go('credits');
+  const bIn = document.getElementById('sp-install'); if (bIn) bIn.onclick = () => go('install');
+  const bIg = document.getElementById('sp-install-go');
+  if (bIg) bIg.onclick = async () => {
+    if (!pwa.invito) return;
+    pwa.invito.prompt();                       // l'invito del browser: si può usare UNA volta
+    try { await pwa.invito.userChoice; } catch (e) { /* ha chiuso: pazienza */ }
+    pwa.invito = null;
+    buildMenu(inGameMode);
+  };
   const bSt = document.getElementById('sp-stats-btn'); if (bSt) bSt.onclick = () => go('stats');
   const bSet = document.getElementById('sp-settings'); if (bSet) bSet.onclick = () => go('settings');
   const bAcc = document.getElementById('sp-account'); if (bAcc) bAcc.onclick = () => { go('account'); openAccount(); };

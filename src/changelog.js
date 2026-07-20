@@ -1,6 +1,17 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.80', it: [
+      'DIGSY SI INSTALLA: icona sulla schermata, a tutto schermo, e funziona ANCHE SENZA RETE',
+      'Il pulsante "Installa Digsy" nel menu (su iPhone spiega i passi, che lì nessuno indovina)',
+      'Il salvataggio è protetto dalle pulizie automatiche del telefono',
+    ], en: [
+      'DIGSY INSTALLS: icon on your home screen, full-screen, and it works EVEN OFFLINE',
+      'An "Install Digsy" button in the menu (on iPhone it explains the steps, which nobody guesses)',
+      'Your save is protected from the phone\'s automatic clean-ups',
+    ],
+  },
+  {
     v: 'v0.75', it: [
       'Il motto è ESPLORA · SCAVA · SCOPRI, che è anche l\'ordine in cui si gioca',
       'Un verbo solo per la stessa cosa: si RISVEGLIA (non si rianima) sia una specie sia una chimera',

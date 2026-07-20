@@ -514,6 +514,58 @@ sprites.applyLook();
   check('le ore di gioco si contano anche in grotta e negli interni', iPlay > 0 && iPlay < iCave2);
 }
 
+/* ---------- si installa come app, e lo si dice ---------- */
+{
+  /* Una PWA è INVISIBILE: chi apre il gioco vede una scheda come tutte le altre, e l'invito
+     del browser è in un menu che nessuno apre. Chi si mette l'icona sulla schermata torna a
+     giocare il giorno dopo; chi deve ricordarsi un indirizzo no. Per una prova coi beta
+     tester è la differenza fra sapere se il gioco piace e non saperlo. */
+  const sp3 = await import('../src/splash.js');
+  const { readFileSync: rf3 } = await import('node:fs');
+
+  /* già installata: non si propone niente (sarebbe un invito a fare ciò che è già fatto) */
+  sp3.pwa.installata = true; sp3.pwa.invito = null; sp3.pwa.ios = false;
+  check('installata: non si propone di installare', sp3.pwaProponibile() === false);
+
+  /* il browser dice che si può: si propone */
+  sp3.pwa.installata = false; sp3.pwa.invito = { prompt() {}, userChoice: Promise.resolve() };
+  check('quando il browser lo permette, si propone', sp3.pwaProponibile() === true);
+
+  /* iPhone non ha l'invito automatico: si può solo spiegare come si fa */
+  sp3.pwa.invito = null; sp3.pwa.ios = true;
+  check('su iPhone si propone lo stesso (con le istruzioni)', sp3.pwaProponibile() === true);
+
+  /* e su un browser che non sa installare non si promette nulla */
+  sp3.pwa.ios = false;
+  check('dove non si può, non si propone', sp3.pwaProponibile() === false);
+
+  /* il pulsante compare DAVVERO nel menu quando serve */
+  sp3.pwa.invito = { prompt() {}, userChoice: Promise.resolve() };
+  sp3.showSplash();
+  const menu3 = document.getElementById('sp-menu');
+  check('il pulsante per installare compare nel menu', menu3.innerHTML.includes('sp-install'));
+  sp3.setView('install');
+  check('la schermata spiega cosa si guadagna', /senza rete|offline/i.test(menu3.innerHTML));
+  sp3.pwa.ios = true; sp3.setView('install');
+  check('su iPhone spiega i passi, che lì nessuno indovina',
+    /Condividi|Share/.test(menu3.innerHTML) && /Safari/.test(menu3.innerHTML));
+  sp3.pwa.ios = false; sp3.pwa.invito = null; sp3.resumeSplash();
+
+  /* i tre pezzi che rendono un sito installabile: se ne manca uno, "Installa" non compare
+     e il browser non dice quale */
+  const man = JSON.parse(rf3(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8'));
+  check('il manifest ha nome, icone e schermo intero',
+    !!man.name && (man.icons || []).length >= 2 && /standalone|fullscreen/.test(man.display));
+  const sw = rf3(new URL('../public/sw.js', import.meta.url), 'utf8');
+  check('il service worker esiste ed è registrato dal gioco',
+    sw.includes('addEventListener') && rf3(new URL('../src/main.js', import.meta.url), 'utf8').includes("register('./sw.js'"));
+  /* LA REGOLA CHE CONTA: l'HTML non deve MAI arrivare dalla copia per prima, o i giocatori
+     restano su una versione vecchia e nemmeno ricaricare li salva */
+  check('il service worker chiede l\'HTML alla rete, non alla copia',
+    /await fetch\(req\)[\s\S]{0,400}catch/.test(sw));
+  check('il service worker non tocca mai l\'API', sw.includes("'/server/'"));
+}
+
 /* ---------- le zone: nessun buco nelle tabelle ---------- */
 {
   /* Le informazioni su una zona vivono in tabelle diverse, in tre file, metà indicizzate per
