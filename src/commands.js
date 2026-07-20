@@ -38,7 +38,7 @@ function exitCheat() {
     if (cheatBackup) { restoreState(cheatBackup); P.x = S.px; P.y = S.py; } // ripristina anche la posizione
     cheatBackup = null; setCheatLock(false);
   }
-  setDebug(false); P.speedMul = 1;
+  setDebug(false); P.speedMul = 1; P.fly = false; // via anche il volo di godmode
 }
 import { updateHUD, toast } from './ui.js';
 import { tr, seasonName, partName, rarLabel } from './i18n.js';
@@ -204,8 +204,8 @@ export const COMMANDS = {
     } },
   speed: { type: 'num', cheat: true, help: 'speed=5 — velocità di movimento (1–20)',
     run: v => { setSpeed(v); return '🏃 ' + tr('Velocità ×', 'Speed ×') + P.speedMul; } },
-  godmode: { aliases: ['god'], type: 'action', cheat: true, help: 'godmode — sblocca e completa tutto, infinito, ×5',
-    run: () => { setDebug(true); setSpeed(5); giveAllItems(); giveAllDna(); unlockAllCosmetics(); completeMuseumAndBook(); return '🐞 ' + tr('GODMODE: tutto sbloccato, infinito, ×5', 'GODMODE: all unlocked, infinite, ×5'); } },
+  godmode: { aliases: ['god'], type: 'action', cheat: true, help: 'godmode — sblocca e completa tutto (goditem+goddna), infinito, ×5, volo',
+    run: () => { setDebug(true); setSpeed(5); giveAllItems(); giveAllDna(); unlockAllCosmetics(); completeMuseumAndBook(); P.fly = true; return '🐞 ' + tr('GODMODE: tutto sbloccato, infinito, ×5, volo', 'GODMODE: all unlocked, infinite, ×5, fly'); } },
   godletters: { aliases: ['letters', 'lettere'], type: 'action', cheat: true,
     help: 'godletters — sblocca tutte le lettere del nonno (finale compreso)',
     run: () => {

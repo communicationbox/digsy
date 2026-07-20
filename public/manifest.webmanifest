@@ -2,7 +2,7 @@
   "name": "Digsy World",
   "short_name": "Digsy",
   "description": "Un piccolo archeologo, un mondo infinito, creature estinte da riportare alla luce.",
-  "start_url": "/play/",
+  "start_url": "/",
   "display": "fullscreen",
   "orientation": "any",
   "background_color": "#241a10",
@@ -25,6 +25,6 @@
       "purpose": "any maskable"
     }
   ],
-  "scope": "/play/",
-  "id": "/play/"
+  "scope": "/",
+  "id": "/"
 }

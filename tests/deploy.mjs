@@ -23,7 +23,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HOST = 'digsy';
 const REMOTO = '/var/www/digsy.dev-box.it/httpdocs';
-const GIOCO = REMOTO + '/play';        // il gioco vive qui; alla radice c'è la vetrina
+const GIOCO = REMOTO;                   // il gioco vive alla RADICE (la vetrina è stata tolta)
 const SITO = 'https://digsy.dev-box.it';
 const MUX = `/tmp/dbssh-mux-${process.getuid()}-%C`;
 
@@ -47,14 +47,10 @@ function versioneLocale() {
   return m ? m[1] : '?';
 }
 function versioneOnline() {
-  const html = corpo(SITO + '/play/');
-  /* il bundle si chiama main-*.js da quando la build ha due pagine (gioco e vetrina):
-     cercare solo index-* voleva dire non trovare piu' nessuna versione */
+  const html = corpo(SITO + '/');
   const js = /assets\/(index|main)-[A-Za-z0-9_-]+\.js/.exec(html);
   if (!js) return null;
-  /* l'indirizzo va composto con /play/, non con la radice: dopo lo spostamento il controllo
-     cercava gli asset dove ora c'è la vetrina e non trovava nessuna versione */
-  const m = /v\d+\.\d+\.\d+/.exec(corpo(SITO + '/play/' + js[0]));
+  const m = /v\d+\.\d+\.\d+/.exec(corpo(SITO + '/' + js[0]));
   return m ? m[0] : null;
 }
 
@@ -66,11 +62,9 @@ function verifica(atteso) {
   const dai = (nome, ok, extra) => esiti.push({ nome, ok, extra: extra || '' });
 
   dai('la radice risponde', stato(SITO + '/') === '200');
-  /* alla radice non c'è più una vetrina (quella fatta era mediocre e l'abbiamo tolta):
-     resta un passaggio verso il gioco, che vive in /play/ e lì deve restare — chi ha
-     l'icona sulla schermata ha start_url /play/. */
-  dai('la radice porta al gioco', corpo(SITO + '/').includes('/play/'));
-  dai('il gioco risponde', stato(SITO + '/play/') === '200');
+  /* IL GIOCO STA ALLA RADICE (la vetrina è stata tolta). Non basta "200": una pagina
+     d'errore risponde uguale — si guarda che ci sia il canvas del gioco. */
+  dai('alla radice c\'è il gioco', corpo(SITO + '/').includes('id="cv"'));
   const v = versioneOnline();
   dai('online c\'è la versione appena pubblicata', v === atteso, (v || 'nessuna') + ' vs ' + atteso);
   dai('l\'API è viva', stato(SITO + '/server/api/auth.php?do=me') === '200');
@@ -80,14 +74,14 @@ function verifica(atteso) {
 
   /* SI INSTALLA COME APP? Servono tre cose e basta una fuori posto perché "Installa" non
      compaia — senza che nessuno dica perché. */
-  dai('il manifest c\'è', stato(SITO + '/play/manifest.webmanifest') === '200');
-  dai('il service worker c\'è', stato(SITO + '/play/sw.js') === '200');
+  dai('il manifest c\'è', stato(SITO + '/manifest.webmanifest') === '200');
+  dai('il service worker c\'è', stato(SITO + '/sw.js') === '200');
   /* IN PRODUZIONE CI STA SOLO IL GIOCO. Gli strumenti di lavoro (Sprite Studio, playground,
      le pagine __*.html dei test) importano i SORGENTI: tenerli online vuol dire pubblicare
      tutto il codice per far funzionare una cosa che serve a una persona sola, sul suo
      computer. Vivono in locale con `npm run dev`. */
-  for (const [nome, url] of [['i sorgenti', '/play/src/sprites.js'], ['lo Sprite Studio', '/play/sprites/'],
-    ['le pagine di prova', '/play/__e2e.html']]) {
+  for (const [nome, url] of [['i sorgenti', '/src/sprites.js'], ['lo Sprite Studio', '/sprites/'],
+    ['le pagine di prova', '/__e2e.html']]) {
     const st = stato(SITO + url);
     dai(nome + ' non è in produzione', st === '404' || st === '403', 'HTTP ' + st);
   }
@@ -103,7 +97,7 @@ function verifica(atteso) {
       return m ? m[1].trim() : '(nessuna)';
     } catch (e) { return '(errore)'; }
   };
-  for (const [nome, url] of [['l\'HTML del gioco', '/play/'], ['il service worker', '/play/sw.js']]) {
+  for (const [nome, url] of [['l\'HTML del gioco', '/'], ['il service worker', '/sw.js']]) {
     const c = cache(url);
     dai(nome + ' si ricontrolla sempre', /no-cache|no-store|max-age=0/.test(c), c);
   }
@@ -150,16 +144,6 @@ function main() {
       `"mkdir -p ${GIOCO} && cd ${GIOCO} && tar xzf - && rm -rf __*.html src sprites wonders playground editor bag-editor .DS_Store && ` +
       `find . -name '._*' -delete && chmod -R a+rX ."`,
       { stdio: 'pipe', shell: '/bin/bash' });
-
-    /* LA VETRINA, alla radice. È il posto dove arriva chi non conosce il gioco: deve
-       trovare di cosa si tratta, non ritrovarsi dentro una partita senza sapere cos'è. */
-    console.log('· vetrina');
-    execSync(`cd ${ROOT}/site && COPYFILE_DISABLE=1 tar czf - . | ` +
-      `ssh -o ControlMaster=no -o ControlPath=${MUX} ${HOST} ` +
-      `"cd ${REMOTO} && tar xzf - && find . -maxdepth 1 -name '._*' -delete && chmod -R a+rX index.html img"`,
-      { stdio: 'pipe', shell: '/bin/bash' });
-
-
   }
 
   console.log('· verifico');

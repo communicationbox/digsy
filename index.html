@@ -125,9 +125,8 @@
        ricompilazione, nessun aggiornamento da far scaricare a nessuno.
        ACCESO il 20 luglio 2026: database e API verificati su digsy.dev-box.it. */
     window.DIGSY_CLOUD = true;
-    /* Il gioco vive in /play/, l'API in /server/: senza questo il percorso relativo
-       cercherebbe /play/server/ e ogni chiamata tornerebbe 404 — con l'accesso che fallisce
-       dando la colpa a Google. */
+    /* Percorso ASSOLUTO dell'API (/server/), non relativo: così vale ovunque stia servita la
+       pagina e non dipende da dove vive il gioco. */
     window.DIGSY_API = '/server/api';
   </script>
   <script type="module" src="/src/main.js"></script>

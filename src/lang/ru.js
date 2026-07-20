@@ -79,7 +79,7 @@ export const RU = {
   'Day ': 'День ',
   'Seasons: spring, summer, autumn, winter (0-3)': 'Сезоны: весна, лето, осень, зима (0-3)',
   'Speed ×': 'Скорость ×',
-  'GODMODE: all unlocked, infinite, ×5': 'РЕЖИМ БОГА: всё открыто, бесконечно, ×5',
+  'GODMODE: all unlocked, infinite, ×5, fly': 'РЕЖИМ БОГА: всё открыто, бесконечно, ×5, полёт',
   'bag → Letters': 'рюкзак → Письма',
   'Infinite DNA for all species': 'Бесконечная ДНК для всех видов',
   'All fossils in your bag': 'Все ископаемые в рюкзаке',

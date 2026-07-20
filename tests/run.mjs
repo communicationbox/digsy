@@ -624,6 +624,13 @@ sprites.applyLook();
   const man = JSON.parse(rf3(new URL('../public/manifest.webmanifest', import.meta.url), 'utf8'));
   check('il manifest ha nome, icone e schermo intero',
     !!man.name && (man.icons || []).length >= 2 && /standalone|fullscreen/.test(man.display));
+  /* IL GIOCO STA ALLA RADICE: manifest e file di deploy non devono puntare al vecchio /play/
+     (residuo dell'esperimento vetrina). Se ricompare, l'app installata parte su una pagina che
+     non esiste e lo scope offline è rotto. */
+  check('manifest punta alla radice, non a /play/', man.start_url === '/' && man.scope === '/' && man.id === '/');
+  for (const f of ['index.html', 'public/sw.js', 'public/manifest.webmanifest', 'tests/deploy.mjs']) {
+    check(f + ' non nomina più /play/', !rf3(new URL('../' + f, import.meta.url), 'utf8').includes('/play/'));
+  }
   const sw = rf3(new URL('../public/sw.js', import.meta.url), 'utf8');
   check('il service worker esiste ed è registrato dal gioco',
     sw.includes('addEventListener') && rf3(new URL('../src/main.js', import.meta.url), 'utf8').includes("register('./sw.js'"));
@@ -1810,6 +1817,7 @@ sprites.applyLook();
     check('godmode scopre tutte le meraviglie', S.wonders.length === Object.keys(wond.WONDERS).length);
     check('godmode consegna tutte le lettere', S.letters.length === lt2.allLetters().length);
     check('il codice conta 66 specie complete', ASP2.length === 66 && ASP2.every(sp => S.codex.includes(sp.id)));
+    P.fly = false; // godmode ora attiva il volo: spegnilo o sballa i test di collisione più avanti
   }
   // libro completo senza toccare il save
   S.book = {}; S.codex = [];
@@ -2642,15 +2650,15 @@ sprites.applyLook();
   S.unlocked = { hats: [], hairs: [] }; S.museum = {}; S.awakened = [];
   cmds.runCommand('godmode');
   const { PREMIUM_HATS: PH } = await import('../src/data.js');
-  check('console: godmode sblocca+completa tutto', dbg2.isDebug() === true && S.unlocked.hats.length === THEMED_HAT.length + PH.length &&
-    S.unlocked.hairs.length === THEMED_HAIR.length && P.speedMul === 5 && SPECIES.every(sp => S.awakened.includes(sp.id)) && ZONESc.every(z => S.book[z.id]));
+  check('console: godmode sblocca+completa tutto (incl. volo)', dbg2.isDebug() === true && S.unlocked.hats.length === THEMED_HAT.length + PH.length &&
+    S.unlocked.hairs.length === THEMED_HAIR.length && P.speedMul === 5 && P.fly === true && S.items.length > 0 && S.tools.boat && SPECIES.every(sp => S.awakened.includes(sp.id)) && ZONESc.every(z => S.book[z.id]));
   check('console: suggest per goto', cmds.suggest('goto=pal').includes('goto=palude'));
   cmds.runCommand('goto=dune');
   check('console: goto=dune porta nelle Dune', regionsC.zoneAt(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS)).id === 'dune');
   // VANILLA: rimuove i cheat e ripristina lo stato pre-cheat (coins=50, day=3, energia base)
   cmds.runCommand('vanilla');
-  check('console: vanilla ripristina il salvataggio', state.isCheatLock() === false && dbg2.isDebug() === false &&
-    P.speedMul === 1 && S.coins === 50 && S.day === 3 && S.maxEnergy === 30 && S.awakened.length === 0);
+  check('console: vanilla ripristina il salvataggio (e spegne il volo)', state.isCheatLock() === false && dbg2.isDebug() === false &&
+    P.speedMul === 1 && P.fly === false && S.coins === 50 && S.day === 3 && S.maxEnergy === 30 && S.awakened.length === 0);
 }
 
 /* ---------- GROTTE: ingressi, area buia, scavo di fossili di grotta, uscita ---------- */

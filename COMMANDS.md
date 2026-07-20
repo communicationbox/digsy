@@ -18,7 +18,7 @@ suggerimenti mentre scrivi (es. `goto=pal` → `goto=palude`).
 | `day=10` | ✔ | Imposta il giorno di gioco |
 | `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
 | `heal` | ✔ | Energia al massimo |
-| `godmode` | ✔ | Sblocca e completa **tutto**, infinito, velocità ×5 (alias `god`). Comprende: tutti i fossili, DNA infinito, cosmetici sbloccati, museo completo, libro completo, specie risvegliate |
+| `godmode` | ✔ | Sblocca e completa **tutto**, infinito, velocità ×5, **volo** (alias `god`). Comprende `goditem` (fossili + attrezzi + barca + mezzi + mappe) e `goddna`, più: cosmetici sbloccati, museo completo, libro completo, specie risvegliate, e `fly` attivo |
 | `goddna` | ✔ | DNA infinito per tutte le specie |
 | `goditem` | ✔ | Ogni pezzo di ogni specie, già identificato, nello zaino |
 | `goto=palude` | ✖ | Teletrasporto al bioma indicato (`prati`, `dune`, `boschi`, `terre`, `palude`, `ghiacci`) |
