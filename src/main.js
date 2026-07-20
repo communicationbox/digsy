@@ -50,7 +50,7 @@ if (typeof window !== 'undefined') {
     if (/^Script error\.?$/i.test(String(msg).trim()) && !dove) return;
     raccontato = true;
     try {
-      fetch('./server/api/oops.php', {
+      fetch((window.DIGSY_API || './server/api') + '/oops.php', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         /* il CONTESTO vale quanto il messaggio: lo stesso errore in grotta o nel Libro sono
            due bug diversi, e senza sapere dove si cerca alla cieca */

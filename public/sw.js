@@ -26,6 +26,9 @@ const CACHE = VERSIONE;
 /* Il minimo per far partire il gioco senza rete. Gli asset veri (js/css con hash) si
    aggiungono da soli man mano che vengono chiesti: elencarli qui vorrebbe dire riscrivere
    questo file a ogni build. */
+/* percorsi RELATIVI: il gioco vive in /play/ e la vetrina alla radice. Con percorsi assoluti
+   il service worker si metterebbe in mezzo anche alle pagine della vetrina, che non gli
+   appartengono e che devono restare semplici pagine. */
 const ESSENZIALI = [
   './', './index.html', './manifest.webmanifest',
   './favicon.svg', './icon.svg', './icon-192.png', './icon-512.png',

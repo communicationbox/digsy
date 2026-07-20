@@ -23,6 +23,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const HOST = 'digsy';
 const REMOTO = '/var/www/digsy.dev-box.it/httpdocs';
+const GIOCO = REMOTO + '/play';        // il gioco vive qui; alla radice c'è la vetrina
 const SITO = 'https://digsy.dev-box.it';
 const MUX = `/tmp/dbssh-mux-${process.getuid()}-%C`;
 
@@ -46,7 +47,7 @@ function versioneLocale() {
   return m ? m[1] : '?';
 }
 function versioneOnline() {
-  const html = corpo(SITO + '/');
+  const html = corpo(SITO + '/play/');
   const js = /assets\/index-[A-Za-z0-9_-]+\.js/.exec(html);
   if (!js) return null;
   const m = /v\d+\.\d+\.\d+/.exec(corpo(SITO + '/' + js[0]));
@@ -60,7 +61,9 @@ function verifica(atteso) {
   const esiti = [];
   const dai = (nome, ok, extra) => esiti.push({ nome, ok, extra: extra || '' });
 
-  dai('la pagina risponde', stato(SITO + '/') === '200');
+  dai('la vetrina risponde', stato(SITO + '/') === '200');
+  dai('la vetrina porta al gioco', corpo(SITO + '/').includes('/play/'));
+  dai('il gioco risponde', stato(SITO + '/play/') === '200');
   const v = versioneOnline();
   dai('online c\'è la versione appena pubblicata', v === atteso, (v || 'nessuna') + ' vs ' + atteso);
   dai('l\'API è viva', stato(SITO + '/server/api/auth.php?do=me') === '200');
@@ -70,14 +73,14 @@ function verifica(atteso) {
 
   /* SI INSTALLA COME APP? Servono tre cose e basta una fuori posto perché "Installa" non
      compaia — senza che nessuno dica perché. */
-  dai('il manifest c\'è', stato(SITO + '/manifest.webmanifest') === '200');
-  dai('il service worker c\'è', stato(SITO + '/sw.js') === '200');
+  dai('il manifest c\'è', stato(SITO + '/play/manifest.webmanifest') === '200');
+  dai('il service worker c\'è', stato(SITO + '/play/sw.js') === '200');
   /* IN PRODUZIONE CI STA SOLO IL GIOCO. Gli strumenti di lavoro (Sprite Studio, playground,
      le pagine __*.html dei test) importano i SORGENTI: tenerli online vuol dire pubblicare
      tutto il codice per far funzionare una cosa che serve a una persona sola, sul suo
      computer. Vivono in locale con `npm run dev`. */
-  for (const [nome, url] of [['i sorgenti', '/src/sprites.js'], ['lo Sprite Studio', '/sprites/'],
-    ['le pagine di prova', '/__e2e.html']]) {
+  for (const [nome, url] of [['i sorgenti', '/play/src/sprites.js'], ['lo Sprite Studio', '/play/sprites/'],
+    ['le pagine di prova', '/play/__e2e.html']]) {
     const st = stato(SITO + url);
     dai(nome + ' non è in produzione', st === '404' || st === '403', 'HTTP ' + st);
   }
@@ -93,7 +96,7 @@ function verifica(atteso) {
       return m ? m[1].trim() : '(nessuna)';
     } catch (e) { return '(errore)'; }
   };
-  for (const [nome, url] of [['l\'HTML', '/'], ['il service worker', '/sw.js']]) {
+  for (const [nome, url] of [['l\'HTML del gioco', '/play/'], ['il service worker', '/play/sw.js']]) {
     const c = cache(url);
     dai(nome + ' si ricontrolla sempre', /no-cache|no-store|max-age=0/.test(c), c);
   }
@@ -137,8 +140,16 @@ function main() {
       /* gli strumenti si tolgono DOPO l'estrazione invece di escluderli dal tar: i pattern
          di `--exclude` si comportano diversamente fra il tar di macOS e quello di Linux, e
          un'esclusione che silenziosamente non funziona è peggio di nessuna esclusione. */
-      `"cd ${REMOTO} && tar xzf - && rm -rf __*.html src sprites wonders playground editor bag-editor .DS_Store && ` +
+      `"mkdir -p ${GIOCO} && cd ${GIOCO} && tar xzf - && rm -rf __*.html src sprites wonders playground editor bag-editor .DS_Store && ` +
       `find . -name '._*' -delete && chmod -R a+rX ."`,
+      { stdio: 'pipe', shell: '/bin/bash' });
+
+    /* LA VETRINA, alla radice. È il posto dove arriva chi non conosce il gioco: deve
+       trovare di cosa si tratta, non ritrovarsi dentro una partita senza sapere cos'è. */
+    console.log('· vetrina');
+    execSync(`cd ${ROOT}/site && COPYFILE_DISABLE=1 tar czf - . | ` +
+      `ssh -o ControlMaster=no -o ControlPath=${MUX} ${HOST} ` +
+      `"cd ${REMOTO} && tar xzf - && find . -maxdepth 1 -name '._*' -delete && chmod -R a+rX index.html img"`,
       { stdio: 'pipe', shell: '/bin/bash' });
 
 

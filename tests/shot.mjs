@@ -61,6 +61,9 @@ async function main() {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});
     }
+    /* il badge è uno strumento di lavoro: con `--pulito` non si mette, perché queste foto
+       finiscono anche nella vetrina e là un riquadro verde di debug stona parecchio */
+    if (${JSON.stringify(process.argv.includes('--pulito'))}) return;
     var b=document.createElement('div');
     b.textContent = innerWidth + '×' + innerHeight + (innerWidth != ${JSON.stringify(size.split(',')[0])} ? '  (CHIESTO ${size.split(',')[0]}: Chrome non scende sotto ~500)' : '');
     b.style.cssText='position:fixed;left:0;bottom:0;z-index:99999;background:#000;color:#0f0;'

@@ -71,7 +71,7 @@ async function manda() {
   /* una partita appena aperta e mai giocata non dice niente a nessuno */
   if (!d.min && (d.day || 1) <= 1) return false;
   try {
-    await fetch('./server/api/beat.php', {
+    await fetch((typeof window !== 'undefined' && window.DIGSY_API ? window.DIGSY_API : './server/api') + '/beat.php', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(d), keepalive: true,
     });
