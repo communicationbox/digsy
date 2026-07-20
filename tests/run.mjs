@@ -546,10 +546,20 @@ sprites.applyLook();
   check('il pulsante per installare compare nel menu', menu3.innerHTML.includes('sp-install'));
   sp3.setView('install');
   check('la schermata spiega cosa si guadagna', /senza rete|offline/i.test(menu3.innerHTML));
-  sp3.pwa.ios = true; sp3.setView('install');
+  /* iPhone con SAFARI: si spiegano i passi, che lì nessuno indovina da solo */
+  sp3.pwa.ios = true; sp3.pwa.iosAltroBrowser = false; sp3.setView('install');
   check('su iPhone spiega i passi, che lì nessuno indovina',
-    /Condividi|Share/.test(menu3.innerHTML) && /Safari/.test(menu3.innerHTML));
-  sp3.pwa.ios = false; sp3.pwa.invito = null; sp3.resumeSplash();
+    /Condividi|Share/.test(menu3.innerHTML) && /Aggiungi a Home|Add to Home/.test(menu3.innerHTML));
+
+  /* iPhone con CHROME: l'installazione non è possibile (è una regola di Apple), ma il
+     pulsante deve comparire LO STESSO e dire cosa fare. Nasconderlo voleva dire che chi usa
+     Chrome non sapeva nemmeno che il gioco si potesse installare — è successo davvero. */
+  sp3.pwa.iosAltroBrowser = true;
+  check('su iPhone anche con altri browser si propone', sp3.pwaProponibile() === true);
+  sp3.setView('install');
+  check('e si dice che serve Safari, e perché',
+    /Safari/.test(menu3.innerHTML) && /Apple/.test(menu3.innerHTML));
+  sp3.pwa.ios = false; sp3.pwa.iosAltroBrowser = false; sp3.pwa.invito = null; sp3.resumeSplash();
 
   /* i tre pezzi che rendono un sito installabile: se ne manca uno, "Installa" non compare
      e il browser non dice quale */

@@ -1230,5 +1230,7 @@ export const RU = {
   'tap <b>Share</b> at the bottom': 'нажми <b>Поделиться</b> внизу',
   'scroll and tap <b>Add to Home Screen</b>': 'прокрути и нажми <b>На экран «Домой»</b>',
   'confirm with <b>Add</b>': 'подтверди кнопкой <b>Добавить</b>',
-  'On iPhone this only works in <b>Safari</b>: Chrome does not offer it.': 'На iPhone это работает только в <b>Safari</b>: в Chrome такого пункта нет.',
+  'On iPhone you need Safari.': 'На iPhone нужен Safari.',
+  'It is an Apple rule: other browsers cannot install. Open <b>digsy.dev-box.it</b> in Safari and come back here.': 'Это правило Apple: другие браузеры не умеют устанавливать. Открой <b>digsy.dev-box.it</b> в Safari и вернись сюда.',
+  'Then, in Safari:': 'Затем, в Safari:',
 };

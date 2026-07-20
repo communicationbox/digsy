@@ -41,14 +41,21 @@ export const acc = { user: null, known: false, conflict: null, localSum: '', rem
  * parte quell'avviso e lo si usa quando il giocatore tocca il nostro pulsante.
  * iPhone non ha quell'evento: là si può solo SPIEGARE come si fa (Condividi → Aggiungi a
  * Home), e solo da Safari. */
-export const pwa = { invito: null, installata: false, ios: false };
+export const pwa = { invito: null, installata: false, ios: false, iosAltroBrowser: false };
 
 if (typeof window !== 'undefined') {
   /* già in esecuzione come app? allora non si propone niente */
   pwa.installata = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
     || window.navigator.standalone === true;
-  pwa.ios = /iPad|iPhone|iPod/.test(navigator.userAgent || '')
-    && !/CriOS|FxiOS|EdgiOS/.test(navigator.userAgent || '');   // solo Safari sa installare, su iOS
+  /* iPhone e iPad. Su iOS l'installazione la sa fare SOLO Safari — ma escludere gli altri
+     browser dal pulsante voleva dire che chi usa Chrome non vedeva niente e non sapeva
+     nemmeno che il gioco si potesse installare. Meglio mostrarglielo e spiegargli che serve
+     Safari: un'istruzione in più è meglio di una possibilità nascosta.
+     `MacIntel` con lo schermo touch è un iPad recente, che si dichiara Macintosh. */
+  const ua = navigator.userAgent || '';
+  pwa.ios = /iPad|iPhone|iPod/.test(ua)
+    || (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1);
+  pwa.iosAltroBrowser = pwa.ios && /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
   addEventListener('beforeinstallprompt', (e) => {
     e.preventDefault();                 // niente banner automatico: lo si offre quando SERVE
     pwa.invito = e;
@@ -310,11 +317,18 @@ function buildMenu(inGame) {
     h += `<div class="sp-cfg"><div class="sp-grp">`;
     h += `<div class="sp-hint2">${tr('Con l\'icona sulla schermata il gioco si apre a tutto schermo e funziona <b>anche senza rete</b>: il mondo e il salvataggio stanno nel tuo dispositivo.', 'With the icon on your home screen the game opens full-screen and works <b>even offline</b>: the world and your save live on your device.')}</div>`;
     if (pwa.ios) {
-      /* iOS non ha l'invito automatico: si può solo spiegare, e solo da Safari */
-      h += `<div class="sp-hint2">1. ${tr('tocca <b>Condividi</b> in basso', 'tap <b>Share</b> at the bottom')}<br>`
+      /* iOS non ha l'invito automatico: si può solo spiegare. E se si sta usando Chrome (o
+         un altro browser), il primo passo è aprire il gioco in Safari — su iPhone è l'unico
+         che sa installare, per una regola di Apple, non per una mancanza del gioco. */
+      if (pwa.iosAltroBrowser) {
+        h += `<div class="sp-hint2"><b>${tr('Su iPhone serve Safari.', 'On iPhone you need Safari.')}</b> `
+          + tr('È una regola di Apple: gli altri browser non possono installare. Apri <b>digsy.dev-box.it</b> in Safari e torna qui.',
+            'It is an Apple rule: other browsers cannot install. Open <b>digsy.dev-box.it</b> in Safari and come back here.') + `</div>`;
+      }
+      h += `<div class="sp-hint2">${pwa.iosAltroBrowser ? tr('Poi, in Safari:', 'Then, in Safari:') + '<br>' : ''}`
+        + `1. ${tr('tocca <b>Condividi</b> in basso', 'tap <b>Share</b> at the bottom')}<br>`
         + `2. ${tr('scorri e tocca <b>Aggiungi a Home</b>', 'scroll and tap <b>Add to Home Screen</b>')}<br>`
         + `3. ${tr('conferma con <b>Aggiungi</b>', 'confirm with <b>Add</b>')}</div>`;
-      h += `<div class="sp-hint2">${tr('Su iPhone funziona solo da <b>Safari</b>: da Chrome la voce non c\'è.', 'On iPhone this only works in <b>Safari</b>: Chrome does not offer it.')}</div>`;
     } else {
       h += `<button class="sp-btn primary" id="sp-install-go">🏠 ${tr('Installa adesso', 'Install now')}</button>`;
     }
