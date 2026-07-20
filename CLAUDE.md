@@ -407,6 +407,12 @@ una chiave assente è un buco che nessuno nota, una a null è una decisione che 
 Un test pretende che ogni zona compaia in ogni tabella, che ogni cosmetico nominato abbia il
 suo disegno e che ognuna stia in una fascia di temperatura.
 
+## In produzione ci sta SOLO il gioco
+Sprite Studio (`/sprites`), playground, editor e le pagine `__*.html` dei test importano i
+**sorgenti** (`/src/…`), non il bundle: tenerli online vorrebbe dire pubblicare tutto il
+codice per far funzionare uno strumento che serve a una persona sola sul suo computer.
+Vivono in locale con `npm run dev`. Il deploy li esclude e **verifica** che non ci siano.
+
 ## Pubblicare
 `npm run deploy` — prove verdi, mette da parte la versione online, pubblica, **verifica otto
 cose** (gioco raggiungibile, versione giusta, API viva, database che scrive, privacy, e che

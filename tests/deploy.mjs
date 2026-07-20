@@ -72,6 +72,15 @@ function verifica(atteso) {
      compaia — senza che nessuno dica perché. */
   dai('il manifest c\'è', stato(SITO + '/manifest.webmanifest') === '200');
   dai('il service worker c\'è', stato(SITO + '/sw.js') === '200');
+  /* IN PRODUZIONE CI STA SOLO IL GIOCO. Gli strumenti di lavoro (Sprite Studio, playground,
+     le pagine __*.html dei test) importano i SORGENTI: tenerli online vuol dire pubblicare
+     tutto il codice per far funzionare una cosa che serve a una persona sola, sul suo
+     computer. Vivono in locale con `npm run dev`. */
+  for (const [nome, url] of [['i sorgenti', '/src/sprites.js'], ['lo Sprite Studio', '/sprites/'],
+    ['le pagine di prova', '/__e2e.html']]) {
+    const st = stato(SITO + url);
+    dai(nome + ' non è in produzione', st === '404' || st === '403', 'HTTP ' + st);
+  }
 
   /* LE ISTRUZIONI DI CACHE. Sono la differenza fra pubblicare e RAGGIUNGERE i giocatori.
      Il service worker soprattutto: se resta in cache lui, decide cosa vedono tutti per un
@@ -119,10 +128,16 @@ function main() {
         `tar cf - --exclude=.prev --exclude=server . | (cd .prev && tar xf -)`);
 
     console.log('· pubblico ' + v);
-    execSync(`cd ${ROOT}/dist && COPYFILE_DISABLE=1 tar czf - . | ` +
+    /* `--exclude`: la dist contiene anche gli strumenti (Vite copia tutta public/), ma in
+       produzione non devono arrivare. Restano in locale, dove servono. */
+    execSync(`cd ${ROOT}/dist && COPYFILE_DISABLE=1 tar czf - ` +
+      `--exclude=sprites --exclude=wonders --exclude=playground --exclude=editor ` +
+      `--exclude=bag-editor --exclude='__*.html' . | ` +
       `ssh -o ControlMaster=no -o ControlPath=${MUX} ${HOST} ` +
       `"cd ${REMOTO} && tar xzf - && find . -name '._*' -delete && chmod -R a+rX ."`,
       { stdio: 'pipe', shell: '/bin/bash' });
+
+
   }
 
   console.log('· verifico');
