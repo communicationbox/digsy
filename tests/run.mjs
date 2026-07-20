@@ -514,6 +514,46 @@ sprites.applyLook();
   check('le ore di gioco si contano anche in grotta e negli interni', iPlay > 0 && iPlay < iCave2);
 }
 
+/* ---------- il battito: quanto si gioca, senza sapere CHI ---------- */
+{
+  const beat = await import('../src/beat.js');
+  const prefs2 = await import('../src/prefs.js');
+  S.playSec = 3600 * 2; S.day = 12; S.level = 4; S.codex = ['a', 'b', 'c'];
+
+  const d = beat.datiBattito();
+  check('battito: manda quanto si è giocato e fin dove si è arrivati',
+    d.min === 120 && d.day === 12 && d.lvl === 4 && d.spec === 3);
+
+  /* LA COSA PIÙ IMPORTANTE: che non ci finisca dentro nulla di personale. Un dato in più
+     "che magari serve" è come si comincia a raccogliere quello che non si dovrebbe. */
+  const campi = Object.keys(d).sort();
+  check('battito: manda SOLO questi campi (' + campi.join(',') + ')',
+    campi.join(',') === 'app,day,id,lvl,min,spec,tocco,ver');
+  const testo = JSON.stringify(d);
+  const vietati = ['email', 'name', 'nome', '@', 'coins', 'seed', 'px', 'py'];
+  const trovati = vietati.filter(v => testo.toLowerCase().includes(v));
+  check('battito: niente che dica chi sei o cosa hai' + (trovati.length ? ' → ' + trovati.join(',') : ''),
+    trovati.length === 0);
+  check('battito: l\'identificativo è casuale, non deriva dalla partita',
+    typeof d.id === 'string' && d.id.length >= 8 && !d.id.includes(String(S.seed || '')));
+  /* due chiamate danno lo stesso id (serve a legare i battiti di UNA sessione) */
+  check('battito: lo stesso dispositivo si riconosce fra un battito e l\'altro',
+    beat.datiBattito().id === d.id);
+
+  /* SI PUÒ DIRE DI NO, e da spento non parte niente */
+  check('battito: acceso di serie', beat.battitoAcceso() === true);
+  beat.accendiBattito(false);
+  check('battito: si spegne', beat.battitoAcceso() === false);
+  check('battito: da spento la preferenza resta spenta anche dopo', prefs2.getPrefs().battito === false);
+  beat.accendiBattito(true);
+
+  /* una partita aperta e mai giocata non racconta niente a nessuno */
+  S.playSec = 0; S.day = 1;
+  const vuota = beat.datiBattito();
+  check('battito: una partita appena aperta ha poco da dire', vuota.min === 0 && vuota.day === 1);
+  S.playSec = 3600 * 2; S.day = 12;
+}
+
 /* ---------- si installa come app, e lo si dice ---------- */
 {
   /* Una PWA è INVISIBILE: chi apre il gioco vede una scheda come tutte le altre, e l'invito

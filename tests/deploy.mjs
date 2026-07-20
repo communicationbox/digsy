@@ -125,7 +125,9 @@ function main() {
 
     console.log('· metto da parte la versione online');
     ssh(`cd ${REMOTO} && rm -rf .prev && mkdir .prev && ` +
-        `tar cf - --exclude=.prev --exclude=server . | (cd .prev && tar xf -) && chmod -R a+rX .prev`);
+        `tar cf - --exclude=.prev --exclude=server --exclude='__*.html' --exclude=src ` +
+        `--exclude=sprites --exclude=wonders --exclude=playground --exclude=editor ` +
+        `--exclude=bag-editor . | (cd .prev && tar xf -) && chmod -R a+rX .prev`);
 
     console.log('· pubblico ' + v);
     /* `--exclude`: la dist contiene anche gli strumenti (Vite copia tutta public/), ma in

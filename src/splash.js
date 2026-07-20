@@ -11,6 +11,7 @@ import { ACHS, isAchieved, achLabel, achDesc } from './achievements.js';
 import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
 import { gameStats } from './stats.js';
+import { battitoAcceso, accendiBattito } from './beat.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
    si cambia, e deve esserci un posto solo da aggiornare. */
@@ -413,6 +414,13 @@ function buildMenu(inGame) {
     }
 
     /* SCHERMO: le due cose che si vedono mentre si gioca */
+    /* IL BATTITO si spegne da qui. Raccogliere quanto si gioca è utile a chi il gioco lo fa
+       provare, ma dev'essere una cosa che si può dire di no — e che si legge in chiaro,
+       non nascosta in fondo a una pagina di condizioni. */
+    h += grp('📊 ' + tr('Statistiche anonime', 'Anonymous stats'),
+      riga(tr('Manda come sta andando', 'Send how it is going'), sw('sp-beat', battitoAcceso()))
+      + `<div class="sp-hint2">${tr('Quanto hai giocato e a che giorno sei arrivato, per capire dove il gioco annoia. <b>Niente</b> che dica chi sei: nessun nome, nessuna email, nessun indirizzo.', 'How long you played and how far you got, to see where the game drags. <b>Nothing</b> that says who you are: no name, no email, no address.')}</div>`);
+
     h += grp('✨ ' + tr('A schermo', 'On screen'),
       riga(tr('Segnalino della meta', 'Destination marker'), sw('sp-marker', pf.marker))
       + riga(tr('Suggerimenti', 'Tips'), sw('sp-tips', pf.tips))
@@ -589,6 +597,8 @@ function buildMenu(inGame) {
     pwa.invito = null;
     buildMenu(inGameMode);
   };
+  const bBe = document.getElementById('sp-beat');
+  if (bBe) bBe.onclick = () => { accendiBattito(!battitoAcceso()); buildMenu(inGameMode); };
   const bSt = document.getElementById('sp-stats-btn'); if (bSt) bSt.onclick = () => go('stats');
   const bSet = document.getElementById('sp-settings'); if (bSet) bSet.onclick = () => go('settings');
   const bAcc = document.getElementById('sp-account'); if (bAcc) bAcc.onclick = () => { go('account'); openAccount(); };

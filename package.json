@@ -15,7 +15,8 @@
     "test:php": "php server/tests/run.php",
     "test:php:mysql": "DIGSY_TEST_MYSQL=1 php server/tests/run.php",
     "shot": "node tests/shot.mjs",
-    "deploy": "node tests/deploy.mjs"
+    "deploy": "node tests/deploy.mjs",
+    "tester": "node tests/tester.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"

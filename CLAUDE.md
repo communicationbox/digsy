@@ -437,6 +437,17 @@ annullata in silenzio e il service worker resta in cache un anno. Il deploy lo v
 Il gioco chiede anche lo storage persistente: senza, il sistema può ripulire il salvataggio
 quando lo spazio scarseggia.
 
+## Sapere come va la prova
+`npm run tester` racconta cosa sta succedendo: quanti stanno giocando, **quanto durano le
+sessioni**, a che giorno si fermano, chi è tornato una seconda volta, da telefono o computer.
+`npm run tester -- --errori` aggiunge gli schianti segnalati dal gioco, con la scena in cui
+erano. I dati arrivano dal battito (`src/beat.js` → `server/api/beat.php`): una riga ogni
+cinque minuti con minuti giocati, giorno, livello, specie, versione. **Niente che dica chi è
+la persona** — l'identificativo lo genera il gioco a caso e vive nel dispositivo, nessun IP,
+nessun legame con l'account. Si spegne da Impostazioni → Statistiche anonime, ed è scritto
+nella privacy policy. I numeri vanno letti come indizi: con tre tester una sessione lunga può
+essere una scheda lasciata aperta.
+
 ## Il guardiano (cron sul server)
 `server/watch.sh` gira ogni 5 minuti dal cron di `digsy.dev-box.it` (fuori dalla cartella
 pubblica, 700). Controlla pagina, API e `health.php`; **riprova tre volte** prima di

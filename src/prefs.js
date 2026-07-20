@@ -19,6 +19,10 @@ export const DEFAULTS = {
      · 'keys' solo tastiera */
   mouse: 'tap',
   hand: 'right',       // mano che tiene il telefono: sposta i comandi dalla parte giusta
+  /* statistiche anonime: quanto si gioca e fin dove si arriva, per capire dove il gioco
+     annoia. Acceso di serie perché in fase di prova è il dato che serve di più — e si spegne
+     dalle Impostazioni, dove è scritto in chiaro cosa manda. */
+  battito: true,
   marker: true,        // segnalino sulla destinazione quando si tocca dove andare
 };
 

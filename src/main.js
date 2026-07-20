@@ -230,6 +230,9 @@ function boot() {
     else runIntro(startGame);
   });
   setInterval(save, 5000);
+  /* il battito: quanto si gioca e fin dove si arriva. Serve a chi fa provare il gioco, non
+     al gioco — e si spegne dalle Impostazioni. */
+  import('./beat.js').then(b => b.avviaBattito()).catch(() => {});
   /* PARTITA IN CLOUD: se il giocatore è già entrato in una sessione precedente, la sincronia
      deve ripartire DA SOLA all'avvio — non solo quando si apre il menu dell'account. Senza
      questo si scaricava la partita entrando e poi si giocava per ore senza che il server ne

@@ -1238,4 +1238,7 @@ export const RU = {
   'How': 'Как',
   'The game is already installed on this device.': 'Игра уже установлена на этом устройстве.',
   'Look for <b>Install</b> or <b>Add to Home screen</b> in your browser menu (the three dots at the top).': 'Найди <b>Установить</b> или <b>Добавить на главный экран</b> в меню браузера (три точки вверху).',
+  'Anonymous stats': 'Анонимная статистика',
+  'Send how it is going': 'Отправлять, как идут дела',
+  'How long you played and how far you got, to see where the game drags. <b>Nothing</b> that says who you are: no name, no email, no address.': 'Сколько ты играл и как далеко продвинулся — чтобы понять, где игра скучна. <b>Ничего</b>, что говорит, кто ты: ни имени, ни почты, ни адреса.',
 };
