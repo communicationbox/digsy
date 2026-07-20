@@ -48,7 +48,9 @@ function versioneLocale() {
 }
 function versioneOnline() {
   const html = corpo(SITO + '/play/');
-  const js = /assets\/index-[A-Za-z0-9_-]+\.js/.exec(html);
+  /* il bundle si chiama main-*.js da quando la build ha due pagine (gioco e vetrina):
+     cercare solo index-* voleva dire non trovare piu' nessuna versione */
+  const js = /assets\/(index|main)-[A-Za-z0-9_-]+\.js/.exec(html);
   if (!js) return null;
   /* l'indirizzo va composto con /play/, non con la radice: dopo lo spostamento il controllo
      cercava gli asset dove ora c'è la vetrina e non trovava nessuna versione */
