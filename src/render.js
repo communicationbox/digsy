@@ -268,22 +268,45 @@ function drawCompanionDabble(cx, cyBase, time, obj) {
   for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(cx + Math.cos(an) * (rr + 2)), Math.round(wy + 1 + Math.sin(an) * (rr + 1) * 0.5), 'rgba(190,233,244,.45)'); }
   if (Math.floor(time / 300) % 2) { px(cx - 2, wy + 2, '#bfe9f4'); px(cx + 2, wy + 3, '#e8f6fb'); } // bollicine
 }
+/* SCAVO da ANIMALE (niente pala!): come un cane/talpa — testa nella buca, sedere/coda su che
+   scodinzola, zampe che grattano e TERRA che schizza indietro a ondate, mucchietto che cresce
+   dietro. Sostituisce il disegno normale della creatura. Colore dal torace. Fase dal TEMPO. */
+function drawCompanionDig(cx, cyBase, time, obj, dir) {
+  const body = (obj && spColor[obj.c.torso]) || '#c8b078';
+  const dark = shade8(body, 0.7), light = shade8(body, 1.18);
+  const gy = cyBase + 4, back = -dir;                       // la terra vola DIETRO (opposto al muso)
+  for (let x = -4; x <= 4; x++) { const d = Math.round(2 * Math.sqrt(Math.max(0, 1 - x * x / 16))); if (d) rect(cx + x, gy - d + 1, 1, d, '#3a2a18'); } // buca
+  rect(cx - 4, gy, 9, 1, '#5a4326');
+  for (let x = -2; x <= 2; x++) { const h = Math.max(0, 3 - Math.abs(x)); for (let k = 0; k < h; k++) px(cx + back * 7 + x, gy - k, k === h - 1 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
+  const bob = Math.round(Math.sin(time / 110)), rx = cx + back * 2, top = gy - 10 - bob; // sedere su (scatti veloci)
+  const rows = [1, 1, 2, 2, 3, 3, 3];
+  for (let r = 0; r < rows.length; r++) { const yy = top + r, hw = rows[r]; for (let x = -hw; x <= hw; x++) px(rx + x, yy, (x === -hw || x === hw) ? dark : yy >= gy - 3 ? light : body); }
+  const wag = Math.round(Math.sin(time / 85));             // coda che scodinzola
+  px(rx + wag, top - 1, body); px(rx + wag, top - 2, light);
+  const scr = Math.floor(time / 70) % 2;                    // zampe davanti che grattano
+  px(cx - dir * 2, gy - scr, dark); px(cx - dir * 3, gy - 1 + scr, dark);
+  const beat = (time / 70) % 1;                             // TERRA a ondate indietro
+  if (Math.floor(time / 70) % 2 === 0) {
+    const OX = [2, 4, 6, 8], H = [6, 8, 6, 4], CC = ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59'];
+    for (let i = 0; i < 4; i++) px(Math.round(cx + back * OX[i] * (0.6 + beat)), Math.round(gy - 2 - Math.sin(Math.PI * beat) * H[i]), CC[i]);
+  }
+}
 /* RACCOGLITORE LEGGENDARIO: animazione del lavoro (fase 'work'). Gli ANIMALI non usano attrezzi:
-   terra/albero/roccia = la creatura scava/spinge e schizza detrito a tema (nessuna pala/accetta/
-   piccone); acqua = dabble (drawCompanionDabble). Fase dal TIMER del job, coordinate già snap. */
+   ACQUA = dabble d'oca · TERRA = scavo a testa in giù · ALBERO/ROCCIA = la creatura spinge e
+   schizza detrito a tema. Coordinate già snap. */
 function drawCompanionWork(cxs, cys, time, obj) {
   const j = COMP.job; if (!j || j.phase !== 'work') return;
+  const dir = j.wx >= COMP.x ? 1 : -1;
   if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
-  const ph = 1 - j.t / 1.3, dir = j.wx >= COMP.x ? 1 : -1;
-  const sub = (ph * 4) % 1, struck = Math.floor(ph * 4) % 2 === 1;                  // due colpi
-  if (struck) {                                                                     // detrito a tema
+  if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); return; }
+  const ph = 1 - j.t / 1.3, sub = (ph * 4) % 1, struck = Math.floor(ph * 4) % 2 === 1;
+  if (struck) {                                                                     // albero/roccia: detrito a tema
     const ox = cxs + dir * 8, oy = cys - 2;
     const OX = [-4, -1, 2, 5, 7], H = [4, 6, 3, 5, 4];
-    const CC = j.type === 'terra' ? ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42']
-      : j.type === 'albero' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
-        : ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];                  // roccia: scaglia chiara = scintilla
+    const CC = j.type === 'albero' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
+      : ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];                    // roccia: scaglia chiara = scintilla
     for (let i = 0; i < 5; i++) px(Math.round(ox + dir * OX[i] * (0.4 + sub)), Math.round(oy + 6 - Math.sin(Math.PI * sub) * H[i]), CC[i]);
-    px(cxs + dir * 6, cys + 2, 'rgba(180,160,120,.5)');                             // sbuffo alla base
+    px(cxs + dir * 6, cys + 2, 'rgba(180,160,120,.5)');
   }
 }
 /* "+fossile" che sale dal raccoglitore quando trova qualcosa (contorno rarità) */
@@ -910,8 +933,9 @@ export function render(time) {
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
     ents.push({ y: COMP.y - cam.y + 15, f: () => {
       const j = COMP.job, working = j && j.phase === 'work';
-      if (!(working && j.type === 'acqua')) {          // acqua: la creatura è a testa in giù (dabble) → non si disegna qui
-        let lx = 0;                                    // terra/albero/roccia: affondo verso la casella sul colpo
+      const pose = working && (j.type === 'acqua' || j.type === 'terra'); // acqua=dabble, terra=scavo a testa giù → creatura ridisegnata dal lavoro
+      if (!pose) {
+        let lx = 0;                                    // albero/roccia: affondo verso la casella sul colpo
         if (working) { const ph = 1 - j.t / 1.3; if (Math.floor(ph * 4) % 2 === 1) lx = Math.round(Math.sin(Math.PI * ((ph * 4) % 1)) * 3) * (j.wx >= COMP.x ? 1 : -1); }
         drawCreature(compObj, cxs - 8 + lx, cys - 13, cswim);
       }

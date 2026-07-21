@@ -20,8 +20,10 @@ const COVDIR = join(ROOT, '.coverage');
    test che non verificano niente. */
 const FLOOR = 55;
 /* skeleton3d.js gira solo con WebGL (Three.js): in Node non è caricabile. Lo coprono gli
-   e2e nel browser, dove il libro monta la vista 3D. Escluso di proposito, non dimenticato. */
-const EXCLUDE = new Set(['skeleton3d.js']);
+   e2e nel browser, dove il libro monta la vista 3D. Escluso di proposito, non dimenticato.
+   devview.js è uno STRUMENTO di sviluppo (forza scene da fotografare, ?mount/?dig): main.js lo
+   importa solo sotto DEV, non entra nel bundle di produzione e non ha senso testarlo. */
+const EXCLUDE = new Set(['skeleton3d.js', 'devview.js']);
 const MIN = {
   /* I MODULI GIOVANI, sui dati che il giocatore NON può rifarsi. `cloud.js` e `account.js`
      sono la sincronia col server: sono l'unica parte che può far sparire una partita, sono
@@ -105,7 +107,7 @@ for (const r of rows) {
   console.log(`  ${ok ? 'ok  ' : 'BASSA'} ${r.f.padEnd(18)} ${String(r.min).padStart(3)}%  ${bar(r.p)} ${r.p.toFixed(1).padStart(5)}%${r.seen ? '' : '   ← mai importato dai test'}`);
 }
 const tot = rows.reduce((a, r) => a + r.p, 0) / rows.length;
-console.log(`\n  media: ${tot.toFixed(1)}% su ${rows.length} moduli (esclusi: ${[...EXCLUDE].join(', ')} — serve WebGL) · sotto soglia: ${failed.length}\n`);
+console.log(`\n  media: ${tot.toFixed(1)}% su ${rows.length} moduli (esclusi: ${[...EXCLUDE].join(', ')} — WebGL/solo-dev) · sotto soglia: ${failed.length}\n`);
 if (gate && failed.length) {
   console.log('  moduli sotto la loro soglia:', failed.map(r => `${r.f} (${r.p.toFixed(0)}<${r.min})`).join(', '), '\n');
   process.exit(1);

@@ -30,7 +30,6 @@ import { pruneExpired } from './commission.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
 import { toast } from './ui.js';
 import { isDebug } from './debug.js';
-import { setPref } from './prefs.js';
 import { VERSION } from './version.js';
 
 /* GLI SCHIANTI VANNO RACCONTATI. Un errore JavaScript sul telefono di un giocatore è
@@ -229,17 +228,12 @@ function boot() {
   armAudioResume(); // musica in loop anche dopo un refresh (parte al primo gesto)
   updateHUD();
   document.getElementById('boot').style.display = 'none';
-  /* DEBUG VISIVO (solo per guardare in dev): ?mount=down|up|left|right → cavalcatura volante
-     attiva, così si può fotografarla e correggere la posa a occhio invece che a naso. */
-  const _mp = (import.meta.env && import.meta.env.DEV) && typeof location !== 'undefined' && new URLSearchParams(location.search).get('mount');
-  if (_mp) { S.lookDone = true; S.introSeen = true; S.started = true; S.gift = true; setPref('tips', false); // salta editor/intro/regalo/tip
-    try { const h = document.getElementById('hud'), pr = document.getElementById('prompt'); if (h) h.style.display = 'none'; if (pr) pr.style.display = 'none'; } catch (e) {} // HUD via, per fotografare pulito
-  import('./companion.js').then(c => import('./data.js').then(d => {
-    const sp = d.CAVE_POOL[0];
-    if (!S.awakened.includes(sp.id)) S.awakened.push(sp.id);
-    c.setCompanion({ skull: sp.id, torso: sp.id, leg: sp.id, q: 'leggendario', key: 'sp' + sp.id, name: sp.name });
-    S.mounted = true; P.dir = ['up', 'down', 'left', 'right'].includes(_mp) ? _mp : 'down';
-  })); }
+  /* DEBUG VISIVO (SOLO dev): ?mount / ?dig forzano una scena da fotografare. Tutta la logica
+     sta in devview.js, importato solo qui sotto DEV → in produzione il ramo è morto. */
+  if (import.meta.env && import.meta.env.DEV && typeof location !== 'undefined') {
+    const _p = new URLSearchParams(location.search);
+    if (_p.get('mount') || _p.get('dig')) import('./devview.js').then(m => m.setupDebugView(_p));
+  }
   requestAnimationFrame(loop);
   /* splash → (prima volta) editor personaggio → INTRO (lore) → gioco */
   initSplash(() => {

@@ -24,6 +24,7 @@ export const CHANGELOG = [
       'FIX COMPAGNO SDOPPIATO: il compagno che è con te NON compare più anche nel recinto del parco; rimandandolo a casa ci rientra',
       'RACCOGLITORI: gli animali NON usano attrezzi — il pescatore ora fa come le oche (testa sotto, sedere fuori, zampe che remano), gli altri scavano/spingono e schizzano detrito (via canna/pala/accetta/piccone)',
       'CAVALCATURA: l\'eroe ora è SEDUTO in groppa (vita in su, gambe nascoste), non più in piedi; faccia libera e centrata',
+      'SCAVO del compagno più bello: la creatura di TERRA scava a testa in giù come un cane — sedere e coda su che scodinzolano, zampe che grattano, terra che schizza indietro e mucchietto che cresce (niente più semplice affondo)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -48,6 +49,7 @@ export const CHANGELOG = [
       'FIX DOUBLED COMPANION: the companion that\'s with you no longer also appears in the park pen; send it home and it returns there',
       'GATHERERS: animals DON\'T use tools — the angler now dabbles like a goose (head under, rump up, paddling feet), the others dig/shove and kick up debris (no rod/shovel/axe/pickaxe)',
       'MOUNT: the hero now SITS in the saddle (waist up, legs hidden), no longer standing; face clear and centered',
+      'Nicer companion DIG: the ground gatherer digs head-down like a dog — rump and tail up wagging, paws scratching, dirt kicked backward and a growing mound (no more plain lunge)',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },
