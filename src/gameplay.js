@@ -12,7 +12,7 @@ import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememb
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, showTip } from './ui.js';
-import { companionYieldMul } from './companion.js';
+import { companionYieldMul, companionType, companionSpec, COMP } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
@@ -259,6 +259,7 @@ export function toggleGear(g) {
 export function footGear() { return (S.gear === 'bike' && S.tools.bike) ? 'bike' : (S.gear === 'skates' && S.tools.skates) ? 'skates' : null; }
 /* moltiplicatore di velocità (a piedi: bici ×3 / pattini ×2; in acqua: motoscafo ×3, barca ×1) */
 export function gearSpeedMul() {
+  if (isMounted()) return 3;                    // in volo: viaggio veloce sopra la mappa
   if (onBoat()) return S.tools.motorboat ? 3 : 1;
   if (S.gear === 'bike' && S.tools.bike) return 3;
   if (S.gear === 'skates' && S.tools.skates) return 2;
@@ -370,6 +371,89 @@ export function tryFish() {
     }
     save(); updateHUD();
   }, 'fish');
+}
+
+/* ---------- COMPAGNO LEGGENDARIO: raccoglitore autonomo (Fase 1) ----------
+   Un compagno LEGGENDARIO di tipo terra/acqua/albero/roccia lavora DA SOLO: raggiunge una
+   casella valida vicina, la lavora con animazione, e ti porta un fossile nello zaino. Cadenza
+   lenta + cap (zaino pieno → si ferma) così resta più LENTO dello scavo attivo: è comodità e
+   prestigio, non un sostituto (scavo = fonte principale). La grotta ha il suo potere a parte. */
+const CW = { GO: 118, WORK: 1.3, COOL: 6, RETRY: 1.6, R: 5 };
+const WORK_SRC = { terra: 'terra', acqua: 'acqua', albero: 'albero', roccia: 'roccia' };
+function tileValidForWork(type, tx, ty) {
+  if (townInfo(tx, ty)) return false;
+  if (type === 'acqua') return waterTile(tx, ty);
+  if (type === 'albero') return CHOPPABLE.includes(decoAt(tx, ty));
+  if (type === 'roccia') return MINEABLE.includes(decoAt(tx, ty));
+  return diggable(baseTerrain(tx, ty)) && !decoAt(tx, ty); // terra: terreno scavabile e libero
+}
+function findWorkTile(type, cx, cy) {
+  for (let r = 1; r <= CW.R; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+    const tx = cx + dx, ty = cy + dy;
+    if (tileValidForWork(type, tx, ty)) return { tx, ty };
+  }
+  return null;
+}
+/* il compagno attuale è un raccoglitore leggendario (terra/acqua/albero/roccia)? */
+export function companionGathers() {
+  const c = companionSpec();
+  return !!c && c.q === 'leggendario' && !!WORK_SRC[companionType(c)];
+}
+/* passo del raccoglitore: chiamato nel game loop PRIMA di updateCompanion (che segue solo se
+   non c'è un job). In grotta/interni non lavora: là il compagno non c'è. */
+export function companionWorkTick(dt) {
+  if (!companionGathers()) { COMP.job = null; return; }
+  const type = companionType(companionSpec());
+  COMP.cool = Math.max(0, (COMP.cool || 0) - dt);
+  const job = COMP.job;
+  if (!job) {
+    if (bagFull() || COMP.cool > 0) return;                 // zaino pieno o in pausa: segue e basta
+    const cx = Math.floor(COMP.x / TS), cy = Math.floor((COMP.y + FOOT_DY) / TS);
+    const t = findWorkTile(type, cx, cy);
+    if (!t) { COMP.cool = CW.RETRY; return; }                // niente da lavorare qui: riprova tra poco
+    COMP.job = { type, tx: t.tx, ty: t.ty, wx: t.tx * TS + 8, wy: t.ty * TS + 8, phase: 'go', t: 0, hit: -1 };
+    return;
+  }
+  if (job.phase === 'go') {                                  // raggiungi il fianco della casella
+    const gx = job.wx, gy = job.wy - 2, dx = gx - COMP.x, dy = gy - COMP.y, d = Math.hypot(dx, dy) || 1;
+    const step = Math.min(d, CW.GO * dt);
+    COMP.x += dx / d * step; COMP.y += dy / d * step; COMP.anim += dt;
+    if (Math.abs(dx) > 0.5) COMP.dir = dx < 0 ? -1 : 1;
+    if (d < 4) { job.phase = 'work'; job.t = CW.WORK; }
+    return;
+  }
+  if (job.phase === 'work') {
+    job.t -= dt; COMP.anim += dt; COMP.dir = job.wx >= COMP.x ? 1 : -1;
+    const ph = 1 - job.t / CW.WORK, hit = Math.floor(ph * 4);  // due colpi come lo scavo manuale
+    if (hit !== job.hit) { job.hit = hit; if (hit % 2 === 1) playSfx(type === 'acqua' ? 'fish' : type === 'terra' ? 'dig' : type === 'albero' ? 'chop' : 'mine'); }
+    if (job.t <= 0) {
+      if (!bagFull()) {                                       // esito: un fossile della fonte del tipo
+        const raw = makeRaw(zoneAt(job.tx, job.ty).id, Math.hypot(job.tx, job.ty), null, WORK_SRC[type]);
+        if (raw && addFossil(raw, job.tx, job.ty)) { playSfx('found'); COMP.fx.push({ x: COMP.x, y: COMP.y - 10, life: 1, q: raw.q }); }
+      }
+      COMP.job = null; COMP.cool = CW.COOL;
+    }
+  }
+}
+
+/* ---------- COMPAGNO LEGGENDARIO DI GROTTA: cavalcatura volante (Fase 2) ----------
+   Lo Speleologo leggendario è un fossile VOLANTE: lo si cavalca e si viaggia in volo sopra la
+   mappa (attraversa ostacoli/acqua, più veloce). VINCOLO: in GROTTA (e negli interni) NON si
+   vola — si cavalca solo all'aperto; entrando si scende. Flag propria S.mounted, MAI il cheat
+   P.fly (che vanilla/godmode gestiscono a parte). */
+export function companionRides() {
+  const c = companionSpec();
+  return !!c && c.q === 'leggendario' && companionType(c) === 'grotta';
+}
+export function isMounted() { return !!S.mounted && companionRides() && !CAVE.active && !INT.active; }
+export function toggleMount() {
+  if (CAVE.active || INT.active) { toast('🕳️ ' + tr('Qui non si vola: scendi e cammina', 'No flying here: get down and walk')); return false; }
+  if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario per volare', 'You need a legendary cave companion to fly')); return false; }
+  S.mounted = !S.mounted;
+  toast(S.mounted ? '✨ ' + tr('In volo! Attraversi tutto', 'Airborne! You cross anything') : '🐾 ' + tr('Sei sceso', 'You landed'));
+  playSfx(S.mounted ? 'found' : 'click'); save();
+  return true;
 }
 
 /* ---------- interazione ---------- */
@@ -1039,4 +1123,4 @@ function passable(px2, py2) {
    prova il punto dove finirebbero i piedi E i due fianchi, perché il personaggio è largo
    (col solo centro il percorso prometteva passaggi in cui poi ci si incastrava). */
 export function tileBlocked(tx, ty) { return !fits(tx, ty, TS, collide); }
-export function collide(x, y) { if (P.fly) return false; return bodyHits(x, y, (px, py) => !passable(px, py)); }
+export function collide(x, y) { if (P.fly || isMounted()) return false; return bodyHits(x, y, (px, py) => !passable(px, py)); }

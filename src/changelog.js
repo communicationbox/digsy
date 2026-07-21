@@ -13,6 +13,8 @@ export const CHANGELOG = [
       'LUCCIOLE: missione RARA d\'estate dal cartello — di notte, all\'aperto, raccogli le lucciole col retino; completarla ti GUIDA a una mappa verso un fossile LEGGENDARIO',
       'LIBRO: ogni scheda mostra "Ossa: X/5" (i pezzi consegnati al Museo) e quando le hai TUTTE la pagina si borda d\'ORO con "✓ Completo"',
       'COMPAGNI: il potere ora dipende dai TRATTI — il TIPO (fonte: terra/acqua/albero/roccia/grotta) decide che aiuto dà, la RARITÀ quanto è forte; e ogni compagno dà comunque fiuto e bussola',
+      'COMPAGNI LEGGENDARI: quelli di terra/acqua/roccia/albero RACCOLGONO da soli — vanno alla casella, lavorano con animazione e ti portano il fossile (lento e a zaino non pieno: lo scavo resta la fonte principale)',
+      'FOSSILE VOLANTE: il compagno di GROTTA leggendario si CAVALCA (tasto R o dallo zaino) e sorvoli la mappa attraversando tutto — ma in grotta si scende e si cammina',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -26,6 +28,8 @@ export const CHANGELOG = [
       'FIREFLIES: a RARE summer quest from the board — at night, outdoors, catch fireflies with a net; completing it GUIDES you to a map toward a LEGENDARY fossil',
       'BOOK: each page shows "Bones: X/5" (pieces handed to the Museum) and when you have them ALL the page gets a GOLD border with "✓ Complete"',
       'COMPANIONS: the power now depends on TRAITS — the TYPE (source: ground/water/tree/rock/cave) decides what help it gives, RARITY how strong; and every companion still grants sniff and compass',
+      'LEGENDARY COMPANIONS: the ground/water/rock/tree ones GATHER on their own — they walk to a tile, work with an animation and bring you the fossil (slow, and only when your bag isn\'t full: digging stays the main source)',
+      'FLYING FOSSIL: the legendary CAVE companion can be RIDDEN (press R or from the bag) to fly over the map crossing anything — but in caves you land and walk',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

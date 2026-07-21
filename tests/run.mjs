@@ -2244,8 +2244,19 @@ sprites.applyLook();
   try {
     for (let d = 1; d <= 6; d++) { S.day = d; for (const [zx, zy] of [[5, 5], [320, 90], [-220, 160], [140, -280], [-300, -120]]) { P.x = zx * TS; P.y = zy * TS; cam.x = P.x; cam.y = P.y; render(1000 + d * 400); } }
     S.tod = 0.7; render(3000); S.tod = 0.25;
+    /* raccoglitore leggendario AL LAVORO (ogni tipo → attrezzo/lenza + schegge) + "+fossile" che sale */
+    const { COMP } = companionMod;
+    COMP.x = P.x + 20; COMP.y = P.y; COMP.fx = [{ x: P.x, y: P.y - 10, life: 0.6, q: 'raro' }];
+    for (const wty of ['terra', 'acqua', 'albero', 'roccia']) { COMP.job = { type: wty, wx: P.x + 30, wy: P.y, phase: 'work', t: 0.6 }; render(3200); }
+    COMP.job = null; COMP.fx = [];
+    /* CAVALCATURA volante di grotta (drawFlyingMount) */
+    const dataS = await import('../src/data.js');
+    const cs = dataS.CAVE_POOL[0].id;
+    companionMod.setCompanion({ skull: cs, torso: cs, leg: cs, q: 'leggendario', key: 'sm', name: 'Fly' });
+    S.mounted = true; render(3400); P.dir = 'left'; P.moving = true; render(3450); S.mounted = false; P.moving = false;
+    companionMod.clearCompanion();
   } catch (e) { smokeThrew = true; }
-  check('smoke render esteso (biomi/meteo/landmark/compagno/notte)', smokeThrew === false);
+  check('smoke render esteso (biomi/meteo/landmark/compagno/notte/raccoglitore/volo)', smokeThrew === false);
   /* INTERNI: ogni stanza va DISEGNATA davvero. Questo controllo nasce da una regressione vera:
      spostando gli interni in un modulo a parte, due simboli (drawSayBalloon e NIGHT) sono
      rimasti in render.js e il gioco crashava appena si entrava in un edificio — con tutti i
@@ -2902,6 +2913,88 @@ sprites.applyLook();
   check('compagno rimandato a casa', comp.companionSpec() === null && comp.companionYieldMul('acqua') === 1 && comp.companionHelps() === false);
 }
 
+/* ---------- compagno LEGGENDARIO: raccoglitore autonomo (Fase 1) ---------- */
+{
+  const comp = await import('../src/companion.js');
+  const gp = await import('../src/gameplay.js');
+  const world = await import('../src/world.js');
+  const dataN = await import('../src/data.js');
+  const { COMP } = comp;
+  const terra = dataN.ALL_SPECIES.find(s => (s.src || 'terra') === 'terra');
+  const legTerra = { skull: terra.id, torso: terra.id, leg: terra.id, q: 'leggendario', key: 'lt', name: 'Legterra' };
+  /* casella scavabile e libera con un'adiacente valida (il raccoglitore cerca nel ring r≥1) */
+  let wx = null, wy = null;
+  for (let ty = -20; ty <= 20 && wx === null; ty++) for (let tx = -20; tx <= 20; tx++) {
+    if (world.diggable(world.baseTerrain(tx, ty)) && !world.townInfo(tx, ty) && !world.decoAt(tx, ty)
+      && world.diggable(world.baseTerrain(tx + 1, ty)) && !world.townInfo(tx + 1, ty) && !world.decoAt(tx + 1, ty)) { wx = tx; wy = ty; break; }
+  }
+  check('trovata terra libera per il test del raccoglitore', wx !== null);
+  check('companionGathers: solo LEGGENDARI di tipo raccolta', (() => {
+    comp.setCompanion(legTerra); const a = gp.companionGathers();
+    comp.setCompanion({ ...legTerra, q: 'raro' }); const b = gp.companionGathers();
+    const cave = (dataN.CAVE_POOL && dataN.CAVE_POOL[0]) ? dataN.CAVE_POOL[0].id : null;
+    let g = false; if (cave) { comp.setCompanion({ skull: cave, torso: cave, leg: cave, q: 'leggendario', key: 'lg', name: 'Lg' }); g = gp.companionGathers(); }
+    return a === true && b === false && g === false; // leggendario terra sì, raro no, grotta no (ha la cavalcatura)
+  })());
+  const TS = dataN.TS;
+  S.items = []; S.raw = []; S.uid = S.uid || 1;
+  comp.setCompanion(legTerra);
+  COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = null; COMP.cool = 0; COMP.fx = [];
+  let got = false;
+  for (let i = 0; i < 4000 && !got; i++) { gp.companionWorkTick(1 / 60); if (S.raw.length > 0) got = true; } // il grezzo va in S.raw
+  check('raccoglitore leggendario: lavora e PORTA un fossile nello zaino', got && COMP.fx.length >= 1);
+  /* non-leggendario: non auto-raccoglie */
+  S.raw = []; comp.setCompanion({ ...legTerra, q: 'raro' }); COMP.job = null; COMP.cool = 0;
+  for (let i = 0; i < 600; i++) gp.companionWorkTick(1 / 60);
+  check('compagno non-leggendario NON auto-raccoglie', S.raw.length === 0 && COMP.job === null);
+  /* zaino pieno: si ferma (scavo resta la fonte principale) */
+  comp.setCompanion(legTerra);
+  S.raw = []; S.items = Array.from({ length: gp.bagCap() }, (_, i) => ({ uid: 9000 + i, s: terra.id, t: 'cranio', q: 'comune', val: 5 }));
+  COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = null; COMP.cool = 0;
+  for (let i = 0; i < 400; i++) gp.companionWorkTick(1 / 60);
+  check('zaino pieno: il raccoglitore NON lavora', COMP.job === null && S.raw.length === 0);
+  comp.clearCompanion(); COMP.job = null; COMP.fx = []; S.items = []; S.raw = [];
+}
+
+/* ---------- compagno GROTTA leggendario: cavalcatura volante (Fase 2) ---------- */
+{
+  const comp = await import('../src/companion.js');
+  const gp = await import('../src/gameplay.js');
+  const cave = await import('../src/cave.js');
+  const dataN = await import('../src/data.js');
+  const TS = dataN.TS;
+  const caveSp = dataN.CAVE_POOL[0].id;
+  const grottaLeg = { skull: caveSp, torso: caveSp, leg: caveSp, q: 'leggendario', key: 'gl', name: 'Volante' };
+  const terra = dataN.ALL_SPECIES.find(s => (s.src || 'terra') === 'terra');
+  /* GATING: cavalcabile solo se GROTTA + leggendario */
+  comp.setCompanion(grottaLeg); const ridesGrotta = gp.companionRides();
+  comp.setCompanion({ skull: terra.id, torso: terra.id, leg: terra.id, q: 'leggendario', key: 'tl', name: 'T' }); const ridesTerra = gp.companionRides();
+  comp.setCompanion({ ...grottaLeg, q: 'raro' }); const ridesRaro = gp.companionRides();
+  check('companionRides: solo GROTTA leggendario', ridesGrotta === true && ridesTerra === false && ridesRaro === false);
+  /* MOUNT: attiva volo, velocità ×3 */
+  comp.setCompanion(grottaLeg); S.mounted = false; cave.CAVE.active = false;
+  const t1 = gp.toggleMount();
+  check('cavalca: volo attivo e viaggio veloce (×3)', t1 === true && S.mounted === true && gp.isMounted() === true && gp.gearSpeedMul() === 3);
+  /* BYPASS: in volo si attraversa l'acqua (a piedi è solida) */
+  let w = null;
+  for (let x = -60; x < 60 && !w; x++) for (let y = -60; y < 60 && !w; y++)
+    if (gp.waterTile(x, y) && gp.waterTile(x + 1, y) && gp.waterTile(x - 1, y) && gp.waterTile(x, y + 1) && gp.waterTile(x, y - 1)) w = [x, y];
+  check('esiste acqua circondata da acqua', !!w);
+  const wpx = w[0] * TS + 8, wpy = w[1] * TS + 8;
+  check('in volo si attraversa l\'acqua (collide=false)', gp.collide(wpx, wpy) === false);
+  gp.toggleMount();
+  check('a terra sull\'acqua si è bloccati (collide=true)', S.mounted === false && gp.collide(wpx, wpy) === true);
+  /* VINCOLO: in GROTTA non si vola */
+  comp.setCompanion(grottaLeg); S.mounted = true; cave.CAVE.active = true;
+  check('in grotta isMounted=false e toggleMount rifiutato', gp.isMounted() === false && gp.toggleMount() === false);
+  cave.CAVE.active = false;
+  /* entrare in grotta fa SCENDERE */
+  S.mounted = true; cave.enterCave(1, 0, 0);
+  check('entrando in grotta si scende (mounted=false)', S.mounted === false);
+  cave.CAVE.active = false;
+  comp.clearCompanion(); S.mounted = false;
+}
+
 /* ---------- missioni: bacheca deterministica, accetta/consegna, limite, scadenza ---------- */
 {
   const q = await import('../src/quests.js');
@@ -3374,21 +3467,25 @@ sprites.applyLook();
   state.dugSet.clear(); (state.S.dug || []).forEach(k => state.dugSet.add(k));
 }
 
-/* ---------- COMPAGNO IN ACQUA: segue il player in barca e NUOTA (niente camminata) ---------- */
+/* ---------- COMPAGNO IN ACQUA: segue il player in barca e NUOTA (niente camminata) ----------
+   NB: si usano i riferimenti VIVI state.S/state.P: qui sopra la suite ha chiamato initState()
+   (blocco migrazioni), quindi le S/P catturate a inizio file sono STALE e i moduli (companion.js)
+   leggono state.S/state.P. Scrivere sulle stale non arriverebbe al compagno. */
 {
   const comp = await import('../src/companion.js');
-  const before = S.companion;
-  S.companion = { skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune', name: 'Test' };
-  comp.COMP.init = false;
+  const Sl = state.S, Pl = state.P;
+  const before = Sl.companion;
+  Sl.companion = { skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune', name: 'Test' };
+  comp.COMP.init = false; comp.COMP.job = null; // stato pulito: nessun lavoro del raccoglitore in corso
   /* il player entra in acqua: dopo qualche passo il compagno è sull'acqua anche lui */
   let w = null;
   for (let x = -60; x < 60 && !w; x++) for (let y = -60; y < 60 && !w; y++) if (gameplay.waterTile(x, y) && gameplay.waterTile(x + 1, y)) w = [x, y];
   check('esiste uno specchio d\'acqua', !!w);
-  P.x = w[0] * TS + 8; P.y = w[1] * TS - 13; P.dir = 'right';
+  Pl.x = w[0] * TS + 8; Pl.y = w[1] * TS - 13; Pl.dir = 'right';
   for (let i = 0; i < 200; i++) comp.updateCompanion(1 / 60);
   const cw = gameplay.waterTile(Math.floor(comp.COMP.x / TS), Math.floor((comp.COMP.y + 13) / TS));
   check('il compagno segue in acqua (→ nuota)', cw === true);
-  S.companion = before; comp.COMP.init = false;
+  Sl.companion = before; comp.COMP.init = false;
 }
 
 /* ---------- INPUT: mentre si scrive in un campo (nome del personaggio) il gioco non

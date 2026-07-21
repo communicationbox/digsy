@@ -12,7 +12,9 @@ import { save } from './state.js';
 import { spById } from './data.js';
 import { parkPopulation } from './park.js';
 
-export const COMP = { x: 0, y: 0, dir: -1, anim: 0, init: false };
+/* job/cool/fx pilotati dal raccoglitore leggendario (gameplay.companionWorkTick, Fase 1):
+   job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale */
+export const COMP = { x: 0, y: 0, dir: -1, anim: 0, init: false, job: null, cool: 0, fx: [] };
 
 /* i cinque tipi (fonti). 'any'/assente → terra (lo Scavatore è il default sempre valido) */
 export const COMP_TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
@@ -47,7 +49,10 @@ export function isCurrentCompanion(key) { return !!S.companion && S.companion.ke
 
 /* il compagno insegue il player restando un po' indietro rispetto al verso di marcia */
 export function updateCompanion(dt) {
-  const c = S.companion; if (!c) return;
+  /* effetti "+fossile" del raccoglitore: salgono e svaniscono in ~0,9 s */
+  if (COMP.fx.length) { for (const p of COMP.fx) p.life -= dt / 0.9; COMP.fx = COMP.fx.filter(p => p.life > 0); }
+  const c = S.companion; if (!c) { COMP.job = null; return; }
+  if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
   if (!COMP.init) { COMP.x = P.x - 16; COMP.y = P.y + 6; COMP.init = true; }
   const off = P.dir === 'left' ? 16 : P.dir === 'right' ? -16 : 0;
   const offy = P.dir === 'up' ? 16 : P.dir === 'down' ? -14 : 8;

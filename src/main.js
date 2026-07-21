@@ -5,7 +5,7 @@ import { fit } from './screen.js';
 import { findStart, openArea } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
-import { collide, stepDig, gearSpeedMul, grantStarterGift } from './gameplay.js';
+import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
 import { updateCompanion } from './companion.js';
 import { playIntro, introActive } from './intro.js';
 import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner } from './ui.js';
@@ -170,9 +170,12 @@ function loop(ts) {
       render(ts); requestAnimationFrame(loop); return;
     }
     walk(dt);
-    updateCompanion(dt); // il compagno insegue il player
-    checkDoorEnter(); // pestare una porta = entrare (niente E)
-    checkCaveEnter(caveEntranceAt); // pestare un imbocco di grotta = entrare
+    companionWorkTick(dt);  // raccoglitore leggendario: se lavora, guida lui il movimento
+    updateCompanion(dt);    // altrimenti il compagno insegue il player
+    if (!isMounted()) {               // in volo si SORVOLA: per entrare scendi (tasto cavalcatura)
+      checkDoorEnter(); // pestare una porta = entrare (niente E)
+      checkCaveEnter(caveEntranceAt); // pestare un imbocco di grotta = entrare
+    }
     if (sanitizePos()) clearGoal();  // posizione impazzita: riparata prima che rompa tutto
     trackPlayer();                  // la mappa si scopre camminando
     /* suggerimenti al PRIMO incontro: acqua davanti, imbocco di grotta, notte */

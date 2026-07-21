@@ -10,7 +10,7 @@ import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTer
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionType, companionSpec, companionHelps } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
-import { siteRemaining, onBoat, footGear, waterTile } from './gameplay.js';
+import { siteRemaining, onBoat, footGear, waterTile, isMounted } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
 import { drawHero } from './sprites.js';
 import { parks, visParks } from './park.js';
@@ -249,6 +249,51 @@ function drawCompanionGlyph(type, cx, cy, time) {
   px(cx, y - 1, c); px(cx - 1, y, c); px(cx + 1, y, c); px(cx, y + 1, c); // diamante
   px(cx, y, hi);                                                          // nucleo chiaro
 }
+/* RACCOGLITORE LEGGENDARIO: animazione del lavoro accanto alla creatura (fase 'work' del job).
+   Attrezzo a tema che affonda + ventaglio di schegge per terra/albero/roccia; canna+lenza per
+   l'acqua. Fase dal TIMER del job (mai da coord schermo), coordinate già snap-ate. */
+function drawCompanionWork(cxs, cys, time) {
+  const j = COMP.job; if (!j || j.phase !== 'work') return;
+  const ph = 1 - j.t / 1.3;                       // 0→1 (dal timer)
+  const dir = j.wx >= COMP.x ? 1 : -1;
+  if (j.type === 'acqua') {                        // PESCA: canna + lenga + galleggiante + cerchi
+    const rodx = cxs + dir * 6, rody = cys - 7, fx = cxs + dir * 13, fy = cys + 4;
+    for (let i = 0; i <= 4; i++) px(rodx + dir * i, rody - i, '#8a5f38');          // canna
+    const tipx = rodx + dir * 4, tipy = rody - 4;
+    for (let s = 0; s <= 6; s++) { const t = s / 6; px(Math.round(tipx + (fx - tipx) * t), Math.round(tipy + (fy - tipy) * t), '#d8d2c0'); } // lenza
+    const bob = ph > 0.7 ? Math.round(Math.sin(time / 55)) : 0;                    // strappo finale
+    px(fx, fy + bob, '#c65a54'); px(fx, fy - 1 + bob, '#f6efdd');                  // galleggiante
+    const r = 1 + Math.floor((time / 220) % 3);
+    for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(fx + Math.cos(an) * r), Math.round(fy + 2 + Math.sin(an) * r * 0.6), 'rgba(210,235,255,.5)'); }
+    return;
+  }
+  const sub = (ph * 4) % 1, struck = Math.floor(ph * 4) % 2 === 1;                  // due colpi
+  const swing = struck ? 0.5 + 0.5 * Math.sin(Math.PI * sub) : 0;                   // affondo sul colpo
+  const hx = cxs + dir * 5, hy = cys - 6, tox = hx + dir * (2 + swing * 5), toy = hy + swing * 7;
+  for (let i = 0; i <= 5; i++) px(Math.round(hx + dir * i * (0.5 + swing)), Math.round(hy + i * swing), '#8a5f38'); // manico
+  if (j.type === 'terra') rect(tox - 1, toy, 4, 2, '#b8b0a2');                                      // pala
+  else if (j.type === 'albero') { rect(tox + (dir < 0 ? -2 : 0), toy - 1, 3, 3, '#b5622e'); px(tox + (dir < 0 ? -2 : 2), toy - 1, '#d98a4a'); } // accetta a cuneo
+  else { rect(tox - 1, toy, 4, 1, '#9a9285'); px(tox - 1, toy + 1, '#9a9285'); px(tox + 2, toy + 1, '#9a9285'); }   // piccone a doppia punta
+  if (struck) {                                                                     // ventaglio di schegge a tema
+    const ox = cxs + dir * 8, oy = cys - 3;
+    const OX = [-4, -1, 2, 5, 7], H = [4, 6, 3, 5, 4];
+    const CC = j.type === 'terra' ? ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42']
+      : j.type === 'albero' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
+        : ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];                  // roccia: scaglia chiara = scintilla
+    for (let i = 0; i < 5; i++) px(Math.round(ox + dir * OX[i] * (0.4 + sub)), Math.round(oy + 6 - Math.sin(Math.PI * sub) * H[i]), CC[i]);
+  }
+}
+/* "+fossile" che sale dal raccoglitore quando trova qualcosa (contorno rarità) */
+const COMP_RARCOL = { comune: '#cfc8b6', raro: '#7fbfe0', eccezionale: '#c79be6', leggendario: '#f0c86a' };
+function drawCompanionFx(cam, time) {
+  if (!COMP.fx || !COMP.fx.length) return;
+  for (const p of COMP.fx) {
+    const gx = snap(p.x - cam.x), gy = snap(p.y - cam.y - (1 - p.life) * 16), a = Math.max(0, p.life);
+    const w = 'rgba(245,240,225,' + a.toFixed(2) + ')', w2 = 'rgba(245,240,225,' + (a * 0.7).toFixed(2) + ')';
+    px(gx, gy, w); px(gx - 1, gy, w2); px(gx + 1, gy, w2); px(gx, gy - 1, w2);      // ossino "+"
+    if (a > 0.4) px(gx, gy - 2, COMP_RARCOL[p.q] || '#e8d9b0');                      // scintilla rarità
+  }
+}
 /* MERAVIGLIE: il disegno vive in wonderart.js (modulo puro) così si può guardare e
    rifinire anche fuori dal gioco, nella pagina /wonders. */
 function drawLandmark(type, sx, sy, time) {
@@ -394,6 +439,7 @@ function drawGoalMark(sx, sy, time) {
 let frameTime = 0; // aggiornato da render(): serve alle animazioni del player
 function drawPlayer() {
   const sx = snap(P.x - cam.x), sy = snap(P.y - cam.y);
+  if (isMounted()) { drawFlyingMount(sx, sy); return; }                              // cavalcatura volante di grotta
   if (onBoat()) { (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; } // il migliore che possiedi
   shadow(sx, sy + 16, 7);
   if (P.digging) { drawDigging(sx, sy); return; }
@@ -444,6 +490,30 @@ function drawBikeFB(sx, sy, moving, dir) {
   }
 }
 /* in barca: scafo che ondeggia, NIENTE camminata, scia quando ti muovi; pesca con lenza */
+/* CAVALCATURA VOLANTE (grotta leggendario): fossile alato con l'eroe in groppa, in volo sopra
+   la mappa. Ombra a terra STACCATA (dà l'altezza), ali che sbattono (fase dal tempo), bob
+   d'aria, scia di scintille in movimento. Contorni scuri per staccare dallo sfondo. */
+function drawFlyingMount(sx, sy) {
+  const obj = companionDrawObj();
+  const bob = Math.sin(frameTime / 300) * 2, lift = 11 + Math.round(bob);
+  const cy = sy - lift, dir = P.dir === 'left' ? -1 : 1;
+  shadow(sx, sy + 17, 5);                                   // ombra piccola a terra = è in alto
+  const flap = Math.sin(frameTime / 90), wl = Math.round((flap + 1) * 3); // 0..6 apertura
+  for (const s of [-1, 1]) {                                // ali a raggiera dietro il corpo
+    const bx = sx + s * 3;
+    for (let i = 1; i <= 6; i++) {
+      const wx = bx + s * i, wy = cy - 3 - Math.round((i / 6) * wl);
+      px(wx, wy, i > 4 ? '#5a4a6e' : '#7a6a92');            // membrana scura (fossile di grotta)
+      if (i <= 4) px(wx, wy + 1, '#b6a6c6');               // bordo chiaro (contrasto)
+    }
+  }
+  if (obj) drawCreature(obj, sx - 8, cy - 4, false);        // corpo (proiezione voxel)
+  drawHero(null, sx - 8, cy - 12, P.dir, 0);                // eroe in groppa
+  if (P.moving) {                                           // scia di scintille dietro
+    const tx = sx - dir * 10, ty = sy - lift + 5, w2 = Math.floor(frameTime / 120) % 3;
+    px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)');
+  }
+}
 function drawBoat(sx, sy) {
   const bob = Math.round(Math.sin(frameTime / 320) * 1.5);
   const y0 = sy + bob;
@@ -794,8 +864,9 @@ export function render(time) {
     const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ctype = companionType(companionSpec());
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
-    ents.push({ y: COMP.y - cam.y + 15, f: () => { drawCreature(compObj, cxs - 8, cys - 13, cswim); drawCompanionGlyph(ctype, cxs, cys - 16, time); } });
+    ents.push({ y: COMP.y - cam.y + 15, f: () => { drawCreature(compObj, cxs - 8, cys - 13, cswim); drawCompanionGlyph(ctype, cxs, cys - 16, time); drawCompanionWork(cxs, cys, time); } });
   }
+  drawCompanionFx(cam, time);   // "+fossile" che salgono dal raccoglitore (sopra tutto)
   ents.sort((a, b) => a.y - b.y).forEach(e => e.f());
   /* FIUTO: il compagno segnala il reperto a terra più vicino entro pochi tile */
   if (compObj && companionHelps()) {

@@ -11,7 +11,7 @@ import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achiev
 import { weatherAt, weatherLabel } from './weather.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
@@ -530,14 +530,20 @@ const TYPE_TXT = {
   roccia: ['⛏️ Minatore', '⛏️ Miner', 'col piccone', 'with the pickaxe'],
   grotta: ['🕳️ Speleologo', '🕳️ Caver', 'in grotta', 'in caves'],
 };
-/* etichetta del potere del compagno `spec` (specie/chimera del parco) */
+/* etichetta del potere del compagno `spec` (specie/chimera del parco). I LEGGENDARI hanno in
+   più un potere speciale: raccoglitore autonomo (terra/acqua/albero/roccia) o cavalcatura
+   volante (grotta). */
 function abilLabel(spec) {
-  const e = TYPE_TXT[companionType(spec)]; if (!e) return '';
+  const type = companionType(spec), e = TYPE_TXT[type]; if (!e) return '';
   const pct = Math.round(companionPower(spec) * 100);
   const name = tr(e[0], e[1]), how = tr(e[2], e[3]);
-  return companionType(spec) === 'grotta'
+  let base = type === 'grotta'
     ? name + ': ' + tr('cristalli più ricchi ', 'richer crystals ') + how
     : name + ': +' + pct + '% ' + tr('reperti ', 'finds ') + how;
+  if (spec && spec.q === 'leggendario') base += type === 'grotta'
+    ? ' · 🐾 ' + tr('CAVALCABILE: vola sulla mappa', 'RIDEABLE: fly over the map')
+    : ' · 🐾 ' + tr('raccoglie da solo e ti porta i fossili', 'gathers on its own and brings you fossils');
+  return base;
 }
 export function openCompanionPicker() {
   const cands = companionCandidates(), cur = companionSpec();
@@ -1181,6 +1187,11 @@ export function openBag(tab) {
     boatRow('boat', '⛵', tr('Barca', 'Boat'), tr('sali da solo entrando in acqua · E per pescare', 'you board it automatically · E to fish')),
     boatRow('motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('sostituisce la barca, ×3 sull\'acqua', 'replaces the boat, ×3 on water')),
   ];
+  /* cavalcatura volante: solo se il compagno è un grotta LEGGENDARIO (in grotta non si vola) */
+  if (companionRides()) { const fly = isMounted();
+    vehicles.push(row('🐾', tr('Cavalcatura volante', 'Flying mount'), tr('sorvoli la mappa · in grotta no', 'fly over the map · not in caves'),
+      `<button class="bbtn${fly ? ' on' : ''}" data-mount="1">${fly ? tr('In volo', 'Flying') : tr('Cavalca', 'Ride')}</button>`, '', 'click' + (fly ? ' on' : '')));
+  }
   const nTools = [S.tools.spade, S.tools.axe, S.tools.pick, S.tools.torch, S.tools.compass].filter(Boolean).length;
   const nVeh = ['skates', 'bike', 'boat', 'motorboat'].filter(g => S.tools[g]).length;
   const orows = [];
@@ -1255,6 +1266,7 @@ export function openBag(tab) {
     box.querySelectorAll('[data-eat]').forEach(el => el.onclick = () => { eatSnack(); openBag(); });
     box.querySelectorAll('[data-tp]').forEach(el => el.onclick = () => { if (useTeleport()) closeBag(); else openBag(); });
     box.querySelectorAll('[data-gear]').forEach(el => el.onclick = () => { toggleGear(el.dataset.gear); openBag(); });
+    box.querySelectorAll('[data-mount]').forEach(el => el.onclick = () => { toggleMount(); openBag(); });
     box.querySelectorAll('[data-track]').forEach(el => el.onclick = () => {
       const uid = parseInt(el.dataset.track, 10);
       S.trackMap = S.trackMap === uid ? null : uid; save();

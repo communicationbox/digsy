@@ -30,7 +30,7 @@ export function fresh() {
     seed: (Math.random() * 1e9) | 0, coins: 0, energy: 30, maxEnergy: 30, day: 1,
     raw: [], items: [], codex: [], donated: [], dug: [], creatures: [],
     uid: 1, px: 0, py: 0, started: false, lastTown: null, tod: 0.25, book: {}, sites: {}, awakened: [], museum: {},
-    look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false,
+    look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false, mounted: false,
   };
 }
 /* CHEAT LOCK: in modalità cheat/god NON si salva (non distruttivo) — al ritorno "vanilla"

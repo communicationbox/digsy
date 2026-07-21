@@ -49,6 +49,7 @@ export function caveNodeDone(cx, cy) {
 
 export function enterCave(seed, wx, wy) {
   clearGoal();                              // sottoterra la meta di superficie non serve più
+  S.mounted = false;                        // in grotta NON si vola: si scende all'imbocco
   CAVE.active = true; CAVE.seed = ((seed | 0) % 997) + 3; CAVE.wx = wx; CAVE.wy = wy; CAVE.trail = [];
   /* spawn nel corridoio d'ingresso in basso al centro */
   CAVE.x = (CAVE.w >> 1) * TS + 8; CAVE.y = (CAVE.h - 2) * TS; CAVE.dir = 'up'; CAVE.moving = false;
