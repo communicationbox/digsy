@@ -26,6 +26,7 @@ export const CHANGELOG = [
       'CAVALCATURA: l\'eroe ora è SEDUTO in groppa (vita in su, gambe nascoste), non più in piedi; faccia libera e centrata',
       'SCAVO del compagno più bello: la creatura di TERRA scava a testa in giù come un cane — sedere e coda su che scodinzolano, zampe che grattano, terra che schizza indietro e mucchietto che cresce (niente più semplice affondo)',
       'TAGLIO ALBERO del compagno: la creatura ROSICCHIA il tronco come un castoro — morsi ritmici, trucioli di legno, tacca chiara e foglie che cadono ondeggiando dalla chioma (niente accetta)',
+      'ROTTURA ROCCIA del compagno: la creatura TESTA il masso come un ariete — lampo d\'impatto, scaglie di pietra con scintille e una crepa che si apre (niente piccone)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -52,6 +53,7 @@ export const CHANGELOG = [
       'MOUNT: the hero now SITS in the saddle (waist up, legs hidden), no longer standing; face clear and centered',
       'Nicer companion DIG: the ground gatherer digs head-down like a dog — rump and tail up wagging, paws scratching, dirt kicked backward and a growing mound (no more plain lunge)',
       'Companion TREE-CUTTING: the creature GNAWS the trunk like a beaver — rhythmic bites, wood chips, a pale notch and leaves fluttering down from the canopy (no axe)',
+      'Companion ROCK-BREAKING: the creature HEADBUTTS the boulder like a ram — impact flash, stone chips with sparks and a crack opening up (no pickaxe)',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

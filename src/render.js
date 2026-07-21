@@ -308,22 +308,32 @@ function drawCompanionChop(cx, cy, time, dir) {
     if (t < 0.9) { px(Math.round(fx), Math.round(fy), k % 2 ? '#4e7a3d' : '#619a4c'); if (t < 0.5) px(Math.round(fx) + dir, Math.round(fy), '#3f6a32'); }
   }
 }
+/* ROTTURA ROCCIA da ANIMALE (niente piccone!): la creatura TESTA il masso come un ariete/capra —
+   testate ritmiche con LAMPO d'impatto, scaglie di pietra che schizzano con qualche scintilla, e
+   una CREPA pallida che si apre sul masso. La creatura è disegnata a parte (in piedi, testata in
+   avanti); qui gli effetti. Fase dal TEMPO. */
+function drawCompanionMine(cx, cy, time, dir) {
+  const rx = cx + dir * 7, beat = (time / 85) % 1, hit = Math.floor(time / 85) % 2 === 0; // punto d'impatto
+  /* CREPA che si apre (zigzag pallido sul masso, sempre visibile durante il lavoro) */
+  px(rx, cy - 3, '#cbc4b6'); px(rx + dir, cy - 2, '#cbc4b6'); px(rx, cy - 1, '#d8d2c6'); px(rx - dir, cy, '#cbc4b6'); px(rx, cy + 1, '#cbc4b6');
+  if (hit) {
+    px(rx, cy - 1, '#ffffff'); px(rx - 1, cy - 1, '#eef2f6'); px(rx + 1, cy - 1, '#eef2f6'); px(rx, cy - 2, '#eef2f6'); px(rx, cy, '#eef2f6'); // LAMPO d'impatto
+    const OX = [0, 2, 4, 6], H = [5, 7, 5, 3], CC = ['#9a9285', '#b8b0a2', '#e2e7ef', '#7f776a'];
+    for (let i = 0; i < 4; i++) px(Math.round(rx + dir * OX[i] * (0.5 + beat)), Math.round(cy - 1 - Math.sin(Math.PI * beat) * H[i]), CC[i]); // scaglie
+    if (Math.floor(time / 170) % 2) px(rx + dir * 3, cy - 2, '#ffe98a'); // scintilla gialla
+  }
+  px(cx + dir * 5, cy + 2, 'rgba(150,150,150,.45)'); // polverina alla base
+}
 /* RACCOGLITORE LEGGENDARIO: animazione del lavoro (fase 'work'). Gli ANIMALI non usano attrezzi:
-   ACQUA = dabble d'oca · TERRA = scavo a testa in giù · ALBERO = rosicchia il tronco (castoro) ·
-   ROCCIA = la creatura spinge e schizza scaglie. Coordinate già snap. */
+   ACQUA = dabble d'oca · TERRA = scavo a testa in giù (cane) · ALBERO = rosicchia il tronco
+   (castoro) · ROCCIA = testa il masso (ariete). Coordinate già snap. */
 function drawCompanionWork(cxs, cys, time, obj) {
   const j = COMP.job; if (!j || j.phase !== 'work') return;
   const dir = j.wx >= COMP.x ? 1 : -1;
   if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
   if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); return; }
   if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); return; }
-  const ph = 1 - j.t / 1.3, sub = (ph * 4) % 1, struck = Math.floor(ph * 4) % 2 === 1;
-  if (struck) {                                                                     // ROCCIA: scaglie + scintilla
-    const ox = cxs + dir * 8, oy = cys - 2;
-    const OX = [-4, -1, 2, 5, 7], H = [4, 6, 3, 5, 4], CC = ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];
-    for (let i = 0; i < 5; i++) px(Math.round(ox + dir * OX[i] * (0.4 + sub)), Math.round(oy + 6 - Math.sin(Math.PI * sub) * H[i]), CC[i]);
-    px(cxs + dir * 6, cys + 2, 'rgba(180,160,120,.5)');
-  }
+  drawCompanionMine(cxs, cys, time, dir); // roccia
 }
 /* "+fossile" che sale dal raccoglitore quando trova qualcosa (contorno rarità) */
 const COMP_RARCOL = { comune: '#cfc8b6', raro: '#7fbfe0', eccezionale: '#c79be6', leggendario: '#f0c86a' };
