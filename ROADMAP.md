@@ -66,3 +66,7 @@ numero di bilanciamento è teoria: nessuno ha ancora giocato a questo gioco tran
 - tetti degli edifici a tema bioma (`BIOME_BUILD.roof` è già pronto e inutilizzato)
 - multigiocatore asincrono / scambio reperti
 - pesca come minigioco a sé
+- **idle bounded legato al parco** (chiesto da un tester): parco che rende gocce di
+  monete/DNA con tetto giornaliero + riepilogo "bentornato" al rientro con delta orario
+  cappato (~8–12h). MAI auto-dig (svuota il verbo `E`), mai rendita che scala, mai
+  decadimento. Da valutare col ripensamento di poteri chimere / risvegli.

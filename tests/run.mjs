@@ -2889,9 +2889,17 @@ sprites.applyLook();
   check('candidati compagno: chimere + risvegliati', cands.length === 2 && cands.some(c => c.key === 'chi1') && cands.some(c => c.key === 'spprato'));
   comp.setCompanion(cands[0]);
   check('compagno impostato + HUD', comp.companionSpec() && comp.companionSpec().key === 'chi1' && comp.isCurrentCompanion('chi1'));
-  check('abilità deterministica valida', comp.ABILITIES.includes(comp.companionAbility()) && comp.abilityOf(cands[1]) === comp.abilityOf(cands[1]));
+  /* POTERE dai TRATTI: tipo = fonte della specie (skull), potenza = rarità */
+  const dataC = await import('../src/data.js');
+  const water = dataC.ALL_SPECIES.find(s => s.src === 'acqua');
+  const wSpec = { skull: water.id, torso: water.id, leg: water.id, q: 'eccezionale', key: 'w', name: 'W' };
+  check('compagno: TIPO dalla fonte della specie (acqua→Pescatore)', comp.companionType(wSpec) === 'acqua');
+  check('compagno: POTENZA scala con la rarità', comp.companionPower({ q: 'comune' }) < comp.companionPower({ q: 'raro' })
+    && comp.companionPower({ q: 'raro' }) < comp.companionPower({ q: 'eccezionale' }) && comp.companionPower({ q: 'eccezionale' }) < comp.companionPower({ q: 'leggendario' }));
+  comp.setCompanion(wSpec);
+  check('compagno: yieldMul potenzia SOLO la sua attività', Math.abs(comp.companionYieldMul('acqua') - 1.22) < 1e-9 && comp.companionYieldMul('terra') === 1 && comp.companionHelps() === true);
   comp.clearCompanion();
-  check('compagno rimandato a casa', comp.companionSpec() === null && comp.companionAbility() === null);
+  check('compagno rimandato a casa', comp.companionSpec() === null && comp.companionYieldMul('acqua') === 1 && comp.companionHelps() === false);
 }
 
 /* ---------- missioni: bacheca deterministica, accetta/consegna, limite, scadenza ---------- */

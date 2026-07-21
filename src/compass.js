@@ -8,7 +8,7 @@ import { tr, zoneName, rarLabel } from './i18n.js';
 import { withIcons } from './icons.js';
 import { CAVE } from './cave.js';
 import { setBiomeMood } from './audio.js';
-import { companionAbility } from './companion.js';
+import { companionHelps } from './companion.js';
 import { weatherAt, weatherLabel } from './weather.js';
 
 let lastZone = null;
@@ -72,8 +72,8 @@ export function updateCompass(ts) {
   const t = compass.town;
   /* benvenuto entrando in città: INDIPENDENTE dalla bussola */
   if (t && playerInTown(t) && S.lastTown !== t.key) { S.lastTown = t.key; save(); toast(tr('Benvenuto a ', 'Welcome to ') + t.name + '!'); }
-  /* BUSSOLA = oggetto acquistabile e ATTIVABILE (o compagno "bussola"): solo allora nome + freccia città */
-  const cOn = !!(S.tools && S.tools.compass && S.compassOn) || companionAbility() === 'compass';
+  /* BUSSOLA = oggetto acquistabile e ATTIVABILE, OPPURE hai un compagno (comodità universale) */
+  const cOn = !!(S.tools && S.tools.compass && S.compassOn) || companionHelps();
   compass.cityGuide = cOn && !!t; // la freccia gialla verso la città (letta in drawCompassIndicator)
   if (cOn && t) {
     const inTown = playerInTown(t);

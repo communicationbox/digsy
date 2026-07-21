@@ -13,6 +13,7 @@ import { addXp, XP_BY_RAR, digDurationMul } from './progress.js';
 /* anello con gameplay.js (che importa questo file per digCave): va bene perché la chiamata
    avviene a runtime dentro digCave, mai al caricamento del modulo */
 import { bagFull } from './gameplay.js';
+import { companionYieldMul } from './companion.js';
 import { playSfx, setBiomeMood } from './audio.js';
 import { toast, updateHUD } from './ui.js';
 import { tr } from './i18n.js';
@@ -88,6 +89,9 @@ export function onCaveExit() {
    valore base scende a 10 e i pesi sono meno estremi → resta la miglior fonte, ~3×). */
 function makeCaveRaw(dist) {
   const w = { comune: 16, raro: 30, eccezionale: 26 + Math.min(16, dist / 60), leggendario: 12 + Math.min(14, dist / 80) };
+  /* compagno Speleologo: cristalli più ricchi → spinge i pesi verso ecc./leggendario */
+  const gm = companionYieldMul('grotta');
+  if (gm > 1) { const k = 1 + (gm - 1) * 2; w.eccezionale *= k; w.leggendario *= k; }
   const tot = CAVE_POOL.reduce((a, s) => a + w[s.r], 0);
   let r = Math.random() * tot, sp = CAVE_POOL[0];
   for (const s of CAVE_POOL) { r -= w[s.r]; if (r <= 0) { sp = s; break; } }

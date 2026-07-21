@@ -12,6 +12,7 @@ export const CHANGELOG = [
       'FONTANA: tre tiri di fila, ognuno più veloce — sbagliane uno e i tiri finiscono; tre su tre = premio assicurato, altrimenti in base a quanti ne azzecchi',
       'LUCCIOLE: missione RARA d\'estate dal cartello — di notte, all\'aperto, raccogli le lucciole col retino; completarla ti GUIDA a una mappa verso un fossile LEGGENDARIO',
       'LIBRO: ogni scheda mostra "Ossa: X/5" (i pezzi consegnati al Museo) e quando le hai TUTTE la pagina si borda d\'ORO con "✓ Completo"',
+      'COMPAGNI: il potere ora dipende dai TRATTI — il TIPO (fonte: terra/acqua/albero/roccia/grotta) decide che aiuto dà, la RARITÀ quanto è forte; e ogni compagno dà comunque fiuto e bussola',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -24,6 +25,7 @@ export const CHANGELOG = [
       'FOUNTAIN: three tosses in a row, each faster — miss one and the tosses end; three in a row = guaranteed prize, otherwise it depends on how many you land',
       'FIREFLIES: a RARE summer quest from the board — at night, outdoors, catch fireflies with a net; completing it GUIDES you to a map toward a LEGENDARY fossil',
       'BOOK: each page shows "Bones: X/5" (pieces handed to the Museum) and when you have them ALL the page gets a GOLD border with "✓ Complete"',
+      'COMPANIONS: the power now depends on TRAITS — the TYPE (source: ground/water/tree/rock/cave) decides what help it gives, RARITY how strong; and every companion still grants sniff and compass',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

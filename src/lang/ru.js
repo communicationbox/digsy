@@ -735,8 +735,10 @@ export const RU = {
   "I've got one in my bag already: coming!": 'У меня уже есть одно в рюкзаке — иду!',
   "Thank you! I'll fill them all.": 'Спасибо! Я заполню их все.',
   "What's new": 'Что нового',
-  'Choose who follows you in the world. Each companion has an ability that helps you.':
-    'Выберите, кто пойдёт с вами. У каждого спутника своя полезная способность.',
+  'Choose who follows you in the world. The power depends on its TYPE (source) and grows with RARITY; every companion also gives sniff and compass.':
+    'Выберите, кто пойдёт с вами. Сила зависит от ТИПА (источника) и растёт с РЕДКОСТЬЮ; каждый спутник также даёт нюх и компас.',
+  'richer crystals ': 'богаче кристаллы ',
+  'finds ': 'находки ',
   'Sleep until dawn 🌙': 'Спать до рассвета 🌙',
   "Today's requests from the townsfolk. You can hold ": 'Сегодняшние заказы горожан. Можно взять ',
   " at a time; they expire at day's end.": ' одновременно; они сгорают в конце дня.',
@@ -1054,9 +1056,6 @@ export const RU = {
     'Несите мне НЕОБРАБОТАННЫЕ находки — определю сразу. Новые части останутся в экспозиции; соберите витрину (5 из 5) и получите пробирку ДНК — Лаборатории нужны две, чтобы вернуть вид к жизни.',
 
   /* ---- abilità del compagno ---- */
-  '🐾 Sniff: points to nearby ground finds': '🐾 Нюх: показывает находки на земле поблизости',
-  '🧭 Compass: always shows town distance and name': '🧭 Компас: всегда показывает расстояние и название города',
-  '✨ Luck: better digs and pricier objects': '✨ Удача: лучше раскопки и дороже предметы',
 
   /* ---- descrizioni delle zone ---- */
   'Golden grasslands: the calmest place for your first digs.':

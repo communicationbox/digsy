@@ -1,17 +1,41 @@
 /* Compagno: una chimera o un fossile risvegliato scelto dal PARCO ti segue e AIUTA.
-   Abilità (dall'hash del compagno): fiuto (segnala i reperti a terra vicini),
-   bussola (mostra sempre passi/nome anche da lontano), fortuna (+scavo, +valore oggetti). */
+   Il POTERE dipende dai TRATTI, non più da un hash a caso:
+     - TIPO   = la FONTE della specie (per le chimere: la specie del CRANIO):
+                terra→Scavatore · acqua→Pescatore · albero→Boscaiolo · roccia→Minatore · grotta→Speleologo.
+                Ogni tipo potenzia la resa della SUA attività di raccolta.
+     - POTENZA = scala con la RARITÀ (comune<raro<eccezionale<leggendario).
+   In più OGNI compagno, a prescindere, dà due comodità universali: FIUTO (segnala i reperti a
+   terra vicini) e BUSSOLA (HUD sempre acceso). I LEGGENDARI avranno poteri ATTIVI a sé
+   (raccoglitore autonomo / cavalcatura volante di grotta) — vedi le fasi successive. */
 import { S, P } from './state.js';
 import { save } from './state.js';
+import { spById } from './data.js';
 import { parkPopulation } from './park.js';
 
 export const COMP = { x: 0, y: 0, dir: -1, anim: 0, init: false };
 
-function hashStr(s) { let h = 0; for (let i = 0; i < (s || '').length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return Math.abs(h); }
+/* i cinque tipi (fonti). 'any'/assente → terra (lo Scavatore è il default sempre valido) */
+export const COMP_TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
+/* potenza per rarità (numeri d'esempio, da tarare ai playtest) */
+const POWER = { comune: 0.08, raro: 0.15, eccezionale: 0.22, leggendario: 0.30 };
+
 export function companionSpec() { return S.companion || null; }
-export const ABILITIES = ['sniff', 'compass', 'luck'];
-export function abilityOf(spec) { return spec ? ABILITIES[hashStr(spec.key || spec.name) % ABILITIES.length] : null; }
-export function companionAbility() { return abilityOf(S.companion); }
+/* TIPO del compagno = fonte della specie che lo definisce (skull vale per chimere E risvegliati:
+   in parkPopulation i risvegliati hanno skull=torso=leg=specie) */
+export function companionType(spec) {
+  const sp = spec && spById[spec.skull];
+  const s = sp && sp.src;
+  return (s === 'acqua' || s === 'albero' || s === 'roccia' || s === 'grotta') ? s : 'terra';
+}
+export function companionPower(spec) { return spec ? (POWER[spec.q] || POWER.comune) : 0; }
+/* moltiplicatore di resa per l'attività data: 1+potenza se il tipo combacia, altrimenti 1 */
+export function companionYieldMul(activitySrc) {
+  const c = S.companion; if (!c) return 1;
+  return companionType(c) === activitySrc ? 1 + companionPower(c) : 1;
+}
+/* comodità universali: ogni compagno fiuta i reperti a terra e tiene la bussola accesa */
+export function companionHelps() { return !!S.companion; }
+
 export function setCompanion(spec) { S.companion = spec || null; COMP.init = false; save(); }
 export function clearCompanion() { setCompanion(null); }
 

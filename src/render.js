@@ -8,7 +8,7 @@ export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
-import { COMP, companionDrawObj, companionAbility } from './companion.js';
+import { COMP, companionDrawObj, companionType, companionSpec, companionHelps } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
@@ -239,13 +239,15 @@ function drawBoard(sx, sy, time) {
   rect(sx + 1, sy, 14, 1, '#5c4229');                                                // cornice alta
   if (Math.floor(time / 400) % 3 === 0) { px(sx + 13, sy + 2, '#fff3b0'); px(sx + 14, sy + 1, '#fff8d0'); } // luccichio "novità"
 }
-/* glifo dell'ABILITÀ del compagno sopra la sua testa (sempre visibile → l'abilità è "attiva") */
-function drawCompanionGlyph(ab, cx, cy, time) {
-  if (!ab) return;
+/* glifo del TIPO del compagno sopra la sua testa (sempre visibile → il potere è "attivo"):
+   un diamantino 8-bit col colore-tema del tipo e nucleo chiaro per staccare dallo sfondo */
+const GLYPH_COL = { terra: ['#b07a3c', '#e6c48a'], acqua: ['#3f9bdc', '#bfe6ff'], albero: ['#5fae4a', '#c8f0b0'], roccia: ['#9aa2ad', '#e2e7ef'], grotta: ['#e0a83c', '#ffe6a6'] };
+function drawCompanionGlyph(type, cx, cy, time) {
+  if (!type) return;
   const y = cy + (Math.sin(time / 300) < 0 ? -1 : 0);
-  if (ab === 'sniff') { px(cx - 1, y, '#f6d95c'); px(cx + 1, y, '#f6d95c'); px(cx, y - 1, '#fff3b0'); px(cx, y + 1, '#e0a020'); }
-  else if (ab === 'compass') { px(cx, y - 1, '#e4573d'); px(cx, y, '#c9cdd8'); px(cx, y + 1, '#c9cdd8'); }
-  else { px(cx, y - 1, '#fff3b0'); px(cx - 1, y, '#f6d95c'); px(cx + 1, y, '#f6d95c'); px(cx, y + 1, '#fff3b0'); px(cx, y, '#fffbe0'); }
+  const [c, hi] = GLYPH_COL[type] || GLYPH_COL.terra;
+  px(cx, y - 1, c); px(cx - 1, y, c); px(cx + 1, y, c); px(cx, y + 1, c); // diamante
+  px(cx, y, hi);                                                          // nucleo chiaro
 }
 /* MERAVIGLIE: il disegno vive in wonderart.js (modulo puro) così si può guardare e
    rifinire anche fuori dal gioco, nella pagina /wonders. */
@@ -789,14 +791,14 @@ export function render(time) {
   /* COMPAGNO: chimera/risvegliato che insegue il player */
   const compObj = companionDrawObj();
   if (compObj) {
-    const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ab = companionAbility();
+    const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ctype = companionType(companionSpec());
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
-    ents.push({ y: COMP.y - cam.y + 15, f: () => { drawCreature(compObj, cxs - 8, cys - 13, cswim); drawCompanionGlyph(ab, cxs, cys - 16, time); } });
+    ents.push({ y: COMP.y - cam.y + 15, f: () => { drawCreature(compObj, cxs - 8, cys - 13, cswim); drawCompanionGlyph(ctype, cxs, cys - 16, time); } });
   }
   ents.sort((a, b) => a.y - b.y).forEach(e => e.f());
   /* FIUTO: il compagno segnala il reperto a terra più vicino entro pochi tile */
-  if (compObj && companionAbility() === 'sniff') {
+  if (compObj && companionHelps()) {
     const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
     /* la scansione 15×15 costava 225 pickupAt PER FRAME (e ognuna tocca terreno, città,
        decorazioni e zona): si rifà 4 volte al secondo, o quando cambi casella. */

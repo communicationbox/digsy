@@ -5,7 +5,7 @@ import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
 import { ensureQuests, boardOffers, acceptQuest, deliverQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
-import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionAbility, companionSpec, abilityOf } from './companion.js';
+import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPower, companionSpec } from './companion.js';
 import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './progress.js';
 import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achievements.js';
 import { weatherAt, weatherLabel } from './weather.js';
@@ -521,21 +521,33 @@ export function openQuests() {
 }
 
 /* ---------- COMPAGNO: scelto dal parco, ti segue e aiuta ---------- */
-const ABIL_TXT = {
-  sniff: ['🐾 Fiuto: segnala i reperti a terra vicini', '🐾 Sniff: points to nearby ground finds'],
-  compass: ['🧭 Bussola: mostra sempre distanza e nome della città', '🧭 Compass: always shows town distance and name'],
-  luck: ['✨ Fortuna: scavi più fruttuosi e oggetti più preziosi', '✨ Luck: better digs and pricier objects'],
+/* il potere dipende dai TRATTI: TIPO (fonte della specie/del cranio) = quale aiuto,
+   RARITÀ = quanto forte. In più ogni compagno dà FIUTO + BUSSOLA universali. */
+const TYPE_TXT = {
+  terra: ['🪏 Scavatore', '🪏 Digger', 'scavando', 'digging'],
+  acqua: ['🎣 Pescatore', '🎣 Angler', 'pescando', 'fishing'],
+  albero: ['🪓 Boscaiolo', '🪓 Woodsman', "con l'accetta", 'with the hatchet'],
+  roccia: ['⛏️ Minatore', '⛏️ Miner', 'col piccone', 'with the pickaxe'],
+  grotta: ['🕳️ Speleologo', '🕳️ Caver', 'in grotta', 'in caves'],
 };
-function abilLabel(ab) { const e = ABIL_TXT[ab]; return e ? tr(e[0], e[1]) : ''; }
+/* etichetta del potere del compagno `spec` (specie/chimera del parco) */
+function abilLabel(spec) {
+  const e = TYPE_TXT[companionType(spec)]; if (!e) return '';
+  const pct = Math.round(companionPower(spec) * 100);
+  const name = tr(e[0], e[1]), how = tr(e[2], e[3]);
+  return companionType(spec) === 'grotta'
+    ? name + ': ' + tr('cristalli più ricchi ', 'richer crystals ') + how
+    : name + ': +' + pct + '% ' + tr('reperti ', 'finds ') + how;
+}
 export function openCompanionPicker() {
   const cands = companionCandidates(), cur = companionSpec();
-  let h = `<div class="muted" style="margin-bottom:8px">${tr("Scegli chi ti segue nel mondo. Ogni compagno ha un'abilità che ti aiuta.", 'Choose who follows you in the world. Each companion has an ability that helps you.')}</div>`;
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli chi ti segue nel mondo. Il potere dipende dal TIPO (fonte) e cresce con la RARITÀ; ogni compagno dà anche fiuto e bussola.', 'Choose who follows you in the world. The power depends on its TYPE (source) and grows with RARITY; every companion also gives sniff and compass.')}</div>`;
   if (!cands.length) h += `<div class="center muted">${tr('Nessuna chimera o fossile risvegliato. Assembla una chimera o risveglia una specie al Laboratorio!', 'No chimera or awakened fossil yet. Assemble a chimera or awaken a species at the Lab!')}</div>`;
   else {
     h += `<div class="row" style="background:${cur ? '#f3ecda' : '#f1e6cc'}"><span class="em">🚫</span><div><div class="nm">${tr('Nessun compagno', 'No companion')}</div></div><div class="rt">${cur ? `<button class="btn ghost" data-comp="">${tr('Rimanda a casa', 'Send home')}</button>` : '<b>✓</b>'}</div></div>`;
     h += cands.map(c => {
       const on = isCurrentCompanion(c.key);
-      return `<div class="row"><span class="em">🐾</span><div><div class="nm">${c.name} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(abilityOf(c))}</div></div><div class="rt">${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
+      return `<div class="row"><span class="em">🐾</span><div><div class="nm">${c.name} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(c)}</div></div><div class="rt">${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
     }).join('');
   }
   mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno', 'Companion'));
@@ -575,7 +587,7 @@ export function openHudGuide() {
   const nq = activeQuests().length;
   h += rowg('📋', tr('Missioni', 'Missions') + ': ' + nq + '/3', tr('Prendile al cartello 📋 in città (tasto Q per rivederle). Scadono a fine giornata.', 'Take them at the town board 📋 (press Q to review). They expire at day\'s end.'));
   const cs = companionSpec();
-  h += rowg('🐾', tr('Compagno', 'Companion') + ': ' + (cs ? cs.name : tr('nessuno', 'none')), cs ? abilLabel(companionAbility()) : tr('Scegline uno dal parco delle città grandi.', 'Choose one at the park in big cities.'));
+  h += rowg('🐾', tr('Compagno', 'Companion') + ': ' + (cs ? cs.name : tr('nessuno', 'none')), cs ? abilLabel(cs) : tr('Scegline uno dal parco delle città grandi.', 'Choose one at the park in big cities.'));
   h += `<div class="muted" style="margin-top:8px">${tr('Muoviti con WASD/frecce · <b>E</b> raccogli/scava/entra · <b>I</b> zaino · <b>L</b> libro · <b>Q</b> missioni', 'Move with WASD/arrows · <b>E</b> collect/dig/enter · <b>I</b> bag · <b>L</b> book · <b>Q</b> missions')}</div>`;
   mTitle.innerHTML = withIcons('❔ ' + tr('Guida rapida', 'Quick guide'));
   mBody.innerHTML = withIcons(h); openModal();

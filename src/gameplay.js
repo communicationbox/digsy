@@ -12,7 +12,7 @@ import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememb
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, showTip } from './ui.js';
-import { companionAbility } from './companion.js';
+import { companionYieldMul } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
@@ -199,7 +199,7 @@ export function tryDig() {
       let ch = digChance[t] || 0.2;
       if (useBuff('digX2')) ch *= 2;                                       // spore del Cerchio di Funghi
       if (S.shovel > 0) { ch *= 1.4; S.shovel--; }                         // pala fortunata (60 cariche)
-      if (companionAbility() === 'luck') ch *= 1.12;                        // compagno fortunato
+      ch *= companionYieldMul('terra');                                    // compagno Scavatore: +resa per rarità
       ch *= weatherDropMul(weatherAt(zoneAt(tx, ty).id, S.day));            // pioggia: un po' più ritrovamenti
       ch = Math.min(0.8, ch);                                              // cap totale: mai troppo facile
       if (Math.random() < ch) {
@@ -309,7 +309,8 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
   beginDig(0.5, () => {
     if (!isDebug()) spendEnergy(1);
     setAdd.add(tx + ',' + ty); arr.push(tx + ',' + ty);
-    if (Math.random() < 0.5) {
+    /* compagno Boscaiolo/Minatore: più resa se il tipo combacia con la fonte (albero/roccia) */
+    if (Math.random() < Math.min(0.85, 0.5 * companionYieldMul(src))) {
       const raw = makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, src);
       if (raw && addFossil(raw, tx, ty)) toast(okMsg);
       else if (!raw) toast(src === 'roccia' ? tr('…la vena è muta in questa stagione', '…the vein is silent this season') : tr('…niente', '…nothing'));
@@ -354,7 +355,8 @@ export function tryFish() {
   beginDig(0.9, () => {
     if (!isDebug()) spendEnergy(1);
     const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
-    const raw = Math.random() < 0.4 ? makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, 'acqua') : null;
+    const fishCh = Math.min(0.85, 0.4 * companionYieldMul('acqua')); // compagno Pescatore: più abboccate
+    const raw = Math.random() < fishCh ? makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, 'acqua') : null;
     if (raw) {
       if (addFossil(raw, tx, ty)) toast('🎣 ' + tr('Un fossile acquatico! (da identificare)', 'An aquatic fossil! (needs identifying)'));
       playSfx('found');
@@ -584,7 +586,7 @@ function pickDeco(h) {
   const key = h.tx + ',' + h.ty;
   pickedSet.add(key); if (!S.picked) S.picked = []; S.picked.push(key);
   choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key);  // sparisce dalla mappa
-  const g = makeGoodById(h.id); if (companionAbility() === 'luck') g.val += 1;
+  const g = makeGoodById(h.id);
   addGood(g); gainXp(1);
   toast('✨ ' + tr('Raccolto: ', 'Picked up: ') + goodName(h.id) + ' (🪙' + g.val + ')'); playSfx('found');
   save(); updateHUD(); return true;
@@ -628,7 +630,7 @@ export function collectPickup() {
   const p = nearbyPickup(); if (!p) return false;
   const id = pickupAt(p.tx, p.ty); if (!id) return false;    // esattamente ciò che è disegnato
   pickedSet.add(p.tx + ',' + p.ty); S.picked.push(p.tx + ',' + p.ty);
-  const g = makeGoodById(id); if (companionAbility() === 'luck') g.val += 1; addGood(g); // compagno fortunato: +valore
+  const g = makeGoodById(id); addGood(g);
   gainXp(1);
   toast('✨ ' + tr('Raccolto: ', 'Picked up: ') + goodName(id) + ' (🪙' + g.val + ')'); playSfx('found');
   save(); updateHUD(); return true;
