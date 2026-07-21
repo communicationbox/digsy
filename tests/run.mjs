@@ -2956,7 +2956,7 @@ sprites.applyLook();
   const lontani = Object.entries(audio.MOODS).filter(([, m]) => audio.keyDistance(tonica, m.shift) > 2);
   check('ogni bioma e in una tonalita vicina alla tonica (<=2)', lontani.length === 0);
   // i due colpevoli segnalati ora sono vicini
-  check('palude e ghiacci non piu tonalita lontane', audio.keyDistance(tonica, audio.MOODS.palude.shift) <= 1 && audio.keyDistance(tonica, audio.MOODS.ghiacci.shift) <= 1);
+  check('palude e ghiacci restano tonalita VICINE (non le vecchie lontane FA#/DO#)', audio.keyDistance(tonica, audio.MOODS.palude.shift) <= 2 && audio.keyDistance(tonica, audio.MOODS.ghiacci.shift) <= 2);
 }
 
 /* ---------- SMOKE del tasto E: act() non deve MAI lanciare (un identificatore rimosto a
@@ -4716,6 +4716,16 @@ sprites.applyLook();
   check('la RETINATA (E) cattura la lucciola e la missione avanza', ff.tryCatchFireflies() === true && (S.fireflies || 0) > before && qm.questHave(S.quests.active[0]) > 0);
   ff.resetFireflies();
   check('senza lucciole a portata, E non retina (niente)', ff.tryCatchFireflies() === false && ff.fireflyInReach() === false);
+  /* COMPLETAMENTO AUTOMATICO: raggiunto l'obiettivo la missione si consegna da sola e le lucciole sfumano */
+  S.fireflies = 0; S.coins = 0;
+  S.quests = { day: S.day, active: [{ type: 'fireflies', n: 1, base: 0, reward: 20, qid: 'ffc', day: S.day }], done: [] };
+  ff.resetFireflies(); ff.updateFireflies(300, 0.9);
+  const fl2 = ff._fliesForTest(); fl2[0].x = P.x; fl2[0].y = P.y + 8;
+  ff.tryCatchFireflies();
+  check('obiettivo raggiunto → missione consegnata da sola', S.quests.done.includes('ffc') && S.coins > 0);
+  for (let t = 0; t < 25; t++) ff.updateFireflies(300 + t * 50, 0.9);
+  check('a missione finita le lucciole sfumano e spariscono', ff.fireflyCount() === 0);
+  ff.resetFireflies();
   S.quests = null; S.fireflies = 0;
 }
 

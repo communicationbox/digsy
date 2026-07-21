@@ -21,11 +21,11 @@ export const MOODS = {
   boschi:  { tempo: 232, shift: -2,  lead: 'triangle' },   // SOL min · cupo, morbido (d2)
   terre:   { tempo: 254, shift: -5,  lead: 'square' },     // MI min basso · grave e LENTO (d1)
   palude:  { tempo: 236, shift: -7,  lead: 'triangle' },   // RE min basso · torbido (d1)
-  ghiacci: { tempo: 176, shift: 7,   lead: 'square' },     // MI min alto · cristallino, RAPIDO (d1)
+  ghiacci: { tempo: 176, shift: 2,   lead: 'square' },     // SI min · cristallino ma non ACUTO (era +7, pungente), RAPIDO (d2)
   grotta:  { tempo: 206, shift: -12, lead: 'square', cave: true }, // LA min sotto · profondo (d0)
 };
 let curMoodId = 'prati', targetId = 'prati', liveTempo = MOODS.prati.tempo;
-let pendId = null, pendN = 0;
+let pendId = null, pendN = 0, moodInit = false;   // la 1ª volta si PARTE nel bioma giusto, senza modulazione
 function mood() { return MOODS[curMoodId] || MOODS.prati; }
 /* cambia bioma SENZA taglio: la stessa musica si TRASFORMA. Il TEMPO glissa continuo (il ritmo
    scivola). La TONALITÀ modula in un colpo solo, ma SUL primo tempo della frase (downbeat) e
@@ -35,7 +35,9 @@ function mood() { return MOODS[curMoodId] || MOODS.prati; }
    DEBOUNCE: si cambia solo se resti nel nuovo bioma per qualche chiamata (non ai bordi di intermezzo). */
 export function setBiomeMood(id) {
   if (!MOODS[id]) id = 'prati';
-  if (curMoodId == null) { curMoodId = targetId = id; return; }
+  if (!moodInit || curMoodId == null) {   // AVVIO: parte subito nella tonalità del bioma, niente modulazione iniziale
+    curMoodId = targetId = id; liveTempo = MOODS[id].tempo; moodInit = true; pendId = null; pendN = 0; return;
+  }
   if (id === targetId) { pendId = null; pendN = 0; return; }
   if (id === pendId) { if (++pendN >= 3) { targetId = id; pendId = null; pendN = 0; } } // ~1s stabile
   else { pendId = id; pendN = 1; }

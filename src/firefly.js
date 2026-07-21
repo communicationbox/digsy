@@ -7,37 +7,56 @@
    (S.fireflies). Fase del bagliore/retino dal TEMPO; posizioni in coordinate MONDO con snap. */
 import { S, P, save } from './state.js';
 import { playSfx } from './audio.js';
-import { fireflyQuest } from './quests.js';
+import { fireflyQuest, deliverQuest } from './quests.js';
+import { toast } from './ui.js';
+import { tr } from './i18n.js';
 
-const MAX = 7, REACH = 28, MOUTH = 15, FAR = 190, NIGHT_MIN = 0.35, SWING_DUR = 0.42;
-let flies = [], pops = [], lastT = 0, swing = 0, swingDir = 1;
+const MAX = 7, REACH = 20, MOUTH = 13, FAR = 190, NIGHT_MIN = 0.35, SWING_DUR = 0.42;
+const STARTLE = 30, FLEE_DUR = 0.55, CALM_DUR = 1.3;   // spaventata → scappa un attimo → poi tregua (finestra per prenderla)
+let flies = [], pops = [], lastT = 0, swing = 0, swingDir = 1, fadeOut = 0;
 
 function spawn() {
   const a = Math.random() * Math.PI * 2, r = 46 + Math.random() * 130;
   return {
     x: P.x + Math.cos(a) * r, y: P.y + 8 + Math.sin(a) * r,
     dir: Math.random() * Math.PI * 2, v: 13 + Math.random() * 13,   // un po' più svelte (13–26 px/s)
-    ph: Math.random() * 6.28, seed: Math.random() * 6.28,
+    ph: Math.random() * 6.28, seed: Math.random() * 6.28, flee: 0, calm: 0,
   };
 }
 export function fireflyCount() { return flies.length; }
-export function resetFireflies() { flies = []; pops = []; swing = 0; lastT = 0; }
+export function resetFireflies() { flies = []; pops = []; swing = 0; lastT = 0; fadeOut = 0; }
 export function _fliesForTest() { return flies; }   // solo per i test
+export function fadeAlpha() { return fadeOut > 0 ? fadeOut : 1; }
 
 export function updateFireflies(time, nightLevel) {
+  const dt = lastT ? Math.min(0.05, (time - lastT) / 1000) : 0.016; lastT = time;
+  /* raggiunto l'obiettivo: la sfida si ferma da sola — le lucciole SFUMANO, poi via */
+  if (fadeOut > 0) {
+    fadeOut = Math.max(0, fadeOut - dt / 0.7);        // fade in ~0,7 s
+    if (swing > 0) swing = Math.max(0, swing - dt);
+    for (const p of pops) p.life -= dt; pops = pops.filter(p => p.life > 0);
+    if (fadeOut <= 0) { flies = []; pops = []; }
+    return;
+  }
   const quest = fireflyQuest();
   if (nightLevel < NIGHT_MIN || !quest) { if (flies.length) { flies = []; pops = []; } lastT = 0; return; }
-  const dt = lastT ? Math.min(0.05, (time - lastT) / 1000) : 0.016; lastT = time;
   while (flies.length < MAX) flies.push(spawn());
   if (swing > 0) swing = Math.max(0, swing - dt);
-  for (const p of pops) p.life -= dt;
-  pops = pops.filter(p => p.life > 0);
+  for (const p of pops) p.life -= dt; pops = pops.filter(p => p.life > 0);
   for (const f of flies) {                             // solo movimento: la cattura è su E (tryCatchFireflies)
     f.ph += dt * 2.4;                                  // bagliore (fase dal tempo)
-    f.dir += Math.sin(time / 480 + f.seed) * dt * 2.4; // serpeggio più marcato
-    f.dir += (Math.random() - 0.5) * dt * 4.5;        // piccoli scatti di direzione (un pochino erratiche)
-    f.x += Math.cos(f.dir) * f.v * dt;
-    f.y += Math.sin(f.dir) * f.v * dt;
+    if (f.calm > 0) f.calm -= dt;
+    const ax = f.x - P.x, ay = f.y - (P.y + 8), ad = Math.hypot(ax, ay) || 1;
+    if (f.flee > 0) {                                  // SCAPPA dal player, un attimo
+      f.flee -= dt;
+      f.x += (ax / ad) * f.v * 1.9 * dt; f.y += (ay / ad) * f.v * 1.9 * dt;
+      if (f.flee <= 0) f.calm = CALM_DUR;              // poi tregua: ora è catturabile
+    } else {
+      f.dir += Math.sin(time / 480 + f.seed) * dt * 2.4; // serpeggio marcato
+      f.dir += (Math.random() - 0.5) * dt * 4.5;      // piccoli scatti di direzione
+      f.x += Math.cos(f.dir) * f.v * dt; f.y += Math.sin(f.dir) * f.v * dt;
+      if (ad < STARTLE && f.calm <= 0) f.flee = FLEE_DUR; // ti sei avvicinato → scatta via
+    }
     if (Math.hypot(f.x - P.x, f.y - (P.y + 8)) > FAR) Object.assign(f, spawn()); // troppo lontana → rientra
   }
 }
@@ -50,15 +69,25 @@ export function fireflyInReach() {
 /* RETINATA (tasto E): se c'è una lucciola a portata, dà la retinata verso di essa e cattura lei
    e quelle nel "sacco" del retino. Ritorna true se ha retinato (così E viene consumato). */
 export function tryCatchFireflies() {
-  if (!flies.length) return false;
+  if (!flies.length || fadeOut > 0) return false;
   let target = null, td = REACH;
   for (const f of flies) { const d = Math.hypot(f.x - P.x, f.y - (P.y + 8)); if (d < td) { td = d; target = f; } }
   if (!target) return false;
   const tx = target.x, ty = target.y;
   swing = SWING_DUR; swingDir = tx - P.x >= 0 ? 1 : -1;
+  const q = fireflyQuest(), need = q ? Math.max(0, q.n - Math.max(0, (S.fireflies || 0) - (q.base || 0))) : 999;
   let caught = 0;
   for (const f of flies) if (Math.hypot(f.x - tx, f.y - ty) < MOUTH) { caught++; pops.push({ x: f.x, y: f.y, life: 0.9 }); Object.assign(f, spawn()); }
-  if (caught) { S.fireflies = (S.fireflies || 0) + caught; playSfx('found'); save(); }
+  if (caught) {
+    S.fireflies = (S.fireflies || 0) + caught; playSfx('found');
+    /* OBIETTIVO raggiunto → la sfida si ferma da sola: completa la missione e SFUMA le lucciole */
+    if (q && caught >= need) {
+      const r = deliverQuest(q.qid);
+      fadeOut = 1; playSfx('fanfare');
+      if (toast) toast('✨ ' + tr('Missione completata: hai preso le lucciole!', 'Quest complete: you caught the fireflies!') + (r ? ' +🪙' + r.reward : ''));
+    }
+    save();
+  }
   return true;
 }
 
@@ -85,13 +114,14 @@ function drawNet(ctx, hx, hy, cx, cy) {
 
 export function drawFireflies(ctx, camx, camy) {
   if (!ctx || !flies.length) return;
+  const fa = fadeOut > 0 ? fadeOut : 1;                 // dissolvenza a missione completata
   for (const f of flies) {
     const gx = Math.round(f.x - camx), gy = Math.round(f.y - camy);
     const glow = 0.5 + 0.5 * Math.sin(f.ph);
-    fpx(ctx, gx - 3, gy - 3, 7, 7, 'rgba(150,230,120,' + (0.09 * glow).toFixed(2) + ')');           // alone morbido
-    ctx.fillStyle = 'rgba(205,255,150,' + (0.35 + 0.3 * glow).toFixed(2) + ')';                       // croce di luce
+    fpx(ctx, gx - 3, gy - 3, 7, 7, 'rgba(150,230,120,' + (0.09 * glow * fa).toFixed(2) + ')');        // alone morbido
+    ctx.fillStyle = 'rgba(205,255,150,' + ((0.35 + 0.3 * glow) * fa).toFixed(2) + ')';                 // croce di luce
     ctx.fillRect(gx - 2, gy, 5, 1); ctx.fillRect(gx, gy - 2, 1, 5);
-    fpx(ctx, gx, gy, 2, 2, 'rgba(244,255,205,' + (0.7 + 0.3 * glow).toFixed(2) + ')');                // cuore acceso
+    fpx(ctx, gx, gy, 2, 2, 'rgba(244,255,205,' + ((0.7 + 0.3 * glow) * fa).toFixed(2) + ')');          // cuore acceso
   }
   const pxs = Math.round(P.x - camx), pys = Math.round(P.y - camy);
   /* RETINO: retinata a frusta — parte alto/dietro, scende in avanti e "scoopa", poi risale.
@@ -112,7 +142,8 @@ export function drawFireflies(ctx, camx, camy) {
     const gx = Math.round(p.x - camx), gy = Math.round(p.y - camy - rise);
     if (ctx.fillText) { ctx.font = '9px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(226,255,176,' + al.toFixed(2) + ')'; ctx.fillText('+1', gx, gy); }
   }
-  /* CONTATORE della missione sopra la testa: catturate / obiettivo */
+  /* CONTATORE della missione sopra la testa: catturate / obiettivo (sparisce a missione finita) */
+  if (fadeOut > 0) return;
   const q = fireflyQuest(), got = q ? Math.max(0, (S.fireflies || 0) - (q.base || 0)) : (S.fireflies || 0);
   const txt = q ? got + '/' + q.n : '×' + got, by = pys - 26;
   ctx.fillStyle = 'rgba(20,16,8,.72)'; ctx.fillRect(pxs - 16, by - 7, 32, 13);
