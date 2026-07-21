@@ -3,7 +3,7 @@ import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeB
 import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach } from './tapmove.js';
 import { findPath, fits } from './path.js';
-import { tileBlocked } from './gameplay.js';
+import { tileBlocked, toggleMount, companionRides } from './gameplay.js';
 import { interiorCam } from './interiors.js';
 import { CAVE, caveSolid, caveCam } from './cave.js';
 import { toast } from './ui.js';
@@ -107,6 +107,7 @@ addEventListener('keydown', e => {
   if ((e.key === 'l' || e.key === 'L') && !isModalOpen()) { openBook(); e.preventDefault(); }
   if ((e.key === 'm' || e.key === 'M') && !isModalOpen()) { openMap(); e.preventDefault(); } // mappa del mondo
   if ((e.key === 'q' || e.key === 'Q') && !isModalOpen()) { openQuests(); e.preventDefault(); }
+  if ((e.key === 'f' || e.key === 'F') && !isModalOpen() && companionRides()) { toggleMount(); e.preventDefault(); } // cavalca/scendi il compagno volante di grotta
   if (e.key === 'Escape') { if (isPrepOpen()) closePrepare(); else if (isMapOpen()) closeMap(); else if (isBookOpen()) closeBook(); else if (isBagOpen()) closeBag(); else if (isModalOpen()) closeModal(); else if (INT.active) exitInterior(); else showSplash(); e.preventDefault(); }
 });
 addEventListener('keyup', e => {
