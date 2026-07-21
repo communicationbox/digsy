@@ -233,7 +233,7 @@ function boot() {
      sta in devview.js, importato solo qui sotto DEV → in produzione il ramo è morto. */
   if (import.meta.env && import.meta.env.DEV && typeof location !== 'undefined') {
     const _p = new URLSearchParams(location.search);
-    if (_p.get('mount') || _p.get('dig')) {
+    if (_p.get('mount') || _p.get('dig') || _p.has('comptown')) {
       S.lookDone = true; S.introSeen = true; S.started = true; setPref('tips', false); // SINCRONO: prima che initSplash apra editor/tip (il resto è in devview, async)
       import('./devview.js').then(m => m.setupDebugView(_p));
     }
