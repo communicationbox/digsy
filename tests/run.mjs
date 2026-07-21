@@ -4630,8 +4630,9 @@ sprites.applyLook();
   /* liberato il BORDO, la roccia lontana COLLASSA da sola (niente busywork sul 90% vuoto) */
   { const bb = pr.newBoard(3); allCells(bb, 'pennello', 2);
     for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) if (bb.border[y * pr.W + x]) for (let k = 0; k < 3; k++) pr.work(bb, 'scalpello', CTR(x), CTR(y), 1);
-    check('scalpellato il bordo, il fossile si libera e la roccia collassa', bb.freed === true && pr.rockPct(bb) > 0.99);
-    check('il collasso non tocca il fossile (integrità piena)', pr.integrity(bb) === 1); }
+    check('scalpellato il bordo, il fossile si libera (freed) senza toccarlo', bb.freed === true && pr.integrity(bb) === 1);
+    pr.collapseFree(bb);
+    check('collapseFree stacca la roccia lontana (rockPct al 100%)', pr.rockPct(bb) > 0.99); }
   /* PASSO 3 — SPATOLA: PULIRE è sempre sicuro; il danno viene solo da GRATTARE FERMI (scrape) il
      centro sull'osso GIÀ pulito */
   { const bb = pr.newBoard(5); allCells(bb, 'pennello', 2);

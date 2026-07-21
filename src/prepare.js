@@ -51,6 +51,11 @@ export function newBoard(seed = 0, boneMask = null) {
   }
   return { dust, rock, crust, chip, bone, border, seed, freed: false };
 }
+/* azzera roccia e polvere della MATRICE (il vuoto attorno): il chiamante lo fa dopo il fade */
+export function collapseFree(board) {
+  if (!board) return;
+  for (let i = 0; i < W * H; i++) if (!board.bone[i]) { board.rock[i] = 0; board.dust[i] = 0; }
+}
 /* quanto del BORDO è stato scalpellato (0..1) */
 export function borderRockDone(board) {
   if (!board || !board.border) return 1;
@@ -85,12 +90,9 @@ export function work(board, tool, cx, cy, hs) {
   if (tool === 'scalpello') {                            // danno SOLO al centro
     const ci = centerCell(cx, cy);
     if (ci >= 0 && board.bone[ci] && board.dust[ci] <= 0.5) { board.chip[ci] = Math.min(1, board.chip[ci] + HARM.scalpello); harm += HARM.scalpello; }
-    /* LIBERATO IL BORDO → tutto il vuoto attorno (roccia + polvere lontane) si stacca da solo:
-       niente busywork sul 90% vuoto, e il 100% resta raggiungibile senza pulirlo a mano. */
-    if (!board.freed && borderRockDone(board) >= 0.95) {
-      for (let i = 0; i < W * H; i++) if (!board.bone[i]) { board.rock[i] = 0; board.dust[i] = 0; }
-      board.freed = freed = true;
-    }
+    /* LIBERATO IL BORDO → il vuoto attorno si stacca da solo. Segnala l'evento (freed); il
+       vero azzeramento di roccia/polvere lo fa il chiamante DOPO il fade (collapseFree). */
+    if (!board.freed && borderRockDone(board) >= 0.95) { board.freed = freed = true; }
   }
   return { work: done, harm, freed };
 }

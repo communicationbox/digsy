@@ -9,7 +9,7 @@ import { S, save } from './state.js';
 import { spById } from './data.js';
 import { partVoxels } from './bones.js';
 import { projectVox } from './voxview.js';
-import { newBoard, work, scrape, centerCell, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
+import { newBoard, work, scrape, centerCell, collapseFree, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
 import { withIcons } from './icons.js';
 import { tr, partName } from './i18n.js';
 import { playSfx } from './audio.js';
@@ -31,7 +31,27 @@ const TOOLS = ['pennello', 'scalpello', 'spatola'];
 const TOOL_HS = { pennello: 4, scalpello: 1, spatola: 1 };        // pennello LARGO (spolverare è solo per capire, non deve durare); precisi piccoli
 let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepTool = 'pennello';
 let prepCursor = { x: 0, y: 0, on: false };   // area d'azione dell'attrezzo (segue il puntatore)
+let collapseBuf = null, collapseRAF = 0;      // fadeout della parte esterna quando il fossile si libera
 export function isPrepOpen() { return prepOpenFlag; }
+
+/* liberato il fossile: la logica azzera subito il vuoto (collapseFree), ma visivamente la roccia/
+   polvere lontane SFUMANO in ~0,3 s invece di sparire di colpo. */
+function startCollapse() {
+  if (!prepBoard) return;
+  const rock = prepBoard.rock.slice(), dust = prepBoard.dust.slice();
+  collapseFree(prepBoard);                     // logica: il vuoto è pulito (rockPct/cleanPct al 100%)
+  playSfx('found');
+  if (typeof requestAnimationFrame === 'undefined') { drawPrep(); return; } // headless: niente animazione
+  collapseBuf = { rock, dust, a: 1 };
+  const tick = () => {
+    if (!collapseBuf) return;
+    collapseBuf.a -= 0.06;
+    if (collapseBuf.a <= 0) { collapseBuf = null; drawPrep(); return; }
+    drawPrep();
+    collapseRAF = requestAnimationFrame(tick);
+  };
+  tick();
+}
 
 /* il cursore rovinerebbe l'osso qui? (per colorarlo di rosso) — si guarda la cella CENTRALE, dove
    avviene il danno: scalpello sull'osso; spatola sull'osso GIÀ PULITO. Pennello: mai. */
@@ -106,7 +126,8 @@ export function openPrepare(item, after) {
          UNA volta per movimento — non per sotto-passo — così pulire passandoci sopra è sicuro. */
       if (prepTool === 'spatola') harm += scrape(prepBoard, cx, cy);
       lx = cx; ly = cy;
-      if (workDone > 0.01 || harm > 0.001 || freed) { drawPrep(); if (freed) playSfx('found'); else if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
+      if (workDone > 0.01 || harm > 0.001) { drawPrep(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
+      if (freed) startCollapse();               // il fossile si è liberato → fadeout del vuoto esterno
     };
     cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; prepCursor.x = p.cx; prepCursor.y = p.cy; prepCursor.on = true; apply(p.cx, p.cy); });
     cv.addEventListener('pointermove', ev => {
@@ -157,9 +178,9 @@ function drawPrep() {
       c2.fillStyle = t === 0 ? '#544a3c' : t === 1 ? '#605646' : '#453d31';
       c2.fillRect(px, py, cw, ch);
       c2.globalAlpha = 1; c2.fillStyle = 'rgba(0,0,0,.22)'; c2.fillRect(px, py + ch - 2, cw, 2);
-    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA leggera sull'osso (il fossile resta ben visibile)
-      c2.globalAlpha = prepBoard.crust[i] * 0.35;
-      c2.fillStyle = '#8a7a5c'; c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
+    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA sull'osso: SPORCO SCURO ben visibile
+      c2.globalAlpha = Math.min(0.78, prepBoard.crust[i] * 0.78); // così si vede dove hai pulito (chiaro) e dove no (scuro)
+      c2.fillStyle = '#574a33'; c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
     }
     if (prepBoard.dust[i] > 0.02) {                               // POLVERE su tutto
       const t = (x * 5 + y * 11) % 3;
@@ -170,6 +191,16 @@ function drawPrep() {
     if (prepBoard.bone[i] && prepBoard.chip[i] > 0.25) {          // CREPA sull'osso rovinato
       c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, Math.max(1, Math.floor(cw / 3)), ch - 2);
     }
+  }
+  /* FADEOUT del vuoto esterno appena il fossile si libera (roccia/polvere lontane che sfumano) */
+  if (collapseBuf) {
+    for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
+      const i = y * PW + x; if (prepBoard.bone[i]) continue;
+      const px = x * cw, py = y * ch;
+      if (collapseBuf.rock[i] > 0) { c2.globalAlpha = collapseBuf.rock[i] * collapseBuf.a; c2.fillStyle = '#544a3c'; c2.fillRect(px, py, cw, ch); }
+      if (collapseBuf.dust[i] > 0.02) { c2.globalAlpha = Math.min(0.95, collapseBuf.dust[i]) * collapseBuf.a; c2.fillStyle = '#8a7350'; c2.fillRect(px, py, cw, ch); }
+    }
+    c2.globalAlpha = 1;
   }
   /* CURSORE 8-BIT: un QUADRATO allineato alle celle mostra ESATTAMENTE dove agisce l'attrezzo;
      la cella CENTRALE è marcata (lì avviene il danno) e diventa ROSSA se rovineresti l'osso.
