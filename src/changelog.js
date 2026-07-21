@@ -27,6 +27,7 @@ export const CHANGELOG = [
       'SCAVO del compagno più bello: la creatura di TERRA scava a testa in giù come un cane — sedere e coda su che scodinzolano, zampe che grattano, terra che schizza indietro e mucchietto che cresce (niente più semplice affondo)',
       'TAGLIO ALBERO del compagno: la creatura ROSICCHIA il tronco come un castoro — morsi ritmici, trucioli di legno, tacca chiara e foglie che cadono ondeggiando dalla chioma (niente accetta)',
       'ROTTURA ROCCIA del compagno: la creatura TESTA il masso come un ariete — lampo d\'impatto, scaglie di pietra con scintille e una crepa che si apre (niente piccone)',
+      'FIX: il compagno non TREMA più mentre cammini — l\'inseguimento aveva una zona morta che lo faceva partire e fermare di continuo; ora segue morbido',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -54,6 +55,7 @@ export const CHANGELOG = [
       'Nicer companion DIG: the ground gatherer digs head-down like a dog — rump and tail up wagging, paws scratching, dirt kicked backward and a growing mound (no more plain lunge)',
       'Companion TREE-CUTTING: the creature GNAWS the trunk like a beaver — rhythmic bites, wood chips, a pale notch and leaves fluttering down from the canopy (no axe)',
       'Companion ROCK-BREAKING: the creature HEADBUTTS the boulder like a ram — impact flash, stone chips with sparks and a crack opening up (no pickaxe)',
+      'FIX: the companion no longer JITTERS as you walk — its follow had a dead zone that made it stop-and-go; now it trails smoothly',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

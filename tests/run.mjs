@@ -3549,6 +3549,16 @@ sprites.applyLook();
   for (let i = 0; i < 200; i++) comp.updateCompanion(1 / 60);
   const cw = gameplay.waterTile(Math.floor(comp.COMP.x / TS), Math.floor((comp.COMP.y + 13) / TS));
   check('il compagno segue in acqua (→ nuota)', cw === true);
+  /* ANTI-TREMOLIO: niente più deadzone. Col bersaglio a 1.5px (dentro la vecchia soglia d>2 che
+     lo lasciava fermo → stop-and-go → tremava) il compagno DEVE muoversi verso di esso, senza
+     scavalcarlo (min(d, velocità)). */
+  comp.COMP.init = true; comp.COMP.job = null;
+  Pl.x = 500; Pl.y = 500; Pl.dir = 'right';              // bersaglio = (P.x-16, P.y+8) = (484, 508)
+  const targetX = 484;
+  comp.COMP.x = targetX - 1.5; comp.COMP.y = 508;         // 1,5px dal bersaglio
+  const x0 = comp.COMP.x;
+  comp.updateCompanion(1 / 60);
+  check('compagno: nessuna deadzone (segue anche da vicino, senza scavalcare)', comp.COMP.x > x0 && comp.COMP.x <= targetX + 1e-6);
   Sl.companion = before; comp.COMP.init = false;
 }
 

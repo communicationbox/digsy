@@ -58,12 +58,17 @@ export function updateCompanion(dt) {
   const offy = P.dir === 'up' ? 16 : P.dir === 'down' ? -14 : 8;
   const tx = P.x + off, ty = P.y + offy;
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
-  const sp = Math.min(d, 90 * dt);
-  if (d > 2) {
-    COMP.x += dx / d * sp; COMP.y += dy / d * sp; COMP.anim += dt;
-    /* verso a 4 direzioni dall'asse di moto dominante → il compagno GIRA (fronte/spalle/profilo) */
-    if (Math.abs(dx) >= Math.abs(dy)) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
-    else COMP.face = dy < 0 ? 'up' : 'down';
+  /* segue SEMPRE, con passo min(d, velocità): tocca il bersaglio senza scavalcarlo. La vecchia
+     deadzone `d > 2` faceva stop-and-go attorno al bersaglio mentre il player camminava → la
+     posizione oscillava e lo snap la faceva TREMARE. Ora è morbido (regola: niente tremolii). */
+  if (d > 0.01) {
+    const sp = Math.min(d, 90 * dt);
+    COMP.x += dx / d * sp; COMP.y += dy / d * sp;
+    if (d > 0.5) {                         // anima/gira solo quando si muove davvero (niente flicker da fermo)
+      COMP.anim += dt;
+      if (Math.abs(dx) >= Math.abs(dy)) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
+      else COMP.face = dy < 0 ? 'up' : 'down';
+    }
   }
 }
 /* spec per drawCreature: { c:{skull,torso,leg,q}, anim, dir, face } */
