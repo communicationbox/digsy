@@ -1324,7 +1324,9 @@ sprites.applyLook();
   check('tossRarity: fortuna 0 = probabilità di sempre (0.999→leggendario, 0.3→nulla, 0.9→raro)',
     gameplay.tossRarity(0, 0.999) === 'leggendario' && gameplay.tossRarity(0, 0.3) === null && gameplay.tossRarity(0, 0.9) === 'raro');
   check('il timing (fortuna) sposta le probabilità verso i rari', gameplay.tossRarity(1, 0.5) !== null && gameplay.tossRarity(0, 0.5) === null);
-  check('tossLuck: centro del bersaglio = fortuna piena, lontano = zero', gameplay.tossLuck(0.5, 0.5) === 1 && gameplay.tossLuck(0, 1) === 0);
+  check('tossLuck: centro del bersaglio = fortuna piena', gameplay.tossLuck(0.5, 0.5) === 1);
+  check('tossLuck: FUORI dalla zona d\'oro = NESSUN boost (0)', gameplay.tossLuck(0.5, 0.62) === 0 && gameplay.tossLuck(0.5, 0.5 + 0.06) === 0 && gameplay.tossLuck(0, 1) === 0);
+  check('tossLuck: dentro la zona d\'oro, più centri più fortuna', gameplay.tossLuck(0.5, 0.53) > 0 && gameplay.tossLuck(0.5, 0.53) < 1);
   /* grantToss dà un GREZZO della rarità estratta (si identifica al museo, come ogni scavo) */
   S.coins = 30; const raw0 = S.raw.length, items0 = S.items.length;
   Math.random = () => 0.999; gameplay.grantToss(0);

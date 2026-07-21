@@ -415,7 +415,11 @@ export function fountainState() {
 }
 /* MINIGIOCO DI MIRA (#3): fermare il cursore sulla zona d'oro dà FORTUNA (0..1), che sposta
    le probabilità verso i rari. Puro e testabile. tossLuck: quanto sei vicino al bersaglio. */
-export function tossLuck(markerPos, targetPos) { return Math.max(0, Math.min(1, 1 - Math.abs(markerPos - targetPos) / 0.35)); }
+export function tossLuck(markerPos, targetPos) {
+  const HALF = 0.06;                                    // metà della zona d'oro (larga il 12%)
+  const d = Math.abs(markerPos - targetPos);
+  return d >= HALF ? 0 : 1 - d / HALF;                  // FUORI dalla zona d'oro = NESSUN boost; più centri, più fortuna
+}
 /* probabilità interpolate con la fortuna. A fortuna 0 sono le stesse di sempre
    (60% nulla · 25% comune · 10% raro · 4% eccezionale · 1% leggendario). */
 export function tossRarity(luck, roll) {

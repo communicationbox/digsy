@@ -601,7 +601,7 @@ export function openToss(onDone) {
   tossOnDone = onDone || null; tossOpen = true; tossResolved = false; tossPos = 0; tossDir = 1;
   tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni volta
   const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana della fortuna', 'Wishing fountain'));
-  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Tocca per fermare il cursore sulla zona d\'oro', 'Tap to stop the marker on the golden zone'));
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il cursore sulla zona d\'oro: più la centri, più aumenti la fortuna', 'Stop the marker on the golden zone: the more you center it, the more luck'));
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
   ov.classList.add('on');
@@ -622,10 +622,11 @@ function stopToss() {
   tossOpen = false; tossResolved = true;
   if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
   tossLuckHeld = tossLuck(tossPos, tossTarget);
-  const label = tossLuckHeld >= 0.85 ? tr('In pieno!', 'Bullseye!') : tossLuckHeld >= 0.5 ? tr('Vicino', 'Close') : tr('Fuori', 'Missed');
+  const label = tossLuckHeld === 0 ? tr('Fuori: nessun bonus', 'Missed: no boost')
+    : tossLuckHeld >= 0.66 ? tr('In pieno!', 'Bullseye!') : tr('Preso', 'On target');
   const hint = document.getElementById('toss-hint');
   if (hint) hint.innerHTML = withIcons('<b>' + label + '</b> — ' + tr('fortuna', 'luck') + ' ' + Math.round(tossLuckHeld * 100) + '%');
-  const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = tossLuckHeld >= 0.5 ? '#e6b23c' : '#fff';
+  const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = tossLuckHeld > 0 ? '#e6b23c' : '#fff';
   if (typeof setTimeout !== 'undefined') setTimeout(() => { if (tossResolved) finishToss(); }, 1300);
 }
 function finishToss() {
