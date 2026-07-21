@@ -131,14 +131,14 @@ function drawPrep() {
   const cw = Math.floor(cv.width / PW), ch = Math.floor(cv.height / PH);
   for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
     const i = y * PW + x, px = x * cw, py = y * ch;
-    if (!prepBoard.bone[i] && prepBoard.rock[i] > 0) {            // ROCCIA sulla matrice
+    if (!prepBoard.bone[i] && prepBoard.rock[i] > 0) {            // ROCCIA scura sulla matrice (stacca dal fossile chiaro)
       const t = (x * 7 + y * 13) % 3;
       c2.globalAlpha = prepBoard.rock[i];
-      c2.fillStyle = t === 0 ? '#736a5c' : t === 1 ? '#847a68' : '#655c50';
+      c2.fillStyle = t === 0 ? '#544a3c' : t === 1 ? '#605646' : '#453d31';
       c2.fillRect(px, py, cw, ch);
-      c2.globalAlpha = 1; c2.fillStyle = 'rgba(0,0,0,.18)'; c2.fillRect(px, py + ch - 2, cw, 2);
-    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA sull'osso (vela)
-      c2.globalAlpha = prepBoard.crust[i] * 0.7;
+      c2.globalAlpha = 1; c2.fillStyle = 'rgba(0,0,0,.22)'; c2.fillRect(px, py + ch - 2, cw, 2);
+    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA sull'osso (vela leggera, la forma resta visibile)
+      c2.globalAlpha = prepBoard.crust[i] * 0.55;
       c2.fillStyle = '#9a8b6e'; c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
     }
     if (prepBoard.dust[i] > 0.02) {                               // POLVERE su tutto
@@ -151,6 +151,20 @@ function drawPrep() {
       c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, 2, ch - 2);
     }
   }
+  /* CONTORNO ORO del fossile: dice DOVE inizia l'osso (così si può essere precisi). Si accende
+     man mano che spolveri (alpha = quanto hai tolto la polvere su quella cella). */
+  const matrixAt = (xx, yy) => xx < 0 || yy < 0 || xx >= PW || yy >= PH || !prepBoard.bone[yy * PW + xx];
+  c2.fillStyle = '#e8b93c';
+  for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
+    const i = y * PW + x; if (!prepBoard.bone[i]) continue;
+    c2.globalAlpha = Math.max(0, 1 - prepBoard.dust[i]);
+    const px = x * cw, py = y * ch;
+    if (matrixAt(x - 1, y)) c2.fillRect(px, py, 1, ch);
+    if (matrixAt(x + 1, y)) c2.fillRect(px + cw - 1, py, 1, ch);
+    if (matrixAt(x, y - 1)) c2.fillRect(px, py, cw, 1);
+    if (matrixAt(x, y + 1)) c2.fillRect(px, py + ch - 1, cw, 1);
+  }
+  c2.globalAlpha = 1;
   const clean = cleanPct(prepBoard), integ = integrity(prepBoard);
   const fill = document.getElementById('pr-fill'); if (fill) fill.style.width = Math.round(clean * 100) + '%';
   const int = document.getElementById('pr-integ');
