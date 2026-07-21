@@ -485,7 +485,8 @@ export const RU = {
   'No chimera or awakened fossil yet. Assemble a chimera or awaken a species at the Lab!':
     'Пока нет ни химеры, ни пробуждённого вида. Соберите химеру или пробудите вид в Лаборатории!',
   'No companion': 'Без спутника',
-  'Send home': 'Отправить домой',
+  'go on your own': 'иди в одиночку',
+  'on your own': 'в одиночку',
   'with you': 'с вами',
   'Choose': 'Выбрать',
   'Companion': 'Спутник',
