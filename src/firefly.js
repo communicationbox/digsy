@@ -8,6 +8,7 @@
 import { S, P, save } from './state.js';
 import { playSfx } from './audio.js';
 import { fireflyQuest, deliverQuest } from './quests.js';
+import { dirTo } from './gameplay.js';
 import { toast } from './ui.js';
 import { tr } from './i18n.js';
 
@@ -91,7 +92,11 @@ export function tryCatchFireflies() {
     if (q && caught >= need) {
       const r = deliverQuest(q.qid);
       fadeOut = 1; playSfx('fanfare');
-      if (toast) toast('✨ ' + tr('Missione completata: hai preso le lucciole!', 'Quest complete: you caught the fireflies!') + (r ? ' +🪙' + r.reward : ''));
+      /* premio a tema: le lucciole ti GUIDANO a una mappa verso un fossile leggendario */
+      const m = r && r.prizeMap;
+      if (toast) toast('✨ ' + (m
+        ? tr('Le lucciole ti guidano: una mappa verso un fossile leggendario! ', 'The fireflies guide you: a map to a legendary fossil! ') + '🗺️ ' + dirTo(m.x, m.y)
+        : tr('Missione completata: hai preso le lucciole!', 'Quest complete: you caught the fireflies!')));
     }
     save();
   }

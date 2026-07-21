@@ -323,7 +323,7 @@ export const COMMANDS = {
     run: () => {
       S.tod = 0.85;
       if (!S.quests) S.quests = { day: S.day, active: [], done: [] };
-      if (!S.quests.active.some(q => q.type === 'fireflies')) S.quests.active.push({ type: 'fireflies', n: 6, base: S.fireflies || 0, qid: 'cheat-ff', day: S.day });
+      if (!S.quests.active.some(q => q.type === 'fireflies')) S.quests.active.push({ type: 'fireflies', n: 6, base: S.fireflies || 0, reward: 0, prize: 'map', prizeRar: 'leggendario', qid: 'cheat-ff', day: S.day });
       return tr('Notte fonda + missione lucciole attiva — esci all\'aperto', 'Deep night + fireflies quest active — go outdoors');
     } },
   dawn: { aliases: ['alba'], type: 'action', cheat: true, help: 'dawn — riporta all\'alba',

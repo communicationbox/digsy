@@ -1,7 +1,7 @@
 /* Missioni giornaliere: un CARTELLO in città espone le richieste dei vari NPC.
    Ne accetti fino a MAX_ACTIVE, scadono a fine giornata, consegni al cartello quando hai il necessario. */
 import { S } from './state.js';
-import { gainXp } from './gameplay.js';
+import { gainXp, grantMap } from './gameplay.js';
 import { vhash } from './noise.js';
 import { PARTS, goodById } from './data.js';
 import { seasonOf } from './daynight.js';
@@ -44,10 +44,10 @@ export function boardOffers(cx, cy, day) {
       const n = 1 + Math.floor(vhash(cx, cy, 460 + day + i) * 2);
       const reward = Math.round(20 * ptById(part) * n) + 6;
       q = { type: 'part', part, n, reward };
-    } else if (seasonOf(day) === FIREFLY_SEASON) { // CATTURA LUCCIOLE: SOLO D'ESTATE. Accettandola,
-      const n = 5 + Math.floor(vhash(cx, cy + i, 470 + day) * 6); // 5..10   quella notte parte il minigioco
-      q = { type: 'fireflies', n, reward: n * 4 + 10 };
-    } else { // fuori stagione: al posto delle lucciole, una richiesta di pezzi
+    } else if (r >= 0.97 && seasonOf(day) === FIREFLY_SEASON) { // CATTURA LUCCIOLE: RARA (~3% del cartello)
+      const n = 5 + Math.floor(vhash(cx, cy + i, 470 + day) * 6); // 5..10   e solo d'estate. Premio SPECIALE:
+      q = { type: 'fireflies', n, reward: 0, prize: 'map', prizeRar: 'leggendario' }; // una mappa leggendaria
+    } else { // fascia alta ordinaria (o fuori stagione): una richiesta di pezzi
       const part = PARTS[Math.floor(vhash(cx + i, cy + i, 450 + day) * PARTS.length)].id;
       const n = 1 + Math.floor(vhash(cx, cy, 460 + day + i) * 2);
       q = { type: 'part', part, n, reward: Math.round(20 * ptById(part) * n) + 6 };
@@ -65,6 +65,11 @@ export function questText(q) {
   if (q.type === 'goods') { const g = goodById[q.goodId]; return tr('Porta ', 'Bring ') + q.n + '× ' + tr(g.it, g.en); }
   if (q.type === 'fireflies') return tr('Cattura ', 'Catch ') + q.n + ' ' + tr('lucciole (di notte, all\'aperto)', 'fireflies (at night, outdoors)');
   return tr('Porta ', 'Bring ') + q.n + '× ' + partName(q.part) + ' ' + tr('(di qualsiasi specie)', '(any species)');
+}
+/* etichetta del premio: monete di norma, MAPPA per la missione lucciole (premio speciale) */
+export function questRewardText(q) {
+  if (q.type === 'fireflies' && q.prize === 'map') return '🗺️ ' + tr('mappa ', 'map ') + rarLabel(q.prizeRar || 'leggendario');
+  return '🪙 ' + q.reward;
 }
 /* quanti pezzi hai già verso la richiesta */
 export function questHave(q) {
@@ -96,6 +101,8 @@ export function deliverQuest(qid) {
   else if (q.type === 'fossils') removeN(S.items, it => it.q === q.rar, q.n);
   else if (q.type === 'part') removeN(S.items, it => it.t === q.part, q.n);
   // fireflies: niente da consumare, le hai già "spese" catturandole
+  /* PREMIO SPECIALE lucciole: una mappa verso un fossile leggendario (niente monete) */
+  if (q.type === 'fireflies' && q.prize === 'map') q.prizeMap = grantMap(q.prizeRar || 'leggendario');
   S.coins += q.reward;
   /* le missioni danno XP (il Maestro lo diceva già, il codice no) */
   gainXp(Math.max(4, Math.round(q.reward / 6)));

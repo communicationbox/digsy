@@ -4,7 +4,7 @@
    del museo e del laboratorio: le chiamate sono a runtime, quindi il ciclo con ui.js è innocuo
    (stessa situazione, già collaudata, di ui↔gameplay). */
 import { S } from './state.js';
-import { spById, ALL_SPECIES, ZONES, MUSEUM_ZONES } from './data.js';
+import { spById, ALL_SPECIES, ZONES, MUSEUM_ZONES, PARTS } from './data.js';
 import { baseSpec, buildVoxels, buildFleshVoxels, BP } from './bones.js';
 import { projectVox } from './voxview.js';
 import { isDebug } from './debug.js';
@@ -117,9 +117,10 @@ function bookPageHtml(sp, pageNo) {
   const known = S.codex.includes(sp.id) || isDebug();
   const z = ZONES.find(x => x.id === sp.zone);
   const owned = S.items.filter(it => it.s === sp.id).length;
-  const donated = S.donated.includes(sp.id);
+  const gathered = (S.museum && S.museum[sp.id] || []).length; // ossa DISTINTE consegnate al Museo
+  const complete = S.donated.includes(sp.id) || (isDebug() && known); // teca 5/5 = tutte le ossa
   const awake = S.awakened.includes(sp.id) || isDebug(); // risvegliato al Lab con tutti i 5 pezzi
-  return `<div class="bkpage">
+  return `<div class="bkpage${complete ? ' bk-complete' : ''}">
     <div class="bk-head">
       <canvas class="bk-sketch" data-sp2="${sp.id}" width="60" height="44" title="Schizzo di campo"></canvas>
       <div class="bk-zone">${z.icon} ${zoneName(z.id)}</div>
@@ -136,8 +137,10 @@ function bookPageHtml(sp, pageNo) {
         <span>${sp.src === 'albero' ? '🌲 ' + tr('Negli alberi (accetta)', 'In trees (hatchet)') : sp.src === 'roccia' ? '⛰️ ' + tr('Nelle rocce (piccone)', 'In rocks (pickaxe)') : sp.src === 'acqua' ? '🎣 ' + tr('In acqua (barca)', 'In water (boat)') : '🪏 ' + tr('Sottoterra', 'Underground')}</span>
         ${windowText(sp) ? `<span>${windowText(sp)}</span>` : ''}
         <span>🦴 ${tr('Possiedi', 'Owned')}: ${owned}</span>
-        ${donated ? '<span>🏛️ ✓</span>' : ''}
-        ${awake ? `<span>💫 ${tr('Risvegliato', 'Awakened')}</span>` : (known ? `<span title="${tr('Porta tutti e 5 i pezzi al Laboratorio', 'Bring all 5 pieces to the Laboratory')}">🧬 ${tr('5 pezzi', '5 pieces')}</span>` : '')}
+        ${known ? (complete
+          ? `<span class="bk-donetag">🏛️ ✓ ${tr('Completo', 'Complete')}</span>`
+          : `<span title="${tr('Ossa consegnate al Museo', 'Bones handed to the Museum')}">🏛️ ${tr('Ossa', 'Bones')}: ${gathered}/${PARTS.length}</span>`) : ''}
+        ${awake ? `<span>💫 ${tr('Risvegliato', 'Awakened')}</span>` : ''}
       </div>
       <div class="bk-pageno">— ${pageNo} —</div>
     </div>

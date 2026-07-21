@@ -3,7 +3,7 @@ import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZON
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
-import { ensureQuests, boardOffers, acceptQuest, deliverQuest, questText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
+import { ensureQuests, boardOffers, acceptQuest, deliverQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
 import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionAbility, companionSpec, abilityOf } from './companion.js';
 import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './progress.js';
@@ -242,7 +242,7 @@ export function openQuestBoard() {
     h += `<div class="bighead">${tr('Le tue missioni', 'Your missions')} (${act.length}/${MAX_ACTIVE})</div>`;
     for (const q of act) {
       const have = questHave(q), ok = canComplete(q);
-      h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} 🪙 ${q.reward}</div></div><div class="rt"><button class="btn ${ok ? 'amber' : 'ghost'}" ${ok ? '' : 'disabled'} data-deliver="${q.qid}">${tr('Consegna', 'Deliver')}</button></div></div>`;
+      h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} ${questRewardText(q)}</div></div><div class="rt"><button class="btn ${ok ? 'amber' : 'ghost'}" ${ok ? '' : 'disabled'} data-deliver="${q.qid}">${tr('Consegna', 'Deliver')}</button></div></div>`;
     }
   }
   /* la commissione del Museo dura 3 giorni: va vista anche da qui, non solo al banco */
@@ -258,7 +258,7 @@ export function openQuestBoard() {
   for (const q of offers) {
     const active = isActive(q.qid), done = isDone(q.qid);
     const badge = done ? tr('✓ fatta', '✓ done') : active ? tr('presa', 'taken') : '';
-    h += `<div class="row"><span class="em">📌</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${tr('premio', 'reward')} 🪙 ${q.reward}${badge ? ' · ' + badge : ''}</div></div><div class="rt">${(active || done) ? '' : `<button class="btn amber" data-accept="${q.qid}">${tr('Accetta', 'Accept')}</button>`}</div></div>`;
+    h += `<div class="row"><span class="em">📌</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${tr('premio', 'reward')} ${questRewardText(q)}${badge ? ' · ' + badge : ''}</div></div><div class="rt">${(active || done) ? '' : `<button class="btn amber" data-accept="${q.qid}">${tr('Accetta', 'Accept')}</button>`}</div></div>`;
   }
   mTitle.innerHTML = withIcons('📋 ' + tr('Missioni', 'Missions'));
   mBody.innerHTML = withIcons(h); openModal();
@@ -274,7 +274,7 @@ export function openQuestBoard() {
     /* l'XP la dà `deliverQuest` (quests.js): qui ce n'era una SECONDA, e ogni consegna ne
        pagava due — col totem della doppia XP attivo bruciava anche 2 dei 10 carichi invece
        di 1. L'esperienza si conta in un posto solo, quello testato. */
-    if (q) { playSfx('coin'); save(); updateHUD(); toast('✅ ' + tr('Consegnata! +🪙 ', 'Delivered! +🪙 ') + q.reward); }
+    if (q) { playSfx('coin'); save(); updateHUD(); toast('✅ ' + tr('Consegnata! ', 'Delivered! ') + questRewardText(q)); }
     openQuestBoard();
   });
 }
@@ -515,7 +515,7 @@ export function openQuests() {
   const act = activeQuests();
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Missioni attive (scadono a fine giornata). Consegna al cartello in città.', "Active missions (expire at day's end). Deliver at the town board.")}</div>`;
   if (!act.length) h += `<div class="center muted">${tr('Nessuna missione attiva. Cerca il cartello 📋 in città!', 'No active missions. Find the town board 📋!')}</div>`;
-  else for (const q of act) { const have = questHave(q); h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} 🪙 ${q.reward}${canComplete(q) ? ' · ✓ ' + tr('pronta', 'ready') : ''}</div></div></div>`; }
+  else for (const q of act) { const have = questHave(q); h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} ${questRewardText(q)}${canComplete(q) ? ' · ✓ ' + tr('pronta', 'ready') : ''}</div></div></div>`; }
   mTitle.innerHTML = withIcons('📋 ' + tr('Le tue missioni', 'Your missions'));
   mBody.innerHTML = withIcons(h); openModal();
 }

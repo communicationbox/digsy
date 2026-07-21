@@ -2587,6 +2587,18 @@ sprites.applyLook();
     const p1 = pageNo();
     document.getElementById('bkPrev').onclick(); await settle();
     check('libro: le frecce sfogliano avanti e indietro', p1 === p0 + 1 && pageNo() === p0, `${p0} → ${p1} → ${pageNo()}`);
+    /* INDICATORE OSSA: conteggio X/5 (pezzi al Museo) e, a teca piena, pagina bordata d'oro */
+    const { PARTS: BOOK_PARTS } = await import('../src/data.js');
+    bookui.openBook(0);
+    const htmlPartial = String(document.getElementById('bk-pages').innerHTML);
+    check('libro: teca incompleta mostra il conteggio ossa X/5', /1\/5/.test(htmlPartial) && !/bk-complete/.test(htmlPartial));
+    const keepDon = S.donated.slice();
+    S.museum[sp.id] = BOOK_PARTS.map(p => p.id);          // tutte e 5 le ossa consegnate
+    if (!S.donated.includes(sp.id)) S.donated.push(sp.id);
+    bookui.openBook(0);
+    const htmlFull = String(document.getElementById('bk-pages').innerHTML);
+    check('libro: teca completa → pagina Completo bordata d\'oro (bk-complete)', /bk-complete/.test(htmlFull) && /Completo/.test(htmlFull));
+    S.donated = keepDon;
     S.codex = keepCodex;
     if (keepMuseum === undefined) delete S.museum[sp.id]; else S.museum[sp.id] = keepMuseum;
     pagesEl.querySelectorAll = origQSA;
@@ -4730,8 +4742,17 @@ sprites.applyLook();
   check('obiettivo raggiunto → missione consegnata da sola', S.quests.done.includes('ffc') && S.coins > 0);
   for (let t = 0; t < 25; t++) ff.updateFireflies(300 + t * 50, 0.9);
   check('a missione finita le lucciole sfumano e spariscono', ff.fireflyCount() === 0);
+  /* PREMIO SPECIALE: completare la missione RARA dà una MAPPA verso un fossile leggendario (niente monete) */
+  const qm2 = await import('../src/quests.js');
+  S.fireflies = 0; S.coins = 0; S.maps = []; S.uid = S.uid || 1;
+  S.quests = { day: S.day, active: [{ type: 'fireflies', n: 1, base: 0, reward: 0, prize: 'map', prizeRar: 'leggendario', qid: 'ffm', day: S.day }], done: [] };
+  ff.resetFireflies(); ff.updateFireflies(500, 0.9);
+  const flm = ff._fliesForTest(); flm[0].x = P.x; flm[0].y = P.y + 8;
+  ff.tryCatchFireflies();
+  check('premio lucciole = mappa leggendaria, niente monete', S.quests.done.includes('ffm') && S.coins === 0 && (S.maps || []).some(m => m.rar === 'leggendario'));
+  check('etichetta premio lucciole mostra la mappa, non le monete', /🗺️/.test(qm2.questRewardText({ type: 'fireflies', prize: 'map', prizeRar: 'leggendario', reward: 0 })));
   ff.resetFireflies();
-  S.quests = null; S.fireflies = 0;
+  S.quests = null; S.fireflies = 0; S.maps = [];
 }
 
 /* ---------- FINESTRE DI PRESENZA (specie notturne e stagionali) ---------- */

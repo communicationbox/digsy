@@ -497,16 +497,24 @@ function mapSpot(rar) {
   }
   return null;
 }
+/* piazza una mappa (X scavabile) verso un pezzo della rarità data e la ritorna (o null).
+   Usata dal cartografo (buyMap) e come PREMIO SPECIALE della missione lucciole (leggendaria). */
+export function grantMap(rar) {
+  const t = mapSpot(rar);
+  if (!t) return null;
+  if (!S.maps) S.maps = [];
+  const m = { x: t.x, y: t.y, rar, uid: S.uid++ };
+  S.maps.push(m);
+  return m;
+}
 export function buyMap(rar) {
   const cost = MAP_COST[rar];
   if (S.coins < cost && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + cost); return false; }
-  const t = mapSpot(rar);
-  if (!t) { toast(tr('Il cartografo non trova nulla…', 'The cartographer finds nothing…')); return false; }
+  const m = grantMap(rar);
+  if (!m) { toast(tr('Il cartografo non trova nulla…', 'The cartographer finds nothing…')); return false; }
   if (!isDebug()) S.coins -= cost;
   playSfx('coin');
-  if (!S.maps) S.maps = [];
-  S.maps.push({ x: t.x, y: t.y, rar, uid: S.uid++ });
-  toast('🗺️ ' + tr('X segnata: ', 'X marked: ') + dirTo(t.x, t.y));
+  toast('🗺️ ' + tr('X segnata: ', 'X marked: ') + dirTo(m.x, m.y));
   save(); updateHUD();
   return true;
 }
