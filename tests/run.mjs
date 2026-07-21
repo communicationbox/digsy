@@ -1998,8 +1998,11 @@ sprites.applyLook();
   check('cassetta: il giorno dopo sono pronti → si ritirano al Museo', gameplay.museumJobReady() === true && !!gameplay.museumCollect());
   S.museumJob = null; S.raw = [{ uid: 950, s: 'lepre', t: 'cranio', q: 'comune', val: 10 }]; S.coins = 0;
   check('cassetta: senza monete non spedisce (zaino intatto)', gameplay.shipToMuseum() === false && S.raw.length === 1 && !S.museumJob);
-  S.coins = 100; S.museumJob = { items: [], ready: S.day, prepOk: false };
-  check('cassetta: con un lotto già in lavorazione, rifiuta', gameplay.shipToMuseum() === false);
+  /* NIENTE STALLO: con un lotto GIÀ in lavorazione, spedire AGGIUNGE al lotto (prima si restava
+     bloccati: borsa piena e non potevi né consegnare né svuotarla) */
+  S.coins = 100; S.museumJob = { items: [{ uid: 940, s: 'lepre', t: 'torace', q: 'comune', val: 10 }], ready: S.day + 1, prepOk: false };
+  check('cassetta: con un lotto in corso si AGGIUNGE (niente stallo), zaino svuotato',
+    gameplay.shipToMuseum() === true && S.museumJob.items.length === 2 && S.raw.length === 0);
   S.museumJob = null; S.raw = [];
   check('cassetta: niente da spedire → rifiuta', gameplay.shipToMuseum() === false);
   /* posizione: SOLO borghi e paesi (le città hanno il Museo) */
@@ -2021,7 +2024,11 @@ sprites.applyLook();
   S.raw.push({ uid: 710, s: 'lepre', t: 'cranio', q: 'raro', val: 20 }); // doppione
   check('consegna: grezzi bloccati al museo', gameplay.museumDeposit() === true && S.raw.length === 0 && S.museumJob.items.length === 6);
   check('identificazione ISTANTANEA: pronto subito', gameplay.museumJobReady() === true);
-  check('seconda consegna rifiutata (job in corso)', gameplay.museumDeposit() === false);
+  check('seconda consegna a vuoto (borsa già svuotata) → niente da fare', gameplay.museumDeposit() === false);
+  /* con un lotto in corso E grezzi in mano, consegnare li AGGIUNGE (niente stallo) */
+  S.raw.push({ uid: 715, s: 'volpe', t: 'cranio', q: 'comune', val: 10 });
+  check('consegna con lotto in corso: si AGGIUNGE (niente stallo)', gameplay.museumDeposit() === true && S.museumJob.items.length === 7 && S.raw.length === 0);
+  S.museumJob.items.pop(); // rimetto a 6 per il ritiro atteso sotto
   const r = gameplay.museumCollect();
   check('ritiro: doppione restituito identificato, 5 nuovi esposti, NIENTE monete',
     r && r.back.length === 1 && r.back[0].uid === 710 && r.shown.length === 5 && S.items.length === 1 && S.coins === 0 && (S.museum.lepre || []).length === 5);

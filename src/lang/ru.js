@@ -219,7 +219,6 @@ export const RU = {
 
   /* ---- museo, laboratorio, locanda ---- */
   'Nothing to identify': 'Нечего определять',
-  'The experts are already at work': 'Специалисты уже работают',
   'No raw finds to hand in': 'Нет необработанных находок для сдачи',
   'Spend at least half a day awake first': 'Сначала проведите хотя бы полдня на ногах',
   'Dawn of day ': 'Рассвет дня ',
@@ -620,6 +619,7 @@ export const RU = {
   'Book': 'Книга',
   'DNA refills': 'Пополнение ДНК',
   'Handed in! Come back tomorrow to collect': 'Сдано! Возвращайтесь завтра за результатом',
+  'Handed in! Ready to collect': 'Сдано! Готово к выдаче',
   'Case complete! DNA vial of ': 'Витрина собрана! Пробирка ДНК: ',
   'Returned to you': 'Возвращено вам',
   'No duplicates: everything on display!': 'Дубликатов нет: всё пошло в экспозицию!',
@@ -817,13 +817,11 @@ export const RU = {
   'Drink, fill your flask and rest. The desert does not forgive haste.':
     'Пей, наполни флягу и отдохни. Пустыня не прощает спешки.',
   'Fresh water: energy fully restored.': 'Свежая вода: энергия полностью восстановлена.',
-  'You already have a batch in progress: collect it at the Museum': 'Партия уже в работе: забери её в Музее',
   'No raw finds to ship': 'Нет сырых находок для отправки',
+  "They'll be added to the batch already in progress.": 'Они добавятся к партии, уже находящейся в работе.',
   'Shipped to the Museum! Ready tomorrow, collect them there.': 'Отправлено в Музей! Будет готово завтра, забери там.',
   'Ship your raw finds to the Museum without going there: 🪙 ': 'Отправь сырые находки в Музей, не идя туда: 🪙 ',
   ' each, ready TOMORROW. Then collect them at the Museum (duplicates back, new pieces on display).': ' за штуку, готово ЗАВТРА. Потом забери в Музее (дубликаты назад, новые — в витрину).',
-  'A batch is already in progress': 'Партия уже в работе',
-  'Collect it at the Museum before shipping another.': 'Забери её в Музее, прежде чем отправлять новую.',
   'No raw finds': 'Нет сырых находок',
   'Dig first, then come back to ship.': 'Сначала покопай, потом вернись отправить.',
   'raw finds': 'сырых находок',

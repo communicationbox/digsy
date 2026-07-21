@@ -282,11 +282,11 @@ export function openQuestBoard() {
 export function openMailbox() {
   const n = (S.raw || []).length, cost = n * MAIL_COST, busy = !!S.museumJob;
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Spedisci i reperti grezzi al Museo senza andarci: 🪙 ', 'Ship your raw finds to the Museum without going there: 🪙 ') + MAIL_COST + tr(" l'uno, pronti DOMANI. Poi li ritiri al Museo (doppioni indietro, pezzi nuovi in teca).", ' each, ready TOMORROW. Then collect them at the Museum (duplicates back, new pieces on display).')}</div>`;
-  if (busy) h += `<div class="row"><span class="em">📮</span><div><div class="nm">${tr('Un lotto è già in lavorazione', 'A batch is already in progress')}</div><div class="sub">${tr('Ritiralo al Museo prima di spedirne un altro.', 'Collect it at the Museum before shipping another.')}</div></div></div>`;
-  else if (!n) h += `<div class="row"><span class="em">📭</span><div><div class="nm">${tr('Non hai reperti grezzi', 'No raw finds')}</div><div class="sub">${tr('Scava, poi torna a spedire.', 'Dig first, then come back to ship.')}</div></div></div>`;
+  if (!n) h += `<div class="row"><span class="em">📭</span><div><div class="nm">${tr('Non hai reperti grezzi', 'No raw finds')}</div><div class="sub">${tr('Scava, poi torna a spedire.', 'Dig first, then come back to ship.')}</div></div></div>`;
   else {
     const can = S.coins >= cost || isDebug();
     h += `<div class="row"><span class="em">📦</span><div><div class="nm">${n} ${tr('reperti grezzi', 'raw finds')}</div><div class="sub">${tr('costo', 'cost')} 🪙 ${cost} · ${tr('pronti domani', 'ready tomorrow')}</div></div><div class="rt"><button class="btn ${can ? 'amber' : 'ghost'}" ${can ? '' : 'disabled'} data-ship="1">${tr('Spedisci', 'Ship')} 🪙 ${cost}</button></div></div>`;
+    if (busy) h += `<div class="muted center" style="margin-top:6px">${tr('Si aggiungono al lotto già in lavorazione.', "They'll be added to the batch already in progress.")}</div>`;
     if (!can) h += `<div class="muted center" style="margin-top:6px">${tr('Servono 🪙 ', 'You need 🪙 ') + cost}</div>`;
   }
   mTitle.innerHTML = withIcons('📮 ' + tr('Cassetta della posta', 'Mailbox'));
@@ -1010,14 +1010,14 @@ function renderMuseum() {
   if (!S.book[z.id]) { S.book[z.id] = true; save(); toast(tr('📖 Nuove pagine nel libro: ', '📖 New pages in the book: ') + zoneName(z.id) + '!'); }
   const complete = Object.keys(S.museum).filter(k => (S.museum[k] || []).length === PARTS.length).length;
   let h = '';   // niente muro di testo: i bottoni (Consegna / Ritira) parlano da soli
-  if (!S.museumJob) {
-    /* consegni i grezzi; il RESTAURO si propone dopo, al RITIRO, sul miglior doppione che torna
-       (e solo se hai consegnato ≥3 raro+ insieme). Vedi il gestore di «Ritira» sotto. */
-    h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div><div class="sub">${tr('Scoperte', 'Discovered')}: ${S.codex.length}/${ALL_SPECIES.length}</div></div>
-      <div class="rt"><button class="btn amber" id="mudep" ${S.raw.length ? '' : 'disabled'}>${tr('Consegna tutto', 'Hand in all')}</button></div></div>`;
-  } else if (!museumJobReady()) {
+  /* CONSEGNA sempre disponibile se hai grezzi: consegnare AGGIUNGE al lotto in corso, così con la
+     borsa piena non si resta bloccati (prima: se non ritiravi non potevi consegnare né svuotarla).
+     Il restauro si propone al RITIRO, sul miglior doppione che torna, se ≥3 raro+ insieme. */
+  h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div><div class="sub">${tr('Scoperte', 'Discovered')}: ${S.codex.length}/${ALL_SPECIES.length}</div></div>
+    <div class="rt"><button class="btn amber" id="mudep" ${S.raw.length ? '' : 'disabled'}>${tr('Consegna tutto', 'Hand in all')}</button></div></div>`;
+  if (S.museumJob && !museumJobReady()) {
     h += `<div class="row" style="background:#f1e6cc"><span class="em">🔬</span><div><div class="nm">${tr('In lavorazione', 'Being examined')}: ${S.museumJob.items.length} ${tr('reperti', 'finds')}</div><div class="sub">${tr('Torna domani (giorno ', 'Come back tomorrow (day ')}${S.museumJob.ready})</div></div></div>`;
-  } else {
+  } else if (S.museumJob) {
     h += `<div class="row" style="background:#f1e6cc"><span class="em">💫</span><div><div class="nm">${tr('Pronti!', 'Ready!')} ${S.museumJob.items.length} ${tr('reperti identificati', 'finds identified')}</div></div>
       <div class="rt"><button class="btn amber" id="mucol">${tr('Ritira', 'Collect')}</button></div></div>`;
   }
@@ -1033,7 +1033,7 @@ function renderMuseum() {
   }
   mBody.innerHTML = withIcons(h); hydratePv();
   const dep = document.getElementById('mudep'); if (dep) dep.onclick = () => {
-    if (museumDeposit()) toast('🏛️ ' + tr('Consegnati! Torna domani per il ritiro', 'Handed in! Come back tomorrow to collect'));
+    if (museumDeposit()) toast('🏛️ ' + (museumJobReady() ? tr('Consegnati! Pronti da ritirare', 'Handed in! Ready to collect') : tr('Consegnati! Torna domani per il ritiro', 'Handed in! Come back tomorrow to collect')));
     renderMuseum();
   };
   const col = document.getElementById('mucol'); if (col) col.onclick = () => {

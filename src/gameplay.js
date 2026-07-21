@@ -497,14 +497,12 @@ export function nearbyMailbox() {
    DOPO (transito). Poi si RITIRANO al Museo come un deposito normale. Un lotto alla volta. */
 export const MAIL_COST = 2; // 🪙 a pezzo
 export function shipToMuseum() {
-  if (S.museumJob) { toast('📮 ' + tr('Hai già un lotto in lavorazione: ritiralo al Museo', 'You already have a batch in progress: collect it at the Museum')); return false; }
   const n = S.raw.length;
   if (!n) { toast(tr('Niente reperti grezzi da spedire', 'No raw finds to ship')); return false; }
   const cost = n * MAIL_COST;
   if (S.coins < cost && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + cost); return false; }
   if (!isDebug()) S.coins -= cost;
-  const rare = S.raw.filter(it => RARE_PLUS.includes(it.q)).length;
-  S.museumJob = { items: S.raw.splice(0), ready: S.day + 1, prepOk: rare >= PREP_RARE_MIN, shipped: true }; // pronti DOMANI
+  addToMuseumJob(S.day + 1); // spedizione: pronti DOMANI (o quando arriva, se c'è già un lotto)
   playSfx('coin'); toast('📮 ' + tr('Spediti al Museo! Pronti domani, li ritiri lì.', 'Shipped to the Museum! Ready tomorrow, collect them there.'));
   save(); updateHUD();
   return true;
@@ -920,11 +918,19 @@ export function sellAll() { let g = 0; S.items.forEach(it => g += it.val); S.coi
    raro+ insieme, e solo sul MIGLIORE dei doppioni che ti tornano (quelli che poi vendi). */
 export const PREP_RARE_MIN = 3;
 const RARE_PLUS = ['raro', 'eccezionale', 'leggendario'];
+/* aggiunge i grezzi dello zaino al LOTTO del Museo. Se ce n'è GIÀ uno in lavorazione, i nuovi ci
+   si AGGIUNGONO invece di essere rifiutati: prima con la borsa piena e un lotto non ancora
+   ritirato si restava in stallo (non potevi consegnare né svuotare la borsa). Il lotto è pronto
+   quando arriva l'ultimo pezzo (ready = il più tardi). */
+function addToMuseumJob(arriveDay) {
+  const raw = S.raw.splice(0);
+  if (S.museumJob) { S.museumJob.items.push(...raw); S.museumJob.ready = Math.max(S.museumJob.ready, arriveDay); }
+  else S.museumJob = { items: raw, ready: arriveDay };
+  S.museumJob.prepOk = S.museumJob.items.filter(it => RARE_PLUS.includes(it.q)).length >= PREP_RARE_MIN;
+}
 export function museumDeposit() {
-  if (S.museumJob) { toast(tr('Gli esperti stanno già lavorando', 'The experts are already at work')); return false; }
   if (!S.raw.length) { toast(tr('Niente reperti grezzi da consegnare', 'No raw finds to hand in')); return false; }
-  const rare = S.raw.filter(it => RARE_PLUS.includes(it.q)).length;
-  S.museumJob = { items: S.raw.splice(0), ready: S.day, prepOk: rare >= PREP_RARE_MIN }; // identificazione ISTANTANEA
+  addToMuseumJob(S.day); // consegna di persona: identificazione ISTANTANEA (ready = oggi)
   save(); updateHUD();
   return true;
 }

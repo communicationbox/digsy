@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
+      'FIX stallo: consegnare/spedire i grezzi ora si AGGIUNGE al lotto già in lavorazione (prima con la borsa piena e un lotto non ritirato restavi bloccato); il Museo offre sempre "Consegna"',
       'CASSETTA DELLA POSTA nei borghi e nei paesi: spedisci i reperti grezzi al Museo senza il viaggio (🪙 2 a pezzo), sono pronti il giorno dopo e li ritiri al Museo',
       'Nuova meraviglia delle Dune: lo SCHELETRO DI DRAGO — uno dei figli di Neladan, disegnato a mano nello Sprite Studio (al posto del vecchio "Costolame"); non trema più mentre cammini',
       'La MUSICA cambia bioma con ARMONIA: la tonalità passa a una vicina e sul tempo giusto, niente più stacchi stonati',
@@ -37,6 +38,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
+      'FIX deadlock: handing in / shipping raw finds now ADDS to the batch already in progress (before, with a full bag and an uncollected batch you got stuck); the Museum always offers "Hand in"',
       'MAILBOX in small and medium towns: ship your raw finds to the Museum without the trip (🪙 2 each); they\'re ready the next day and you collect them at the Museum',
       'New Dune wonder: the DRAGON SKELETON — one of Neladan\'s children, hand-drawn in the Sprite Studio (replacing the old "Great Ribcage"); no longer jitters as you walk',
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
