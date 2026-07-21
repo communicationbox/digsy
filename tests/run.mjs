@@ -1962,6 +1962,22 @@ sprites.applyLook();
     r && r.back.length === 1 && r.back[0].uid === 710 && r.shown.length === 5 && S.items.length === 1 && S.coins === 0 && (S.museum.lepre || []).length === 5);
   check('teca completa → 1 fialetta DNA in premio', r.vials.includes('lepre') && S.dna.lepre === 1);
 
+  /* RESTAURO AL RITIRO: solo se consegni ≥3 raro+ insieme, sul MIGLIOR doppione tornato */
+  { S.items = []; S.raw = []; S.museum = { lepre: ['cranio', 'torace', 'zampa'] }; S.museumJob = null; S.bagCap = 9999;
+    S.raw.push({ uid: 800, s: 'lepre', t: 'cranio', q: 'raro', val: 20 });
+    S.raw.push({ uid: 801, s: 'lepre', t: 'torace', q: 'eccezionale', val: 60 });
+    S.raw.push({ uid: 802, s: 'lepre', t: 'zampa', q: 'leggendario', val: 95 });
+    check('deposito ≥3 raro+ → lotto idoneo al restauro', gameplay.museumDeposit() === true && S.museumJob.prepOk === true);
+    const rp = gameplay.museumCollect();
+    check('al ritiro il Curatore propone il MIGLIOR doppione raro+ (il leggendario)', !!rp.prepCand && rp.prepCand.uid === 802);
+    // meno di 3 raro+ → niente proposta
+    S.raw = []; S.museum = { lepre: ['cranio'] }; S.museumJob = null;
+    S.raw.push({ uid: 810, s: 'lepre', t: 'cranio', q: 'raro', val: 20 });
+    S.raw.push({ uid: 811, s: 'lepre', t: 'torace', q: 'comune', val: 10 });
+    gameplay.museumDeposit();
+    check('meno di 3 raro+ insieme → nessuna proposta di restauro', gameplay.museumCollect().prepCand == null);
+    S.museum = {}; S.raw = []; S.items = []; }
+
   /* IL RITIRO NON PUÒ SFONDARE LO ZAINO. Depositare lo svuota (i pezzi in lavorazione non
      contano), quindi si può riempirlo di nuovo e tornare a ritirare: era l'unico punto del
      gioco che aggiungeva reperti senza guardare la capienza. Quel che non entra resta al

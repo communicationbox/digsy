@@ -971,24 +971,12 @@ function renderMuseum() {
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
   if (!S.book[z.id]) { S.book[z.id] = true; save(); toast(tr('📖 Nuove pagine nel libro: ', '📖 New pages in the book: ') + zoneName(z.id) + '!'); }
   const complete = Object.keys(S.museum).filter(k => (S.museum[k] || []).length === PARTS.length).length;
-  let h = `<div class="muted" style="margin-bottom:10px">${tr('Consegna i reperti <b>grezzi</b>: gli esperti li identificano <b>subito</b>. I pezzi che il museo ha già tornano a te (vendibili); i nuovi vengono <b>esposti in galleria</b>. Teca completa 5/5 → <b>fialetta di DNA</b> da usare al Laboratorio.', 'Hand in your <b>raw</b> finds: the experts identify them <b>instantly</b>. Pieces the museum already has come back to you (sellable); new ones go <b>on display</b>. Complete case 5/5 → a <b>DNA vial</b> to use at the Laboratory.')}</div>`;
+  let h = '';   // niente muro di testo: i bottoni (Consegna / Ritira) parlano da soli
   if (!S.museumJob) {
+    /* consegni i grezzi; il RESTAURO si propone dopo, al RITIRO, sul miglior doppione che torna
+       (e solo se hai consegnato ≥3 raro+ insieme). Vedi il gestore di «Ritira» sotto. */
     h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div><div class="sub">${tr('Scoperte', 'Discovered')}: ${S.codex.length}/${ALL_SPECIES.length}</div></div>
       <div class="rt"><button class="btn amber" id="mudep" ${S.raw.length ? '' : 'disabled'}>${tr('Consegna tutto', 'Hand in all')}</button></div></div>`;
-    /* TAVOLO DI PREPARAZIONE — UN pezzo per volta, e solo se ne vale la pena.
-       Farlo su ogni reperto lo trasformerebbe in una catena di montaggio: il Curatore
-       mette sul tavolo il pezzo migliore del lotto (raro o più), il resto si consegna
-       e basta. Resta facoltativo: chi salta non perde niente rispetto a prima. */
-    const cand = prepCandidate();
-    if (cand) {
-      const sp = spById[cand.it.s];
-      h += `<div class="bighead" style="margin-top:10px">🪶 ${tr('Tavolo di preparazione', 'Preparation table')}</div>
-        <div class="muted" style="margin-bottom:6px">${tr('Il Curatore mette sul tavolo <b>il pezzo migliore</b> del lotto: spazzolalo e varrà <b>fino a ×1,5</b>, con esperienza in più. Gli altri si consegnano così come sono.', 'The Curator puts <b>the best piece</b> of the batch on the table: brush it and it will be worth <b>up to ×1.5</b>, with extra XP. The rest are handed in as they are.')}</div>
-        <div class="row"><canvas class="pv" width="36" height="30" data-pv="${cand.it.s}|${cand.it.t}"></canvas>
-        <div><div class="nm">${partName(cand.it.t)} ${tr('di', 'of')} ${sp ? sp.name : '?'}</div>
-        <div class="sub">${rarSpan(cand.it.q)} · ${tr('valore', 'value')} 🪙 ${cand.it.val}</div></div>
-        <div class="rt"><button class="btn amber" data-prep="${cand.i}">${tr('Al tavolo', 'To the table')}</button></div></div>`;
-    }
   } else if (!museumJobReady()) {
     h += `<div class="row" style="background:#f1e6cc"><span class="em">🔬</span><div><div class="nm">${tr('In lavorazione', 'Being examined')}: ${S.museumJob.items.length} ${tr('reperti', 'finds')}</div><div class="sub">${tr('Torna domani (giorno ', 'Come back tomorrow (day ')}${S.museumJob.ready})</div></div></div>`;
   } else {
@@ -1002,10 +990,9 @@ function renderMuseum() {
   /* ricariche di DNA: solo per specie con teca completa, prezzo per rarità */
   const rechargeable = ALL_SPECIES.filter(s => (S.museum[s.id] || []).length === PARTS.length);
   if (rechargeable.length) {
-    h += `<div class="bighead" style="margin-top:10px">🧬 ${tr('Ricariche DNA', 'DNA refills')}</div><div class="muted" style="margin-bottom:6px">${tr('Ogni fialetta serve al Laboratorio: <b>2</b> risvegliano la specie, <b>1</b> basta per usarla in una chimera.', 'Each vial is used at the Laboratory: <b>2</b> awaken the species, <b>1</b> is enough to use it in a chimera.')}</div>`;
+    h += `<div class="bighead" style="margin-top:10px">🧬 ${tr('Ricariche DNA', 'DNA refills')}</div>`;
     h += rechargeable.map(s => `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name} ${dnaBadge(s.id)}</div><div class="sub">${rarSpan(s.r)}</div></div><div class="rt"><button class="btn amber" data-dna="${s.id}">🪙 ${DNA_COST[s.r]}</button></div></div>`).join('');
   }
-  h += `<div class="center muted" style="margin-top:6px">${tr('Gira la galleria: i pezzi consegnati sono esposti per bioma.', 'Walk the gallery: delivered pieces are on display by biome.')}</div>`;
   mBody.innerHTML = withIcons(h); hydratePv();
   const dep = document.getElementById('mudep'); if (dep) dep.onclick = () => {
     if (museumDeposit()) toast('🏛️ ' + tr('Consegnati! Torna domani per il ritiro', 'Handed in! Come back tomorrow to collect'));
@@ -1014,14 +1001,23 @@ function renderMuseum() {
   const col = document.getElementById('mucol'); if (col) col.onclick = () => {
     const r = museumCollect(); if (!r) return;
     for (const spId of r.vials) toast('🧬 ' + tr('Teca completa! Fialetta DNA di ', 'Case complete! DNA vial of ') + spById[spId].name);
-    const keep = `<div class="bighead" style="margin-top:10px">${tr('Restituiti a te', 'Returned to you')} (${r.back.length})</div>` + (r.back.length ? r.back.map(it => itemRow(it)).join('') : `<div class="center muted">${tr('Niente doppioni: tutto esposto!', 'No duplicates: everything on display!')}</div>`) +
+    let keep = `<div class="bighead" style="margin-top:10px">${tr('Restituiti a te', 'Returned to you')} (${r.back.length})</div>` + (r.back.length ? r.back.map(it => itemRow(it)).join('') : `<div class="center muted">${tr('Niente doppioni: tutto esposto!', 'No duplicates: everything on display!')}</div>`) +
       `<div class="center muted" style="margin-top:4px">🏛️ ${tr('Nuovi pezzi esposti', 'New pieces displayed')}: ${r.shown.length}</div>`;
-    renderMuseum(); const ir = document.getElementById('idResult'); if (ir) { ir.innerHTML = withIcons(keep); hydratePv(); }
+    /* PROPOSTA di RESTAURO del Curatore: sul MIGLIOR doppione raro+ tornato, e SKIPPABILE */
+    if (r.prepCand) {
+      const c = r.prepCand, sp = spById[c.s];
+      keep += `<div class="bighead" style="margin-top:10px">🪶 ${tr('Restauro', 'Restore')} <span class="muted" style="font-weight:400">${tr('fino a ×1,5', 'up to ×1.5')}</span></div>
+        <div class="row"><canvas class="pv" width="36" height="30" data-pv="${c.s}|${c.t}"></canvas>
+        <div><div class="nm">${partName(c.t)} ${tr('di', 'of')} ${sp ? sp.name : '?'}</div>
+        <div class="sub">${rarSpan(c.q)} · ${tr('valore', 'value')} 🪙 ${c.val}</div></div>
+        <div class="rt" style="display:flex;gap:6px"><button class="btn ghost" id="prepSkip">${tr('Salta', 'Skip')}</button><button class="btn amber" id="prepGo">${tr('Restaura', 'Restore')}</button></div></div>`;
+    }
+    renderMuseum(); const ir = document.getElementById('idResult'); if (ir) {
+      ir.innerHTML = withIcons(keep); hydratePv();
+      const pg = document.getElementById('prepGo'); if (pg) pg.onclick = () => openPrepare(r.prepCand, () => { save(); renderMuseum(); });
+      const ps = document.getElementById('prepSkip'); if (ps) ps.onclick = () => { const b = pg && pg.closest ? pg.closest('.row') : null; if (b) b.remove(); };
+    }
   };
-  mBody.querySelectorAll('[data-prep]').forEach(b => b.onclick = () => {
-    const it = S.raw[parseInt(b.dataset.prep, 10)]; if (!it) return;
-    openPrepare(it, () => { save(); renderMuseum(); });
-  });
   wireCommission(renderMuseum);
   const mb = document.getElementById('mbook'); if (mb) mb.onclick = () => { openBook(0); };
   mBody.querySelectorAll('[data-dna]').forEach(btn => btn.onclick = () => { buyDna(btn.dataset.dna); renderMuseum(); });

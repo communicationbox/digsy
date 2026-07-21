@@ -791,16 +791,22 @@ export function sellAll() { let g = 0; S.items.forEach(it => g += it.val); S.coi
    Al ritiro: i pezzi che il museo HA GIÀ tornano a te (identificati, vendibili);
    i pezzi NUOVI vengono esposti (niente monete). Teca completa 5/5 → FIALETTA DNA
    intera (S.dna +2 mezze), da usare al Laboratorio. Debug: ritiro immediato. */
+/* RESTAURO al ritiro: il Curatore lo propone SOLO se hai consegnato almeno PREP_RARE_MIN pezzi
+   raro+ insieme, e solo sul MIGLIORE dei doppioni che ti tornano (quelli che poi vendi). */
+export const PREP_RARE_MIN = 3;
+const RARE_PLUS = ['raro', 'eccezionale', 'leggendario'];
 export function museumDeposit() {
   if (S.museumJob) { toast(tr('Gli esperti stanno già lavorando', 'The experts are already at work')); return false; }
   if (!S.raw.length) { toast(tr('Niente reperti grezzi da consegnare', 'No raw finds to hand in')); return false; }
-  S.museumJob = { items: S.raw.splice(0), ready: S.day }; // identificazione ISTANTANEA (ritiro subito)
+  const rare = S.raw.filter(it => RARE_PLUS.includes(it.q)).length;
+  S.museumJob = { items: S.raw.splice(0), ready: S.day, prepOk: rare >= PREP_RARE_MIN }; // identificazione ISTANTANEA
   save(); updateHUD();
   return true;
 }
 export function museumJobReady() { return !!S.museumJob && (isDebug() || S.day >= S.museumJob.ready); }
 export function museumCollect() {
   if (!museumJobReady()) return null;
+  const prepOk = !!S.museumJob.prepOk;
   const back = [], shown = [], vials = [], left = [];
   for (const it of S.museumJob.items) {
     if (!S.codex.includes(it.s)) S.codex.push(it.s); // identificato in ogni caso
@@ -821,10 +827,14 @@ export function museumCollect() {
     }
   }
   /* se qualcosa è rimasto al museo la commessa resta aperta: si torna a ritirarlo */
-  S.museumJob = left.length ? { items: left, ready: S.day } : null;
+  S.museumJob = left.length ? { items: left, ready: S.day, prepOk } : null;
   if (left.length) toast('🎒 ' + tr('Zaino pieno: ', 'Bag full: ') + left.length + tr(' pezzi restano al Museo, torna a ritirarli', ' pieces stay at the Museum, come back for them'));
+  /* proposta di RESTAURO: solo se il lotto aveva ≥ PREP_RARE_MIN raro+, sul MIGLIORE doppione
+     raro+ che ti è tornato (quello che poi vendi). Uno solo, e si può saltare (lo decide la UI). */
+  let prepCand = null;
+  if (prepOk) prepCand = back.filter(it => RARE_PLUS.includes(it.q) && it.prep == null).sort((a, b) => (b.val || 0) - (a.val || 0))[0] || null;
   save(); updateHUD();
-  return { back, shown, vials, left };
+  return { back, shown, vials, left, prepCand };
 }
 /* Sonno alternato: metà-giornata = giorno [0,0.5) o notte [0.5,1). halfIndex monotòno crescente. */
 function curHalf() { return S.day * 2 + (isNight() ? 1 : 0); }

@@ -71,10 +71,11 @@ In partita normale il tavolo si apre **al Museo**, su **un pezzo per consegna** 
 
 `museo` (alias: `museum`, `gotomuseum`)
 
-Mette in zaino tre **grezzi raro/eccezionale/leggendario**, azzera un eventuale lotto in
-lavorazione e ti **teletrasporta alla città grande più vicina** (quella col Museo). Poi entra
-nel Museo, parla col **Curatore**: comparirà il **Tavolo di preparazione** col pezzo migliore e
-il bottone **«Al tavolo»**. È il modo per provare il minigioco come lo incontra il giocatore.
+Prepara tre **doppioni raro/eccezionale/leggendario GIÀ consegnati** (li mette nel lotto in
+lavorazione, marcato idoneo al restauro) e ti **teletrasporta alla città col Museo**. Al Museo
+premi **«Ritira»**: i doppioni tornano a te e il **Curatore propone il restauro** del migliore
+(bottoni **Restaura / Salta**). È il flusso vero: il restauro si offre **al ritiro**, solo se hai
+consegnato **≥3 raro+ insieme**, sul **miglior doppione** che ti torna, ed è **saltabile**.
 
 ## `stress=1..5` — carica il gioco per davvero (beta)
 

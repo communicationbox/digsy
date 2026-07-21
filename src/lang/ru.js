@@ -87,7 +87,7 @@ export const RU = {
   'Targets: ': 'Цели: ',
   'Biome not found nearby': 'Поблизости такого биома нет',
   'No big city found': 'Большой город не найден',
-  'rare+ raw finds in your bag: enter the Museum, talk to the Curator, «To the table»': 'редкие+ необработанные находки в рюкзаке: зайди в Музей, поговори с Хранителем, «На стол»',
+  'already handed in: at the Museum press «Collect», then the Curator offers the restoration': 'уже сдано: в Музее нажми «Забрать», потом Хранитель предложит реставрацию',
   'No site found nearby': 'Поблизости нет места раскопок',
   'No wreck found nearby': 'Поблизости нет обломков',
   'No landmark found nearby': 'Поблизости нет чуда',
@@ -600,14 +600,11 @@ export const RU = {
 
   /* ---- museo ---- */
   '📖 New pages in the book: ': '📖 Новые страницы в книге: ',
-  'Hand in your <b>raw</b> finds: the experts identify them <b>instantly</b>. Pieces the museum already has come back to you (sellable); new ones go <b>on display</b>. Complete case 5/5 → a <b>DNA vial</b> to use at the Laboratory.':
-    'Сдайте <b>необработанные</b> находки: специалисты определят их <b>сразу</b>. То, что у музея уже есть, вернётся вам (можно продать); новое встанет <b>в экспозицию</b>. Полная витрина 5/5 → <b>пробирка ДНК</b> для Лаборатории.',
   'Discovered': 'Открыто',
   'Hand in all': 'Сдать всё',
-  'Preparation table': 'Препараторский стол',
-  'The Curator puts <b>the best piece</b> of the batch on the table: brush it and it will be worth <b>up to ×1.5</b>, with extra XP. The rest are handed in as they are.':
-    'Хранитель кладёт на стол <b>лучшую находку</b> партии: очистите её кистью, и она будет стоить <b>до ×1,5</b> плюс опыт. Остальное сдаётся как есть.',
-  'To the table': 'На стол',
+  'up to ×1.5': 'до ×1,5',
+  'Skip': 'Пропустить',
+  'Restore': 'Реставрировать',
   'Being examined': 'На исследовании',
   'Come back tomorrow (day ': 'Возвращайтесь завтра (день ',
   'Ready!': 'Готово!',
@@ -616,8 +613,6 @@ export const RU = {
   'Complete species': 'Полных видов',
   'Book': 'Книга',
   'DNA refills': 'Пополнение ДНК',
-  'Walk the gallery: delivered pieces are on display by biome.':
-    'Пройдитесь по галерее: сданные части выставлены по биомам.',
   'Handed in! Come back tomorrow to collect': 'Сдано! Возвращайтесь завтра за результатом',
   'Case complete! DNA vial of ': 'Витрина собрана! Пробирка ДНК: ',
   'Returned to you': 'Возвращено вам',
@@ -1046,8 +1041,6 @@ export const RU = {
     'Соберите витрину Музея (5 частей одного вида) и получите <b>пробирку ДНК</b>. Лаборатории нужно <b>2</b>, чтобы пробудить вид, и <b>1</b>, чтобы использовать его в химере.',
   'You need <b>2 DNA vials</b> of the same species (a complete case 5/5 gives one; more can be bought at the Museum): we inject them here and the species comes back <b>ALIVE</b> in the Book. Awakened':
     'Нужны <b>2 пробирки ДНК</b> одного вида (полная витрина 5/5 даёт одну, остальные покупаются в Музее): здесь их вводят, и вид оживает <b>ЖИВЫМ</b> в Книге. Пробуждено',
-  'Each vial is used at the Laboratory: <b>2</b> awaken the species, <b>1</b> is enough to use it in a chimera.':
-    'Каждая пробирка нужна в Лаборатории: <b>2</b> пробуждают вид, <b>1</b> достаточно, чтобы использовать его в химере.',
   'vials · at the Lab: 2 awaken the species, 1 is enough for a chimera':
     'пробирки · в Лаборатории: 2 пробуждают вид, 1 хватает на химеру',
   'This is where you build chimeras: bring me an identified skull, torso and leg (+ some coins) and I assemble them — one DNA vial per species used. With TWO vials of the same species I can instead bring it back whole.':

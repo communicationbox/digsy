@@ -276,18 +276,23 @@ export const COMMANDS = {
     } },
   /* provare il tavolo NEL FLUSSO VERO: grezzi raro+ in zaino + vai alla città col Museo */
   museo: { aliases: ['museum', 'gotomuseum'], type: 'action', cheat: true,
-    help: 'museo — grezzi raro+ nello zaino + vai alla città col Museo (prova il Tavolo di preparazione dal Curatore)',
+    help: 'museo — 3 doppioni raro+ GIÀ consegnati + vai alla città col Museo (premi «Ritira» per la proposta di restauro)',
     run: () => {
-      if (!S.raw) S.raw = [];
-      S.museumJob = null;                        // nessun lotto in lavorazione: il tavolo compare
+      if (!S.museum) S.museum = {};
+      const items = [];
       for (const rar of ['raro', 'eccezionale', 'leggendario']) {
-        const sp = ALL_SPECIES[Math.floor(Math.random() * ALL_SPECIES.length)];
+        const pool = ALL_SPECIES.filter(sp => sp.r === rar);
+        const sp = pool[Math.floor(Math.random() * pool.length)] || ALL_SPECIES[0];
         const part = PARTS[Math.floor(Math.random() * PARTS.length)];
-        S.raw.push({ uid: S.uid++, s: sp.id, t: part.id, q: rar, val: Math.max(2, Math.round(7 * ptById[part.id].mult * RAR.find(r => r.id === rar).mult)) });
+        if (!S.museum[sp.id]) S.museum[sp.id] = [];
+        if (!S.museum[sp.id].includes(part.id)) S.museum[sp.id].push(part.id); // il museo ce l'ha → torna DOPPIONE
+        if (!S.codex.includes(sp.id)) S.codex.push(sp.id);
+        items.push({ uid: S.uid++, s: sp.id, t: part.id, q: rar, val: Math.max(2, Math.round(7 * ptById[part.id].mult * RAR.find(r => r.id === rar).mult)) });
       }
+      S.museumJob = { items, ready: S.day, prepOk: true };   // già consegnati (≥3 raro+): al Museo premi «Ritira»
       const n = teleportToCity();
       if (!n) return tr('Nessuna città grande trovata', 'No big city found');
-      return '🏛️ ' + n + ' — ' + tr('grezzi raro+ nello zaino: entra nel Museo, parla col Curatore, «Al tavolo»', 'rare+ raw finds in your bag: enter the Museum, talk to the Curator, «To the table»');
+      return '🏛️ ' + n + ' — ' + tr('già consegnati: al Museo premi «Ritira», poi il Curatore propone il restauro', 'already handed in: at the Museum press «Collect», then the Curator offers the restoration');
     } },
   /* MINIGIOCO fontana (#3): lo apre ovunque, per provarlo senza cercare una città */
   toss: { aliases: ['fontana', 'fountain'], type: 'action', cheat: true, help: 'toss — apre il minigioco della fontana (mira)',
