@@ -47,6 +47,14 @@ export function companionYieldMul(activitySrc) {
   for (const p of companionPowers(c)) if (p.type === activitySrc) add += p.mag;
   return 1 + add;
 }
+/* LANTERNA: il compagno di GROTTA fa luce — alone più ampio di notte (all'aperto) e in grotta.
+   Così il suo potere serve anche in superficie, non solo fra i cristalli. Scala con la potenza
+   del suo potere grotta (per le chimere è ridotto, come gli altri poteri). 0 se non è grotta. */
+export function companionLightBonus() {
+  const c = S.companion; if (!c) return 0;
+  for (const p of companionPowers(c)) if (p.type === 'grotta') return p.mag * 2.5;
+  return 0;
+}
 /* comodità universali: ogni compagno fiuta i reperti a terra e tiene la bussola accesa */
 export function companionHelps() { return !!S.companion; }
 

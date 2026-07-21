@@ -2989,7 +2989,16 @@ sprites.applyLook();
   check('chimera: DUE poteri (acqua+albero), ognuno < un risveglio singolo', cp.length === 2 && cp.some(p => p.type === 'acqua') && cp.some(p => p.type === 'albero') && cp[0].mag < singleFull);
   comp.setCompanion(chim);
   check('chimera: potenzia ENTRAMBE le attività (ridotto ciascuno)', Math.abs(comp.companionYieldMul('acqua') - 1.05) < 1e-9 && Math.abs(comp.companionYieldMul('albero') - 1.05) < 1e-9 && comp.companionYieldMul('terra') === 1);
+  /* LANTERNA: il compagno di GROTTA fa luce anche in SUPERFICIE (di notte), scala con la rarità;
+     gli altri tipi non danno luce */
+  comp.setCompanion({ skull: 'cavernide', torso: 'cavernide', leg: 'cavernide', q: 'comune', key: 'g1', name: 'G' });
+  const lb1 = comp.companionLightBonus();
+  comp.setCompanion({ skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'leggendario', key: 'g2', name: 'G2' });
+  const lb2 = comp.companionLightBonus();
+  comp.setCompanion(wSpec); const lb0 = comp.companionLightBonus(); // acqua → niente luce
+  check('Lanterna: il compagno di grotta fa luce (scala con rarità), gli altri no', lb1 > 0 && lb2 > lb1 && lb0 === 0);
   comp.clearCompanion();
+  check('Lanterna: senza compagno niente bonus luce', comp.companionLightBonus() === 0);
   check('compagno rimandato a casa', comp.companionSpec() === null && comp.companionYieldMul('acqua') === 1 && comp.companionHelps() === false);
 }
 

@@ -8,7 +8,7 @@ export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
-import { COMP, companionDrawObj, companionType, companionSpec, companionHelps } from './companion.js';
+import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile, isMounted } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
@@ -842,9 +842,10 @@ function drawCaveScene(time) {
      L'uscita fa eccezione: da lì entra il giorno, quindi il buio si apre. Senza, il varco
      appena disegnato tornerebbe nero e non servirebbe a niente. */
   const exTx = CAVE.w >> 1;
+  const caveR = (S.tools && S.tools.torch ? 1.7 : 1) + companionLightBonus(); // torcia + compagno LANTERNA
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
-    const tR = S.tools && S.tools.torch ? 1.7 : 1; // torcia = alone più ampio in grotta
+    const tR = caveR;
     const d = (Math.hypot(sx + 8 - CAVE.x, sy + 8 - CAVE.y) / TS) / tR;
     let a = d < 2 ? 0 : d < 3.2 ? 0.4 : d < 4.4 ? 0.72 : d < 5.6 ? 0.9 : 0.98;
     /* vicinanza all'imbocco: quanto più si è in fondo e in mezzo, tanto più c'è luce */
@@ -1006,9 +1007,9 @@ export function render(time) {
   /* notte: fuori dalla luce quasi NERO; cono 8-bit attorno al player; le città restano illuminate */
   if (night() > 0.02) {
     const pxc = P.x - cam.x, pyc = P.y - cam.y + 8;
+    const tR = (S.tools && S.tools.torch ? 1.7 : 1) + companionLightBonus(); // torcia + compagno LANTERNA (grotta)
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
       const sx = tx * TS - cam.x, sy = ty * TS - cam.y;
-      const tR = S.tools && S.tools.torch ? 1.7 : 1; // torcia = alone più ampio
       const d = (Math.hypot(sx + 8 - pxc, sy + 8 - pyc) / TS) / tR;
       let base = d < 2.5 ? 0.15 : d < 4 ? 0.55 : d < 5.5 ? 0.85 : 0.96;
       /* città illuminata + ALONE graduale attorno (falloff su 5 tile, a scalini) */

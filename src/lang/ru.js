@@ -738,7 +738,7 @@ export const RU = {
   "What's new": 'Что нового',
   'Choose who follows you in the world. The power depends on its TYPE (source) and grows with RARITY; every companion also gives sniff and compass.':
     'Выберите, кто пойдёт с вами. Сила зависит от ТИПА (источника) и растёт с РЕДКОСТЬЮ; каждый спутник также даёт нюх и компас.',
-  'richer crystals ': 'богаче кристаллы ',
+  'richer crystals + light at night': 'богаче кристаллы + свет ночью',
   'finds ': 'находки ',
   'RIDEABLE: fly over the map': 'ВЕРХОМ: летай над картой',
   'gathers on its own and brings you fossils': 'сам добывает и приносит тебе окаменелости',

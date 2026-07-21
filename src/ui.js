@@ -550,7 +550,7 @@ function powLabel(type, mag) {
   const e = TYPE_TXT[type]; if (!e) return '';
   const name = tr(e[0], e[1]), how = tr(e[2], e[3]);
   return type === 'grotta'
-    ? name + ': ' + tr('cristalli più ricchi ', 'richer crystals ') + how
+    ? name + ': ' + tr('cristalli in grotta + luce di notte', 'richer crystals + light at night')
     : name + ': +' + Math.round(mag * 100) + '% ' + tr('reperti ', 'finds ') + how;
 }
 /* etichetta del compagno `spec`: UNO o DUE poteri (le chimere ne hanno due, più deboli). I
