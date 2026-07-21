@@ -11,7 +11,7 @@ import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achiev
 import { weatherAt, weatherLabel } from './weather.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
 import { letterTitle, letterBody, hasLetter, allLetters } from './letters.js';
@@ -177,6 +177,7 @@ export function updatePrompt() {
   }
   if (nearbyBoard()) { setPrompt(withIcons(actKey() + ' ' + tr('Bacheca delle missioni 📋', 'Mission board 📋'))); return; }
   if (nearbyPark()) { setPrompt(withIcons(actKey() + ' ' + tr('Scegli il compagno 🐾', 'Choose your companion 🐾'))); return; }
+  if (nearbyDrop()) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli da terra ✨', 'Pick up from the ground ✨'))); return; } // il fossile caduto viene prima della fontana
   if (nearbyFountain()) { setPrompt(withIcons(actKey() + ' ' + tr('Lancia 1 🪙 nella fontana', 'Toss 1 🪙 into the fountain'))); return; }
   if (onBoat() && nearbyWreck()) { const rem = wreckRemaining(nearbyWreck()); setPrompt(withIcons(rem > 0 ? actKey() + ' ' + tr('Fruga nel relitto 🚢 (', 'Search the wreck 🚢 (') + rem + tr(' rimasti)', ' left)') : tr('Relitto ripulito', 'Wreck picked clean'))); return; }
   if (nearbyGround()) {
@@ -596,7 +597,6 @@ export function openMentor() {
    riflesso d'oro; SBAGLIARNE UNO chiude i tiri. Tre su tre = premio assicurato; se ti fermi
    prima, prendi in base a quanti ne hai azzeccati. Cozy: nessuna percentuale a schermo. ---------- */
 const TOSS_SPEEDS = [0.018, 0.028, 0.04];   // ogni tiro più veloce del precedente
-const TOSS_TIRO = [['Primo tiro', 'First toss'], ['Secondo tiro', 'Second toss'], ['Ultimo tiro', 'Last toss']];
 let tossActive = false, tossOpen = false, tossBetween = false, tossRAF = 0;
 let tossPos = 0, tossDir = 1, tossTarget = 0.5, tossRound = 0, tossHits = 0, tossOnDone = null;
 export function isTossOpen() { return tossActive; }
@@ -604,6 +604,7 @@ export function openToss(onDone) {
   const ov = document.getElementById('tossov'); if (!ov) { if (onDone) onDone(0); return; }
   if (typeof requestAnimationFrame === 'undefined') { if (onDone) onDone(0); return; } // niente animazione = niente tiri
   tossOnDone = onDone || null; tossActive = true; tossRound = 0; tossHits = 0;
+  const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Aumenta la tua fortuna', 'Boost your luck'));
   ov.classList.add('on');
   ov.onclick = () => { if (tossOpen) stopRound(); };
   startRound();
@@ -613,7 +614,6 @@ function startRound() {
   tossTarget = 0.12 + Math.random() * 0.76;                    // il riflesso d'oro si sposta ogni tiro
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
-  const title = document.getElementById('toss-title'); if (title) { const t = TOSS_TIRO[tossRound - 1]; title.innerHTML = withIcons(tr(t[0], t[1])); }
   const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il tiro nel riflesso d\'oro', 'Land the toss in the golden ripple'));
   const speed = TOSS_SPEEDS[tossRound - 1] || 0.04;
   const step = () => {
@@ -633,14 +633,14 @@ function stopRound() {
   if (!hit) { endToss(); return; }              // un tiro fuori e i tiri finiscono
   tossHits++;
   if (tossRound >= 3) { endToss(); return; }    // tre su tre
-  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons('<b>' + tr('Nell\'oro!', 'In the gold!') + '</b>');
+  const hint = document.getElementById('toss-hint');
+  if (hint) hint.innerHTML = withIcons('<b>' + (tossRound === 1 ? tr('Bel lancio!', 'Nice throw!') : tr('Wow, che bravo!', 'Wow, well done!')) + '</b>');
   if (typeof setTimeout !== 'undefined') setTimeout(() => { if (tossBetween) startRound(); }, 600);
 }
 function endToss() {
   tossBetween = false;
-  const label = tossHits >= 3 ? tr('Tre su tre — la fontana ti premia!', 'Three in a row — the fountain rewards you!')
-    : tossHits > 0 ? tr('Che peccato! Vediamo cosa arriva…', 'So close! Let\'s see what comes…')
-      : tr('Fuori! Sarà per la prossima', 'Out! Maybe next time');
+  const label = tossHits >= 3 ? tr('Tre su tre, ecco il premio!', 'Three in a row — here\'s your prize!')
+    : tr('Che peccato, vediamo se la fortuna ti premia!', 'Too bad — let\'s see if luck rewards you!');
   const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons('<b>' + label + '</b>');
   const finish = () => {
     tossActive = false;

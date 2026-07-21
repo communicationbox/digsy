@@ -1342,6 +1342,10 @@ sprites.applyLook();
   Math.random = om; S.fountains = {}; S.coins = 30;
   gameplay.tossCoin();
   check('tossCoin scala 1 moneta', S.coins === 30 - FC);
+  /* un FOSSILE caduto a terra (zaino pieno vicino alla fontana) ha la PRIORITÀ sulla fontana */
+  { const gsrc = (await import('node:fs')).readFileSync('src/gameplay.js', 'utf8');
+    const iDrop = gsrc.indexOf('nearbyDrop()) { collectPickup'), iF = gsrc.indexOf('nearbyFountain()) { tossCoin');
+    check('act: il fossile caduto ha priorità sulla fontana', iDrop > 0 && iF > 0 && iDrop < iF); }
 
   // limite: max 10 lanci per città, poi riposo 10 giorni
   {

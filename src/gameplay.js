@@ -683,6 +683,7 @@ export function act() {
   if (nearbyBoard()) { openQuestBoard(); return; } // cartello delle missioni
   if (nearbyPark()) { openCompanionPicker(); return; } // parco: scegli il compagno
   if (nearbySite()) { digSite(); return; }
+  if (nearbyDrop()) { collectPickup(); return; } // un FOSSILE caduto a terra (zaino pieno) ha la PRIORITÀ sulla fontana
   if (nearbyFountain()) { tossCoin(); return; }
   if (collectPickup()) return;                 // oggetto di superficie a portata
   if (onBoat()) { if (nearbyWreck()) digWreck(); else tryFish(); return; } // relitto o pesca
