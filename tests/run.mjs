@@ -1899,6 +1899,14 @@ sprites.applyLook();
   check(`registro icone: ${icons.ICON_NAMES.length} nomi`, icons.ICON_NAMES.length >= 44);
   const missing = Object.values(icons.EMAP).filter(n => !icons.ICON_NAMES.includes(n));
   check('ogni emoji mappa a un\'icona esistente' + (missing.length ? ' (mancano: ' + missing.join(',') + ')' : ''), missing.length === 0);
+  /* GUARDIA: ogni pxicon deve usare `currentColor`, così lo `style="color:…"` di icon() la tinge.
+     paw.svg aveva fill="black" fisso → l'icona del COMPAGNO restava NERA/invisibile sull'HUD scuro. */
+  {
+    const fs = await import('node:fs'); const base = new URL('../src/pxicons/', import.meta.url);
+    const svgs = fs.readdirSync(base).filter(f => f.endsWith('.svg'));
+    const nero = svgs.filter(f => !fs.readFileSync(new URL(f, base), 'utf8').includes('currentColor'));
+    check('ogni pxicon eredita currentColor (nessun fill nero fisso)' + (nero.length ? ' → ' + nero.join(',') : ''), svgs.length >= 44 && nero.length === 0);
+  }
   /* IL CONTROLLO CHE MANCAVA: le emoji SCRITTE NEL CODICE devono essere tutte mappate.
      `withIcons` strippa quelle che non conosce, quindi una emoji nuova non dà errore: il
      bottone resta semplicemente muto. È successo tre volte (🗑 del cestino, ⚙️ delle
