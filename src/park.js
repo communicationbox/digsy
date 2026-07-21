@@ -43,17 +43,27 @@ export function refreshVisParks() {
     const t = townForCell(cx, cy); if (t && t.pen) visParks.push(t);
   }
 }
+/* chi vive DAVVERO nel recinto ORA: come parkPopulation ma SENZA il compagno che è "con te"
+   (altrimenti la stessa creatura si vede due volte — nel recinto e al tuo fianco). Il selettore
+   dei compagni usa invece parkPopulation intera, così il compagno attivo resta scegliibile. */
+export function penPopulation() {
+  const ck = S.companion && S.companion.key;
+  const all = parkPopulation();
+  return ck ? all.filter(c => c.key !== ck) : all;
+}
 export function parkList(t) {
   let list = parks.get(t.key);
   if (!list) { list = []; parks.set(t.key, list); }
-  const p = t.pen, pop = parkPopulation();
-  while (list.length < pop.length) {          // le nuove creature entrano nel parco
-    const c = pop[list.length];
+  const p = t.pen, pop = penPopulation(), want = new Set(pop.map(c => c.key));
+  /* esce chi non c'è più nel recinto (es. il compagno uscito con te); gli altri tengono la
+     loro posizione di gironzolo, così scegliere un compagno non fa saltare tutti gli altri */
+  for (let i = list.length - 1; i >= 0; i--) if (!want.has(list[i].c.key)) list.splice(i, 1);
+  const have = new Set(list.map(e => e.c.key));
+  for (const c of pop) if (!have.has(c.key)) {         // entra chi è nuovo (o è tornato a casa)
     const x = (p.x0 + 1 + (c.uid * 7) % (p.x1 - p.x0 - 1)) * TS + 8;
     const y = (p.y0 + 1 + (c.uid * 13) % (p.y1 - p.y0 - 1)) * TS + 8;
     list.push({ c, x, y, tx: x, ty: y, pause: 0.5, dir: 1, anim: 0 });
   }
-  if (list.length > pop.length) list.length = pop.length;
   return list;
 }
 export function updatePark(t, dt) {

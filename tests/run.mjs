@@ -919,9 +919,19 @@ sprites.applyLook();
       after.some(a => a.c.skull === 'fangodonte' && a.c.torso === 'fangodonte' && a.c.leg === 'fangodonte'));
     /* parco e selettore dei compagni devono pescare dalla STESSA lista: quando erano due
        elenchi scritti a mano sono divergute proprio così */
-    const comp = (await import('../src/companion.js')).companionCandidates();
+    const compMod = await import('../src/companion.js');
+    const comp = compMod.companionCandidates();
     check('parco e compagni: stessa popolazione',
       comp.length === after.length && comp.every((c, i) => c.key === after[i].c.key));
+    /* SDOPPIAMENTO: il compagno "con te" ESCE dal recinto (non si vede due volte), ma resta
+       scegliibile nel selettore; rimandandolo a casa rientra nel recinto */
+    const penFull = park.parkList(big).length;
+    compMod.setCompanion(park.parkPopulation().find(c => c.key === 'spfangodonte'));
+    const penAfter = park.parkList(big);
+    check('compagno con te: NON è più nel recinto (niente doppione)', penAfter.length === penFull - 1 && !penAfter.some(a => a.c.key === 'spfangodonte'));
+    check('compagno con te: resta nel selettore dei compagni', compMod.companionCandidates().some(c => c.key === 'spfangodonte'));
+    compMod.clearCompanion();
+    check('rimandato a casa: rientra nel recinto', park.parkList(big).some(a => a.c.key === 'spfangodonte'));
     S.awakened.length = 0;
     check('tolte le risvegliate il parco torna alle sole chimere',
       park.parkList(big).length === S.creatures.length);

@@ -503,23 +503,27 @@ function drawBikeFB(sx, sy, moving, dir) {
 /* CAVALCATURA VOLANTE (grotta leggendario): fossile alato con l'eroe in groppa, in volo sopra
    la mappa. Ombra a terra STACCATA (dà l'altezza), ali che sbattono (fase dal tempo), bob
    d'aria, scia di scintille in movimento. Contorni scuri per staccare dallo sfondo. */
-/* ALI della cavalcatura, sbattono (fase dal tempo). Di PROFILO: due ali dietro che si aprono in
-   verticale. Di FRONTE/SPALLE: aperte ai due lati, a ventaglio, la punta sale/scende. */
-function drawMountWings(sx, cy, view) {
+/* ALI della cavalcatura, sbattono (fase dal tempo). Di PROFILO: UNA grande ala dietro (verso la
+   coda) che spazza su/indietro. Di FRONTE/SPALLE: aperte ai due lati, a ventaglio. */
+function drawMountWings(sx, cy, view, dir) {
   const flap = Math.sin(frameTime / 90);
   if (view === 'side') {
-    const wl = Math.round((flap + 1) * 3);
-    for (const s of [-1, 1]) { const bx = sx + s * 3;
-      for (let i = 1; i <= 6; i++) { const wx = bx + s * i, wy = cy - Math.round((i / 6) * wl);
-        px(wx, wy, i > 4 ? '#5a4a6e' : '#7a6a92'); if (i <= 4) px(wx, wy + 1, '#b6a6c6'); } }
+    const back = dir > 0 ? -1 : 1;                           // la coda sta dietro il muso
+    const up = 4 + Math.round((flap + 1) * 2);               // apertura verticale (sbattito)
+    for (let i = 1; i <= 7; i++) {
+      const wx = Math.round(sx + back * (i + 1)), wy = cy - Math.round((i / 7) * up);
+      px(wx, wy, i > 5 ? '#5a4a6e' : '#7a6a92');
+      px(wx, wy + 1, '#6a5a7e');
+      if (i <= 5) px(wx, wy + 2, '#b6a6c6');                 // bordo chiaro (contrasto)
+    }
     return;
   }
-  const rise = Math.round(flap * 3);                        // fronte/spalle: ali spiegate
+  const rise = Math.round(flap * 3);                         // fronte/spalle: ali spiegate ai lati
   for (const s of [-1, 1]) for (let i = 1; i <= 7; i++) {
     const wx = sx + s * (2 + i), wy = cy - Math.round((i / 7) * (5 + rise));
     px(wx, wy, i > 5 ? '#5a4a6e' : '#7a6a92');
     px(wx, wy + 1, '#6a5a7e');
-    if (i <= 5) px(wx, wy + 2, '#b6a6c6');                  // bordo chiaro (contrasto)
+    if (i <= 5) px(wx, wy + 2, '#b6a6c6');
   }
 }
 function drawFlyingMount(sx, sy) {
@@ -532,11 +536,18 @@ function drawFlyingMount(sx, sy) {
   const bodyTop = cv ? Math.round(creatureY + 14 - cv.height) : Math.round(sy - lift - 2); // cima della schiena
   const dir = P.dir === 'left' ? -1 : 1;
   shadow(sx, sy + 17, 5);                                   // ombra piccola a terra = è in alto
-  drawMountWings(sx, bodyTop + 3, view);                    // ali DIETRO il corpo (roots coperti dal corpo)
-  /* eroe SEDUTO: disegnato PRIMA, poi il corpo lo copre dalle anche in giù → in sella, non
-     galleggia (spalle alla cima della schiena) e la faccia resta libera */
-  drawHero(null, sx - 8, bodyTop - 12, P.dir, 0);
-  if (obj) drawCreature(obj, sx - 8, creatureY, false, true);
+  if (view === 'side') {
+    /* PROFILO: ala dietro → corpo → eroe SOPRA e abbassato 2px, così ne spunta UNA gamba
+       sul fianco vicino (nel profilo la gamba lontana sta dietro il busto) */
+    drawMountWings(sx, bodyTop + 4, 'side', dir);
+    if (obj) drawCreature(obj, sx - 8, creatureY, false, true);
+    drawHero(null, sx - 8, bodyTop - 10, P.dir, 0);
+  } else {
+    /* FRONTE/SPALLE: ali ai lati → eroe → corpo che gli copre le gambe (simmetrico, in sella) */
+    drawMountWings(sx, bodyTop + 3, view, dir);
+    drawHero(null, sx - 8, bodyTop - 12, P.dir, 0);
+    if (obj) drawCreature(obj, sx - 8, creatureY, false, true);
+  }
   if (P.moving) {                                           // scia di scintille dietro
     const tx = sx - dir * 10, ty = bodyTop + 8, w2 = Math.floor(frameTime / 120) % 3;
     px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)');

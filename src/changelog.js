@@ -20,6 +20,8 @@ export const CHANGELOG = [
       'COMPAGNI che GIRANO: muovendoti in su/giù il compagno (e la cavalcatura) mostra le viste di SPALLE e di FRONTE, non più solo di profilo',
       'CAVALCATURA: si attiva SOLO dallo zaino (niente più tasto R che faceva casino); l\'eroe ora sta IN SELLA (non galleggia più) e le ali si vedono da ogni lato, anche di fronte e di spalle',
       'FIX TETTI: le tegole/scandole non "nuotano" più mentre cammini — il disegno del tetto era agganciato alla posizione sullo schermo invece che all\'edificio',
+      'CAVALCATURA di profilo: l\'eroe è seduto più in basso, si vede una sola gamba sul fianco e l\'ala è adattata alla vista laterale',
+      'FIX COMPAGNO SDOPPIATO: il compagno che è con te NON compare più anche nel recinto del parco; rimandandolo a casa ci rientra',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -40,6 +42,8 @@ export const CHANGELOG = [
       'COMPANIONS that TURN: moving up/down the companion (and the mount) now shows BACK and FRONT views, not just the side',
       'MOUNT: toggled ONLY from the bag now (no more messy R key); the hero SITS in the saddle (no longer floats) and the wings show from every side, front and back included',
       'ROOF FIX: tiles/shingles no longer "swim" as you walk — the roof pattern was pinned to the screen position instead of the building',
+      'MOUNT profile: the hero sits lower, only one leg shows on the near side, and the wing is adapted to the side view',
+      'FIX DOUBLED COMPANION: the companion that\'s with you no longer also appears in the park pen; send it home and it returns there',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },
