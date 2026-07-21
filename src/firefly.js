@@ -49,25 +49,46 @@ export function updateFireflies(time, nightLevel) {
   if (caught) { S.fireflies = (S.fireflies || 0) + caught; playSfx('found'); save(); }
 }
 
+function fpx(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
+/* RETINO da acchiappafarfalle, PIXEL-ART: manico di legno + cerchio + sacca a maglie. Nessun
+   arc/stroke sfocato: solo pixel netti (snap). (hx,hy)=mano, (cx,cy)=centro del cerchio. */
+function drawNet(ctx, hx, hy, cx, cy) {
+  const R = 5;
+  /* manico di legno (2px) dalla mano al bordo del cerchio */
+  const dx = cx - hx, dy = cy - hy, len = Math.max(1, Math.hypot(dx, dy)), ux = dx / len, uy = dy / len;
+  for (let i = 0; i <= len - R; i++) fpx(ctx, hx + ux * i, hy + uy * i, 2, 2, i < 2 ? '#6b4420' : '#8a5a2e');
+  /* SACCA: bianco translucido dentro il cerchio + coda che si stringe sotto */
+  for (let yy = -R; yy <= R + 6; yy++) for (let xx = -R; xx <= R; xx++) {
+    const inRing = xx * xx + yy * yy < R * R;
+    const inBag = yy > 0 && Math.abs(xx) <= R - Math.floor(yy * 0.7);
+    if (inRing || inBag) fpx(ctx, cx + xx, cy + yy, 1, 1, 'rgba(238,246,255,.18)');
+  }
+  /* maglie: fili chiari radi */
+  for (let k = -R + 1; k < R; k += 2) fpx(ctx, cx + k, cy - R + 2, 1, R + 4, 'rgba(240,244,255,.22)');
+  /* CERCHIO (rim) a pixel: legno chiaro */
+  for (let d = 0; d < 22; d++) { const an = d / 22 * Math.PI * 2; fpx(ctx, cx + Math.cos(an) * R, cy + Math.sin(an) * R, 1, 1, '#efe6c8'); }
+  fpx(ctx, cx - 1, cy - R - 1, 2, 1, '#cbb98a'); // nodo in alto
+}
+
 export function drawFireflies(ctx, camx, camy) {
   if (!ctx || !flies.length) return;
   for (const f of flies) {
     const gx = Math.round(f.x - camx), gy = Math.round(f.y - camy);
     const glow = 0.5 + 0.5 * Math.sin(f.ph);
-    ctx.fillStyle = 'rgba(190,255,150,' + (0.14 * glow).toFixed(2) + ')'; ctx.fillRect(gx - 3, gy - 3, 6, 6); // alone
-    ctx.fillStyle = 'rgba(226,255,176,' + (0.55 + 0.4 * glow).toFixed(2) + ')'; ctx.fillRect(gx - 1, gy - 1, 2, 2); // corpo
+    fpx(ctx, gx - 3, gy - 3, 7, 7, 'rgba(150,230,120,' + (0.09 * glow).toFixed(2) + ')');           // alone morbido
+    ctx.fillStyle = 'rgba(205,255,150,' + (0.35 + 0.3 * glow).toFixed(2) + ')';                       // croce di luce
+    ctx.fillRect(gx - 2, gy, 5, 1); ctx.fillRect(gx, gy - 2, 1, 5);
+    fpx(ctx, gx, gy, 2, 2, 'rgba(244,255,205,' + (0.7 + 0.3 * glow).toFixed(2) + ')');                // cuore acceso
   }
   const pxs = Math.round(P.x - camx), pys = Math.round(P.y - camy);
-  /* RETINO: swipe di ~0.34 s verso l'ultima lucciola presa */
+  /* RETINO: swipe di ~0.34 s — il cerchio spazza in arco verso la lucciola presa */
   if (swing > 0) {
     const prog = 1 - swing / SWING_DUR;               // 0→1 (fase dal timer, non da schermo)
-    const a = swingDir * (-0.7 + prog * 1.4);
-    const hx = pxs, hy = pys - 4;
-    const ex = Math.round(hx + swingDir * 5 + Math.sin(a) * 11), ey = Math.round(hy - 10 + Math.cos(a) * -6);
-    ctx.strokeStyle = '#caa46a'; ctx.lineWidth = 1;
-    if (ctx.beginPath) { ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(ex, ey); ctx.stroke(); } // manico
-    ctx.strokeStyle = 'rgba(240,236,206,.9)';
-    if (ctx.beginPath) { ctx.beginPath(); ctx.arc(ex, ey, 4, 0, Math.PI * 2); ctx.stroke(); }     // cerchio del retino
+    const ang = swingDir * (-1.1 + prog * 2.2) - Math.PI / 2;
+    const hx = pxs + swingDir * 2, hy = pys - 3;      // mano
+    const cx = pxs + swingDir * 3 + Math.round(Math.cos(ang) * 11);
+    const cy = pys - 7 + Math.round(Math.sin(ang) * 11);
+    drawNet(ctx, hx, hy, cx, cy);
   }
   /* +1 che sale ad ogni cattura */
   for (const p of pops) {
