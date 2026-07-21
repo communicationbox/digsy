@@ -3294,6 +3294,10 @@ sprites.applyLook();
   const src = (await import('node:fs')).readFileSync('src/gameplay.js', 'utf8');
   check('chimera e risveglio annunciati con banner+suono', /bigMoment\(/.test(src) &&
     (src.match(/bigMoment\(/g) || []).length >= 3);
+  /* il suono POSITIVO ('found') deve accompagnare OGNI reperto, non solo lo scavo a terra:
+     accetta/piccone lo davano solo col colpo dell'attrezzo, il sito non lo dava affatto */
+  check('accetta/piccone: suono "found" sul reperto (non solo il colpo)', /found \? 'found' : kind === 'chop'/.test(src));
+  check('sito di scavo: suono "found" sul reperto pregiato', /addFossil\(raw, s\.x, s\.y\)\)\s*\{[^]*?playSfx\('found'\)/.test(src));
   const ui = (await import('node:fs')).readFileSync('src/ui.js', 'utf8');
   check('traguardo con fanfara', /checkAchievements[\s\S]{0,200}fanfare/.test(ui));
   check('HUD: avvisa energia bassa e zaino pieno', /classList\.toggle\('low'/.test(ui) && /classList\.toggle\('full'/.test(ui));

@@ -310,10 +310,11 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
   beginDig(0.5, () => {
     if (!isDebug()) spendEnergy(1);
     setAdd.add(tx + ',' + ty); arr.push(tx + ',' + ty);
+    let found = false;
     /* compagno Boscaiolo/Minatore: più resa se il tipo combacia con la fonte (albero/roccia) */
     if (Math.random() < Math.min(0.85, 0.5 * companionYieldMul(src))) {
       const raw = makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, src);
-      if (raw && addFossil(raw, tx, ty)) toast(okMsg);
+      if (raw && addFossil(raw, tx, ty)) { toast(okMsg); found = true; }
       else if (!raw) toast(src === 'roccia' ? tr('…la vena è muta in questa stagione', '…the vein is silent this season') : tr('…niente', '…nothing'));
     } else {
       /* stessa cortesia della pesca: se la vena di questa zona si apre in un'altra stagione,
@@ -327,7 +328,7 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
       }
       toast(msg);
     }
-    playSfx(kind === 'chop' ? 'chop' : 'mine');
+    playSfx(found ? 'found' : kind === 'chop' ? 'chop' : 'mine'); // reperto → suono positivo; a vuoto → colpo dell'attrezzo
     save(); updateHUD();
   }, kind);
   return true;
@@ -638,7 +639,7 @@ export function digSite() {
     let r = Math.random() * tot, rar = 'raro';
     for (const q of ['raro', 'eccezionale', 'leggendario']) { r -= w[q]; if (r <= 0) { rar = q; break; } }
     const raw = makeRaw(zoneAt(s.x, s.y).id, dist, rar, 'any');
-    if (addFossil(raw, s.x, s.y)) toast(tr('⛏️✨ Reperto pregiato dal sito! (', '⛏️✨ Precious find from the site! (') + (rem - 1) + tr(' rimasti)', ' left)'));
+    if (addFossil(raw, s.x, s.y)) { toast(tr('⛏️✨ Reperto pregiato dal sito! (', '⛏️✨ Precious find from the site! (') + (rem - 1) + tr(' rimasti)', ' left)')); playSfx('found'); } // suono positivo sul reperto
     save(); updateHUD();
   });
 }
