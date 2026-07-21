@@ -382,15 +382,16 @@ const creCache = new Map();
 /* sprite della creatura in una VISTA: 'side' (di profilo, X orizzontale · Z profondità),
    'front'/'back' (di fronte/spalle, Z orizzontale · X profondità → head-on, più stretto).
    Front mostra gli occhi, back no: così muovendosi in su/giù il compagno "gira". */
-function creatureSprite(a, view) {
+function creatureSprite(a, view, opts) {
   view = view || 'side';
-  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view;
+  const o = opts || {};
+  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap ? '|f' + o.wingFlap : '');
   let cv = creCache.get(key); if (cv !== undefined) return cv;
   cv = null;
   try {
     const c = spById[a.c.skull], t = spById[a.c.torso], z = spById[a.c.leg];
     const spec = { heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
-    const vox = buildFleshVoxels(clampSpec(spec));
+    const vox = buildFleshVoxels(clampSpec(spec), opts);
     /* asse orizzontale (h), profondità (d) per l'ordine pittore. La verticale è sempre y. */
     const proj = view === 'side' ? v => [v.x, v.z]
       : view === 'front' ? v => [v.z, v.x]
@@ -426,13 +427,13 @@ function creatureArch(a) {
   if (bp.tall || (bp.legs && bp.legs[0] <= 2)) return 'hop';
   return 'walk';
 }
-function drawCreature(a, sx, sy, swim, noShadow) {
+function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
   /* verso a 4 direzioni: su → spalle, giù → fronte, sinistra/destra → profilo (specchiato).
      `a.face` è una stringa ('up'/'down'/'left'/'right'); per compatibilità si accetta anche
      il vecchio `a.dir` numerico (-1/1) → solo profilo. */
   const face = a.face || (a.dir < 0 ? 'left' : 'right');
   const view = face === 'up' ? 'back' : face === 'down' ? 'front' : 'side';
-  const cv = creatureSprite(a, view);
+  const cv = creatureSprite(a, view, spriteOpts);
   const arch = creatureArch(a);
   const ph = (a.anim || 0) * 7;              // fase (avanza col movimento)
   const idle = frameTime / 600;
@@ -576,78 +577,60 @@ function drawBikeFB(sx, sy, moving, dir) {
 /* CAVALCATURA VOLANTE dedicata: un rettile alato grande (l'Abissodonte), disegnato a mano in
    codice — corpo, collo+testa con corna, ali membranose che sbattono, coda con pinna, l'eroe
    SEDUTO in groppa (busto, gambe in sella). Colore dalla creatura + contorno scuro. 4 direzioni. */
-const MOUNT_LN = '#141019';
-/* riempimento triangolo pixel (baricentrico) + linea-osso: primitive per le ali membranose */
-function ptInTri(x, y, a, b, c) {
-  const d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]); if (!d) return false;
-  const s = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / d;
-  const t = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / d;
-  return s >= -0.02 && t >= -0.02 && s + t <= 1.02;
-}
-function fillTri(a, b, c, col) {
-  const x0 = Math.floor(Math.min(a[0], b[0], c[0])), x1 = Math.ceil(Math.max(a[0], b[0], c[0]));
-  const y0 = Math.floor(Math.min(a[1], b[1], c[1])), y1 = Math.ceil(Math.max(a[1], b[1], c[1]));
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ptInTri(x + 0.5, y + 0.5, a, b, c)) px(x, y, col);
-}
-function boneLine(a, b, col) {
-  const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1])));
-  for (let i = 0; i <= n; i++) px(Math.round(a[0] + (b[0] - a[0]) * i / n), Math.round(a[1] + (b[1] - a[1]) * i / n), col);
-}
-/* ala di PROFILO: membrana PIENA (triangolo radice-punta-uscita) + osso d'attacco + 2 nervature */
-function mountWingSide(rx, ry, back, flap, wing, web, near) {
-  const up = Math.round((flap + 1) * 5) + 5;
-  const R = [rx, ry], T = [rx + back * 14, ry - up], B = [rx + back * 11, ry + 2], E = [rx + back * 6, ry - up + 2];
-  fillTri(R, T, B, near ? web : shade8(web, 0.7));
-  boneLine(R, E, wing); boneLine(E, T, wing);                 // bordo d'attacco (gomito)
-  for (const fr of [0.34, 0.68]) boneLine(E, [T[0] + (B[0] - T[0]) * fr, T[1] + (B[1] - T[1]) * fr], near ? wing : shade8(wing, 0.85)); // dita
-  px(Math.round(E[0]), Math.round(E[1]), near ? '#efe7f2' : wing);
-}
-/* ala vista FRONTE/SPALLE: membrana piena verso il lato `s`, punta che sbatte */
-function mountWingFB(rx, ry, s, flap, wing, web) {
-  const up = Math.round(flap * 4) + 2;
-  const R = [rx, ry], T = [rx + s * 9, ry - 6 - up], B = [rx + s * 7, ry + 4];
-  fillTri(R, T, B, web);
-  boneLine(R, T, wing);
-  for (const fr of [0.4, 0.75]) boneLine([rx + s * 2, ry - 2], [T[0] + (B[0] - T[0]) * fr, T[1] + (B[1] - T[1]) * fr], shade8(wing, 0.85));
-}
 /* eroe SEDUTO in groppa: busto+testa (gambe tagliate dal clip = in sella), all'altezza `topY` */
 function seatHero(sx, topY, dir) {
   ctx.save(); ctx.beginPath(); ctx.rect(sx - 9, topY - 4, 18, 16); ctx.clip();
   drawHero(null, sx - 8, topY, dir, 0);
   ctx.restore();
 }
+/* ALA in stile VOXEL: colonne PIENE a ventaglio (niente membrana liscia coi buchi), 3 toni +
+   contorno scuro come la creatura, così è coerente e ATTACCATA al dorso. `out`=+1/-1 il verso in
+   cui si apre; `flap` -1..1 il battito (fase dal TEMPO). */
+function voxWing(rx, ry, out, flap, base) {
+  const M = base, L = shade8(base, 1.22), Dk = shade8(base, 0.66), LN = '#20160f';
+  const n = 7, cells = [];
+  for (let i = 0; i <= n; i++) {
+    const cx = rx + out * i;
+    const rise = Math.round(i * 1.35) + Math.round(flap * 2 * (i / n));   // il bordo d'attacco sale/scende
+    const top = ry - rise, bot = ry + 2 - Math.round(i * 0.4);
+    for (let y = top; y <= bot; y++) cells.push([cx, y, y === top ? L : (y === bot ? Dk : M)]);
+  }
+  const set = new Set(cells.map(c => c[0] + ',' + c[1]));                 // contorno scuro attorno alla sagoma
+  for (const [cx, cy] of cells) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (cx + ox) + ',' + (cy + oy); if (!set.has(k)) px(cx + ox, cy + oy, LN); }
+  for (const [cx, cy, col] of cells) px(cx, cy, col);
+}
 function drawFlyingMount(sx, sy) {
+  const obj = companionDrawObj();
+  if (obj) obj.face = P.dir;                                  // STESSA creatura del parco/libro, ruota col player
   const spec = companionSpec();
   const base = (spec && spColor[spec.torso]) || '#8a6ab0';
-  const D = shade8(base, 0.5), M = base, L = shade8(base, 1.3), WING = shade8(base, 0.72), WEB = shade8(base, 0.42), LN = MOUNT_LN;
+  const LEG = shade8(base, 0.6), LEGD = shade8(base, 0.4);
   const dir = P.dir === 'left' ? -1 : 1;
   const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
+  /* la creatura del mount = STESSO Abissodonte, zampe raccolte (noLegs). Le ali le disegno in stile
+     voxel dietro il corpo (attaccate al dorso), così restano coerenti e visibili in ogni vista. */
+  const mopts = { noLegs: true };
+  const cv = creatureSprite(obj, view, mopts);
+  const cvH = cv ? cv.height : 16;
   const bob = Math.round(Math.sin(frameTime / 300) * 2);
-  const flap = Math.sin(frameTime / 110);
-  const cy = sy - 5 - bob;                                   // centro del corpo (in volo)
-  const rr = (x, y, w, h, c) => rect(Math.round(x), Math.round(y), w, h, c);
-  shadow(sx, sy + 17, 7);
-  if (view === 'side') {
-    const f = dir, b = -dir;                                 // f=avanti (muso), b=dietro (coda)
-    mountWingSide(sx + b * 2, cy - 2, b, flap * 0.7, shade8(base, 0.55), shade8(WEB, 0.8), false); // ala lontana
-    for (let i = 0; i < 11; i++) { const t = i / 10, txp = sx + b * (8 + i * 1.5), typ = cy + 2 - Math.round(Math.sin(t * 2.2) * 3), th = Math.max(1, 3 - Math.round(t * 2.4)); rr(txp - 1, typ - th, 2, th * 2, i % 2 ? D : M); } // coda
-    for (let k = 0; k < 5; k++) px(sx + b * (19 + (k % 2)), cy - 5 + k, WING);   // pinna in punta coda
-    rr(sx - 9, cy - 3, 18, 8, M); rr(sx - 9, cy - 3, 18, 2, L); rr(sx - 9, cy + 4, 18, 1, D); rr(sx - 7, cy + 3, 14, 1, L); // corpo + pancia chiara
-    rr(sx + f * 3, cy + 5, 2, 3, D); rr(sx - f * 3, cy + 5, 2, 3, D);            // zampe tucked
-    for (let i = 0; i < 6; i++) rr(sx + f * (8 + i), cy - 2 - i, 3, 4, i < 3 ? M : D); // collo (svetta avanti)
-    const hx = sx + f * 15, hy = cy - 9;
-    rr(hx - 2, hy, 6, 5, M); rr(hx - 2, hy, 6, 1, L); rr(hx + f * 3, hy + 1, 3, 3, M); px(hx + f * 5, hy + 2, LN); rr(hx + (f > 0 ? 0 : 1), hy + 1, 2, 2, LN); // testa+muso+occhio
-    px(hx - f, hy - 1, D); px(hx - f * 2, hy - 2, D); px(hx - f * 3, hy - 3, D); px(hx + f, hy - 1, D); px(hx + f, hy - 2, M); // corna all'indietro
-    mountWingSide(sx + b * 1, cy - 4, b, flap, WING, WEB, true); // ala vicina, DIETRO l'eroe (svetta alta-dietro)
-    seatHero(sx - f * 1, cy - 5, P.dir);                         // eroe in sella, sopra l'ala
-  } else {
-    rr(sx - 7, cy - 4, 14, 10, M); rr(sx - 7, cy - 4, 14, 2, L); rr(sx - 7, cy + 5, 14, 1, D); rr(sx - 5, cy + 4, 10, 1, L); // corpo tondo
-    for (const s of [-1, 1]) mountWingFB(sx + s * 6, cy - 2, s, flap, WING, WEB); // ali ai lati
-    if (view === 'front') { rr(sx - 3, cy + 5, 6, 4, M); px(sx - 2, cy + 6, LN); px(sx + 1, cy + 6, LN); px(sx - 5, cy + 3, D); px(sx + 4, cy + 3, D); } // musetto+occhi+corna
-    else { rr(sx - 1, cy + 5, 3, 4, D); for (let k = 0; k < 3; k++) px(sx + (k - 1), cy + 9, D); } // spalle: base coda
-    seatHero(sx, cy - 6, P.dir);
-  }
-  if (P.moving) { const tx = sx - dir * 13, ty = cy + 6, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)'); }
+  const creatureY = sy - 6 - bob;                            // in volo, staccata da terra (fondo = creatureY+14)
+  const backTop = Math.round(creatureY + 14 - cvH);          // cima della schiena su schermo
+  const bellyY = creatureY + 12;                             // sotto la pancia (dove si raccolgono le zampe)
+  const flap = Math.sin(frameTime / 130);                    // battito (fase dal TEMPO)
+  shadow(sx, sy + 17, 6);                                    // ombra a terra: dà l'altezza
+  /* ALI (stile voxel) DIETRO il corpo → sembrano attaccate al dorso, spuntano da sotto l'eroe */
+  const wingRootY = backTop + 6;
+  if (view === 'side') voxWing(sx - dir * 3, wingRootY, -dir, flap, base);          // una grande ala, si apre verso la coda
+  else { voxWing(sx - 5, wingRootY, -1, flap, base); voxWing(sx + 5, wingRootY, 1, flap, base); } // due ali ai lati
+  /* GAMBE PIEGATE sotto la pancia (raccolte in volo): coscia + piede rivolto in dentro */
+  const leg = (hx, s) => { rect(hx, bellyY - 2, 2, 3, LEG); px(hx + (s > 0 ? 1 : 0), bellyY - 3, LEGD); rect(hx + (s > 0 ? -1 : 1), bellyY, 2, 2, LEG); px(hx + (s > 0 ? -1 : 2), bellyY + 1, LEGD); };
+  if (view === 'side') { leg(sx - 4, -1); leg(sx + 2, 1); }
+  else { leg(sx - 5, -1); leg(sx + 3, 1); }
+  /* la CREATURA VERA senza zampe (uguale all'animale base), SOPRA le radici delle ali (attaccate) */
+  if (obj) drawCreature(obj, sx - 8, creatureY, false, true, mopts);
+  /* EROE ben SEDUTO sulla schiena: busto+testa, gambe in sella (tagliate dal clip) */
+  seatHero(sx, backTop - 7, P.dir);
+  if (P.moving) { const tx = sx - dir * 11, ty = backTop + 8, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)'); }
 }
 function drawBoat(sx, sy) {
   const bob = Math.round(Math.sin(frameTime / 320) * 1.5);

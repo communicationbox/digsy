@@ -1677,6 +1677,18 @@ sprites.applyLook();
   const allSigs = new Set(SPECIES.map(sp => ser(bones.buildVoxels(bones.baseSpec(sp)))));
   check(`60 specie → ${allSigs.size} scheletri unici`, allSigs.size === 60);
   check('ogni specie ha un blueprint', SPECIES.every(sp => bones.BP[sp.id]));
+  // occhio DOLCE (non arrabbiato): il bianco sta verso il muso (x più negativo), la pupilla verso il corpo
+  let eyeSeen = 0, eyeOk = 0;
+  for (const sp of SPECIES) {
+    const fv = bones.buildFleshVoxels(bones.baseSpec(sp));
+    const wx = fv.filter(v => v.col === '#f6f2e4').map(v => v.x), pxs = fv.filter(v => v.col === '#33291f').map(v => v.x);
+    if (wx.length && pxs.length) { eyeSeen++; if (Math.min(...wx) < Math.min(...pxs)) eyeOk++; }
+  }
+  check(`occhi dolci: bianco verso il muso (${eyeOk}/${eyeSeen})`, eyeSeen >= 5 && eyeOk === eyeSeen);
+  // cavalcatura: la creatura si costruisce SENZA zampe (raccolte a parte in volo)
+  const tallSp = bones.baseSpec(SPECIES.find(s => bones.BP[s.id].tall) || SPECIES[0]);
+  const legFull = bones.buildFleshVoxels(tallSp).length, legNone = bones.buildFleshVoxels(tallSp, { noLegs: true }).length;
+  check(`noLegs (cavalcatura): meno voxel senza zampe (${legFull}→${legNone})`, legNone < legFull);
   // censimento feature: la natura è varia (insetti, chele, pungiglioni, gusci, ali...)
   const c = { legs0: 0, legs2: 0, legs6: 0, legs8: 0, wings: 0, mand: 0, ant: 0, prob: 0, sting: 0, club: 0, shell: 0, float: 0, multiseg: 0 };
   for (const sp of SPECIES) {
