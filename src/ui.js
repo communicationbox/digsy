@@ -650,6 +650,17 @@ function endToss() {
   const ov = document.getElementById('tossov'); if (ov) ov.onclick = () => finish();
   if (typeof setTimeout !== 'undefined') setTimeout(finish, 1200);
 }
+/* stessa cosa del click, ma da TASTIERA (E/spazio): ferma il tiro (o chiude l'esito) */
+export function tossPress() { const ov = document.getElementById('tossov'); if (tossActive && ov && typeof ov.onclick === 'function') ov.onclick(); }
+/* ESC: chiude il minigioco e risolve con i tiri fatti finora (la moneta è già spesa) */
+export function tossAbort() {
+  if (!tossActive) return;
+  tossOpen = false; tossBetween = false;
+  if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
+  tossActive = false;
+  const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
+  const cb = tossOnDone; tossOnDone = null; if (cb) cb(tossHits);
+}
 /* click sulle statistiche dell'HUD (non su zaino/menu) → guida */
 if (typeof document !== 'undefined' && document.getElementById) {
   for (const id of ['h-coin', 'h-en', 'h-day', 'h-lvl', 'h-zone', 'h-compass', 'h-comp']) {

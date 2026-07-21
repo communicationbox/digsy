@@ -918,7 +918,7 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
    cioè il punto su cui si deve poter cliccare */
 /* i comandi a schermo spariscono sotto un overlay: leva e tasto A restavano attivi e
    disegnati sopra zaino, libro e mappa, e il dito li incontrava prima del pannello */
-body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on) #touch{display:none}
+body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on) #touch{display:none}
 #exitbtn{position:absolute;right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));
   display:none;align-items:center;gap:6px;z-index:14;
   background:#3a2f1e;color:var(--c-paper);border:2px solid var(--c-gold);border-radius:10px;

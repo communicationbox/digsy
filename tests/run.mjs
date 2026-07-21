@@ -3406,6 +3406,16 @@ sprites.applyLook();
   const S = state.S, P2 = state.P;
   const inp = await import('../src/input.js');
   const fire = (t, k, target) => globalThis.__fireKey(t, k, target);
+  (await import('../src/ui.js')).tossAbort();   // un eventuale minigioco fontana aperto da un test prima intercetterebbe i tasti
+
+  /* FONTANA: durante i tiri E/spazio vanno al minigioco (per fermare il tiro), non ad act */
+  { const ui2 = await import('../src/ui.js'); const isrc2 = (await import('node:fs')).readFileSync('src/input.js', 'utf8');
+    let ff = -1; ui2.openToss(h => { ff = h; });
+    check('il minigioco fontana si apre', ui2.isTossOpen() === true);
+    check('E/spazio fermano il tiro (instradati al minigioco, non ad act)', /isTossOpen\(\)\)\s*\{[\s\S]*?tossPress\(\)/.test(isrc2));
+    ui2.tossAbort();
+    check('ESC/abort chiude il minigioco e risolve i tiri fatti', ui2.isTossOpen() === false && ff >= 0);
+  }
 
   /* movimento: WASD e frecce impostano gli stessi flag */
   fire('keydown', 'w'); check('W preme su', inp.keys.up === true);

@@ -1,5 +1,5 @@
 /* Input: tastiera (WASD/frecce, E/spazio, I, Esc) + touch (joystick, tasto A) + console (\) */
-import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare } from './ui.js';
+import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare, isTossOpen, tossPress, tossAbort } from './ui.js';
 import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach } from './tapmove.js';
 import { findPath, fits } from './path.js';
@@ -89,6 +89,12 @@ addEventListener('keydown', e => {
   if (isTyping(e.target)) { if (e.key === 'Escape' && e.target.blur) e.target.blur(); return; } // ESC = esci dal campo
   if (e.key === '\\') { consoleOpen ? closeConsole() : openConsole(); e.preventDefault(); return; } // \ = toggle console (anche senza focus)
   if (consoleOpen) return; // mentre la console è aperta, il gioco ignora i tasti
+  /* FONTANA: durante i tiri, E/spazio FERMANO il tiro (sul premere, per precisione); ESC chiude */
+  if (isTossOpen()) {
+    if (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter') { tossPress(); e.preventDefault(); return; }
+    if (e.key === 'Escape') { tossAbort(); e.preventDefault(); return; }
+    return;
+  }
   if (splashActive()) {
     if (e.key === 'Escape') { resumeSplash(); e.preventDefault(); } // ESC di nuovo: riprendi
     return;
@@ -106,6 +112,7 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => {
   if (isTyping(e.target)) return; // vedi isTyping: mentre si scrive il gioco non reagisce
   if (consoleOpen) return;
+  if (isTossOpen()) { if (e.key === 'e' || e.key === 'E' || e.key === ' ') e.preventDefault(); return; } // il tiro l'ha già fermato il keydown
   if (KM[e.key]) { keys[KM[e.key]] = false; e.preventDefault(); }
   if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && !isModalOpen()) { act(); e.preventDefault(); } // azione al rilascio
 });
