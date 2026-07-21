@@ -28,6 +28,7 @@ export const CHANGELOG = [
       'TAGLIO ALBERO del compagno: la creatura ROSICCHIA il tronco come un castoro — morsi ritmici, trucioli di legno, tacca chiara e foglie che cadono ondeggiando dalla chioma (niente accetta)',
       'ROTTURA ROCCIA del compagno: la creatura TESTA il masso come un ariete — lampo d\'impatto, scaglie di pietra con scintille e una crepa che si apre (niente piccone)',
       'FIX: il compagno non TREMA più mentre cammini — l\'inseguimento aveva una zona morta che lo faceva partire e fermare di continuo; ora segue morbido',
+      'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -56,6 +57,7 @@ export const CHANGELOG = [
       'Companion TREE-CUTTING: the creature GNAWS the trunk like a beaver — rhythmic bites, wood chips, a pale notch and leaves fluttering down from the canopy (no axe)',
       'Companion ROCK-BREAKING: the creature HEADBUTTS the boulder like a ram — impact flash, stone chips with sparks and a crack opening up (no pickaxe)',
       'FIX: the companion no longer JITTERS as you walk — its follow had a dead zone that made it stop-and-go; now it trails smoothly',
+      'FIX: moving DIAGONALLY the companion no longer flips endlessly between side and front — it keeps its facing until one axis clearly wins (hysteresis)',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

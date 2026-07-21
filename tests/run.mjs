@@ -3559,6 +3559,13 @@ sprites.applyLook();
   const x0 = comp.COMP.x;
   comp.updateCompanion(1 / 60);
   check('compagno: nessuna deadzone (segue anche da vicino, senza scavalcare)', comp.COMP.x > x0 && comp.COMP.x <= targetX + 1e-6);
+  /* ISTERESI: in DIAGONALE (dx≈dy) il verso non deve flippare profilo↔fronte a ogni frame */
+  comp.COMP.init = true; comp.COMP.job = null;
+  Pl.x = 200; Pl.y = 200; Pl.dir = 'right';              // bersaglio = (184, 208)
+  comp.COMP.x = 174; comp.COMP.y = 218; comp.COMP.face = 'down'; // in diagonale dal bersaglio
+  let flips = 0;
+  for (let i = 0; i < 40; i++) { const f0 = comp.COMP.face; comp.updateCompanion(1 / 60); if (comp.COMP.face !== f0) flips++; }
+  check('compagno: in diagonale il verso NON flippa (isteresi)', flips === 0);
   Sl.companion = before; comp.COMP.init = false;
 }
 

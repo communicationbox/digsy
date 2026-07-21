@@ -66,8 +66,12 @@ export function updateCompanion(dt) {
     COMP.x += dx / d * sp; COMP.y += dy / d * sp;
     if (d > 0.5) {                         // anima/gira solo quando si muove davvero (niente flicker da fermo)
       COMP.anim += dt;
-      if (Math.abs(dx) >= Math.abs(dy)) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
-      else COMP.face = dy < 0 ? 'up' : 'down';
+      /* ISTERESI sul verso: cambio SOLO se un asse domina di ×1.3. In diagonale dx≈dy: senza
+         isteresi la condizione |dx|>=|dy| oscillava ogni frame e il verso flippava profilo↔fronte
+         all'infinito. Nella fascia quasi-diagonale si tiene il verso attuale. */
+      const adx = Math.abs(dx), ady = Math.abs(dy);
+      if (adx > ady * 1.3) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
+      else if (ady > adx * 1.3) COMP.face = dy < 0 ? 'up' : 'down';
     }
   }
 }
