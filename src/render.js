@@ -37,10 +37,6 @@ import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette
    niente Math.round intero → niente oscillazione ±1px quando W/H sono dispari */
 
 /* ---------- edifici / parco ---------- */
-const roofCol = {
-  store: ['#d8973c', '#a86e22'], lab: ['#5a86c8', '#3d5f97'], museum: ['#c98a5a', '#9c6636'],
-  inn: ['#c65a54', '#9a3f3a'], barber: ['#8d7ba0', '#655a80'], tailor: ['#e08aa8', '#a85f7d'],
-};
 /* icona 5x5 dentro l'insegna: riconoscibilità immediata del tipo di edificio */
 function drawSignIcon(type, cx, y) {
   switch (type) {
@@ -80,7 +76,7 @@ export function drawBuilding(b, sx, sy) {
     switch (BB.mat) {
       case 'coppi':   for (let i = 0; i < w; i += 4) { px(sx + i, bot, d); px(sx + i + 2, ry + 2, l); } break;                                   // coppi curvi
       case 'stone':   rect(sx, ry + Math.floor(th / 2), w, 1, d); for (let i = 3; i < w; i += 7) rect(sx + i, ry + 1, 1, th - 2, d); break;       // conci di pietra
-      case 'shingle': for (let r = ry + 2; r < bot; r += 3) { rect(sx, r, w, 1, d); for (let i = (r % 2) * 2; i < w; i += 4) px(sx + i, r + 1, d); } break; // scandole sfalsate
+      case 'shingle': { let ri = 0; for (let r = ry + 2; r < bot; r += 3, ri++) { rect(sx, r, w, 1, d); for (let i = (ri & 1) * 2; i < w; i += 4) px(sx + i, r + 1, d); } break; } // scandole sfalsate — stagger dall'INDICE di riga, non dalla y schermo (regola #1: la texture non deve "nuotare" camminando)
       case 'tile':    for (let i = 2; i < w; i += 3) rect(sx + i, ry + 1, 1, th - 2, d); rect(sx, ry + Math.floor(th / 2), w, 1, d); break;        // tegole a griglia
       case 'thatch':  for (let i = 0; i < w; i += 2) rect(sx + i, ry, 1, th + (i % 4 ? 0 : 1), i % 4 ? d : l); break;                             // paglia (bordo irregolare)
       case 'slate':   rect(sx, ry + 2, w, 1, d); rect(sx, ry + Math.max(3, Math.floor(th * 0.7)), w, 1, d); break;                                // ardesia

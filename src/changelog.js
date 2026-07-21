@@ -19,6 +19,7 @@ export const CHANGELOG = [
       'CAVALCATURA rifinita: niente più compagno sdoppiato, faccia dell\'eroe libera e gambe in sella; in volo NON si scava (serve solo a muoversi veloce)',
       'COMPAGNI che GIRANO: muovendoti in su/giù il compagno (e la cavalcatura) mostra le viste di SPALLE e di FRONTE, non più solo di profilo',
       'CAVALCATURA: si attiva SOLO dallo zaino (niente più tasto R che faceva casino); l\'eroe ora sta IN SELLA (non galleggia più) e le ali si vedono da ogni lato, anche di fronte e di spalle',
+      'FIX TETTI: le tegole/scandole non "nuotano" più mentre cammini — il disegno del tetto era agganciato alla posizione sullo schermo invece che all\'edificio',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -38,6 +39,7 @@ export const CHANGELOG = [
       'FLYING RIDE polished: no more doubled companion, the hero\'s face stays clear and legs sit in the saddle; you CAN\'T dig while flying (it\'s just for fast travel)',
       'COMPANIONS that TURN: moving up/down the companion (and the mount) now shows BACK and FRONT views, not just the side',
       'MOUNT: toggled ONLY from the bag now (no more messy R key); the hero SITS in the saddle (no longer floats) and the wings show from every side, front and back included',
+      'ROOF FIX: tiles/shingles no longer "swim" as you walk — the roof pattern was pinned to the screen position instead of the building',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

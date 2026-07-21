@@ -140,6 +140,11 @@ sprites.applyLook();
   });
   check('nessuno spende S.energy fuori da spendEnergy' + (offenders.length ? ' → ' + offenders.join(', ') : ''),
     offenders.length === 0);
+  /* REGOLA #1: i tetti non devono "nuotare" camminando — il pattern del materiale NON può
+     dipendere dalla parità della y SCHERMO (prima lo shingle usava (r % 2), r = y schermo).
+     La fase dello stagger deve venire dall'INDICE di riga (stabile col mondo). */
+  const roofFn = (() => { const s = readFileSync(new URL('render.js', dir), 'utf8'); const a = s.indexOf('const roofMat'); return a < 0 ? '' : s.slice(a, s.indexOf('const dcx', a)); })();
+  check('tetti: il materiale non usa la parità della y schermo (regola #1)', roofFn.length > 0 && !/\(\s*r\s*%\s*2\s*\)/.test(roofFn));
   /* L'altra metà dello stesso guasto: il giocatore leggeva "46/60" mentre l'energia era già
      a zero, perché il refresh dell'HUD stava DOPO i `return` di grotte e interni e là sotto
      non veniva mai eseguito. Qui si pretende che stia prima di entrambi. */
