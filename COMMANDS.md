@@ -81,8 +81,8 @@ specie del cranio per le chimere) decide *che* aiuto dà, la **RARITÀ** *quanto
   (default **leggendario**, così provi subito i poteri speciali).
 - I **leggendari** di terra/acqua/albero/roccia **raccolgono da soli**: vanno a una casella,
   lavorano con animazione e ti portano il fossile (lento, e solo a zaino non pieno).
-- Il **leggendario di grotta** è un **fossile volante**: `mount` (o tasto **R** / dallo zaino)
-  lo cavalca e sorvoli la mappa attraversando tutto — **in grotta si scende e si cammina**.
+- Il **leggendario di grotta** è un **fossile volante**: `mount` (o **dallo zaino**, sezione
+  Mezzi) lo cavalca e sorvoli la mappa attraversando tutto — **in grotta si scende e si cammina**.
 - `chimera` mette una chimera nel parco: comodo per provare il **parco** e la scelta del
   compagno senza `godmode`.
 

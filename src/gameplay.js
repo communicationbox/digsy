@@ -761,7 +761,7 @@ export function digWreck() {
 }
 export function act() {
   if (P.digging) return; // un colpo alla volta
-  if (isMounted()) { toast('🐾 ' + tr('In volo non si scava: premi R per scendere', "Can't dig while flying: press R to land")); return; } // la cavalcatura serve solo a spostarsi
+  if (isMounted()) { toast('🐾 ' + tr('In volo non si scava: scendi dallo zaino', "Can't dig while flying: land from the bag")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
     if (r === 'nopick') toast('⛏️ ' + tr('Serve il piccone per staccare i cristalli (Negozio)', 'You need the pickaxe to break the crystals (Shop)'));

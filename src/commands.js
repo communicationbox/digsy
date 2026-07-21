@@ -344,7 +344,7 @@ export const COMMANDS = {
       const sp = spawnCompanion(type, rar);
       if (!sp) return tr('Nessuna specie di quel tipo', 'No species of that type');
       const extra = rar !== 'leggendario' ? '' : type === 'grotta'
-        ? ' · ' + tr('cavalcabile (R o zaino)', 'rideable (R or bag)')
+        ? ' · ' + tr('cavalcabile (dallo zaino)', 'rideable (from the bag)')
         : ' · ' + tr('raccoglie da solo', 'auto-gathers');
       return '🐾 ' + sp.name + ' — ' + tr('compagno ', 'companion ') + type + ' (' + rarLabel(rar) + ')' + extra;
     } },
@@ -353,7 +353,7 @@ export const COMMANDS = {
     run: () => {
       const sp = spawnCompanion('grotta', 'leggendario');
       const ok = isMounted() ? true : toggleMount();
-      return ok ? '🐾 ' + tr('In groppa a ', 'Riding ') + sp.name + ' — ' + tr('vola sulla mappa (R per scendere)', 'fly over the map (R to land)')
+      return ok ? '🐾 ' + tr('In groppa a ', 'Riding ') + sp.name + ' — ' + tr('vola sulla mappa (dallo zaino per scendere)', 'fly over the map (land from the bag)')
         : '🕳️ ' + tr('In grotta non si vola: esci prima', 'No flying in caves: leave first');
     } },
   chimera: { aliases: ['chimere'], type: 'action', cheat: true,

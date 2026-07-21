@@ -388,7 +388,8 @@ function drawCreature(a, sx, sy, swim, noShadow) {
   }
   /* IN ACQUA si NUOTA: niente saltelli né ombra a terra — il corpo affonda sotto il pelo
      dell'acqua (clip), galleggia col bob e lascia increspature. Fase dal TEMPO, mai da sx/sy. */
-  if (swim) { hop = 0; lift = 0; skew = 0; sqX = 1; sqY = 1; }
+  /* cavalcatura (noShadow): corpo FERMO — il bob lo fa la scena, così l'eroe ci sta ancorato */
+  if (swim || noShadow) { hop = 0; lift = 0; skew = 0; sqX = 1; sqY = 1; }
   const bob = swim ? Math.round(Math.sin(frameTime / 520) * 1) : 0;
   if (!swim && !noShadow) shadow(sx + 8, sy + 13, sh);
   if (!cv) { const b = spColor[a.c.torso] || '#c8b078'; rect(sx + 4, sy + 5 + hop - lift + bob, 9, 6, b); return; }
@@ -506,26 +507,42 @@ function drawBikeFB(sx, sy, moving, dir) {
 /* CAVALCATURA VOLANTE (grotta leggendario): fossile alato con l'eroe in groppa, in volo sopra
    la mappa. Ombra a terra STACCATA (dà l'altezza), ali che sbattono (fase dal tempo), bob
    d'aria, scia di scintille in movimento. Contorni scuri per staccare dallo sfondo. */
+/* ALI della cavalcatura, sbattono (fase dal tempo). Di PROFILO: due ali dietro che si aprono in
+   verticale. Di FRONTE/SPALLE: aperte ai due lati, a ventaglio, la punta sale/scende. */
+function drawMountWings(sx, cy, view) {
+  const flap = Math.sin(frameTime / 90);
+  if (view === 'side') {
+    const wl = Math.round((flap + 1) * 3);
+    for (const s of [-1, 1]) { const bx = sx + s * 3;
+      for (let i = 1; i <= 6; i++) { const wx = bx + s * i, wy = cy - Math.round((i / 6) * wl);
+        px(wx, wy, i > 4 ? '#5a4a6e' : '#7a6a92'); if (i <= 4) px(wx, wy + 1, '#b6a6c6'); } }
+    return;
+  }
+  const rise = Math.round(flap * 3);                        // fronte/spalle: ali spiegate
+  for (const s of [-1, 1]) for (let i = 1; i <= 7; i++) {
+    const wx = sx + s * (2 + i), wy = cy - Math.round((i / 7) * (5 + rise));
+    px(wx, wy, i > 5 ? '#5a4a6e' : '#7a6a92');
+    px(wx, wy + 1, '#6a5a7e');
+    if (i <= 5) px(wx, wy + 2, '#b6a6c6');                  // bordo chiaro (contrasto)
+  }
+}
 function drawFlyingMount(sx, sy) {
   const obj = companionDrawObj();
   if (obj) obj.face = P.dir;                                // la cavalcatura ruota col player (front/retro/profilo)
+  const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
+  const cv = creatureSprite(obj, view);
   const lift = 11 + Math.round(Math.sin(frameTime / 300) * 2);
+  const creatureY = sy - lift + 2;                          // drawCreature ancora il fondo a creatureY+14
+  const bodyTop = cv ? Math.round(creatureY + 14 - cv.height) : Math.round(sy - lift - 2); // cima della schiena
   const dir = P.dir === 'left' ? -1 : 1;
   shadow(sx, sy + 17, 5);                                   // ombra piccola a terra = è in alto
-  /* ali che sbattono, DIETRO (solo di profilo: di fronte/retro le copre il corpo) */
-  if (P.dir === 'left' || P.dir === 'right') {
-    const wl = Math.round((Math.sin(frameTime / 90) + 1) * 3);
-    for (const s of [-1, 1]) { const bx = sx + s * 3;
-      for (let i = 1; i <= 6; i++) { const wx = bx + s * i, wy = sy - lift - 3 - Math.round((i / 6) * wl);
-        px(wx, wy, i > 4 ? '#5a4a6e' : '#7a6a92'); if (i <= 4) px(wx, wy + 1, '#b6a6c6'); } }
-  }
-  /* eroe in groppa con la TESTA alta e libera (mai coperta) */
-  drawHero(null, sx - 8, sy - lift - 16, P.dir, 0);
-  /* corpo della cavalcatura SOPRA la parte bassa dell'eroe (gambe nascoste = "in sella"): clip
-     dall'anca in giù così, quale che sia l'altezza della creatura, la faccia resta scoperta */
-  if (obj) { ctx.save(); ctx.beginPath(); ctx.rect(sx - 16, sy - lift - 4, 32, 34); ctx.clip(); drawCreature(obj, sx - 8, sy - lift + 2, false, true); ctx.restore(); }
+  drawMountWings(sx, bodyTop + 3, view);                    // ali DIETRO il corpo (roots coperti dal corpo)
+  /* eroe SEDUTO: disegnato PRIMA, poi il corpo lo copre dalle anche in giù → in sella, non
+     galleggia (spalle alla cima della schiena) e la faccia resta libera */
+  drawHero(null, sx - 8, bodyTop - 12, P.dir, 0);
+  if (obj) drawCreature(obj, sx - 8, creatureY, false, true);
   if (P.moving) {                                           // scia di scintille dietro
-    const tx = sx - dir * 10, ty = sy - lift + 6, w2 = Math.floor(frameTime / 120) % 3;
+    const tx = sx - dir * 10, ty = bodyTop + 8, w2 = Math.floor(frameTime / 120) % 3;
     px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)');
   }
 }
