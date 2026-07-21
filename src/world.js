@@ -267,6 +267,14 @@ export function townForCell(cx, cy) {
       }
       town.board = board;
       if (board) decos.push({ type: 'board', x: board.x, y: board.y });
+      /* CASSETTA DELLA POSTA: solo nelle città SENZA Museo (borghi e paesi) — per spedire i
+         reperti grezzi al Museo senza il viaggio. Prima tile libera vicino alla piazza. */
+      if (size.id !== 'città') {
+        for (const [bx, by] of [[2, -1], [-2, -1], [3, 0], [-3, 0], [2, 1], [-2, 1], [1, 1], [-1, 1]]) {
+          const x = C.x + bx, y = C.y + by;
+          if (!forb(x, y) && !occupiedByDeco(x, y)) { decos.push({ type: 'mailbox', x, y }); break; }
+        }
+      }
       town.decos = decos;
     }
   }

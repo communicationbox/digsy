@@ -1986,6 +1986,31 @@ sprites.applyLook();
   check('5 stanze a tema: solidi/corridoio/NPC ok' + (roomBad.length ? ' (' + roomBad.join(' ') + ')' : ''), roomBad.length === 0);
 }
 
+/* ---------- cassetta della posta: spedisci i grezzi al Museo (borghi/paesi) ---------- */
+{
+  S.items = []; S.raw = []; S.museum = {}; S.museumJob = null; S.coins = 100; S.day = 20; S.bagCap = 9999;
+  for (let i = 0; i < 4; i++) S.raw.push({ uid: 900 + i, s: 'lepre', t: 'cranio', q: 'comune', val: 10 });
+  check('cassetta: MAIL_COST = 2 a pezzo', gameplay.MAIL_COST === 2);
+  check('cassetta: spedisce (costo 2×n), pronti DOMANI, zaino svuotato',
+    gameplay.shipToMuseum() === true && S.coins === 100 - 4 * 2 && S.museumJob && S.museumJob.items.length === 4 && S.museumJob.ready === 21 && S.raw.length === 0);
+  check('cassetta: NON pronti oggi (transito)', gameplay.museumJobReady() === false);
+  S.day = 21;
+  check('cassetta: il giorno dopo sono pronti → si ritirano al Museo', gameplay.museumJobReady() === true && !!gameplay.museumCollect());
+  S.museumJob = null; S.raw = [{ uid: 950, s: 'lepre', t: 'cranio', q: 'comune', val: 10 }]; S.coins = 0;
+  check('cassetta: senza monete non spedisce (zaino intatto)', gameplay.shipToMuseum() === false && S.raw.length === 1 && !S.museumJob);
+  S.coins = 100; S.museumJob = { items: [], ready: S.day, prepOk: false };
+  check('cassetta: con un lotto già in lavorazione, rifiuta', gameplay.shipToMuseum() === false);
+  S.museumJob = null; S.raw = [];
+  check('cassetta: niente da spedire → rifiuta', gameplay.shipToMuseum() === false);
+  /* posizione: SOLO borghi e paesi (le città hanno il Museo) */
+  const mail = { borgo: 0, paese: 0, 'città': 0 }, tot = { borgo: 0, paese: 0, 'città': 0 };
+  for (let cx = -22; cx < 22; cx++) for (let cy = -22; cy < 22; cy++) {
+    const t = world.townForCell(cx, cy); if (!t) continue; tot[t.size]++;
+    if ((t.decos || []).some(d => d.type === 'mailbox')) mail[t.size]++;
+  }
+  check('cassetta: nei borghi e paesi, MAI nelle città col Museo', mail.borgo > 0 && mail.paese > 0 && mail['città'] === 0);
+}
+
 /* ---------- museo v3: consegna → 1 giorno → ritiro, DNA, galleria camminabile ---------- */
 {
   const inter = await import('../src/interior.js');

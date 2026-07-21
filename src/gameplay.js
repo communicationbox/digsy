@@ -11,7 +11,7 @@ import { vhash as vhashW } from './noise.js';
 import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememberArch, addBuff, useBuff } from './wonders.js';
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
-import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, showTip } from './ui.js';
+import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, showTip } from './ui.js';
 import { companionYieldMul, companionType, companionSpec, COMP } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
@@ -484,6 +484,31 @@ export function nearbyBoard() {
   }
   return null;
 }
+/* cassetta della posta a portata (E): nelle città SENZA Museo, per spedire i grezzi */
+export function nearbyMailbox() {
+  const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const ti = townInfo(ptx + dx, pty + dy);
+    if (ti && ti.deco && ti.deco.type === 'mailbox') return ti.deco;
+  }
+  return null;
+}
+/* SPEDISCI i reperti grezzi al Museo (dalle città senza Museo): costo a pezzo, pronti il giorno
+   DOPO (transito). Poi si RITIRANO al Museo come un deposito normale. Un lotto alla volta. */
+export const MAIL_COST = 2; // 🪙 a pezzo
+export function shipToMuseum() {
+  if (S.museumJob) { toast('📮 ' + tr('Hai già un lotto in lavorazione: ritiralo al Museo', 'You already have a batch in progress: collect it at the Museum')); return false; }
+  const n = S.raw.length;
+  if (!n) { toast(tr('Niente reperti grezzi da spedire', 'No raw finds to ship')); return false; }
+  const cost = n * MAIL_COST;
+  if (S.coins < cost && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + cost); return false; }
+  if (!isDebug()) S.coins -= cost;
+  const rare = S.raw.filter(it => RARE_PLUS.includes(it.q)).length;
+  S.museumJob = { items: S.raw.splice(0), ready: S.day + 1, prepOk: rare >= PREP_RARE_MIN, shipped: true }; // pronti DOMANI
+  playSfx('coin'); toast('📮 ' + tr('Spediti al Museo! Pronti domani, li ritiri lì.', 'Shipped to the Museum! Ready tomorrow, collect them there.'));
+  save(); updateHUD();
+  return true;
+}
 /* dentro (o al bordo del) parco recintato: da qui si sceglie il compagno */
 export function nearbyPark() {
   const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
@@ -779,6 +804,7 @@ export function act() {
   }
   { const w = nearbyWonder(); if (w) { openWonder(w); return; } } // meraviglia: pannello col suo dono
   if (nearbyBoard()) { openQuestBoard(); return; } // cartello delle missioni
+  if (nearbyMailbox()) { openMailbox(); return; } // cassetta: spedisci i grezzi al Museo
   if (nearbyPark()) { openCompanionPicker(); return; } // parco: scegli il compagno
   if (nearbySite()) { digSite(); return; }
   if (nearbyDrop()) { collectPickup(); return; } // un FOSSILE caduto a terra (zaino pieno) ha la PRIORITÀ sulla fontana

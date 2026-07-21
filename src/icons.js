@@ -48,7 +48,7 @@ const EMAP = {
   '🗑️': 'trash', '🗑': 'trash', '⚙️': 'gear', '⚙': 'gear', '🚪': 'door', '💬': 'discord', '☁️': 'cloud', '☁': 'cloud',
   /* icone aggiunte quando il test ha trovato le emoji che restavano mute */
   '💎': 'gem', '⭐': 'star', '💡': 'bulb', '🎁': 'gift', '🎯': 'target', '⚠️': 'warn', '⚠': 'warn',
-  '✉️': 'mail', '✉': 'mail', '🌳': 'tree', '🏘️': 'village', '🏘': 'village', '🚶': 'human', '🏃': 'human',
+  '✉️': 'mail', '✉': 'mail', '📮': 'mail', '📭': 'mail', '📦': 'bag', '🌳': 'tree', '🏘️': 'village', '🏘': 'village', '🚶': 'human', '🏃': 'human',
   '❔': 'info', '❓': 'info', '⚗️': 'lab', '⚗': 'lab', '🕊️': 'sparkle', '🕊': 'sparkle',
   '⛲': 'fish', '💨': 'ice', '🫧': 'fish', '🍄': 'flower', '🌌': 'moon', '🚢': 'ship',
   '📋': 'scroll', '📌': 'scroll', '✅': 'check', '🚫': 'close', '🏆': 'sparkle', '🎓': 'sprout', '🌦️': 'ice', '🌧️': 'ice', '🗿': 'mount', '📝': 'book', '📊': 'stats',

@@ -11,7 +11,7 @@ import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achiev
 import { weatherAt, weatherLabel } from './weather.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
@@ -277,6 +277,21 @@ export function openQuestBoard() {
     if (q) { playSfx('coin'); save(); updateHUD(); toast('✅ ' + tr('Consegnata! ', 'Delivered! ') + questRewardText(q)); }
     openQuestBoard();
   });
+}
+/* CASSETTA DELLA POSTA (borghi e paesi): spedisci i grezzi al Museo a pagamento, pronti domani */
+export function openMailbox() {
+  const n = (S.raw || []).length, cost = n * MAIL_COST, busy = !!S.museumJob;
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Spedisci i reperti grezzi al Museo senza andarci: 🪙 ', 'Ship your raw finds to the Museum without going there: 🪙 ') + MAIL_COST + tr(" l'uno, pronti DOMANI. Poi li ritiri al Museo (doppioni indietro, pezzi nuovi in teca).", ' each, ready TOMORROW. Then collect them at the Museum (duplicates back, new pieces on display).')}</div>`;
+  if (busy) h += `<div class="row"><span class="em">📮</span><div><div class="nm">${tr('Un lotto è già in lavorazione', 'A batch is already in progress')}</div><div class="sub">${tr('Ritiralo al Museo prima di spedirne un altro.', 'Collect it at the Museum before shipping another.')}</div></div></div>`;
+  else if (!n) h += `<div class="row"><span class="em">📭</span><div><div class="nm">${tr('Non hai reperti grezzi', 'No raw finds')}</div><div class="sub">${tr('Scava, poi torna a spedire.', 'Dig first, then come back to ship.')}</div></div></div>`;
+  else {
+    const can = S.coins >= cost || isDebug();
+    h += `<div class="row"><span class="em">📦</span><div><div class="nm">${n} ${tr('reperti grezzi', 'raw finds')}</div><div class="sub">${tr('costo', 'cost')} 🪙 ${cost} · ${tr('pronti domani', 'ready tomorrow')}</div></div><div class="rt"><button class="btn ${can ? 'amber' : 'ghost'}" ${can ? '' : 'disabled'} data-ship="1">${tr('Spedisci', 'Ship')} 🪙 ${cost}</button></div></div>`;
+    if (!can) h += `<div class="muted center" style="margin-top:6px">${tr('Servono 🪙 ', 'You need 🪙 ') + cost}</div>`;
+  }
+  mTitle.innerHTML = withIcons('📮 ' + tr('Cassetta della posta', 'Mailbox'));
+  mBody.innerHTML = withIcons(h); openModal();
+  mBody.querySelectorAll('[data-ship]').forEach(b => b.onclick = () => { if (shipToMuseum()) closeModal(); else openMailbox(); });
 }
 export function openAchievements() {
   const done = (S.achieved || []).length;

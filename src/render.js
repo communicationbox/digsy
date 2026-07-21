@@ -222,6 +222,7 @@ function drawTownDeco(d, sx, sy, time) {
   else if (d.type === 'bench') drawBench(sx, sy);
   else if (d.type === 'lamp') drawLamp(sx, sy);
   else if (d.type === 'board') drawBoard(sx, sy, time);
+  else if (d.type === 'mailbox') drawMailbox(sx, sy);
   else drawBushDeco(sx, sy);
 }
 /* CARTELLO delle missioni: due pali + tabellone di legno con fogli e un pennino luccicante */
@@ -234,6 +235,17 @@ function drawBoard(sx, sy, time) {
   rect(sx + 3, sy + 4, 4, 1, '#b8ad8c'); rect(sx + 3, sy + 6, 3, 1, '#b8ad8c'); rect(sx + 9, sy + 4, 4, 1, '#b8ad8c'); // righe di testo
   rect(sx + 1, sy, 14, 1, '#5c4229');                                                // cornice alta
   if (Math.floor(time / 400) % 3 === 0) { px(sx + 13, sy + 2, '#fff3b0'); px(sx + 14, sy + 1, '#fff8d0'); } // luccichio "novità"
+}
+/* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
+export function drawMailbox(sx, sy) {
+  shadow(sx + 8, sy + 15, 5);
+  rect(sx + 7, sy + 9, 2, 7, '#6e4a2a'); px(sx + 7, sy + 9, '#8a5f38');            // palo
+  rect(sx + 3, sy + 3, 10, 7, '#3a8c85'); rect(sx + 3, sy + 2, 10, 2, '#57c0b6'); // corpo + cima chiara
+  rect(sx + 3, sy + 9, 10, 1, '#2a6b64');                                          // base scura
+  px(sx + 2, sy + 4, '#2a6b64'); px(sx + 13, sy + 4, '#2a6b64');                   // spigoli (contorno)
+  rect(sx + 5, sy + 4, 6, 1, '#173e39');                                           // fessura per le lettere
+  rect(sx + 4, sy + 6, 3, 3, '#eaf3f0'); px(sx + 4, sy + 6, '#b7cfc9');            // etichetta bianca
+  rect(sx + 12, sy + 3, 1, 3, '#8a5f38'); rect(sx + 13, sy + 2, 2, 2, '#e05a54'); px(sx + 13, sy + 2, '#f27a74'); // bandierina rossa alzata
 }
 /* glifo del TIPO del compagno sopra la sua testa (sempre visibile → il potere è "attivo"):
    un diamantino 8-bit col colore-tema del tipo e nucleo chiaro per staccare dallo sfondo */
