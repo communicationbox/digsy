@@ -90,7 +90,7 @@ function fleshHead(sp, horns, nx, ny, nz, out) {
   if (pp.skull === 1) { const len = 6 + 2 * pp.size; for (let x = -len; x <= -w; x++) for (let z = -1; z <= 0; z++) { P(x, 0, z); P(x, 1, z, shadeHex(col, 0.9)); } }
   else if (pp.skull === 2) { for (let i = 1; i <= 3 + pp.size; i++) P(-w - i, i > 2 ? 0 : 1, 0, '#e8c34a'); }        // becco
   else if (pp.skull === 3) { for (let i = 0; i <= 2 + pp.size; i++) P(-i, 3 + Math.min(i, 2), 0, shadeHex(col, 0.7)); } // cresta
-  P(-2, 1, -2, '#f6f2e4'); P(-2, 1, 2, '#f6f2e4'); P(-1, 1, -2, '#33291f'); P(-1, 1, 2, '#33291f');                  // occhi: BIANCO verso il muso, pupilla verso il corpo (sguardo dolce, non arrabbiato)
+  P(-1, 1, -2, '#f6f2e4'); P(-1, 1, 2, '#f6f2e4'); P(-2, 1, -2, '#33291f'); P(-2, 1, 2, '#33291f');                  // occhi: pupilla scura davanti (verso il muso), bianco dietro
   const hz = horns === 2 ? [-1, 1] : [0], hlen = 2 + pp.size;
   for (const z of hz) for (let i = 0; i < hlen; i++) P(-1 + Math.floor(i / 2), 3 + i, z, '#e8e2d0');                 // corni ossei
 }

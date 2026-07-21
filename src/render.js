@@ -628,8 +628,11 @@ function drawFlyingMount(sx, sy) {
   else { leg(sx - 5, -1); leg(sx + 3, 1); }
   /* la CREATURA VERA senza zampe (uguale all'animale base), SOPRA le radici delle ali (attaccate) */
   if (obj) drawCreature(obj, sx - 8, creatureY, false, true, mopts);
+  /* SELLA: prolunga il dorso (stesso colore) sotto l'eroe → nessun pixel vuoto fra busto e creatura */
+  rect(sx - 6, backTop - 1, 12, 5, base); rect(sx - 6, backTop - 1, 12, 1, shade8(base, 1.2));
+  px(sx - 7, backTop, '#20160f'); px(sx - 7, backTop + 1, '#20160f'); px(sx + 6, backTop, '#20160f'); px(sx + 6, backTop + 1, '#20160f');
   /* EROE ben SEDUTO sulla schiena: busto+testa, gambe in sella (tagliate dal clip) */
-  seatHero(sx, backTop - 7, P.dir);
+  seatHero(sx, backTop - 6, P.dir);
   if (P.moving) { const tx = sx - dir * 11, ty = backTop + 8, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)'); }
 }
 function drawBoat(sx, sy) {
