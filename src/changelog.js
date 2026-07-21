@@ -2,7 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
-      'Nuova meraviglia delle Dune: lo SCHELETRO DI DRAGO — uno dei figli di Neladan, disegnato a mano (testa, ali, gabbia toracica, coda) al posto del vecchio "Costolame"',
+      'Nuova meraviglia delle Dune: lo SCHELETRO DI DRAGO — uno dei figli di Neladan, disegnato a mano nello Sprite Studio (al posto del vecchio "Costolame"); non trema più mentre cammini',
       'La MUSICA cambia bioma con ARMONIA: la tonalità passa a una vicina e sul tempo giusto, niente più stacchi stonati',
       'Il ritmo scivola da un bioma all\'altro invece di scattare di colpo',
       'Ogni nota ha un attacco più morbido: via i piccoli "click" fra un suono e l\'altro',
@@ -32,7 +32,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
-      'New Dune wonder: the DRAGON SKELETON — one of Neladan\'s children, hand-drawn (skull, wings, ribcage, tail) replacing the old "Great Ribcage"',
+      'New Dune wonder: the DRAGON SKELETON — one of Neladan\'s children, hand-drawn in the Sprite Studio (replacing the old "Great Ribcage"); no longer jitters as you walk',
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
       'The tempo slides from one biome to the next instead of snapping',
       'Every note has a softer attack: gone are the little clicks between sounds',
