@@ -43,11 +43,12 @@ function exitCheat() {
 import { updateHUD, toast } from './ui.js';
 import { tr, seasonName, partName, rarLabel } from './i18n.js';
 import { seasonOf, SEASON_LEN, SEASONS } from './daynight.js';
-import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED_HAIR, THEMED_HAT, PREMIUM_HATS, spById, ptById, RAR } from './data.js';
+import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED_HAIR, THEMED_HAT, PREMIUM_HATS, spById, ptById, RAR, CAVE_POOL } from './data.js';
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
 import { ACHS } from './achievements.js';
-import { debugSpawnAll } from './gameplay.js';
+import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount } from './gameplay.js';
+import { setCompanion } from './companion.js';
 import { zoneAt } from './regions.js';
 import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL } from './world.js';
 import { enterCave } from './cave.js';
@@ -85,6 +86,18 @@ function completeMuseumAndBook() {
   S.wonders = Object.keys(WONDERS);                       // tutte le meraviglie scoperte
   S.letters = allLetters();                               // tutte le lettere già consegnate
   S.tips = Object.fromEntries(TIP_IDS.map(id => [id, 1])); // guida già letta: niente pop-up
+}
+
+/* compagno di prova: una specie della FONTE `type` (grotta = specie di grotta), risvegliata
+   così è un candidato legittimo del parco, scelta come compagno con la rarità voluta.
+   Serve a provare i poteri (per tipo/rarità), il raccoglitore leggendario e la cavalcatura. */
+function spawnCompanion(type, rar) {
+  const sp = type === 'grotta' ? CAVE_POOL[0] : ALL_SPECIES.find(s => (s.src || 'terra') === type);
+  if (!sp) return null;
+  if (!S.codex.includes(sp.id)) S.codex.push(sp.id);
+  if (!S.awakened.includes(sp.id)) S.awakened.push(sp.id);
+  setCompanion({ skull: sp.id, torso: sp.id, leg: sp.id, q: rar, key: 'sp' + sp.id, name: sp.name });
+  return sp;
 }
 
 /* teletrasporto: prima tile CAMMINABILE del bioma `zid`, cercata a spirale attorno al player */
@@ -318,6 +331,41 @@ export const COMMANDS = {
     } },
   heal: { type: 'action', cheat: true, help: 'heal — energia al massimo',
     run: () => { S.energy = S.maxEnergy; return '⚡ ' + tr('Energia piena', 'Full energy'); } },
+  /* COMPAGNI (poteri per tipo/rarità): scegli al volo un compagno per provare i poteri, il
+     raccoglitore leggendario e la cavalcatura volante — senza cercarne uno nel parco. */
+  companion: { aliases: ['compagno', 'buddy'], type: 'str', cheat: true,
+    help: 'companion=grotta[ leggendario] — compagno di quel TIPO/rarità (terra/acqua/albero/roccia/grotta)',
+    suggest: p => ['terra', 'acqua', 'albero', 'roccia', 'grotta'].filter(t => t.startsWith(p)),
+    run: v => {
+      const [type, r] = String(v).split(/\s+/);
+      const TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
+      if (!TYPES.includes(type)) return tr('Tipi: ', 'Types: ') + TYPES.join(', ');
+      const rar = ['comune', 'raro', 'eccezionale', 'leggendario'].includes(r) ? r : 'leggendario';
+      const sp = spawnCompanion(type, rar);
+      if (!sp) return tr('Nessuna specie di quel tipo', 'No species of that type');
+      const extra = rar !== 'leggendario' ? '' : type === 'grotta'
+        ? ' · ' + tr('cavalcabile (R o zaino)', 'rideable (R or bag)')
+        : ' · ' + tr('raccoglie da solo', 'auto-gathers');
+      return '🐾 ' + sp.name + ' — ' + tr('compagno ', 'companion ') + type + ' (' + rarLabel(rar) + ')' + extra;
+    } },
+  mount: { aliases: ['cavalca', 'ride'], type: 'action', cheat: true,
+    help: 'mount — compagno di grotta leggendario e SU in volo (in grotta non si vola)',
+    run: () => {
+      const sp = spawnCompanion('grotta', 'leggendario');
+      const ok = isMounted() ? true : toggleMount();
+      return ok ? '🐾 ' + tr('In groppa a ', 'Riding ') + sp.name + ' — ' + tr('vola sulla mappa (R per scendere)', 'fly over the map (R to land)')
+        : '🕳️ ' + tr('In grotta non si vola: esci prima', 'No flying in caves: leave first');
+    } },
+  chimera: { aliases: ['chimere'], type: 'action', cheat: true,
+    help: 'chimera — crea una chimera di prova (parco + scelta come compagno)',
+    run: () => {
+      const pick = () => ALL_SPECIES[Math.floor(vhash(S.uid, S.day, 700 + (S.creatures || []).length) * ALL_SPECIES.length)];
+      const a = pick(), b = pick(), c = pick();
+      if (!S.creatures) S.creatures = [];
+      const name = chimeraName(a, c, S.creatures.map(x => x.name));
+      S.creatures.push({ uid: S.uid++, name, skull: a.id, torso: b.id, leg: c.id, q: 'raro' });
+      return '🐾 ' + name + ' — ' + tr('chimera creata: passeggia nel parco (sceglila come compagno)', 'chimera created: it roams the park (pick it as companion)');
+    } },
   /* NOTTE/ALBA: per provare le LUCCIOLE (#5), che compaiono solo di notte, all'aperto */
   night: { aliases: ['notte'], type: 'action', cheat: true, help: 'night — notte fonda + missione lucciole attiva (per provarle)',
     run: () => {

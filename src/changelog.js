@@ -15,6 +15,7 @@ export const CHANGELOG = [
       'COMPAGNI: il potere ora dipende dai TRATTI — il TIPO (fonte: terra/acqua/albero/roccia/grotta) decide che aiuto dà, la RARITÀ quanto è forte; e ogni compagno dà comunque fiuto e bussola',
       'COMPAGNI LEGGENDARI: quelli di terra/acqua/roccia/albero RACCOLGONO da soli — vanno alla casella, lavorano con animazione e ti portano il fossile (lento e a zaino non pieno: lo scavo resta la fonte principale)',
       'FOSSILE VOLANTE: il compagno di GROTTA leggendario si CAVALCA (tasto R o dallo zaino) e sorvoli la mappa attraversando tutto — ma in grotta si scende e si cammina',
+      'HACK (console) riordinati e raggruppati; nuovi per i compagni: companion=<tipo> (per provare i poteri), mount (cavalcatura volante), chimera',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -30,6 +31,7 @@ export const CHANGELOG = [
       'COMPANIONS: the power now depends on TRAITS — the TYPE (source: ground/water/tree/rock/cave) decides what help it gives, RARITY how strong; and every companion still grants sniff and compass',
       'LEGENDARY COMPANIONS: the ground/water/rock/tree ones GATHER on their own — they walk to a tile, work with an animation and bring you the fossil (slow, and only when your bag isn\'t full: digging stays the main source)',
       'FLYING FOSSIL: the legendary CAVE companion can be RIDDEN (press R or from the bag) to fly over the map crossing anything — but in caves you land and walk',
+      'Console HACKS tidied up and grouped; new companion ones: companion=<type> (to test powers), mount (flying ride), chimera',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

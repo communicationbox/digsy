@@ -9,25 +9,85 @@ suggerimenti mentre scrivi (es. `goto=pal` → `goto=palude`).
 > ripristina il salvataggio normale (monete, museo, DNA, ecc.). Mentre i cheat sono attivi l'HUD
 > mostra il tag **🐞 CHEAT**.
 
-## Comandi 
+## Comandi
 
+Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = congela il salvataggio
+finché non dai `vanilla`.
+
+### Risorse e tempo
 | Comando | Cheat | Effetto |
 |---|:---:|---|
-| `money=40` | ✔ | Imposta le monete (alias: `coins`, `monete`) |
-| `energy=40` | ✔ | Imposta l'energia (alza il massimo se serve; alias `en`, `energia`) |
-| `day=10` | ✔ | Imposta il giorno di gioco |
-| `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
+| `money=40` | ✔ | Imposta le monete (alias `coins`, `monete`) |
+| `energy=40` | ✔ | Imposta l'energia, alza il massimo se serve (alias `en`, `energia`) |
 | `heal` | ✔ | Energia al massimo |
-| `night` | ✔ | Notte fonda **+ missione lucciole attiva** — per provare le **lucciole** (esci all'aperto; alias `notte`). La missione vera è **stagionale** (estate) |
+| `day=10` | ✔ | Imposta il giorno |
+| `season=inverno` | ✖ | Cambia stagione (`primavera`/`estate`/`autunno`/`inverno` o `0-3`) |
+| `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
+| `weather=pioggia` | ✖ | Forza il meteo (`pioggia`/`sabbia`/`nebbia`/`cenere`/`neve`/`sereno`/`off`; alias `meteo`) |
+| `night` | ✔ | Notte fonda **+ missione lucciole** (per provarle; alias `notte`). La missione vera è **rara** e **stagionale** (estate) |
 | `dawn` | ✔ | Riporta all'alba (alias `alba`) |
-| `toss` | ✔ | Apre il **minigioco della fontana** (mira) ovunque (alias `fontana`) |
-| `godmode` | ✔ | Sblocca e completa **tutto**, infinito, velocità ×5, **volo** (alias `god`). Comprende `goditem` (fossili + attrezzi + barca + mezzi + mappe) e `goddna`, più: cosmetici sbloccati, museo completo, libro completo, specie risvegliate, e `fly` attivo |
+
+### Sblocca
+| Comando | Cheat | Effetto |
+|---|:---:|---|
+| `godmode` | ✔ | Sblocca e completa **tutto** (`goditem`+`goddna`+cosmetici+museo+libro+risvegli), infinito, ×5, **volo** (alias `god`) |
+| `goditem` | ✔ | Ogni pezzo di ogni specie identificato + attrezzi + mezzi + mappe |
 | `goddna` | ✔ | DNA infinito per tutte le specie |
-| `goditem` | ✔ | Ogni pezzo di ogni specie, già identificato, nello zaino |
-| `goto=palude` | ✖ | Teletrasporto al bioma indicato (`prati`, `dune`, `boschi`, `terre`, `palude`, `ghiacci`) |
-| `goto=city` | ✖ | Teletrasporto alla città grande più vicina |
+| `godletters` | ✔ | Tutte le lettere del nonno, finale compreso (alias `letters`, `lettere`) |
+| `achall` | ✖ | Sblocca tutti i traguardi (alias `achievements`, `traguardi`) |
+
+### Compagni
+| Comando | Cheat | Effetto |
+|---|:---:|---|
+| `companion=grotta` | ✔ | Compagno di quel **TIPO** (`terra`/`acqua`/`albero`/`roccia`/`grotta`), rarità opzionale — `companion=terra leggendario` (alias `compagno`, `buddy`) |
+| `mount` | ✔ | Compagno di **grotta leggendario** e **su in volo** (in grotta non si vola; alias `cavalca`, `ride`) |
+| `chimera` | ✔ | Crea una **chimera** di prova (passeggia nel parco, sceglibile come compagno; alias `chimere`) |
+
+### Vai a
+| Comando | Cheat | Effetto |
+|---|:---:|---|
+| `goto=palude` | ✖ | Bioma indicato (`prati`/`dune`/`boschi`/`terre`/`palude`/`ghiacci`) |
+| `goto=grotta` | ✖ | Un imbocco di **grotta** vero (all'uscita ci torni) |
+| `goto=city` | ✖ | Città **grande** (col Museo) più vicina |
+| `gotosite` | ✖ | Sito di scavo più vicino |
+| `gotowreck` | ✖ | Relitto in mare più vicino (attiva la barca) |
+| `gotolandmark` | ✖ | Landmark più vicino (alias `goland`) |
+| `tour` | ✖ | Prossima cosa speciale **non ancora vista** (landmark/grotta/sito/relitto; alias `explore`, `esplora`) |
+
+### Prova minigiochi e scene
+| Comando | Cheat | Effetto |
+|---|:---:|---|
+| `prep` | ✔ | Tavolo di **preparazione** (`prep=raro\|eccezionale\|leggendario`; alias `minigioco`, `tavolo`) |
+| `toss` | ✔ | Minigioco della **fontana** (mira; alias `fontana`, `fountain`) |
+| `dupes` | ✔ | 3 **doppioni** da fondere (`dupes=raro\|eccezionale`; alias `doppioni`, `fondi`) |
+| `museo` | ✔ | 3 doppioni **già consegnati** + città col Museo (premi «Ritira» per il restauro; alias `museum`) |
+| `stress=1..5` | ✔ | Riempie il gioco e **misura gli fps** sul dispositivo |
+| `intro` | ✖ | Rivedi il filmato introduttivo (alias `storia`, `story`) |
+
+### Sistema
+| Comando | Cheat | Effetto |
+|---|:---:|---|
+| `fly` | ✔ | **Attraversa gli ostacoli** (noclip, on/off) — diverso da `mount` (che cavalca il compagno) |
 | `vanilla` | ✖ | Toglie i cheat e **ripristina il salvataggio** (alias `reset`, `ungod`) |
-| `help` | ✖ | Elenco dei comandi |
+| `help` | ✖ | Elenco di tutti i comandi |
+
+## Compagni — provare i poteri
+
+Il potere di un compagno dipende dai **tratti**: il **TIPO** (la fonte della specie, o della
+specie del cranio per le chimere) decide *che* aiuto dà, la **RARITÀ** *quanto*.
+
+- `companion=terra` · `companion=acqua` · `companion=albero` · `companion=roccia` · `companion=grotta`
+  scelgono al volo un compagno di quel tipo. Rarità opzionale: `companion=acqua eccezionale`
+  (default **leggendario**, così provi subito i poteri speciali).
+- I **leggendari** di terra/acqua/albero/roccia **raccolgono da soli**: vanno a una casella,
+  lavorano con animazione e ti portano il fossile (lento, e solo a zaino non pieno).
+- Il **leggendario di grotta** è un **fossile volante**: `mount` (o tasto **R** / dallo zaino)
+  lo cavalca e sorvoli la mappa attraversando tutto — **in grotta si scende e si cammina**.
+- `chimera` mette una chimera nel parco: comodo per provare il **parco** e la scelta del
+  compagno senza `godmode`.
+
+Ogni compagno, a prescindere dal tipo, dà anche **fiuto** (segnala i reperti a terra) e
+**bussola** sempre accesa.
 
 ## Aggiungere un comando
 

@@ -1835,6 +1835,30 @@ sprites.applyLook();
     check('il codice conta 66 specie complete', ASP2.length === 66 && ASP2.every(sp => S.codex.includes(sp.id)));
     P.fly = false; // godmode ora attiva il volo: spegnilo o sballa i test di collisione più avanti
   }
+  /* HACK COMPAGNI: companion=<tipo>[ rar], mount, chimera — provano poteri/raccoglitore/volo */
+  {
+    const compC = await import('../src/companion.js');
+    const gpC = await import('../src/gameplay.js');
+    const caveC = await import('../src/cave.js'); caveC.CAVE.active = false;
+    cmds.runCommand('companion=terra leggendario');
+    check('hack companion=terra: Scavatore leggendario scelto', !!compC.companionSpec() && compC.companionType(compC.companionSpec()) === 'terra' && compC.companionSpec().q === 'leggendario');
+    cmds.runCommand('companion=grotta');
+    check('hack companion=grotta: cavalcabile', compC.companionType(compC.companionSpec()) === 'grotta' && gpC.companionRides() === true);
+    S.mounted = false;
+    cmds.runCommand('mount');
+    check('hack mount: sale in volo', S.mounted === true && gpC.isMounted() === true);
+    S.mounted = false; compC.clearCompanion();
+    const nc = (S.creatures || []).length;
+    cmds.runCommand('chimera');
+    check('hack chimera: crea una chimera nel parco', (S.creatures || []).length === nc + 1);
+  }
+  /* COERENZA: ogni hack ha help, tipo valido e una funzione run (niente voci monche) */
+  check('ogni hack ha help/type/run validi', Object.values(cmds.COMMANDS).every(c => typeof c.help === 'string' && c.help.length > 3 && ['num', 'str', 'action', 'both'].includes(c.type) && typeof c.run === 'function'));
+  check('ogni alias è unico e non collide con un nome', (() => {
+    const seen = new Set();
+    for (const [name, c] of Object.entries(cmds.COMMANDS)) { if (seen.has(name)) return false; seen.add(name); for (const a of c.aliases || []) { if (seen.has(a)) return false; seen.add(a); } }
+    return true;
+  })());
   // libro completo senza toccare il save
   S.book = {}; S.codex = [];
   ui.openBook();
