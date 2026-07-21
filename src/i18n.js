@@ -111,8 +111,9 @@ export function applyStaticTexts() {
      italiano per tutti. Vanno riscritti qui, PRIMA di hydrateIcons(), altrimenti si
      cancellerebbero le <img> delle icone già montate. */
   set('#pr-done', tr('Fatto', 'Done'));
-  set('#pr-brush', tr('Spazzola', 'Brush'));
-  set('#pr-pick', tr('Stecca', 'Fine tool'));
+  set('#pr-t-pennello', tr('Pennello', 'Brush'));
+  set('#pr-t-scalpello', tr('Scalpello', 'Chisel'));
+  set('#pr-t-spatola', tr('Spatola', 'Spatula'));
   set('#pr-lab-clean', tr('Pulizia', 'Cleaned'));
   set('#pr-lab-integ', tr('Integrità', 'Intact'));
   set('#exitbtn', '🚪 ' + tr('Esci', 'Exit'));

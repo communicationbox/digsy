@@ -32,7 +32,6 @@ import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, remou
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
-import { newBoard, brush, cleanPct, gradeFor, applyPrep, isPrepped } from './prepare.js';
 import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver as cmDeliver,
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM } from './commission.js';

@@ -4598,25 +4598,32 @@ sprites.applyLook();
 {
   const S = state.S;
   const pr = await import('../src/prepare.js');
+  const allCells = (bd, tool, r) => { for (let k = 0; k < 8; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.work(bd, tool, x, y, r); };
+  const findCell = (bd, wantBone) => { for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) { const i = y * pr.W + x; if (!!bd.bone[i] === wantBone) return [x, y, i]; } return [-1, -1, -1]; };
   const b = pr.newBoard(7);
-  check('crosta: all\'inizio quasi nessun osso scoperto', pr.cleanPct(b) < 0.2);
-  check('integrità piena all\'inizio', pr.integrity(b) === 1);
-  check('stessa crosta per lo stesso reperto', JSON.stringify(pr.newBoard(7)) === JSON.stringify(b));
-  check('una passata toglie terra', pr.brush(b, 5, 5, { r: 2 }) > 0);
+  check('all\'inizio tutto coperto di polvere, osso intatto', pr.dustPct(b) < 0.1 && pr.integrity(b) === 1);
+  check('stesso reperto = stesso stato', JSON.stringify(pr.newBoard(7)) === JSON.stringify(b));
   check('grado: pulito e intatto = perfetto ×1.5', pr.gradeFor(1, 1).id === 'perfetto' && pr.gradeFor(1, 1).mult === 1.5);
-  check('grado: niente pulizia = nessun bonus, MAI una penalità', pr.gradeFor(0, 1).mult === 1 && pr.gradeFor(0, 1).xp === 0);
-  /* SKILL del restauro: PULIRE (spazzola/stecca) non scheggia MAI — scoprire è sicuro, o il
-     gesto è ingiocabile (tenere premuto e muovere mandava l'integrità a metà). Solo GRATTARE
-     a lungo l'osso NUDO (strain) lo rovina. */
-  {
-    const bb = pr.newBoard(3);
-    for (let k = 0; k < 12; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(bb, x, y, { r: 1.2 });
-    check('spazzolare per scoprire l\'osso NON lo scheggia', pr.cleanPct(bb) > 0.9 && pr.integrity(bb) === 1);
-    const sporco = pr.newBoard(3);
-    check('sfregare l\'osso ancora sporco non fa nulla', (pr.strain(sporco, 7, 6, 1.5), pr.integrity(sporco) === 1));
-    for (let k = 0; k < 60; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.strain(bb, x, y, 1.2);
-    check('grattare a lungo l\'osso scoperto lo scheggia (integrità cala)', pr.integrity(bb) < 1);
-  }
+  check('grado: niente = nessun bonus, MAI una penalità', pr.gradeFor(0, 1).mult === 1 && pr.gradeFor(0, 1).xp === 0);
+  /* PASSO 1 — PENNELLO: spolvera ovunque, MAI danni */
+  { const bb = pr.newBoard(3); allCells(bb, 'pennello', 1.9);
+    check('il pennello spolvera senza danni', pr.dustPct(bb) > 0.9 && pr.integrity(bb) === 1); }
+  /* PASSO 2 — SCALPELLO: stacca la roccia dalla matrice; sull'OSSO scheggia */
+  { const bb = pr.newBoard(3); allCells(bb, 'pennello', 1.9);        // prima spolvera
+    const [mx, my, mi] = findCell(bb, false), [bx, by] = findCell(bb, true);
+    const rock0 = bb.rock[mi]; pr.work(bb, 'scalpello', mx, my, 0.85);
+    check('lo scalpello stacca la roccia dalla matrice', bb.rock[mi] < rock0);
+    const i0 = pr.integrity(bb);
+    for (let k = 0; k < 6; k++) pr.work(bb, 'scalpello', bx, by, 0.85);
+    check('lo scalpello sull\'OSSO lo scheggia (integrità cala)', pr.integrity(bb) < i0); }
+  /* PASSO 3 — SPATOLA: toglie la crosta dall'osso; raschiare l'osso GIÀ pulito lo rovina */
+  { const bb = pr.newBoard(5); allCells(bb, 'pennello', 1.9);
+    const [ox, oy, oi] = findCell(bb, true);
+    const crust0 = bb.crust[oi]; pr.work(bb, 'spatola', ox, oy, 0.85);
+    check('la spatola toglie la crosta dall\'osso', bb.crust[oi] < crust0);
+    const i0 = pr.integrity(bb);
+    for (let k = 0; k < 30; k++) pr.work(bb, 'spatola', ox, oy, 0.85); // raschia l'osso ormai pulito
+    check('raschiare l\'osso già pulito lo rovina (integrità cala)', pr.integrity(bb) < i0); }
   {
     const it = { uid: 1, s: 'lepre', t: 'cranio', q: 'raro', val: 40 };
     const g = pr.applyPrep(it, 1, 1);

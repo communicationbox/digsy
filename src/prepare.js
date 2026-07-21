@@ -1,24 +1,24 @@
-/* PREPARAZIONE DEL REPERTO — il secondo verbo del gioco, ora un vero RESTAURO.
-   Il reperto grezzo arriva incrostato: lo si SPAZZOLA per scoprirlo. Ma l'osso è FRAGILE —
-   insistere con la spazzola larga sull'osso GIÀ scoperto lo scheggia. Per i bordi c'è la
-   STECCA fine (gentile, non rovina). Due misure: PULIZIA (quanto osso hai scoperto) e
-   INTEGRITÀ (quanto è intatto); il grado le pesa entrambe.
+/* PREPARAZIONE DEL REPERTO — un RESTAURO in TRE PASSI, uno per attrezzo. È il secondo verbo del
+   gioco: qui si fa il mestiere dell'archeologo invece di guardarlo fare.
 
-   Regola cozy: la preparazione è un BONUS, mai una penalità. Chi consegna direttamente prende
-   quello che prendeva prima; le schegge tolgono solo un po' del bonus, non il valore base.
+   1) PENNELLO — spolveri e il fossile COMPARE. Nessun danno: è la scoperta, e ti fa vedere
+      DOVE sta l'osso (ti serve nei passi dopo).
+   2) SCALPELLO — stacchi il fossile dalla ROCCIA attorno. Preciso: se colpisci l'OSSO, lo scheggi.
+   3) SPATOLA — rifinisci la crosta SOPRA l'osso. Preciso: se raschi l'osso già pulito, lo rovini.
 
-   Modulo PURO (niente DOM): crosta, maschera dell'osso e punteggi si testano da soli. La
-   maschera dell'osso (quali celle sono fossile) arriva dal chiamante, dalla proiezione voxel;
-   senza maschera si usa una forma ovale di ripiego, così il modulo resta testabile da solo. */
+   Due misure: PULIZIA (quanto hai completato) e INTEGRITÀ (quanto è intatto). Il grado le pesa
+   entrambe. Cozy: le schegge tolgono un po' del bonus, mai il valore base — chi non se la sente
+   consegna direttamente e prende quello di prima.
 
-export const W = 14, H = 12;            // celle di crosta (la canvas le scala)
-export const REVEAL = 0.15;             // sotto questa terra la cella è "scoperta"
+   Modulo PURO (niente DOM): strati e punteggi si testano da soli. La maschera dell'osso (quali
+   celle sono fossile) arriva dal chiamante, dalla proiezione voxel; senza, una forma di ripiego. */
 
-function hash(i, seed) {
-  const x = Math.sin((i + 1) * 12.9898 + seed * 78.233) * 43758.5453;
-  return x - Math.floor(x);
-}
-/* osso di ripiego (ovale) se non arriva una maschera vera */
+export const W = 14, H = 12;                     // celle (la canvas le scala)
+export const TOOLS = ['pennello', 'scalpello', 'spatola'];
+const POWER = { pennello: 0.5, scalpello: 0.45, spatola: 0.45 }; // quanto rimuove per passata
+const HARM = { scalpello: 0.05, spatola: 0.03 };                 // danno per passata quando sbagli
+
+function hash(i, seed) { const x = Math.sin((i + 1) * 12.9898 + seed * 78.233) * 43758.5453; return x - Math.floor(x); }
 function defaultBone() {
   const m = new Uint8Array(W * H);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
@@ -28,88 +28,77 @@ function defaultBone() {
   return m;
 }
 
-/* crosta iniziale: terra piena (dirt=1) tranne un paio di scaglie già staccate, così si capisce
-   subito che sotto c'è qualcosa. Deterministica per seed. boneMask = 0/1 per cella (opzionale). */
+/* stato iniziale: tutto coperto di POLVERE; ROCCIA sulle celle di matrice (non-osso), CROSTA
+   sulle celle d'osso. Deterministico per seed. boneMask = 0/1 per cella (opzionale). */
 export function newBoard(seed = 0, boneMask = null) {
-  const dirt = new Array(W * H).fill(1);
-  const chip = new Array(W * H).fill(0);
   const bone = boneMask && boneMask.length === W * H ? Uint8Array.from(boneMask) : defaultBone();
-  for (let i = 0; i < W * H; i++) if (hash(i, seed) < 0.05) dirt[i] = 0; // scaglie già via
-  return { dirt, chip, bone, seed, strokes: 0 };
+  const dust = new Array(W * H).fill(1), rock = new Array(W * H), crust = new Array(W * H), chip = new Array(W * H).fill(0);
+  for (let i = 0; i < W * H; i++) { rock[i] = bone[i] ? 0 : 1; crust[i] = bone[i] ? 1 : 0; }
+  /* un filo di polvere già via, così si intuisce che sotto c'è qualcosa */
+  for (let i = 0; i < W * H; i++) if (hash(i, seed) < 0.05) dust[i] = 0.4;
+  return { dust, rock, crust, chip, bone, seed };
 }
 
-/* passata di attrezzo: TOGLIE SOLO TERRA (non scheggia mai — scoprire dev'essere sicuro, o il
-   gesto è ingiocabile). opts = { r, gentle } (o un numero = raggio, per compat).
-   Ritorna il "lavoro" fatto (terra tolta) per gli effetti sonori. */
-export function brush(board, cx, cy, opts) {
-  if (!board) return 0;
-  const o = typeof opts === 'number' ? { r: opts } : (opts || {});
-  const r = o.r != null ? o.r : 1.6, gentle = !!o.gentle, power = gentle ? 0.34 : 0.5;
-  let work = 0;
+/* applica l'ATTREZZO del passo corrente nel raggio r. Ritorna {work, harm} (lavoro fatto, danno).
+   - pennello: toglie POLVERE ovunque, mai danni.
+   - scalpello: toglie ROCCIA sulla matrice; se centri l'OSSO lo scheggi (harm).
+   - spatola: toglie CROSTA sull'osso; se raschi l'osso GIÀ pulito lo rovini (harm). */
+export function work(board, tool, cx, cy, r) {
+  if (!board) return { work: 0, harm: 0 };
+  let done = 0, harm = 0;
   const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
   const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
   for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
     const d = Math.hypot(x - cx, y - cy); if (d > r) continue;
     const i = y * W + x, fall = 1 - d / r;
-    if (board.dirt[i] > 0) { const dd = Math.min(board.dirt[i], power * fall); board.dirt[i] -= dd; work += dd; }
-  }
-  if (work > 0.01) board.strokes++;
-  return work;
-}
-
-/* SFREGARE: si chiama UNA volta per movimento (non per sotto-passo dell'interpolazione), e solo
-   con la spazzola larga. Scheggia SOLO l'osso GIÀ pulito, a rate basso: spazzolare per scoprire
-   è sempre sicuro (l'osso ha ancora terra); solo GRATTARE a lungo l'osso nudo lo rovina. */
-export const STRAIN = 0.02;
-export function strain(board, cx, cy, r = 1.7) {
-  if (!board) return 0;
-  let added = 0;
-  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
-  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const d = Math.hypot(x - cx, y - cy); if (d > r) continue;
-    const i = y * W + x;
-    if (board.bone[i] && board.dirt[i] <= 0.001 && board.chip[i] < 1) {   // solo osso NUDO
-      const inc = STRAIN * (1 - d / r); board.chip[i] = Math.min(1, board.chip[i] + inc); added += inc;
+    if (tool === 'pennello') {
+      if (board.dust[i] > 0) { const dd = Math.min(board.dust[i], POWER.pennello * fall); board.dust[i] -= dd; done += dd; }
+    } else if (tool === 'scalpello') {
+      if (board.dust[i] > 0.5) continue;                 // prima si spolvera: la roccia si stacca dopo
+      if (!board.bone[i]) { if (board.rock[i] > 0) { const dd = Math.min(board.rock[i], POWER.scalpello * fall); board.rock[i] -= dd; done += dd; } }
+      else { const h = HARM.scalpello * fall; board.chip[i] = Math.min(1, board.chip[i] + h); harm += h; } // colpito il fossile
+    } else if (tool === 'spatola') {
+      if (board.dust[i] > 0.5) continue;
+      if (board.bone[i]) {
+        if (board.crust[i] > 0) { const dd = Math.min(board.crust[i], POWER.spatola * fall); board.crust[i] -= dd; done += dd; }
+        else { const h = HARM.spatola * fall; board.chip[i] = Math.min(1, board.chip[i] + h); harm += h; } // raschiato l'osso pulito
+      }
     }
   }
-  return added;
+  return { work: done, harm };
 }
 
-/* PULIZIA = quanto osso hai scoperto (se non c'è maschera, quanta crosta hai tolto). */
-export function cleanPct(board) {
-  if (!board) return 0;
-  let tot = 0, rev = 0;
-  for (let i = 0; i < W * H; i++) if (board.bone[i]) { tot++; if (board.dirt[i] < REVEAL) rev++; }
-  if (tot) return rev / tot;
-  let c = 0; for (const v of board.dirt) if (v < REVEAL) c++; return c / board.dirt.length;
-}
-/* INTEGRITÀ = quanto è intatto l'osso (1 = perfetto). Non scende sotto 0.4: cozy, mai un disastro. */
+/* avanzamento dei tre passi (frazione COMPLETATA, 0..1) */
+export function dustPct(board) { if (!board) return 0; let s = 0; for (const v of board.dust) s += 1 - v; return s / (W * H); }
+export function rockPct(board) { if (!board) return 1; let t = 0, s = 0; for (let i = 0; i < W * H; i++) if (!board.bone[i]) { t++; s += 1 - board.rock[i]; } return t ? s / t : 1; }
+export function crustPct(board) { if (!board) return 1; let t = 0, s = 0; for (let i = 0; i < W * H; i++) if (board.bone[i]) { t++; s += 1 - board.crust[i]; } return t ? s / t : 1; }
+export const PHASES = [
+  { tool: 'pennello', pct: dustPct, need: 0.92 },
+  { tool: 'scalpello', pct: rockPct, need: 0.90 },
+  { tool: 'spatola', pct: crustPct, need: 0.90 },
+];
+
+/* PULIZIA = media dei tre passi. INTEGRITÀ = quanto è intatto l'osso (fondo 0.4, mai un disastro). */
+export function cleanPct(board) { return (dustPct(board) + rockPct(board) + crustPct(board)) / 3; }
 export function integrity(board) {
   if (!board) return 1;
-  let tot = 0, ch = 0;
-  for (let i = 0; i < W * H; i++) if (board.bone[i]) { tot++; ch += board.chip[i]; }
-  return tot ? Math.max(0.4, 1 - ch / tot * 2.2) : 1;
+  let t = 0, ch = 0; for (let i = 0; i < W * H; i++) if (board.bone[i]) { t++; ch += board.chip[i]; }
+  return t ? Math.max(0.4, 1 - ch / t * 1.5) : 1;
 }
 
-/* GRADI — pesano pulizia (di più) e integrità. Il perfetto chiede entrambe alte. */
+/* GRADI — pulizia pesa di più; il perfetto chiede entrambe alte. */
 export const GRADES = [
-  { id: 'perfetto', mult: 1.5, xp: 12 },
-  { id: 'buono', mult: 1.25, xp: 6 },
-  { id: 'grezzo', mult: 1.1, xp: 2 },
-  { id: 'niente', mult: 1, xp: 0 },
+  { id: 'perfetto', mult: 1.5, xp: 12 }, { id: 'buono', mult: 1.25, xp: 6 },
+  { id: 'grezzo', mult: 1.1, xp: 2 }, { id: 'niente', mult: 1, xp: 0 },
 ];
 export function gradeFor(clean, integ) {
-  if (integ == null) integ = 1;                    // compat: gradeFor(pct) singolo argomento
+  if (integ == null) integ = 1;
   if (clean >= 0.9 && integ >= 0.9) return GRADES[0];
   const q = clean * 0.65 + integ * 0.35;
   if (q >= 0.75) return GRADES[1];
   if (q >= 0.4) return GRADES[2];
   return GRADES[3];
 }
-
-/* applica l'esito al reperto: alza il valore e lascia il marchio (per i testi e per non
-   poterlo preparare due volte). */
 export function applyPrep(item, clean, integ) {
   if (!item || item.prep != null) return null;
   const g = gradeFor(clean, integ);
