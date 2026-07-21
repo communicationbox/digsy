@@ -15,7 +15,7 @@
 
 export const W = 28, H = 24;                     // celle FINI (così anche le parti piccole del fossile si vedono)
 export const TOOLS = ['pennello', 'scalpello', 'spatola'];
-const POWER = { pennello: 0.5, scalpello: 0.45, spatola: 0.45 }; // quanto rimuove per passata
+const POWER = { pennello: 1, scalpello: 0.45, spatola: 0.45 };   // pennello spolvera in un colpo (veloce); precisi più graduali
 const HARM = { scalpello: 0.05 };                               // scalpello sull'osso: danno per passata (evitabile, l'osso si vede)
 export const SCRAPE = 0.03;                                      // spatola: danno da GRATTARE fermi (una volta per movimento)
 

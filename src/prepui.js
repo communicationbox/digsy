@@ -28,7 +28,7 @@ export function prepCandidate() {
 }
 
 const TOOLS = ['pennello', 'scalpello', 'spatola'];
-const TOOL_HS = { pennello: 2, scalpello: 1, spatola: 1 };        // mezzo-lato del QUADRATO d'azione (celle)
+const TOOL_HS = { pennello: 4, scalpello: 1, spatola: 1 };        // pennello LARGO (spolverare è solo per capire, non deve durare); precisi piccoli
 let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepTool = 'pennello';
 let prepCursor = { x: 0, y: 0, on: false };   // area d'azione dell'attrezzo (segue il puntatore)
 export function isPrepOpen() { return prepOpenFlag; }
