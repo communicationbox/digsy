@@ -245,38 +245,45 @@ function drawCompanionGlyph(type, cx, cy, time) {
   px(cx, y - 1, c); px(cx - 1, y, c); px(cx + 1, y, c); px(cx, y + 1, c); // diamante
   px(cx, y, hi);                                                          // nucleo chiaro
 }
-/* RACCOGLITORE LEGGENDARIO: animazione del lavoro accanto alla creatura (fase 'work' del job).
-   Attrezzo a tema che affonda + ventaglio di schegge per terra/albero/roccia; canna+lenza per
-   l'acqua. Fase dal TIMER del job (mai da coord schermo), coordinate già snap-ate. */
-function drawCompanionWork(cxs, cys, time) {
+/* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — sedere/coda fuori dall'acqua
+   che si tuffa e riemerge, zampe palmate che remano, increspature e bollicine. Sostituisce il
+   disegno normale della creatura durante il lavoro d'acqua. Colore dal torace della creatura. */
+function drawCompanionDabble(cx, cyBase, time, obj) {
+  const body = (obj && spColor[obj.c.torso]) || '#c8b078';
+  const dark = shade8(body, 0.7), light = shade8(body, 1.18);
+  const wy = cyBase + 3;                                    // pelo dell'acqua
+  const bob = Math.round(Math.sin(time / 260) * 2);         // il sedere si tuffa e riemerge
+  const top = wy - 11 + bob;
+  const rows = [1, 1, 2, 2, 3, 3, 4, 4, 4];                 // rump a goccia: stretto in cima (coda)
+  for (let r = 0; r < rows.length; r++) { const yy = top + r, hw = rows[r];
+    for (let x = -hw; x <= hw; x++) px(cx + x, yy, (x === -hw || x === hw) ? dark : yy >= wy - 3 ? light : body); }
+  px(cx, top - 1, dark);
+  const wag = Math.round(Math.sin(time / 130));             // coda che scodinzola
+  px(cx + wag, top - 1, body); px(cx + wag, top - 2, light);
+  const pad = Math.floor(time / 160) % 2;                   // zampe palmate che remano
+  px(cx - 5, wy + 1 - pad, dark); px(cx - 6, wy + 1 - pad, dark);
+  px(cx + 5, wy + pad, dark); px(cx + 6, wy + pad, dark);
+  rect(cx - 6, wy, 13, 2, '#4d8fb5'); rect(cx - 6, wy, 13, 1, '#83cfe6'); // acqua che copre la testa
+  const rr = 1 + Math.floor((time / 200) % 3);              // increspature
+  for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(cx + Math.cos(an) * (rr + 2)), Math.round(wy + 1 + Math.sin(an) * (rr + 1) * 0.5), 'rgba(190,233,244,.45)'); }
+  if (Math.floor(time / 300) % 2) { px(cx - 2, wy + 2, '#bfe9f4'); px(cx + 2, wy + 3, '#e8f6fb'); } // bollicine
+}
+/* RACCOGLITORE LEGGENDARIO: animazione del lavoro (fase 'work'). Gli ANIMALI non usano attrezzi:
+   terra/albero/roccia = la creatura scava/spinge e schizza detrito a tema (nessuna pala/accetta/
+   piccone); acqua = dabble (drawCompanionDabble). Fase dal TIMER del job, coordinate già snap. */
+function drawCompanionWork(cxs, cys, time, obj) {
   const j = COMP.job; if (!j || j.phase !== 'work') return;
-  const ph = 1 - j.t / 1.3;                       // 0→1 (dal timer)
-  const dir = j.wx >= COMP.x ? 1 : -1;
-  if (j.type === 'acqua') {                        // PESCA: canna + lenga + galleggiante + cerchi
-    const rodx = cxs + dir * 6, rody = cys - 7, fx = cxs + dir * 13, fy = cys + 4;
-    for (let i = 0; i <= 4; i++) px(rodx + dir * i, rody - i, '#8a5f38');          // canna
-    const tipx = rodx + dir * 4, tipy = rody - 4;
-    for (let s = 0; s <= 6; s++) { const t = s / 6; px(Math.round(tipx + (fx - tipx) * t), Math.round(tipy + (fy - tipy) * t), '#d8d2c0'); } // lenza
-    const bob = ph > 0.7 ? Math.round(Math.sin(time / 55)) : 0;                    // strappo finale
-    px(fx, fy + bob, '#c65a54'); px(fx, fy - 1 + bob, '#f6efdd');                  // galleggiante
-    const r = 1 + Math.floor((time / 220) % 3);
-    for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(fx + Math.cos(an) * r), Math.round(fy + 2 + Math.sin(an) * r * 0.6), 'rgba(210,235,255,.5)'); }
-    return;
-  }
+  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
+  const ph = 1 - j.t / 1.3, dir = j.wx >= COMP.x ? 1 : -1;
   const sub = (ph * 4) % 1, struck = Math.floor(ph * 4) % 2 === 1;                  // due colpi
-  const swing = struck ? 0.5 + 0.5 * Math.sin(Math.PI * sub) : 0;                   // affondo sul colpo
-  const hx = cxs + dir * 5, hy = cys - 6, tox = hx + dir * (2 + swing * 5), toy = hy + swing * 7;
-  for (let i = 0; i <= 5; i++) px(Math.round(hx + dir * i * (0.5 + swing)), Math.round(hy + i * swing), '#8a5f38'); // manico
-  if (j.type === 'terra') rect(tox - 1, toy, 4, 2, '#b8b0a2');                                      // pala
-  else if (j.type === 'albero') { rect(tox + (dir < 0 ? -2 : 0), toy - 1, 3, 3, '#b5622e'); px(tox + (dir < 0 ? -2 : 2), toy - 1, '#d98a4a'); } // accetta a cuneo
-  else { rect(tox - 1, toy, 4, 1, '#9a9285'); px(tox - 1, toy + 1, '#9a9285'); px(tox + 2, toy + 1, '#9a9285'); }   // piccone a doppia punta
-  if (struck) {                                                                     // ventaglio di schegge a tema
-    const ox = cxs + dir * 8, oy = cys - 3;
+  if (struck) {                                                                     // detrito a tema
+    const ox = cxs + dir * 8, oy = cys - 2;
     const OX = [-4, -1, 2, 5, 7], H = [4, 6, 3, 5, 4];
     const CC = j.type === 'terra' ? ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42']
       : j.type === 'albero' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
         : ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];                  // roccia: scaglia chiara = scintilla
     for (let i = 0; i < 5; i++) px(Math.round(ox + dir * OX[i] * (0.4 + sub)), Math.round(oy + 6 - Math.sin(Math.PI * sub) * H[i]), CC[i]);
+    px(cxs + dir * 6, cys + 2, 'rgba(180,160,120,.5)');                             // sbuffo alla base
   }
 }
 /* "+fossile" che sale dal raccoglitore quando trova qualcosa (contorno rarità) */
@@ -528,28 +535,25 @@ function drawMountWings(sx, cy, view, dir) {
 }
 function drawFlyingMount(sx, sy) {
   const obj = companionDrawObj();
-  if (obj) obj.face = P.dir;                                // la cavalcatura ruota col player (front/retro/profilo)
+  if (obj) obj.face = P.dir;                                // ruota col player (front/retro/profilo)
   const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
-  const cv = creatureSprite(obj, view);
-  const lift = 11 + Math.round(Math.sin(frameTime / 300) * 2);
-  const creatureY = sy - lift + 2;                          // drawCreature ancora il fondo a creatureY+14
-  const bodyTop = cv ? Math.round(creatureY + 14 - cv.height) : Math.round(sy - lift - 2); // cima della schiena
   const dir = P.dir === 'left' ? -1 : 1;
-  shadow(sx, sy + 17, 5);                                   // ombra piccola a terra = è in alto
-  if (view === 'side') {
-    /* PROFILO: ala dietro → corpo → eroe SOPRA e abbassato 2px, così ne spunta UNA gamba
-       sul fianco vicino (nel profilo la gamba lontana sta dietro il busto) */
-    drawMountWings(sx, bodyTop + 4, 'side', dir);
-    if (obj) drawCreature(obj, sx - 8, creatureY, false, true);
-    drawHero(null, sx - 8, bodyTop - 10, P.dir, 0);
-  } else {
-    /* FRONTE/SPALLE: ali ai lati → eroe → corpo che gli copre le gambe (simmetrico, in sella) */
-    drawMountWings(sx, bodyTop + 3, view, dir);
-    drawHero(null, sx - 8, bodyTop - 12, P.dir, 0);
-    if (obj) drawCreature(obj, sx - 8, creatureY, false, true);
-  }
+  const cv = creatureSprite(obj, view);
+  const cvH = cv ? cv.height : 14;
+  const lift = 10 + Math.round(Math.sin(frameTime / 300) * 2);
+  const creatureY = sy - lift + 2;                          // drawCreature: fondo = creatureY+14
+  const backTop = Math.round(creatureY + 14 - cvH);         // cima della schiena su schermo
+  shadow(sx, sy + 17, 6);                                   // ombra a terra (è in volo)
+  drawMountWings(sx, backTop + 3, view, dir);               // ali DIETRO, all'altezza della schiena
+  if (obj) drawCreature(obj, sx - 8, creatureY, false, true); // la cavalcatura (ferma)
+  /* eroe SEDUTO: solo BUSTO + TESTA (le gambe sono tagliate dal clip → è in sella, mai in piedi),
+     con la vita appoggiata sulla schiena della creatura */
+  const heroTop = backTop - 9;
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 9, heroTop - 3, 18, (backTop + 3) - (heroTop - 3)); ctx.clip();
+  drawHero(null, sx - 8, heroTop, P.dir, 0);
+  ctx.restore();
   if (P.moving) {                                           // scia di scintille dietro
-    const tx = sx - dir * 10, ty = bodyTop + 8, w2 = Math.floor(frameTime / 120) % 3;
+    const tx = sx - dir * 11, ty = backTop + 6, w2 = Math.floor(frameTime / 120) % 3;
     px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)');
   }
 }
@@ -904,7 +908,16 @@ export function render(time) {
     const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ctype = companionType(companionSpec());
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
-    ents.push({ y: COMP.y - cam.y + 15, f: () => { drawCreature(compObj, cxs - 8, cys - 13, cswim); drawCompanionGlyph(ctype, cxs, cys - 16, time); drawCompanionWork(cxs, cys, time); } });
+    ents.push({ y: COMP.y - cam.y + 15, f: () => {
+      const j = COMP.job, working = j && j.phase === 'work';
+      if (!(working && j.type === 'acqua')) {          // acqua: la creatura è a testa in giù (dabble) → non si disegna qui
+        let lx = 0;                                    // terra/albero/roccia: affondo verso la casella sul colpo
+        if (working) { const ph = 1 - j.t / 1.3; if (Math.floor(ph * 4) % 2 === 1) lx = Math.round(Math.sin(Math.PI * ((ph * 4) % 1)) * 3) * (j.wx >= COMP.x ? 1 : -1); }
+        drawCreature(compObj, cxs - 8 + lx, cys - 13, cswim);
+      }
+      drawCompanionGlyph(ctype, cxs, cys - 16, time);
+      drawCompanionWork(cxs, cys, time, compObj);
+    } });
   }
   drawCompanionFx(cam, time);   // "+fossile" che salgono dal raccoglitore (sopra tutto)
   ents.sort((a, b) => a.y - b.y).forEach(e => e.f());

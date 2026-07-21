@@ -22,6 +22,8 @@ export const CHANGELOG = [
       'FIX TETTI: le tegole/scandole non "nuotano" più mentre cammini — il disegno del tetto era agganciato alla posizione sullo schermo invece che all\'edificio',
       'CAVALCATURA di profilo: l\'eroe è seduto più in basso, si vede una sola gamba sul fianco e l\'ala è adattata alla vista laterale',
       'FIX COMPAGNO SDOPPIATO: il compagno che è con te NON compare più anche nel recinto del parco; rimandandolo a casa ci rientra',
+      'RACCOGLITORI: gli animali NON usano attrezzi — il pescatore ora fa come le oche (testa sotto, sedere fuori, zampe che remano), gli altri scavano/spingono e schizzano detrito (via canna/pala/accetta/piccone)',
+      'CAVALCATURA: l\'eroe ora è SEDUTO in groppa (vita in su, gambe nascoste), non più in piedi; faccia libera e centrata',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -44,6 +46,8 @@ export const CHANGELOG = [
       'ROOF FIX: tiles/shingles no longer "swim" as you walk — the roof pattern was pinned to the screen position instead of the building',
       'MOUNT profile: the hero sits lower, only one leg shows on the near side, and the wing is adapted to the side view',
       'FIX DOUBLED COMPANION: the companion that\'s with you no longer also appears in the park pen; send it home and it returns there',
+      'GATHERERS: animals DON\'T use tools — the angler now dabbles like a goose (head under, rump up, paddling feet), the others dig/shove and kick up debris (no rod/shovel/axe/pickaxe)',
+      'MOUNT: the hero now SITS in the saddle (waist up, legs hidden), no longer standing; face clear and centered',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },
