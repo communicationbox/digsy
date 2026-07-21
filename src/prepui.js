@@ -91,7 +91,11 @@ export function openPrepare(item, after) {
     let down = false, lx = 0, ly = 0;
     const at = ev => {
       const r = cv.getBoundingClientRect(), p = ev.touches ? ev.touches[0] : ev;
-      return { cx: (p.clientX - r.left) / r.width * PW, cy: (p.clientY - r.top) / r.height * PH };
+      /* clamp al bordo: trascinando FUORI dal canvas il cursore segue fino al bordo senza scatti */
+      return {
+        cx: Math.max(0, Math.min(PW - 0.001, (p.clientX - r.left) / r.width * PW)),
+        cy: Math.max(0, Math.min(PH - 0.001, (p.clientY - r.top) / r.height * PH)),
+      };
     };
     const apply = (cx, cy) => {
       const hs = TOOL_HS[prepTool];
@@ -112,7 +116,9 @@ export function openPrepare(item, after) {
     });
     cv.addEventListener('pointerup', () => { down = false; });
     cv.addEventListener('pointercancel', () => { down = false; });
-    cv.addEventListener('pointerleave', () => { down = false; prepCursor.on = false; drawPrep(); });
+    /* uscendo dal canvas NON si interrompe il tratto (il pointer capture continua a mandare i
+       move): si nasconde il cursore solo se NON stai trascinando */
+    cv.addEventListener('pointerleave', () => { if (!down) { prepCursor.on = false; drawPrep(); } });
   }
   for (const tool of TOOLS) { const el = document.getElementById('pr-t-' + tool); if (el) el.onclick = () => setTool(tool); }
   const done = document.getElementById('pr-done'); if (done) done.onclick = () => finishPrep();
