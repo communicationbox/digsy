@@ -601,7 +601,7 @@ export function openToss(onDone) {
   tossOnDone = onDone || null; tossOpen = true; tossResolved = false; tossPos = 0; tossDir = 1;
   tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni volta
   const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana della fortuna', 'Wishing fountain'));
-  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il cursore sulla zona d\'oro: più la centri, più aumenti la fortuna', 'Stop the marker on the golden zone: the more you center it, the more luck'));
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il cursore nella zona d\'oro per aumentare la fortuna', 'Stop the marker in the golden zone to boost your luck'));
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
   ov.classList.add('on');
@@ -622,10 +622,11 @@ function stopToss() {
   tossOpen = false; tossResolved = true;
   if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
   tossLuckHeld = tossLuck(tossPos, tossTarget);
-  const label = tossLuckHeld === 0 ? tr('Fuori: nessun bonus', 'Missed: no boost')
-    : tossLuckHeld >= 0.66 ? tr('In pieno!', 'Bullseye!') : tr('Preso', 'On target');
+  /* COZY: niente percentuali. Centri la zona d'oro → "Fortuna aumentata!!"; altrimenti niente.
+     La fortuna (0..1) resta SOTTO, usata dalle probabilità, ma non si mostra. */
+  const label = tossLuckHeld > 0 ? tr('Fortuna aumentata!!', 'Luck boosted!!') : tr('Niente fortuna stavolta', 'No extra luck this time');
   const hint = document.getElementById('toss-hint');
-  if (hint) hint.innerHTML = withIcons('<b>' + label + '</b> — ' + tr('fortuna', 'luck') + ' ' + Math.round(tossLuckHeld * 100) + '%');
+  if (hint) hint.innerHTML = withIcons('<b>' + label + '</b>');
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = tossLuckHeld > 0 ? '#e6b23c' : '#fff';
   if (typeof setTimeout !== 'undefined') setTimeout(() => { if (tossResolved) finishToss(); }, 1300);
 }
