@@ -5,7 +5,7 @@ import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
 import { ensureQuests, boardOffers, acceptQuest, deliverQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
-import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPower, companionSpec } from './companion.js';
+import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPowers, companionSpec } from './companion.js';
 import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './progress.js';
 import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achievements.js';
 import { weatherAt, weatherLabel } from './weather.js';
@@ -530,17 +530,20 @@ const TYPE_TXT = {
   roccia: ['⛏️ Minatore', '⛏️ Miner', 'col piccone', 'with the pickaxe'],
   grotta: ['🕳️ Speleologo', '🕳️ Caver', 'in grotta', 'in caves'],
 };
-/* etichetta del potere del compagno `spec` (specie/chimera del parco). I LEGGENDARI hanno in
-   più un potere speciale: raccoglitore autonomo (terra/acqua/albero/roccia) o cavalcatura
-   volante (grotta). */
-function abilLabel(spec) {
-  const type = companionType(spec), e = TYPE_TXT[type]; if (!e) return '';
-  const pct = Math.round(companionPower(spec) * 100);
+/* etichetta di UN potere (tipo + magnitudine) */
+function powLabel(type, mag) {
+  const e = TYPE_TXT[type]; if (!e) return '';
   const name = tr(e[0], e[1]), how = tr(e[2], e[3]);
-  let base = type === 'grotta'
+  return type === 'grotta'
     ? name + ': ' + tr('cristalli più ricchi ', 'richer crystals ') + how
-    : name + ': +' + pct + '% ' + tr('reperti ', 'finds ') + how;
-  if (spec && spec.q === 'leggendario') base += type === 'grotta'
+    : name + ': +' + Math.round(mag * 100) + '% ' + tr('reperti ', 'finds ') + how;
+}
+/* etichetta del compagno `spec`: UNO o DUE poteri (le chimere ne hanno due, più deboli). I
+   LEGGENDARI aggiungono lo speciale del CRANIO (raccoglitore o cavalcatura). */
+function abilLabel(spec) {
+  const powers = companionPowers(spec); if (!powers.length) return '';
+  let base = powers.map(p => powLabel(p.type, p.mag)).filter(Boolean).join(' · ');
+  if (spec && spec.q === 'leggendario') base += companionType(spec) === 'grotta'
     ? ' · 🐾 ' + tr('CAVALCABILE: vola sulla mappa', 'RIDEABLE: fly over the map')
     : ' · 🐾 ' + tr('raccoglie da solo e ti porta i fossili', 'gathers on its own and brings you fossils');
   return base;

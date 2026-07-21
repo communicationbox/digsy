@@ -2955,6 +2955,15 @@ sprites.applyLook();
     && comp.companionPower({ q: 'raro' }) < comp.companionPower({ q: 'eccezionale' }) && comp.companionPower({ q: 'eccezionale' }) < comp.companionPower({ q: 'leggendario' }));
   comp.setCompanion(wSpec);
   check('compagno: yieldMul potenzia SOLO la sua attività', Math.abs(comp.companionYieldMul('acqua') - 1.22) < 1e-9 && comp.companionYieldMul('terra') === 1 && comp.companionHelps() === true);
+  /* CHIMERA (cranio+zampa di fonti DIVERSE) → DUE poteri, ognuno RIDOTTO ma sono due;
+     risveglio/chimera focalizzata (stesse fonti) → UN potere PIENO, mai battuto da un asse chimera */
+  const tree = dataC.ALL_SPECIES.find(s => s.src === 'albero');
+  const chim = { skull: water.id, torso: water.id, leg: tree.id, q: 'comune', key: 'ch', name: 'Chim' };
+  const cp = comp.companionPowers(chim);
+  const singleFull = comp.companionPower({ skull: water.id, torso: water.id, leg: water.id, q: 'comune' }); // risveglio pieno
+  check('chimera: DUE poteri (acqua+albero), ognuno < un risveglio singolo', cp.length === 2 && cp.some(p => p.type === 'acqua') && cp.some(p => p.type === 'albero') && cp[0].mag < singleFull);
+  comp.setCompanion(chim);
+  check('chimera: potenzia ENTRAMBE le attività (ridotto ciascuno)', Math.abs(comp.companionYieldMul('acqua') - 1.05) < 1e-9 && Math.abs(comp.companionYieldMul('albero') - 1.05) < 1e-9 && comp.companionYieldMul('terra') === 1);
   comp.clearCompanion();
   check('compagno rimandato a casa', comp.companionSpec() === null && comp.companionYieldMul('acqua') === 1 && comp.companionHelps() === false);
 }

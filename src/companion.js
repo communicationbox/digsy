@@ -18,22 +18,34 @@ export const COMP = { x: 0, y: 0, dir: -1, face: 'right', anim: 0, init: false, 
 
 /* i cinque tipi (fonti). 'any'/assente → terra (lo Scavatore è il default sempre valido) */
 export const COMP_TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
-/* potenza per rarità (numeri d'esempio, da tarare ai playtest) */
-const POWER = { comune: 0.08, raro: 0.15, eccezionale: 0.22, leggendario: 0.30 };
+/* potenza per rarità. PIENA = un risveglio (o una chimera focalizzata, stesse estremità).
+   RIDOTTA = ognuno dei DUE poteri di una chimera con estremità DIVERSE: da soli valgono meno di
+   un risveglio, ma sono due (~0,6× la piena, arrotondati). Numeri da tarare ai playtest. */
+const FULL = { comune: 0.08, raro: 0.15, eccezionale: 0.22, leggendario: 0.30 };
+const HALF = { comune: 0.05, raro: 0.09, eccezionale: 0.13, leggendario: 0.18 };
 
 export function companionSpec() { return S.companion || null; }
-/* TIPO del compagno = fonte della specie che lo definisce (skull vale per chimere E risvegliati:
-   in parkPopulation i risvegliati hanno skull=torso=leg=specie) */
-export function companionType(spec) {
-  const sp = spec && spById[spec.skull];
-  const s = sp && sp.src;
-  return (s === 'acqua' || s === 'albero' || s === 'roccia' || s === 'grotta') ? s : 'terra';
+function srcOf(id) { const sp = spById[id], s = sp && sp.src; return (s === 'acqua' || s === 'albero' || s === 'roccia' || s === 'grotta') ? s : 'terra'; }
+/* TIPO PRIMARIO del compagno = fonte del CRANIO (glifo sopra la testa, gating dello speciale
+   leggendario). Per i risvegliati skull=torso=leg=specie. */
+export function companionType(spec) { return spec ? srcOf(spec.skull) : 'terra'; }
+/* i POTERI del compagno: le due estremità sono CRANIO e ZAMPA.
+   - stesse fonti (risveglio, o chimera focalizzata) → UN potere PIENO (non batte mai un risveglio);
+   - fonti DIVERSE (chimera) → DUE poteri RIDOTTI, uno per fonte. */
+export function companionPowers(spec) {
+  if (!spec) return [];
+  const a = srcOf(spec.skull), b = srcOf(spec.leg), q = spec.q;
+  if (a === b) return [{ type: a, mag: FULL[q] || FULL.comune }];
+  return [{ type: a, mag: HALF[q] || HALF.comune }, { type: b, mag: HALF[q] || HALF.comune }];
 }
-export function companionPower(spec) { return spec ? (POWER[spec.q] || POWER.comune) : 0; }
-/* moltiplicatore di resa per l'attività data: 1+potenza se il tipo combacia, altrimenti 1 */
+/* potenza del potere PRINCIPALE (compat: etichette, test) */
+export function companionPower(spec) { const p = companionPowers(spec); return p.length ? p[0].mag : 0; }
+/* moltiplicatore di resa per l'attività: somma i poteri del compagno che combaciano con essa */
 export function companionYieldMul(activitySrc) {
   const c = S.companion; if (!c) return 1;
-  return companionType(c) === activitySrc ? 1 + companionPower(c) : 1;
+  let add = 0;
+  for (const p of companionPowers(c)) if (p.type === activitySrc) add += p.mag;
+  return 1 + add;
 }
 /* comodità universali: ogni compagno fiuta i reperti a terra e tiene la bussola accesa */
 export function companionHelps() { return !!S.companion; }
