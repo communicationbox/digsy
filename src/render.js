@@ -278,7 +278,7 @@ function drawCompanionDig(cx, cyBase, time, obj, dir) {
   for (let x = -4; x <= 4; x++) { const d = Math.round(2 * Math.sqrt(Math.max(0, 1 - x * x / 16))); if (d) rect(cx + x, gy - d + 1, 1, d, '#3a2a18'); } // buca
   rect(cx - 4, gy, 9, 1, '#5a4326');
   for (let x = -2; x <= 2; x++) { const h = Math.max(0, 3 - Math.abs(x)); for (let k = 0; k < h; k++) px(cx + back * 7 + x, gy - k, k === h - 1 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
-  const bob = Math.round(Math.sin(time / 110)), rx = cx + back * 2, top = gy - 10 - bob; // sedere su (scatti veloci)
+  const bob = Math.round(Math.sin(time / 110)), rx = cx + back * 2, top = gy - 6 - bob; // sedere su, il muso NELLA buca (niente gap)
   const rows = [1, 1, 2, 2, 3, 3, 3];
   for (let r = 0; r < rows.length; r++) { const yy = top + r, hw = rows[r]; for (let x = -hw; x <= hw; x++) px(rx + x, yy, (x === -hw || x === hw) ? dark : yy >= gy - 3 ? light : body); }
   const wag = Math.round(Math.sin(time / 85));             // coda che scodinzola

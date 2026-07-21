@@ -30,6 +30,7 @@ import { pruneExpired } from './commission.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
 import { toast } from './ui.js';
 import { isDebug } from './debug.js';
+import { setPref } from './prefs.js';
 import { VERSION } from './version.js';
 
 /* GLI SCHIANTI VANNO RACCONTATI. Un errore JavaScript sul telefono di un giocatore è
@@ -232,7 +233,10 @@ function boot() {
      sta in devview.js, importato solo qui sotto DEV → in produzione il ramo è morto. */
   if (import.meta.env && import.meta.env.DEV && typeof location !== 'undefined') {
     const _p = new URLSearchParams(location.search);
-    if (_p.get('mount') || _p.get('dig')) import('./devview.js').then(m => m.setupDebugView(_p));
+    if (_p.get('mount') || _p.get('dig')) {
+      S.lookDone = true; S.introSeen = true; S.started = true; setPref('tips', false); // SINCRONO: prima che initSplash apra editor/tip (il resto è in devview, async)
+      import('./devview.js').then(m => m.setupDebugView(_p));
+    }
   }
   requestAnimationFrame(loop);
   /* splash → (prima volta) editor personaggio → INTRO (lore) → gioco */
