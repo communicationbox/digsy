@@ -241,25 +241,62 @@ export function drawWonder(g, type, sx, sy, time) {
       }
       break;
     }
-    case 'ribcage': {                         // costole con spessore, vertebre, sabbia
-      shadow(cx, base, 15);
-      rect(cx - 30, base - 4, 60, 4, '#a89b7c');                                 // spina in ombra
-      rect(cx - 29, base - 4, 58, 3, '#e8e0cc'); rect(cx - 29, base - 4, 58, 1, '#f6f0e0');
-      for (let i = 0; i < 7; i++) {
-        const ox = -24 + i * 8, h = 30 - Math.abs(i - 3) * 4;
-        for (let k = 0; k <= h; k++) {
-          const bend = Math.round(Math.sin(k / h * Math.PI) * 6);
-          const bx = cx + ox - bend, by = base - 4 - k;
-          px(bx - 1, by, '#bfb49a'); rect(bx, by, 4, 1, '#f6f0e0'); px(bx + 4, by, '#a89b7c');
+    case 'ribcage': {   // SCHELETRO DI DRAGO (un figlio di Neladan) mezzo sepolto nella sabbia
+      const HI = '#f8f2e2', LT = '#e6ddc7', MD = '#c3b79a', SH = '#9c917a', LN = '#5f5642'; // ossa + contorno scuro (stacca dalla sabbia chiara)
+      const S1 = '#d8c9a0', S2 = '#c9b98f';
+      shadow(cx, base + 1, 17);
+      /* osso ORIENTABILE con contorno scuro su entrambi i lati (stacca da ogni sfondo) */
+      const seg = (ax, ay, bx, by, t) => {
+        const dx = bx - ax, dy = by - ay, n = Math.max(1, Math.round(Math.hypot(dx, dy)));
+        const nn = Math.hypot(-dy, dx) || 1, ux = -dy / nn, uy = dx / nn;
+        for (let i = 0; i <= n; i++) {
+          const x = ax + dx * i / n, y = ay + dy * i / n;
+          for (let w = -t - 1; w <= t + 1; w++) {
+            const col = (w <= -t - 1 || w >= t + 1) ? LN : w === -t ? HI : (t >= 1 && w === t) ? SH : LT;
+            px(Math.round(x + ux * w), Math.round(y + uy * w), col);
+          }
         }
-        rect(cx + ox - 8, base - 4 - h, 5, 3, '#e8e0cc'); px(cx + ox - 8, base - 4 - h, '#f6f0e0'); // punta ricurva
+      };
+      const knob = (x, y) => { rect(x - 1, y - 1, 3, 3, LT); px(x, y - 1, HI); rect(x - 1, y - 1, 3, 1, LN); px(x - 1, y + 1, LN); px(x + 1, y + 1, LN); };
+      /* SPINA dorsale ad arco, dalle spalle alla groppa */
+      const sh = [cx - 15, base - 8], hp = [cx + 15, base - 6];
+      seg(sh[0], sh[1], cx - 4, base - 12, 2); seg(cx - 4, base - 12, cx + 6, base - 12, 2); seg(cx + 6, base - 12, hp[0], hp[1], 2);
+      for (let i = -12; i <= 12; i += 6) knob(cx + i, base - 12 + Math.round(Math.abs(i) * 0.28));
+      /* COLLO che sale ad arco verso la testa alzata (sinistra) */
+      seg(sh[0], sh[1], cx - 24, base - 16, 2); seg(cx - 24, base - 16, cx - 32, base - 22, 2);
+      knob(cx - 20, base - 12); knob(cx - 28, base - 19);
+      /* CRANIO di drago rialzato: muso lungo, occhiaia, mascella coi denti, corna all'indietro */
+      const hx = cx - 40, hy = base - 26;
+      rect(hx, hy, 10, 6, LT); rect(hx, hy, 10, 1, HI); rect(hx, hy + 5, 10, 1, SH); rect(hx - 1, hy, 1, 6, LN); // teschio
+      rect(hx - 7, hy + 2, 8, 3, LT); rect(hx - 7, hy + 2, 8, 1, HI); px(hx - 8, hy + 3, LN);                    // muso lungo
+      rect(hx - 6, hy + 6, 9, 1, MD); for (let d = 0; d < 5; d++) px(hx - 5 + d * 2, hy + 7, LT);                 // mascella + denti
+      rect(hx + 4, hy + 2, 2, 2, LN);                                                                            // occhiaia
+      seg(hx + 8, hy, hx + 16, hy - 5, 1); seg(hx + 16, hy - 5, hx + 22, hy - 4, 1);                             // corno grande all'indietro
+      seg(hx + 6, hy, hx + 12, hy - 6, 1);                                                                        // corno piccolo
+      /* ALA ripiegata: omero su, poi dita ossee spazzate ALL'INDIETRO (verso la coda) + membrana accennata */
+      const el = [cx - 2, base - 30];                                                                            // gomito in alto
+      seg(cx - 12, base - 12, el[0], el[1], 2); knob(el[0], el[1]);                                              // omero
+      const fingers = [[cx + 4, base - 20], [cx + 12, base - 13], [cx + 20, base - 8], [cx + 27, base - 4]];
+      for (const f of fingers) seg(el[0], el[1], f[0], f[1], 1);
+      for (let i = 0; i < fingers.length - 1; i++) { const a = fingers[i], c2 = fingers[i + 1]; px(Math.round((a[0] + c2[0]) / 2), Math.round((a[1] + c2[1]) / 2), SH); } // accenno di membrana
+      /* GABBIA TORACICA: costole spesse dalla spina, curvano giù e RIENTRANO (volume del petto) */
+      for (let i = 0; i < 6; i++) {
+        const rx = cx - 12 + i * 5, ry = base - 12 + Math.round(Math.abs(cx - 12 + i * 5 - cx) * 0.28), len = 13 - Math.abs(i - 2);
+        let px0 = rx, py0 = ry;
+        for (let k = 1; k <= len; k++) {
+          const t = k / len, nx = rx + Math.round(Math.sin(t * 1.9) * 3), ny = ry + k; // curva fuori poi rientra
+          seg(px0, py0, nx, ny, k > len - 3 ? 0 : 1); px0 = nx; py0 = ny;
+        }
       }
-      for (const [ox, w, h] of [[-34, 7, 12], [28, 7, 10]]) {                     // vertebre
-        rect(cx + ox - 1, base - h - 1, w + 2, h + 2, '#a9a08a');
-        rect(cx + ox, base - h, w, h, '#e8e0cc'); rect(cx + ox, base - h, 2, h, '#f6f0e0');
-      }
-      rect(cx - 32, base - 2, 64, 3, '#d8c9a0'); rect(cx - 28, base - 1, 56, 2, '#c9b98f'); // sabbia
-      foot(30, '#d8c9a0', '#c9b98f');
+      /* CODA spessa alla base che rastrema e si arriccia in su a destra */
+      let tx = hp[0], ty = hp[1];
+      for (let i = 0; i < 9; i++) { const nx = tx + 4, ny = ty - Math.round(Math.sin(i / 8 * 1.9) * 5) + 1; seg(tx, ty, nx, ny, i < 3 ? 2 : i < 6 ? 1 : 0); if (i < 6) knob(nx, ny); tx = nx; ty = ny; }
+      /* ZAMPE artigliate (in parte nella sabbia) */
+      seg(cx - 10, base - 6, cx - 14, base + 2, 2); seg(cx - 14, base + 2, cx - 11, base + 6, 1); px(cx - 13, base + 6, LN); px(cx - 10, base + 6, LN);
+      seg(cx + 10, base - 5, cx + 15, base + 2, 2); seg(cx + 15, base + 2, cx + 18, base + 6, 1); px(cx + 17, base + 6, LN); px(cx + 20, base + 6, LN);
+      /* SABBIA che seppellisce la base */
+      rect(cx - 36, base + 1, 76, 3, S1); rect(cx - 32, base + 2, 68, 2, S2);
+      foot(34, S1, S2);
       break;
     }
 

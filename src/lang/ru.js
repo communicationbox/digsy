@@ -816,11 +816,11 @@ export const RU = {
   'Drink, fill your flask and rest. The desert does not forgive haste.':
     'Пей, наполни флягу и отдохни. Пустыня не прощает спешки.',
   'Fresh water: energy fully restored.': 'Свежая вода: энергия полностью восстановлена.',
-  'The Great Ribcage': 'Великая грудная клетка',
-  'The ribcage of an immense creature, half buried in the sand.':
-    'Грудная клетка огромного существа, наполовину занесённая песком.',
-  'Under the ribs the sand is untouched: the finds there are always good.':
-    'Под рёбрами песок нетронут: находки там всегда хорошие.',
+  'The Dragon Skeleton': 'Скелет дракона',
+  'One of the children of Neladan, the mightiest dragon that lived thousands of years ago: now bones in the sand, wings spread one last time.':
+    'Одно из дитя Неладана, самого могущественного дракона, жившего тысячи лет назад: теперь лишь кости в песке, крылья раскрыты в последний раз.',
+  'Under its ribs the sand is untouched: the finds there are always good.':
+    'Под его рёбрами песок нетронут: находки там всегда хорошие.',
   'Sheltered dig: 3 fine finds.': 'Раскопки в укрытии: 3 отличные находки.',
   'The Fairy Ring': 'Ведьмин круг',
   'A perfect ring of mushrooms that glow green at night.':
