@@ -291,20 +291,36 @@ function drawCompanionDig(cx, cyBase, time, obj, dir) {
     for (let i = 0; i < 4; i++) px(Math.round(cx + back * OX[i] * (0.6 + beat)), Math.round(gy - 2 - Math.sin(Math.PI * beat) * H[i]), CC[i]);
   }
 }
+/* TAGLIO ALBERO da ANIMALE (niente accetta!): la creatura ROSICCHIA il tronco come un castoro —
+   resta rivolta all'albero, morsi ritmici che fanno una TACCA chiara e schizzano TRUCIOLI di
+   legno, e dalla chioma cadono FOGLIE ondeggiando. La creatura è disegnata a parte (in piedi
+   col morso in avanti); qui gli effetti. Fase dal TEMPO. */
+function drawCompanionChop(cx, cy, time, dir) {
+  const tx = cx + dir * 7, beat = (time / 90) % 1, bite = Math.floor(time / 90) % 2 === 0; // tronco davanti
+  if (bite) {
+    const OX = [0, 2, 4, 6], H = [3, 5, 4, 2], CC = ['#8a5f38', '#b98d59', '#6e4a2e', '#d9b98a'];
+    for (let i = 0; i < 4; i++) px(Math.round(tx + dir * OX[i] * (0.5 + beat)), Math.round(cy - 1 - Math.sin(Math.PI * beat) * H[i]), CC[i]); // trucioli
+    px(tx, cy - 1, '#d9b98a'); px(tx, cy, '#c79a66');                              // tacca chiara sul tronco
+  }
+  for (let k = 0; k < 3; k++) {                                                     // foglie che cadono ondeggiando
+    const t = ((time / 800) + k * 0.37) % 1;
+    const fy = cy - 22 + t * 26, fx = cx + dir * 3 + Math.round(Math.sin((t * 5 + k) * 2) * 3);
+    if (t < 0.9) { px(Math.round(fx), Math.round(fy), k % 2 ? '#4e7a3d' : '#619a4c'); if (t < 0.5) px(Math.round(fx) + dir, Math.round(fy), '#3f6a32'); }
+  }
+}
 /* RACCOGLITORE LEGGENDARIO: animazione del lavoro (fase 'work'). Gli ANIMALI non usano attrezzi:
-   ACQUA = dabble d'oca · TERRA = scavo a testa in giù · ALBERO/ROCCIA = la creatura spinge e
-   schizza detrito a tema. Coordinate già snap. */
+   ACQUA = dabble d'oca · TERRA = scavo a testa in giù · ALBERO = rosicchia il tronco (castoro) ·
+   ROCCIA = la creatura spinge e schizza scaglie. Coordinate già snap. */
 function drawCompanionWork(cxs, cys, time, obj) {
   const j = COMP.job; if (!j || j.phase !== 'work') return;
   const dir = j.wx >= COMP.x ? 1 : -1;
   if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
   if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); return; }
+  if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); return; }
   const ph = 1 - j.t / 1.3, sub = (ph * 4) % 1, struck = Math.floor(ph * 4) % 2 === 1;
-  if (struck) {                                                                     // albero/roccia: detrito a tema
+  if (struck) {                                                                     // ROCCIA: scaglie + scintilla
     const ox = cxs + dir * 8, oy = cys - 2;
-    const OX = [-4, -1, 2, 5, 7], H = [4, 6, 3, 5, 4];
-    const CC = j.type === 'albero' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
-      : ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];                    // roccia: scaglia chiara = scintilla
+    const OX = [-4, -1, 2, 5, 7], H = [4, 6, 3, 5, 4], CC = ['#9a9285', '#b8b0a2', '#7f776a', '#e2e7ef', '#b8b0a2'];
     for (let i = 0; i < 5; i++) px(Math.round(ox + dir * OX[i] * (0.4 + sub)), Math.round(oy + 6 - Math.sin(Math.PI * sub) * H[i]), CC[i]);
     px(cxs + dir * 6, cys + 2, 'rgba(180,160,120,.5)');
   }

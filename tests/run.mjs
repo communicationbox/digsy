@@ -1797,6 +1797,7 @@ sprites.applyLook();
     if (!world.isSolidTile(x, y) && world.diggable(world.baseTerrain(x, y)) && !world.townInfo(x, y) && !world.siteAt(x, y) && !state.dugSet.has(x + ',' + y)) dug2 = [x, y];
   }
   P.x = dug2[0] * TS + 8; P.y = dug2[1] * TS + 2; P.dir = 'down'; // piedi su [dug2]
+  P.digging = null; // un dig random di un test precedente poteva restare in volo e bloccare questo (flaky)
   gameplay.tryDig(); gameplay.stepDig(2);
   check('debug: scava con 0 energia, senza consumarla', S.energy === 0 && state.dugSet.has(dug2[0] + ',' + dug2[1]));
   // monete infinite: chimera gratis con 0 monete
