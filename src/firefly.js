@@ -69,10 +69,17 @@ export function fireflyInReach() {
 /* RETINATA (tasto E): se c'è una lucciola a portata, dà la retinata verso di essa e cattura lei
    e quelle nel "sacco" del retino. Ritorna true se ha retinato (così E viene consumato). */
 export function tryCatchFireflies() {
-  if (!flies.length || fadeOut > 0) return false;
+  if (!flies.length || fadeOut > 0) return false;   // niente lucciole → E fa il resto (scavo ecc.)
   let target = null, td = REACH;
   for (const f of flies) { const d = Math.hypot(f.x - P.x, f.y - (P.y + 8)); if (d < td) { td = d; target = f; } }
-  if (!target) return false;
+  if (!target) {
+    /* nessuna a portata: RETINATA A VUOTO verso la più vicina — E resta consumato (niente scavo
+       né energia: durante la caccia lo scavo è bloccato), mancare è innocuo. */
+    let near = flies[0], nd = Infinity;
+    for (const f of flies) { const d = Math.hypot(f.x - P.x, f.y - (P.y + 8)); if (d < nd) { nd = d; near = f; } }
+    swing = SWING_DUR; swingDir = near.x - P.x >= 0 ? 1 : -1;
+    return true;
+  }
   const tx = target.x, ty = target.y;
   swing = SWING_DUR; swingDir = tx - P.x >= 0 ? 1 : -1;
   const q = fireflyQuest(), need = q ? Math.max(0, q.n - Math.max(0, (S.fireflies || 0) - (q.base || 0))) : 999;

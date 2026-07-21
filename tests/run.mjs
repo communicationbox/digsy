@@ -4715,7 +4715,12 @@ sprites.applyLook();
   check('a portata: E rileva la lucciola (prompt)', ff.fireflyInReach() === true);
   check('la RETINATA (E) cattura la lucciola e la missione avanza', ff.tryCatchFireflies() === true && (S.fireflies || 0) > before && qm.questHave(S.quests.active[0]) > 0);
   ff.resetFireflies();
-  check('senza lucciole a portata, E non retina (niente)', ff.tryCatchFireflies() === false && ff.fireflyInReach() === false);
+  check('senza NESSUNA lucciola, E non retina (torna allo scavo)', ff.tryCatchFireflies() === false && ff.fireflyInReach() === false);
+  /* lucciole presenti ma FUORI portata: E dà la retinata a VUOTO (consumato, niente scavo) e NON cattura */
+  ff.updateFireflies(400, 0.9);
+  for (const f of ff._fliesForTest()) { f.x = P.x + 120; f.y = P.y; }
+  const ff0 = S.fireflies || 0;
+  check('lucciole lontane: E retina a vuoto (E consumato, niente cattura né scavo)', ff.tryCatchFireflies() === true && (S.fireflies || 0) === ff0 && ff.fireflyInReach() === false);
   /* COMPLETAMENTO AUTOMATICO: raggiunto l'obiettivo la missione si consegna da sola e le lucciole sfumano */
   S.fireflies = 0; S.coins = 0;
   S.quests = { day: S.day, active: [{ type: 'fireflies', n: 1, base: 0, reward: 20, qid: 'ffc', day: S.day }], done: [] };
