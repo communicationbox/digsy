@@ -154,10 +154,11 @@ export function drawFireflies(ctx, camx, camy) {
     const gx = Math.round(p.x - camx), gy = Math.round(p.y - camy - rise);
     if (ctx.fillText) { ctx.font = '9px ui-monospace,monospace'; ctx.textAlign = 'center'; ctx.fillStyle = 'rgba(226,255,176,' + al.toFixed(2) + ')'; ctx.fillText('+1', gx, gy); }
   }
-  /* CONTATORE della missione sopra la testa: catturate / obiettivo (sparisce a missione finita) */
+  /* CONTATORE della missione: SOPRA la testa ma FUORI dal raggio di cattura (REACH) e della
+     retinata, così non copre le lucciole che stai per prendere (segnalato). */
   if (fadeOut > 0) return;
   const q = fireflyQuest(), got = q ? Math.max(0, (S.fireflies || 0) - (q.base || 0)) : (S.fireflies || 0);
-  const txt = q ? got + '/' + q.n : '×' + got, by = pys - 26;
+  const txt = q ? got + '/' + q.n : '×' + got, by = pys - 40;
   ctx.fillStyle = 'rgba(20,16,8,.72)'; ctx.fillRect(pxs - 16, by - 7, 32, 13);
   ctx.fillStyle = 'rgba(226,255,176,.95)'; ctx.fillRect(pxs - 12, by - 2, 3, 3);   // lucciolina
   if (ctx.fillText) { ctx.font = '9px ui-monospace,monospace'; ctx.textAlign = 'left'; ctx.fillStyle = '#efe3c6'; ctx.fillText(txt, pxs - 7, by + 4); }
