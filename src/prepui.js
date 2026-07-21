@@ -1,13 +1,15 @@
-/* TAVOLO DI PREPARAZIONE — la parte visibile del RESTAURO in 3 passi (logica pura in prepare.js).
-   Passo 1 PENNELLO: spolveri, il fossile compare (nessun danno). Passo 2 SCALPELLO: stacchi la
-   roccia attorno, senza toccare l'osso (preciso, danni). Passo 3 SPATOLA: rifinisci l'osso
-   (preciso, danni). Il passo avanza da solo quando hai finito quello prima; in alto c'è sempre
-   scritto cosa fare. Due barre: Pulizia e Integrità. Niente timer, si smette quando si vuole. */
+/* TAVOLO DI PREPARAZIONE — RESTAURO con 3 attrezzi (logica pura in prepare.js). Si SCEGLIE
+   l'attrezzo (3 bottoni) e si TRASCINA sul reperto:
+   · PENNELLO  — spolvera: compare il fossile (contorno ORO) e ti fa vedere dov'è l'osso. Mai danni.
+   · SCALPELLO — stacca la ROCCIA attorno; se scalpelli DENTRO il contorno (l'osso) lo scheggi.
+   · SPATOLA   — pulisce la CROSTA sul fossile; insistere sull'osso già pulito lo rovina.
+   L'ordine consigliato è 1→2→3, ma sei libero: così puoi rifinire ogni strato fino al 100%.
+   Due barre: Pulizia e Integrità. Niente timer, si smette quando si vuole. */
 import { S, save } from './state.js';
 import { spById } from './data.js';
 import { partVoxels } from './bones.js';
 import { projectVox } from './voxview.js';
-import { newBoard, work, dustPct, cleanPct, integrity, gradeFor, applyPrep, isPrepped, PHASES, W as PW, H as PH } from './prepare.js';
+import { newBoard, work, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
 import { withIcons } from './icons.js';
 import { tr, partName } from './i18n.js';
 import { playSfx } from './audio.js';
@@ -25,18 +27,18 @@ export function prepCandidate() {
   return best;
 }
 
+const TOOLS = ['pennello', 'scalpello', 'spatola'];
 const TOOL_R = { pennello: 1.9, scalpello: 0.85, spatola: 0.85 };
-/* istruzione del passo — tr() LETTERALI (così i18n riconosce le stringhe: coverage + orfane) */
-function stepText() {
-  const t = curTool();
-  if (t === 'pennello') return tr('Passo 1/3 · Pennello — spolvera per far comparire il fossile', 'Step 1/3 · Brush — dust it off to reveal the fossil');
-  if (t === 'scalpello') return tr('Passo 2/3 · Scalpello — stacca la roccia attorno, NON toccare l\'osso', 'Step 2/3 · Chisel — chip the rock around it, DON\'T touch the bone');
-  return tr('Passo 3/3 · Spatola — pulisci l\'osso con delicatezza', 'Step 3/3 · Spatula — clean the bone gently');
-}
-let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepPhase = 0;
+let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepTool = 'pennello';
 export function isPrepOpen() { return prepOpenFlag; }
 
-/* maschera dell'OSSO per cella: dove la proiezione voxel del pezzo ha pixel (sfondo trasparente). */
+/* istruzione dell'attrezzo scelto — tr() LETTERALI (così i18n riconosce le stringhe) */
+function stepText(t) {
+  if (t === 'scalpello') return tr('Scalpello: trascina sulla ROCCIA per staccarla — resta FUORI dal contorno oro', 'Chisel: drag on the ROCK to chip it away — stay OUTSIDE the gold outline');
+  if (t === 'spatola') return tr('Spatola: trascina sul fossile per pulirlo — non insistere sull\'osso già pulito', 'Spatula: drag on the fossil to clean it — don\'t keep scraping bone that\'s already clean');
+  return tr('Pennello: trascina per spolverare — comparirà il fossile (contorno oro)', 'Brush: drag to dust it off — the fossil appears (gold outline)');
+}
+/* maschera dell'OSSO per cella: dove la proiezione voxel del pezzo ha pixel (sfondo trasparente) */
 function boneMaskFor(item, cvw, cvh) {
   const mask = new Uint8Array(PW * PH);
   let n = 0;
@@ -53,30 +55,21 @@ function boneMaskFor(item, cvw, cvh) {
   return n ? mask : null;   // silhouette vuota → null: newBoard usa la forma di ripiego
 }
 
-function curTool() { return PHASES[Math.min(prepPhase, PHASES.length - 1)].tool; }
-function refreshTools() {
-  for (const p of PHASES) {
-    const el = document.getElementById('pr-t-' + p.tool);
-    if (el) el.classList.toggle('on', p.tool === curTool());
-  }
-  const step = document.getElementById('pr-hint');
-  if (step) step.innerHTML = withIcons(stepText());
-}
-/* avanza di passo quando quello corrente è completo abbastanza */
-function maybeAdvance() {
-  const ph = PHASES[prepPhase]; if (!ph || prepPhase >= PHASES.length - 1) return;
-  if (ph.pct(prepBoard) >= ph.need) { prepPhase++; playSfx('found'); refreshTools(); }
+function setTool(t) {
+  prepTool = t;
+  for (const tool of TOOLS) { const el = document.getElementById('pr-t-' + tool); if (el) el.classList.toggle('on', tool === t); }
+  const step = document.getElementById('pr-hint'); if (step) step.innerHTML = withIcons(stepText(t));
 }
 
 export function openPrepare(item, after) {
   const ov = document.getElementById('prepov'); if (!ov) return;
-  prepItem = item; prepAfter = after || null; prepPhase = 0;
+  prepItem = item; prepAfter = after || null;
   const cv = document.getElementById('pr-cv');
   const cvw = cv ? cv.width : 224, cvh = cv ? cv.height : 192;
   prepBoard = newBoard(hashSeed(item.s + '|' + item.t + '|' + item.uid), boneMaskFor(item, cvw, cvh));
   prepOpenFlag = true;
   ov.classList.add('on');
-  refreshTools();
+  setTool('pennello');
   const sp = spById[item.s];
   const ttl = document.getElementById('pr-title');
   if (ttl) ttl.innerHTML = withIcons(partName(item.t) + ' ' + tr('di', 'of') + ' ' + (sp ? sp.name : item.s));
@@ -89,18 +82,19 @@ export function openPrepare(item, after) {
       return { cx: (p.clientX - r.left) / r.width * PW, cy: (p.clientY - r.top) / r.height * PH };
     };
     const apply = (cx, cy) => {
-      const tool = curTool(), r = TOOL_R[tool];
+      const r = TOOL_R[prepTool];
       const d = Math.hypot(cx - lx, cy - ly), steps = Math.max(1, Math.floor(d / 0.7));
       let workDone = 0, harm = 0;
-      for (let k = 1; k <= steps; k++) { const res = work(prepBoard, tool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, r); workDone += res.work; harm += res.harm; }
+      for (let k = 1; k <= steps; k++) { const res = work(prepBoard, prepTool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, r); workDone += res.work; harm += res.harm; }
       lx = cx; ly = cy;
-      if (workDone > 0.01 || harm > 0.001) { drawPrep(); maybeAdvance(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
+      if (workDone > 0.01 || harm > 0.001) { drawPrep(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
     };
     cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; apply(p.cx, p.cy); });
     cv.addEventListener('pointermove', ev => { if (!down || !prepBoard) return; ev.preventDefault(); const p = at(ev); apply(p.cx, p.cy); });
     cv.addEventListener('pointerup', () => { down = false; });
     cv.addEventListener('pointercancel', () => { down = false; });
   }
+  for (const tool of TOOLS) { const el = document.getElementById('pr-t-' + tool); if (el) el.onclick = () => setTool(tool); }
   const done = document.getElementById('pr-done'); if (done) done.onclick = () => finishPrep();
   const x = document.getElementById('pr-close'); if (x) x.onclick = () => finishPrep();
 }
@@ -131,13 +125,13 @@ function drawPrep() {
   const cw = Math.floor(cv.width / PW), ch = Math.floor(cv.height / PH);
   for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
     const i = y * PW + x, px = x * cw, py = y * ch;
-    if (!prepBoard.bone[i] && prepBoard.rock[i] > 0) {            // ROCCIA scura sulla matrice (stacca dal fossile chiaro)
+    if (!prepBoard.bone[i] && prepBoard.rock[i] > 0) {            // ROCCIA scura sulla matrice
       const t = (x * 7 + y * 13) % 3;
       c2.globalAlpha = prepBoard.rock[i];
       c2.fillStyle = t === 0 ? '#544a3c' : t === 1 ? '#605646' : '#453d31';
       c2.fillRect(px, py, cw, ch);
       c2.globalAlpha = 1; c2.fillStyle = 'rgba(0,0,0,.22)'; c2.fillRect(px, py + ch - 2, cw, 2);
-    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA sull'osso (vela leggera, la forma resta visibile)
+    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA sull'osso (vela leggera)
       c2.globalAlpha = prepBoard.crust[i] * 0.55;
       c2.fillStyle = '#9a8b6e'; c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
     }
@@ -151,8 +145,7 @@ function drawPrep() {
       c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, 2, ch - 2);
     }
   }
-  /* CONTORNO ORO del fossile: dice DOVE inizia l'osso (così si può essere precisi). Si accende
-     man mano che spolveri (alpha = quanto hai tolto la polvere su quella cella). */
+  /* CONTORNO ORO del fossile: dice DOVE inizia l'osso; si accende man mano che spolveri */
   const matrixAt = (xx, yy) => xx < 0 || yy < 0 || xx >= PW || yy >= PH || !prepBoard.bone[yy * PW + xx];
   c2.fillStyle = '#e8b93c';
   for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {

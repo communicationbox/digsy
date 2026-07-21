@@ -3664,6 +3664,15 @@ sprites.applyLook();
   drag(90, 90, 'pointerup');
   const fill = document.getElementById('pr-fill');
   check('la barra di pulizia si riempie mentre si spazzola', parseFloat(fill.style.width) > 0);
+  const dusted = parseFloat(fill.style.width);
+  /* si scelgono gli altri due attrezzi e si trascina: la pulizia sale ancora (roccia + crosta) */
+  for (const t of ['scalpello', 'spatola', 'pennello']) {
+    const b = document.getElementById('pr-t-' + t); if (b && b.onclick) b.onclick();
+    drag(18, 18, 'pointerdown');
+    for (let i = 0; i < 120; i++) drag((i * 5) % 100, (i * 9) % 100, 'pointermove');
+    drag(82, 82, 'pointerup');
+  }
+  check('usando i 3 attrezzi la pulizia cresce ancora', parseFloat(document.getElementById('pr-fill').style.width) >= dusted);
   const doneBtn = document.getElementById('pr-done');
   if (doneBtn && doneBtn.onclick) doneBtn.onclick();
   check('chiudendo, il tavolo si chiude e richiama chi lo ha aperto', pu.isPrepOpen() === false && after === 1);
