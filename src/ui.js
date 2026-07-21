@@ -13,6 +13,7 @@ import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
 import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
+import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
 import { letterTitle, letterBody, hasLetter, allLetters } from './letters.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
@@ -183,6 +184,7 @@ export function updatePrompt() {
     const h = nearbyHarvest();
     setPrompt(withIcons(actKey() + ' ' + (h ? tr('Raccogli ', 'Pick ') + goodName(h.id) + ' ✨' : tr('Raccogli ✨', 'Pick up ✨')))); return;
   }
+  if (fireflyInReach()) { setPrompt(withIcons(actKey() + ' ' + tr('Retina le lucciole ✨', 'Net the fireflies ✨'))); return; }
   setPrompt(null); // niente hint per lo scavo semplice
 }
 /* banner centrale a tutto schermo per gli eventi importanti (consegna del Libro, ecc.) */

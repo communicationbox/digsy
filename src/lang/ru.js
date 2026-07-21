@@ -172,6 +172,7 @@ export const RU = {
   'Three in a row — here\'s your prize!': 'Три из трёх — вот твой приз!',
   'Too bad — let\'s see if luck rewards you!': 'Жаль — посмотрим, наградит ли удача!',
   'Pick up from the ground ✨': 'Подними с земли ✨',
+  'Net the fireflies ✨': 'Лови светлячков сачком ✨',
   'Fountain: stop the marker on the golden zone': 'Фонтан: остановите курсор на золотой зоне',
   'Deep night + fireflies quest active — go outdoors': 'Глубокая ночь + задание со светлячками активно — выйдите наружу',
   'Dawn': 'Рассвет',

@@ -18,6 +18,7 @@ import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
 import { INT, nearNpc, nearCase, nearMentorInt } from './interior.js';
 import { CAVE, digCave } from './cave.js';
+import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
 import { tr, actKey, LANG, partName, rarLabel, seasonName } from './i18n.js';
 
@@ -687,6 +688,7 @@ export function act() {
   if (nearbyFountain()) { tossCoin(); return; }
   if (collectPickup()) return;                 // oggetto di superficie a portata
   if (onBoat()) { if (nearbyWreck()) digWreck(); else tryFish(); return; } // relitto o pesca
+  if (tryCatchFireflies()) return;             // di notte con la missione: E dà la retinata alle lucciole a portata
   if (tryChop()) return;                       // albero davanti + accetta
   if (tryMine()) return;                       // roccia davanti + piccone
   tryDig();

@@ -4710,11 +4710,12 @@ sprites.applyLook();
   check('di giorno le lucciole spariscono', ff.fireflyCount() === 0);
   ff.updateFireflies(260, 0.9);
   const flies = ff._fliesForTest();
-  flies[0].x = P.x; flies[0].y = P.y + 8;                 // metti una lucciola SUL player
+  flies[0].x = P.x; flies[0].y = P.y + 8;                 // una lucciola a portata di retino
   const before = S.fireflies || 0;
-  ff.updateFireflies(276, 0.9);
-  check('passandoci sopra, la lucciola si raccoglie e la missione avanza', (S.fireflies || 0) > before && qm.questHave(S.quests.active[0]) > 0);
+  check('a portata: E rileva la lucciola (prompt)', ff.fireflyInReach() === true);
+  check('la RETINATA (E) cattura la lucciola e la missione avanza', ff.tryCatchFireflies() === true && (S.fireflies || 0) > before && qm.questHave(S.quests.active[0]) > 0);
   ff.resetFireflies();
+  check('senza lucciole a portata, E non retina (niente)', ff.tryCatchFireflies() === false && ff.fireflyInReach() === false);
   S.quests = null; S.fireflies = 0;
 }
 

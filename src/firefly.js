@@ -9,7 +9,7 @@ import { S, P, save } from './state.js';
 import { playSfx } from './audio.js';
 import { fireflyQuest } from './quests.js';
 
-const MAX = 7, CATCH_R = 12, FAR = 190, NIGHT_MIN = 0.35, SWING_DUR = 0.34;
+const MAX = 7, REACH = 28, MOUTH = 15, FAR = 190, NIGHT_MIN = 0.35, SWING_DUR = 0.42;
 let flies = [], pops = [], lastT = 0, swing = 0, swingDir = 1;
 
 function spawn() {
@@ -32,21 +32,33 @@ export function updateFireflies(time, nightLevel) {
   if (swing > 0) swing = Math.max(0, swing - dt);
   for (const p of pops) p.life -= dt;
   pops = pops.filter(p => p.life > 0);
-  let caught = 0;
-  for (const f of flies) {
+  for (const f of flies) {                             // solo movimento: la cattura è su E (tryCatchFireflies)
     f.ph += dt * 2.4;                                  // bagliore (fase dal tempo)
     f.dir += Math.sin(time / 900 + f.seed) * dt * 1.3; // serpeggia
     f.x += Math.cos(f.dir) * f.v * dt;
     f.y += Math.sin(f.dir) * f.v * dt;
-    const dx = f.x - P.x, dy = f.y - (P.y + 8), dd = Math.hypot(dx, dy);
-    if (dd > FAR) Object.assign(f, spawn());           // troppo lontana → rientra
-    else if (dd < CATCH_R) {                           // raccolta col retino
-      caught++; pops.push({ x: f.x, y: f.y, life: 0.9 });
-      swing = SWING_DUR; swingDir = dx >= 0 ? 1 : -1;
-      Object.assign(f, spawn());
-    }
+    if (Math.hypot(f.x - P.x, f.y - (P.y + 8)) > FAR) Object.assign(f, spawn()); // troppo lontana → rientra
   }
+}
+
+/* c'è una lucciola a PORTATA di retino? (per il prompt del tasto E) */
+export function fireflyInReach() {
+  for (const f of flies) if (Math.hypot(f.x - P.x, f.y - (P.y + 8)) < REACH) return true;
+  return false;
+}
+/* RETINATA (tasto E): se c'è una lucciola a portata, dà la retinata verso di essa e cattura lei
+   e quelle nel "sacco" del retino. Ritorna true se ha retinato (così E viene consumato). */
+export function tryCatchFireflies() {
+  if (!flies.length) return false;
+  let target = null, td = REACH;
+  for (const f of flies) { const d = Math.hypot(f.x - P.x, f.y - (P.y + 8)); if (d < td) { td = d; target = f; } }
+  if (!target) return false;
+  const tx = target.x, ty = target.y;
+  swing = SWING_DUR; swingDir = tx - P.x >= 0 ? 1 : -1;
+  let caught = 0;
+  for (const f of flies) if (Math.hypot(f.x - tx, f.y - ty) < MOUTH) { caught++; pops.push({ x: f.x, y: f.y, life: 0.9 }); Object.assign(f, spawn()); }
   if (caught) { S.fireflies = (S.fireflies || 0) + caught; playSfx('found'); save(); }
+  return true;
 }
 
 function fpx(ctx, x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), w, h); }
@@ -81,13 +93,16 @@ export function drawFireflies(ctx, camx, camy) {
     fpx(ctx, gx, gy, 2, 2, 'rgba(244,255,205,' + (0.7 + 0.3 * glow).toFixed(2) + ')');                // cuore acceso
   }
   const pxs = Math.round(P.x - camx), pys = Math.round(P.y - camy);
-  /* RETINO: swipe di ~0.34 s — il cerchio spazza in arco verso la lucciola presa */
+  /* RETINO: retinata a frusta — parte alto/dietro, scende in avanti e "scoopa", poi risale.
+     Easing (accelera→decelera) e il braccio si allunga a metà colpo, così l'arco si legge. */
   if (swing > 0) {
-    const prog = 1 - swing / SWING_DUR;               // 0→1 (fase dal timer, non da schermo)
-    const ang = swingDir * (-1.1 + prog * 2.2) - Math.PI / 2;
-    const hx = pxs + swingDir * 2, hy = pys - 3;      // mano
-    const cx = pxs + swingDir * 3 + Math.round(Math.cos(ang) * 11);
-    const cy = pys - 7 + Math.round(Math.sin(ang) * 11);
+    const t = 1 - swing / SWING_DUR;                  // 0→1 (fase dal timer, non da schermo)
+    const prog = t < 0.5 ? 2 * t * t : 1 - (-2 * t + 2) * (-2 * t + 2) / 2; // easeInOut
+    const ang = swingDir * (-1.35 + prog * 2.5) - Math.PI / 2;             // da su-dietro a giù-avanti
+    const reach = 8 + Math.sin(prog * Math.PI) * 6;   // il braccio si estende a metà swipe
+    const hx = pxs + swingDir * 2, hy = pys - 2;      // mano
+    const cx = pxs + swingDir * 3 + Math.round(Math.cos(ang) * reach);
+    const cy = pys - 7 + Math.round(Math.sin(ang) * reach);
     drawNet(ctx, hx, hy, cx, cy);
   }
   /* +1 che sale ad ogni cattura */
