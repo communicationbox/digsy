@@ -16,7 +16,7 @@ function spawn() {
   const a = Math.random() * Math.PI * 2, r = 46 + Math.random() * 130;
   return {
     x: P.x + Math.cos(a) * r, y: P.y + 8 + Math.sin(a) * r,
-    dir: Math.random() * Math.PI * 2, v: 8 + Math.random() * 10,
+    dir: Math.random() * Math.PI * 2, v: 13 + Math.random() * 13,   // un po' più svelte (13–26 px/s)
     ph: Math.random() * 6.28, seed: Math.random() * 6.28,
   };
 }
@@ -34,7 +34,8 @@ export function updateFireflies(time, nightLevel) {
   pops = pops.filter(p => p.life > 0);
   for (const f of flies) {                             // solo movimento: la cattura è su E (tryCatchFireflies)
     f.ph += dt * 2.4;                                  // bagliore (fase dal tempo)
-    f.dir += Math.sin(time / 900 + f.seed) * dt * 1.3; // serpeggia
+    f.dir += Math.sin(time / 480 + f.seed) * dt * 2.4; // serpeggio più marcato
+    f.dir += (Math.random() - 0.5) * dt * 4.5;        // piccoli scatti di direzione (un pochino erratiche)
     f.x += Math.cos(f.dir) * f.v * dt;
     f.y += Math.sin(f.dir) * f.v * dt;
     if (Math.hypot(f.x - P.x, f.y - (P.y + 8)) > FAR) Object.assign(f, spawn()); // troppo lontana → rientra
