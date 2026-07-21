@@ -37,7 +37,26 @@ export function newBoard(seed = 0, boneMask = null) {
   for (let i = 0; i < W * H; i++) { rock[i] = bone[i] ? 0 : 1; crust[i] = bone[i] ? 1 : 0; }
   /* un filo di polvere già via, così si intuisce che sotto c'è qualcosa */
   for (let i = 0; i < W * H; i++) if (hash(i, seed) < 0.05) dust[i] = 0.4;
-  return { dust, rock, crust, chip, bone, seed };
+  /* BORDO = roccia a contatto col fossile (il ring da scalpellare con precisione). Liberato il
+     bordo, il resto della roccia lontana si stacca da solo — no busywork sul 90% vuoto. */
+  const border = new Uint8Array(W * H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x; if (bone[i]) continue;
+    let adj = false;
+    for (let dy = -1; dy <= 1 && !adj; dy++) for (let dx = -1; dx <= 1; dx++) {
+      const nx = x + dx, ny = y + dy; if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+      if (bone[ny * W + nx]) { adj = true; break; }
+    }
+    if (adj) border[i] = 1;
+  }
+  return { dust, rock, crust, chip, bone, border, seed, freed: false };
+}
+/* quanto del BORDO è stato scalpellato (0..1) */
+export function borderRockDone(board) {
+  if (!board || !board.border) return 1;
+  let t = 0, d = 0;
+  for (let i = 0; i < W * H; i++) if (board.border[i]) { t++; if (board.rock[i] <= 0.1) d++; }
+  return t ? d / t : 1;
 }
 
 /* cella centrale sotto il cursore (il punto che controlli): dove si valuta il DANNO */
@@ -62,11 +81,18 @@ export function work(board, tool, cx, cy, hs) {
       else if (tool === 'scalpello') { if (board.dust[i] <= 0.5 && !board.bone[i] && board.rock[i] > 0) { const dd = Math.min(board.rock[i], POWER.scalpello); board.rock[i] -= dd; done += dd; } }
       else if (tool === 'spatola') { if (board.dust[i] <= 0.5 && board.bone[i] && board.crust[i] > 0) { const dd = Math.min(board.crust[i], POWER.spatola); board.crust[i] -= dd; done += dd; } }
     }
+  let freed = false;
   if (tool === 'scalpello') {                            // danno SOLO al centro
     const ci = centerCell(cx, cy);
     if (ci >= 0 && board.bone[ci] && board.dust[ci] <= 0.5) { board.chip[ci] = Math.min(1, board.chip[ci] + HARM.scalpello); harm += HARM.scalpello; }
+    /* LIBERATO IL BORDO → tutto il vuoto attorno (roccia + polvere lontane) si stacca da solo:
+       niente busywork sul 90% vuoto, e il 100% resta raggiungibile senza pulirlo a mano. */
+    if (!board.freed && borderRockDone(board) >= 0.95) {
+      for (let i = 0; i < W * H; i++) if (!board.bone[i]) { board.rock[i] = 0; board.dust[i] = 0; }
+      board.freed = freed = true;
+    }
   }
-  return { work: done, harm };
+  return { work: done, harm, freed };
 }
 
 /* GRATTARE fermi con la spatola: UNA volta per movimento (non per sotto-passo), rovina SOLO la

@@ -100,13 +100,13 @@ export function openPrepare(item, after) {
     const apply = (cx, cy) => {
       const hs = TOOL_HS[prepTool];
       const d = Math.hypot(cx - lx, cy - ly), steps = Math.max(1, Math.floor(d / 0.7));
-      let workDone = 0, harm = 0;
-      for (let k = 1; k <= steps; k++) { const res = work(prepBoard, prepTool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, hs); workDone += res.work; harm += res.harm; }
+      let workDone = 0, harm = 0, freed = false;
+      for (let k = 1; k <= steps; k++) { const res = work(prepBoard, prepTool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, hs); workDone += res.work; harm += res.harm; if (res.freed) freed = true; }
       /* SPATOLA: il danno viene solo da GRATTARE FERMI (over-scrape) sulla cella centrale, valutato
          UNA volta per movimento — non per sotto-passo — così pulire passandoci sopra è sicuro. */
       if (prepTool === 'spatola') harm += scrape(prepBoard, cx, cy);
       lx = cx; ly = cy;
-      if (workDone > 0.01 || harm > 0.001) { drawPrep(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
+      if (workDone > 0.01 || harm > 0.001 || freed) { drawPrep(); if (freed) playSfx('found'); else if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
     };
     cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; prepCursor.x = p.cx; prepCursor.y = p.cy; prepCursor.on = true; apply(p.cx, p.cy); });
     cv.addEventListener('pointermove', ev => {
