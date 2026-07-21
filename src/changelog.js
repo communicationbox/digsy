@@ -9,7 +9,7 @@ export const CHANGELOG = [
       'Il pannello del Maestro Scavatore va dritto al punto: livello, quanto manca e cosa dà il prossimo — via il muro di testo',
       'I tetti degli edifici mostrano il MATERIALE del bioma (coppi, conci, scandole, tegole, paglia, ardesia) e nelle Lande si innevano tutti',
       'RESTAURO al tavolo del Museo: spazzola la crosta e scopri il fossile, ma non scheggiare l\'osso — usa la stecca fine sui bordi (Pulizia + Integrità)',
-      'FONTANA: minigioco a 3 giri a velocità crescente — centra la zona d\'oro in tutti e 3 per un premio assicurato, altrimenti conta quanti ne centri',
+      'FONTANA: tre tiri di fila, ognuno più veloce — sbagliane uno e i tiri finiscono; tre su tre = premio assicurato, altrimenti in base a quanti ne azzecchi',
       'LUCCIOLE: missione STAGIONALE (d\'estate) dal cartello — di notte, all\'aperto, raccogli le lucciole col retino (con contatore)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
@@ -20,7 +20,7 @@ export const CHANGELOG = [
       'The Master Digger panel gets to the point: level, XP to go, next-level perks — no more wall of text',
       'Building roofs now show their biome MATERIAL (curved tiles, stone, shingles, tiles, thatch, slate) and get snow-capped in the Frozen Wastes',
       'RESTORATION at the Museum table: brush off the crust to reveal the fossil, but don\'t chip the bone — use the fine tool on the edges (Cleaned + Intact)',
-      'FOUNTAIN: a 3-round aim minigame with rising speed — hit the golden zone all 3 times for a guaranteed prize, otherwise your hits set the odds',
+      'FOUNTAIN: three tosses in a row, each faster — miss one and the tosses end; three in a row = guaranteed prize, otherwise it depends on how many you land',
       'FIREFLIES: a SEASONAL quest (summer) from the board — at night, outdoors, catch fireflies with a net (with a counter)',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],

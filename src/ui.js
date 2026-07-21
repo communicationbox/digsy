@@ -592,27 +592,29 @@ export function openMentor() {
   mBody.innerHTML = withIcons(h); openModal();
 }
 
-/* ---------- FONTANA (#3): 3 GIRI a velocità crescente. Centri tutti e 3 → premio assicurato;
-   altrimenti la fortuna = quanti giri hai centrato. Cozy: niente percentuali a schermo. ---------- */
-const TOSS_SPEEDS = [0.018, 0.028, 0.04];   // il cursore va più veloce ogni giro
+/* ---------- FONTANA (#3): TRE TIRI di fila, uno più rapido dell'altro. Ogni tiro va fermato nel
+   riflesso d'oro; SBAGLIARNE UNO chiude i tiri. Tre su tre = premio assicurato; se ti fermi
+   prima, prendi in base a quanti ne hai azzeccati. Cozy: nessuna percentuale a schermo. ---------- */
+const TOSS_SPEEDS = [0.018, 0.028, 0.04];   // ogni tiro più veloce del precedente
+const TOSS_TIRO = [['Primo tiro', 'First toss'], ['Secondo tiro', 'Second toss'], ['Ultimo tiro', 'Last toss']];
 let tossActive = false, tossOpen = false, tossBetween = false, tossRAF = 0;
 let tossPos = 0, tossDir = 1, tossTarget = 0.5, tossRound = 0, tossHits = 0, tossOnDone = null;
 export function isTossOpen() { return tossActive; }
 export function openToss(onDone) {
   const ov = document.getElementById('tossov'); if (!ov) { if (onDone) onDone(0); return; }
-  if (typeof requestAnimationFrame === 'undefined') { if (onDone) onDone(0); return; } // niente animazione = niente mira
+  if (typeof requestAnimationFrame === 'undefined') { if (onDone) onDone(0); return; } // niente animazione = niente tiri
   tossOnDone = onDone || null; tossActive = true; tossRound = 0; tossHits = 0;
   ov.classList.add('on');
-  ov.onclick = () => { if (tossOpen) stopRound(); else if (tossBetween) tossNext(); };
+  ov.onclick = () => { if (tossOpen) stopRound(); };
   startRound();
 }
 function startRound() {
   tossRound++; tossOpen = true; tossBetween = false; tossPos = 0; tossDir = 1;
-  tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni giro
+  tossTarget = 0.12 + Math.random() * 0.76;                    // il riflesso d'oro si sposta ogni tiro
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
-  const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana', 'Fountain') + ' — ' + tr('giro', 'round') + ' ' + tossRound + '/3');
-  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il cursore nella zona d\'oro!', 'Stop the marker in the golden zone!'));
+  const title = document.getElementById('toss-title'); if (title) { const t = TOSS_TIRO[tossRound - 1]; title.innerHTML = withIcons(tr(t[0], t[1])); }
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il tiro nel riflesso d\'oro', 'Land the toss in the golden ripple'));
   const speed = TOSS_SPEEDS[tossRound - 1] || 0.04;
   const step = () => {
     if (!tossOpen) return;
@@ -627,17 +629,18 @@ function stopRound() {
   tossOpen = false; tossBetween = true;
   if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
   const hit = tossLuck(tossPos, tossTarget) > 0;
-  if (hit) tossHits++;
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = hit ? '#e6b23c' : '#fff';
-  const hint = document.getElementById('toss-hint');
-  if (hint) hint.innerHTML = withIcons('<b>' + (hit ? tr('Centro!', 'Hit!') : tr('Fuori!', 'Miss!')) + '</b> · ' + tossHits + '/' + tossRound);
-  if (typeof setTimeout !== 'undefined') setTimeout(tossNext, 650);   // pausa corta, poi avanti
+  if (!hit) { endToss(); return; }              // un tiro fuori e i tiri finiscono
+  tossHits++;
+  if (tossRound >= 3) { endToss(); return; }    // tre su tre
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons('<b>' + tr('Nell\'oro!', 'In the gold!') + '</b>');
+  if (typeof setTimeout !== 'undefined') setTimeout(() => { if (tossBetween) startRound(); }, 600);
 }
-/* passa al giro dopo, o CHIUDE dopo il terzo mostrando l'esito */
-function tossNext() {
-  if (!tossBetween) return; tossBetween = false;
-  if (tossRound < 3) { startRound(); return; }
-  const label = tossHits >= 3 ? tr('Premio assicurato!!', 'Prize guaranteed!!') : tossHits > 0 ? tr('Fortuna aumentata!!', 'Luck boosted!!') : tr('Niente fortuna stavolta', 'No extra luck this time');
+function endToss() {
+  tossBetween = false;
+  const label = tossHits >= 3 ? tr('Tre su tre — la fontana ti premia!', 'Three in a row — the fountain rewards you!')
+    : tossHits > 0 ? tr('Che peccato! Vediamo cosa arriva…', 'So close! Let\'s see what comes…')
+      : tr('Fuori! Sarà per la prossima', 'Out! Maybe next time');
   const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons('<b>' + label + '</b>');
   const finish = () => {
     tossActive = false;
