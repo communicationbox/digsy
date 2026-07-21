@@ -4625,14 +4625,17 @@ sprites.applyLook();
     const i0 = pr.integrity(bb);
     for (let k = 0; k < 6; k++) pr.work(bb, 'scalpello', bx, by, 0.85);
     check('lo scalpello sull\'OSSO lo scheggia (integrità cala)', pr.integrity(bb) < i0); }
-  /* PASSO 3 — SPATOLA: toglie la crosta dall'osso; raschiare l'osso GIÀ pulito lo rovina */
-  { const bb = pr.newBoard(5); allCells(bb, 'pennello', 1.9);
+  /* PASSO 3 — SPATOLA: PULIRE la crosta è sempre sicuro (passarci sopra non scheggia); il danno
+     viene solo da GRATTARE FERMI l'osso già pulito (scrape, una volta per movimento) */
+  { const bb = pr.newBoard(5); allCells(bb, 'pennello', 3.6);
     const [ox, oy, oi] = findCell(bb, true);
-    const crust0 = bb.crust[oi]; pr.work(bb, 'spatola', ox, oy, 0.85);
+    const crust0 = bb.crust[oi];
+    for (let k = 0; k < 6; k++) pr.work(bb, 'spatola', ox, oy, 1.6);   // pulisci a fondo quella cella
     check('la spatola toglie la crosta dall\'osso', bb.crust[oi] < crust0);
+    check('pulire la crosta NON scheggia (integrità piena)', pr.integrity(bb) === 1);
     const i0 = pr.integrity(bb);
-    for (let k = 0; k < 30; k++) pr.work(bb, 'spatola', ox, oy, 0.85); // raschia l'osso ormai pulito
-    check('raschiare l\'osso già pulito lo rovina (integrità cala)', pr.integrity(bb) < i0); }
+    for (let k = 0; k < 30; k++) pr.scrape(bb, ox, oy, 1.6);           // poi gratta FERMI l'osso pulito
+    check('grattare fermi l\'osso già pulito lo rovina (integrità cala)', pr.integrity(bb) < i0); }
   {
     const it = { uid: 1, s: 'lepre', t: 'cranio', q: 'raro', val: 40 };
     const g = pr.applyPrep(it, 1, 1);

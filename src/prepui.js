@@ -9,7 +9,7 @@ import { S, save } from './state.js';
 import { spById } from './data.js';
 import { partVoxels } from './bones.js';
 import { projectVox } from './voxview.js';
-import { newBoard, work, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
+import { newBoard, work, scrape, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
 import { withIcons } from './icons.js';
 import { tr, partName } from './i18n.js';
 import { playSfx } from './audio.js';
@@ -87,6 +87,9 @@ export function openPrepare(item, after) {
       const d = Math.hypot(cx - lx, cy - ly), steps = Math.max(1, Math.floor(d / 0.7));
       let workDone = 0, harm = 0;
       for (let k = 1; k <= steps; k++) { const res = work(prepBoard, prepTool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, r); workDone += res.work; harm += res.harm; }
+      /* SPATOLA: il danno viene solo da GRATTARE FERMI (over-scrape), valutato UNA volta per
+         movimento — non per sotto-passo — così pulire passandoci sopra è sempre sicuro. */
+      if (prepTool === 'spatola') harm += scrape(prepBoard, cx, cy, r);
       lx = cx; ly = cy;
       if (workDone > 0.01 || harm > 0.001) { drawPrep(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
     };
