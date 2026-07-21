@@ -30,7 +30,23 @@ export function prepCandidate() {
 const TOOLS = ['pennello', 'scalpello', 'spatola'];
 const TOOL_R = { pennello: 3.6, scalpello: 1.6, spatola: 1.6 };   // in celle (griglia fine 28×24)
 let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepTool = 'pennello';
+let prepCursor = { x: 0, y: 0, on: false };   // area d'azione dell'attrezzo (segue il puntatore)
 export function isPrepOpen() { return prepOpenFlag; }
+
+/* il cursore rovinerebbe l'osso qui? (per colorarlo di rosso) — scalpello: c'è osso nel raggio;
+   spatola: c'è osso GIÀ PULITO nel raggio (grattarlo lo scheggia). Pennello: mai. */
+function dangerAt(tool, cx, cy, r) {
+  if (!prepBoard || tool === 'pennello') return false;
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(PW - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(PH - 1, Math.ceil(cy + r));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    if (Math.hypot(x - cx, y - cy) > r) continue;
+    const i = y * PW + x; if (!prepBoard.bone[i]) continue;
+    if (tool === 'scalpello') return true;
+    if (tool === 'spatola' && prepBoard.crust[i] <= 0.001 && prepBoard.dust[i] <= 0.5) return true;
+  }
+  return false;
+}
 
 /* istruzione dell'attrezzo scelto — tr() LETTERALI (così i18n riconosce le stringhe) */
 function stepText(t) {
@@ -93,10 +109,15 @@ export function openPrepare(item, after) {
       lx = cx; ly = cy;
       if (workDone > 0.01 || harm > 0.001) { drawPrep(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
     };
-    cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; apply(p.cx, p.cy); });
-    cv.addEventListener('pointermove', ev => { if (!down || !prepBoard) return; ev.preventDefault(); const p = at(ev); apply(p.cx, p.cy); });
+    cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; prepCursor.x = p.cx; prepCursor.y = p.cy; prepCursor.on = true; apply(p.cx, p.cy); });
+    cv.addEventListener('pointermove', ev => {
+      if (!prepBoard) return;
+      const p = at(ev); prepCursor.x = p.cx; prepCursor.y = p.cy; prepCursor.on = true;
+      if (down) { ev.preventDefault(); apply(p.cx, p.cy); } else drawPrep(); // hover: muove solo il cursore
+    });
     cv.addEventListener('pointerup', () => { down = false; });
     cv.addEventListener('pointercancel', () => { down = false; });
+    cv.addEventListener('pointerleave', () => { down = false; prepCursor.on = false; drawPrep(); });
   }
   for (const tool of TOOLS) { const el = document.getElementById('pr-t-' + tool); if (el) el.onclick = () => setTool(tool); }
   const done = document.getElementById('pr-done'); if (done) done.onclick = () => finishPrep();
@@ -148,6 +169,17 @@ function drawPrep() {
     if (prepBoard.bone[i] && prepBoard.chip[i] > 0.25) {          // CREPA sull'osso rovinato
       c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, Math.max(1, Math.floor(cw / 3)), ch - 2);
     }
+  }
+  /* CURSORE: mostra l'AREA d'azione dell'attrezzo (raggio) e avvisa in ROSSO se rovineresti
+     l'osso → così è skill, non tentativi alla cieca. */
+  if (prepCursor.on) {
+    const r = TOOL_R[prepTool], rad = r * cw, ccx = prepCursor.x * cw, ccy = prepCursor.y * ch;
+    const danger = dangerAt(prepTool, prepCursor.x, prepCursor.y, r);
+    const col = danger ? '#e0533a' : prepTool === 'pennello' ? 'rgba(255,246,220,.85)' : '#7fe0cf';
+    if (danger) { c2.globalAlpha = 0.18; c2.fillStyle = col; if (c2.beginPath) { c2.beginPath(); c2.arc(ccx, ccy, rad, 0, Math.PI * 2); c2.fill(); } c2.globalAlpha = 1; }
+    c2.strokeStyle = col; c2.lineWidth = 2;
+    if (c2.beginPath) { c2.beginPath(); c2.arc(ccx, ccy, rad, 0, Math.PI * 2); c2.stroke(); }
+    c2.fillStyle = col; c2.fillRect(Math.round(ccx) - 1, Math.round(ccy) - 1, 2, 2);
   }
   const clean = cleanPct(prepBoard), integ = integrity(prepBoard);
   const fill = document.getElementById('pr-fill'); if (fill) fill.style.width = Math.round(clean * 100) + '%';
