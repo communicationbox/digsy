@@ -28,7 +28,7 @@ export function setupDebugView(params) {
   S.lookDone = true; S.introSeen = true; S.started = true; S.gift = true; setPref('tips', false);
   try { const h = document.getElementById('hud'), pr = document.getElementById('prompt'); if (h) h.style.display = 'none'; if (pr) pr.style.display = 'none'; } catch (e) { /* headless */ }
   if (mp) {
-    awakenPick(CAVE_POOL[0]);
+    awakenPick(CAVE_POOL.find(s => s.r === 'leggendario') || CAVE_POOL[0]);  // Abissodonte (legg. grotta)
     S.mounted = true; P.dir = ['up', 'down', 'left', 'right'].includes(mp) ? mp : 'down';
     return;
   }

@@ -92,7 +92,8 @@ function completeMuseumAndBook() {
    così è un candidato legittimo del parco, scelta come compagno con la rarità voluta.
    Serve a provare i poteri (per tipo/rarità), il raccoglitore leggendario e la cavalcatura. */
 function spawnCompanion(type, rar) {
-  const sp = type === 'grotta' ? CAVE_POOL[0] : ALL_SPECIES.find(s => (s.src || 'terra') === type);
+  const pool = type === 'grotta' ? CAVE_POOL : ALL_SPECIES.filter(s => (s.src || 'terra') === type);
+  const sp = pool.find(s => s.r === rar) || pool[0];   // la specie GIUSTA per rarità (grotta+legg = Abissodonte)
   if (!sp) return null;
   if (!S.codex.includes(sp.id)) S.codex.push(sp.id);
   if (!S.awakened.includes(sp.id)) S.awakened.push(sp.id);

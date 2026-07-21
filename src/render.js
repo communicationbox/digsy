@@ -573,50 +573,81 @@ function drawBikeFB(sx, sy, moving, dir) {
    d'aria, scia di scintille in movimento. Contorni scuri per staccare dallo sfondo. */
 /* ALI della cavalcatura, sbattono (fase dal tempo). Di PROFILO: UNA grande ala dietro (verso la
    coda) che spazza su/indietro. Di FRONTE/SPALLE: aperte ai due lati, a ventaglio. */
-function drawMountWings(sx, cy, view, dir) {
-  const flap = Math.sin(frameTime / 90);
-  if (view === 'side') {
-    const back = dir > 0 ? -1 : 1;                           // la coda sta dietro il muso
-    const up = 4 + Math.round((flap + 1) * 2);               // apertura verticale (sbattito)
-    for (let i = 1; i <= 7; i++) {
-      const wx = Math.round(sx + back * (i + 1)), wy = cy - Math.round((i / 7) * up);
-      px(wx, wy, i > 5 ? '#5a4a6e' : '#7a6a92');
-      px(wx, wy + 1, '#6a5a7e');
-      if (i <= 5) px(wx, wy + 2, '#b6a6c6');                 // bordo chiaro (contrasto)
-    }
-    return;
-  }
-  const rise = Math.round(flap * 3);                         // fronte/spalle: ali spiegate ai lati
-  for (const s of [-1, 1]) for (let i = 1; i <= 7; i++) {
-    const wx = sx + s * (2 + i), wy = cy - Math.round((i / 7) * (5 + rise));
-    px(wx, wy, i > 5 ? '#5a4a6e' : '#7a6a92');
-    px(wx, wy + 1, '#6a5a7e');
-    if (i <= 5) px(wx, wy + 2, '#b6a6c6');
-  }
+/* CAVALCATURA VOLANTE dedicata: un rettile alato grande (l'Abissodonte), disegnato a mano in
+   codice — corpo, collo+testa con corna, ali membranose che sbattono, coda con pinna, l'eroe
+   SEDUTO in groppa (busto, gambe in sella). Colore dalla creatura + contorno scuro. 4 direzioni. */
+const MOUNT_LN = '#141019';
+/* riempimento triangolo pixel (baricentrico) + linea-osso: primitive per le ali membranose */
+function ptInTri(x, y, a, b, c) {
+  const d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]); if (!d) return false;
+  const s = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (y - c[1])) / d;
+  const t = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (y - c[1])) / d;
+  return s >= -0.02 && t >= -0.02 && s + t <= 1.02;
+}
+function fillTri(a, b, c, col) {
+  const x0 = Math.floor(Math.min(a[0], b[0], c[0])), x1 = Math.ceil(Math.max(a[0], b[0], c[0]));
+  const y0 = Math.floor(Math.min(a[1], b[1], c[1])), y1 = Math.ceil(Math.max(a[1], b[1], c[1]));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) if (ptInTri(x + 0.5, y + 0.5, a, b, c)) px(x, y, col);
+}
+function boneLine(a, b, col) {
+  const n = Math.max(1, Math.round(Math.hypot(b[0] - a[0], b[1] - a[1])));
+  for (let i = 0; i <= n; i++) px(Math.round(a[0] + (b[0] - a[0]) * i / n), Math.round(a[1] + (b[1] - a[1]) * i / n), col);
+}
+/* ala di PROFILO: membrana PIENA (triangolo radice-punta-uscita) + osso d'attacco + 2 nervature */
+function mountWingSide(rx, ry, back, flap, wing, web, near) {
+  const up = Math.round((flap + 1) * 5) + 5;
+  const R = [rx, ry], T = [rx + back * 14, ry - up], B = [rx + back * 11, ry + 2], E = [rx + back * 6, ry - up + 2];
+  fillTri(R, T, B, near ? web : shade8(web, 0.7));
+  boneLine(R, E, wing); boneLine(E, T, wing);                 // bordo d'attacco (gomito)
+  for (const fr of [0.34, 0.68]) boneLine(E, [T[0] + (B[0] - T[0]) * fr, T[1] + (B[1] - T[1]) * fr], near ? wing : shade8(wing, 0.85)); // dita
+  px(Math.round(E[0]), Math.round(E[1]), near ? '#efe7f2' : wing);
+}
+/* ala vista FRONTE/SPALLE: membrana piena verso il lato `s`, punta che sbatte */
+function mountWingFB(rx, ry, s, flap, wing, web) {
+  const up = Math.round(flap * 4) + 2;
+  const R = [rx, ry], T = [rx + s * 9, ry - 6 - up], B = [rx + s * 7, ry + 4];
+  fillTri(R, T, B, web);
+  boneLine(R, T, wing);
+  for (const fr of [0.4, 0.75]) boneLine([rx + s * 2, ry - 2], [T[0] + (B[0] - T[0]) * fr, T[1] + (B[1] - T[1]) * fr], shade8(wing, 0.85));
+}
+/* eroe SEDUTO in groppa: busto+testa (gambe tagliate dal clip = in sella), all'altezza `topY` */
+function seatHero(sx, topY, dir) {
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 9, topY - 4, 18, 16); ctx.clip();
+  drawHero(null, sx - 8, topY, dir, 0);
+  ctx.restore();
 }
 function drawFlyingMount(sx, sy) {
-  const obj = companionDrawObj();
-  if (obj) obj.face = P.dir;                                // ruota col player (front/retro/profilo)
-  const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
+  const spec = companionSpec();
+  const base = (spec && spColor[spec.torso]) || '#8a6ab0';
+  const D = shade8(base, 0.5), M = base, L = shade8(base, 1.3), WING = shade8(base, 0.72), WEB = shade8(base, 0.42), LN = MOUNT_LN;
   const dir = P.dir === 'left' ? -1 : 1;
-  const cv = creatureSprite(obj, view);
-  const cvH = cv ? cv.height : 14;
-  const lift = 10 + Math.round(Math.sin(frameTime / 300) * 2);
-  const creatureY = sy - lift + 2;                          // drawCreature: fondo = creatureY+14
-  const backTop = Math.round(creatureY + 14 - cvH);         // cima della schiena su schermo
-  shadow(sx, sy + 17, 6);                                   // ombra a terra (è in volo)
-  drawMountWings(sx, backTop + 3, view, dir);               // ali DIETRO, all'altezza della schiena
-  if (obj) drawCreature(obj, sx - 8, creatureY, false, true); // la cavalcatura (ferma)
-  /* eroe SEDUTO: solo BUSTO + TESTA (le gambe sono tagliate dal clip → è in sella, mai in piedi),
-     con la vita appoggiata sulla schiena della creatura */
-  const heroTop = backTop - 9;
-  ctx.save(); ctx.beginPath(); ctx.rect(sx - 9, heroTop - 3, 18, (backTop + 3) - (heroTop - 3)); ctx.clip();
-  drawHero(null, sx - 8, heroTop, P.dir, 0);
-  ctx.restore();
-  if (P.moving) {                                           // scia di scintille dietro
-    const tx = sx - dir * 11, ty = backTop + 6, w2 = Math.floor(frameTime / 120) % 3;
-    px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)');
+  const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
+  const bob = Math.round(Math.sin(frameTime / 300) * 2);
+  const flap = Math.sin(frameTime / 110);
+  const cy = sy - 5 - bob;                                   // centro del corpo (in volo)
+  const rr = (x, y, w, h, c) => rect(Math.round(x), Math.round(y), w, h, c);
+  shadow(sx, sy + 17, 7);
+  if (view === 'side') {
+    const f = dir, b = -dir;                                 // f=avanti (muso), b=dietro (coda)
+    mountWingSide(sx + b * 2, cy - 2, b, flap * 0.7, shade8(base, 0.55), shade8(WEB, 0.8), false); // ala lontana
+    for (let i = 0; i < 11; i++) { const t = i / 10, txp = sx + b * (8 + i * 1.5), typ = cy + 2 - Math.round(Math.sin(t * 2.2) * 3), th = Math.max(1, 3 - Math.round(t * 2.4)); rr(txp - 1, typ - th, 2, th * 2, i % 2 ? D : M); } // coda
+    for (let k = 0; k < 5; k++) px(sx + b * (19 + (k % 2)), cy - 5 + k, WING);   // pinna in punta coda
+    rr(sx - 9, cy - 3, 18, 8, M); rr(sx - 9, cy - 3, 18, 2, L); rr(sx - 9, cy + 4, 18, 1, D); rr(sx - 7, cy + 3, 14, 1, L); // corpo + pancia chiara
+    rr(sx + f * 3, cy + 5, 2, 3, D); rr(sx - f * 3, cy + 5, 2, 3, D);            // zampe tucked
+    for (let i = 0; i < 6; i++) rr(sx + f * (8 + i), cy - 2 - i, 3, 4, i < 3 ? M : D); // collo (svetta avanti)
+    const hx = sx + f * 15, hy = cy - 9;
+    rr(hx - 2, hy, 6, 5, M); rr(hx - 2, hy, 6, 1, L); rr(hx + f * 3, hy + 1, 3, 3, M); px(hx + f * 5, hy + 2, LN); rr(hx + (f > 0 ? 0 : 1), hy + 1, 2, 2, LN); // testa+muso+occhio
+    px(hx - f, hy - 1, D); px(hx - f * 2, hy - 2, D); px(hx - f * 3, hy - 3, D); px(hx + f, hy - 1, D); px(hx + f, hy - 2, M); // corna all'indietro
+    mountWingSide(sx + b * 1, cy - 4, b, flap, WING, WEB, true); // ala vicina, DIETRO l'eroe (svetta alta-dietro)
+    seatHero(sx - f * 1, cy - 5, P.dir);                         // eroe in sella, sopra l'ala
+  } else {
+    rr(sx - 7, cy - 4, 14, 10, M); rr(sx - 7, cy - 4, 14, 2, L); rr(sx - 7, cy + 5, 14, 1, D); rr(sx - 5, cy + 4, 10, 1, L); // corpo tondo
+    for (const s of [-1, 1]) mountWingFB(sx + s * 6, cy - 2, s, flap, WING, WEB); // ali ai lati
+    if (view === 'front') { rr(sx - 3, cy + 5, 6, 4, M); px(sx - 2, cy + 6, LN); px(sx + 1, cy + 6, LN); px(sx - 5, cy + 3, D); px(sx + 4, cy + 3, D); } // musetto+occhi+corna
+    else { rr(sx - 1, cy + 5, 3, 4, D); for (let k = 0; k < 3; k++) px(sx + (k - 1), cy + 9, D); } // spalle: base coda
+    seatHero(sx, cy - 6, P.dir);
   }
+  if (P.moving) { const tx = sx - dir * 13, ty = cy + 6, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)'); }
 }
 function drawBoat(sx, sy) {
   const bob = Math.round(Math.sin(frameTime / 320) * 1.5);
