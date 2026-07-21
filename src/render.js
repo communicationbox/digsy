@@ -315,34 +315,42 @@ export function drawFence(sx, sy) {
    con CONTORNO scuro così stacca dallo sfondo (anche verde su verde). Cache per composizione. */
 let sniffAt = -9e9, sniffKey = '', sniffBest = null;   // memoria del "fiuto" (vedi sopra)
 const creCache = new Map();
-function creatureSprite(a) {
-  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg;
+/* sprite della creatura in una VISTA: 'side' (di profilo, X orizzontale · Z profondità),
+   'front'/'back' (di fronte/spalle, Z orizzontale · X profondità → head-on, più stretto).
+   Front mostra gli occhi, back no: così muovendosi in su/giù il compagno "gira". */
+function creatureSprite(a, view) {
+  view = view || 'side';
+  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view;
   let cv = creCache.get(key); if (cv !== undefined) return cv;
   cv = null;
   try {
     const c = spById[a.c.skull], t = spById[a.c.torso], z = spById[a.c.leg];
     const spec = { heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
     const vox = buildFleshVoxels(clampSpec(spec));
-    let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
-    for (const v of vox) { mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z); }
-    const spanX = mxx - mnx + 1, spanY = mxy - mny + 1, zr = Math.max(1, mxz - mnz);
-    const pad = 1, cw = spanX + pad * 2, ch = spanY + pad * 2;
+    /* asse orizzontale (h), profondità (d) per l'ordine pittore. La verticale è sempre y. */
+    const proj = view === 'side' ? v => [v.x, v.z]
+      : view === 'front' ? v => [v.z, v.x]
+        : v => [v.z, -v.x];                         // back: profondità invertita
+    let mnh = 9e9, mxh = -9e9, mny = 9e9, mxy = -9e9, mnd = 9e9, mxd = -9e9;
+    for (const v of vox) { const [h, d] = proj(v); mnh = Math.min(mnh, h); mxh = Math.max(mxh, h); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnd = Math.min(mnd, d); mxd = Math.max(mxd, d); }
+    const spanH = mxh - mnh + 1, spanY = mxy - mny + 1, dr = Math.max(1, mxd - mnd);
+    const pad = 1, cw = spanH + pad * 2, ch = spanY + pad * 2;
     cv = document.createElement('canvas'); cv.width = cw; cv.height = ch;
     const g = cv.getContext('2d');
-    const grid = {}; // occupazione per il contorno
-    const cells = [];
-    for (const v of vox.slice().sort((x, y) => x.z - y.z)) {
-      const gx = pad + (v.x - mnx), gy = pad + (mxy - v.y);
-      const zt = (v.z - mnz) / zr;
-      let col = v.k === 'eye' ? '#201a14' : (v.col || '#c8b078');
-      if (v.col) col = zt < 0.34 ? shade8(v.col, 0.7) : zt < 0.67 ? v.col : shade8(v.col, 1.18);
+    const grid = {}; const cells = [];
+    for (const v of vox.slice().sort((p, q) => (proj(p)[1]) - (proj(q)[1]))) {  // lontano→vicino
+      const [h, d] = proj(v);
+      const gx = pad + (h - mnh), gy = pad + (mxy - v.y);
+      const zt = (d - mnd) / dr;
+      let col = v.k === 'eye' ? (view === 'back' ? (v.col || '#c8b078') : '#201a14') : (v.col || '#c8b078'); // di spalle niente occhi
+      if (col !== '#201a14' && v.col) col = zt < 0.34 ? shade8(v.col, 0.7) : zt < 0.67 ? v.col : shade8(v.col, 1.18);
       grid[gx + ',' + gy] = 1; cells.push([gx, gy, col]);
     }
     /* contorno scuro attorno alla silhouette */
     g.fillStyle = '#20160f';
     for (const k in grid) { const [gx, gy] = k.split(',').map(Number); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nk = (gx + dx) + ',' + (gy + dy); if (!grid[nk]) g.fillRect(gx + dx, gy + dy, 1, 1); } }
     for (const [gx, gy, col] of cells) { g.fillStyle = col; g.fillRect(gx, gy, 1, 1); }
-    cv._ax = spanX / 2 + pad; // ancoraggio orizzontale (centro)
+    cv._ax = spanH / 2 + pad; // ancoraggio orizzontale (centro)
   } catch (e) { cv = null; /* stub nei test */ }
   creCache.set(key, cv); return cv;
 }
@@ -354,8 +362,13 @@ function creatureArch(a) {
   if (bp.tall || (bp.legs && bp.legs[0] <= 2)) return 'hop';
   return 'walk';
 }
-function drawCreature(a, sx, sy, swim) {
-  const cv = creatureSprite(a);
+function drawCreature(a, sx, sy, swim, noShadow) {
+  /* verso a 4 direzioni: su → spalle, giù → fronte, sinistra/destra → profilo (specchiato).
+     `a.face` è una stringa ('up'/'down'/'left'/'right'); per compatibilità si accetta anche
+     il vecchio `a.dir` numerico (-1/1) → solo profilo. */
+  const face = a.face || (a.dir < 0 ? 'left' : 'right');
+  const view = face === 'up' ? 'back' : face === 'down' ? 'front' : 'side';
+  const cv = creatureSprite(a, view);
   const arch = creatureArch(a);
   const ph = (a.anim || 0) * 7;              // fase (avanza col movimento)
   const idle = frameTime / 600;
@@ -377,9 +390,9 @@ function drawCreature(a, sx, sy, swim) {
      dell'acqua (clip), galleggia col bob e lascia increspature. Fase dal TEMPO, mai da sx/sy. */
   if (swim) { hop = 0; lift = 0; skew = 0; sqX = 1; sqY = 1; }
   const bob = swim ? Math.round(Math.sin(frameTime / 520) * 1) : 0;
-  if (!swim) shadow(sx + 8, sy + 13, sh);
+  if (!swim && !noShadow) shadow(sx + 8, sy + 13, sh);
   if (!cv) { const b = spColor[a.c.torso] || '#c8b078'; rect(sx + 4, sy + 5 + hop - lift + bob, 9, 6, b); return; }
-  const d = a.dir < 0 ? -1 : 1;
+  const d = face === 'left' ? -1 : 1;   // specchio solo di profilo
   const w = cv.width * sqX, h = cv.height * sqY;
   const dx = sx + 8 - w / 2, dy = sy + 14 - h + hop - lift + bob;
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
@@ -495,22 +508,24 @@ function drawBikeFB(sx, sy, moving, dir) {
    d'aria, scia di scintille in movimento. Contorni scuri per staccare dallo sfondo. */
 function drawFlyingMount(sx, sy) {
   const obj = companionDrawObj();
-  const bob = Math.sin(frameTime / 300) * 2, lift = 11 + Math.round(bob);
-  const cy = sy - lift, dir = P.dir === 'left' ? -1 : 1;
+  if (obj) obj.face = P.dir;                                // la cavalcatura ruota col player (front/retro/profilo)
+  const lift = 11 + Math.round(Math.sin(frameTime / 300) * 2);
+  const dir = P.dir === 'left' ? -1 : 1;
   shadow(sx, sy + 17, 5);                                   // ombra piccola a terra = è in alto
-  const flap = Math.sin(frameTime / 90), wl = Math.round((flap + 1) * 3); // 0..6 apertura
-  for (const s of [-1, 1]) {                                // ali a raggiera dietro il corpo
-    const bx = sx + s * 3;
-    for (let i = 1; i <= 6; i++) {
-      const wx = bx + s * i, wy = cy - 3 - Math.round((i / 6) * wl);
-      px(wx, wy, i > 4 ? '#5a4a6e' : '#7a6a92');            // membrana scura (fossile di grotta)
-      if (i <= 4) px(wx, wy + 1, '#b6a6c6');               // bordo chiaro (contrasto)
-    }
+  /* ali che sbattono, DIETRO (solo di profilo: di fronte/retro le copre il corpo) */
+  if (P.dir === 'left' || P.dir === 'right') {
+    const wl = Math.round((Math.sin(frameTime / 90) + 1) * 3);
+    for (const s of [-1, 1]) { const bx = sx + s * 3;
+      for (let i = 1; i <= 6; i++) { const wx = bx + s * i, wy = sy - lift - 3 - Math.round((i / 6) * wl);
+        px(wx, wy, i > 4 ? '#5a4a6e' : '#7a6a92'); if (i <= 4) px(wx, wy + 1, '#b6a6c6'); } }
   }
-  if (obj) drawCreature(obj, sx - 8, cy - 4, false);        // corpo (proiezione voxel)
-  drawHero(null, sx - 8, cy - 12, P.dir, 0);                // eroe in groppa
+  /* eroe in groppa con la TESTA alta e libera (mai coperta) */
+  drawHero(null, sx - 8, sy - lift - 16, P.dir, 0);
+  /* corpo della cavalcatura SOPRA la parte bassa dell'eroe (gambe nascoste = "in sella"): clip
+     dall'anca in giù così, quale che sia l'altezza della creatura, la faccia resta scoperta */
+  if (obj) { ctx.save(); ctx.beginPath(); ctx.rect(sx - 16, sy - lift - 4, 32, 34); ctx.clip(); drawCreature(obj, sx - 8, sy - lift + 2, false, true); ctx.restore(); }
   if (P.moving) {                                           // scia di scintille dietro
-    const tx = sx - dir * 10, ty = sy - lift + 5, w2 = Math.floor(frameTime / 120) % 3;
+    const tx = sx - dir * 10, ty = sy - lift + 6, w2 = Math.floor(frameTime / 120) % 3;
     px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)');
   }
 }
@@ -858,9 +873,10 @@ export function render(time) {
     ents.push({ y: -9e9, f: () => drawGoalMark(gx, gy, time) });
   }
   ents.push({ y: P.y - cam.y + 16, f: drawPlayer });
-  /* COMPAGNO: chimera/risvegliato che insegue il player */
+  /* COMPAGNO: chimera/risvegliato che insegue il player — MA non quando lo si cavalca (in volo
+     il compagno È la cavalcatura sotto l'eroe: disegnarlo anche qui lo sdoppiava) */
   const compObj = companionDrawObj();
-  if (compObj) {
+  if (compObj && !isMounted()) {
     const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ctype = companionType(companionSpec());
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));

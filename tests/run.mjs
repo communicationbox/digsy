@@ -2277,7 +2277,13 @@ sprites.applyLook();
     const dataS = await import('../src/data.js');
     const cs = dataS.CAVE_POOL[0].id;
     companionMod.setCompanion({ skull: cs, torso: cs, leg: cs, q: 'leggendario', key: 'sm', name: 'Fly' });
-    S.mounted = true; render(3400); P.dir = 'left'; P.moving = true; render(3450); S.mounted = false; P.moving = false;
+    S.mounted = true; P.moving = true;
+    for (const dd of ['down', 'up', 'left', 'right']) { P.dir = dd; render(3400); } // fronte/spalle/profilo
+    S.mounted = false; P.moving = false;
+    /* compagno che segue: anche lui gira su/giù (front/back) */
+    companionMod.setCompanion({ skull: 'lepre', torso: 'lepre', leg: 'lepre', q: 'comune', key: 'r2', name: 'Rot' });
+    const { COMP: COMP2 } = companionMod;
+    for (const f of ['up', 'down', 'left', 'right']) { COMP2.face = f; render(3500); }
     companionMod.clearCompanion();
   } catch (e) { smokeThrew = true; }
   check('smoke render esteso (biomi/meteo/landmark/compagno/notte/raccoglitore/volo)', smokeThrew === false);
@@ -3012,6 +3018,24 @@ sprites.applyLook();
   comp.setCompanion(grottaLeg); S.mounted = true; cave.CAVE.active = true;
   check('in grotta isMounted=false e toggleMount rifiutato', gp.isMounted() === false && gp.toggleMount() === false);
   cave.CAVE.active = false;
+  /* IN VOLO NON SI SCAVA (E bloccato) — a terra invece scava */
+  {
+    const world = await import('../src/world.js');
+    let dt = null;
+    for (let x = -30; x < 30 && !dt; x++) for (let y = -30; y < 30; y++) {
+      const open = (a, b) => world.diggable(world.baseTerrain(a, b)) && !world.townInfo(a, b) && !world.decoAt(a, b);
+      if (open(x, y) && open(x, y + 1)) { dt = [x, y]; break; }
+    }
+    check('trovata terra scavabile (test volo)', !!dt);
+    P.x = dt[0] * TS + 8; P.y = dt[1] * TS + 8; P.dir = 'down'; S.energy = 10; P.digging = null;
+    comp.setCompanion(grottaLeg); S.mounted = true;
+    gp.act();
+    check('in volo E NON scava', P.digging == null && gp.isMounted() === true);
+    S.mounted = false; P.digging = null;
+    gp.act();
+    check('a terra E scava (contro-prova)', P.digging != null);
+    P.digging = null; comp.clearCompanion();
+  }
   /* entrare in grotta fa SCENDERE */
   S.mounted = true; cave.enterCave(1, 0, 0);
   check('entrando in grotta si scende (mounted=false)', S.mounted === false);

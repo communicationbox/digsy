@@ -14,7 +14,7 @@ import { parkPopulation } from './park.js';
 
 /* job/cool/fx pilotati dal raccoglitore leggendario (gameplay.companionWorkTick, Fase 1):
    job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale */
-export const COMP = { x: 0, y: 0, dir: -1, anim: 0, init: false, job: null, cool: 0, fx: [] };
+export const COMP = { x: 0, y: 0, dir: -1, face: 'right', anim: 0, init: false, job: null, cool: 0, fx: [] };
 
 /* i cinque tipi (fonti). 'any'/assente → terra (lo Scavatore è il default sempre valido) */
 export const COMP_TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
@@ -59,10 +59,15 @@ export function updateCompanion(dt) {
   const tx = P.x + off, ty = P.y + offy;
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
   const sp = Math.min(d, 90 * dt);
-  if (d > 2) { COMP.x += dx / d * sp; COMP.y += dy / d * sp; COMP.anim += dt; if (Math.abs(dx) > 0.5) COMP.dir = dx < 0 ? -1 : 1; }
+  if (d > 2) {
+    COMP.x += dx / d * sp; COMP.y += dy / d * sp; COMP.anim += dt;
+    /* verso a 4 direzioni dall'asse di moto dominante → il compagno GIRA (fronte/spalle/profilo) */
+    if (Math.abs(dx) >= Math.abs(dy)) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
+    else COMP.face = dy < 0 ? 'up' : 'down';
+  }
 }
-/* spec per drawCreature: { c:{skull,torso,leg,q}, anim, dir } */
+/* spec per drawCreature: { c:{skull,torso,leg,q}, anim, dir, face } */
 export function companionDrawObj() {
   const c = S.companion; if (!c) return null;
-  return { c: { skull: c.skull, torso: c.torso, leg: c.leg, q: c.q }, anim: COMP.anim, dir: COMP.dir };
+  return { c: { skull: c.skull, torso: c.torso, leg: c.leg, q: c.q }, anim: COMP.anim, dir: COMP.dir, face: COMP.face };
 }

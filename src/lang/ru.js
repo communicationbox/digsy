@@ -757,6 +757,7 @@ export const RU = {
   'Riding ': 'Верхом на ',
   'fly over the map (R to land)': 'летай над картой (R — приземлиться)',
   'No flying in caves: leave first': 'В пещерах не летают: сначала выйди',
+  "Can't dig while flying: press R to land": 'В полёте не копают: нажми R, чтобы приземлиться',
   'chimera created: it roams the park (pick it as companion)': 'химера создана: гуляет в парке (выбери её спутником)',
   'Sleep until dawn 🌙': 'Спать до рассвета 🌙',
   "Today's requests from the townsfolk. You can hold ": 'Сегодняшние заказы горожан. Можно взять ',

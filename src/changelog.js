@@ -16,6 +16,8 @@ export const CHANGELOG = [
       'COMPAGNI LEGGENDARI: quelli di terra/acqua/roccia/albero RACCOLGONO da soli — vanno alla casella, lavorano con animazione e ti portano il fossile (lento e a zaino non pieno: lo scavo resta la fonte principale)',
       'FOSSILE VOLANTE: il compagno di GROTTA leggendario si CAVALCA (tasto R o dallo zaino) e sorvoli la mappa attraversando tutto — ma in grotta si scende e si cammina',
       'HACK (console) riordinati e raggruppati; nuovi per i compagni: companion=<tipo> (per provare i poteri), mount (cavalcatura volante), chimera',
+      'CAVALCATURA rifinita: niente più compagno sdoppiato, faccia dell\'eroe libera e gambe in sella; in volo NON si scava (serve solo a muoversi veloce)',
+      'COMPAGNI che GIRANO: muovendoti in su/giù il compagno (e la cavalcatura) mostra le viste di SPALLE e di FRONTE, non più solo di profilo',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -32,6 +34,8 @@ export const CHANGELOG = [
       'LEGENDARY COMPANIONS: the ground/water/rock/tree ones GATHER on their own — they walk to a tile, work with an animation and bring you the fossil (slow, and only when your bag isn\'t full: digging stays the main source)',
       'FLYING FOSSIL: the legendary CAVE companion can be RIDDEN (press R or from the bag) to fly over the map crossing anything — but in caves you land and walk',
       'Console HACKS tidied up and grouped; new companion ones: companion=<type> (to test powers), mount (flying ride), chimera',
+      'FLYING RIDE polished: no more doubled companion, the hero\'s face stays clear and legs sit in the saddle; you CAN\'T dig while flying (it\'s just for fast travel)',
+      'COMPANIONS that TURN: moving up/down the companion (and the mount) now shows BACK and FRONT views, not just the side',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

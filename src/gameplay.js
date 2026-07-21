@@ -419,12 +419,13 @@ export function companionWorkTick(dt) {
     const gx = job.wx, gy = job.wy - 2, dx = gx - COMP.x, dy = gy - COMP.y, d = Math.hypot(dx, dy) || 1;
     const step = Math.min(d, CW.GO * dt);
     COMP.x += dx / d * step; COMP.y += dy / d * step; COMP.anim += dt;
-    if (Math.abs(dx) > 0.5) COMP.dir = dx < 0 ? -1 : 1;
+    if (Math.abs(dx) >= Math.abs(dy)) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
+    else COMP.face = dy < 0 ? 'up' : 'down';
     if (d < 4) { job.phase = 'work'; job.t = CW.WORK; }
     return;
   }
   if (job.phase === 'work') {
-    job.t -= dt; COMP.anim += dt; COMP.dir = job.wx >= COMP.x ? 1 : -1;
+    job.t -= dt; COMP.anim += dt; COMP.dir = job.wx >= COMP.x ? 1 : -1; COMP.face = COMP.dir < 0 ? 'left' : 'right';
     const ph = 1 - job.t / CW.WORK, hit = Math.floor(ph * 4);  // due colpi come lo scavo manuale
     if (hit !== job.hit) { job.hit = hit; if (hit % 2 === 1) playSfx(type === 'acqua' ? 'fish' : type === 'terra' ? 'dig' : type === 'albero' ? 'chop' : 'mine'); }
     if (job.t <= 0) {
@@ -760,6 +761,7 @@ export function digWreck() {
 }
 export function act() {
   if (P.digging) return; // un colpo alla volta
+  if (isMounted()) { toast('🐾 ' + tr('In volo non si scava: premi R per scendere', "Can't dig while flying: press R to land")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
     if (r === 'nopick') toast('⛏️ ' + tr('Serve il piccone per staccare i cristalli (Negozio)', 'You need the pickaxe to break the crystals (Shop)'));
