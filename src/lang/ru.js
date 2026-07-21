@@ -87,6 +87,7 @@ export const RU = {
   'Targets: ': 'Цели: ',
   'Biome not found nearby': 'Поблизости такого биома нет',
   'No big city found': 'Большой город не найден',
+  'rare+ raw finds in your bag: enter the Museum, talk to the Curator, «To the table»': 'редкие+ необработанные находки в рюкзаке: зайди в Музей, поговори с Хранителем, «На стол»',
   'No site found nearby': 'Поблизости нет места раскопок',
   'No wreck found nearby': 'Поблизости нет обломков',
   'No landmark found nearby': 'Поблизости нет чуда',

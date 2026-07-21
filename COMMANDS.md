@@ -67,6 +67,15 @@ Si spazzola trascinando il dito (o il mouse) sul fossile.
 In partita normale il tavolo si apre **al Museo**, su **un pezzo per consegna** e solo da
 **raro in su**: sui comuni sarebbe una catena di montaggio.
 
+## `museo` — prova il tavolo nel FLUSSO VERO
+
+`museo` (alias: `museum`, `gotomuseum`)
+
+Mette in zaino tre **grezzi raro/eccezionale/leggendario**, azzera un eventuale lotto in
+lavorazione e ti **teletrasporta alla città grande più vicina** (quella col Museo). Poi entra
+nel Museo, parla col **Curatore**: comparirà il **Tavolo di preparazione** col pezzo migliore e
+il bottone **«Al tavolo»**. È il modo per provare il minigioco come lo incontra il giocatore.
+
 ## `stress=1..5` — carica il gioco per davvero (beta)
 
 Riempie la partita e misura i **frame veri sul dispositivo che hai in mano**. Serve a provare

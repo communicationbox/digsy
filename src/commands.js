@@ -274,6 +274,21 @@ export const COMMANDS = {
         + '\n' + tr('In gioco si apre al MUSEO, su UN pezzo per consegna e solo da raro in su.',
                     'In game it opens at the MUSEUM, on ONE piece per hand-in and only from rare upwards.');
     } },
+  /* provare il tavolo NEL FLUSSO VERO: grezzi raro+ in zaino + vai alla città col Museo */
+  museo: { aliases: ['museum', 'gotomuseum'], type: 'action', cheat: true,
+    help: 'museo — grezzi raro+ nello zaino + vai alla città col Museo (prova il Tavolo di preparazione dal Curatore)',
+    run: () => {
+      if (!S.raw) S.raw = [];
+      S.museumJob = null;                        // nessun lotto in lavorazione: il tavolo compare
+      for (const rar of ['raro', 'eccezionale', 'leggendario']) {
+        const sp = ALL_SPECIES[Math.floor(Math.random() * ALL_SPECIES.length)];
+        const part = PARTS[Math.floor(Math.random() * PARTS.length)];
+        S.raw.push({ uid: S.uid++, s: sp.id, t: part.id, q: rar, val: Math.max(2, Math.round(7 * ptById[part.id].mult * RAR.find(r => r.id === rar).mult)) });
+      }
+      const n = teleportToCity();
+      if (!n) return tr('Nessuna città grande trovata', 'No big city found');
+      return '🏛️ ' + n + ' — ' + tr('grezzi raro+ nello zaino: entra nel Museo, parla col Curatore, «Al tavolo»', 'rare+ raw finds in your bag: enter the Museum, talk to the Curator, «To the table»');
+    } },
   /* MINIGIOCO fontana (#3): lo apre ovunque, per provarlo senza cercare una città */
   toss: { aliases: ['fontana', 'fountain'], type: 'action', cheat: true, help: 'toss — apre il minigioco della fontana (mira)',
     run: () => {
