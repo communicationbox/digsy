@@ -285,8 +285,8 @@ export const RU = {
   'clean': 'очистка',
   'intact': 'целостность',
   'value': 'ценность',
-  'Brush: drag to dust it off — the fossil appears (gold outline)': 'Кисть: веди, чтобы смахнуть пыль — покажется ископаемое (золотой контур)',
-  'Chisel: drag on the ROCK to chip it away — stay OUTSIDE the gold outline': 'Зубило: веди по ПОРОДЕ, чтобы скалывать — не заходи за золотой контур',
+  'Brush: drag to dust it off — the pale fossil appears in the rock': 'Кисть: веди, чтобы смахнуть пыль — светлое ископаемое проступит в породе',
+  'Chisel: drag on the dark ROCK to chip it away — don\'t touch the pale fossil': 'Зубило: веди по тёмной ПОРОДЕ, чтобы скалывать — не задевай светлое ископаемое',
   'Spatula: drag on the fossil to clean it — don\'t keep scraping bone that\'s already clean': 'Шпатель: веди по ископаемому, чтобы очистить — не скобли уже чистую кость',
 
   /* ---- missioni ---- */

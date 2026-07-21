@@ -28,15 +28,15 @@ export function prepCandidate() {
 }
 
 const TOOLS = ['pennello', 'scalpello', 'spatola'];
-const TOOL_R = { pennello: 1.9, scalpello: 0.85, spatola: 0.85 };
+const TOOL_R = { pennello: 3.6, scalpello: 1.6, spatola: 1.6 };   // in celle (griglia fine 28×24)
 let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepTool = 'pennello';
 export function isPrepOpen() { return prepOpenFlag; }
 
 /* istruzione dell'attrezzo scelto — tr() LETTERALI (così i18n riconosce le stringhe) */
 function stepText(t) {
-  if (t === 'scalpello') return tr('Scalpello: trascina sulla ROCCIA per staccarla — resta FUORI dal contorno oro', 'Chisel: drag on the ROCK to chip it away — stay OUTSIDE the gold outline');
+  if (t === 'scalpello') return tr('Scalpello: trascina sulla ROCCIA scura per staccarla — non toccare il fossile chiaro', 'Chisel: drag on the dark ROCK to chip it away — don\'t touch the pale fossil');
   if (t === 'spatola') return tr('Spatola: trascina sul fossile per pulirlo — non insistere sull\'osso già pulito', 'Spatula: drag on the fossil to clean it — don\'t keep scraping bone that\'s already clean');
-  return tr('Pennello: trascina per spolverare — comparirà il fossile (contorno oro)', 'Brush: drag to dust it off — the fossil appears (gold outline)');
+  return tr('Pennello: trascina per spolverare — il fossile chiaro appare nella roccia', 'Brush: drag to dust it off — the pale fossil appears in the rock');
 }
 /* maschera dell'OSSO per cella: dove la proiezione voxel del pezzo ha pixel (sfondo trasparente) */
 function boneMaskFor(item, cvw, cvh) {
@@ -48,8 +48,9 @@ function boneMaskFor(item, cvw, cvh) {
     const data = off.getContext('2d').getImageData(0, 0, cvw, cvh).data;
     const cw = Math.floor(cvw / PW), ch = Math.floor(cvh / PH);
     for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
-      const sx = x * cw + (cw >> 1), sy = y * ch + (ch >> 1);
-      if (data[(sy * cvw + sx) * 4 + 3] > 40) { mask[y * PW + x] = 1; n++; }
+      let hit = 0;                                       // osso se QUALSIASI pixel della cella è fossile (parti sottili incluse)
+      for (let yy = y * ch; yy < (y + 1) * ch; yy++) for (let xx = x * cw; xx < (x + 1) * cw; xx++) if (data[(yy * cvw + xx) * 4 + 3] > 40) hit++;
+      if (hit >= 2) { mask[y * PW + x] = 1; n++; }
     }
   } catch (e) { /* niente pixel */ }
   return n ? mask : null;   // silhouette vuota → null: newBoard usa la forma di ripiego
@@ -131,9 +132,9 @@ function drawPrep() {
       c2.fillStyle = t === 0 ? '#544a3c' : t === 1 ? '#605646' : '#453d31';
       c2.fillRect(px, py, cw, ch);
       c2.globalAlpha = 1; c2.fillStyle = 'rgba(0,0,0,.22)'; c2.fillRect(px, py + ch - 2, cw, 2);
-    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA sull'osso (vela leggera)
-      c2.globalAlpha = prepBoard.crust[i] * 0.55;
-      c2.fillStyle = '#9a8b6e'; c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
+    } else if (prepBoard.bone[i] && prepBoard.crust[i] > 0) {     // CROSTA leggera sull'osso (il fossile resta ben visibile)
+      c2.globalAlpha = prepBoard.crust[i] * 0.35;
+      c2.fillStyle = '#8a7a5c'; c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
     }
     if (prepBoard.dust[i] > 0.02) {                               // POLVERE su tutto
       const t = (x * 5 + y * 11) % 3;
@@ -142,22 +143,9 @@ function drawPrep() {
       c2.fillRect(px, py, cw, ch); c2.globalAlpha = 1;
     }
     if (prepBoard.bone[i] && prepBoard.chip[i] > 0.25) {          // CREPA sull'osso rovinato
-      c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, 2, ch - 2);
+      c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, Math.max(1, Math.floor(cw / 3)), ch - 2);
     }
   }
-  /* CONTORNO ORO del fossile: dice DOVE inizia l'osso; si accende man mano che spolveri */
-  const matrixAt = (xx, yy) => xx < 0 || yy < 0 || xx >= PW || yy >= PH || !prepBoard.bone[yy * PW + xx];
-  c2.fillStyle = '#e8b93c';
-  for (let y = 0; y < PH; y++) for (let x = 0; x < PW; x++) {
-    const i = y * PW + x; if (!prepBoard.bone[i]) continue;
-    c2.globalAlpha = Math.max(0, 1 - prepBoard.dust[i]);
-    const px = x * cw, py = y * ch;
-    if (matrixAt(x - 1, y)) c2.fillRect(px, py, 1, ch);
-    if (matrixAt(x + 1, y)) c2.fillRect(px + cw - 1, py, 1, ch);
-    if (matrixAt(x, y - 1)) c2.fillRect(px, py, cw, 1);
-    if (matrixAt(x, y + 1)) c2.fillRect(px, py + ch - 1, cw, 1);
-  }
-  c2.globalAlpha = 1;
   const clean = cleanPct(prepBoard), integ = integrity(prepBoard);
   const fill = document.getElementById('pr-fill'); if (fill) fill.style.width = Math.round(clean * 100) + '%';
   const int = document.getElementById('pr-integ');

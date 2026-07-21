@@ -13,7 +13,7 @@
    Modulo PURO (niente DOM): strati e punteggi si testano da soli. La maschera dell'osso (quali
    celle sono fossile) arriva dal chiamante, dalla proiezione voxel; senza, una forma di ripiego. */
 
-export const W = 14, H = 12;                     // celle (la canvas le scala)
+export const W = 28, H = 24;                     // celle FINI (così anche le parti piccole del fossile si vedono)
 export const TOOLS = ['pennello', 'scalpello', 'spatola'];
 const POWER = { pennello: 0.5, scalpello: 0.45, spatola: 0.45 }; // quanto rimuove per passata
 const HARM = { scalpello: 0.05, spatola: 0.03 };                 // danno per passata quando sbagli
