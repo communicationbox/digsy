@@ -430,9 +430,17 @@ export function tossRarity(luck, roll) {
   a += 0.04 + 0.11 * L; if (roll < a) return 'eccezionale';   // ecc:    .04 → .15
   return 'leggendario';                                       // legg:   .01 → .07
 }
-/* assegna l'esito del lancio con la fortuna del timing (la moneta l'ha già scalata tossCoin) */
-export function grantToss(luck) {
-  const rar = tossRarity(luck, Math.random());
+/* ESITO dei 3 giri. Centrarli TUTTI E TRE = premio ASSICURATO: sempre un reperto (mai nulla),
+   ma di rarità RANDOM pesata verso il basso (comune più probabile, leggendario meno) — così il
+   pieno è sempre soddisfacente senza regalare leggendari a raffica. Con meno centri la fortuna
+   = quanti ne hai presi (0/3, 1/3, 2/3) sposta le probabilità, e può uscire nulla. Puro/testabile. */
+export function tossOutcome(hits, roll) {
+  if (hits >= 3) return roll < 0.50 ? 'comune' : roll < 0.80 ? 'raro' : roll < 0.95 ? 'eccezionale' : 'leggendario';
+  return tossRarity(hits / 3, roll);
+}
+/* assegna l'esito del lancio: hits = quanti dei 3 giri hai centrato (la moneta l'ha già scalata tossCoin) */
+export function grantToss(hits) {
+  const rar = tossOutcome(hits, Math.random());
   if (!rar) {
     toast(tr('🪙 Plin! …solo cerchi nell\'acqua', '🪙 Plink! …just ripples'));
   } else {
@@ -457,8 +465,8 @@ export function tossCoin() {
   playSfx('coin');
   if (f) { if (f.n === 0) f.d0 = S.day; f.n++; } // la finestra dei 10 gg parte dal 1° lancio
   save(); updateHUD();
-  /* apre il minigioco di mira; alla fine grantToss con la fortuna. Se l'UI non c'è → fortuna 0. */
-  import('./ui.js').then(u => { if (u.openToss) u.openToss(luck => grantToss(luck)); else grantToss(0); }).catch(() => grantToss(0));
+  /* apre il minigioco dei 3 giri; alla fine grantToss con i centri (hits). Se l'UI non c'è → 0. */
+  import('./ui.js').then(u => { if (u.openToss) u.openToss(hits => grantToss(hits)); else grantToss(0); }).catch(() => grantToss(0));
 }
 /* ---------- mappe del tesoro: X lontana, scavo garantito della rarità comprata ---------- */
 export const MAP_COST = { raro: 30, eccezionale: 90, leggendario: 260 };

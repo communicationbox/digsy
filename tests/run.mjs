@@ -1327,12 +1327,17 @@ sprites.applyLook();
   check('tossLuck: centro del bersaglio = fortuna piena', gameplay.tossLuck(0.5, 0.5) === 1);
   check('tossLuck: FUORI dalla zona d\'oro = NESSUN boost (0)', gameplay.tossLuck(0.5, 0.62) === 0 && gameplay.tossLuck(0.5, 0.5 + 0.06) === 0 && gameplay.tossLuck(0, 1) === 0);
   check('tossLuck: dentro la zona d\'oro, più centri più fortuna', gameplay.tossLuck(0.5, 0.53) > 0 && gameplay.tossLuck(0.5, 0.53) < 1);
-  /* grantToss dà un GREZZO della rarità estratta (si identifica al museo, come ogni scavo) */
+  /* ESITO 3 giri: centrarli TUTTI E TRE = premio ASSICURATO (mai nulla), rarità random pesata
+     verso il basso (comune più probabile, leggendario meno). Con meno centri può uscire nulla. */
+  check('3/3 = premio assicurato, mai nulla, pesato su comune', gameplay.tossOutcome(3, 0.1) === 'comune' && gameplay.tossOutcome(3, 0.99) === 'leggendario' && [0, 0.25, 0.5, 0.75, 0.999].every(r => gameplay.tossOutcome(3, r) !== null));
+  check('0/3 può uscire nulla (fortuna 0 = probabilità base)', gameplay.tossOutcome(0, 0.3) === null && gameplay.tossOutcome(0, 0.999) === 'leggendario');
+  check('più centri = probabilità migliori', gameplay.tossOutcome(2, 0.5) !== null && gameplay.tossOutcome(0, 0.5) === null);
+  /* grantToss dà un GREZZO (si identifica al museo, come ogni scavo) e mai un pezzo identificato */
   S.coins = 30; const raw0 = S.raw.length, items0 = S.items.length;
-  Math.random = () => 0.999; gameplay.grantToss(0);
-  check('la fontana dà un reperto GREZZO leggendario, mai già identificato', S.raw.length === raw0 + 1 && S.raw[S.raw.length - 1].q === 'leggendario' && S.items.length === items0);
+  Math.random = () => 0.1; gameplay.grantToss(3);
+  check('3 centri → un reperto GREZZO nello zaino, mai identificato', S.raw.length === raw0 + 1 && S.items.length === items0);
   Math.random = () => 0.3; gameplay.grantToss(0);
-  check('roll basso → nulla, niente nello zaino', S.raw.length === raw0 + 1);
+  check('0 centri + roll basso → nulla, niente nello zaino', S.raw.length === raw0 + 1);
   /* tossCoin scala la moneta e conta il lancio (poi aprirebbe il minigioco) */
   Math.random = om; S.fountains = {}; S.coins = 30;
   gameplay.tossCoin();

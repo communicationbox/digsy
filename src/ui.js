@@ -592,50 +592,60 @@ export function openMentor() {
   mBody.innerHTML = withIcons(h); openModal();
 }
 
-/* ---------- FONTANA: minigioco di mira (#3) ---------- */
-let tossOpen = false, tossRAF = 0, tossPos = 0, tossDir = 1, tossTarget = 0.5, tossOnDone = null, tossResolved = false;
-export function isTossOpen() { return tossOpen || tossResolved; }
+/* ---------- FONTANA (#3): 3 GIRI a velocità crescente. Centri tutti e 3 → premio assicurato;
+   altrimenti la fortuna = quanti giri hai centrato. Cozy: niente percentuali a schermo. ---------- */
+const TOSS_SPEEDS = [0.018, 0.028, 0.04];   // il cursore va più veloce ogni giro
+let tossActive = false, tossOpen = false, tossBetween = false, tossRAF = 0;
+let tossPos = 0, tossDir = 1, tossTarget = 0.5, tossRound = 0, tossHits = 0, tossOnDone = null;
+export function isTossOpen() { return tossActive; }
 export function openToss(onDone) {
   const ov = document.getElementById('tossov'); if (!ov) { if (onDone) onDone(0); return; }
   if (typeof requestAnimationFrame === 'undefined') { if (onDone) onDone(0); return; } // niente animazione = niente mira
-  tossOnDone = onDone || null; tossOpen = true; tossResolved = false; tossPos = 0; tossDir = 1;
-  tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni volta
-  const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana della fortuna', 'Wishing fountain'));
-  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il cursore nella zona d\'oro per aumentare la fortuna', 'Stop the marker in the golden zone to boost your luck'));
+  tossOnDone = onDone || null; tossActive = true; tossRound = 0; tossHits = 0;
+  ov.classList.add('on');
+  ov.onclick = () => { if (tossOpen) stopRound(); else if (tossBetween) tossNext(); };
+  startRound();
+}
+function startRound() {
+  tossRound++; tossOpen = true; tossBetween = false; tossPos = 0; tossDir = 1;
+  tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni giro
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
-  ov.classList.add('on');
-  ov.onclick = () => { if (tossOpen) stopToss(); else if (tossResolved) finishToss(); };
+  const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana', 'Fountain') + ' — ' + tr('giro', 'round') + ' ' + tossRound + '/3');
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il cursore nella zona d\'oro!', 'Stop the marker in the golden zone!'));
+  const speed = TOSS_SPEEDS[tossRound - 1] || 0.04;
   const step = () => {
     if (!tossOpen) return;
-    tossPos += tossDir * 0.02; if (tossPos >= 1) { tossPos = 1; tossDir = -1; } else if (tossPos <= 0) { tossPos = 0; tossDir = 1; }
+    tossPos += tossDir * speed; if (tossPos >= 1) { tossPos = 1; tossDir = -1; } else if (tossPos <= 0) { tossPos = 0; tossDir = 1; }
     if (mk) mk.style.left = 'calc(' + (tossPos * 100) + '% - 2px)';
-    tossRAF = (typeof requestAnimationFrame !== 'undefined') ? requestAnimationFrame(step) : 0;
+    tossRAF = requestAnimationFrame(step);
   };
-  if (typeof requestAnimationFrame !== 'undefined') step();
+  step();
 }
-/* FERMA: congela il cursore e MOSTRA l'esito (dove hai centrato + fortuna%). Non chiude subito:
-   così si vede se è andata bene. Poi tap o ~1,3 s → chiude e assegna il reperto. */
-let tossLuckHeld = 0;
-function stopToss() {
+function stopRound() {
   if (!tossOpen) return;
-  tossOpen = false; tossResolved = true;
+  tossOpen = false; tossBetween = true;
   if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
-  tossLuckHeld = tossLuck(tossPos, tossTarget);
-  /* COZY: niente percentuali. Centri la zona d'oro → "Fortuna aumentata!!"; altrimenti niente.
-     La fortuna (0..1) resta SOTTO, usata dalle probabilità, ma non si mostra. */
-  const label = tossLuckHeld > 0 ? tr('Fortuna aumentata!!', 'Luck boosted!!') : tr('Niente fortuna stavolta', 'No extra luck this time');
+  const hit = tossLuck(tossPos, tossTarget) > 0;
+  if (hit) tossHits++;
+  const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = hit ? '#e6b23c' : '#fff';
   const hint = document.getElementById('toss-hint');
-  if (hint) hint.innerHTML = withIcons('<b>' + label + '</b>');
-  const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = tossLuckHeld > 0 ? '#e6b23c' : '#fff';
-  if (typeof setTimeout !== 'undefined') setTimeout(() => { if (tossResolved) finishToss(); }, 1300);
+  if (hint) hint.innerHTML = withIcons('<b>' + (hit ? tr('Centro!', 'Hit!') : tr('Fuori!', 'Miss!')) + '</b> · ' + tossHits + '/' + tossRound);
+  if (typeof setTimeout !== 'undefined') setTimeout(tossNext, 650);   // pausa corta, poi avanti
 }
-function finishToss() {
-  if (!tossResolved) return;
-  tossResolved = false;
-  const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
-  const cb = tossOnDone; tossOnDone = null;
-  if (cb) cb(tossLuckHeld);
+/* passa al giro dopo, o CHIUDE dopo il terzo mostrando l'esito */
+function tossNext() {
+  if (!tossBetween) return; tossBetween = false;
+  if (tossRound < 3) { startRound(); return; }
+  const label = tossHits >= 3 ? tr('Premio assicurato!!', 'Prize guaranteed!!') : tossHits > 0 ? tr('Fortuna aumentata!!', 'Luck boosted!!') : tr('Niente fortuna stavolta', 'No extra luck this time');
+  const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons('<b>' + label + '</b>');
+  const finish = () => {
+    tossActive = false;
+    const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
+    const cb = tossOnDone; tossOnDone = null; if (cb) cb(tossHits);
+  };
+  const ov = document.getElementById('tossov'); if (ov) ov.onclick = () => finish();
+  if (typeof setTimeout !== 'undefined') setTimeout(finish, 1200);
 }
 /* click sulle statistiche dell'HUD (non su zaino/menu) → guida */
 if (typeof document !== 'undefined' && document.getElementById) {
