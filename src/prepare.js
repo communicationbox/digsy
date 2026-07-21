@@ -40,47 +40,42 @@ export function newBoard(seed = 0, boneMask = null) {
   return { dust, rock, crust, chip, bone, seed };
 }
 
-/* applica l'ATTREZZO del passo corrente nel raggio r. Ritorna {work, harm} (lavoro fatto, danno).
-   - pennello: toglie POLVERE ovunque, mai danni.
-   - scalpello: toglie ROCCIA sulla matrice; se centri l'OSSO lo scheggi (harm).
-   - spatola: toglie CROSTA sull'osso; se raschi l'osso GIÀ pulito lo rovini (harm). */
-export function work(board, tool, cx, cy, r) {
+/* cella centrale sotto il cursore (il punto che controlli): dove si valuta il DANNO */
+export function centerCell(cx, cy) {
+  const x = Math.floor(cx), y = Math.floor(cy);
+  return (x < 0 || y < 0 || x >= W || y >= H) ? -1 : y * W + x;
+}
+/* applica l'ATTREZZO su un QUADRATO di celle (mezzo-lato hs). L'area RIMUOVE (uniforme, così ciò
+   che vedi = ciò che agisce); il DANNO è SOLO sulla cella CENTRALE, così è preciso: sbagli solo
+   se metti il centro sull'osso. Ritorna {work, harm}.
+   - pennello: toglie POLVERE, mai danni.
+   - scalpello: toglie ROCCIA (matrice); centro sull'OSSO = scheggia.
+   - spatola: toglie CROSTA (osso); il danno da grattare fermi sta in scrape(). */
+export function work(board, tool, cx, cy, hs) {
   if (!board) return { work: 0, harm: 0 };
   let done = 0, harm = 0;
-  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
-  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const d = Math.hypot(x - cx, y - cy); if (d > r) continue;
-    const i = y * W + x, fall = 1 - d / r;
-    if (tool === 'pennello') {
-      if (board.dust[i] > 0) { const dd = Math.min(board.dust[i], POWER.pennello * fall); board.dust[i] -= dd; done += dd; }
-    } else if (tool === 'scalpello') {
-      if (board.dust[i] > 0.5) continue;                 // prima si spolvera: la roccia si stacca dopo
-      if (!board.bone[i]) { if (board.rock[i] > 0) { const dd = Math.min(board.rock[i], POWER.scalpello * fall); board.rock[i] -= dd; done += dd; } }
-      else { const h = HARM.scalpello * fall; board.chip[i] = Math.min(1, board.chip[i] + h); harm += h; } // colpito il fossile
-    } else if (tool === 'spatola') {
-      if (board.dust[i] > 0.5) continue;
-      if (board.bone[i] && board.crust[i] > 0) { const dd = Math.min(board.crust[i], POWER.spatola * fall); board.crust[i] -= dd; done += dd; } // pulire è SEMPRE sicuro
+  const cxi = Math.floor(cx), cyi = Math.floor(cy);
+  for (let y = Math.max(0, cyi - hs); y <= Math.min(H - 1, cyi + hs); y++)
+    for (let x = Math.max(0, cxi - hs); x <= Math.min(W - 1, cxi + hs); x++) {
+      const i = y * W + x;
+      if (tool === 'pennello') { if (board.dust[i] > 0) { const dd = Math.min(board.dust[i], POWER.pennello); board.dust[i] -= dd; done += dd; } }
+      else if (tool === 'scalpello') { if (board.dust[i] <= 0.5 && !board.bone[i] && board.rock[i] > 0) { const dd = Math.min(board.rock[i], POWER.scalpello); board.rock[i] -= dd; done += dd; } }
+      else if (tool === 'spatola') { if (board.dust[i] <= 0.5 && board.bone[i] && board.crust[i] > 0) { const dd = Math.min(board.crust[i], POWER.spatola); board.crust[i] -= dd; done += dd; } }
     }
+  if (tool === 'scalpello') {                            // danno SOLO al centro
+    const ci = centerCell(cx, cy);
+    if (ci >= 0 && board.bone[ci] && board.dust[ci] <= 0.5) { board.chip[ci] = Math.min(1, board.chip[ci] + HARM.scalpello); harm += HARM.scalpello; }
   }
   return { work: done, harm };
 }
 
-/* GRATTARE fermi con la spatola: si chiama UNA volta per movimento (non per sotto-passo), rovina
-   solo l'osso GIÀ PULITO (crosta finita). Passarci sopra pulendo è sicuro; insistere fermi no. */
-export function scrape(board, cx, cy, r = 1.6) {
+/* GRATTARE fermi con la spatola: UNA volta per movimento (non per sotto-passo), rovina SOLO la
+   cella CENTRALE se è osso GIÀ PULITO. Passarci sopra pulendo è sicuro; insistere fermi no. */
+export function scrape(board, cx, cy) {
   if (!board) return 0;
-  let harm = 0;
-  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
-  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    const d = Math.hypot(x - cx, y - cy); if (d > r) continue;
-    const i = y * W + x;
-    if (board.bone[i] && board.crust[i] <= 0.001 && board.dust[i] <= 0.5 && board.chip[i] < 1) {
-      const h = SCRAPE * (1 - d / r); board.chip[i] = Math.min(1, board.chip[i] + h); harm += h;
-    }
-  }
-  return harm;
+  const ci = centerCell(cx, cy);
+  if (ci < 0 || !board.bone[ci] || board.crust[ci] > 0.001 || board.dust[ci] > 0.5 || board.chip[ci] >= 1) return 0;
+  board.chip[ci] = Math.min(1, board.chip[ci] + SCRAPE); return SCRAPE;
 }
 
 /* avanzamento dei tre passi (frazione COMPLETATA, 0..1) */

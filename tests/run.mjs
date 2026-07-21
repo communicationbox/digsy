@@ -4607,34 +4607,36 @@ sprites.applyLook();
 {
   const S = state.S;
   const pr = await import('../src/prepare.js');
-  const allCells = (bd, tool, r) => { for (let k = 0; k < 8; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.work(bd, tool, x, y, r); };
+  const allCells = (bd, tool, hs) => { for (let k = 0; k < 8; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.work(bd, tool, x + 0.5, y + 0.5, hs); };
   const findCell = (bd, wantBone) => { for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) { const i = y * pr.W + x; if (!!bd.bone[i] === wantBone) return [x, y, i]; } return [-1, -1, -1]; };
+  const CTR = c => c + 0.5;   // centro della cella c (le coord in celle sono frazionarie)
   const b = pr.newBoard(7);
   check('all\'inizio tutto coperto di polvere, osso intatto', pr.dustPct(b) < 0.1 && pr.integrity(b) === 1);
   check('stesso reperto = stesso stato', JSON.stringify(pr.newBoard(7)) === JSON.stringify(b));
   check('grado: pulito e intatto = perfetto ×1.5', pr.gradeFor(1, 1).id === 'perfetto' && pr.gradeFor(1, 1).mult === 1.5);
   check('grado: niente = nessun bonus, MAI una penalità', pr.gradeFor(0, 1).mult === 1 && pr.gradeFor(0, 1).xp === 0);
+  check('cella centrale = quella sotto il punto del cursore', pr.centerCell(CTR(3), CTR(2)) === 2 * pr.W + 3 && pr.centerCell(-1, 0) === -1);
   /* PASSO 1 — PENNELLO: spolvera ovunque, MAI danni */
-  { const bb = pr.newBoard(3); allCells(bb, 'pennello', 1.9);
+  { const bb = pr.newBoard(3); allCells(bb, 'pennello', 2);
     check('il pennello spolvera senza danni', pr.dustPct(bb) > 0.9 && pr.integrity(bb) === 1); }
-  /* PASSO 2 — SCALPELLO: stacca la roccia dalla matrice; sull'OSSO scheggia */
-  { const bb = pr.newBoard(3); allCells(bb, 'pennello', 1.9);        // prima spolvera
+  /* PASSO 2 — SCALPELLO: box toglie la roccia; il DANNO è solo se il CENTRO è sull'osso */
+  { const bb = pr.newBoard(3); allCells(bb, 'pennello', 2);          // prima spolvera
     const [mx, my, mi] = findCell(bb, false), [bx, by] = findCell(bb, true);
-    const rock0 = bb.rock[mi]; pr.work(bb, 'scalpello', mx, my, 0.85);
-    check('lo scalpello stacca la roccia dalla matrice', bb.rock[mi] < rock0);
+    const rock0 = bb.rock[mi]; pr.work(bb, 'scalpello', CTR(mx), CTR(my), 1);
+    check('lo scalpello (centro sulla ROCCIA) stacca la roccia senza danni', bb.rock[mi] < rock0 && pr.integrity(bb) === 1);
     const i0 = pr.integrity(bb);
-    for (let k = 0; k < 6; k++) pr.work(bb, 'scalpello', bx, by, 0.85);
-    check('lo scalpello sull\'OSSO lo scheggia (integrità cala)', pr.integrity(bb) < i0); }
-  /* PASSO 3 — SPATOLA: PULIRE la crosta è sempre sicuro (passarci sopra non scheggia); il danno
-     viene solo da GRATTARE FERMI l'osso già pulito (scrape, una volta per movimento) */
-  { const bb = pr.newBoard(5); allCells(bb, 'pennello', 3.6);
+    for (let k = 0; k < 6; k++) pr.work(bb, 'scalpello', CTR(bx), CTR(by), 1);
+    check('lo scalpello col CENTRO sull\'osso lo scheggia (integrità cala)', pr.integrity(bb) < i0); }
+  /* PASSO 3 — SPATOLA: PULIRE è sempre sicuro; il danno viene solo da GRATTARE FERMI (scrape) il
+     centro sull'osso GIÀ pulito */
+  { const bb = pr.newBoard(5); allCells(bb, 'pennello', 2);
     const [ox, oy, oi] = findCell(bb, true);
     const crust0 = bb.crust[oi];
-    for (let k = 0; k < 6; k++) pr.work(bb, 'spatola', ox, oy, 1.6);   // pulisci a fondo quella cella
+    for (let k = 0; k < 6; k++) pr.work(bb, 'spatola', CTR(ox), CTR(oy), 1);   // pulisci a fondo quella cella
     check('la spatola toglie la crosta dall\'osso', bb.crust[oi] < crust0);
     check('pulire la crosta NON scheggia (integrità piena)', pr.integrity(bb) === 1);
     const i0 = pr.integrity(bb);
-    for (let k = 0; k < 30; k++) pr.scrape(bb, ox, oy, 1.6);           // poi gratta FERMI l'osso pulito
+    for (let k = 0; k < 30; k++) pr.scrape(bb, CTR(ox), CTR(oy));      // poi gratta FERMI l'osso pulito
     check('grattare fermi l\'osso già pulito lo rovina (integrità cala)', pr.integrity(bb) < i0); }
   {
     const it = { uid: 1, s: 'lepre', t: 'cranio', q: 'raro', val: 40 };

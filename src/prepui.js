@@ -9,7 +9,7 @@ import { S, save } from './state.js';
 import { spById } from './data.js';
 import { partVoxels } from './bones.js';
 import { projectVox } from './voxview.js';
-import { newBoard, work, scrape, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
+import { newBoard, work, scrape, centerCell, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
 import { withIcons } from './icons.js';
 import { tr, partName } from './i18n.js';
 import { playSfx } from './audio.js';
@@ -28,24 +28,19 @@ export function prepCandidate() {
 }
 
 const TOOLS = ['pennello', 'scalpello', 'spatola'];
-const TOOL_R = { pennello: 3.6, scalpello: 1.6, spatola: 1.6 };   // in celle (griglia fine 28×24)
+const TOOL_HS = { pennello: 2, scalpello: 1, spatola: 1 };        // mezzo-lato del QUADRATO d'azione (celle)
 let prepBoard = null, prepItem = null, prepAfter = null, prepOpenFlag = false, prepTool = 'pennello';
 let prepCursor = { x: 0, y: 0, on: false };   // area d'azione dell'attrezzo (segue il puntatore)
 export function isPrepOpen() { return prepOpenFlag; }
 
-/* il cursore rovinerebbe l'osso qui? (per colorarlo di rosso) — scalpello: c'è osso nel raggio;
-   spatola: c'è osso GIÀ PULITO nel raggio (grattarlo lo scheggia). Pennello: mai. */
-function dangerAt(tool, cx, cy, r) {
+/* il cursore rovinerebbe l'osso qui? (per colorarlo di rosso) — si guarda la cella CENTRALE, dove
+   avviene il danno: scalpello sull'osso; spatola sull'osso GIÀ PULITO. Pennello: mai. */
+function dangerAt(tool, cx, cy) {
   if (!prepBoard || tool === 'pennello') return false;
-  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(PW - 1, Math.ceil(cx + r));
-  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(PH - 1, Math.ceil(cy + r));
-  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
-    if (Math.hypot(x - cx, y - cy) > r) continue;
-    const i = y * PW + x; if (!prepBoard.bone[i]) continue;
-    if (tool === 'scalpello') return true;
-    if (tool === 'spatola' && prepBoard.crust[i] <= 0.001 && prepBoard.dust[i] <= 0.5) return true;
-  }
-  return false;
+  const i = centerCell(cx, cy);
+  if (i < 0 || !prepBoard.bone[i]) return false;
+  if (tool === 'scalpello') return true;
+  return tool === 'spatola' && prepBoard.crust[i] <= 0.001 && prepBoard.dust[i] <= 0.5;
 }
 
 /* istruzione dell'attrezzo scelto — tr() LETTERALI (così i18n riconosce le stringhe) */
@@ -99,13 +94,13 @@ export function openPrepare(item, after) {
       return { cx: (p.clientX - r.left) / r.width * PW, cy: (p.clientY - r.top) / r.height * PH };
     };
     const apply = (cx, cy) => {
-      const r = TOOL_R[prepTool];
+      const hs = TOOL_HS[prepTool];
       const d = Math.hypot(cx - lx, cy - ly), steps = Math.max(1, Math.floor(d / 0.7));
       let workDone = 0, harm = 0;
-      for (let k = 1; k <= steps; k++) { const res = work(prepBoard, prepTool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, r); workDone += res.work; harm += res.harm; }
-      /* SPATOLA: il danno viene solo da GRATTARE FERMI (over-scrape), valutato UNA volta per
-         movimento — non per sotto-passo — così pulire passandoci sopra è sempre sicuro. */
-      if (prepTool === 'spatola') harm += scrape(prepBoard, cx, cy, r);
+      for (let k = 1; k <= steps; k++) { const res = work(prepBoard, prepTool, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, hs); workDone += res.work; harm += res.harm; }
+      /* SPATOLA: il danno viene solo da GRATTARE FERMI (over-scrape) sulla cella centrale, valutato
+         UNA volta per movimento — non per sotto-passo — così pulire passandoci sopra è sicuro. */
+      if (prepTool === 'spatola') harm += scrape(prepBoard, cx, cy);
       lx = cx; ly = cy;
       if (workDone > 0.01 || harm > 0.001) { drawPrep(); if (harm > 0.02) playSfx('nope'); else if (workDone > 0.01) playSfx('dig'); }
     };
@@ -170,16 +165,25 @@ function drawPrep() {
       c2.fillStyle = '#7a3020'; c2.fillRect(px + Math.floor(cw * 0.4), py + 1, Math.max(1, Math.floor(cw / 3)), ch - 2);
     }
   }
-  /* CURSORE: mostra l'AREA d'azione dell'attrezzo (raggio) e avvisa in ROSSO se rovineresti
-     l'osso → così è skill, non tentativi alla cieca. */
+  /* CURSORE 8-BIT: un QUADRATO allineato alle celle mostra ESATTAMENTE dove agisce l'attrezzo;
+     la cella CENTRALE è marcata (lì avviene il danno) e diventa ROSSA se rovineresti l'osso.
+     Così è preciso e skill, non tentativi alla cieca. */
   if (prepCursor.on) {
-    const r = TOOL_R[prepTool], rad = r * cw, ccx = prepCursor.x * cw, ccy = prepCursor.y * ch;
-    const danger = dangerAt(prepTool, prepCursor.x, prepCursor.y, r);
-    const col = danger ? '#e0533a' : prepTool === 'pennello' ? 'rgba(255,246,220,.85)' : '#7fe0cf';
-    if (danger) { c2.globalAlpha = 0.18; c2.fillStyle = col; if (c2.beginPath) { c2.beginPath(); c2.arc(ccx, ccy, rad, 0, Math.PI * 2); c2.fill(); } c2.globalAlpha = 1; }
-    c2.strokeStyle = col; c2.lineWidth = 2;
-    if (c2.beginPath) { c2.beginPath(); c2.arc(ccx, ccy, rad, 0, Math.PI * 2); c2.stroke(); }
-    c2.fillStyle = col; c2.fillRect(Math.round(ccx) - 1, Math.round(ccy) - 1, 2, 2);
+    const hs = TOOL_HS[prepTool];
+    const cxi = Math.floor(prepCursor.x), cyi = Math.floor(prepCursor.y);
+    const x0 = Math.max(0, cxi - hs), y0 = Math.max(0, cyi - hs), x1 = Math.min(PW - 1, cxi + hs), y1 = Math.min(PH - 1, cyi + hs);
+    const bx = x0 * cw, by = y0 * ch, bw = (x1 - x0 + 1) * cw, bh = (y1 - y0 + 1) * ch;
+    const danger = dangerAt(prepTool, prepCursor.x, prepCursor.y);
+    const col = prepTool === 'pennello' ? '#fff6dc' : '#7fe0cf';
+    c2.fillStyle = col;                                  // bordo del quadrato (mattoncini netti)
+    c2.fillRect(bx, by, bw, 1); c2.fillRect(bx, by + bh - 1, bw, 1);
+    c2.fillRect(bx, by, 1, bh); c2.fillRect(bx + bw - 1, by, 1, bh);
+    if (cxi >= 0 && cyi >= 0 && cxi < PW && cyi < PH) {  // cella CENTRALE = punto del danno
+      const dcol = danger ? '#e0533a' : col;
+      c2.globalAlpha = danger ? 0.5 : 0.28; c2.fillStyle = dcol; c2.fillRect(cxi * cw, cyi * ch, cw, ch); c2.globalAlpha = 1;
+      c2.fillStyle = dcol; c2.fillRect(cxi * cw, cyi * ch, cw, 1); c2.fillRect(cxi * cw, cyi * ch + ch - 1, cw, 1);
+      c2.fillRect(cxi * cw, cyi * ch, 1, ch); c2.fillRect(cxi * cw + cw - 1, cyi * ch, 1, ch);
+    }
   }
   const clean = cleanPct(prepBoard), integ = integrity(prepBoard);
   const fill = document.getElementById('pr-fill'); if (fill) fill.style.width = Math.round(clean * 100) + '%';
