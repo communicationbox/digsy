@@ -593,19 +593,19 @@ export function openMentor() {
 }
 
 /* ---------- FONTANA: minigioco di mira (#3) ---------- */
-let tossOpen = false, tossRAF = 0, tossPos = 0, tossDir = 1, tossTarget = 0.5, tossOnDone = null, tossWired = false;
-export function isTossOpen() { return tossOpen; }
+let tossOpen = false, tossRAF = 0, tossPos = 0, tossDir = 1, tossTarget = 0.5, tossOnDone = null, tossResolved = false;
+export function isTossOpen() { return tossOpen || tossResolved; }
 export function openToss(onDone) {
   const ov = document.getElementById('tossov'); if (!ov) { if (onDone) onDone(0); return; }
   if (typeof requestAnimationFrame === 'undefined') { if (onDone) onDone(0); return; } // niente animazione = niente mira
-  tossOnDone = onDone || null; tossOpen = true; tossPos = 0; tossDir = 1;
+  tossOnDone = onDone || null; tossOpen = true; tossResolved = false; tossPos = 0; tossDir = 1;
   tossTarget = 0.12 + Math.random() * 0.76;                    // bersaglio casuale ogni volta
   const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Fontana della fortuna', 'Wishing fountain'));
   const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Tocca per fermare il cursore sulla zona d\'oro', 'Tap to stop the marker on the golden zone'));
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
+  const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
   ov.classList.add('on');
-  if (!tossWired) { tossWired = true; ov.onclick = () => stopToss(); }
-  const mk = document.getElementById('toss-marker');
+  ov.onclick = () => { if (tossOpen) stopToss(); else if (tossResolved) finishToss(); };
   const step = () => {
     if (!tossOpen) return;
     tossPos += tossDir * 0.02; if (tossPos >= 1) { tossPos = 1; tossDir = -1; } else if (tossPos <= 0) { tossPos = 0; tossDir = 1; }
@@ -614,14 +614,26 @@ export function openToss(onDone) {
   };
   if (typeof requestAnimationFrame !== 'undefined') step();
 }
+/* FERMA: congela il cursore e MOSTRA l'esito (dove hai centrato + fortuna%). Non chiude subito:
+   così si vede se è andata bene. Poi tap o ~1,3 s → chiude e assegna il reperto. */
+let tossLuckHeld = 0;
 function stopToss() {
   if (!tossOpen) return;
-  const luck = tossLuck(tossPos, tossTarget);
-  tossOpen = false;
+  tossOpen = false; tossResolved = true;
   if (tossRAF && typeof cancelAnimationFrame !== 'undefined') cancelAnimationFrame(tossRAF);
+  tossLuckHeld = tossLuck(tossPos, tossTarget);
+  const label = tossLuckHeld >= 0.85 ? tr('In pieno!', 'Bullseye!') : tossLuckHeld >= 0.5 ? tr('Vicino', 'Close') : tr('Fuori', 'Missed');
+  const hint = document.getElementById('toss-hint');
+  if (hint) hint.innerHTML = withIcons('<b>' + label + '</b> — ' + tr('fortuna', 'luck') + ' ' + Math.round(tossLuckHeld * 100) + '%');
+  const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = tossLuckHeld >= 0.5 ? '#e6b23c' : '#fff';
+  if (typeof setTimeout !== 'undefined') setTimeout(() => { if (tossResolved) finishToss(); }, 1300);
+}
+function finishToss() {
+  if (!tossResolved) return;
+  tossResolved = false;
   const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
   const cb = tossOnDone; tossOnDone = null;
-  if (cb) cb(luck);
+  if (cb) cb(tossLuckHeld);
 }
 /* click sulle statistiche dell'HUD (non su zaino/menu) → guida */
 if (typeof document !== 'undefined' && document.getElementById) {

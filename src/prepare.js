@@ -38,9 +38,9 @@ export function newBoard(seed = 0, boneMask = null) {
   return { dirt, chip, bone, seed, strokes: 0 };
 }
 
-/* passata di attrezzo. opts = { r, gentle } (o un numero = raggio, per compat).
-   Toglie terra in modo GRADUALE (float); sull'osso già scoperto la spazzola (non gentile)
-   lo scheggia. Ritorna il "lavoro" fatto (terra tolta) per gli effetti sonori. */
+/* passata di attrezzo: TOGLIE SOLO TERRA (non scheggia mai — scoprire dev'essere sicuro, o il
+   gesto è ingiocabile). opts = { r, gentle } (o un numero = raggio, per compat).
+   Ritorna il "lavoro" fatto (terra tolta) per gli effetti sonori. */
 export function brush(board, cx, cy, opts) {
   if (!board) return 0;
   const o = typeof opts === 'number' ? { r: opts } : (opts || {});
@@ -52,10 +52,28 @@ export function brush(board, cx, cy, opts) {
     const d = Math.hypot(x - cx, y - cy); if (d > r) continue;
     const i = y * W + x, fall = 1 - d / r;
     if (board.dirt[i] > 0) { const dd = Math.min(board.dirt[i], power * fall); board.dirt[i] -= dd; work += dd; }
-    else if (board.bone[i] && !gentle) { board.chip[i] = Math.min(1, board.chip[i] + 0.34 * fall); } // osso scoperto + spazzola = scheggia
   }
   if (work > 0.01) board.strokes++;
   return work;
+}
+
+/* SFREGARE: si chiama UNA volta per movimento (non per sotto-passo dell'interpolazione), e solo
+   con la spazzola larga. Scheggia SOLO l'osso GIÀ pulito, a rate basso: spazzolare per scoprire
+   è sempre sicuro (l'osso ha ancora terra); solo GRATTARE a lungo l'osso nudo lo rovina. */
+export const STRAIN = 0.02;
+export function strain(board, cx, cy, r = 1.7) {
+  if (!board) return 0;
+  let added = 0;
+  const x0 = Math.max(0, Math.floor(cx - r)), x1 = Math.min(W - 1, Math.ceil(cx + r));
+  const y0 = Math.max(0, Math.floor(cy - r)), y1 = Math.min(H - 1, Math.ceil(cy + r));
+  for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+    const d = Math.hypot(x - cx, y - cy); if (d > r) continue;
+    const i = y * W + x;
+    if (board.bone[i] && board.dirt[i] <= 0.001 && board.chip[i] < 1) {   // solo osso NUDO
+      const inc = STRAIN * (1 - d / r); board.chip[i] = Math.min(1, board.chip[i] + inc); added += inc;
+    }
+  }
+  return added;
 }
 
 /* PULIZIA = quanto osso hai scoperto (se non c'è maschera, quanta crosta hai tolto). */

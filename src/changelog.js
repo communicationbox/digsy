@@ -10,7 +10,7 @@ export const CHANGELOG = [
       'I tetti degli edifici mostrano il MATERIALE del bioma (coppi, conci, scandole, tegole, paglia, ardesia) e nelle Lande si innevano tutti',
       'RESTAURO al tavolo del Museo: spazzola la crosta e scopri il fossile, ma non scheggiare l\'osso — usa la stecca fine sui bordi (Pulizia + Integrità)',
       'FONTANA: un minigioco di mira — ferma il cursore sulla zona d\'oro per migliorare le probabilità del reperto',
-      'LUCCIOLE: di notte, all\'aperto, piccole luci da raccogliere passandoci vicino',
+      'LUCCIOLE: missione STAGIONALE (d\'estate) dal cartello — di notte, all\'aperto, raccogli le lucciole col retino (con contatore)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'MUSIC changes biome in HARMONY: the key shifts to a near one, on the beat — no more jarring out-of-tune cuts',
@@ -21,7 +21,7 @@ export const CHANGELOG = [
       'Building roofs now show their biome MATERIAL (curved tiles, stone, shingles, tiles, thatch, slate) and get snow-capped in the Frozen Wastes',
       'RESTORATION at the Museum table: brush off the crust to reveal the fossil, but don\'t chip the bone — use the fine tool on the edges (Cleaned + Intact)',
       'FOUNTAIN: an aim minigame — stop the marker on the golden zone to improve your find\'s odds',
-      'FIREFLIES: at night, outdoors, little lights to gather by walking near them',
+      'FIREFLIES: a SEASONAL quest (summer) from the board — at night, outdoors, catch fireflies with a net (with a counter)',
       'SETTINGS: Language and Audio on top, Anonymous stats at the very bottom',
     ],
   },

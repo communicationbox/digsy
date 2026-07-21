@@ -4584,13 +4584,17 @@ sprites.applyLook();
   check('una passata toglie terra', pr.brush(b, 5, 5, { r: 2 }) > 0);
   check('grado: pulito e intatto = perfetto ×1.5', pr.gradeFor(1, 1).id === 'perfetto' && pr.gradeFor(1, 1).mult === 1.5);
   check('grado: niente pulizia = nessun bonus, MAI una penalità', pr.gradeFor(0, 1).mult === 1 && pr.gradeFor(0, 1).xp === 0);
-  /* SKILL del restauro: la stecca gentile scopre senza rovinare; la spazzola sull'osso scoperto scheggia */
+  /* SKILL del restauro: PULIRE (spazzola/stecca) non scheggia MAI — scoprire è sicuro, o il
+     gesto è ingiocabile (tenere premuto e muovere mandava l'integrità a metà). Solo GRATTARE
+     a lungo l'osso NUDO (strain) lo rovina. */
   {
     const bb = pr.newBoard(3);
-    for (let k = 0; k < 12; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(bb, x, y, { r: 1.2, gentle: true });
-    check('la stecca fine scopre l\'osso senza scheggiare', pr.cleanPct(bb) > 0.9 && pr.integrity(bb) === 1);
-    for (let k = 0; k < 10; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(bb, x, y, { r: 1.2 });
-    check('la spazzola sull\'osso scoperto lo scheggia (integrità cala)', pr.integrity(bb) < 1);
+    for (let k = 0; k < 12; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.brush(bb, x, y, { r: 1.2 });
+    check('spazzolare per scoprire l\'osso NON lo scheggia', pr.cleanPct(bb) > 0.9 && pr.integrity(bb) === 1);
+    const sporco = pr.newBoard(3);
+    check('sfregare l\'osso ancora sporco non fa nulla', (pr.strain(sporco, 7, 6, 1.5), pr.integrity(sporco) === 1));
+    for (let k = 0; k < 60; k++) for (let y = 0; y < pr.H; y++) for (let x = 0; x < pr.W; x++) pr.strain(bb, x, y, 1.2);
+    check('grattare a lungo l\'osso scoperto lo scheggia (integrità cala)', pr.integrity(bb) < 1);
   }
   {
     const it = { uid: 1, s: 'lepre', t: 'cranio', q: 'raro', val: 40 };
@@ -4616,24 +4620,38 @@ sprites.applyLook();
   }
 }
 
-/* ---------- LUCCIOLE (#5): compaiono di notte all'aperto e si raccolgono ---------- */
+/* ---------- LUCCIOLE (#5): minigioco notturno legato alla missione stagionale ---------- */
 {
   const ff = await import('../src/firefly.js');
+  const qm = await import('../src/quests.js');
+  const dn = await import('../src/daynight.js');
   const S = state.S;
   ff.resetFireflies();
   P.x = 0; P.y = 0;
+
+  // la missione lucciole è STAGIONALE (estate) e va accettata perché il minigioco parta
+  let summer = -1, other = -1;
+  for (let d = 0; d < 12 && (summer < 0 || other < 0); d++) { if (dn.seasonOf(d) === qm.FIREFLY_SEASON) { if (summer < 0) summer = d; } else if (other < 0) other = d; }
+  const hasFire = day => { for (let cx = 0; cx < 8; cx++) for (let cy = 0; cy < 8; cy++) if (qm.boardOffers(cx, cy, day).some(o => o.type === 'fireflies')) return true; return false; };
+  check('la missione lucciole compare SOLO d\'estate', hasFire(summer) === true && hasFire(other) === false);
+
+  S.fireflies = 0;
+  S.quests = { day: S.day, active: [], done: [] };
   ff.updateFireflies(0, 0.9);
-  check('di notte compaiono lucciole', ff.fireflyCount() > 0);
-  ff.updateFireflies(120, 0.1);
+  check('senza la missione, di notte NON partono le lucciole', ff.fireflyCount() === 0);
+  S.quests.active = [{ type: 'fireflies', n: 5, base: (S.fireflies || 0), qid: 'ff', day: S.day }];
+  ff.updateFireflies(20, 0.9);
+  check('con la missione attiva, di notte compaiono lucciole', ff.fireflyCount() > 0);
+  ff.updateFireflies(140, 0.1);
   check('di giorno le lucciole spariscono', ff.fireflyCount() === 0);
-  ff.updateFireflies(240, 0.9);
+  ff.updateFireflies(260, 0.9);
   const flies = ff._fliesForTest();
   flies[0].x = P.x; flies[0].y = P.y + 8;                 // metti una lucciola SUL player
   const before = S.fireflies || 0;
-  ff.updateFireflies(260, 0.9);
-  check('passandoci sopra, la lucciola si raccoglie (il conteggio sale)', (S.fireflies || 0) > before);
-  check('il conteggio delle lucciole è un numero (sta nel salvataggio)', typeof S.fireflies === 'number');
+  ff.updateFireflies(276, 0.9);
+  check('passandoci sopra, la lucciola si raccoglie e la missione avanza', (S.fireflies || 0) > before && qm.questHave(S.quests.active[0]) > 0);
   ff.resetFireflies();
+  S.quests = null; S.fireflies = 0;
 }
 
 /* ---------- FINESTRE DI PRESENZA (specie notturne e stagionali) ---------- */

@@ -4,7 +4,10 @@ import { S } from './state.js';
 import { gainXp } from './gameplay.js';
 import { vhash } from './noise.js';
 import { PARTS, goodById } from './data.js';
+import { seasonOf } from './daynight.js';
 import { LANG, tr, partName, rarLabel } from './i18n.js';
+
+export const FIREFLY_SEASON = 1;   // ESTATE (🌸0 ☀️1 🍂2 ❄️3): le lucciole escono solo d'estate
 
 export const MAX_ACTIVE = 3;
 const GIVERS = [['Curatore', 'Curator'], ['Mastro Ossa', 'Bone Master'], ['Perla', 'Pearl'], ['Cavatore', 'Digger'], ['Sarta', 'Tailor'], ['Oste', 'Innkeeper']];
@@ -26,21 +29,28 @@ export function boardOffers(cx, cy, day) {
     const gi = Math.floor(vhash(cx + i, cy + day, 410 + i) * GIVERS.length);
     const qid = cx + ',' + cy + ',' + day + ',' + i;
     let q;
-    if (r < 0.42) { // reperti di una rarità
+    if (r < 0.40) { // reperti di una rarità
       const rar = ['comune', 'raro', 'eccezionale'][Math.floor(vhash(cx, cy + i, 420 + day) * 3)];
       const n = rar === 'comune' ? 3 : rar === 'raro' ? 2 : 1;
       const reward = ({ comune: 14, raro: 34, eccezionale: 80 })[rar] * n;
       q = { type: 'fossils', rar, n, reward };
-    } else if (r < 0.76) { // oggetti di superficie
+    } else if (r < 0.68) { // oggetti di superficie
       const g = ALL_GOODS[Math.floor(vhash(cx + i, cy, 430 + day) * ALL_GOODS.length)];
       const n = 2 + Math.floor(vhash(cx, cy + i, 440 + day) * 4);
       const reward = Math.round(g.val * n * 1.5) + 6; // poco sopra la vendita diretta, non troppo
       q = { type: 'goods', goodId: g.id, n, reward };
-    } else { // pezzi (qualsiasi specie)
+    } else if (r < 0.84) { // pezzi (qualsiasi specie)
       const part = PARTS[Math.floor(vhash(cx + i, cy + i, 450 + day) * PARTS.length)].id;
       const n = 1 + Math.floor(vhash(cx, cy, 460 + day + i) * 2);
       const reward = Math.round(20 * ptById(part) * n) + 6;
       q = { type: 'part', part, n, reward };
+    } else if (seasonOf(day) === FIREFLY_SEASON) { // CATTURA LUCCIOLE: SOLO D'ESTATE. Accettandola,
+      const n = 5 + Math.floor(vhash(cx, cy + i, 470 + day) * 6); // 5..10   quella notte parte il minigioco
+      q = { type: 'fireflies', n, reward: n * 4 + 10 };
+    } else { // fuori stagione: al posto delle lucciole, una richiesta di pezzi
+      const part = PARTS[Math.floor(vhash(cx + i, cy + i, 450 + day) * PARTS.length)].id;
+      const n = 1 + Math.floor(vhash(cx, cy, 460 + day + i) * 2);
+      q = { type: 'part', part, n, reward: Math.round(20 * ptById(part) * n) + 6 };
     }
     q.qid = qid; q.giver = gi;
     out.push(q);
@@ -53,14 +63,18 @@ function ptById(id) { const p = PARTS.find(x => x.id === id); return p ? p.mult 
 export function questText(q) {
   if (q.type === 'fossils') return tr('Consegna ', 'Deliver ') + q.n + ' ' + tr('reperti', 'finds') + ' ' + rarLabel(q.rar);
   if (q.type === 'goods') { const g = goodById[q.goodId]; return tr('Porta ', 'Bring ') + q.n + '× ' + tr(g.it, g.en); }
+  if (q.type === 'fireflies') return tr('Cattura ', 'Catch ') + q.n + ' ' + tr('lucciole (di notte, all\'aperto)', 'fireflies (at night, outdoors)');
   return tr('Porta ', 'Bring ') + q.n + '× ' + partName(q.part) + ' ' + tr('(di qualsiasi specie)', '(any species)');
 }
 /* quanti pezzi hai già verso la richiesta */
 export function questHave(q) {
   if (q.type === 'fossils') return (S.items || []).filter(it => it.q === q.rar).length;
   if (q.type === 'goods') return (S.goods || []).filter(g => g.id === q.goodId).length;
+  if (q.type === 'fireflies') return Math.max(0, (S.fireflies || 0) - (q.base != null ? q.base : (S.fireflies || 0))); // catturate da quando l'hai accettata
   return (S.items || []).filter(it => it.t === q.part).length;
 }
+/* la missione lucciole ATTIVA (se c'è): accende il minigioco notturno. null se non c'è. */
+export function fireflyQuest() { return activeQuests().find(q => q.type === 'fireflies') || null; }
 export function canComplete(q) { return questHave(q) >= q.n; }
 export function isActive(qid) { return (S.quests && S.quests.active || []).some(q => q.qid === qid); }
 export function isDone(qid) { return (S.quests && S.quests.done || []).includes(qid); }
@@ -69,7 +83,9 @@ export function acceptQuest(offer, day) {
   ensureQuests(day);
   if (isActive(offer.qid) || isDone(offer.qid)) return false;
   if (S.quests.active.length >= MAX_ACTIVE) return 'full';
-  S.quests.active.push({ ...offer, day });
+  const q = { ...offer, day };
+  if (q.type === 'fireflies') q.base = S.fireflies || 0; // conta le lucciole prese DA ORA
+  S.quests.active.push(q);
   return true;
 }
 /* consegna: consuma i pezzi richiesti, accredita la ricompensa, sposta in "done" */
@@ -78,7 +94,8 @@ export function deliverQuest(qid) {
   if (!q || !canComplete(q)) return false;
   if (q.type === 'goods') removeN(S.goods, g => g.id === q.goodId, q.n);
   else if (q.type === 'fossils') removeN(S.items, it => it.q === q.rar, q.n);
-  else removeN(S.items, it => it.t === q.part, q.n);
+  else if (q.type === 'part') removeN(S.items, it => it.t === q.part, q.n);
+  // fireflies: niente da consumare, le hai già "spese" catturandole
   S.coins += q.reward;
   /* le missioni danno XP (il Maestro lo diceva già, il codice no) */
   gainXp(Math.max(4, Math.round(q.reward / 6)));

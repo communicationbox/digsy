@@ -299,8 +299,13 @@ export const COMMANDS = {
   heal: { type: 'action', cheat: true, help: 'heal — energia al massimo',
     run: () => { S.energy = S.maxEnergy; return '⚡ ' + tr('Energia piena', 'Full energy'); } },
   /* NOTTE/ALBA: per provare le LUCCIOLE (#5), che compaiono solo di notte, all'aperto */
-  night: { aliases: ['notte'], type: 'action', cheat: true, help: 'night — notte fonda (per le lucciole)',
-    run: () => { S.tod = 0.85; return tr('Notte fonda — esci all\'aperto e cammina fra le lucciole', 'Deep night — go outdoors and walk among the fireflies'); } },
+  night: { aliases: ['notte'], type: 'action', cheat: true, help: 'night — notte fonda + missione lucciole attiva (per provarle)',
+    run: () => {
+      S.tod = 0.85;
+      if (!S.quests) S.quests = { day: S.day, active: [], done: [] };
+      if (!S.quests.active.some(q => q.type === 'fireflies')) S.quests.active.push({ type: 'fireflies', n: 6, base: S.fireflies || 0, qid: 'cheat-ff', day: S.day });
+      return tr('Notte fonda + missione lucciole attiva — esci all\'aperto', 'Deep night + fireflies quest active — go outdoors');
+    } },
   dawn: { aliases: ['alba'], type: 'action', cheat: true, help: 'dawn — riporta all\'alba',
     run: () => { S.tod = 0.05; return tr('Alba', 'Dawn'); } },
   goto: { type: 'str', help: 'goto=palude — vai al bioma, alla grotta o alla città (goto=city)', suggest: p => ['grotta', 'city', ...ZONES.map(z => z.id)].filter(id => id.startsWith(p)),

@@ -18,7 +18,7 @@ suggerimenti mentre scrivi (es. `goto=pal` → `goto=palude`).
 | `day=10` | ✔ | Imposta il giorno di gioco |
 | `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
 | `heal` | ✔ | Energia al massimo |
-| `night` | ✔ | Notte fonda — per provare le **lucciole** (esci all'aperto e camminaci fra; alias `notte`) |
+| `night` | ✔ | Notte fonda **+ missione lucciole attiva** — per provare le **lucciole** (esci all'aperto; alias `notte`). La missione vera è **stagionale** (estate) |
 | `dawn` | ✔ | Riporta all'alba (alias `alba`) |
 | `toss` | ✔ | Apre il **minigioco della fontana** (mira) ovunque (alias `fontana`) |
 | `godmode` | ✔ | Sblocca e completa **tutto**, infinito, velocità ×5, **volo** (alias `god`). Comprende `goditem` (fossili + attrezzi + barca + mezzi + mappe) e `goddna`, più: cosmetici sbloccati, museo completo, libro completo, specie risvegliate, e `fly` attivo |

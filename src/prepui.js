@@ -7,7 +7,7 @@ import { S, save } from './state.js';
 import { spById } from './data.js';
 import { partVoxels } from './bones.js';
 import { projectVox } from './voxview.js';
-import { newBoard, brush, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
+import { newBoard, brush, strain, cleanPct, integrity, gradeFor, applyPrep, isPrepped, W as PW, H as PH } from './prepare.js';
 import { withIcons } from './icons.js';
 import { tr, partName } from './i18n.js';
 import { playSfx } from './audio.js';
@@ -74,14 +74,18 @@ export function openPrepare(item, after) {
       return { cx: (p.clientX - r.left) / r.width * PW, cy: (p.clientY - r.top) / r.height * PH };
     };
     const opts = () => prepTool === 'brush' ? { r: 1.7 } : { r: 0.9, gentle: true };
-    const paint = (cx, cy) => {                         // interpola: un gesto veloce non salta celle
+    /* PULIRE è interpolato (un gesto veloce non salta celle) e NON scheggia mai. Lo SFREGARE
+       (strain) si valuta UNA sola volta per movimento — non per sotto-passo — così tenere
+       premuto e muovere non rovina l'osso: solo grattare fermi lo stesso punto lo scheggia. */
+    const paint = (cx, cy) => {
       const d = Math.hypot(cx - lx, cy - ly), steps = Math.max(1, Math.floor(d / 0.8));
       let work = 0;
       for (let k = 1; k <= steps; k++) work += brush(prepBoard, lx + (cx - lx) * k / steps, ly + (cy - ly) * k / steps, opts());
       lx = cx; ly = cy;
-      if (work > 0.01) { drawPrep(); playSfx('dig'); }
+      const st = prepTool === 'brush' ? strain(prepBoard, cx, cy, 1.7) : 0;
+      if (work > 0.01 || st > 0) { drawPrep(); if (work > 0.01) playSfx('dig'); }
     };
-    cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; if (brush(prepBoard, p.cx, p.cy, opts()) > 0.01) { drawPrep(); playSfx('dig'); } });
+    cv.addEventListener('pointerdown', ev => { down = true; cv.setPointerCapture && cv.setPointerCapture(ev.pointerId); const p = at(ev); lx = p.cx; ly = p.cy; const w = brush(prepBoard, p.cx, p.cy, opts()); if (prepTool === 'brush') strain(prepBoard, p.cx, p.cy, 1.7); if (w > 0.01) playSfx('dig'); drawPrep(); });
     cv.addEventListener('pointermove', ev => { if (!down || !prepBoard) return; ev.preventDefault(); const p = at(ev); paint(p.cx, p.cy); });
     cv.addEventListener('pointerup', () => { down = false; });
     cv.addEventListener('pointercancel', () => { down = false; });
