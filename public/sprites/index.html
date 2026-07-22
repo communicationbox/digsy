@@ -53,10 +53,6 @@
 </style>
 </head>
 <body>
-<!-- HMR di Vite: questa pagina è servita "grezza" (senza la trasformazione di Vite), quindi
-     da sola non riceve gli aggiornamenti. Con il client, quando cambia uno sprite in
-     src/spritebank.js la pagina si RICARICA da sola. È dev-only: /sprites è escluso dal deploy. -->
-<script type="module" src="/@vite/client"></script>
 <div class="wrap">
   <h1>SPRITE STUDIO</h1>
   <p class="lead">Tutti i disegni del gioco in un posto solo. Clicca un elemento per aprirlo nell'editor,
@@ -674,11 +670,14 @@ function render() {
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
   const bg = BGS[bgIdx];
   c.fillStyle = bg.fill; c.fillRect(0, 0, cv.width, cv.height);
-  if (cur && cur.kind === 'vehicle' && showRef) drawVehRef(c, cell);   // eroe + linea d'acqua di riferimento (sotto il disegno)
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  /* CHECKER di fondo PRIMA di tutto: se lo disegnavo dopo, nelle celle vuote finiva SOPRA l'omino
+     e lo faceva sembrare "a quadretti". Ora è solo sfondo. */
+  c.fillStyle = bg.checker;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if ((x + y) % 2 === 0) c.fillRect(x * cell, y * cell, cell, cell);
+  if (cur && cur.kind === 'vehicle' && showRef) drawVehRef(c, cell);   // omino di riferimento SOPRA il fondo
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {            // pixel VERI del disegno, SOPRA l'omino
     const v = px[y * W + x];
     if (v >= 0) { c.fillStyle = pal[v]; c.fillRect(x * cell, y * cell, cell, cell); }
-    else if ((x + y) % 2 === 0) { c.fillStyle = bg.checker; c.fillRect(x * cell, y * cell, cell, cell); }
   }
   if (showGrid && cell >= 6) {
     c.strokeStyle = bg.grid;
@@ -702,7 +701,7 @@ function drawVehRef(c, cell) {
   const rows = (SPR[key] && SPR[key][0]) || (SPR.down && SPR.down[0]);
   if (!rows) return;
   const flip = cur.dir === 'left', ox = f.ox - 8;
-  c.save(); c.globalAlpha = 0.9;
+  c.save(); c.globalAlpha = 1;                            // PIENO: niente checker che traspare
   for (let y = 0; y < rows.length; y++) {
     const row = rows[y];
     for (let x = 0; x < 16; x++) {

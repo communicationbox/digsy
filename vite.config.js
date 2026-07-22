@@ -28,12 +28,21 @@ export default defineConfig({
   plugins: [{
     name: 'serve-public-tools',
     configureServer(server) {
-      server.middlewares.use((req, res, next) => {
+      const toolRe = /public[\\/][a-z0-9-]+[\\/]index\.html$/i;
+      /* cambio a un tool (public/<nome>/index.html) → RICARICA la pagina aperta. Senza, l'editor
+         restava su una versione vecchia e ogni ritocco al codice sembrava "non fare niente". */
+      server.watcher.on('change', (f) => { if (toolRe.test(String(f).replace(/\\/g, '/'))) server.ws.send({ type: 'full-reload' }); });
+      server.middlewares.use(async (req, res, next) => {
         const path = (req.url || '').split('?')[0].replace(/\/$/, '');
         const file = path && /^\/[a-z0-9-]+$/i.test(path) ? resolve(__dirname, 'public' + path, 'index.html') : null;
         if (file && existsSync(file)) {
+          /* transformIndexHtml INIETTA il client HMR di Vite (così la pagina riceve il full-reload);
+             no-store impedisce al browser di servire una copia vecchia dalla cache. */
+          let html = readFileSync(file, 'utf8');
+          try { html = await server.transformIndexHtml(req.originalUrl || req.url, html); } catch (e) { /* raw */ }
           res.setHeader('Content-Type', 'text/html');
-          res.end(readFileSync(file));
+          res.setHeader('Cache-Control', 'no-store');
+          res.end(html);
           return;
         }
         next();
