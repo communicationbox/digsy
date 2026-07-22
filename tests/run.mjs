@@ -2808,8 +2808,8 @@ sprites.applyLook();
 
   /* la banca è ADDITIVA e OVERLAY: il disegno porta solo il VEICOLO, l'eroe resta procedurale.
      Il motoscafo di fronte è già disegnato a mano; gli altri versi restano procedurali. */
-  check('banca mezzi: motoscafo fronte disegnato a mano', bank.hasSprite('vehicle:motorboat:down') === true);
-  check('banca mezzi: gli altri versi non disegnati restano procedurali', bank.hasSprite('vehicle:motorboat:up') === false && bank.hasSprite('vehicle:boat:down') === false);
+  check('banca mezzi: motoscafo fronte+retro disegnati a mano', bank.hasSprite('vehicle:motorboat:down') === true && bank.hasSprite('vehicle:motorboat:up') === true);
+  check('banca mezzi: i versi non disegnati restano procedurali', bank.hasSprite('vehicle:motorboat:side') === false && bank.hasSprite('vehicle:boat:down') === false);
   const md = bank.spriteDef('vehicle:motorboat:down');
   check('banca mezzi: lo sprite del motoscafo ha ancora/righe valide', !!md && md.rows.length === md.h && md.ax === 10 && md.ay === 19);
 
