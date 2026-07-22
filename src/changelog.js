@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
+      'MAPPA: due livelli di ZOOM OUT in più (vista d\'insieme) — si vede molto più mondo in un colpo d\'occhio; resta NITIDA (campionata a pixel interi, niente sfocatura)',
       'FIX cavalcatura: non si scende più su cose non calpestabili (rocce, alberi, montagne) — atterri sul punto libero più vicino, e se intorno non c\'è terreno libero resti in volo (prima rimanevi incastrato)',
       'FIX mappa del tesoro: la X ora dà DAVVERO la rarità comprata — se la specie leggendaria era fuori dalla sua finestra (notte/stagione) usciva un reperto RARO al suo posto; ora la garanzia vince sulla finestra',
       'FIX cavalcatura: atterrando il compagno resta AL TUO FIANCO — prima "tornava" volando dal punto di decollo (in volo era rimasto indietro perché ti inseguiva mentre sorvolavi veloce)',
@@ -63,6 +64,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
+      'MAP: two extra ZOOM-OUT levels (overview) — see much more of the world at a glance; stays CRISP (sampled at whole pixels, no blur)',
       'FIX mount: you no longer land on things you can\'t stand on (rocks, trees, mountains) — you touch down on the nearest open spot, and if there\'s none around you stay airborne (before you got stuck)',
       'FIX treasure map: the X now really gives the rarity you bought — if the legendary species was outside its window (night/season) you got a RARE find instead; now the guarantee beats the window',
       'FIX mount: on landing your companion stays BY YOUR SIDE — before it "flew back" from the take-off spot (during flight it fell behind, chasing you while you soared fast)',

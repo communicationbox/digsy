@@ -25,7 +25,9 @@ export function closeMap() {
 /* ---------- MAPPA: pergamena che si scopre camminando. Zoom con rotella / pinch / +− e
    trascinamento col dito. Lo zoom è in PIXEL PER TILE (interi: la pixel-art non si sfoca). ---------- */
 const MAP_TERR = ['#1d3b52', '#2f6b8f', '#d8c58a', '#5fa04e', '#2f6b3a', '#a9784a', '#8a8378', '#c9bda0', '#7fc46a', '#b09a72'];
-const MAP_ZOOMS = [1, 2, 3, 4, 6];        // px per tile
+/* zoom < 1 = zoom OUT (vista d'insieme): non si disegna mezza tile (sfocherebbe), si CAMPIONA —
+   1 pixel ogni N tile (N intero). Così la pixel-art resta netta anche vedendo mezzo continente. */
+const MAP_ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 6]; // px per tile (sotto 1 = campionamento in zoom out)
 let mapPins = [];                         // punti cliccabili disegnati sull'ultima mappa
 let mapZoom = 1, mapOff = { x: 0, y: 0 }; // offset in tile rispetto al player
 export function mapZoomBy(d) {
@@ -36,22 +38,28 @@ export function mapZoomBy(d) {
 export function mapReset() { mapZoom = 1; mapOff = { x: 0, y: 0 }; drawMapCanvas(); }
 function drawMapCanvas() {
   const cv = document.getElementById('mapcv'); if (!cv || !cv.getContext) return;
-  const S2 = mapZoom, VWt = Math.round(560 / S2), VHt = Math.round(360 / S2);   // tile inquadrate
-  cv.width = VWt * S2; cv.height = VHt * S2;
+  /* zoom ≥ 1: `cell` px per tile (1 tile per cella). zoom < 1: 1px per cella ma OGNI cella copre
+     `step` tile (campionamento). `SC` = px per TILE su schermo (≈ mapZoom), usato dai pin. */
+  const step = mapZoom >= 1 ? 1 : Math.max(2, Math.round(1 / mapZoom));
+  const cell = mapZoom >= 1 ? mapZoom : 1;
+  const SC = cell / step;
+  const cellsW = Math.round(560 / cell), cellsH = Math.round(360 / cell);
+  const VWt = cellsW * step, VHt = cellsH * step;                               // tile inquadrate
+  cv.width = cellsW * cell; cv.height = cellsH * cell;
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
   const px0 = Math.floor(P.x / TS) + Math.round(mapOff.x), py0 = Math.floor((P.y + FOOT_DY) / TS) + Math.round(mapOff.y);
   const x0 = px0 - (VWt >> 1), y0 = py0 - (VHt >> 1);
   c.fillStyle = '#c9b184'; c.fillRect(0, 0, cv.width, cv.height);               // carta non esplorata
-  for (let y = 0; y < VHt; y++) for (let x = 0; x < VWt; x++) {
-    const tx = x0 + x, ty = y0 + y;
+  for (let cyi = 0; cyi < cellsH; cyi++) for (let cxi = 0; cxi < cellsW; cxi++) {
+    const tx = x0 + cxi * step, ty = y0 + cyi * step;                           // tile campionata della cella
     if (!isExplored(tx, ty)) continue;
     const ti = townInfo(tx, ty);
     c.fillStyle = ti ? (ti.solid ? '#e8c34a' : '#d9cba8') : MAP_TERR[baseTerrain(tx, ty)] || '#555';
-    c.fillRect(x * S2, y * S2, S2, S2);
+    c.fillRect(cxi * cell, cyi * cell, cell, cell);
   }
   mapPins = [];                                   // per il click: cosa c'è in quel punto
   const mark = (tx, ty, col, big, info) => {
-    const x = (tx - x0) * S2, y = (ty - y0) * S2, r = Math.max(2, S2 + (big ? 2 : 0));
+    const x = (tx - x0) * SC, y = (ty - y0) * SC, r = Math.max(2, SC + (big ? 2 : 0));
     if (x < -8 || y < -8 || x > cv.width + 8 || y > cv.height + 8) return;
     c.fillStyle = '#241a10'; c.fillRect(x - r - 1, y - r - 1, r * 2 + 3, r * 2 + 3);
     c.fillStyle = col; c.fillRect(x - r, y - r, r * 2 + 1, r * 2 + 1);
@@ -72,7 +80,7 @@ function drawMapCanvas() {
      sapere dove tornare bisognava andarci. Qui prendono un pin loro: avorio come il marmo, col
      FRONTONE del tempio sopra. Si riconosce anche a due pixel, e senza leggere il nome. */
   const museumPin = (tx, ty) => {
-    const x = (tx - x0) * S2, y = (ty - y0) * S2, r = Math.max(2, S2 + 2);
+    const x = (tx - x0) * SC, y = (ty - y0) * SC, r = Math.max(2, SC + 2);
     if (x < -8 || y < -8 || x > cv.width + 8 || y > cv.height + 8) return;
     const w = r * 2 + 1, top = y - r - 1;
     /* timpano BASSO e LARGO: alto come un tetto, non come una torre — altrimenti a zoom 1
@@ -87,9 +95,9 @@ function drawMapCanvas() {
     c.fillRect(Math.round(x - r + 1), y - r + 1, 1, w - 2);
     c.fillRect(Math.round(x + r - 1), y - r + 1, 1, w - 2);
   };
-  { const seen = new Set();
-    for (let y = 0; y < VHt; y += 4) for (let x = 0; x < VWt; x += 4) {
-      const tx = x0 + x, ty = y0 + y;
+  { const seen = new Set(), cstep = Math.max(1, Math.round(6 / step));   // campiona ~ogni 6 tile a ogni zoom
+    for (let cyi = 0; cyi < cellsH; cyi += cstep) for (let cxi = 0; cxi < cellsW; cxi += cstep) {
+      const tx = x0 + cxi * step, ty = y0 + cyi * step;
       if (!isExplored(tx, ty)) continue;
       const tw = townForTile(tx, ty); if (!tw || seen.has(tw.key)) continue;
       seen.add(tw.key);

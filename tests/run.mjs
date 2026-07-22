@@ -4846,6 +4846,18 @@ sprites.applyLook();
   check('mappa: 10 milioni di caselle scoperte stanno sotto 1 MB', bigPack < 1024 * 1024,
     (bigPack / 1024).toFixed(0) + ' KB');
   S.explored = {};
+
+  /* ZOOM OUT: la mappa ha livelli sotto 1 px/tile (vista d'insieme), renderizzati CAMPIONANDO
+     (interi: niente sfocatura). mapZoomBy deve arrivarci e drawMapCanvas non deve esplodere. */
+  const mapMod = await import('../src/mapui.js');
+  const { readFileSync: readFS } = await import('node:fs');
+  const mapSrc = readFS(new URL('../src/mapui.js', import.meta.url), 'utf8');
+  const zooms = (mapSrc.match(/MAP_ZOOMS = \[([^\]]+)\]/) || [])[1] || '';
+  const zvals = zooms.split(',').map(s => parseFloat(s)).filter(v => !isNaN(v));
+  check('mappa: ci sono livelli di ZOOM OUT (sotto 1 px/tile)', zvals.some(v => v < 1) && zvals.filter(v => v < 1).length >= 2);
+  let mapCrash = false;
+  try { mapMod.mapReset(); for (let i = 0; i < 4; i++) mapMod.mapZoomBy(-1); mapMod.mapReset(); } catch (e) { mapCrash = true; }
+  check('mappa: zoom out fino al minimo senza crash', !mapCrash);
 }
 
 /* ---------- BETA: aggiornamento forzato, nelle Impostazioni ---------- */
