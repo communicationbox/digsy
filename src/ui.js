@@ -1033,7 +1033,7 @@ function renderMuseum() {
   const rechargeable = ALL_SPECIES.filter(s => (S.museum[s.id] || []).length === PARTS.length);
   if (rechargeable.length) {
     h += `<div class="bighead" style="margin-top:10px">🧬 ${tr('Ricariche DNA', 'DNA refills')}</div>`;
-    h += rechargeable.map(s => `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name} ${dnaBadge(s.id)}</div><div class="sub">${rarSpan(s.r)}</div></div><div class="rt"><button class="btn amber" data-dna="${s.id}">🪙 ${DNA_COST[s.r]}</button></div></div>`).join('');
+    h += rechargeable.map(s => `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name} ${dnaBadge(s.id)}</div><div class="sub">${rarSpan(s.r)}${dnaExtra(s.id)}</div></div><div class="rt"><button class="btn amber" data-dna="${s.id}">🪙 ${DNA_COST[s.r]}</button></div></div>`).join('');
   }
   mBody.innerHTML = withIcons(h); hydratePv();
   const dep = document.getElementById('mudep'); if (dep) dep.onclick = () => {
@@ -1107,6 +1107,16 @@ function wireCommission(redraw) {
 function dnaBadge(spId) {
   const n = S.dna[spId] || 0; if (!n) return '';
   return '<span class="sub">🧬×' + n + '</span>';
+}
+/* quante chimere usano il DNA di questa specie (cranio/torace/zampa) */
+function chimeraUses(spId) { return (S.creatures || []).filter(c => c.skull === spId || c.torso === spId || c.leg === spId).length; }
+/* riga extra per le ricariche DNA: già rivissuto? in quante chimere? (oltre alla quantità nello zaino) */
+function dnaExtra(spId) {
+  const parts = [];
+  if (S.awakened && S.awakened.includes(spId)) parts.push('<b style="color:#4e8d3f">✓ ' + tr('già rivissuto', 'already revived') + '</b>');
+  const n = chimeraUses(spId);
+  if (n) parts.push('🧬 ' + tr('in ', 'in ') + n + ' ' + (n === 1 ? tr('chimera', 'chimera') : tr('chimere', 'chimeras')));
+  return parts.length ? ' · ' + parts.join(' · ') : ' · ' + tr('non ancora usato', 'not used yet');
 }
 /* etichetta dell'esposizione in galleria (E sul piedistallo) */
 export function openExhibit(spId) {
