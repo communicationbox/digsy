@@ -106,6 +106,9 @@
       <div class="row2"><button id="addcol" class="alt" style="flex:1">+ aggiungi colore</button></div>
       <h3>Strumenti</h3>
       <div class="row2"><button id="mirror" class="alt" style="flex:1">⇄ Specchia</button><button id="clear" class="alt" style="flex:1">Pulisci</button></div>
+      <!-- copia il disegno corrente e lo incolla in un ALTRO sprite: i colori si aggiungono alla
+           palette di destinazione (nessuna tinta persa). Utile per riusare l'omino/lo scafo. -->
+      <div class="row2"><button id="copy-draw" class="alt" style="flex:1">⧉ Copia disegno</button><button id="paste-draw" class="alt" style="flex:1">⧉ Incolla</button></div>
       <div class="row2"><button id="reset" class="alt" style="flex:1">↺ Ricarica l'originale</button></div>
       <h3>Esporta</h3>
       <div class="row2"><button id="export" class="amber" style="flex:1">Esporta per il gioco</button></div>
@@ -608,6 +611,29 @@ document.getElementById('mirror').onclick = () => {
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) n[y * W + x] = px[y * W + (W - 1 - x)];
   px = n; render();
 };
+/* COPIA/INCOLLA fra sprite: la copia porta pixel + colori (HEX, non indici). All'incolla i colori
+   si AGGIUNGONO alla palette di destinazione se mancano, così niente tinta va persa. Persiste in
+   localStorage per sopravvivere al reload dell'editor. Allineato in alto a sinistra (per i mezzi,
+   tutti nella stessa cornice 32×34, è una copia 1:1). */
+let clipboard = null;
+try { const s = localStorage.getItem('digsy_sprclip'); if (s) clipboard = JSON.parse(s); } catch (e) { /* niente clipboard */ }
+document.getElementById('copy-draw').onclick = () => {
+  clipboard = { W, H, hex: px.map(v => v < 0 ? null : pal[v]) };
+  try { localStorage.setItem('digsy_sprclip', JSON.stringify(clipboard)); } catch (e) { /* quota */ }
+  const b = document.getElementById('copy-draw'); const t = b.textContent; b.textContent = '✓ copiato'; setTimeout(() => b.textContent = t, 900);
+};
+document.getElementById('paste-draw').onclick = () => {
+  if (!clipboard) { const b = document.getElementById('paste-draw'); const t = b.textContent; b.textContent = 'niente da incollare'; setTimeout(() => b.textContent = t, 900); return; }
+  undoStack.push(px.slice());
+  const idxOf = hex => { let i = pal.indexOf(hex); if (i < 0) { pal.push(hex); i = pal.length - 1; } return i; };
+  for (let y = 0; y < clipboard.H; y++) for (let x = 0; x < clipboard.W; x++) {
+    if (x >= W || y >= H) continue;
+    const hex = clipboard.hex[y * clipboard.W + x];
+    if (!hex) continue;                                  // trasparente: non sovrascrive
+    px[y * W + x] = idxOf(hex);
+  }
+  buildPal(); render();
+};
 
 /* disegno sulla griglia */
 function cellAt(e) {
@@ -665,15 +691,16 @@ function render() {
 /* RIFERIMENTO per i mezzi: l'eroe VIVO (sbiadito) all'origine della cornice + una linea d'acqua/
    terra ai piedi. Serve per disegnare il veicolo alla scala e nel punto giusti rispetto all'eroe.
    Non è modificabile e non finisce nell'export (è solo sullo sfondo della tela). */
-/* RIFERIMENTO omino: sagoma PIENA e ben visibile dell'eroe (testa · maglia · braccia · gambe)
-   alle proporzioni vere, ancorata all'origine della cornice. Solo rettangoli → si vede SEMPRE,
-   non dipende da drawHero né dallo stato. Ci si disegna sopra il veicolo. */
+/* RIFERIMENTO omino: lo sprite VERO dell'eroe (con look/cappello), ben OPACO così si vede TUTTO
+   e ci si disegna sopra con precisione — non è modificabile e non finisce nell'export. */
 function drawVehRef(c, cell) {
-  const f = VF(), ox = f.ox - 8;                          // colonna sinistra dell'eroe (16 largo)
-  const R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x * cell, y * cell, w * cell, h * cell); };
-  R(ox + 3, f.oy + 0, 10, 9, 'rgba(243,207,160,.82)');   // testa (pelle)
-  R(ox + 2, f.oy + 9, 12, 4, 'rgba(87,165,143,.82)');    // maglia + braccia
-  R(ox + 4, f.oy + 13, 3, 4, 'rgba(200,138,68,.82)'); R(ox + 9, f.oy + 13, 3, 4, 'rgba(200,138,68,.82)'); // gambe
+  const f = VF();
+  if (!(SPR_MOD.drawHero && STATE.S)) return;
+  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+  const tctx = tmp.getContext('2d'); tctx.imageSmoothingEnabled = false;
+  try { viaGameCanvas(tctx, W, H, () => SPR_MOD.drawHero(null, f.ox - 8, f.oy, cur.dir, 0)); } catch (e) { return; }
+  c.save(); c.globalAlpha = 0.9; c.imageSmoothingEnabled = false;
+  c.drawImage(tmp, 0, 0, W, H, 0, 0, W * cell, H * cell); c.restore();
 }
 function previews() {
   for (const [id, scale, withHero] of [['p1', 1, false], ['p2', 2, false], ['p3', 3, true]]) {
