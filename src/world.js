@@ -190,7 +190,7 @@ export function townForCell(cx, cy) {
     /* jitter dentro la cella con margini che contengono l'intera città (e il parco in basso) */
     const mx = Math.max(-size.w[0], size.w[1]) + 1;
     const jx = mx + Math.floor(vhash(cx, cy, 112) * (TCELL - 2 * mx));
-    const jy = 8 + Math.floor(vhash(cx, cy, 113) * (TCELL - 20)); // città (e parco) sempre dentro la cella
+    const jy = 8 + Math.floor(vhash(cx, cy, 113) * (TCELL - 25)); // città (e parco GRANDE) sempre dentro la cella
     const C = { x: cx * TCELL + jx, y: cy * TCELL + jy };
     const bt = baseTerrain(C.x, C.y); // serve terra al centro
     if (bt !== DEEP && bt !== WATER && bt !== MTN) {
@@ -208,7 +208,7 @@ export function townForCell(cx, cy) {
         x0: C.x + size.w[0], y0: C.y + size.h[0], x1: C.x + size.w[1], y1: C.y + size.h[1],
       };
       /* le città grandi hanno un parco recintato sotto la piazza (chimere risvegliate) */
-      if (size.id === 'città') town.pen = { x0: C.x - 5, y0: C.y + 5, x1: C.x + 4, y1: C.y + 10 };
+      if (size.id === 'città') town.pen = { x0: C.x - 8, y0: C.y + 5, x1: C.x + 7, y1: C.y + 14 }; // 16×10 (parco grande)
       /* strade sterrate: vialetto porta→strada per ogni casa, strada orizzontale davanti a
          ogni fila e viale centrale che scende a sud (fino al cancello del parco nelle città) */
       const roads = new Set();
@@ -321,12 +321,31 @@ function townInfoCompute(tx, ty) {
     const p = t.pen;
     if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) {
       const gate = ty === p.y0 && (tx === t.C.x - 1 || tx === t.C.x);
-      const edge = (tx === p.x0 || tx === p.x1 || ty === p.y0 || ty === p.y1) && !gate;
-      if (edge) return { solid: true, fence: true, park: true };
+      const fv = tx === p.x0 || tx === p.x1;                          // lati: staccionata VERTICALE
+      const fh = ty === p.y0 || ty === p.y1;                          // sopra/sotto: ORIZZONTALE
+      if ((fv || fh) && !gate) return { solid: true, fence: true, park: true, fv, fh };
       return { floor: true, park: true };
     }
   }
   if (tx >= t.x0 && tx <= t.x1 && ty >= t.y0 && ty <= t.y1) return { floor: true }; // piazza
+  return null;
+}
+/* ARREDO del PARCO recintato (deterministico): stagno in un angolo, alberi agli altri angoli,
+   siepe/sassi sull'anello interno, aiuole sparse al centro. Puro e testabile: pen={x0,y0,x1,y1},
+   cx = colonna centrale (il cancello, sempre libero). Ritorna {kind[,px,py]} o null. Sta tutto
+   sull'ANELLO interno + angoli, così il centro resta alle creature. */
+export function parkDeco(pen, cx, tx, ty) {
+  if (!pen) return null;
+  const { x0, y0, x1, y1 } = pen;
+  if (tx <= x0 || tx >= x1 || ty <= y0 || ty >= y1) return null;      // il bordo è la staccionata
+  if (tx === cx - 1 || tx === cx) return null;                         // colonna del cancello: libera
+  const px = x0 + 1, py = y0 + 1;                                      // stagno 3×2 nell'angolo alto-sinistra
+  if (tx >= px && tx <= px + 2 && ty >= py && ty <= py + 1) return { kind: 'pond', px: tx - px, py: ty - py };
+  const corner = (tx === x0 + 1 || tx === x1 - 1) && (ty === y0 + 1 || ty === y1 - 1);
+  if (corner) return { kind: 'tree' };                                 // alberi agli altri 3 angoli
+  const ring = tx === x0 + 1 || tx === x1 - 1 || ty === y0 + 1 || ty === y1 - 1;
+  if (ring) { const h = vhash(tx, ty, 61); if (h < 0.5) return { kind: h < 0.32 ? 'bush' : 'rock' }; }
+  else if (vhash(tx, ty, 62) < 0.07) return { kind: 'flowerbed' };     // aiuole SPARSE (piatte) al centro
   return null;
 }
 /* ingressi delle grotte: su una MONTAGNA con terra camminabile SOTTO (ci si avvicina da sud).

@@ -2900,6 +2900,38 @@ sprites.applyLook();
   S.companion = null; comp2.COMP.init = false;
 }
 
+/* ---------- ARREDO del parco: stagno/alberi/siepe/aiuole dentro il recinto ---------- */
+{
+  const { parkDeco } = await import('../src/world.js');
+  const pen = { x0: 0, y0: 0, x1: 11, y1: 7 }, cx = 6;              // recinto 12×8 (interno 10×6)
+  const at = (tx, ty) => parkDeco(pen, cx, tx, ty);
+  check('parco: il bordo (staccionata) non ha arredo', at(0, 3) === null && at(11, 3) === null && at(5, 0) === null && at(5, 7) === null);
+  check('parco: la colonna del cancello resta libera', at(cx, 3) === null && at(cx - 1, 3) === null);
+  check('parco: stagno (acqua vera) nell\'angolo interno', at(1, 1) && at(1, 1).kind === 'pond' && at(3, 2) && at(3, 2).kind === 'pond');
+  check('parco: alberi agli angoli interni', at(10, 1) && at(10, 1).kind === 'tree' && at(1, 6) && at(1, 6).kind === 'tree' && at(10, 6) && at(10, 6).kind === 'tree');
+  /* il CENTRO resta perlopiù libero (le creature ci passeggiano): l'arredo sta su anello+angoli+stagno */
+  let centerFilled = 0, centerTot = 0;
+  for (let ty = 3; ty <= 5; ty++) for (let tx = 4; tx <= 8; tx++) { if (tx === cx || tx === cx - 1) continue; centerTot++; const d = at(tx, ty); if (d && d.kind !== 'flowerbed') centerFilled++; }
+  check('parco: il centro resta libero per le creature (solo aiuole piatte, niente ostacoli)', centerFilled === 0 && centerTot > 0);
+  check('parco: deterministico (stessa cella → stesso arredo)', JSON.stringify(at(1, 3)) === JSON.stringify(at(1, 3)));
+
+  /* su una CITTÀ vera: recinto grande, staccionate orientate, stagno = acqua vera ma non pescabile */
+  const { townForTile, townInfo, TCELL: TC } = await import('../src/world.js');
+  let city = null;
+  for (let cy = 0; cy < 80 && !city; cy++) for (let cx = 0; cx < 80; cx++) { const t = townForTile(cx * TC + 20, cy * TC + 20); if (t && t.pen) city = t; if (city) break; }
+  check('parco: trovata una città col recinto nel mondo di test', !!city);
+  if (city) {
+    const p = city.pen;
+    check('parco: recinto GRANDE (interno ≥ 100 caselle, prima erano 32)', (p.x1 - p.x0 - 1) * (p.y1 - p.y0 - 1) >= 100);
+    const midY = Math.floor((p.y0 + p.y1) / 2), midX = city.C.x + 3;   // colonna non-cancello
+    const side = townInfo(p.x0, midY), topbot = townInfo(midX, p.y1);
+    check('parco: staccionata VERTICALE sui lati (fv, non fh)', !!side && side.fence && side.fv === true && !side.fh);
+    check('parco: staccionata ORIZZONTALE sopra/sotto (fh, non fv)', !!topbot && topbot.fence && topbot.fh === true && !topbot.fv);
+    const wx = p.x0 + 2, wy = p.y0 + 2;                                 // dentro lo stagno
+    check('parco: lo stagno è acqua DECORATIVA (tile di parco) → NON pescabile', townInfo(wx, wy).park === true && gameplay.waterTile(wx, wy) === false);
+  }
+}
+
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */
 {
   const cmds = await import('../src/commands.js');

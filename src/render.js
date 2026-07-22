@@ -6,7 +6,7 @@ import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
-import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt } from './world.js';
+import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
@@ -369,10 +369,40 @@ function drawLandmark(type, sx, sy, time) {
      nelle pagine di prova, non solo qui */
   drawWonder(BRUSH, type, x, y, time);
 }
-export function drawFence(sx, sy) {
-  rect(sx, sy + 7, TS, 2, '#a97a4c'); rect(sx, sy + 11, TS, 2, '#8a5f38');
-  rect(sx + 2, sy + 3, 2, 11, '#8a5f38'); px(sx + 2, sy + 3, '#c79a66'); px(sx + 3, sy + 3, '#c79a66');
-  rect(sx + 11, sy + 3, 2, 11, '#8a5f38'); px(sx + 11, sy + 3, '#c79a66'); px(sx + 12, sy + 3, '#c79a66');
+/* staccionata: parte ORIZZONTALE (assi che corrono in larghezza, per i lati sopra/sotto) e/o
+   VERTICALE (assi in altezza, per i lati sinistro/destro). Un angolo ha entrambe → giunzione a L. */
+export function drawFence(sx, sy, fv, fh) {
+  if (fh === undefined) fh = true;                                    // compat: default orizzontale
+  if (fh) {                                                           // assi orizzontali + montanti verticali
+    rect(sx, sy + 7, TS, 2, '#a97a4c'); rect(sx, sy + 11, TS, 2, '#8a5f38');
+    rect(sx + 2, sy + 3, 2, 11, '#8a5f38'); px(sx + 2, sy + 3, '#c79a66'); px(sx + 3, sy + 3, '#c79a66');
+    rect(sx + 11, sy + 3, 2, 11, '#8a5f38'); px(sx + 11, sy + 3, '#c79a66'); px(sx + 12, sy + 3, '#c79a66');
+  }
+  if (fv) {                                                           // assi VERTICALI + traverse orizzontali
+    rect(sx + 7, sy, 2, TS, '#a97a4c'); rect(sx + 11, sy, 2, TS, '#8a5f38');
+    rect(sx + 3, sy + 2, 11, 2, '#8a5f38'); px(sx + 3, sy + 2, '#c79a66'); px(sx + 3, sy + 3, '#c79a66');
+    rect(sx + 3, sy + 11, 11, 2, '#8a5f38'); px(sx + 3, sy + 11, '#c79a66'); px(sx + 3, sy + 12, '#c79a66');
+  }
+}
+/* STAGNO del parco (3×2): ACQUA VERA del gioco (stesse onde/riflessi del mondo) — ma è solo
+   decorazione su una casella di parco, quindi NON ci si pesca. Riva scura tutt'attorno + ninfea. */
+export function drawParkPond(sx, sy, ppx, ppy, tx, ty, time) {
+  groundTile(WATER, tx, ty, sx, sy, time, 0);                         // acqua identica a quella del mondo (zona prati)
+  if (ppx === 0) rect(sx, sy, 1, TS, '#3d7f97');                       // riva scura sui lati ESTERNI del 3×2
+  if (ppx === 2) rect(sx + TS - 1, sy, 1, TS, '#3d7f97');
+  if (ppy === 0) rect(sx, sy, TS, 1, '#3d7f97');
+  if (ppy === 1) rect(sx, sy + TS - 1, TS, 1, '#3d7f97');
+  if (ppx === 1 && ppy === 0) { rect(sx + 4, sy + 8, 6, 4, '#4faa5e'); px(sx + 6, sy + 9, '#7ed08a'); px(sx + 7, sy + 8, '#e88ab0'); } // ninfea + fiorellino
+}
+/* AIUOLA (piatta): zolla di terra con fiori fitti e colorati. */
+export function drawFlowerbed(sx, sy, tx, ty) {
+  rect(sx + 3, sy + 4, 10, 10, '#6b4a2e'); rect(sx + 2, sy + 6, 12, 6, '#6b4a2e'); rect(sx + 3, sy + 5, 12, 2, '#7d5838');
+  const cols = ['#e08a8a', '#b79be6', '#f2dd7a', '#f6f2e4', '#8fc9e6'];
+  for (let i = 0; i < 5; i++) {
+    const fx = sx + 4 + Math.floor(vhash(tx, ty, 70 + i) * 8), fy = sy + 6 + Math.floor(vhash(tx, ty, 80 + i) * 6);
+    const cc = cols[Math.floor(vhash(tx, ty, 90 + i) * cols.length)];
+    px(fx, fy - 1, cc); px(fx - 1, fy, cc); px(fx + 1, fy, cc); px(fx, fy + 1, cc); px(fx, fy, '#f2dd7a');
+  }
 }
 /* chimera del parco: forma guidata dai parametri delle specie (taglia, becco/corni, ali, coda, serpente) */
 /* creatura del parco = proiezione laterale dello STESSO modello voxel VIVO (come libro/museo),
@@ -1047,7 +1077,17 @@ export function render(time) {
     if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy);
     /* entità */
     if (ti) {
-      if (ti.fence) ents.push({ y: sy + 12, f: () => drawFence(sx, sy) });
+      if (ti.park && ti.floor) {                                        // ARREDO del parco (stagno/aiuole piatti; alberi/cespugli/sassi y-sort)
+        const tp = townForTile(tx, ty), pd = tp && parkDeco(tp.pen, tp.C.x, tx, ty);
+        if (pd) {
+          if (pd.kind === 'pond') drawParkPond(sx, sy, pd.px, pd.py, tx, ty, time);
+          else if (pd.kind === 'flowerbed') drawFlowerbed(sx, sy, tx, ty);
+          else if (pd.kind === 'tree') ents.push({ y: sy + 15, f: () => drawTree(sx, sy, time, tx, ty) });
+          else if (pd.kind === 'bush') ents.push({ y: sy + 13, f: () => drawBushDeco(sx, sy) });
+          else if (pd.kind === 'rock') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy) });
+        }
+      }
+      if (ti.fence) { const fv = ti.fv, fh = ti.fh; ents.push({ y: sy + 12, f: () => drawFence(sx, sy, fv, fh) }); }
       else if (ti.deco && ti.anchor) {
         const d = ti.deco;
         const ey = d.type === 'fountain' ? sy + 30 : sy + 13;
@@ -1094,12 +1134,22 @@ export function render(time) {
     const pid = d.kind === 'good' ? (d.payload && d.payload.id) : 'fossil';
     ents.push({ y: sy + 12, f: () => drawPickup(pid, sx, sy, time, d.tx, d.ty) });
   }
-  // chimere nei parchi in vista
+  // chimere nei parchi in vista (NUOTANO se sono nello stagno)
   for (const t of visParks) {
     for (const a of parks.get(t.key) || []) {
       const ax = snap(a.x - cam.x), ay = snap(a.y - cam.y);
       if (ax < -20 || ax > W + 20 || ay < -20 || ay > H + 20) continue;
-      ents.push({ y: ay, f: () => drawCreature(a, ax - 8, ay - 13) });
+      const pd = t.pen && parkDeco(t.pen, t.C.x, Math.floor(a.x / TS), Math.floor(a.y / TS));
+      if (pd && pd.kind === 'pond') {
+        ents.push({ y: ay, f: () => {                            // in acqua: metà sotto la linea d'acqua + increspature
+          const wl = ay - 3;                                     // linea d'acqua (sotto = sommerso)
+          ctx.save(); ctx.beginPath(); ctx.rect(ax - 16, ay - 30, 32, wl - (ay - 30)); ctx.clip();
+          drawCreature(a, ax - 8, ay - 13);
+          ctx.restore();
+          const w2 = Math.floor(time / 260 + a.x) % 2;
+          px(ax - 6 + w2, wl, '#bfe9f4'); px(ax + 5 - w2, wl, '#bfe9f4'); px(ax - 2, wl + 1, '#e8f6fb'); px(ax + 2, wl + 1, '#e8f6fb');
+        } });
+      } else ents.push({ y: ay, f: () => drawCreature(a, ax - 8, ay - 13) });
     }
   }
   /* MERAVIGLIE fuori dal bordo: sono alte e larghe (fino a 9 tile e ~100px), quindi vanno

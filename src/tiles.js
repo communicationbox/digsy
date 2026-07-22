@@ -245,12 +245,22 @@ export function groundTile(t, tx, ty, sx, sy, time, zi) {
       if (vhash(tx, ty, 40) < 0.12) { px(sx + 6, sy + 9, rs); px(sx + 7, sy + 9, rs); px(sx + 6, sy + 8, shade8(RB[0], 0.85)); } // sasso
       break;
     }
-    case PARK: { // prato curato: strisce falciate + margherite e ciuffi
-      rect(sx, sy, TS, TS, ((tx + ty) & 1) ? '#8cc873' : '#92cd79');
+    case PARK: { // prato curato a STRISCE falciate orizzontali (continue tra i tile: niente scacchiera dura)
+      const band = ty & 1;
+      rect(sx, sy, TS, TS, band ? '#87c56d' : '#92d078');
+      rect(sx, sy + TS - 1, TS, 1, band ? '#7cba62' : '#87c56d');   // riga di falciatura fra le bande
       const d = vhash(tx, ty, 31);
-      const gx = sx + 3 + Math.floor(vhash(tx, ty, 32) * 9), gy = sy + 3 + Math.floor(vhash(tx, ty, 33) * 9);
-      if (d < 0.24) { px(gx, gy, '#76b35f'); px(gx + 1, gy, '#76b35f'); px(gx + 1, gy - 1, '#a4dd8c'); }
-      else if (d < 0.33) { px(gx, gy, '#f6f2e4'); px(gx + 1, gy, '#f6f2e4'); px(gx, gy - 1, '#f6f2e4'); px(gx + 1, gy - 1, '#f6f2e4'); px(gx, gy, '#f2dd7a'); }
+      const gx = sx + 2 + Math.floor(vhash(tx, ty, 32) * 11), gy = sy + 3 + Math.floor(vhash(tx, ty, 33) * 10);
+      if (d < 0.13) {                                                // ciuffo d'erba
+        px(gx, gy, '#6faf58'); px(gx + 1, gy, '#6faf58'); px(gx, gy - 1, '#a9e28f'); px(gx + 2, gy - 1, '#a9e28f');
+      } else if (d < 0.21) {                                         // margherita
+        px(gx, gy - 1, '#f6f2e4'); px(gx - 1, gy, '#f6f2e4'); px(gx + 1, gy, '#f6f2e4'); px(gx, gy + 1, '#f6f2e4'); px(gx, gy, '#f2dd7a');
+      } else if (d < 0.28) {                                         // fiorellino colorato
+        const cols = ['#e08a8a', '#b79be6', '#8fc9e6'][Math.floor(vhash(tx, ty, 34) * 3)];
+        px(gx, gy - 1, cols); px(gx - 1, gy, cols); px(gx + 1, gy, cols); px(gx, gy, '#f2dd7a');
+      } else if (d < 0.31) {                                         // trifoglio
+        px(gx, gy, '#5fa04e'); px(gx + 1, gy - 1, '#5fa04e'); px(gx - 1, gy - 1, '#5fa04e'); px(gx, gy - 1, '#6faf58');
+      }
       break;
     }
   }
