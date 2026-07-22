@@ -2,9 +2,10 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
+      'PREMI dei TROFEI: ogni traccia all\'ORO sblocca un CAPPELLO d\'oro unico (Corona, Tocco, Alloro, Occhialoni, Corna, Elmetto, Piuma, Casco, Lampada) — indossabile in Sartoria; al PLATINO lo stesso cappello si copre di GLITTER dorato e il personaggio guadagna un\'AURA scintillante',
       'VESTITI a FORME: in Sartoria (e nell\'editor) scegli la FORMA oltre al colore — maglia (Maglietta · Canottiera · Camicia · Felpa) e pantaloni (Pantaloni · Pantaloncini · Gonna · Salopette)',
       'FIX exploit: provando un cappello/vestito e RICARICANDO il browser NON te lo tieni più gratis — l\'anteprima non viene più autosalvata (paghi solo alla Conferma, come sempre)',
-      'TROFEI A LIVELLI: la Sala dei Trofei ora ha 9 tracce (Scopritore, Collezionista, Genetista, Creatore, Danaroso, Archeologo, Faccendiere, Scavatore, Speleologo), ognuna a 4 gradini Bronzo · Argento · Oro · Platino (36 gradini in tutto). La coppa si colora col grado; il Platino luccica. (I cosmetici Oro/Platino arrivano nella prossima)',
+      'TROFEI A LIVELLI: la Sala dei Trofei ora ha 9 tracce (Scopritore, Collezionista, Genetista, Creatore, Danaroso, Archeologo, Faccendiere, Scavatore, Speleologo), ognuna a 4 gradini Bronzo · Argento · Oro · Platino (36 gradini in tutto). La coppa si colora col grado; il Platino luccica',
       'MUSEO · Ricariche DNA: ogni specie ora mostra anche se è GIÀ RIVISSUTA e in QUANTE chimere è usato il suo DNA (oltre alle fialette nello zaino)',
       'COMPAGNI: nel selettore le CHIMERE si distinguono dai risvegli — icona 🧬, scritta "Chimera" e riga con accento viola (i risvegli restano 🐾)',
       'FIX stallo: consegnare/spedire i grezzi ora si AGGIUNGE al lotto già in lavorazione (prima con la borsa piena e un lotto non ritirato restavi bloccato); il Museo offre sempre "Consegna"',
@@ -53,9 +54,10 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
+      'TROPHY REWARDS: each track at GOLD unlocks a unique golden HAT (Crown, Cap, Laurel, Goggles, Horns, Pith, Feather, Hard Hat, Lamp) — wearable in the Tailor; at PLATINUM the same hat turns to golden GLITTER and your character gains a sparkling AURA',
       'CLOTHES with SHAPES: in the Tailor (and the editor) you pick the SHAPE as well as the color — shirts (T-shirt · Tank · Shirt · Hoodie) and pants (Trousers · Shorts · Skirt · Overalls)',
       'FIX exploit: trying on a hat/outfit and REFRESHING the browser no longer keeps it for free — the preview is no longer auto-saved (you only pay on Confirm, as always)',
-      'TIERED TROPHIES: the Hall of Fame now has 9 tracks (Discoverer, Collector, Geneticist, Creator, Wealthy, Archaeologist, Fixer, Digger, Spelunker), each with 4 tiers Bronze · Silver · Gold · Platinum (36 tiers total). The cup takes the tier color; Platinum sparkles. (Gold/Platinum cosmetics come next)',
+      'TIERED TROPHIES: the Hall of Fame now has 9 tracks (Discoverer, Collector, Geneticist, Creator, Wealthy, Archaeologist, Fixer, Digger, Spelunker), each with 4 tiers Bronze · Silver · Gold · Platinum (36 tiers total). The cup takes the tier color; Platinum sparkles',
       'MUSEUM · DNA refills: each species now also shows whether it has ALREADY been revived and in HOW MANY chimeras its DNA is used (besides the vials in your bag)',
       'COMPANIONS: in the picker CHIMERAS now stand out from awakened ones — 🧬 icon, "Chimera" label and a purple-accented row (awakened stay 🐾)',
       'FIX deadlock: handing in / shipping raw finds now ADDS to the batch already in progress (before, with a full bag and an uncollected batch you got stuck); the Museum always offers "Hand in"',

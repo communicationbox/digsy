@@ -2821,7 +2821,8 @@ sprites.applyLook();
   S.unlocked = { hats: [], hairs: [] }; S.museum = {}; S.awakened = [];
   cmds.runCommand('godmode');
   const { PREMIUM_HATS: PH } = await import('../src/data.js');
-  check('console: godmode sblocca+completa tutto (incl. volo)', dbg2.isDebug() === true && S.unlocked.hats.length === THEMED_HAT.length + PH.length &&
+  const ach2G = await import('../src/achievements.js');
+  check('console: godmode sblocca+completa tutto (incl. volo + cappelli-trofeo glitter)', dbg2.isDebug() === true && ach2G.TROPHY_HATS.every(h => S.unlocked.hats.includes(h)) && S.glitterHats.length === ach2G.TROPHY_HATS.length &&
     S.unlocked.hairs.length === THEMED_HAIR.length && P.speedMul === 5 && P.fly === true && S.items.length > 0 && S.tools.boat && SPECIES.every(sp => S.awakened.includes(sp.id)) && ZONESc.every(z => S.book[z.id]));
   check('console: suggest per goto', cmds.suggest('goto=pal').includes('goto=palude'));
   cmds.runCommand('goto=dune');
@@ -3402,7 +3403,7 @@ sprites.applyLook();
   check('accetta/piccone: suono "found" sul reperto (non solo il colpo)', /found \? 'found' : kind === 'chop'/.test(src));
   check('sito di scavo: suono "found" sul reperto pregiato', /addFossil\(raw, s\.x, s\.y\)\)\s*\{[^]*?playSfx\('found'\)/.test(src));
   const ui = (await import('node:fs')).readFileSync('src/ui.js', 'utf8');
-  check('traguardo con fanfara', /checkAchievements[\s\S]{0,200}fanfare/.test(ui));
+  check('traguardo con fanfara', /checkAchievements\(\(/.test(ui) && ui.includes("playSfx('fanfare')"));
   check('HUD: avvisa energia bassa e zaino pieno', /classList\.toggle\('low'/.test(ui) && /classList\.toggle\('full'/.test(ui));
 }
 

@@ -107,7 +107,18 @@ export function updateHUD() {
   const splashOn = !!(spEl && spEl.classList && typeof spEl.classList.contains === 'function' && !spEl.classList.contains('off'));
   const introOn = hasClass(typeof document !== 'undefined' ? document.body : null, 'introing');
   if (S.lookDone && !splashOn && !introOn) {
-    checkAchievements((t, tier) => { const medal = tierLabel(tier); toast('🏆 ' + medal + ' · ' + trackLabel(t)); playSfx('fanfare'); showBanner(`🏆 ${trackLabel(t)} — <b style="color:${tierCol(tier)}">${medal}</b><div class="sub" style="margin-top:4px">${trackGoal(t)}: ${t.tiers[tier - 1]}</div>`, 2200); });
+    checkAchievements((t, tier) => {
+      const medal = tierLabel(tier);
+      let extra = `<div class="sub" style="margin-top:4px">${trackGoal(t)}: ${t.tiers[tier - 1]}</div>`;
+      /* premi cosmetici: ORO sblocca il cappello-trofeo, PLATINO lo rende glitter + accende l'aura dorata */
+      if (tier >= 3 && t.reward) {
+        if (!S.unlocked.hats.includes(t.reward)) S.unlocked.hats.push(t.reward);
+        if (tier === 4) { if (!S.glitterHats) S.glitterHats = []; if (!S.glitterHats.includes(t.reward)) S.glitterHats.push(t.reward); }
+        extra = `<div class="sub" style="margin-top:4px">${tier === 4 ? '✨ ' + tr('Cappello PLATINO glitterato + AURA dorata!', 'PLATINUM glitter hat + golden AURA!') : '🎁 ' + tr('Nuovo cappello: ', 'New hat: ') + hatLabel(t.reward)}</div>`;
+      }
+      toast('🏆 ' + medal + ' · ' + trackLabel(t)); playSfx('fanfare');
+      showBanner(`🏆 ${trackLabel(t)} — <b style="color:${tierCol(tier)}">${medal}</b>${extra}`, 2400);
+    });
   }
   /* avvisi visivi: energia agli sgoccioli e zaino pieno (prima non si vedevano finché non
      bloccavano l'azione) */

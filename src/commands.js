@@ -46,7 +46,7 @@ import { seasonOf, SEASON_LEN, SEASONS } from './daynight.js';
 import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED_HAIR, THEMED_HAT, PREMIUM_HATS, spById, ptById, RAR, CAVE_POOL } from './data.js';
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
-import { TRACKS } from './achievements.js';
+import { TRACKS, TROPHY_HATS } from './achievements.js';
 import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers } from './gameplay.js';
 import { setCompanion, COMP } from './companion.js';
 import { zoneAt } from './regions.js';
@@ -69,7 +69,7 @@ function giveAllItems() {
   S.teleports = Math.max(S.teleports || 0, 99);
   for (const rar of ['raro', 'eccezionale', 'leggendario']) S.maps.push({ x: Math.floor(P.x / TS) + 50, y: Math.floor(P.y / TS), rar, uid: S.uid++ });
 }
-function unlockAllCosmetics() { S.unlocked.hats = [...THEMED_HAT, ...PREMIUM_HATS.map(h => h.id)]; S.unlocked.hairs = [...THEMED_HAIR]; }
+function unlockAllCosmetics() { S.unlocked.hats = [...THEMED_HAT, ...PREMIUM_HATS.map(h => h.id), ...TROPHY_HATS]; S.unlocked.hairs = [...THEMED_HAIR]; S.glitterHats = [...TROPHY_HATS]; }
 /* "tutto" vuol dire TUTTO: le 7 ali del museo (grotte comprese), le meraviglie scoperte con
    i loro archi, e le lettere del nonno che spettano alle sale piene. */
 function completeMuseumAndBook() {
@@ -413,7 +413,7 @@ export const COMMANDS = {
   intro: { aliases: ['storia', 'story'], type: 'action', help: 'intro — rivedi il filmato introduttivo (nonno + bimbo)',
     run: () => { playIntro(() => {}); return '📖 ' + tr('Riparte l\'intro…', 'Replaying intro…'); } },
   achall: { aliases: ['achievements', 'traguardi'], type: 'action', help: 'achall — completa tutti i traguardi',
-    run: () => { S.trophies = Object.fromEntries(TRACKS.map(t => [t.id, 4])); return '🏆 ' + tr('Tutti i trofei al PLATINO!', 'All trophies at PLATINUM!'); } },
+    run: () => { S.trophies = Object.fromEntries(TRACKS.map(t => [t.id, 4])); S.unlocked.hats = [...new Set([...S.unlocked.hats, ...TROPHY_HATS])]; S.glitterHats = [...TROPHY_HATS]; return '🏆 ' + tr('Tutti i trofei al PLATINO! (9 cappelli glitter + aura)', 'All trophies at PLATINUM! (9 glitter hats + aura)'); } },
   weather: { aliases: ['meteo'], type: 'str', help: 'weather=pioggia — forza il meteo (pioggia/sabbia/nebbia/cenere/neve/sereno/off)',
     suggest: p => ['pioggia', 'sabbia', 'nebbia', 'cenere', 'neve', 'sereno', 'off'].filter(s => s.startsWith(p)),
     run: v => {

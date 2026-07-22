@@ -90,7 +90,11 @@ const HATL = { explorer: ['Esploratore', 'Explorer'], cap: ['Berretto', 'Cap'], 
   vikingo: ['Vichingo', 'Viking'], cowboy: ['Cowboy', 'Cowboy'], sombrero: ['Sombrero', 'Sombrero'],
   partyhat: ['Festa', 'Party'], santa: ['Babbo Natale', 'Santa'],
   flowercrown: ['Coroncina', 'Flower crown'], bandana: ['Bandana', 'Bandana'], hood: ['Cappuccio', 'Hood'],
-  snorkel: ['Boccaglio', 'Snorkel'], ushanka: ['Colbacco', 'Ushanka'] };
+  snorkel: ['Boccaglio', 'Snorkel'], ushanka: ['Colbacco', 'Ushanka'],
+  /* cappelli-TROFEO d'oro */
+  crownGold: ['Corona d\'Oro', 'Gold Crown'], gradGold: ['Tocco d\'Oro', 'Gold Cap'], laurelGold: ['Alloro d\'Oro', 'Gold Laurel'],
+  gogglesGold: ['Occhialoni d\'Oro', 'Gold Goggles'], hornsGold: ['Corna d\'Oro', 'Gold Horns'], pithGold: ['Elmetto d\'Oro', 'Gold Pith'],
+  featherGold: ['Piuma d\'Oro', 'Gold Feather'], hardhatGold: ['Casco d\'Oro', 'Gold Hard Hat'], lampGold: ['Lampada d\'Oro', 'Gold Lamp'] };
 export function hatLabel(id) { const e = HATL[id]; return e ? lab(e) : id; }
 const SHIRTL = { tshirt: ['Maglietta', 'T-shirt'], tank: ['Canottiera', 'Tank top'], shirt: ['Camicia', 'Shirt'], hoodie: ['Felpa', 'Hoodie'] };
 const PANTSL = { long: ['Pantaloni', 'Trousers'], shorts: ['Pantaloncini', 'Shorts'], skirt: ['Gonna', 'Skirt'], overall: ['Salopette', 'Overalls'] };

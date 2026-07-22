@@ -269,6 +269,7 @@ export function initState() {
   if (!S.level) S.level = 1; if (S.xp === undefined) S.xp = 0; // progressione archeologo
   if (!S.achieved) S.achieved = []; if (S.questTotal === undefined) S.questTotal = 0; // traguardi (S.achieved: legacy)
   if (!S.trophies) S.trophies = {}; if (S.findsTotal === undefined) S.findsTotal = 0; // trofei a livelli + reperti trovati (lifetime)
+  if (!S.glitterHats) S.glitterHats = []; // cappelli-trofeo portati al PLATINO: si disegnano con glitter dorato
   if (S.introSeen === undefined) S.introSeen = !!S.started; // i save già avviati non rivedono l'intro
   if (S.gear === undefined) S.gear = null;
   /* i natanti non sono più un "gear attivabile": in acqua si sale da soli (v0.16.5) */

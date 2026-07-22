@@ -7,6 +7,9 @@ export const PAL = {
   '.': null, 'K': '#33291f', 'F': '#f3cfa0', 'f': '#d7a377', 'H': '#d06b43', 'h': '#a04a2c',
   'S': '#57a58f', 's': '#3d7a68', 'P': '#c88a44', 'p': '#96622e', 'W': '#f2ead8', 'E': '#33291f',
   'B': '#8a5f38', 'b': '#6e4a2a', 'A': '#6e4a2a', 'a': '#523620',
+  /* ORO fisso per i CAPPELLI-TROFEO (non seguono il colore scelto): G oro · g ombra · Y luce ·
+     R gemma rossa · D ciano platino · Q verde alloro */
+  'G': '#e8b93c', 'g': '#a8842a', 'Y': '#f8dd82', 'R': '#c65a54', 'D': '#8fe7dd', 'Q': '#5fa04e',
 };
 export function shade(hex, k) {
   const n = parseInt(hex.slice(1), 16);
@@ -111,12 +114,24 @@ export const HATS = {
     side: [[-3, "..WW............"], [-2, "..WW............"], [-1, "...hhHHH........"], [0, "...hHHHHHHH....."], [1, "...HHHHHHHH....."], [2, "...HHHHHHHHH...."], [3, "..WWWWWWWWWWW..."], [4, "..WWWWWWWWWW...."]],
     up: [[-3, "..........WW...."], [-2, "..........WW...."], [-1, ".......HHHHh...."], [0, "....HHHHHHH....."], [1, "...HHHHHHHH....."], [2, "..HHHHHHHHHH...."], [3, "..WWWWWWWWWW...."], [4, ".WWWWWWWWWWWW..."]],
   },
+  /* ================= CAPPELLI-TROFEO (oro fisso G/g/Y). Sbloccati raggiungendo l'ORO di una traccia;
+     al PLATINO la stessa forma si illumina di glitter (vedi glitterHats in drawHero). ================= */
+  crownGold: { down: [[-1, "...G..G..G......"], [0, "..GGGGGGGGGG...."], [1, "..GgGRGGRgG....."], [2, "..gggggggggg...."]], side: [[-1, "...G..G..G......"], [0, "..GGGGGGGGGG...."], [1, "..GgGRGGRgG....."], [2, "..gggggggggg...."]], up: [[-1, "...G..G..G......"], [0, "..GGGGGGGGGG...."], [1, "..GgGGGGGGgG...."], [2, "..gggggggggg...."]] },
+  gradGold: { down: [[-2, "GGGGGGGGGGGGGG.."], [-1, "gggggggggggggY.."], [0, "......Y......Y.."], [1, "..GGGGGGGGGG...."], [2, "..gggggggggg...."]], side: [[-2, ".GGGGGGGGGGGG..."], [-1, ".gggggggggggg..."], [0, "......Y........."], [1, "..GGGGGGGGGG...."], [2, "..gggggggggg...."]], up: [[-2, "GGGGGGGGGGGGGG.."], [-1, "gggggggggggggg.."], [0, "......Y........."], [1, "..GGGGGGGGGG...."], [2, "..gggggggggg...."]] },
+  laurelGold: { down: [[-1, "..Q.Q.Q.Q.Q....."], [0, "..QGQGQGQGQG...."], [1, "..GGGGGGGGGG...."]], side: [[-1, "..Q.Q.Q.Q.Q....."], [0, "..QGQGQGQGQG...."], [1, "..GGGGGGGGGG...."]], up: [[-1, "..Q.Q.Q.Q.Q....."], [0, "..QGQGQGQGQG...."], [1, "..GGGGGGGGGG...."]] },
+  gogglesGold: { down: [[0, "..GGGGGGGGGG...."], [1, "..GDDGGGDDG....."], [2, "..gGGGGGGGGg...."]], side: [[0, "..GGGGGGGGGG...."], [1, "..GDDGGGGGG....."], [2, "..gGGGGGGGGg...."]], up: [[0, "..GGGGGGGGGG...."], [1, "..GGGGGGGGGG...."], [2, "..gGGGGGGGGg...."]] },
+  hornsGold: { down: [[-3, ".GG........GG..."], [-2, "..GG......GG...."], [-1, "..gG......Gg...."], [0, "..GGGGGGGGGG...."], [1, "..gGgGGGGgGg...."]], side: [[-3, "..GG............"], [-2, "...GG..........."], [-1, "...gG..........."], [0, "..GGGGGGGGGG...."], [1, "..gGgGGGGgGg...."]], up: [[-3, ".GG........GG..."], [-2, "..GG......GG...."], [-1, "..gG......Gg...."], [0, "..GGGGGGGGGG...."], [1, "..gggggggggg...."]] },
+  pithGold: { down: [[0, "...GGGGGG......."], [1, "..GGGGGGGG......"], [2, ".GGGGGGGGGG....."], [3, "gGGGGGGGGGGg...."]], side: [[0, "...GGGGGG......."], [1, "..GGGGGGGGG....."], [2, ".GGGGGGGGGGG...."], [3, "gGGGGGGGGGGg...."]], up: [[0, "...GGGGGG......."], [1, "..GGGGGGGG......"], [2, ".GGGGGGGGGG....."], [3, "gGGGGGGGGGGg...."]] },
+  featherGold: { down: [[-2, "..........R....."], [-1, ".........RG....."], [0, "..GGGGGGGGh....."], [1, "..GgggggggG....."], [2, "..ggggggggg....."]], side: [[-2, "..........R....."], [-1, ".........RG....."], [0, "..GGGGGGGGh....."], [1, "..GgggggggG....."], [2, "..ggggggggg....."]], up: [[0, "..GGGGGGGGGG...."], [1, "..GgggggggG....."], [2, "..ggggggggg....."]] },
+  hardhatGold: { down: [[0, "...GGGGGG......."], [1, "..GWWGGGGG......"], [2, ".GGGGGGGGGG....."], [3, "GGGGGGGGGGGGGG.."]], side: [[0, "...GGGGGG......."], [1, "..WWGGGGGG......"], [2, ".GGGGGGGGGGG...."], [3, "GGGGGGGGGGGGG..."]], up: [[0, "...GGGGGG......."], [1, "..GGGGGGGG......"], [2, ".GGGGGGGGGG....."], [3, "GGGGGGGGGGGGGG.."]] },
+  lampGold: { down: [[0, "..GGGWWGGGG....."], [1, "..GGGGGGGGGG...."], [2, "..gggggggggg...."]], side: [[0, "..WWGGGGGGGG...."], [1, "..GGGGGGGGGG...."], [2, "..gggggggggg...."]], up: [[0, "..GGGGGGGGGG...."], [1, "..GGGGGGGGGG...."], [2, "..gggggggggg...."]] },
 };
 /* ultima riga di "corona" per forma: col cappello indossato i capelli NON si disegnano
    su queste righe (niente compenetrazioni); sotto restano frangia/lati/lunghezze */
 export const HAT_CROWN = { explorer: 2, cap: 2, beanie: 3,
   flowercrown: 1, bandana: 2, hood: 5, snorkel: -1, ushanka: 6, vikingo: 4,
-  sombrero: 4, partyhat: 3, cowboy: 2, santa: 3 };
+  sombrero: 4, partyhat: 3, cowboy: 2, santa: 3,
+  crownGold: 2, gradGold: 2, laurelGold: 1, gogglesGold: 2, hornsGold: 1, pithGold: 3, featherGold: 2, hardhatGold: 3, lampGold: 2 };
 
 /* ---------- capelli: overlay a testa piena (il cappello, se indossato, copre la parte alta) ---------- */
 export const HAIRS = {
@@ -250,4 +265,13 @@ export function drawHero(tctx, x, y, dir, frame, noHat) {
   const crown = hat ? HAT_CROWN[S.look.hatStyle] : -1;
   blitPairs(hat ? hs[key].filter(p => p[0] > crown) : hs[key], x, y, flip, tctx);
   if (hat) blitPairs(hat[key], x, y, flip, tctx);
+  /* GLITTER del cappello PLATINO: qualche scintilla brillante sulla forma (twinkle dal tempo). */
+  if (hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0) {
+    const g = tctx || ctx, t = Math.floor(heroTime / 260) % 3;
+    const sp = [[5, -1], [10, 0], [7, 1], [4, 1], [9, -1]];
+    for (let i = 0; i < sp.length; i++) { if ((i + t) % 3 !== 0) continue; const [sx, sy] = sp[i]; g.fillStyle = (i % 2 ? '#ffffff' : '#f8dd82'); g.fillRect(x + (flip ? 15 - sx : sx), y + sy, 1, 1); }
+  }
 }
+/* tempo per il twinkle del glitter (aggiornato da render); default 0 per test/anteprime statiche */
+let heroTime = 0;
+export function setHeroTime(t) { heroTime = t || 0; }

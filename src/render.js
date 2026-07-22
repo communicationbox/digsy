@@ -12,7 +12,7 @@ import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, c
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile, isMounted } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
-import { drawHero } from './sprites.js';
+import { drawHero, setHeroTime } from './sprites.js';
 import { parks, visParks } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
@@ -516,12 +516,25 @@ function drawGoalMark(sx, sy, time) {
 
 /* ---------- eroe (e barca) ---------- */
 let frameTime = 0; // aggiornato da render(): serve alle animazioni del player
+/* AURA del PLATINO: scintille dorate che orbitano attorno al player, twinkle dal TEMPO (mai da sx/sy).
+   Attiva se hai ALMENO un trofeo al Platino. */
+function drawPlatinumAura(sx, sy) {
+  if (!(S.trophies && Object.values(S.trophies).some(t => t >= 4))) return;
+  const cy = sy + 6;
+  for (let i = 0; i < 6; i++) {
+    const ph = frameTime / 800 + i * (Math.PI / 3), r = 11 + Math.sin(frameTime / 320 + i) * 2;
+    const gx = Math.round(sx + Math.cos(ph) * r), gy = Math.round(cy + Math.sin(ph) * r * 0.62);
+    const tw = Math.floor(frameTime / 150 + i) % 3;
+    if (tw === 0) px(gx, gy, '#fff8d0'); else if (tw === 1) px(gx, gy, '#f6d24a');
+  }
+}
 function drawPlayer() {
   const sx = snap(P.x - cam.x), sy = snap(P.y - cam.y);
   if (isMounted()) { drawFlyingMount(sx, sy); return; }                              // cavalcatura volante di grotta
   if (onBoat()) { (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; } // il migliore che possiedi
   shadow(sx, sy + 16, 7);
   if (P.digging) { drawDigging(sx, sy); return; }
+  drawPlatinumAura(sx, sy);                                             // AURA dorata glitterata: premio del PLATINO
   const fr = (P.moving ? (Math.floor(P.anim * 7) % 2) : 0); const bob = (P.moving && fr === 1) ? -1 : 0;
   const gear = footGear();
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
@@ -885,7 +898,7 @@ function drawCaveScene(time) {
 
 /* ---------- frame ---------- */
 export function render(time) {
-  frameTime = time;
+  frameTime = time; setHeroTime(time); // twinkle del glitter dei cappelli platino
   if (CAVE.active) { drawCaveScene(time); return; }
   if (INT.active) { setNight(darknessAt(S.tod || 0)); drawInteriorScene(time); return; }
   const W = view.W, H = view.H, VW = view.VW, VH = view.VH;
