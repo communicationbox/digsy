@@ -2,7 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
-      'TROFEI A LIVELLI: la Sala dei Trofei ora ha 9 tracce (Scopritore, Collezionista, Genetista, Creatore, Danaroso, Archeologo, Faccendiere, Scavatore, Speleologo), ognuna a 4 gradini 🥉 Bronzo · 🥈 Argento · 🥇 Oro · 💎 Platino (36 gradini in tutto). La coppa si colora col grado; il Platino luccica. (I cosmetici Oro/Platino arrivano nella prossima)',
+      'TROFEI A LIVELLI: la Sala dei Trofei ora ha 9 tracce (Scopritore, Collezionista, Genetista, Creatore, Danaroso, Archeologo, Faccendiere, Scavatore, Speleologo), ognuna a 4 gradini Bronzo · Argento · Oro · Platino (36 gradini in tutto). La coppa si colora col grado; il Platino luccica. (I cosmetici Oro/Platino arrivano nella prossima)',
       'MUSEO · Ricariche DNA: ogni specie ora mostra anche se è GIÀ RIVISSUTA e in QUANTE chimere è usato il suo DNA (oltre alle fialette nello zaino)',
       'COMPAGNI: nel selettore le CHIMERE si distinguono dai risvegli — icona 🧬, scritta "Chimera" e riga con accento viola (i risvegli restano 🐾)',
       'FIX stallo: consegnare/spedire i grezzi ora si AGGIUNGE al lotto già in lavorazione (prima con la borsa piena e un lotto non ritirato restavi bloccato); il Museo offre sempre "Consegna"',
