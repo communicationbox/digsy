@@ -2856,6 +2856,35 @@ sprites.applyLook();
   check('pattini a mano: baseline col bob (attaccati ai piedi)', /drawBankSkates\(sx,\s*sy \+ bob,\s*fr\)/.test(renderSrc));
 }
 
+/* ---------- FIX: mappa garantisce la rarità anche fuori finestra; cavalcatura incollata in volo ---------- */
+{
+  const { ZONES: ZG, zonePools: zpG } = await import('../src/data.js');
+  /* la X di una mappa GARANTISCE la rarità comprata: anche se la specie di quella rarità è fuori
+     dalla sua finestra (notte/stagione), makeRaw deve tornare quella rarità, non una più bassa. */
+  let allRight = true, tested = 0;
+  for (const z of ZG) {
+    if (!zpG[z.id] || !zpG[z.id].some(s => s.r === 'leggendario')) continue;
+    for (const tod of [0.5, 0.0]) for (const day of [1, 2, 3]) {   // giorno/notte × stagioni
+      S.tod = tod; S.day = day;
+      for (let i = 0; i < 8; i++) { const raw = gameplay.makeRaw(z.id, 500, 'leggendario', 'any'); tested++; if (!raw || raw.q !== 'leggendario') allRight = false; }
+    }
+  }
+  S.tod = 0.25; S.day = 1;
+  check('mappa: rarità GARANTITA anche fuori finestra (leggendario resta leggendario)', allRight && tested > 0, tested + ' prove');
+
+  /* cavalcatura in volo = incollata al player: all'atterraggio il compagno è già lì, non torna
+     dal punto di decollo (bug segnalato). updateCompanion(dt, true) snappa COMP su P. */
+  const comp2 = await import('../src/companion.js');
+  S.companion = { key: 'k', skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'leggendario' };
+  P.x = 500; P.y = 500; comp2.COMP.x = 40; comp2.COMP.y = 40; comp2.COMP.init = true; comp2.COMP.job = null;
+  comp2.updateCompanion(0.016, true);   // in volo
+  check('cavalcatura: in volo il compagno resta INCOLLATO al player (niente ritorno al decollo)', comp2.COMP.x === P.x && comp2.COMP.y === P.y);
+  comp2.COMP.x = 40; comp2.COMP.y = 40;
+  comp2.updateCompanion(0.016, false);  // a terra: insegue (non snappa di colpo al player)
+  check('cavalcatura: a terra il compagno INSEGUE (non teletrasporta)', comp2.COMP.x !== P.x || comp2.COMP.y !== P.y);
+  S.companion = null; comp2.COMP.init = false;
+}
+
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */
 {
   const cmds = await import('../src/commands.js');

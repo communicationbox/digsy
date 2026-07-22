@@ -58,7 +58,12 @@ export function makeRaw(zoneId, dist, forceRar, src = 'terra') {
   if (!pool.length) return null;
   let sp;
   if (forceRar) {
-    const cand = pool.filter(s => s.r === forceRar);
+    /* rarità GARANTITA (mappa/sito/fontana): se nessuna specie di quella rarità è disponibile ORA
+       (finestra notte/stagione chiusa), si IGNORA la finestra e si pesca dal pool completo della
+       zona — meglio una leggendaria "fuori orario" che tradire la rarità promessa dalla X. */
+    let cand = pool.filter(s => s.r === forceRar);
+    if (!cand.length) cand = (bySrc.length ? bySrc : zPool).filter(s => s.r === forceRar);
+    if (!cand.length) cand = zPool.filter(s => s.r === forceRar);
     sp = cand[Math.floor(Math.random() * cand.length)] || pool[0] || zPool[0];
   } else if (pool.length === 1) sp = pool[0];
   else if (pityRar()) {                       // sfortuna prolungata: rarità garantita

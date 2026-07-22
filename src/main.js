@@ -172,7 +172,7 @@ function loop(ts) {
     }
     walk(dt);
     companionWorkTick(dt);  // raccoglitore leggendario: se lavora, guida lui il movimento
-    updateCompanion(dt);    // altrimenti il compagno insegue il player
+    updateCompanion(dt, isMounted());    // in volo resta incollato; a terra insegue il player
     if (!isMounted()) {               // in volo si SORVOLA: per entrare scendi (tasto cavalcatura)
       checkDoorEnter(); // pestare una porta = entrare (niente E)
       checkCaveEnter(caveEntranceAt); // pestare un imbocco di grotta = entrare

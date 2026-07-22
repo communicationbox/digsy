@@ -2,6 +2,8 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
+      'FIX mappa del tesoro: la X ora dà DAVVERO la rarità comprata — se la specie leggendaria era fuori dalla sua finestra (notte/stagione) usciva un reperto RARO al suo posto; ora la garanzia vince sulla finestra',
+      'FIX cavalcatura: atterrando il compagno resta AL TUO FIANCO — prima "tornava" volando dal punto di decollo (in volo era rimasto indietro perché ti inseguiva mentre sorvolavi veloce)',
       'ANIMALI: nella vista FRONTALE ora si vede la FACCIA (occhi, muso, corna) — prima la testa finiva dietro al corpo e l\'animale sembrava di spalle',
       'MEZZI: l\'omino ora è CENTRATO sul mezzo nelle viste di fronte e di dietro (lo sprite era ~1px a sinistra e sullo scafo simmetrico si notava)',
       'MEZZI: barca e motoscafo hanno le 4 VISTE giuste — fronte e retro (scafo compatto di prua/poppa, motore/parabrezza) e i due laterali di profilo; prima erano sempre di lato',
@@ -60,6 +62,8 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
+      'FIX treasure map: the X now really gives the rarity you bought — if the legendary species was outside its window (night/season) you got a RARE find instead; now the guarantee beats the window',
+      'FIX mount: on landing your companion stays BY YOUR SIDE — before it "flew back" from the take-off spot (during flight it fell behind, chasing you while you soared fast)',
       'ANIMALS: the FRONT view now shows the FACE (eyes, muzzle, horns) — before the head ended up behind the body and the animal looked like its back was turned',
       'CHARACTER sprite padded 1px on the left: now CENTERED in its cell → centered on vehicles (boat/motorboat/mount) in the front and back views, where it used to sit to the left',
       'VEHICLES: the boat and motorboat now have the 4 proper VIEWS — front and back (compact bow/stern hull, motor/windshield) and the two side profiles; before they were always sideways',

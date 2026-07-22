@@ -79,10 +79,13 @@ export function companionCandidates() { return parkPopulation(); }
 export function isCurrentCompanion(key) { return !!S.companion && S.companion.key === key; }
 
 /* il compagno insegue il player restando un po' indietro rispetto al verso di marcia */
-export function updateCompanion(dt) {
+export function updateCompanion(dt, mounted) {
   /* effetti "+fossile" del raccoglitore: salgono e svaniscono in ~0,9 s */
   if (COMP.fx.length) { for (const p of COMP.fx) p.life -= dt / 0.9; COMP.fx = COMP.fx.filter(p => p.life > 0); }
   const c = S.companion; if (!c) { COMP.job = null; return; }
+  /* IN VOLO la cavalcatura È il player: tienila INCOLLATA a lui. Senza, il compagno resta indietro
+     (segue a 90px/s mentre voli ×3) e all'atterraggio "torna" dal punto di decollo (segnalato). */
+  if (mounted) { COMP.x = P.x; COMP.y = P.y; COMP.job = null; return; }
   if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
   if (!COMP.init) { COMP.x = P.x - 16; COMP.y = P.y + 6; COMP.init = true; }
   const off = P.dir === 'left' ? 16 : P.dir === 'right' ? -16 : 0;
