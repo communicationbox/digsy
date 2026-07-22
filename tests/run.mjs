@@ -2501,7 +2501,7 @@ sprites.applyLook();
     const skate = frame(land[0], land[1]);
     check('bici di profilo: telaio a V rosso + ruote', only(bikeSide, plain, '#d1655f') && bikeSide.has('#2a2016'));
     check('bici di fronte: manubrio, NON il telaio di profilo', only(bikeFront, plain, '#c94f4a') && !bikeFront.has('#d1655f'));
-    check('bici di spalle: catarifrangente giallo', only(bikeBack, plain, '#f2c53d'));
+    check('bici di spalle: disegno a mano (sella rossa)', only(bikeBack, plain, '#c94f4a'));
     check('pattini: quattro rotelle sotto i piedi', only(skate, plain, '#e0b040'));
     S.gear = null; P.moving = false;
   }
