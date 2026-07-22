@@ -665,21 +665,15 @@ function render() {
 /* RIFERIMENTO per i mezzi: l'eroe VIVO (sbiadito) all'origine della cornice + una linea d'acqua/
    terra ai piedi. Serve per disegnare il veicolo alla scala e nel punto giusti rispetto all'eroe.
    Non è modificabile e non finisce nell'export (è solo sullo sfondo della tela). */
+/* RIFERIMENTO omino: sagoma PIENA e ben visibile dell'eroe (testa · maglia · braccia · gambe)
+   alle proporzioni vere, ancorata all'origine della cornice. Solo rettangoli → si vede SEMPRE,
+   non dipende da drawHero né dallo stato. Ci si disegna sopra il veicolo. */
 function drawVehRef(c, cell) {
-  const f = VF();
-  if (SPR_MOD.drawHero && STATE.S) {
-    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
-    const tctx = tmp.getContext('2d'); tctx.imageSmoothingEnabled = false;
-    viaGameCanvas(tctx, W, H, () => SPR_MOD.drawHero(null, f.ox - 8, f.oy, cur.dir, 0));
-    /* ben visibile (0.7) così ci si disegna sopra con precisione, ma un filo trasparente per
-       distinguere l'omino-guida dai pixel VERI del veicolo che stai posando */
-    c.save(); c.globalAlpha = 0.7; c.imageSmoothingEnabled = false;
-    c.drawImage(tmp, 0, 0, W, H, 0, 0, W * cell, H * cell); c.restore();
-  }
-  /* linea d'acqua/terra ai piedi dell'eroe (dove poggia il mezzo) */
-  const gy = (f.oy + 16) * cell + .5;
-  c.save(); c.strokeStyle = 'rgba(120,180,220,.55)'; c.setLineDash([4, 3]);
-  c.beginPath(); c.moveTo(0, gy); c.lineTo(W * cell, gy); c.stroke(); c.restore();
+  const f = VF(), ox = f.ox - 8;                          // colonna sinistra dell'eroe (16 largo)
+  const R = (x, y, w, h, col) => { c.fillStyle = col; c.fillRect(x * cell, y * cell, w * cell, h * cell); };
+  R(ox + 3, f.oy + 0, 10, 9, 'rgba(243,207,160,.82)');   // testa (pelle)
+  R(ox + 2, f.oy + 9, 12, 4, 'rgba(87,165,143,.82)');    // maglia + braccia
+  R(ox + 4, f.oy + 13, 3, 4, 'rgba(200,138,68,.82)'); R(ox + 9, f.oy + 13, 3, 4, 'rgba(200,138,68,.82)'); // gambe
 }
 function previews() {
   for (const [id, scale, withHero] of [['p1', 1, false], ['p2', 2, false], ['p3', 3, true]]) {
