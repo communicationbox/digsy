@@ -2882,6 +2882,21 @@ sprites.applyLook();
   comp2.COMP.x = 40; comp2.COMP.y = 40;
   comp2.updateCompanion(0.016, false);  // a terra: insegue (non snappa di colpo al player)
   check('cavalcatura: a terra il compagno INSEGUE (non teletrasporta)', comp2.COMP.x !== P.x || comp2.COMP.y !== P.y);
+
+  /* ATTERRAGGIO: non si scende MAI incastrati su una casella solida (montagna/roccia/albero).
+     O si atterra sul punto libero più vicino, o si resta in volo. */
+  const keepXY = { x: P.x, y: P.y, m: S.mounted };
+  let solid = null;
+  for (let ty = -50; ty < 50 && !solid; ty++) for (let tx = -50; tx < 50; tx++) {
+    if (gameplay.collide(tx * TS + 8, ty * TS + 8)) { solid = { tx, ty }; break; }
+  }
+  if (solid) {
+    P.x = solid.tx * TS + 8; P.y = solid.ty * TS + 8; S.mounted = true;
+    gameplay.toggleMount();                                       // prova a scendere
+    const stuck = S.mounted === false && gameplay.collide(P.x, P.y);   // atterrato su solido = bug
+    check('cavalcatura: non si atterra MAI incastrati su casella solida', !stuck);
+  }
+  P.x = keepXY.x; P.y = keepXY.y; S.mounted = false;
   S.companion = null; comp2.COMP.init = false;
 }
 

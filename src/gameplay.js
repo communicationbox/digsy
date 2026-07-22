@@ -463,9 +463,29 @@ export function companionRides() {
   return !!c && c.q === 'leggendario' && companionType(c) === 'grotta';
 }
 export function isMounted() { return !!S.mounted && companionRides() && !CAVE.active && !INT.active; }
+/* dove si può ATTERRARE: la casella calpestabile più vicina (quella sotto i piedi se già libera,
+   altrimenti a spirale entro pochi passi). null = niente terreno libero → non si scende. Usa la
+   collisione a piedi (bodyHits+passable) a prescindere dal volo, così rocce/alberi/montagne/acqua
+   senza natante NON contano come atterraggio valido (prima si scendeva e ci si incastrava). */
+function landingSpot() {
+  const blocked = (x, y) => bodyHits(x, y, (px, py) => !passable(px, py));
+  if (!blocked(P.x, P.y)) return { x: P.x, y: P.y };
+  const tx = Math.floor(P.x / TS), ty = Math.floor(P.y / TS);
+  for (let r = 1; r <= 5; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;     // solo l'anello esterno del raggio
+    const x = (tx + dx) * TS + 8, y = (ty + dy) * TS + 8;
+    if (!blocked(x, y)) return { x, y };
+  }
+  return null;
+}
 export function toggleMount() {
   if (CAVE.active || INT.active) { toast('🕳️ ' + tr('Qui non si vola: scendi e cammina', 'No flying here: get down and walk')); return false; }
   if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario per volare', 'You need a legendary cave companion to fly')); return false; }
+  if (S.mounted) {                          // sto per SCENDERE: serve una casella CALPESTABILE
+    const spot = landingSpot();
+    if (!spot) { toast('🐾 ' + tr('Non puoi scendere qui: sorvola un punto libero (niente rocce, alberi, montagne)', "Can't land here: fly over open ground (no rocks, trees, mountains)")); playSfx('nope'); return false; }
+    P.x = spot.x; P.y = spot.y;             // atterra sul punto libero più vicino
+  }
   S.mounted = !S.mounted;
   toast(S.mounted ? '✨ ' + tr('In volo! Attraversi tutto', 'Airborne! You cross anything') : '🐾 ' + tr('Sei sceso', 'You landed'));
   playSfx(S.mounted ? 'found' : 'click'); save();
