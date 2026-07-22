@@ -163,6 +163,20 @@ export const HAT_STYLES = [
   { id: 'cap', label: 'Berretto' },
   { id: 'beanie', label: 'Cuffia' },
 ];
+/* FORME di MAGLIA (torso/braccia) e PANTALONI (gambe): come i cappelli, una FORMA + il colore.
+   La forma è un overlay disegnato sul corpo (vedi SHIRTS/PANTS in sprites.js). */
+export const SHIRT_STYLES = [
+  { id: 'tshirt', label: 'Maglietta' },
+  { id: 'tank', label: 'Canottiera' },
+  { id: 'shirt', label: 'Camicia' },
+  { id: 'hoodie', label: 'Felpa' },
+];
+export const PANTS_STYLES = [
+  { id: 'long', label: 'Pantaloni' },
+  { id: 'shorts', label: 'Pantaloncini' },
+  { id: 'skirt', label: 'Gonna' },
+  { id: 'overall', label: 'Salopette' },
+];
 
 /* CAPPELLI PREMIUM: rari, sbloccabili a parte in Sartoria pagando tanto.
    Provabili GRATIS in anteprima; si sbloccano solo alla Conferma (scala i 🪙). */
@@ -207,4 +221,5 @@ export function randomName() { return NAMES[Math.floor(Math.random() * NAMES.len
 export const DEFAULT_LOOK = {
   hat: '#d06b43', shirt: '#57a58f', pants: '#c88a44', skin: '#f3cfa0',
   hairStyle: 'short', hairColor: '#6e4a2a', hatStyle: 'explorer', eyeColor: '#33291f',
+  shirtStyle: 'tshirt', pantsStyle: 'long',
 };

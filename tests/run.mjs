@@ -992,6 +992,22 @@ sprites.applyLook();
   S.look.hairColor = '#caa25a'; sprites.applyLook();
   check('applyLook aggiorna capelli', sprites.PAL.A === '#caa25a');
   check('hatStyle di default explorer', state.fresh().look.hatStyle === 'explorer');
+  /* FORME maglia/pantaloni: styleLook trasforma le righe del corpo (torso=S, gambe=P) senza rompere le altre */
+  {
+    const dataMod = await import('../src/data.js');
+    const base = sprites.SPR.down[0];
+    const tank = sprites.styleLook(base, 'tank', 'long');
+    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', tank[9][3] === 'F' && tank[9][10] === 'F' && tank[9].includes('S') && base[9][3] === 'S');
+    const shorts = sprites.styleLook(base, 'tshirt', 'shorts');
+    check('pantaloncini: stinco scoperto (una riga di pantalone → pelle)', !shorts[14].includes('P') && shorts[13].includes('P'));
+    const skirt = sprites.styleLook(base, 'tshirt', 'skirt');
+    check('gonna: prima riga gambe svasata (più larga)', skirt[13].split('P').length - 1 > base[13].split('P').length - 1);
+    const overall = sprites.styleLook(base, 'tshirt', 'overall');
+    check('salopette: bretelle di pantalone sul torso', overall[10].includes('P'));
+    check('styleLook default (tshirt/long) = corpo invariato', sprites.styleLook(base, 'tshirt', 'long').join('|') === base.join('|'));
+    check('4 maglie + 4 pantaloni definiti', dataMod.SHIRT_STYLES.length === 4 && dataMod.PANTS_STYLES.length === 4);
+    check('DEFAULT_LOOK ha shirtStyle/pantsStyle', dataMod.DEFAULT_LOOK.shirtStyle === 'tshirt' && dataMod.DEFAULT_LOOK.pantsStyle === 'long');
+  }
   // smoke: eroe senza cappello e con ogni taglio, tutte le direzioni
   const stubCtx = { fillStyle: '', fillRect() {}, clearRect() {} };
   let heroOk = true;

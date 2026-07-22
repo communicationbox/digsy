@@ -225,6 +225,8 @@ export function initState() {
   /* migrazione: hatOn (bool) → hatStyle ('none' | forma) */
   if (S.look.hatStyle === undefined) S.look.hatStyle = S.look.hatOn === false ? 'none' : 'explorer';
   if (S.look.eyeColor === undefined) S.look.eyeColor = DEFAULT_LOOK.eyeColor;
+  if (S.look.shirtStyle === undefined) S.look.shirtStyle = DEFAULT_LOOK.shirtStyle; // forme maglia/pantaloni
+  if (S.look.pantsStyle === undefined) S.look.pantsStyle = DEFAULT_LOOK.pantsStyle;
   if (S.tod === undefined) S.tod = 0.25;
   if (!S.book) S.book = {};
   /* la mappa arriva compressa dal disco (o nel vecchio formato: unpack li gestisce entrambi) */

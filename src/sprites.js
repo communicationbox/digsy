@@ -199,11 +199,47 @@ export function blitPairs(pairs, px, py, flip, tctx) {
     }
   }
 }
+/* FORME di maglia/pantaloni: trasformano le righe del CORPO (torso = righe con S, gambe = righe con
+   P). Dinamico → si adatta a ogni vista e frame senza griglie separate. Lettere: S/s maglia,
+   P/p pantaloni, F pelle, K scuro, W chiaro. */
+function setAt(r, i, ch) { return i < 0 || i >= r.length ? r : r.slice(0, i) + ch + r.slice(i + 1); }
+export function styleLook(rows, shirtStyle, pantsStyle) {
+  rows = rows.slice();
+  const torso = [], legs = [];
+  for (let y = 0; y < rows.length; y++) { if (rows[y].includes('S')) torso.push(y); if (rows[y].includes('P')) legs.push(y); }
+  /* ---- MAGLIE ---- */
+  if (shirtStyle === 'tank' && torso.length) {           // canottiera: spalle/braccia scoperte + bretelline
+    for (const y of torso) { let r = rows[y]; const f = r.indexOf('S'), l = r.lastIndexOf('S');
+      r = setAt(r, f, 'F'); r = setAt(r, l, 'F');
+      if (l - f >= 6) { r = setAt(r, f + 1, 'F'); r = setAt(r, l - 1, 'F'); }
+      rows[y] = r; }
+  } else if (shirtStyle === 'shirt' && torso.length) {   // camicia: colletto chiaro + bottoni scuri
+    const top = torso[0]; rows[top] = setAt(setAt(rows[top], rows[top].indexOf('S'), 'W'), rows[top].lastIndexOf('S'), 'W');
+    for (const y of torso) { const c = Math.round((rows[y].indexOf('S') + rows[y].lastIndexOf('S')) / 2); rows[y] = setAt(rows[y], c, 'K'); }
+  } else if (shirtStyle === 'hoodie' && torso.length) {  // felpa: cappuccio (drappo scuro sopra il collo) + tasca
+    const top = torso[0], f = rows[top].indexOf('S'), l = rows[top].lastIndexOf('S');
+    if (top > 0) { let h = rows[top - 1].split(''); for (let x = f; x <= l; x++) h[x] = (x === f || x === l) ? 'K' : 's'; rows[top - 1] = h.join(''); }
+    const bot = torso[torso.length - 1], c = Math.round((f + l) / 2); rows[bot] = setAt(setAt(rows[bot], c, 'K'), c + 1, 'K');
+  }
+  /* ---- PANTALONI ---- */
+  if (pantsStyle === 'shorts' && legs.length >= 2) {     // pantaloncini: stinco scoperto (ultima riga di pantalone → pelle)
+    const shin = legs[legs.length - 1]; rows[shin] = rows[shin].replace(/[Pp]/g, 'F');
+  } else if (pantsStyle === 'skirt' && legs.length) {    // gonna: svasata sulla prima riga, gambe scoperte sotto
+    const top = legs[0]; const f = rows[top].indexOf('P'), l = rows[top].lastIndexOf('P');
+    let s = rows[top].split(''); for (let x = Math.max(0, f - 1); x <= Math.min(15, l + 1); x++) s[x] = 'P'; s[Math.max(0, f - 1)] = 'p'; s[Math.min(15, l + 1)] = 'p'; rows[top] = s.join('');
+    for (let i = 1; i < legs.length; i++) rows[legs[i]] = rows[legs[i]].replace(/P/g, 'F');
+  } else if (pantsStyle === 'overall' && torso.length && legs.length) { // salopette: bretelle di pantalone sul torso
+    for (const y of torso) { const f = rows[y].indexOf('S'), l = rows[y].lastIndexOf('S'), a = f + 1, b = l - 1;
+      rows[y] = setAt(setAt(rows[y], a, 'P'), b, 'P'); }
+  }
+  return rows;
+}
 /* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
 export function drawHero(tctx, x, y, dir, frame, noHat) {
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const flip = dir === 'left';
-  blit(SPR[key][frame], x, y, flip, tctx);
+  const L = S.look;
+  blit(styleLook(SPR[key][frame], L.shirtStyle || 'tshirt', L.pantsStyle || 'long'), x, y, flip, tctx);
   const hs = HAIRS[S.look.hairStyle] || HAIRS.none;
   const hat = !noHat ? HATS[S.look.hatStyle] : null;
   const crown = hat ? HAT_CROWN[S.look.hatStyle] : -1;
