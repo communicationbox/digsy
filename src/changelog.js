@@ -1,10 +1,17 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.83', it: [
+    v: 'v0.84', it: [
       'CITTÀ rifatte: PIAZZA con la FONTANA al CENTRO e un ANELLO di strade che le gira attorno e porta alle case; LAMPIONI accanto a ogni edificio, PANCHINE attorno alla fontana, la bacheca a bordo piazza. Prima erano file dritte con la fontana di lato — ora sembra una piazza',
-      'FIX bacheca: il cartello delle missioni ora spawna LONTANO dalla fontana (≥4 caselle) — prima poteva finirle appiccicato',
       'PARCO delle creature rifatto: prato a STRISCE falciate (via la scacchiera piatta), uno STAGNO d\'acqua VERA (onde e riflessi come nel mondo, ma NON ci si pesca), alberi · cespugli · sassi · aiuole fiorite; il recinto è PIÙ GRANDE (oltre il doppio) e le staccionate sui lati sono disegnate in VERTICALE. Le creature NUOTANO quando entrano nell\'acqua',
+    ], en: [
+      'TOWNS redone: a SQUARE with the FOUNTAIN in the CENTER and a RING of roads circling it and leading to the houses; LAMPS beside every building, BENCHES around the fountain, the notice board at the plaza edge. Before they were straight rows with the fountain off to the side — now it reads like a piazza',
+      'CREATURE PARK redone: mown-STRIPE lawn (no more flat checkerboard), a REAL-water POND (waves and reflections like the world, but you CAN\'T fish in it), trees · bushes · rocks · flower beds; the pen is BIGGER (more than double) and the side fences are drawn VERTICALLY. Creatures SWIM when they step into the water',
+    ],
+  },
+  {
+    v: 'v0.83', it: [
+      'FIX bacheca: il cartello delle missioni ora spawna LONTANO dalla fontana (≥4 caselle) — prima poteva finirle appiccicato',
       'MAPPA: due livelli di ZOOM OUT in più (vista d\'insieme) — si vede molto più mondo in un colpo d\'occhio; resta NITIDA (campionata a pixel interi, niente sfocatura)',
       'FIX cavalcatura: non si scende più su cose non calpestabili (rocce, alberi, montagne) — atterri sul punto libero più vicino, e se intorno non c\'è terreno libero resti in volo (prima rimanevi incastrato)',
       'FIX mappa del tesoro: la X ora dà DAVVERO la rarità comprata — se la specie leggendaria era fuori dalla sua finestra (notte/stagione) usciva un reperto RARO al suo posto; ora la garanzia vince sulla finestra',
@@ -67,9 +74,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
-      'TOWNS redone: a SQUARE with the FOUNTAIN in the CENTER and a RING of roads circling it and leading to the houses; LAMPS beside every building, BENCHES around the fountain, the notice board at the plaza edge. Before they were straight rows with the fountain off to the side — now it reads like a piazza',
       'FIX notice board: the quest board now spawns FAR from the fountain (≥4 tiles) — before it could end up right next to it',
-      'CREATURE PARK redone: mown-STRIPE lawn (no more flat checkerboard), a REAL-water POND (waves and reflections like the world, but you CAN\'T fish in it), trees · bushes · rocks · flower beds; the pen is BIGGER (more than double) and the side fences are drawn VERTICALLY. Creatures SWIM when they step into the water',
       'MAP: two extra ZOOM-OUT levels (overview) — see much more of the world at a glance; stays CRISP (sampled at whole pixels, no blur)',
       'FIX mount: you no longer land on things you can\'t stand on (rocks, trees, mountains) — you touch down on the nearest open spot, and if there\'s none around you stay airborne (before you got stuck)',
       'FIX treasure map: the X now really gives the rarity you bought — if the legendary species was outside its window (night/season) you got a RARE find instead; now the guarantee beats the window',
