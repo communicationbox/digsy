@@ -2836,6 +2836,10 @@ sprites.applyLook();
   check('pattini a mano: le rotelle si disegnano (4)', sk0.n === 4 && sk1.n === 4);
   check('pattini a mano: ANIMATI, i due piedi si alternano su/giù col passo', sk0.minL !== sk0.minR && sk1.minL !== sk1.minR && sk0.minL !== sk1.minL && sk0.minR !== sk1.minR);
   check('pattini a mano: da fermo allineati (niente animazione immobili)', skStill.minL === skStill.minR);
+  /* REGRESSIONE: drawPlayer deve passare `sy` SENZA bob ai pattini. Con `sy + bob` il bob del passo
+     annullava lo scarto di un pattino e uno restava FERMO (segnalato da Marco). */
+  const renderSrc = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
+  check('pattini a mano: baseline senza bob (uno non resti fermo)', /drawBankSkates\(sx,\s*sy,\s*fr\)/.test(renderSrc) && !/drawBankSkates\(sx,\s*sy\s*\+\s*bob/.test(renderSrc));
 }
 
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */

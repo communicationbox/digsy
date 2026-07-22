@@ -559,7 +559,7 @@ function drawPlayer() {
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
   if (gear === 'bike' && !fb && !bank) drawBike(sx, sy + bob, P.moving); // profilo procedurale: DIETRO l'eroe
   drawHero(null, sx - 8, sy + bob, P.dir, fr);
-  if (bank && gear === 'skates') drawBankSkates(sx, sy + bob, fr);    // pattini a mano ANIMATI (i due piedi si alternano col passo)
+  if (bank && gear === 'skates') drawBankSkates(sx, sy, fr);          // pattini a mano ANIMATI (senza bob: il bob annullerebbe lo scarto di un pattino → uno resterebbe fermo)
   else if (bank) bankVeh(gear, sx, sy + bob);                        // disegno a mano di bici (SOPRA l'eroe)
   else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
   else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: DAVANTI (manubrio/ruota visibili)
