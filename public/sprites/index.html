@@ -691,16 +691,30 @@ function render() {
 /* RIFERIMENTO per i mezzi: l'eroe VIVO (sbiadito) all'origine della cornice + una linea d'acqua/
    terra ai piedi. Serve per disegnare il veicolo alla scala e nel punto giusti rispetto all'eroe.
    Non è modificabile e non finisce nell'export (è solo sullo sfondo della tela). */
-/* RIFERIMENTO omino: lo sprite VERO dell'eroe (con look/cappello), ben OPACO così si vede TUTTO
-   e ci si disegna sopra con precisione — non è modificabile e non finisce nell'export. */
+/* RIFERIMENTO omino: lo sprite VERO dell'eroe, disegnato leggendo DIRETTAMENTE le righe di SPR +
+   la palette PAL (non dalla canvas di gioco: così si vede SEMPRE, anche dove drawHero/viaGameCanvas
+   fallirebbero). Corpo a testa nuda nel verso giusto (fronte/retro/profilo, specchiato a sinistra),
+   ben OPACO (0.9). Non modificabile, fuori dall'export. */
 function drawVehRef(c, cell) {
   const f = VF();
-  if (!(SPR_MOD.drawHero && STATE.S)) return;
-  const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
-  const tctx = tmp.getContext('2d'); tctx.imageSmoothingEnabled = false;
-  try { viaGameCanvas(tctx, W, H, () => SPR_MOD.drawHero(null, f.ox - 8, f.oy, cur.dir, 0)); } catch (e) { return; }
-  c.save(); c.globalAlpha = 0.9; c.imageSmoothingEnabled = false;
-  c.drawImage(tmp, 0, 0, W, H, 0, 0, W * cell, H * cell); c.restore();
+  const SPR = SPR_MOD.SPR, PAL = SPR_MOD.PAL;
+  if (!SPR || !PAL) return;
+  const key = cur.dir === 'up' ? 'up' : (cur.dir === 'left' || cur.dir === 'right') ? 'side' : 'down';
+  const rows = (SPR[key] && SPR[key][0]) || (SPR.down && SPR.down[0]);
+  if (!rows) return;
+  const flip = cur.dir === 'left', ox = f.ox - 8;
+  c.save(); c.globalAlpha = 0.9;
+  for (let y = 0; y < rows.length; y++) {
+    const row = rows[y];
+    for (let x = 0; x < 16; x++) {
+      const ch = row[flip ? 15 - x : x];
+      const col = PAL[ch];
+      if (!col || ch === '.') continue;
+      c.fillStyle = col;
+      c.fillRect((ox + x) * cell, (f.oy + y) * cell, cell, cell);
+    }
+  }
+  c.restore();
 }
 function previews() {
   for (const [id, scale, withHero] of [['p1', 1, false], ['p2', 2, false], ['p3', 3, true]]) {
