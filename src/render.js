@@ -531,18 +531,18 @@ function drawPlatinumAura(sx, sy) {
   }
 }
 /* MEZZI RIFINITI A MANO (banca sprite): il disegno porta SOLO il VEICOLO (scafo, telaio, rotelle)
-   — l'EROE resta quello VIVO del gioco (look, cappello, animazione). Ogni verso ha il suo disegno;
-   'side' vale per left/right (a sinistra si specchia). VEH_ANCHOR = riga su cui poggia lo scafo,
-   rispetto a y0, così il disegno a mano cade dove stava quello procedurale. */
-const VEH_ANCHOR = { boat: 17, motorboat: 16, bike: 18, skates: 17 };
+   — l'EROE resta quello VIVO del gioco (look, cappello, animazione). Gli sprite usano una CORNICE
+   FISSA (VEH_FRAME): l'ancora cade sull'ORIGINE del player (colonna VEH_OX = sx, riga VEH_OY = y0),
+   così drawSprite li posa esattamente a (sx, y0) — WYSIWYG con l'editor, e spostare un pixel al
+   bordo non riancora più nulla. 'side' vale per left/right (a sinistra si specchia). */
+const VEH_FRAME = { w: 32, h: 34, ox: 16, oy: 12 };
 function bankVeh(kind, sx, y0) {
   const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
   const id = 'vehicle:' + kind + ':' + view;
   if (!hasSprite(id)) return false;
-  const gy = y0 + (VEH_ANCHOR[kind] || 16);
   const flip = P.dir === 'left';
   if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
-  drawSprite({ rect }, id, sx, gy);
+  drawSprite({ rect }, id, sx, y0);
   if (flip) ctx.restore();
   return true;
 }
@@ -578,6 +578,21 @@ export function drawVehiclePreview(kind, sx, sy, dir) {
     else if (kind === 'mount') { try { drawFlyingMount(sx, sy); } catch (e) { /* preview */ } }
     else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); hero(sx - 8, sy); if (fb) drawBikeFB(sx, sy, false, dir); }
     else if (kind === 'skates') { hero(sx - 8, sy); drawSkates(sx, sy, 0); }
+  } finally { P.dir = sd; P.moving = sm; P.digging = sg; }
+}
+/* cornice fissa dei mezzi (per lo Sprite Studio): l'ancora del disegno cade su (ox, oy). */
+export { VEH_FRAME };
+/* SOLO il veicolo (niente eroe) a (sx, sy), per SEMINARE l'editor di un verso nuovo. */
+export function drawVehicleBody(kind, sx, sy, dir) {
+  const sd = P.dir, sm = P.moving, sg = P.digging;
+  P.dir = dir; P.moving = false; P.digging = null;
+  try {
+    const fb = dir === 'up' || dir === 'down';
+    if (kind === 'boat') drawBoat(sx, sy, true);
+    else if (kind === 'motorboat') drawMotorboat(sx, sy, true);
+    else if (kind === 'mount') drawFlyingMount(sx, sy);
+    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); else drawBikeFB(sx, sy, false, dir); }
+    else if (kind === 'skates') drawSkates(sx, sy, 0);
   } finally { P.dir = sd; P.moving = sm; P.digging = sg; }
 }
 /* rotelle da pattino sotto i piedi (4 ruote) */
@@ -657,7 +672,7 @@ export function drawFlyingMount(sx, sy) {
     shadow(sx, sy + 17, 6);
     const flip = P.dir === 'left';
     if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
-    drawSprite({ rect }, 'vehicle:mount:' + mview, sx, sy + 9);
+    drawSprite({ rect }, 'vehicle:mount:' + mview, sx, sy);
     if (flip) ctx.restore();
     return;
   }

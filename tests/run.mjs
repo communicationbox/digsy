@@ -2811,7 +2811,9 @@ sprites.applyLook();
   check('banca mezzi: motoscafo (3 viste) disegnato a mano', ['down', 'up', 'side'].every(v => bank.hasSprite('vehicle:motorboat:' + v) === true));
   check('banca mezzi: i mezzi non disegnati restano procedurali', bank.hasSprite('vehicle:boat:down') === false && bank.hasSprite('vehicle:bike:side') === false);
   const md = bank.spriteDef('vehicle:motorboat:down');
-  check('banca mezzi: lo sprite del motoscafo ha ancora/righe valide', !!md && md.rows.length === md.h && md.ax === 10 && md.ay === 19);
+  /* i mezzi usano la CORNICE FISSA 32×34 con ancora sull'origine del player (16,12): stabile,
+     WYSIWYG con l'editor; spostare un pixel al bordo non riancora più il disegno */
+  check('banca mezzi: cornice fissa 32×34, ancora sull\'origine (16,12)', !!md && md.w === 32 && md.h === 34 && md.rows.length === 34 && md.rows.every(r => r.length === 32) && md.ax === 16 && md.ay === 12);
 
   /* gli id della scheda Mezzi nello Studio devono combaciare col mapping del gioco:
      verso ∈ {down,up,side}, mezzo ∈ i 5 noti (una svista di naming = disegni orfani) */

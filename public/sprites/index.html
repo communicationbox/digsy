@@ -173,7 +173,12 @@ try {
   STATE = await import('/src/state.js');
   if (STATE.initState && !STATE.S) STATE.initState();
   if (STATE.S) STATE.S.companion = { skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 3 };
+  if (SPR_MOD.applyLook && STATE.S) SPR_MOD.applyLook(); // palette dell'eroe di riferimento
 } catch (e) { console.warn('state.js non caricato', e); }
+/* CORNICE FISSA dei mezzi: l'editor dei veicoli usa una tela di dimensioni fisse con l'eroe e la
+   linea d'acqua di RIFERIMENTO; l'ancora cade sull'origine del player (ox, oy). Così quello che
+   disegni è ESATTAMENTE dove/quanto grande esce in gioco, e i pixel al bordo non riancorano più. */
+const VF = () => (REND.VEH_FRAME || { w: 32, h: 34, ox: 16, oy: 12 });
 /* Le funzioni del gioco disegnano sulla canvas #cv e basta: non accettano un contesto.
    Quindi si disegna là sopra (nascosta), e si copia il risultato sulla tela richiesta.
    Semplice, e soprattutto non obbliga a toccare il motore per far funzionare uno strumento. */
@@ -459,6 +464,7 @@ function buildGrid() {
 /* dimensione della tela per un elemento: ingombro reale + margine (minimi per comodità) */
 function sizeFor(it) {
   if (it.kind === 'icon') return [24, 24];
+  if (it.kind === 'vehicle') { const f = VF(); return [f.w, f.h]; }   // cornice fissa
   const work = document.createElement('canvas');
   work.width = 640; work.height = 640;
   const wc = work.getContext('2d'); wc.imageSmoothingEnabled = false;
@@ -496,6 +502,9 @@ function openEditor(it) {
   /* il disegno di partenza arriva CENTRATO nella griglia (prima nasceva incollato in alto a
      sinistra e si lavorava con metà tela vuota) */
   if (it.kind === 'icon') paintItem(it, tc, W, H);
+  /* i mezzi partono col VEICOLO procedurale piazzato all'origine della cornice (non centrato):
+     così un verso nuovo nasce già allineato all'eroe di riferimento */
+  else if (it.kind === 'vehicle') { const f = VF(); if (REND.drawVehicleBody) viaGameCanvas(tc, W, H, () => REND.drawVehicleBody(it.veh, f.ox, f.oy, it.dir)); }
   else paintCentered(it, tc, W, H, { pad: 2 });
   setTimeout(() => {                               // le icone SVG caricano in modo asincrono
     const data = tc.getImageData(0, 0, W, H).data;
@@ -632,6 +641,7 @@ function render() {
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
   const bg = BGS[bgIdx];
   c.fillStyle = bg.fill; c.fillRect(0, 0, cv.width, cv.height);
+  if (cur && cur.kind === 'vehicle') drawVehRef(c, cell);   // eroe + linea d'acqua di riferimento (sotto il disegno)
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const v = px[y * W + x];
     if (v >= 0) { c.fillStyle = pal[v]; c.fillRect(x * cell, y * cell, cell, cell); }
@@ -643,6 +653,23 @@ function render() {
     for (let j = 0; j <= H; j++) { c.beginPath(); c.moveTo(0, j * cell + .5); c.lineTo(cv.width, j * cell + .5); c.stroke(); }
   }
   previews();
+}
+/* RIFERIMENTO per i mezzi: l'eroe VIVO (sbiadito) all'origine della cornice + una linea d'acqua/
+   terra ai piedi. Serve per disegnare il veicolo alla scala e nel punto giusti rispetto all'eroe.
+   Non è modificabile e non finisce nell'export (è solo sullo sfondo della tela). */
+function drawVehRef(c, cell) {
+  const f = VF();
+  if (SPR_MOD.drawHero && STATE.S) {
+    const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
+    const tctx = tmp.getContext('2d'); tctx.imageSmoothingEnabled = false;
+    viaGameCanvas(tctx, W, H, () => SPR_MOD.drawHero(null, f.ox - 8, f.oy, cur.dir, 0));
+    c.save(); c.globalAlpha = 0.28; c.imageSmoothingEnabled = false;
+    c.drawImage(tmp, 0, 0, W, H, 0, 0, W * cell, H * cell); c.restore();
+  }
+  /* linea d'acqua/terra ai piedi dell'eroe (dove poggia il mezzo) */
+  const gy = (f.oy + 16) * cell + .5;
+  c.save(); c.strokeStyle = 'rgba(120,180,220,.55)'; c.setLineDash([4, 3]);
+  c.beginPath(); c.moveTo(0, gy); c.lineTo(W * cell, gy); c.stroke(); c.restore();
 }
 function previews() {
   for (const [id, scale, withHero] of [['p1', 1, false], ['p2', 2, false], ['p3', 3, true]]) {
@@ -682,7 +709,11 @@ document.getElementById('export').onclick = () => {
     if (px[y * W + x] < 0) continue;
     if (x < minX) minX = x; if (x > maxX) maxX = x; if (y > maxY) maxY = y;
   }
-  const anchor = maxY < 0 ? [Math.round(W / 2), H] : [Math.round((minX + maxX) / 2), maxY];
+  /* i MEZZI hanno ancora FISSA sull'origine del player (cornice): non si riancora spostando un
+     pixel al bordo, e il disegno cade in gioco esattamente com'è nell'editor. Gli altri restano
+     ancorati al contenuto (centro + riga a terra). */
+  const anchor = cur.kind === 'vehicle' ? [VF().ox, VF().oy]
+    : (maxY < 0 ? [Math.round(W / 2), H] : [Math.round((minX + maxX) / 2), maxY]);
 
   /* CAPELLI E CAPPELLI non vanno nella banca degli sprite: nel gioco sono overlay
      { down, side, up } con righe [indice, "mappa"]. Si esporta nel LORO formato, con tutte
