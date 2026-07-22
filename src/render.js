@@ -568,13 +568,16 @@ function drawPlayer() {
 export function drawVehiclePreview(kind, sx, sy, dir) {
   const sd = P.dir, sm = P.moving, sg = P.digging;
   P.dir = dir; P.moving = false; P.digging = null;
+  /* l'EROE è disegnato a parte e PROTETTO: se il suo disegno fallisce (stato incompleto nella
+     pagina di editing) il VEICOLO si vede lo stesso, invece di lasciare la casella tutta nera. */
+  const hero = (hx, hy) => { try { drawHero(null, hx, hy, dir, 0); } catch (e) { /* preview: il mezzo resta */ } };
   try {
     const fb = dir === 'up' || dir === 'down';
-    if (kind === 'boat') drawBoat(sx, sy);
-    else if (kind === 'motorboat') drawMotorboat(sx, sy);
-    else if (kind === 'mount') drawFlyingMount(sx, sy);
-    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); drawHero(null, sx - 8, sy, dir, 0); if (fb) drawBikeFB(sx, sy, false, dir); }
-    else if (kind === 'skates') { drawHero(null, sx - 8, sy, dir, 0); drawSkates(sx, sy, 0); }
+    if (kind === 'boat') { hero(sx - 8, sy - 5); drawBoat(sx, sy, true); }
+    else if (kind === 'motorboat') { hero(sx - 8, sy - 4); drawMotorboat(sx, sy, true); }
+    else if (kind === 'mount') { try { drawFlyingMount(sx, sy); } catch (e) { /* preview */ } }
+    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); hero(sx - 8, sy); if (fb) drawBikeFB(sx, sy, false, dir); }
+    else if (kind === 'skates') { hero(sx - 8, sy); drawSkates(sx, sy, 0); }
   } finally { P.dir = sd; P.moving = sm; P.digging = sg; }
 }
 /* rotelle da pattino sotto i piedi (4 ruote) */
@@ -691,7 +694,7 @@ export function drawBoatFB(sx, y0, up) {
   else { rect(sx - 3, y0 + 14, 7, 1, '#8a5f38'); rect(sx - 2, y0 + 15, 5, 1, '#5c4229'); px(sx, y0 + 16, '#5c4229'); } // poppa verso di noi
   px(sx - 4, y0 + 17, '#bfe9f4'); px(sx + 3, y0 + 17, '#bfe9f4');                  // riflesso
 }
-export function drawBoat(sx, sy) {
+export function drawBoat(sx, sy, noHero) {
   const bob = Math.round(Math.sin(frameTime / 320) * 1.5);
   const y0 = sy + bob;
   /* scia dietro la barca */
@@ -703,7 +706,7 @@ export function drawBoat(sx, sy) {
     px(sx + bx, y0 + 13 + by, '#bfe9f4');
   }
   /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
-  drawHero(null, sx - 8, y0 - 5, P.dir, 0);
+  if (!noHero) drawHero(null, sx - 8, y0 - 5, P.dir, 0);
   if (P.dir === 'up' || P.dir === 'down') { drawBoatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro: scafo di prua/poppa
   /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
   rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
@@ -732,7 +735,7 @@ export function drawMotorboatFB(sx, y0, up) {
   px(sx - 4, y0 + 16, '#bfe9f4'); px(sx + 3, y0 + 16, '#bfe9f4');
 }
 /* MOTOSCAFO: scafo bianco/azzurro affusolato, parabrezza, motore fuoribordo, SCIA di spruzzi */
-export function drawMotorboat(sx, sy) {
+export function drawMotorboat(sx, sy, noHero) {
   const bob = Math.round(Math.sin(frameTime / 300) * 1.2);
   const y0 = sy + bob;
   /* scia di spruzzi più marcata dietro (in movimento) */
@@ -743,7 +746,7 @@ export function drawMotorboat(sx, sy) {
     for (let i = 0; i < 3; i++) { px(sx + bx - 3 + i * 3 - w2, y0 + 14 + by, '#e8f6fb'); px(sx + bx - 2 + i * 3 + w2, y0 + 16 + by, '#bfe9f4'); }
   }
   /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
-  drawHero(null, sx - 8, y0 - 4, P.dir, 0);
+  if (!noHero) drawHero(null, sx - 8, y0 - 4, P.dir, 0);
   if (P.dir === 'up' || P.dir === 'down') { drawMotorboatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro
   /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
   rect(sx - 10, y0 + 8, 20, 5, '#eef2f4'); rect(sx - 10, y0 + 11, 20, 2, '#3d8ba0'); // banda

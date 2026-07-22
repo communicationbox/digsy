@@ -173,7 +173,7 @@ function viaGameCanvas(ctx2, w, h, fn) {
   if (GAME_CV.height < h) GAME_CV.height = h;
   const g = GAME_CV.getContext('2d');
   g.clearRect(0, 0, GAME_CV.width, GAME_CV.height);
-  try { fn(); } catch (e) { /* firme diverse fra un disegno e l'altro */ }
+  try { fn(); } catch (e) { console.warn('anteprima non disegnata:', e && e.message || e); }
   ctx2.imageSmoothingEnabled = false;
   ctx2.drawImage(GAME_CV, 0, 0, w, h, 0, 0, w, h);
 }
