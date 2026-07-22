@@ -148,6 +148,7 @@ export function dropAt(tx, ty, kind, payload) { if (!S.drops) S.drops = []; S.dr
 /* aggiunge un fossile grezzo: in zaino se c'è posto, altrimenti a TERRA sulla tile (tx,ty) */
 export function addFossil(raw, tx, ty) {
   gainXp(XP_BY_RAR[raw.q] || 4); // trovare un reperto dà XP (anche se lo lasci a terra)
+  S.findsTotal = (S.findsTotal || 0) + 1; // contatore lifetime per il trofeo "Scavatore"
   if (bagFull()) { dropAt(tx, ty, 'raw', raw); toast('🎒 ' + tr('Zaino pieno: reperto lasciato a terra', 'Bag full: find left on the ground')); playSfx('nope'); showTip('bagfull'); return false; }
   S.raw.push(raw); return true;
 }

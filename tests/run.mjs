@@ -2727,7 +2727,7 @@ sprites.applyLook();
     check('Cartello delle missioni: bacheca del giorno con le offerte', board.includes('Bacheca') && board.includes('data-accept'));
 
     const achs = panel(() => ui.openAchievements());
-    check('Traguardi: elenco completo con quelli sbloccati', achs.includes('Traguardi sbloccati'));
+    check('Traguardi: elenco a gradini (tracce + medaglie)', achs.includes('Gradini sbloccati') && achs.includes('tdots'));
 
     const guide = panel(() => ui.openHudGuide());
     check('Guida HUD: spiega monete, energia e zona a chi inizia', guide.includes('Monete') && guide.includes('Energia') && guide.includes('Zona'));
@@ -2942,33 +2942,29 @@ sprites.applyLook();
 /* ---------- traguardi: si sbloccano dallo stato, non si ri-sbloccano ---------- */
 {
   const ach = await import('../src/achievements.js');
-  S.achieved = []; S.codex = []; S.raw = []; S.items = []; S.creatures = []; S.awakened = []; S.donated = []; S.caves = {}; S.companion = null; S.coins = 0; S.level = 1; S.questTotal = 0;
+  const { ALL_SPECIES: ASP } = await import('../src/data.js');
+  S.trophies = {}; S.codex = []; S.raw = []; S.items = []; S.creatures = []; S.awakened = []; S.donated = []; S.caves = {}; S.companion = null; S.coins = 0; S.level = 1; S.questTotal = 0; S.findsTotal = 0;
   ach.checkAchievements();
-  check('nessun traguardo con stato vuoto', S.achieved.length === 0);
-  S.codex = ['lepre'];
-  let unlocked = []; ach.checkAchievements(a => unlocked.push(a.id));
-  check('traguardo "prima scoperta" si sblocca', ach.isAchieved('first_find') && unlocked.includes('first_find'));
-  unlocked = []; ach.checkAchievements(a => unlocked.push(a.id));
-  check('traguardo non si ri-sblocca', !unlocked.includes('first_find'));
-  S.coins = 600; ach.checkAchievements();
-  check('traguardo "danaroso" a 500+', ach.isAchieved('rich'));
-
-  /* "LE HAI SCOPERTE TUTTE" DEVE VOLER DIRE TUTTE. Il traguardo confrontava il codex col
-     numero 60 scritto a mano, ma nel codex finiscono anche le 6 specie di grotta: bastava
-     identificarne cinque per farlo scattare con cinque specie di superficie ancora da
-     trovare. Il totale si chiede ai dati. */
-  {
-    const { ALL_SPECIES: ASP, SPECIES: SUP, CAVE_SPECIES: CSP } = await import('../src/data.js');
-    S.achieved = []; S.codex = SUP.slice(0, SUP.length - CSP.length).map(s => s.id).concat(CSP.map(s => s.id));
-    check('codex pieno di superficie+grotta ma incompleto', S.codex.length === SUP.length && S.codex.length < ASP.length);
-    ach.checkAchievements();
-    check('mescolare le specie di grotta NON fa scattare "le hai scoperte tutte"', !ach.isAchieved('all60'));
-    S.codex = ASP.map(s => s.id); ach.checkAchievements();
-    check('col catalogo davvero completo il traguardo arriva', ach.isAchieved('all60'));
-    check('la descrizione dice il totale VERO, senza rompere la traduzione',
-      ach.achDesc(ach.ACHS.find(a => a.id === 'all60')).includes(String(ASP.length)));
-  }
-  S.achieved = []; S.codex = [];
+  check('trofei: stato vuoto → nessun gradino', ach.trophyCount() === 0);
+  // TRACCIA "Scopritore": Bronzo a 10 specie, con notifica (traccia, gradino)
+  S.codex = ASP.slice(0, 10).map(s => s.id);
+  let ups = []; ach.checkAchievements((t, tier) => ups.push(t.id + ':' + tier));
+  check('trofeo Scopritore → Bronzo a 10 specie', ach.trophyTier('discover') === 1 && ups.includes('discover:1'));
+  ups = []; ach.checkAchievements((t, tier) => ups.push(t.id + ':' + tier));
+  check('un gradino già preso non si ri-sblocca', ups.length === 0);
+  // salto di più gradini in un colpo → notifica per OGNI gradino saltato
+  S.codex = ASP.slice(0, 45).map(s => s.id); ups = []; ach.checkAchievements((t, tier) => ups.push(t.id + ':' + tier));
+  check('45 specie → Argento e Oro insieme (Scopritore=Oro)', ach.trophyTier('discover') === 3 && ups.includes('discover:2') && ups.includes('discover:3'));
+  // un'ALTRA traccia sale indipendente
+  S.coins = 500; ach.checkAchievements();
+  check('trofeo Danaroso → Bronzo a 500 monete', ach.trophyTier('coins') === 1);
+  // PLATINO Scopritore = TUTTE le specie (grotte comprese: il totale si chiede ai dati)
+  S.codex = ASP.slice(0, ASP.length - 1).map(s => s.id); ach.checkAchievements();
+  check('quasi tutte le specie = Oro, non Platino', ach.trophyTier('discover') === 3);
+  S.codex = ASP.map(s => s.id); ach.checkAchievements();
+  check('TUTTE le specie → Platino Scopritore', ach.trophyTier('discover') === 4);
+  check('9 tracce × 4 gradini = 36 totali', ach.TRACKS.length === 9 && ach.TIER_TOTAL === 36);
+  S.trophies = {}; S.codex = [];
 }
 
 /* ---------- progressione archeologo: XP → livelli → capacità ---------- */
@@ -4791,7 +4787,8 @@ sprites.applyLook();
     const w2 = await import('../src/wonders.js');
     for (const w of Object.values(w2.WONDERS)) for (const k of ['n', 'd', 'gp', 'p']) if (w[k] && w[k][1]) en.add(w[k][1]);
     const a2 = await import('../src/achievements.js');
-    for (const a of a2.ACHS) { en.add(a.en[0]); en.add(a.en[1]); }
+    for (const t of a2.TRACKS) { en.add(t.en); en.add(t.den); }
+    for (const k of a2.TIERS) en.add(a2.TIER_LABEL[k][1]);
     const l2 = await import('../src/letters.js');
     for (const l of [...Object.values(l2.LETTERS), l2.FINALE]) { en.add(l.t[1]); for (const line of l.b[1]) en.add(line); }
     /* le battute della cutscene iniziale stanno in una tabella dentro intro.js */

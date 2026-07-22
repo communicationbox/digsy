@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
+      'TROFEI A LIVELLI: la Sala dei Trofei ora ha 9 tracce (Scopritore, Collezionista, Genetista, Creatore, Danaroso, Archeologo, Faccendiere, Scavatore, Speleologo), ognuna a 4 gradini 🥉 Bronzo · 🥈 Argento · 🥇 Oro · 💎 Platino (36 gradini in tutto). La coppa si colora col grado; il Platino luccica. (I cosmetici Oro/Platino arrivano nella prossima)',
       'MUSEO · Ricariche DNA: ogni specie ora mostra anche se è GIÀ RIVISSUTA e in QUANTE chimere è usato il suo DNA (oltre alle fialette nello zaino)',
       'COMPAGNI: nel selettore le CHIMERE si distinguono dai risvegli — icona 🧬, scritta "Chimera" e riga con accento viola (i risvegli restano 🐾)',
       'FIX stallo: consegnare/spedire i grezzi ora si AGGIUNGE al lotto già in lavorazione (prima con la borsa piena e un lotto non ritirato restavi bloccato); il Museo offre sempre "Consegna"',
@@ -50,6 +51,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
+      'TIERED TROPHIES: the Hall of Fame now has 9 tracks (Discoverer, Collector, Geneticist, Creator, Wealthy, Archaeologist, Fixer, Digger, Spelunker), each with 4 tiers Bronze · Silver · Gold · Platinum (36 tiers total). The cup takes the tier color; Platinum sparkles. (Gold/Platinum cosmetics come next)',
       'MUSEUM · DNA refills: each species now also shows whether it has ALREADY been revived and in HOW MANY chimeras its DNA is used (besides the vials in your bag)',
       'COMPANIONS: in the picker CHIMERAS now stand out from awakened ones — 🧬 icon, "Chimera" label and a purple-accented row (awakened stay 🐾)',
       'FIX deadlock: handing in / shipping raw finds now ADDS to the batch already in progress (before, with a full bag and an uncollected batch you got stuck); the Museum always offers "Hand in"',

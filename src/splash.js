@@ -7,7 +7,7 @@ import { getPrefs, pref, setPref } from './prefs.js';
 import { commandHelp } from './commands.js';
 import { withIcons } from './icons.js';
 import { VERSION } from './version.js';
-import { ACHS, isAchieved, achLabel, achDesc } from './achievements.js';
+import { TRACKS, trackLabel, trackGoal, trophyTier, trophyCount, tierLabel, TIER_TOTAL } from './achievements.js';
 import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
 import { gameStats } from './stats.js';
@@ -456,15 +456,15 @@ function buildMenu(inGame) {
     h += `</div>` + backBar();
   } else if (view === 'trophies') {
     h += closeX();
-    const done = ACHS.filter(a => isAchieved(a.id)).length;
-    h += `<div class="sp-title2">🏆 ${tr('Sala dei Trofei', 'Hall of Fame')} — ${done}/${ACHS.length}</div>`;
+    h += `<div class="sp-title2">🏆 ${tr('Sala dei Trofei', 'Hall of Fame')} — ${trophyCount()}/${TIER_TOTAL}</div>`;
     h += `<div class="sp-hall">`;
     const PER = 3;
-    for (let i = 0; i < ACHS.length; i += PER) {
-      const row = ACHS.slice(i, i + PER);
-      h += `<div class="sp-shelf"><div class="cups">` + row.map((a, j) => {
-        const ok = isAchieved(a.id), gi = i + j;
-        return `<div class="cup${ok ? ' won' : ''}" title="${ok ? achDesc(a) : tr('Bloccato', 'Locked')}"><canvas class="cupcv" width="44" height="52" data-i="${gi}" data-won="${ok ? 1 : 0}"></canvas><span class="cupname">${ok ? achLabel(a) : '???'}</span></div>`;
+    for (let i = 0; i < TRACKS.length; i += PER) {
+      const row = TRACKS.slice(i, i + PER);
+      h += `<div class="sp-shelf"><div class="cups">` + row.map((t, j) => {
+        const gi = i + j, tier = trophyTier(t.id);
+        const sub = tier ? tierLabel(tier) : tr('Bloccato', 'Locked');
+        return `<div class="cup${tier ? ' won' : ''}" title="${trackLabel(t)} — ${trackGoal(t)}"><canvas class="cupcv" width="44" height="52" data-i="${gi}" data-tier="${tier}"></canvas><span class="cupname">${trackLabel(t)}<br><small>${sub}</small></span></div>`;
       }).join('') + `</div><div class="plank"></div></div>`;
     }
     h += `</div>` + backBar();
@@ -579,7 +579,7 @@ function buildMenu(inGame) {
   }
   menu.innerHTML = withIcons(h);
   const card = document.querySelector ? document.querySelector('.sp-card') : null; if (card && card.classList) card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits');
-  if (view === 'trophies' && menu.querySelectorAll) menu.querySelectorAll('.cupcv').forEach(cv => drawTrophy(cv, +cv.dataset.i, cv.dataset.won === '1'));
+  if (view === 'trophies' && menu.querySelectorAll) menu.querySelectorAll('.cupcv').forEach(cv => drawTrophy(cv, +cv.dataset.i, +cv.dataset.tier));
 
   const go = (v) => { view = v; buildMenu(inGame); };
   const bC = document.getElementById('sp-continue'); if (bC) bC.onclick = () => dismiss();

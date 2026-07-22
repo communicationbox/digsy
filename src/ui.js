@@ -7,7 +7,7 @@ import { ensureQuests, boardOffers, acceptQuest, deliverQuest, questText, questR
 import { playSfx } from './audio.js';
 import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPowers, companionSpec } from './companion.js';
 import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './progress.js';
-import { ACHS, checkAchievements, isAchieved, achLabel, achDesc } from './achievements.js';
+import { TRACKS, checkAchievements, trackLabel, trackGoal, trackTier, trophyTier, trophyCount, nextThreshold, tierLabel, tierCol, TIER_TOTAL, TIERS } from './achievements.js';
 import { weatherAt, weatherLabel } from './weather.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
@@ -107,7 +107,7 @@ export function updateHUD() {
   const splashOn = !!(spEl && spEl.classList && typeof spEl.classList.contains === 'function' && !spEl.classList.contains('off'));
   const introOn = hasClass(typeof document !== 'undefined' ? document.body : null, 'introing');
   if (S.lookDone && !splashOn && !introOn) {
-    checkAchievements(a => { toast('🏆 ' + tr('Traguardo: ', 'Achievement: ') + achLabel(a)); playSfx('fanfare'); showBanner('🏆 ' + achLabel(a) + '<div class="sub" style="margin-top:4px">' + achDesc(a) + '</div>', 2200); });
+    checkAchievements((t, tier) => { const medal = tierLabel(tier); toast('🏆 ' + medal + ' · ' + trackLabel(t)); playSfx('fanfare'); showBanner(`🏆 ${trackLabel(t)} — <b style="color:${tierCol(tier)}">${medal}</b><div class="sub" style="margin-top:4px">${trackGoal(t)}: ${t.tiers[tier - 1]}</div>`, 2200); });
   }
   /* avvisi visivi: energia agli sgoccioli e zaino pieno (prima non si vedevano finché non
      bloccavano l'azione) */
@@ -294,9 +294,14 @@ export function openMailbox() {
   mBody.querySelectorAll('[data-ship]').forEach(b => b.onclick = () => { if (shipToMuseum()) closeModal(); else openMailbox(); });
 }
 export function openAchievements() {
-  const done = (S.achieved || []).length;
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Traguardi sbloccati', 'Achievements unlocked')}: ${done}/${ACHS.length}</div>`;
-  h += ACHS.map(a => { const ok = isAchieved(a.id); return `<div class="row" style="${ok ? '' : 'opacity:.55'}"><span class="em">${ok ? a.ic : '·'}</span><div><div class="nm">${achLabel(a)}${ok ? ' ✓' : ''}</div><div class="sub">${achDesc(a)}</div></div></div>`; }).join('');
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Gradini sbloccati', 'Tiers unlocked')}: ${trophyCount()}/${TIER_TOTAL} · ${tr('Bronzo · Argento · Oro · Platino', 'Bronze · Silver · Gold · Platinum')}</div>`;
+  h += TRACKS.map(t => {
+    const cur = trophyTier(t.id), val = t.metric(S), nx = nextThreshold(t);
+    /* 4 pallini colorati per gradino: pieni fino al gradino raggiunto */
+    const dots = TIERS.map((_, i) => `<span class="tdot" style="background:${i < cur ? tierCol(i + 1) : 'transparent'};border-color:${tierCol(i + 1)}"></span>`).join('');
+    const prog = nx == null ? '<b style="color:' + tierCol(4) + '">💎 ' + tr('Platino!', 'Platinum!') + '</b>' : `${val} / ${nx} → ${tierLabel(cur + 1)}`;
+    return `<div class="row" style="${cur ? '' : 'opacity:.7'}"><span class="em">${t.ic}</span><div style="flex:1"><div class="nm">${trackLabel(t)} <span style="color:${tierCol(cur) || '#8a755a'}">${cur ? tierLabel(cur) : ''}</span></div><div class="sub">${trackGoal(t)} · ${prog}</div><div class="tdots">${dots}</div></div></div>`;
+  }).join('');
   mTitle.innerHTML = withIcons('🏆 ' + tr('Traguardi', 'Achievements'));
   mBody.innerHTML = withIcons(h); openModal();
 }

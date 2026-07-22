@@ -94,7 +94,6 @@ export const RU = {
   'No landmark found nearby': 'Поблизости нет чуда',
   'Seen everything around — reset, run tour again': 'Вокруг всё осмотрено — сброшено, запустите тур снова',
   'Replaying intro…': 'Повтор вступления…',
-  'All achievements unlocked!': 'Все достижения открыты!',
   'auto weather': 'погода автоматически',
   'weather: rain/sandstorm/fog/ash/snow/clear/off': 'погода: дождь/песчаная буря/туман/пепел/снег/ясно/выкл',
   'Fly ON': 'Полёт ВКЛ',
@@ -319,6 +318,21 @@ export const RU = {
   'Resume': 'Продолжить игру',
   'Continue': 'Продолжить',
   'Trophies': 'Трофеи',
+  /* ---- trofei a livelli ---- */
+  'Bronze': 'Бронза', 'Silver': 'Серебро', 'Gold': 'Золото', 'Platinum': 'Платина',
+  'Platinum!': 'Платина!',
+  'Tiers unlocked': 'Открыто ступеней',
+  'Bronze · Silver · Gold · Platinum': 'Бронза · Серебро · Золото · Платина',
+  'All trophies at PLATINUM!': 'Все трофеи на ПЛАТИНЕ!',
+  'Discoverer': 'Первооткрыватель', 'Species discovered': 'Открыто видов',
+  'Collector': 'Коллекционер', 'Complete cases': 'Полные витрины',
+  'Geneticist': 'Генетик',
+  'Creator': 'Творец', 'Chimeras assembled': 'Собрано химер',
+  'Wealthy': 'Богач', 'Coins amassed': 'Накоплено монет',
+  'Archaeologist': 'Археолог', 'Archaeologist level': 'Уровень археолога',
+  'Fixer': 'Порученец', 'Missions completed': 'Выполнено заданий',
+  'Digger': 'Копатель', 'Fossils found': 'Найдено находок',
+  'Spelunker': 'Спелеолог',
   'Storage full!': 'Хранилище переполнено!',
   'Confirm?': 'Подтвердить?',
   'Sure?': 'Уверены?',
@@ -347,7 +361,6 @@ export const RU = {
   'Night and seasons': 'Ночь и сезоны',
   'A day lasts 20 real minutes. At night you can barely see outside towns: the <b>torch</b> widens your halo. The season changes every 3 days.':
     'День длится 20 реальных минут. Ночью вне городов почти ничего не видно: <b>факел</b> расширяет круг света. Сезон меняется каждые 3 дня.',
-  'Achievement: ': 'Достижение: ',
 
   /* ---- prompt sul campo ---- */
   'Dig the deposit ⛏️': 'Разбить жилу ⛏️',
@@ -381,7 +394,6 @@ export const RU = {
   ' missions': ' заданий',
   'Mission accepted': 'Задание принято',
   'Delivered! ': 'Сдано! ',
-  'Achievements unlocked': 'Достижений открыто',
   'Achievements': 'Достижения',
 
   /* ---- lettere del nonno ---- */
@@ -538,7 +550,6 @@ export const RU = {
   'Missing': 'Не хватает',
   'Awaken!': 'Оживить!',
   'Preview of the assembled creature': 'Предпросмотр собранного существа',
-  'Awaken a species': 'Пробудить вид',
   'DEBUG: infinite DNA vials. Awakened': 'ОТЛАДКА: бесконечные пробирки ДНК. Пробуждено',
   'Discover some fossils to awaken them.': 'Найдите ископаемых, чтобы их пробудить.',
   'No DNA vials in your bag.': 'В рюкзаке нет пробирок ДНК.',
@@ -911,30 +922,6 @@ export const RU = {
   'Vision: reveals an unseen species in the Book (at night only).':
     'Видение: открывает в Книге неизвестный вид (только ночью).',
 
-  /* ---- TRAGUARDI ---- */
-  'First discovery': 'Первая находка',
-  'Dig or collect your first find': 'Выкопайте или подберите первую находку',
-  'Naturalist': 'Натуралист',
-  'Discover 10 species': 'Откройте 10 видов',
-  'Expert': 'Знаток',
-  'Discover 30 species': 'Откройте 30 видов',
-  'Encyclopedic': 'Энциклопедист',
-  'Discover all {n} species': 'Откройте все {n} видов',
-  'Creator': 'Творец',
-  'Assemble your first chimera': 'Соберите первую химеру',
-  'Reviver': 'Воскреситель',
-  'Spelunker': 'Спелеолог',
-  'Explore a cave': 'Исследуйте пещеру',
-  'Patron': 'Меценат',
-  'Complete a museum case': 'Соберите витрину в музее',
-  'Wealthy': 'Богач',
-  'Reach 500 coins': 'Накопите 500 монет',
-  'Seasoned archaeologist': 'Опытный археолог',
-  'Reach level 5': 'Достигните 5-го уровня',
-  'Fixer': 'Мастер на все руки',
-  'Complete 5 missions': 'Выполните 5 заданий',
-  'Loyal friend': 'Верный друг',
-  'Choose a companion at the park': 'Выберите спутника в парке',
 
   /* ---- LETTERE DEL NONNO ---- */
   'Where it all began': 'С чего всё началось',

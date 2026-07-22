@@ -1,12 +1,20 @@
-/* Coppe pixel-art UNICHE per ogni traguardo. Disegnate su canvas (scala intera).
-   won=false → coppa grigia (bloccata); won=true → oro + ornamento colorato distinto. */
-export function drawTrophy(cv, idx, won) {
+/* Coppe pixel-art UNICHE per ogni traccia, colorate per GRADINO.
+   tier 0 = grigia (bloccata) · 1 bronzo · 2 argento · 3 oro · 4 platino (ciano lucente). */
+const METAL = {
+  0: ['#8f8f8f', '#c2c2c2', '#5e5e5e'],
+  1: ['#cd7f32', '#e6a765', '#94551d'],   // bronzo
+  2: ['#c7ccd1', '#eef2f6', '#8f979e'],   // argento
+  3: ['#e8b93c', '#f8dd82', '#a8842a'],   // oro
+  4: ['#8fe7dd', '#d6faf5', '#49a89d'],   // platino
+};
+export function drawTrophy(cv, idx, tier) {
   const g = cv.getContext && cv.getContext('2d'); if (!g) return;
   const GW = 22, S = cv.width / GW;
   g.imageSmoothingEnabled = false; g.clearRect(0, 0, cv.width, cv.height);
   const P = (x, y, c) => { g.fillStyle = c; g.fillRect(Math.round(x * S), Math.round(y * S), Math.ceil(S), Math.ceil(S)); };
   const R = (x, y, w, h, c) => { g.fillStyle = c; g.fillRect(Math.round(x * S), Math.round(y * S), Math.ceil(w * S), Math.ceil(h * S)); };
-  const M = won ? '#e8b93c' : '#8f8f8f', L = won ? '#f8dd82' : '#c2c2c2', D = won ? '#a8842a' : '#5e5e5e';
+  const t = Math.max(0, Math.min(4, tier | 0)), won = t > 0;
+  const [M, L, D] = METAL[t];
 
   /* MANICI (due, a C) */
   R(4, 10, 2, 1, D); P(3, 11, D); P(3, 12, D); R(4, 13, 2, 1, D);
@@ -53,4 +61,6 @@ export function drawTrophy(cv, idx, won) {
     default: // LUNA
       P(11, 3, c('#e8e2d0', '#c8c8c8')); P(10, 4, c('#e8e2d0', '#c8c8c8')); P(11, 4, c('#fff8e0', '#d8d8d8')); P(10, 5, c('#e8e2d0', '#c8c8c8')); P(11, 5, c('#e8e2d0', '#c8c8c8')); P(12, 4, c('#cf4f36', '#a0a0a0'));
   }
+  /* PLATINO: scintille glitter attorno alla coppa (il premio "speciale") */
+  if (t === 4) for (const [gx, gy] of [[5, 8], [16, 8], [7, 15], [14, 15], [11, 7]]) { P(gx, gy, '#ffffff'); P(gx, gy - 1, '#d6faf5'); }
 }

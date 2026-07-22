@@ -1,42 +1,51 @@
-/* Traguardi (achievement): si sbloccano da soli quando lo stato li soddisfa.
-   check(S) legge lo stato esistente; una volta sbloccati restano (S.achieved). */
+/* Traguardi a LIVELLI (Bronzo/Argento/Oro/Platino). Ogni TRACCIA misura un valore dello stato e
+   sale di gradino al superare le sue 4 soglie. I gradini si sbloccano da soli e restano
+   (S.trophies[trackId] = gradino massimo raggiunto, 0..4). ORO e PLATINO daranno un cosmetico
+   unico (Fase 2); il PLATINO è il regalo speciale, dorato/glitterato. */
 import { S } from './state.js';
 import { ALL_SPECIES } from './data.js';
 import { tr } from './i18n.js';
 
-/* Il catalogo COMPLETO: 60 di superficie + 6 di grotta. Il traguardo "le hai scoperte tutte"
-   confrontava `codex.length` col numero 60 scritto a mano, ma nel codex finiscono anche le
-   specie di grotta: bastava identificarne cinque per farlo scattare con cinque specie di
-   superficie ancora mancanti. Il totale si chiede ai dati, non si ricopia. */
-const SP_TOT = ALL_SPECIES.length;
+const SP_TOT = ALL_SPECIES.length;   // 66: il totale si CHIEDE ai dati, non si ricopia
 
-export const ACHS = [
-  { id: 'first_find', ic: '🦴', it: ['Prima scoperta', 'Scava o raccogli il primo reperto'], en: ['First discovery', 'Dig or collect your first find'], check: s => (s.codex || []).length >= 1 || (s.raw || []).length >= 1 || (s.items || []).length >= 1 },
-  { id: 'ten', ic: '📖', it: ['Naturalista', 'Scopri 10 specie'], en: ['Naturalist', 'Discover 10 species'], check: s => (s.codex || []).length >= 10 },
-  { id: 'thirty', ic: '📖', it: ['Esperto', 'Scopri 30 specie'], en: ['Expert', 'Discover 30 species'], check: s => (s.codex || []).length >= 30 },
-  /* il totale sta nel segnaposto {n}, non nella stringa: concatenarlo qui cambierebbe la
-     chiave del dizionario a ogni specie aggiunta e la traduzione sparirebbe */
-  { id: 'all60', ic: '🏆', it: ['Enciclopedico', 'Scopri tutte le {n} specie'], en: ['Encyclopedic', 'Discover all {n} species'], check: s => (s.codex || []).length >= SP_TOT },
-  { id: 'chimera', ic: '🐾', it: ['Creatore', 'Assembla la prima chimera'], en: ['Creator', 'Assemble your first chimera'], check: s => (s.creatures || []).length >= 1 },
-  { id: 'awaken', ic: '🧬', it: ['Risvegliatore', 'Risveglia una specie'], en: ['Reviver', 'Awaken a species'], check: s => (s.awakened || []).length >= 1 },
-  { id: 'cave', ic: '🕳️', it: ['Speleologo', 'Esplora una grotta'], en: ['Spelunker', 'Explore a cave'], check: s => s.caves && Object.keys(s.caves).length >= 1 },
-  { id: 'case', ic: '🏛️', it: ['Mecenate', 'Completa una teca del museo'], en: ['Patron', 'Complete a museum case'], check: s => (s.donated || []).length >= 1 },
-  { id: 'rich', ic: '🪙', it: ['Danaroso', 'Arriva a 500 monete'], en: ['Wealthy', 'Reach 500 coins'], check: s => (s.coins || 0) >= 500 },
-  { id: 'level5', ic: '🎓', it: ['Archeologo provetto', 'Raggiungi il livello 5'], en: ['Seasoned archaeologist', 'Reach level 5'], check: s => (s.level || 1) >= 5 },
-  { id: 'quests5', ic: '📋', it: ['Faccendiere', 'Completa 5 missioni'], en: ['Fixer', 'Complete 5 missions'], check: s => (s.questTotal || 0) >= 5 },
-  { id: 'companion', ic: '🐾', it: ['Amico fedele', 'Scegli un compagno dal parco'], en: ['Loyal friend', 'Choose a companion at the park'], check: s => !!s.companion },
+export const TIERS = ['bronze', 'silver', 'gold', 'platinum'];
+export const TIER_LABEL = { bronze: ['Bronzo', 'Bronze'], silver: ['Argento', 'Silver'], gold: ['Oro', 'Gold'], platinum: ['Platino', 'Platinum'] };
+export const TIER_COL = { bronze: '#cd7f32', silver: '#c7ccd1', gold: '#e8b93c', platinum: '#8fe7dd' }; // platino = ciano lucente
+export function tierLabel(i) { const k = TIERS[i - 1]; return k ? tr(TIER_LABEL[k][0], TIER_LABEL[k][1]) : ''; }
+export function tierCol(i) { return TIER_COL[TIERS[i - 1]] || '#8a755a'; }
+
+/* le 9 tracce: metric(S) → valore corrente; tiers = [bronzo, argento, oro, platino] */
+export const TRACKS = [
+  { id: 'discover', ic: '📖', it: 'Scopritore', en: 'Discoverer', dit: 'Specie scoperte', den: 'Species discovered', metric: s => (s.codex || []).length, tiers: [10, 25, 45, SP_TOT] },
+  { id: 'cases', ic: '🏛️', it: 'Collezionista', en: 'Collector', dit: 'Teche complete', den: 'Complete cases', metric: s => (s.donated || []).length, tiers: [1, 5, 20, SP_TOT] },
+  { id: 'awaken', ic: '🧬', it: 'Genetista', en: 'Geneticist', dit: 'Specie risvegliate', den: 'Species awakened', metric: s => (s.awakened || []).length, tiers: [1, 10, 30, SP_TOT] },
+  { id: 'chimera', ic: '🐾', it: 'Creatore', en: 'Creator', dit: 'Chimere assemblate', den: 'Chimeras assembled', metric: s => (s.creatures || []).length, tiers: [1, 5, 15, 30] },
+  { id: 'coins', ic: '🪙', it: 'Danaroso', en: 'Wealthy', dit: 'Monete accumulate', den: 'Coins amassed', metric: s => s.coins || 0, tiers: [500, 2500, 10000, 40000] },
+  { id: 'level', ic: '🎓', it: 'Archeologo', en: 'Archaeologist', dit: 'Livello archeologo', den: 'Archaeologist level', metric: s => s.level || 1, tiers: [5, 10, 20, 30] },
+  { id: 'quests', ic: '📋', it: 'Faccendiere', en: 'Fixer', dit: 'Missioni completate', den: 'Missions completed', metric: s => s.questTotal || 0, tiers: [5, 15, 40, 100] },
+  { id: 'finds', ic: '🦴', it: 'Scavatore', en: 'Digger', dit: 'Reperti trovati', den: 'Fossils found', metric: s => s.findsTotal || 0, tiers: [25, 150, 800, 3000] },
+  { id: 'caves', ic: '🕳️', it: 'Speleologo', en: 'Spelunker', dit: 'Grotte esplorate', den: 'Caves explored', metric: s => Object.keys(s.caves || {}).length, tiers: [1, 3, 8, 20] },
 ];
-export function achLabel(a) { return tr(a.it[0], a.en[0]); }
-export function achDesc(a) { return tr(a.it[1], a.en[1]).replace('{n}', SP_TOT); }
-export function isAchieved(id) { return (S.achieved || []).includes(id); }
+export const TIER_TOTAL = TRACKS.length * TIERS.length; // 36 gradini totali
 
-/* controlla e sblocca i nuovi traguardi; onUnlock(a) per il toast/banner */
+export function trackLabel(t) { return tr(t.it, t.en); }
+export function trackGoal(t) { return tr(t.dit, t.den); }
+/* gradino RAGGIUNTO ORA da una traccia sullo stato s: 0 (nessuno) .. 4 (platino) */
+export function trackTier(t, s) { let n = 0; const v = t.metric(s); for (const th of t.tiers) if (v >= th) n++; return n; }
+/* gradino già SBLOCCATO (salvato) */
+export function trophyTier(id) { return (S.trophies || {})[id] || 0; }
+/* quanti gradini in totale hai (per il "X/36") */
+export function trophyCount() { let n = 0; for (const t of TRACKS) n += trophyTier(t.id); return n; }
+/* prossima soglia da raggiungere per una traccia (o null se al platino) */
+export function nextThreshold(t) { const cur = trackTier(t, S); return cur >= 4 ? null : t.tiers[cur]; }
+
+/* controlla e sblocca i NUOVI gradini; onUnlock(track, tier) per toast/banner/cosmetico */
 export function checkAchievements(onUnlock) {
-  if (!S.achieved) S.achieved = [];
-  for (const a of ACHS) {
-    if (!S.achieved.includes(a.id) && a.check(S)) {
-      S.achieved.push(a.id);
-      if (onUnlock) onUnlock(a);
+  if (!S.trophies) S.trophies = {};
+  for (const t of TRACKS) {
+    const have = S.trophies[t.id] || 0, now = trackTier(t, S);
+    if (now > have) {
+      for (let tier = have + 1; tier <= now; tier++) { S.trophies[t.id] = tier; if (onUnlock) onUnlock(t, tier); }
     }
   }
 }

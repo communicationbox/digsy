@@ -265,7 +265,8 @@ export function initState() {
   if (S.fireflies == null) S.fireflies = 0; // lucciole raccolte di notte (#5)
   if (!S.wrecks) S.wrecks = {}; // relitti frugati (chiave sito)
   if (!S.level) S.level = 1; if (S.xp === undefined) S.xp = 0; // progressione archeologo
-  if (!S.achieved) S.achieved = []; if (S.questTotal === undefined) S.questTotal = 0; // traguardi
+  if (!S.achieved) S.achieved = []; if (S.questTotal === undefined) S.questTotal = 0; // traguardi (S.achieved: legacy)
+  if (!S.trophies) S.trophies = {}; if (S.findsTotal === undefined) S.findsTotal = 0; // trofei a livelli + reperti trovati (lifetime)
   if (S.introSeen === undefined) S.introSeen = !!S.started; // i save già avviati non rivedono l'intro
   if (S.gear === undefined) S.gear = null;
   /* i natanti non sono più un "gear attivabile": in acqua si sale da soli (v0.16.5) */

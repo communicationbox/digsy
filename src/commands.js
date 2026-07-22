@@ -46,7 +46,7 @@ import { seasonOf, SEASON_LEN, SEASONS } from './daynight.js';
 import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED_HAIR, THEMED_HAT, PREMIUM_HATS, spById, ptById, RAR, CAVE_POOL } from './data.js';
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
-import { ACHS } from './achievements.js';
+import { TRACKS } from './achievements.js';
 import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers } from './gameplay.js';
 import { setCompanion, COMP } from './companion.js';
 import { zoneAt } from './regions.js';
@@ -413,7 +413,7 @@ export const COMMANDS = {
   intro: { aliases: ['storia', 'story'], type: 'action', help: 'intro — rivedi il filmato introduttivo (nonno + bimbo)',
     run: () => { playIntro(() => {}); return '📖 ' + tr('Riparte l\'intro…', 'Replaying intro…'); } },
   achall: { aliases: ['achievements', 'traguardi'], type: 'action', help: 'achall — completa tutti i traguardi',
-    run: () => { S.achieved = ACHS.map(a => a.id); return '🏆 ' + tr('Tutti i traguardi sbloccati!', 'All achievements unlocked!'); } },
+    run: () => { S.trophies = Object.fromEntries(TRACKS.map(t => [t.id, 4])); return '🏆 ' + tr('Tutti i trofei al PLATINO!', 'All trophies at PLATINUM!'); } },
   weather: { aliases: ['meteo'], type: 'str', help: 'weather=pioggia — forza il meteo (pioggia/sabbia/nebbia/cenere/neve/sereno/off)',
     suggest: p => ['pioggia', 'sabbia', 'nebbia', 'cenere', 'neve', 'sereno', 'off'].filter(s => s.startsWith(p)),
     run: v => {
