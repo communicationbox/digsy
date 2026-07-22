@@ -1,5 +1,5 @@
 /* Boot + game loop */
-import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, hasCheatSnapshot, setCheatLock } from './state.js';
+import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearCheatSnapshot } from './state.js';
 import { FOOT_DY } from './body.js';
 import { fit } from './screen.js';
 import { findStart, openArea } from './world.js';
@@ -212,12 +212,18 @@ function boot() {
       : tr('Il browser blocca i salvataggi (navigazione privata?): i progressi non verranno salvati.', 'Your browser blocks saving (private mode?): progress will not be kept.')));
   });
   const loaded = initState();
-  if (hasCheatSnapshot()) setCheatLock(true);   // sessione con comandi attivi: dopo il refresh tieni il tag e `vanilla` disponibili
+  /* lo SNAPSHOT dei comandi è per-SESSIONE: si azzera al caricamento. Persisteva fra i refresh e
+     `vanilla` finiva per ripristinare uno stato VECCHIO di una sessione passata (vecchio compagno +
+     vecchia posizione), sovrascrivendo la partita corrente. Ora la partita coi comandi è salvata e
+     basta; `vanilla` annulla solo i comandi dati IN questa sessione. */
+  clearCheatSnapshot();
   applyLook();
   if (S.started) {
     P.x = S.px; P.y = S.py;
-    // migrazione/soccorso: dentro un solido o intrappolato (es. cerchio di alberi) → riposiziona
-    if (collide(P.x, P.y) || !openArea(Math.floor(P.x / TS), Math.floor(P.y / TS))) {
+    /* soccorso SOLO se la posizione salvata è davvero INVALIDA (dentro un solido, o del tutto murata
+       senza una casella libera adiacente). NON riposizionare una posizione valida solo perché è in
+       un punto chiuso: in un BOSCO ci si salva benissimo (need=2 = basta 1 casella libera vicina). */
+    if (collide(P.x, P.y) || !openArea(Math.floor(P.x / TS), Math.floor(P.y / TS), 2)) {
       const st = findStart(); P.x = st.x; P.y = st.y; save();
     }
   } else {
