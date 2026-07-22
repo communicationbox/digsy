@@ -405,6 +405,10 @@ export function companionGathers() {
    non c'è un job). In grotta/interni non lavora: là il compagno non c'è. */
 export function companionWorkTick(dt) {
   if (!companionGathers()) { COMP.job = null; return; }
+  /* se il player si è ALLONTANATO, molla il lavoro e RAGGIUNGILO (updateCompanion segue quando
+     job=null): il raccoglitore lavora SOLO restandoti vicino, così non rimane "piantato" su una
+     casella a scavare mentre tu te ne vai (segnalato: "il buddy è bloccato lì"). */
+  if (Math.hypot(P.x - COMP.x, P.y - COMP.y) > 4.5 * TS) { COMP.job = null; COMP.cool = 0; return; }
   const type = companionType(companionSpec());
   COMP.cool = Math.max(0, (COMP.cool || 0) - dt);
   const job = COMP.job;

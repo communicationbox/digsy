@@ -3063,9 +3063,15 @@ sprites.applyLook();
   S.items = []; S.raw = []; S.uid = S.uid || 1;
   comp.setCompanion(legTerra);
   COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = null; COMP.cool = 0; COMP.fx = [];
+  P.x = COMP.x; P.y = COMP.y;   // il player è VICINO: il raccoglitore lavora (non ti sta seguendo)
   let got = false;
   for (let i = 0; i < 4000 && !got; i++) { gp.companionWorkTick(1 / 60); if (S.raw.length > 0) got = true; } // il grezzo va in S.raw
   check('raccoglitore leggendario: lavora e PORTA un fossile nello zaino', got && COMP.fx.length >= 1);
+  /* se il player si ALLONTANA, il raccoglitore MOLLA il lavoro (job=null) e torna a seguirlo */
+  COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = { type: 'terra', phase: 'work', t: 1, wx: COMP.x, wy: COMP.y, hit: -1 }; COMP.cool = 0;
+  P.x = COMP.x + 8 * TS; P.y = COMP.y;   // player lontano
+  gp.companionWorkTick(1 / 60);
+  check('raccoglitore: se il player si allontana MOLLA il lavoro e lo segue', COMP.job === null);
   /* non-leggendario: non auto-raccoglie */
   S.raw = []; comp.setCompanion({ ...legTerra, q: 'raro' }); COMP.job = null; COMP.cool = 0;
   for (let i = 0; i < 600; i++) gp.companionWorkTick(1 / 60);
@@ -3074,6 +3080,7 @@ sprites.applyLook();
   comp.setCompanion(legTerra);
   S.raw = []; S.items = Array.from({ length: gp.bagCap() }, (_, i) => ({ uid: 9000 + i, s: terra.id, t: 'cranio', q: 'comune', val: 5 }));
   COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = null; COMP.cool = 0;
+  P.x = COMP.x; P.y = COMP.y;   // vicino: ma zaino pieno → non lavora comunque
   for (let i = 0; i < 400; i++) gp.companionWorkTick(1 / 60);
   check('zaino pieno: il raccoglitore NON lavora', COMP.job === null && S.raw.length === 0);
   comp.clearCompanion(); COMP.job = null; COMP.fx = []; S.items = []; S.raw = [];
