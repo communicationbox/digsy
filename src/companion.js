@@ -9,14 +9,8 @@
    (raccoglitore autonomo / cavalcatura volante di grotta) — vedi le fasi successive. */
 import { S, P } from './state.js';
 import { save } from './state.js';
-import { spById, TS } from './data.js';
+import { spById } from './data.js';
 import { parkPopulation } from './park.js';
-import { townInfo } from './world.js';
-
-/* il compagno NON deve entrare/salire sugli EDIFICI (e arredo urbano/staccionate): sono solidi.
-   NON blocco su acqua/montagna: sull'acqua il compagno nuota dietro alla barca. Controllo il
-   tile dei PIEDI (COMP.y ≈ suolo). */
-function compSolid(px, py) { const ti = townInfo(Math.floor(px / TS), Math.floor(py / TS)); return !!(ti && ti.solid); }
 
 /* job/cool/fx pilotati dal raccoglitore leggendario (gameplay.companionWorkTick, Fase 1):
    job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale */
@@ -86,32 +80,17 @@ export function updateCompanion(dt) {
   if (COMP.fx.length) { for (const p of COMP.fx) p.life -= dt / 0.9; COMP.fx = COMP.fx.filter(p => p.life > 0); }
   const c = S.companion; if (!c) { COMP.job = null; return; }
   if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
-  if (!COMP.init) {
-    COMP.x = P.x - 16; COMP.y = P.y + 6;
-    if (compSolid(COMP.x, COMP.y)) { COMP.x = P.x; COMP.y = P.y; }   // non spawnare DENTRO un muro (dopo refresh vicino a una porta/casa)
-    COMP.init = true;
-  }
+  if (!COMP.init) { COMP.x = P.x - 16; COMP.y = P.y + 6; COMP.init = true; }
   const off = P.dir === 'left' ? 16 : P.dir === 'right' ? -16 : 0;
   const offy = P.dir === 'up' ? 16 : P.dir === 'down' ? -14 : 8;
   const tx = P.x + off, ty = P.y + offy;
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
-  /* SBLOCCO: se è finito DENTRO un solido (spawn dopo refresh accanto a una porta/edificio, o
-     incastrato a un angolo) esce SUBITO — al bersaglio se è libero, altrimenti dove sta il player
-     (camminabile). Senza questo la collisione lo terrebbe fermo per sempre "sulla porta". */
-  if (compSolid(COMP.x, COMP.y)) { if (!compSolid(tx, ty)) { COMP.x = tx; COMP.y = ty; } else { COMP.x = P.x; COMP.y = P.y; } return; }
-  /* SICUREZZA: se resta troppo indietro (bloccato da un edificio mentre il player prosegue) fa un
-     "blink" al bersaglio (accanto al player, tile libera) → non viene mai abbandonato dietro una casa. */
-  if (d > 7 * TS && !compSolid(tx, ty)) { COMP.x = tx; COMP.y = ty; return; }
   /* segue SEMPRE, con passo min(d, velocità): tocca il bersaglio senza scavalcarlo. La vecchia
      deadzone `d > 2` faceva stop-and-go attorno al bersaglio mentre il player camminava → la
      posizione oscillava e lo snap la faceva TREMARE. Ora è morbido (regola: niente tremolii). */
   if (d > 0.01) {
     const sp = Math.min(d, 90 * dt);
-    const nx = COMP.x + dx / d * sp, ny = COMP.y + dy / d * sp;
-    /* collisione ad assi separati: scorre lungo i muri degli edifici invece di attraversarli
-       ("il compagno va sulle case"). Sull'acqua compSolid è false → segue la barca nuotando. */
-    if (!compSolid(nx, COMP.y)) COMP.x = nx;
-    if (!compSolid(COMP.x, ny)) COMP.y = ny;
+    COMP.x += dx / d * sp; COMP.y += dy / d * sp;
     if (d > 0.5) {                         // anima/gira solo quando si muove davvero (niente flicker da fermo)
       COMP.anim += dt;
       /* ISTERESI sul verso: cambio SOLO se un asse domina di ×1.3. In diagonale dx≈dy: senza
