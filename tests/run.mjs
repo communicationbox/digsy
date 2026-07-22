@@ -2930,6 +2930,20 @@ sprites.applyLook();
     const wx = p.x0 + 2, wy = p.y0 + 2;                                 // dentro lo stagno
     check('parco: lo stagno è acqua DECORATIVA (tile di parco) → NON pescabile', townInfo(wx, wy).park === true && gameplay.waterTile(wx, wy) === false);
   }
+
+  /* BACHECA (cartello missioni) LONTANA dalla fontana: stavano appiccicate. Scandisce le città. */
+  let towns = 0, noBoard = 0, tooClose = 0, minD = 999;
+  for (let cy = 0; cy < 60; cy++) for (let cx = 0; cx < 60; cx++) {
+    const t = townForTile(cx * TC + 20, cy * TC + 20);
+    if (!t || (t.size !== 'città' && t.size !== 'paese')) continue;
+    towns++;
+    const fnt = (t.decos || []).find(dd => dd.type === 'fountain');
+    const board = (t.decos || []).find(dd => dd.type === 'board');
+    if (!board) { noBoard++; continue; }
+    if (fnt) { const dd = Math.max(Math.abs(board.x - (fnt.x + 0.5)), Math.abs(board.y - (fnt.y + 0.5))); if (dd < minD) minD = dd; if (dd < 4) tooClose++; }
+  }
+  check('bacheca: sempre presente in paesi/città', towns > 0 && noBoard === 0);
+  check('bacheca: SEMPRE lontana dalla fontana (≥4 caselle dal centro)', tooClose === 0 && minD >= 4, 'distMin ' + minD);
 }
 
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */

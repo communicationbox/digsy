@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
+      'FIX bacheca: il cartello delle missioni ora spawna LONTANO dalla fontana (≥4 caselle) — prima poteva finirle appiccicato',
       'PARCO delle creature rifatto: prato a STRISCE falciate (via la scacchiera piatta), uno STAGNO d\'acqua VERA (onde e riflessi come nel mondo, ma NON ci si pesca), alberi · cespugli · sassi · aiuole fiorite; il recinto è PIÙ GRANDE (oltre il doppio) e le staccionate sui lati sono disegnate in VERTICALE. Le creature NUOTANO quando entrano nell\'acqua',
       'MAPPA: due livelli di ZOOM OUT in più (vista d\'insieme) — si vede molto più mondo in un colpo d\'occhio; resta NITIDA (campionata a pixel interi, niente sfocatura)',
       'FIX cavalcatura: non si scende più su cose non calpestabili (rocce, alberi, montagne) — atterri sul punto libero più vicino, e se intorno non c\'è terreno libero resti in volo (prima rimanevi incastrato)',
@@ -65,6 +66,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
+      'FIX notice board: the quest board now spawns FAR from the fountain (≥4 tiles) — before it could end up right next to it',
       'CREATURE PARK redone: mown-STRIPE lawn (no more flat checkerboard), a REAL-water POND (waves and reflections like the world, but you CAN\'T fish in it), trees · bushes · rocks · flower beds; the pen is BIGGER (more than double) and the side fences are drawn VERTICALLY. Creatures SWIM when they step into the water',
       'MAP: two extra ZOOM-OUT levels (overview) — see much more of the world at a glance; stays CRISP (sampled at whole pixels, no blur)',
       'FIX mount: you no longer land on things you can\'t stand on (rocks, trees, mountains) — you touch down on the nearest open spot, and if there\'s none around you stay airborne (before you got stuck)',

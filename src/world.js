@@ -259,9 +259,17 @@ export function townForCell(cx, cy) {
         const x = C.x + bx, y = C.y + by;
         if (vhash(cx, cy, 160 + bx) < 0.55 && !forb(x, y) && !occupiedByDeco(x, y)) decos.push({ type: 'bush', x, y });
       }
-      /* CARTELLO delle missioni: prima tile libera vicino al centro della piazza (invita a tornare in città) */
+      /* CARTELLO delle missioni: prima tile libera vicino al centro della piazza (invita a tornare
+         in città), ma LONTANO dalla fontana (≥4 caselle dal suo centro): stavano appiccicati e la
+         bacheca finiva a ridosso della fontana. Le candidate a destra vincono (la fontana è a sinistra). */
+      const fnt = decos.find(d => d.type === 'fountain');
+      const farFromFnt = (x, y) => !fnt || Math.max(Math.abs(x - (fnt.x + 0.5)), Math.abs(y - (fnt.y + 0.5))) >= 4;
       let board = null;
-      for (const [bx, by] of [[-1, -1], [1, -1], [-2, 0], [2, 0], [-1, 0], [1, 0], [0, -2], [-2, -1], [2, -1]]) {
+      for (const [bx, by] of [[1, -1], [2, 0], [1, 0], [2, -1], [0, -2], [-1, -1], [-2, 0], [-1, 0], [-2, -1]]) {
+        const x = C.x + bx, y = C.y + by;
+        if (!forb(x, y) && !occupiedByDeco(x, y) && farFromFnt(x, y)) { board = { x, y }; break; }
+      }
+      if (!board) for (const [bx, by] of [[1, -1], [2, 0], [-1, -1], [1, 0]]) {   // ripiego: almeno una posizione valida
         const x = C.x + bx, y = C.y + by;
         if (!forb(x, y) && !occupiedByDeco(x, y)) { board = { x, y }; break; }
       }
