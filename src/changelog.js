@@ -58,7 +58,7 @@ export const CHANGELOG = [
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'ANIMALS: the FRONT view now shows the FACE (eyes, muzzle, horns) — before the head ended up behind the body and the animal looked like its back was turned',
-      'VEHICLES: the character is now CENTERED on the vehicle in the front and back views (the sprite sat ~1px left and it showed on the symmetric hull)',
+      'CHARACTER sprite padded 1px on the left: now CENTERED in its cell → centered on vehicles (boat/motorboat/mount) in the front and back views, where it used to sit to the left',
       'VEHICLES: the boat and motorboat now have the 4 proper VIEWS — front and back (compact bow/stern hull, motor/windshield) and the two side profiles; before they were always sideways',
       'TROPHY REWARDS: each track at GOLD unlocks a unique golden HAT (Crown, Cap, Laurel, Goggles, Horns, Pith, Feather, Hard Hat, Lamp) — wearable in the Tailor; at PLATINUM the same hat turns to golden GLITTER and your character gains a sparkling AURA',
       'CLOTHES with SHAPES: in the Tailor (and the editor) you pick the SHAPE as well as the color — shirts (T-shirt · Tank · Shirt · Hoodie) and pants (Trousers · Shorts · Skirt · Overalls)',

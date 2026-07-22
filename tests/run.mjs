@@ -965,12 +965,12 @@ sprites.applyLook();
   }
   check('overlay capelli validi (4 stili × 3 direzioni)', hbad === 0);
   check('stili/colori capelli coerenti coi dati (6 stili, 12 colori)', HAIR_STYLES.length === 6 && HAIR_STYLES.every(s => s.id in sprites.HAIRS) && HAIR_COLORS.length === 12);
-  // fronte/retro: capelli simmetrici rispetto all'asse della testa (colonne 4–9 → specchio c↔13-c)
+  // fronte/retro: capelli simmetrici rispetto all'asse della testa (colonne 5–10 → specchio c↔15-c)
   let asym = 0;
   for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'up']) {
     for (const [, r] of sprites.HAIRS[st][dir]) {
       for (let c = 0; c < 16; c++) {
-        const m = 13 - c;
+        const m = 15 - c;
         if (m >= 0 && m < 16 && (r[c] === 'A') !== (r[m] === 'A')) asym++;
       }
     }
@@ -997,7 +997,8 @@ sprites.applyLook();
     const dataMod = await import('../src/data.js');
     const base = sprites.SPR.down[0];
     const tank = sprites.styleLook(base, 'tank', 'long');
-    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', tank[9][3] === 'F' && tank[9][10] === 'F' && tank[9].includes('S') && base[9][3] === 'S');
+    const bf = base[9].indexOf('S'), bl = base[9].lastIndexOf('S');
+    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', bf >= 0 && tank[9][bf] === 'F' && tank[9][bl] === 'F' && tank[9].includes('S'));
     const shorts = sprites.styleLook(base, 'tshirt', 'shorts');
     check('pantaloncini: stinco scoperto (una riga di pantalone → pelle)', !shorts[14].includes('P') && shorts[13].includes('P'));
     const skirt = sprites.styleLook(base, 'tshirt', 'skirt');

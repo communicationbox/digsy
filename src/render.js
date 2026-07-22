@@ -594,9 +594,8 @@ function drawBikeFB(sx, sy, moving, dir) {
    SEDUTO in groppa (busto, gambe in sella). Colore dalla creatura + contorno scuro. 4 direzioni. */
 /* eroe SEDUTO in groppa: busto+testa (gambe tagliate dal clip = in sella), all'altezza `topY` */
 function seatHero(sx, topY, dir) {
-  const hx = (dir === 'up' || dir === 'down') ? sx - 7 : sx - 8; // di fronte/retro l'eroe va centrato (+1)
   ctx.save(); ctx.beginPath(); ctx.rect(sx - 9, topY - 4, 18, 16); ctx.clip();
-  drawHero(null, hx, topY, dir, 0);
+  drawHero(null, sx - 8, topY, dir, 0);
   ctx.restore();
 }
 /* ALA in stile VOXEL: colonne PIENE a ventaglio (niente membrana liscia coi buchi), 3 toni +
@@ -671,10 +670,8 @@ export function drawBoat(sx, sy) {
     px(sx + bx - 2 + w2, y0 + 14 + by, '#bfe9f4'); px(sx + bx + 2 - w2, y0 + 15 + by, '#e8f6fb');
     px(sx + bx, y0 + 13 + by, '#bfe9f4');
   }
-  /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti).
-     Di prua/poppa lo scafo è SIMMETRICO, ma lo sprite dell'eroe è ~1px a sinistra del centro: +1 lo centra. */
-  const hx = (P.dir === 'up' || P.dir === 'down') ? sx - 7 : sx - 8;
-  drawHero(null, hx, y0 - 5, P.dir, 0);
+  /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
+  drawHero(null, sx - 8, y0 - 5, P.dir, 0);
   if (P.dir === 'up' || P.dir === 'down') { drawBoatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro: scafo di prua/poppa
   /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
   rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
@@ -712,8 +709,8 @@ export function drawMotorboat(sx, sy) {
     const w2 = Math.floor(frameTime / 90) % 3;
     for (let i = 0; i < 3; i++) { px(sx + bx - 3 + i * 3 - w2, y0 + 14 + by, '#e8f6fb'); px(sx + bx - 2 + i * 3 + w2, y0 + 16 + by, '#bfe9f4'); }
   }
-  /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti); +1 di prua/poppa per centrarlo */
-  drawHero(null, (P.dir === 'up' || P.dir === 'down') ? sx - 7 : sx - 8, y0 - 4, P.dir, 0);
+  /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
+  drawHero(null, sx - 8, y0 - 4, P.dir, 0);
   if (P.dir === 'up' || P.dir === 'down') { drawMotorboatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro
   /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
   rect(sx - 10, y0 + 8, 20, 5, '#eef2f4'); rect(sx - 10, y0 + 11, 20, 2, '#3d8ba0'); // banda
