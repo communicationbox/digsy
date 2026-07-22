@@ -72,6 +72,9 @@
         <button data-tool="era" class="tool alt">⌫ Gomma</button>
         <button id="undo" class="alt">↶ Annulla</button>
         <button id="grid-t" class="alt">▦ Griglia</button>
+        <!-- sfondo dell'editor: i pixel scuri su fondo scuro (o chiari su chiaro) non si vedono;
+             questo pulsante cicla scuro / chiaro / verde-gioco così qualunque colore stacca -->
+        <button id="bg-t" class="alt">◑ Sfondo</button>
         <!-- capelli e cappelli hanno TRE viste: di fronte, di lato, di spalle. Prima si
              poteva disegnare solo quella frontale e le altre restavano com'erano. -->
         <span id="viewsel" style="display:none;margin-left:6px">
@@ -562,6 +565,15 @@ document.querySelectorAll('.tool').forEach(b => b.onclick = () => {
   tool = b.dataset.tool; document.querySelectorAll('.tool').forEach(x => { x.classList.toggle('on', x === b); x.classList.toggle('alt', x !== b); });
 });
 document.getElementById('grid-t').onclick = () => { showGrid = !showGrid; render(); };
+/* SFONDO dell'editor: cicla scuro → chiaro → verde-gioco. Serve perché un pixel scuro su fondo
+   scuro (o un bianco su fondo chiaro) sparisce e non si vede cosa si sta disegnando. */
+const BGS = [
+  { name: 'scuro', fill: '#12100c', checker: '#1a1710', grid: 'rgba(120,110,90,.28)' },
+  { name: 'chiaro', fill: '#e8e2d0', checker: '#d6cfbb', grid: 'rgba(60,50,35,.30)' },
+  { name: 'gioco', fill: '#20301c', checker: '#2a3d24', grid: 'rgba(190,210,170,.22)' },
+];
+let bgIdx = 0;
+document.getElementById('bg-t').onclick = () => { bgIdx = (bgIdx + 1) % BGS.length; render(); };
 document.getElementById('undo').onclick = () => { if (undoStack.length) { px = undoStack.pop(); render(); } };
 document.getElementById('clear').onclick = () => { undoStack.push(px.slice()); px = new Array(W * H).fill(-1); render(); };
 document.getElementById('reset').onclick = () => { if (cur) openEditor(cur); };
@@ -610,14 +622,15 @@ function render() {
   const cell = Math.max(3, Math.min(14, Math.floor(880 / W), Math.floor(620 / H)));
   cv.width = W * cell; cv.height = H * cell;
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
-  c.fillStyle = '#12100c'; c.fillRect(0, 0, cv.width, cv.height);
+  const bg = BGS[bgIdx];
+  c.fillStyle = bg.fill; c.fillRect(0, 0, cv.width, cv.height);
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const v = px[y * W + x];
     if (v >= 0) { c.fillStyle = pal[v]; c.fillRect(x * cell, y * cell, cell, cell); }
-    else if ((x + y) % 2 === 0) { c.fillStyle = '#1a1710'; c.fillRect(x * cell, y * cell, cell, cell); }
+    else if ((x + y) % 2 === 0) { c.fillStyle = bg.checker; c.fillRect(x * cell, y * cell, cell, cell); }
   }
   if (showGrid && cell >= 6) {
-    c.strokeStyle = 'rgba(120,110,90,.28)';
+    c.strokeStyle = bg.grid;
     for (let i = 0; i <= W; i++) { c.beginPath(); c.moveTo(i * cell + .5, 0); c.lineTo(i * cell + .5, cv.height); c.stroke(); }
     for (let j = 0; j <= H; j++) { c.beginPath(); c.moveTo(0, j * cell + .5); c.lineTo(cv.width, j * cell + .5); c.stroke(); }
   }
