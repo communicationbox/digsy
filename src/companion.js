@@ -65,7 +65,11 @@ export function companionLightBonus() {
 /* comodità universali: ogni compagno fiuta i reperti a terra e tiene la bussola accesa */
 export function companionHelps() { return !!S.companion; }
 
-export function setCompanion(spec) { S.companion = spec || null; COMP.init = false; save(); }
+export function setCompanion(spec) {
+  S.companion = spec || null;
+  COMP.init = false; COMP.job = null; COMP.cool = 0; COMP.fx = [];   // reset del lavoro: cambiando compagno NON deve restare a scavare il job del vecchio (es. dopo un raccoglitore leggendario)
+  save();
+}
 export function clearCompanion() { setCompanion(null); }
 
 /* Candidati: esattamente CHI VIVE NEL PARCO — si sceglie il compagno fra le creature che si

@@ -47,8 +47,8 @@ import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
 import { ACHS } from './achievements.js';
-import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount } from './gameplay.js';
-import { setCompanion } from './companion.js';
+import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers } from './gameplay.js';
+import { setCompanion, COMP } from './companion.js';
 import { zoneAt } from './regions.js';
 import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL } from './world.js';
 import { enterCave } from './cave.js';
@@ -348,6 +348,16 @@ export const COMMANDS = {
         ? ' · ' + tr('cavalcabile (dallo zaino)', 'rideable (from the bag)')
         : ' · ' + tr('raccoglie da solo', 'auto-gathers');
       return '🐾 ' + sp.name + ' — ' + tr('compagno ', 'companion ') + type + ' (' + rarLabel(rar) + ')' + extra;
+    } },
+  compinfo: { aliases: ['comp?', 'buddyinfo'], type: 'action',
+    help: 'compinfo — stato REALE del compagno (debug: rarità, se raccoglie, job attivo)',
+    run: () => {
+      const c = S.companion;
+      if (!c) return '🐾 ' + tr('Nessun compagno', 'No companion');
+      return '🐾 ' + c.name + ' · ' + rarLabel(c.q) + ' [' + c.q + ']  key=' + c.key +
+        '\n   ' + tr('raccoglie', 'gathers') + '=' + companionGathers() +
+        '  job=' + (COMP.job ? COMP.job.phase : 'null') +
+        '  mounted=' + isMounted() + '  cheatLock=' + isCheatLock();
     } },
   mount: { aliases: ['cavalca', 'ride'], type: 'action', cheat: true,
     help: 'mount — compagno di grotta leggendario e SU in volo (in grotta non si vola)',
