@@ -213,13 +213,18 @@ export function styleLook(rows, shirtStyle, pantsStyle) {
       r = setAt(r, f, 'F'); r = setAt(r, l, 'F');
       if (l - f >= 6) { r = setAt(r, f + 1, 'F'); r = setAt(r, l - 1, 'F'); }
       rows[y] = r; }
-  } else if (shirtStyle === 'shirt' && torso.length) {   // camicia: colletto chiaro + bottoni scuri
-    const top = torso[0]; rows[top] = setAt(setAt(rows[top], rows[top].indexOf('S'), 'W'), rows[top].lastIndexOf('S'), 'W');
-    for (const y of torso) { const c = Math.round((rows[y].indexOf('S') + rows[y].lastIndexOf('S')) / 2); rows[y] = setAt(rows[y], c, 'K'); }
-  } else if (shirtStyle === 'hoodie' && torso.length) {  // felpa: cappuccio (drappo scuro sopra il collo) + tasca
+  } else if (shirtStyle === 'shirt' && torso.length) {   // camicia: colletto aperto (2 pixel chiari al collo) + abbottonatura scura al centro — SOLO sul davanti (non sullo zaino)
+    const top = torso[0], c0 = Math.round((rows[top].indexOf('S') + rows[top].lastIndexOf('S')) / 2);
+    if (rows[top][c0] === 'S') rows[top] = setAt(rows[top], c0, 'W');
+    if (rows[top][c0 - 1] === 'S') rows[top] = setAt(rows[top], c0 - 1, 'W');
+    for (let i = 1; i < torso.length; i++) { const y = torso[i], c = Math.round((rows[y].indexOf('S') + rows[y].lastIndexOf('S')) / 2); if (rows[y][c] === 'S') rows[y] = setAt(rows[y], c, 'K'); }
+  } else if (shirtStyle === 'hoodie' && torso.length) {  // felpa: cappuccio (drappo che avvolge il collo) + cordini; tasca a marsupio SOLO sul davanti
     const top = torso[0], f = rows[top].indexOf('S'), l = rows[top].lastIndexOf('S');
-    if (top > 0) { let h = rows[top - 1].split(''); for (let x = f; x <= l; x++) h[x] = (x === f || x === l) ? 'K' : 's'; rows[top - 1] = h.join(''); }
-    const bot = torso[torso.length - 1], c = Math.round((f + l) / 2); rows[bot] = setAt(setAt(rows[bot], c, 'K'), c + 1, 'K');
+    if (top > 0 && rows[top - 1]) { let h = rows[top - 1].split(''); for (let x = f; x <= l; x++) if (h[x] === '.' || h[x] === 'F' || h[x] === 'f' || h[x] === 'K') h[x] = (x === f || x === l) ? 'K' : 's'; rows[top - 1] = h.join(''); }
+    const c = Math.round((f + l) / 2);
+    if (rows[top][c] === 'S') { rows[top] = setAt(rows[top], c, 'K'); rows[top] = setAt(rows[top], c + 1, 'K'); } // cordini
+    const bot = torso[torso.length - 1], cb = Math.round((rows[bot].indexOf('S') + rows[bot].lastIndexOf('S')) / 2);
+    if (rows[bot][cb] === 'S') { rows[bot] = setAt(rows[bot], cb - 1, 'K'); rows[bot] = setAt(rows[bot], cb, 's'); rows[bot] = setAt(rows[bot], cb + 1, 'K'); } // tasca
   }
   /* ---- PANTALONI ---- */
   if (pantsStyle === 'shorts' && legs.length >= 2) {     // pantaloncini: stinco scoperto (ultima riga di pantalone → pelle)
