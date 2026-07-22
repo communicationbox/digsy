@@ -52,7 +52,7 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
-      'COSMETICS coming: shirt SHAPES (T-shirt · Tank · Shirt · Hoodie) and pants SHAPES (Long · Shorts · Skirt · Overalls) are in — the character already draws them in every view; soon you'+chr(39)+'ll pick them in the Tailor/editor (color + shape) and they'+chr(39)+'ll be Gold/Platinum trophy rewards',
+      'COSMETICS coming: shirt SHAPES (T-shirt · Tank · Shirt · Hoodie) and pants SHAPES (Long · Shorts · Skirt · Overalls) are in — the character already draws them in every view; soon you will pick them in the Tailor/editor (color + shape) and they become Gold/Platinum trophy rewards',
       'TIERED TROPHIES: the Hall of Fame now has 9 tracks (Discoverer, Collector, Geneticist, Creator, Wealthy, Archaeologist, Fixer, Digger, Spelunker), each with 4 tiers Bronze · Silver · Gold · Platinum (36 tiers total). The cup takes the tier color; Platinum sparkles. (Gold/Platinum cosmetics come next)',
       'MUSEUM · DNA refills: each species now also shows whether it has ALREADY been revived and in HOW MANY chimeras its DNA is used (besides the vials in your bag)',
       'COMPANIONS: in the picker CHIMERAS now stand out from awakened ones — 🧬 icon, "Chimera" label and a purple-accented row (awakened stay 🐾)',
