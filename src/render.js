@@ -392,10 +392,12 @@ function creatureSprite(a, view, opts) {
     const c = spById[a.c.skull], t = spById[a.c.torso], z = spById[a.c.leg];
     const spec = { heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
     const vox = buildFleshVoxels(clampSpec(spec), opts);
-    /* asse orizzontale (h), profondità (d) per l'ordine pittore. La verticale è sempre y. */
+    /* asse orizzontale (h), profondità (d) per l'ordine pittore (far→near). La verticale è sempre y.
+       FRONT: la TESTA (x piccolo) deve stare DAVANTI (vicina) → si vede la FACCIA; con la profondità
+       non invertita il corpo copriva la testa e l'animale sembrava di spalle. BACK all'opposto. */
     const proj = view === 'side' ? v => [v.x, v.z]
-      : view === 'front' ? v => [v.z, v.x]
-        : v => [v.z, -v.x];                         // back: profondità invertita
+      : view === 'front' ? v => [v.z, -v.x]         // testa vicina → faccia visibile
+        : v => [v.z, v.x];                          // back: testa lontana (si vede la schiena)
     let mnh = 9e9, mxh = -9e9, mny = 9e9, mxy = -9e9, mnd = 9e9, mxd = -9e9;
     for (const v of vox) { const [h, d] = proj(v); mnh = Math.min(mnh, h); mxh = Math.max(mxh, h); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnd = Math.min(mnd, d); mxd = Math.max(mxd, d); }
     const spanH = mxh - mnh + 1, spanY = mxy - mny + 1, dr = Math.max(1, mxd - mnd);
@@ -648,7 +650,16 @@ function drawFlyingMount(sx, sy) {
   seatHero(sx, backTop - 6, P.dir);
   if (P.moving) { const tx = sx - dir * 11, ty = backTop + 8, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)'); }
 }
-function drawBoat(sx, sy) {
+/* barca vista di PRUA/POPPA (su/giù): scafo compatto e più stretto del profilo. `up`=si allontana. */
+export function drawBoatFB(sx, y0, up) {
+  rect(sx - 5, y0 + 8, 11, 6, '#8a5f38'); rect(sx - 5, y0 + 8, 11, 2, '#a97a4c'); // scafo
+  px(sx - 6, y0 + 9, '#8a5f38'); px(sx + 5, y0 + 9, '#8a5f38');
+  rect(sx - 4, y0 + 14, 9, 1, '#5c4229');
+  if (up) { rect(sx - 2, y0 + 7, 5, 1, '#a97a4c'); px(sx, y0 + 6, '#a97a4c'); }   // prua a punta in alto (si allontana)
+  else { rect(sx - 3, y0 + 14, 7, 1, '#8a5f38'); rect(sx - 2, y0 + 15, 5, 1, '#5c4229'); px(sx, y0 + 16, '#5c4229'); } // poppa verso di noi
+  px(sx - 4, y0 + 17, '#bfe9f4'); px(sx + 3, y0 + 17, '#bfe9f4');                  // riflesso
+}
+export function drawBoat(sx, sy) {
   const bob = Math.round(Math.sin(frameTime / 320) * 1.5);
   const y0 = sy + bob;
   /* scia dietro la barca */
@@ -661,7 +672,8 @@ function drawBoat(sx, sy) {
   }
   /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
   drawHero(null, sx - 8, y0 - 5, P.dir, 0);
-  /* scafo di legno con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
+  if (P.dir === 'up' || P.dir === 'down') { drawBoatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro: scafo di prua/poppa
+  /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
   rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
   px(sx - 11, y0 + 9, '#8a5f38'); px(sx + 10, y0 + 9, '#8a5f38');
   rect(sx - 8, y0 + 14, 16, 1, '#5c4229');
@@ -677,8 +689,17 @@ function drawBoat(sx, sy) {
     px(bx2 - r2, by2 + 1, '#bfe9f4'); px(bx2 + r2, by2 + 1, '#bfe9f4');
   }
 }
+/* motoscafo di PRUA/POPPA (su/giù): scafo bianco compatto + parabrezza/motore secondo il verso. */
+export function drawMotorboatFB(sx, y0, up) {
+  rect(sx - 5, y0 + 8, 11, 5, '#eef2f4'); rect(sx - 5, y0 + 11, 11, 2, '#3d8ba0'); // scafo + banda
+  px(sx - 6, y0 + 9, '#eef2f4'); px(sx + 5, y0 + 9, '#eef2f4');
+  rect(sx - 4, y0 + 13, 9, 1, '#2b6274');
+  if (up) { rect(sx - 2, y0 + 4, 5, 4, '#bfe9f4'); rect(sx - 2, y0 + 4, 5, 1, '#8fd0e6'); px(sx, y0 + 3, '#eef2f4'); } // di spalle: parabrezza + prua
+  else { rect(sx - 2, y0 + 13, 5, 3, '#33291f'); px(sx, y0 + 16, '#20323f'); }    // di fronte: motore fuoribordo verso di noi
+  px(sx - 4, y0 + 16, '#bfe9f4'); px(sx + 3, y0 + 16, '#bfe9f4');
+}
 /* MOTOSCAFO: scafo bianco/azzurro affusolato, parabrezza, motore fuoribordo, SCIA di spruzzi */
-function drawMotorboat(sx, sy) {
+export function drawMotorboat(sx, sy) {
   const bob = Math.round(Math.sin(frameTime / 300) * 1.2);
   const y0 = sy + bob;
   /* scia di spruzzi più marcata dietro (in movimento) */
@@ -690,7 +711,8 @@ function drawMotorboat(sx, sy) {
   }
   /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
   drawHero(null, sx - 8, y0 - 4, P.dir, 0);
-  /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) */
+  if (P.dir === 'up' || P.dir === 'down') { drawMotorboatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro
+  /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
   rect(sx - 10, y0 + 8, 20, 5, '#eef2f4'); rect(sx - 10, y0 + 11, 20, 2, '#3d8ba0'); // banda
   px(sx - 12, y0 + 10, '#eef2f4'); px(sx - 11, y0 + 9, '#eef2f4');                    // prua sinistra
   px(sx + 11, y0 + 10, '#eef2f4'); px(sx + 10, y0 + 9, '#eef2f4');                    // poppa
