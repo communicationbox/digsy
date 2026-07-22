@@ -2,9 +2,11 @@
 export const CHANGELOG = [
   {
     v: 'v0.84', it: [
+      'MAPPA: ora si CAPISCONO i biomi — la terra è colorata per ZONA (Prati verde-oro, Dune sabbia, Boschi grigio-verde, Terre rosse, Palude, Lande Gelide) invece di essere tutta lo stesso verde; foresta e montagna prendono il tono scuro del bioma, e c\'è la legenda coi biomi',
       'CITTÀ rifatte: PIAZZA con la FONTANA al CENTRO e un ANELLO di strade che le gira attorno e porta alle case; LAMPIONI accanto a ogni edificio, PANCHINE attorno alla fontana, la bacheca a bordo piazza. Prima erano file dritte con la fontana di lato — ora sembra una piazza',
       'PARCO delle creature rifatto: prato a STRISCE falciate (via la scacchiera piatta), uno STAGNO d\'acqua VERA (onde e riflessi come nel mondo, ma NON ci si pesca), alberi · cespugli · sassi · aiuole fiorite; il recinto è PIÙ GRANDE (oltre il doppio) e le staccionate sui lati sono disegnate in VERTICALE. Le creature NUOTANO quando entrano nell\'acqua',
     ], en: [
+      'MAP: you can now TELL the biomes apart — land is coloured by ZONE (Meadows golden-green, Dunes sand, Woods grey-green, Red Lands, Marsh, Frozen Wastes) instead of all the same green; forest and mountain take the biome\'s darker tone, plus a biome legend',
       'TOWNS redone: a SQUARE with the FOUNTAIN in the CENTER and a RING of roads circling it and leading to the houses; LAMPS beside every building, BENCHES around the fountain, the notice board at the plaza edge. Before they were straight rows with the fountain off to the side — now it reads like a piazza',
       'CREATURE PARK redone: mown-STRIPE lawn (no more flat checkerboard), a REAL-water POND (waves and reflections like the world, but you CAN\'T fish in it), trees · bushes · rocks · flower beds; the pen is BIGGER (more than double) and the side fences are drawn VERTICALLY. Creatures SWIM when they step into the water',
     ],

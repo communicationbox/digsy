@@ -4904,6 +4904,14 @@ sprites.applyLook();
   let mapCrash = false;
   try { mapMod.mapReset(); for (let i = 0; i < 4; i++) mapMod.mapZoomBy(-1); mapMod.mapReset(); } catch (e) { mapCrash = true; }
   check('mappa: zoom out fino al minimo senza crash', !mapCrash);
+
+  /* BIOMI leggibili: la mappa colora la terra per ZONA (non più solo per terreno), così due prati
+     di biomi diversi non sono lo stesso verde. Un colore per zona, tutti distinti, + legenda. */
+  const { ZONES: ZM } = await import('../src/data.js');
+  check('mappa: colora per BIOMA (MAP_ZONE + zoneIdxAt)', /const MAP_ZONE = \[/.test(mapSrc) && /zoneIdxAt\(tx, ty\)/.test(mapSrc) && /mapTerrColor\(tx, ty\)/.test(mapSrc));
+  const mzCols = ((mapSrc.match(/MAP_ZONE = \[([^\]]+)\]/) || [])[1] || '').match(/#[0-9a-fA-F]{6}/g) || [];
+  check('mappa: un colore di bioma per zona, tutti distinti', mzCols.length === ZM.length && new Set(mzCols).size === mzCols.length);
+  check('mappa: legenda con i biomi', /ZONES\.map\(\(z, i\) =>.*MAP_ZONE\[i\]/.test(mapSrc));
 }
 
 /* ---------- BETA: aggiornamento forzato, nelle Impostazioni ---------- */

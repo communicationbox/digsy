@@ -4,11 +4,12 @@
    trascinamento) che non c'entra con il resto dell'interfaccia. */
 import { S, P, save } from './state.js';
 import { FOOT_DY } from './body.js';
-import { TS } from './data.js';
+import { TS, ZONES } from './data.js';
 import { CH, isExplored, exploredTiles, revealArea } from './map.js';
 import { townForCell, TCELL, landmarkForCell, LCELL, townInfo, townForTile, baseTerrain, hasMuseum } from './world.js';
 import { wonderName, isDiscovered, WONDERS } from './wonders.js';
 import { withIcons } from './icons.js';
+import { zoneIdxAt } from './regions.js';
 import { tr } from './i18n.js';
 import { playSfx } from './audio.js';
 import { toast, setPromptFromMap as setPrompt, showBanner, openWonderBook } from './ui.js';
@@ -25,6 +26,26 @@ export function closeMap() {
 /* ---------- MAPPA: pergamena che si scopre camminando. Zoom con rotella / pinch / +− e
    trascinamento col dito. Lo zoom è in PIXEL PER TILE (interi: la pixel-art non si sfoca). ---------- */
 const MAP_TERR = ['#1d3b52', '#2f6b8f', '#d8c58a', '#5fa04e', '#2f6b3a', '#a9784a', '#8a8378', '#c9bda0', '#7fc46a', '#b09a72'];
+/* colore della TERRA per BIOMA: sulla mappa due prati di zone diverse erano lo stesso verde e i
+   biomi non si distinguevano. Un colore per zona (ordine = ZONES di data.js) + varianti per
+   terreno (foresta/montagna più scure, sabbia tono spiaggia, acqua blu). */
+const MAP_ZONE = ['#8fce76', '#e0cd97', '#6f8060', '#bf8b57', '#5a7a4e', '#dbe4ea']; // prati·dune·boschi·terre·palude·ghiacci
+function mapShade(hex, k) {
+  const n = parseInt(hex.slice(1), 16);
+  const r = Math.min(255, Math.round(((n >> 16) & 255) * k)), g = Math.min(255, Math.round(((n >> 8) & 255) * k)), b = Math.min(255, Math.round((n & 255) * k));
+  return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
+}
+function mapTerrColor(tx, ty) {
+  const t = baseTerrain(tx, ty);
+  if (t === 0) return '#1d3b52';                                   // acqua profonda
+  if (t === 1) return '#2f6b8f';                                   // acqua
+  if (t === 2) return '#dccb92';                                   // sabbia (spiaggia/dune): tono riconoscibile
+  const z = MAP_ZONE[zoneIdxAt(tx, ty)] || '#5fa04e';
+  if (t === 6) return mapShade(z, 0.62);                           // montagna: bioma scurito
+  if (t === 4) return mapShade(z, 0.78);                           // foresta
+  if (t === 5) return mapShade(z, 0.9);                            // terra battuta
+  return z;                                                        // erba = colore del bioma
+}
 /* zoom < 1 = zoom OUT (vista d'insieme): non si disegna mezza tile (sfocherebbe), si CAMPIONA —
    1 pixel ogni N tile (N intero). Così la pixel-art resta netta anche vedendo mezzo continente. */
 const MAP_ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 6]; // px per tile (sotto 1 = campionamento in zoom out)
@@ -54,7 +75,7 @@ function drawMapCanvas() {
     const tx = x0 + cxi * step, ty = y0 + cyi * step;                           // tile campionata della cella
     if (!isExplored(tx, ty)) continue;
     const ti = townInfo(tx, ty);
-    c.fillStyle = ti ? (ti.solid ? '#e8c34a' : '#d9cba8') : MAP_TERR[baseTerrain(tx, ty)] || '#555';
+    c.fillStyle = ti ? (ti.solid ? '#e8c34a' : '#d9cba8') : mapTerrColor(tx, ty);
     c.fillRect(cxi * cell, cyi * cell, cell, cell);
   }
   mapPins = [];                                   // per il click: cosa c'è in quel punto
@@ -118,7 +139,10 @@ export function openMap() {
   drawMapCanvas();
   const tt = document.getElementById('mp-title'); if (tt) tt.textContent = tr('MAPPA DEL MONDO', 'WORLD MAP');
   const lg = document.getElementById('mp-legend');
-  if (lg) lg.innerHTML = withIcons(`<span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
+  if (lg) {
+    const biomes = ZONES.map((z, i) => `<span><i style="background:${MAP_ZONE[i]}"></i>${z.name}</span>`).join('');
+    lg.innerHTML = withIcons(biomes + `<span><i style="background:#2f6b8f"></i>${tr('acqua', 'water')}</span><span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
+  }
   ov.classList.add('on'); mapOpenFlag = true; setPrompt(null);
   const x = document.getElementById('mp-close'); if (x) x.onclick = () => closeMap();
   const bi = document.getElementById('mp-in'); if (bi) bi.onclick = () => mapZoomBy(1);
