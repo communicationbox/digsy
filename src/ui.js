@@ -572,7 +572,10 @@ export function openCompanionPicker() {
     h += `<div class="row"${cur ? '' : ' style="background:#f1e6cc"'}><span class="em">🚫</span><div><div class="nm">${tr('Nessun compagno', 'No companion')}</div><div class="sub">${tr('vai da solo', 'go on your own')}</div></div><div class="rt">${cur ? `<button class="btn amber" data-comp="">${tr('Scegli', 'Choose')}</button>` : '<b>✓ ' + tr('da solo', 'on your own') + '</b>'}</div></div>`;
     h += cands.map(c => {
       const on = isCurrentCompanion(c.key);
-      return `<div class="row"><span class="em">🐾</span><div><div class="nm">${c.name} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(c)}</div></div><div class="rt">${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
+      const chimera = !!(c.key && c.key.startsWith('chi'));   // parkPopulation: chimere 'chi'+uid, risvegli 'sp'+id
+      const em = chimera ? '🧬' : '🐾';                        // icona diversa: DNA per le chimere
+      const kind = chimera ? tr('Chimera', 'Chimera') : tr('Risveglio', 'Awakened');
+      return `<div class="row${chimera ? ' chimera' : ''}"><span class="em">${em}</span><div><div class="nm">${c.name} · ${kind} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(c)}</div></div><div class="rt">${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
     }).join('');
   }
   mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno', 'Companion'));

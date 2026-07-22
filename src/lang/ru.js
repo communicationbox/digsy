@@ -670,6 +670,7 @@ export const RU = {
   'At the museum': 'В музее',
   'pickup from day ': 'забрать с дня ',
   'Chimeras': 'Химеры',
+  'Chimera': 'Химера',
   'No DNA or chimeras yet': 'Пока нет ни ДНК, ни химер',
   'Fill a Museum room (one piece of every species of that zone) and the Curator hands you the letter your grandparent left.':
     'Заполните зал Музея (по одной части каждого вида этой зоны), и Хранитель отдаст письмо, оставленное вашим дедом.',
