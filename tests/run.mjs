@@ -2809,7 +2809,7 @@ sprites.applyLook();
   /* la banca è ADDITIVA e OVERLAY: il disegno porta solo il VEICOLO, l'eroe resta procedurale.
      Il motoscafo di fronte è già disegnato a mano; gli altri versi restano procedurali. */
   check('banca mezzi: motoscafo (3 viste) disegnato a mano', ['down', 'up', 'side'].every(v => bank.hasSprite('vehicle:motorboat:' + v) === true));
-  check('banca mezzi: i mezzi non disegnati restano procedurali', bank.hasSprite('vehicle:boat:down') === false && bank.hasSprite('vehicle:bike:side') === false);
+  check('banca mezzi: i mezzi non disegnati restano procedurali', bank.hasSprite('vehicle:boat:down') === false && bank.hasSprite('vehicle:skates:side') === false);
   const md = bank.spriteDef('vehicle:motorboat:down');
   /* i mezzi usano la CORNICE FISSA 32×34 con ancora sull'origine del player (16,12): stabile,
      WYSIWYG con l'editor; spostare un pixel al bordo non riancora più il disegno */
