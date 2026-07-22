@@ -544,6 +544,7 @@ const TYPE_TXT = {
   albero: ['🪓 Boscaiolo', '🪓 Woodsman', "con l'accetta", 'with the hatchet'],
   roccia: ['⛏️ Minatore', '⛏️ Miner', 'col piccone', 'with the pickaxe'],
   grotta: ['🕳️ Speleologo', '🕳️ Caver', 'in grotta', 'in caves'],
+  all: ['✨ Tuttofare', '✨ Versatile', 'da tutto', 'from everything'],  // bonus universale delle chimere a estremità uguali
 };
 /* etichetta di UN potere (tipo + magnitudine) */
 function powLabel(type, mag) {

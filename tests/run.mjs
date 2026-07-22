@@ -3008,6 +3008,18 @@ sprites.applyLook();
   check('chimera: DUE poteri (acqua+albero), ognuno < un risveglio singolo', cp.length === 2 && cp.some(p => p.type === 'acqua') && cp.some(p => p.type === 'albero') && cp[0].mag < singleFull);
   comp.setCompanion(chim);
   check('chimera: potenzia ENTRAMBE le attività (ridotto ciascuno)', Math.abs(comp.companionYieldMul('acqua') - 1.05) < 1e-9 && Math.abs(comp.companionYieldMul('albero') - 1.05) < 1e-9 && comp.companionYieldMul('terra') === 1);
+  /* CHIMERA a estremità dello STESSO tipo (specie diverse, entrambe terra) → SEMPRE due poteri:
+     il tipo ½ + un bonus UNIVERSALE ½ ('all' = resa su tutte le raccolte). Ogni chimera è versatile. */
+  const terraA = dataC.SPECIES.find(s => (s.src || 'terra') === 'terra');
+  const terraB = dataC.SPECIES.find(s => (s.src || 'terra') === 'terra' && s.id !== terraA.id);
+  const chimSame = { skull: terraA.id, torso: terraA.id, leg: terraB.id, q: 'comune', key: 'cs', name: 'CS' };
+  const cps = comp.companionPowers(chimSame);
+  check('chimera stesso-tipo: SEMPRE 2 poteri (tipo + universale)', cps.length === 2 && cps[0].type === 'terra' && cps[1].type === 'all');
+  comp.setCompanion(chimSame);
+  check('chimera universale: resa su OGNI attività, MAX non somma (mai oltre il ½)',
+    Math.abs(comp.companionYieldMul('terra') - 1.05) < 1e-9 && Math.abs(comp.companionYieldMul('acqua') - 1.05) < 1e-9 && Math.abs(comp.companionYieldMul('roccia') - 1.05) < 1e-9);
+  /* un RISVEGLIO (cranio=torace=zampa, STESSA specie) resta UN potere PIENO, senza universale */
+  check('risveglio: UN potere pieno, niente universale', comp.companionPowers(wSpec).length === 1 && comp.companionPowers(wSpec)[0].type === 'acqua');
   /* LANTERNA: il compagno di GROTTA fa luce anche in SUPERFICIE (di notte), scala con la rarità;
      gli altri tipi non danno luce */
   comp.setCompanion({ skull: 'cavernide', torso: 'cavernide', leg: 'cavernide', q: 'comune', key: 'g1', name: 'G' });

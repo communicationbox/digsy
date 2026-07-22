@@ -36,22 +36,29 @@ function srcOf(id) { const sp = spById[id], s = sp && sp.src; return (s === 'acq
    leggendario). Per i risvegliati skull=torso=leg=specie. */
 export function companionType(spec) { return spec ? srcOf(spec.skull) : 'terra'; }
 /* i POTERI del compagno: le due estremità sono CRANIO e ZAMPA.
-   - stesse fonti (risveglio, o chimera focalizzata) → UN potere PIENO (non batte mai un risveglio);
-   - fonti DIVERSE (chimera) → DUE poteri RIDOTTI, uno per fonte. */
+   - RISVEGLIO (cranio=torace=zampa, stessa specie) → UN potere PIENO (mai battuto da una chimera);
+   - CHIMERA → SEMPRE DUE poteri RIDOTTI:
+       · estremità di tipo DIVERSO → un potere per fonte (es. Scavatore ½ + Pescatore ½);
+       · estremità dello STESSO tipo → quel tipo ½ + un bonus UNIVERSALE ½ ('all' = resa su TUTTE
+         le raccolte) → ogni chimera è versatile, come chiesto. */
 export function companionPowers(spec) {
   if (!spec) return [];
-  const a = srcOf(spec.skull), b = srcOf(spec.leg), q = spec.q;
-  if (a === b) return [{ type: a, mag: FULL[q] || FULL.comune }];
-  return [{ type: a, mag: HALF[q] || HALF.comune }, { type: b, mag: HALF[q] || HALF.comune }];
+  const q = spec.q, a = srcOf(spec.skull), b = srcOf(spec.leg);
+  const isChimera = !(spec.skull === spec.torso && spec.torso === spec.leg);
+  if (!isChimera) return [{ type: a, mag: FULL[q] || FULL.comune }];
+  if (a !== b) return [{ type: a, mag: HALF[q] || HALF.comune }, { type: b, mag: HALF[q] || HALF.comune }];
+  return [{ type: a, mag: HALF[q] || HALF.comune }, { type: 'all', mag: HALF[q] || HALF.comune }];
 }
 /* potenza del potere PRINCIPALE (compat: etichette, test) */
 export function companionPower(spec) { const p = companionPowers(spec); return p.length ? p[0].mag : 0; }
-/* moltiplicatore di resa per l'attività: somma i poteri del compagno che combaciano con essa */
+/* moltiplicatore di resa per l'attività: il MIGLIORE dei poteri che vi si applicano (il tipo giusto
+   o il bonus universale 'all'). MAX e non somma: così l'universale non raddoppia il potere del tipo
+   e nessuna chimera (½) batte mai un risveglio (pieno) sulla sua attività. */
 export function companionYieldMul(activitySrc) {
   const c = S.companion; if (!c) return 1;
-  let add = 0;
-  for (const p of companionPowers(c)) if (p.type === activitySrc) add += p.mag;
-  return 1 + add;
+  let best = 0;
+  for (const p of companionPowers(c)) if (p.type === activitySrc || p.type === 'all') best = Math.max(best, p.mag);
+  return 1 + best;
 }
 /* LANTERNA: il compagno di GROTTA fa luce — alone più ampio di notte (all'aperto) e in grotta.
    Così il suo potere serve anche in superficie, non solo fra i cristalli. Scala con la potenza
@@ -79,11 +86,19 @@ export function updateCompanion(dt) {
   if (COMP.fx.length) { for (const p of COMP.fx) p.life -= dt / 0.9; COMP.fx = COMP.fx.filter(p => p.life > 0); }
   const c = S.companion; if (!c) { COMP.job = null; return; }
   if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
-  if (!COMP.init) { COMP.x = P.x - 16; COMP.y = P.y + 6; COMP.init = true; }
+  if (!COMP.init) {
+    COMP.x = P.x - 16; COMP.y = P.y + 6;
+    if (compSolid(COMP.x, COMP.y)) { COMP.x = P.x; COMP.y = P.y; }   // non spawnare DENTRO un muro (dopo refresh vicino a una porta/casa)
+    COMP.init = true;
+  }
   const off = P.dir === 'left' ? 16 : P.dir === 'right' ? -16 : 0;
   const offy = P.dir === 'up' ? 16 : P.dir === 'down' ? -14 : 8;
   const tx = P.x + off, ty = P.y + offy;
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
+  /* SBLOCCO: se è finito DENTRO un solido (spawn dopo refresh accanto a una porta/edificio, o
+     incastrato a un angolo) esce SUBITO — al bersaglio se è libero, altrimenti dove sta il player
+     (camminabile). Senza questo la collisione lo terrebbe fermo per sempre "sulla porta". */
+  if (compSolid(COMP.x, COMP.y)) { if (!compSolid(tx, ty)) { COMP.x = tx; COMP.y = ty; } else { COMP.x = P.x; COMP.y = P.y; } return; }
   /* SICUREZZA: se resta troppo indietro (bloccato da un edificio mentre il player prosegue) fa un
      "blink" al bersaglio (accanto al player, tile libera) → non viene mai abbandonato dietro una casa. */
   if (d > 7 * TS && !compSolid(tx, ty)) { COMP.x = tx; COMP.y = ty; return; }
