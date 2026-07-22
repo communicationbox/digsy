@@ -530,16 +530,16 @@ function drawPlatinumAura(sx, sy) {
     if (tw === 0) px(gx, gy, '#fff8d0'); else if (tw === 1) px(gx, gy, '#f6d24a');
   }
 }
-/* MEZZI RIFINITI A MANO (banca sprite): se esiste il disegno per il verso corrente lo usa AL
-   POSTO di quello procedurale (statico, come le meraviglie). Il verso 'side' vale per left/right
-   (a sinistra si specchia). La cavalcatura tiene l'ombra staccata (dà l'effetto "in volo"). */
-const VEH_GROUND = { boat: 17, motorboat: 17, bike: 17, skates: 17, mount: 9 };
-function drawBankVehicle(kind, sx, sy) {
+/* MEZZI RIFINITI A MANO (banca sprite): il disegno porta SOLO il VEICOLO (scafo, telaio, rotelle)
+   — l'EROE resta quello VIVO del gioco (look, cappello, animazione). Ogni verso ha il suo disegno;
+   'side' vale per left/right (a sinistra si specchia). VEH_ANCHOR = riga su cui poggia lo scafo,
+   rispetto a y0, così il disegno a mano cade dove stava quello procedurale. */
+const VEH_ANCHOR = { boat: 17, motorboat: 16, bike: 18, skates: 17 };
+function bankVeh(kind, sx, y0) {
   const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
   const id = 'vehicle:' + kind + ':' + view;
   if (!hasSprite(id)) return false;
-  if (kind === 'mount') shadow(sx, sy + 17, 6);
-  const gy = sy + (VEH_GROUND[kind] || 16);
+  const gy = y0 + (VEH_ANCHOR[kind] || 16);
   const flip = P.dir === 'left';
   if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
   drawSprite({ rect }, id, sx, gy);
@@ -548,20 +548,20 @@ function drawBankVehicle(kind, sx, sy) {
 }
 function drawPlayer() {
   const sx = snap(P.x - cam.x), sy = snap(P.y - cam.y);
-  if (isMounted()) { if (!drawBankVehicle('mount', sx, sy)) drawFlyingMount(sx, sy); return; }   // cavalcatura volante di grotta
-  if (onBoat()) { const kind = S.tools.motorboat ? 'motorboat' : 'boat';                          // il migliore che possiedi
-    if (!drawBankVehicle(kind, sx, sy)) (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; }
+  if (isMounted()) { drawFlyingMount(sx, sy); return; }                              // cavalcatura volante di grotta
+  if (onBoat()) { (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; } // barca/motoscafo (la banca è dentro)
   shadow(sx, sy + 16, 7);
   if (P.digging) { drawDigging(sx, sy); return; }
   drawPlatinumAura(sx, sy);                                             // AURA dorata glitterata: premio del PLATINO
   const fr = (P.moving ? (Math.floor(P.anim * 7) % 2) : 0); const bob = (P.moving && fr === 1) ? -1 : 0;
   const gear = footGear();
-  if (gear && drawBankVehicle(gear, sx, sy)) return;                  // disegno a mano di pattini/bici (se presente)
+  const bank = gear && hasSprite('vehicle:' + gear + ':' + (P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side'));
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
-  if (gear === 'bike' && !fb) drawBike(sx, sy + bob, P.moving);       // profilo: DIETRO l'eroe (ci "siede")
+  if (gear === 'bike' && !fb && !bank) drawBike(sx, sy + bob, P.moving); // profilo procedurale: DIETRO l'eroe
   drawHero(null, sx - 8, sy + bob, P.dir, fr);
-  if (gear === 'skates') drawSkates(sx, sy + bob, fr);                // rotelle ai piedi DAVANTI
-  if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);                  // fronte/retro: DAVANTI (manubrio/ruota visibili)
+  if (bank) bankVeh(gear, sx, sy + bob);                              // disegno a mano di pattini/bici (SOPRA l'eroe)
+  else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
+  else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: DAVANTI (manubrio/ruota visibili)
 }
 /* per lo SPRITE STUDIO (/sprites): rende un mezzo (eroe + veicolo) in una direzione, statico.
    NON usato in gioco — è solo la base procedurale da rifinire a mano. */
@@ -650,6 +650,17 @@ function voxWing(rx, ry, out, flap, base) {
   for (const [cx, cy, col] of cells) px(cx, cy, col);
 }
 export function drawFlyingMount(sx, sy) {
+  /* la cavalcatura è la creatura VIVA (voxel, cambia col compagno): la banca, se disegnata,
+     la SOSTITUISCE per intero (statica) — eroe+creatura+ali insieme, ombra staccata (in volo) */
+  const mview = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
+  if (hasSprite('vehicle:mount:' + mview)) {
+    shadow(sx, sy + 17, 6);
+    const flip = P.dir === 'left';
+    if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
+    drawSprite({ rect }, 'vehicle:mount:' + mview, sx, sy + 9);
+    if (flip) ctx.restore();
+    return;
+  }
   const obj = companionDrawObj();
   if (obj) obj.face = P.dir;                                  // STESSA creatura del parco/libro, ruota col player
   const spec = companionSpec();
@@ -707,14 +718,17 @@ export function drawBoat(sx, sy, noHero) {
   }
   /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
   if (!noHero) drawHero(null, sx - 8, y0 - 5, P.dir, 0);
-  if (P.dir === 'up' || P.dir === 'down') { drawBoatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro: scafo di prua/poppa
-  /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
-  rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
-  px(sx - 11, y0 + 9, '#8a5f38'); px(sx + 10, y0 + 9, '#8a5f38');
-  rect(sx - 8, y0 + 14, 16, 1, '#5c4229');
-  /* riflesso sull'acqua */
-  px(sx - 6, y0 + 16, '#bfe9f4'); px(sx + 5, y0 + 16, '#bfe9f4');
-  if (P.digging && P.digging.kind === 'fish') { // lenza + galleggiante con cerchi
+  if (!bankVeh('boat', sx, y0)) {                                     // scafo: disegno a mano se c'è, altrimenti procedurale
+    if (P.dir === 'up' || P.dir === 'down') drawBoatFB(sx, y0, P.dir === 'up'); // fronte/retro: scafo di prua/poppa
+    else {
+      /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
+      rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
+      px(sx - 11, y0 + 9, '#8a5f38'); px(sx + 10, y0 + 9, '#8a5f38');
+      rect(sx - 8, y0 + 14, 16, 1, '#5c4229');
+      px(sx - 6, y0 + 16, '#bfe9f4'); px(sx + 5, y0 + 16, '#bfe9f4'); // riflesso sull'acqua
+    }
+  }
+  if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') { // lenza + galleggiante con cerchi
     const d2 = P.dir === 'left' ? -1 : 1;
     rect(sx + d2 * 7, y0 - 6, 1, 2, '#8a5f38'); px(sx + d2 * 8, y0 - 7, '#8a5f38'); // canna
     for (let i = 1; i < 5; i++) px(sx + d2 * (8 + i), y0 - 7 + i * 2, '#e8e2d0');   // filo
@@ -747,21 +761,22 @@ export function drawMotorboat(sx, sy, noHero) {
   }
   /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
   if (!noHero) drawHero(null, sx - 8, y0 - 4, P.dir, 0);
-  if (P.dir === 'up' || P.dir === 'down') { drawMotorboatFB(sx, y0, P.dir === 'up'); return; } // fronte/retro
-  /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
-  rect(sx - 10, y0 + 8, 20, 5, '#eef2f4'); rect(sx - 10, y0 + 11, 20, 2, '#3d8ba0'); // banda
-  px(sx - 12, y0 + 10, '#eef2f4'); px(sx - 11, y0 + 9, '#eef2f4');                    // prua sinistra
-  px(sx + 11, y0 + 10, '#eef2f4'); px(sx + 10, y0 + 9, '#eef2f4');                    // poppa
-  rect(sx - 9, y0 + 13, 18, 1, '#2b6274');
-  /* parabrezza + console */
-  rect(sx - 2, y0 + 4, 5, 4, '#bfe9f4'); rect(sx - 2, y0 + 4, 5, 1, '#8fd0e6');
-  rect(sx - 3, y0 + 7, 7, 1, '#9aa3a8');
-  /* motore fuoribordo dietro (lato opposto alla direzione) */
-  const md = P.dir === 'left' ? 1 : -1;
-  rect(sx + md * 9, y0 + 7, 2, 5, '#33291f'); px(sx + md * 9, y0 + 12, '#20323f');
-  /* riflesso */
-  px(sx - 6, y0 + 15, '#bfe9f4'); px(sx + 5, y0 + 15, '#bfe9f4');
-  if (P.digging && P.digging.kind === 'fish') {
+  if (!bankVeh('motorboat', sx, y0)) {                                // scafo: disegno a mano se c'è, altrimenti procedurale
+    if (P.dir === 'up' || P.dir === 'down') drawMotorboatFB(sx, y0, P.dir === 'up'); // fronte/retro
+    else {
+      /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
+      rect(sx - 10, y0 + 8, 20, 5, '#eef2f4'); rect(sx - 10, y0 + 11, 20, 2, '#3d8ba0'); // banda
+      px(sx - 12, y0 + 10, '#eef2f4'); px(sx - 11, y0 + 9, '#eef2f4');                    // prua sinistra
+      px(sx + 11, y0 + 10, '#eef2f4'); px(sx + 10, y0 + 9, '#eef2f4');                    // poppa
+      rect(sx - 9, y0 + 13, 18, 1, '#2b6274');
+      rect(sx - 2, y0 + 4, 5, 4, '#bfe9f4'); rect(sx - 2, y0 + 4, 5, 1, '#8fd0e6');       // parabrezza + console
+      rect(sx - 3, y0 + 7, 7, 1, '#9aa3a8');
+      const md = P.dir === 'left' ? 1 : -1;                                               // motore fuoribordo dietro
+      rect(sx + md * 9, y0 + 7, 2, 5, '#33291f'); px(sx + md * 9, y0 + 12, '#20323f');
+      px(sx - 6, y0 + 15, '#bfe9f4'); px(sx + 5, y0 + 15, '#bfe9f4');                     // riflesso
+    }
+  }
+  if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') {
     const d2 = P.dir === 'left' ? -1 : 1;
     rect(sx + d2 * 8, y0 - 5, 1, 2, '#8a5f38');
     for (let i = 1; i < 5; i++) px(sx + d2 * (9 + i), y0 - 6 + i * 2, '#e8e2d0');

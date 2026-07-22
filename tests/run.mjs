@@ -2806,8 +2806,12 @@ sprites.applyLook();
   check('Studio Mezzi: drawVehiclePreview rende ogni mezzo×verso senza crash', threw === 0, threw + ' crash');
   check('Studio Mezzi: i mezzi disegnano davvero dei pixel', painted > 0);
 
-  /* la banca è ADDITIVA: nessun id di mezzo esiste finché Marco non lo disegna → procedurale */
-  check('banca mezzi: additiva (nessun disegno a mano di default)', kinds.every(k => ['down', 'up', 'side'].every(v => bank.hasSprite('vehicle:' + k + ':' + v) === false)));
+  /* la banca è ADDITIVA e OVERLAY: il disegno porta solo il VEICOLO, l'eroe resta procedurale.
+     Il motoscafo di fronte è già disegnato a mano; gli altri versi restano procedurali. */
+  check('banca mezzi: motoscafo fronte disegnato a mano', bank.hasSprite('vehicle:motorboat:down') === true);
+  check('banca mezzi: gli altri versi non disegnati restano procedurali', bank.hasSprite('vehicle:motorboat:up') === false && bank.hasSprite('vehicle:boat:down') === false);
+  const md = bank.spriteDef('vehicle:motorboat:down');
+  check('banca mezzi: lo sprite del motoscafo ha ancora/righe valide', !!md && md.rows.length === md.h && md.ax === 10 && md.ay === 19);
 
   /* gli id della scheda Mezzi nello Studio devono combaciare col mapping del gioco:
      verso ∈ {down,up,side}, mezzo ∈ i 5 noti (una svista di naming = disegni orfani) */
