@@ -82,6 +82,8 @@
         <!-- sfondo dell'editor: i pixel scuri su fondo scuro (o chiari su chiaro) non si vedono;
              questo pulsante cicla scuro / chiaro / verde-gioco così qualunque colore stacca -->
         <button id="bg-t" class="alt">◑ Sfondo</button>
+        <!-- solo sui MEZZI: mostra/nasconde l'omino di riferimento (non modificabile) su cui disegnare -->
+        <button id="ref-t" class="alt" style="display:none">👤 Omino</button>
         <!-- capelli e cappelli hanno TRE viste: di fronte, di lato, di spalle. Prima si
              poteva disegnare solo quella frontale e le altre restavano com'erano. -->
         <span id="viewsel" style="display:none;margin-left:6px">
@@ -491,6 +493,8 @@ function openEditor(it) {
     vs.style.display = isOverlay(it) ? '' : 'none';
     vs.querySelectorAll('[data-view]').forEach(b => b.classList.toggle('on', b.dataset.view === 'down'));
   }
+  const rt = document.getElementById('ref-t');            // toggle omino: solo sui mezzi
+  if (rt) { rt.style.display = it.kind === 'vehicle' ? '' : 'none'; rt.classList.toggle('alt', !showRef); }
   /* la tela si adatta al disegno: si misura l'ingombro VERO e si aggiunge un margine.
      Con misure fisse l'albero-mondo (166px) veniva tagliato e i cappelli che sporgono
      dalla testa (corna, tese larghe) perdevano i bordi. */
@@ -591,6 +595,10 @@ const BGS = [
 ];
 let bgIdx = 0;
 document.getElementById('bg-t').onclick = () => { bgIdx = (bgIdx + 1) % BGS.length; render(); };
+/* OMINO di riferimento (solo mezzi): sprite VERO dell'eroe, non modificabile, da usare come base
+   su cui disegnare il veicolo. Toggle per nasconderlo e vedere solo il disegno. */
+let showRef = true;
+document.getElementById('ref-t').onclick = () => { showRef = !showRef; document.getElementById('ref-t').classList.toggle('alt', !showRef); render(); };
 document.getElementById('undo').onclick = () => { if (undoStack.length) { px = undoStack.pop(); render(); } };
 document.getElementById('clear').onclick = () => { undoStack.push(px.slice()); px = new Array(W * H).fill(-1); render(); };
 document.getElementById('reset').onclick = () => { if (cur) openEditor(cur); };
@@ -641,7 +649,7 @@ function render() {
   const c = cv.getContext('2d'); c.imageSmoothingEnabled = false;
   const bg = BGS[bgIdx];
   c.fillStyle = bg.fill; c.fillRect(0, 0, cv.width, cv.height);
-  if (cur && cur.kind === 'vehicle') drawVehRef(c, cell);   // eroe + linea d'acqua di riferimento (sotto il disegno)
+  if (cur && cur.kind === 'vehicle' && showRef) drawVehRef(c, cell);   // eroe + linea d'acqua di riferimento (sotto il disegno)
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
     const v = px[y * W + x];
     if (v >= 0) { c.fillStyle = pal[v]; c.fillRect(x * cell, y * cell, cell, cell); }
@@ -663,7 +671,9 @@ function drawVehRef(c, cell) {
     const tmp = document.createElement('canvas'); tmp.width = W; tmp.height = H;
     const tctx = tmp.getContext('2d'); tctx.imageSmoothingEnabled = false;
     viaGameCanvas(tctx, W, H, () => SPR_MOD.drawHero(null, f.ox - 8, f.oy, cur.dir, 0));
-    c.save(); c.globalAlpha = 0.28; c.imageSmoothingEnabled = false;
+    /* ben visibile (0.7) così ci si disegna sopra con precisione, ma un filo trasparente per
+       distinguere l'omino-guida dai pixel VERI del veicolo che stai posando */
+    c.save(); c.globalAlpha = 0.7; c.imageSmoothingEnabled = false;
     c.drawImage(tmp, 0, 0, W, H, 0, 0, W * cell, H * cell); c.restore();
   }
   /* linea d'acqua/terra ai piedi dell'eroe (dove poggia il mezzo) */
