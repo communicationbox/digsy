@@ -19,11 +19,14 @@
   .tab{background:var(--panel);color:var(--muted);border:1px solid var(--line);padding:8px 13px;cursor:pointer;font-weight:700}
   .tab.on{background:var(--accent);color:#10221f;border-color:var(--accent)}
   .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:9px}
-  .cell{background:var(--panel);border:1px solid var(--line);padding:6px;cursor:pointer;text-align:center}
+  .cell{position:relative;background:var(--panel);border:1px solid var(--line);padding:6px;cursor:pointer;text-align:center}
   .cell:hover{border-color:var(--accent)}
   .cell canvas{width:100%;height:auto;image-rendering:pixelated;background:#0f1a12;display:block;margin-bottom:4px}
   .cell span{font-size:10px;color:var(--muted);display:block;word-break:break-word;line-height:1.25}
-  .cell.edited span{color:var(--accent2)}
+  /* disegnato a mano (c'è in banca): bordo verde + badge, così si vede a colpo d'occhio quali sono fatti */
+  .cell.edited{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent) inset}
+  .cell.edited span{color:var(--accent2);font-weight:bold}
+  .cell .badge{position:absolute;top:4px;right:4px;background:var(--accent);color:#0f1a12;font-size:9px;font-weight:bold;padding:1px 5px;border-radius:3px;line-height:1.4;letter-spacing:.3px}
   /* editor */
   #ed{display:none;gap:14px;align-items:flex-start;flex-wrap:wrap}
   #ed.on{display:flex}
@@ -50,6 +53,10 @@
 </style>
 </head>
 <body>
+<!-- HMR di Vite: questa pagina è servita "grezza" (senza la trasformazione di Vite), quindi
+     da sola non riceve gli aggiornamenti. Con il client, quando cambia uno sprite in
+     src/spritebank.js la pagina si RICARICA da sola. È dev-only: /sprites è escluso dal deploy. -->
+<script type="module" src="/@vite/client"></script>
 <div class="wrap">
   <h1>SPRITE STUDIO</h1>
   <p class="lead">Tutti i disegni del gioco in un posto solo. Clicca un elemento per aprirlo nell'editor,
@@ -442,7 +449,8 @@ function buildGrid() {
     else if (it.kind === 'wonder') paintCentered(it, c2, cv.width, cv.height, { ground: GROUND_PAL[WONDERS[it.id.split(':')[1]].zone] || GROUND_PAL.prati, pad: 8 });
     else paintCentered(it, c2, cv.width, cv.height, { bg: '#0f1a12', pad: 3 });
     d.appendChild(cv);
-    const s = document.createElement('span'); s.textContent = it.name + (SPRITES[it.id] ? ' ✎' : ''); d.appendChild(s);
+    if (SPRITES[it.id]) { const bd = document.createElement('div'); bd.className = 'badge'; bd.textContent = '✓ fatto'; d.appendChild(bd); }
+    const s = document.createElement('span'); s.textContent = it.name; d.appendChild(s);
     d.onclick = () => openEditor(it);
     gridEl.appendChild(d);
   }
