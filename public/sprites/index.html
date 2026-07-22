@@ -151,11 +151,19 @@ try { DATA = await import('/src/data.js'); } catch (e) { /* non serve per disegn
 /* ALBERI, ROCCE, CASE: sono ciò che il giocatore ha sotto gli occhi per tutta la partita,
    e non si potevano modificare da qui. I disegni stanno in props.js (natura) e render.js
    (edifici e arredo urbano). */
-let PROPS = {}, REND = {}, SCREEN = {};
+let PROPS = {}, REND = {}, SCREEN = {}, STATE = {};
 const GAME_CV = document.getElementById('cv');
 try { PROPS = await import('/src/props.js'); } catch (e) { console.warn('props.js non caricato', e); }
 try { REND = await import('/src/render.js'); } catch (e) { console.warn('render.js non caricato', e); }
 try { SCREEN = await import('/src/screen.js'); } catch (e) { /* niente canvas di gioco qui */ }
+/* i MEZZI (barca, motoscafo, bici, pattini, cavalcatura) disegnano EROE + veicolo: serve uno
+   stato di gioco (S.look per l'eroe, S.companion per la creatura della cavalcatura). Lo si
+   inizializza in memoria — questa pagina non salva mai, quindi non tocca la partita vera. */
+try {
+  STATE = await import('/src/state.js');
+  if (STATE.initState && !STATE.S) STATE.initState();
+  if (STATE.S) STATE.S.companion = { skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 3 };
+} catch (e) { console.warn('state.js non caricato', e); }
 /* Le funzioni del gioco disegnano sulla canvas #cv e basta: non accettano un contesto.
    Quindi si disegna là sopra (nascosta), e si copia il risultato sulla tela richiesta.
    Semplice, e soprattutto non obbliga a toccare il motore per far funzionare uno strumento. */
@@ -209,6 +217,25 @@ const CATS = {
     { id: 'town:fence', name: 'staccionata', kind: 'deco', fn: 'drawFence', from: 'rend', w: 32, h: 32 },
     { id: 'town:mailbox', name: 'cassetta posta', kind: 'deco', fn: 'drawMailbox', from: 'rend', w: 20, h: 24 },
     { id: 'town:cave', name: 'imbocco grotta', kind: 'deco', fn: 'drawCaveEntrance', from: 'rend', w: 40, h: 40, anim: true },
+  ] },
+  mezzi: { label: 'Mezzi', items: [
+    /* ogni mezzo in 3 viste: fronte (giù) · retro (su) · profilo (destra → in gioco si specchia
+       per sinistra). L'id porta il verso 'side' anche se il profilo è disegnato verso destra. */
+    { id: 'vehicle:boat:down', name: 'barca · fronte', kind: 'vehicle', veh: 'boat', dir: 'down' },
+    { id: 'vehicle:boat:up', name: 'barca · retro', kind: 'vehicle', veh: 'boat', dir: 'up' },
+    { id: 'vehicle:boat:side', name: 'barca · profilo', kind: 'vehicle', veh: 'boat', dir: 'right' },
+    { id: 'vehicle:motorboat:down', name: 'motoscafo · fronte', kind: 'vehicle', veh: 'motorboat', dir: 'down' },
+    { id: 'vehicle:motorboat:up', name: 'motoscafo · retro', kind: 'vehicle', veh: 'motorboat', dir: 'up' },
+    { id: 'vehicle:motorboat:side', name: 'motoscafo · profilo', kind: 'vehicle', veh: 'motorboat', dir: 'right' },
+    { id: 'vehicle:bike:down', name: 'bici · fronte', kind: 'vehicle', veh: 'bike', dir: 'down' },
+    { id: 'vehicle:bike:up', name: 'bici · retro', kind: 'vehicle', veh: 'bike', dir: 'up' },
+    { id: 'vehicle:bike:side', name: 'bici · profilo', kind: 'vehicle', veh: 'bike', dir: 'right' },
+    { id: 'vehicle:skates:down', name: 'pattini · fronte', kind: 'vehicle', veh: 'skates', dir: 'down' },
+    { id: 'vehicle:skates:up', name: 'pattini · retro', kind: 'vehicle', veh: 'skates', dir: 'up' },
+    { id: 'vehicle:skates:side', name: 'pattini · profilo', kind: 'vehicle', veh: 'skates', dir: 'right' },
+    { id: 'vehicle:mount:down', name: 'cavalcatura · fronte', kind: 'vehicle', veh: 'mount', dir: 'down' },
+    { id: 'vehicle:mount:up', name: 'cavalcatura · retro', kind: 'vehicle', veh: 'mount', dir: 'up' },
+    { id: 'vehicle:mount:side', name: 'cavalcatura · profilo', kind: 'vehicle', veh: 'mount', dir: 'right' },
   ] },
   icone: { label: 'Icone', items: [] },   // riempita sotto, dall'elenco vero di icons.js
 };
@@ -283,6 +310,10 @@ function paintNaked(it, ctx, w, h) {
     const mod = it.from === 'rend' ? REND : PROPS, f = mod[it.fn];
     if (f) viaGameCanvas(ctx, w, h, () => f(Math.round(w / 2) - 8, Math.round(h * 0.7), 0, 3, 5, true));
   }
+  else if (it.kind === 'vehicle') {
+    /* eroe + veicolo, statico, nel verso richiesto: (sx,sy) = centro-orizzontale, riga dei piedi */
+    if (REND.drawVehiclePreview) viaGameCanvas(ctx, w, h, () => REND.drawVehiclePreview(it.veh, Math.round(w / 2), Math.round(h * 0.6), it.dir));
+  }
   else if (it.kind === 'building') {
     /* la casa arriva col suo rettangolo di caselle (x0,y0)-(x1,y1): da lì il disegno ricava
        larghezza, altezza e i materiali del bioma. La locanda ha il tetto alto e il camino che
@@ -309,7 +340,7 @@ function paintItem(it, ctx, w, h) {
   } else if (it.kind === 'hero') {
     const rows = (SPR_MOD.SPR[it.dir] || SPR_MOD.SPR.down)[0];
     drawCharRows(ctx, rows, SPR_MOD.PAL);
-  } else if (it.kind === 'deco' || it.kind === 'building') {
+  } else if (it.kind === 'deco' || it.kind === 'building' || it.kind === 'vehicle') {
     paintNaked(it, ctx, w, h);
   } else if (it.kind === 'hair' || it.kind === 'hat') {
     const hh = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];

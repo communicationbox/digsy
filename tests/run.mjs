@@ -2787,6 +2787,38 @@ sprites.applyLook();
   cam.x = P.x; cam.y = P.y;
 }
 
+/* ---------- MEZZI rifiniti a mano (Sprite Studio + banca sprite) ---------- */
+{
+  const render = await import('../src/render.js');
+  const bank = await import('../src/spritebank.js');
+  const { ctx } = await import('../src/screen.js');
+  const prevComp = S.companion;
+  S.companion = { skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 3 }; // per la cavalcatura
+  const kinds = ['boat', 'motorboat', 'bike', 'skates', 'mount'];
+  const dirs = ['down', 'up', 'right', 'left'];
+  let painted = 0, threw = 0;
+  ctx.fillRect = () => painted++;
+  for (const k of kinds) for (const d of dirs) {
+    try { render.drawVehiclePreview(k, 40, 40, d); } catch (e) { threw++; }
+  }
+  delete ctx.fillRect;
+  S.companion = prevComp;
+  check('Studio Mezzi: drawVehiclePreview rende ogni mezzo×verso senza crash', threw === 0, threw + ' crash');
+  check('Studio Mezzi: i mezzi disegnano davvero dei pixel', painted > 0);
+
+  /* la banca è ADDITIVA: nessun id di mezzo esiste finché Marco non lo disegna → procedurale */
+  check('banca mezzi: additiva (nessun disegno a mano di default)', kinds.every(k => ['down', 'up', 'side'].every(v => bank.hasSprite('vehicle:' + k + ':' + v) === false)));
+
+  /* gli id della scheda Mezzi nello Studio devono combaciare col mapping del gioco:
+     verso ∈ {down,up,side}, mezzo ∈ i 5 noti (una svista di naming = disegni orfani) */
+  const { readFileSync } = await import('node:fs');
+  const studioSrc = readFileSync(new URL('../public/sprites/index.html', import.meta.url), 'utf8');
+  const ids = [...studioSrc.matchAll(/'vehicle:(\w+):(\w+)'/g)];
+  check('Studio Mezzi: 15 voci (5 mezzi × 3 viste)', ids.length === 15, ids.length + ' voci');
+  check('Studio Mezzi: id coerenti (mezzo noto, verso down/up/side)',
+    ids.every(m => kinds.includes(m[1]) && ['down', 'up', 'side'].includes(m[2])));
+}
+
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */
 {
   const cmds = await import('../src/commands.js');

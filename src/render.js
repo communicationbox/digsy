@@ -530,23 +530,55 @@ function drawPlatinumAura(sx, sy) {
     if (tw === 0) px(gx, gy, '#fff8d0'); else if (tw === 1) px(gx, gy, '#f6d24a');
   }
 }
+/* MEZZI RIFINITI A MANO (banca sprite): se esiste il disegno per il verso corrente lo usa AL
+   POSTO di quello procedurale (statico, come le meraviglie). Il verso 'side' vale per left/right
+   (a sinistra si specchia). La cavalcatura tiene l'ombra staccata (dà l'effetto "in volo"). */
+const VEH_GROUND = { boat: 17, motorboat: 17, bike: 17, skates: 17, mount: 9 };
+function drawBankVehicle(kind, sx, sy) {
+  const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
+  const id = 'vehicle:' + kind + ':' + view;
+  if (!hasSprite(id)) return false;
+  if (kind === 'mount') shadow(sx, sy + 17, 6);
+  const gy = sy + (VEH_GROUND[kind] || 16);
+  const flip = P.dir === 'left';
+  if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
+  drawSprite({ rect }, id, sx, gy);
+  if (flip) ctx.restore();
+  return true;
+}
 function drawPlayer() {
   const sx = snap(P.x - cam.x), sy = snap(P.y - cam.y);
-  if (isMounted()) { drawFlyingMount(sx, sy); return; }                              // cavalcatura volante di grotta
-  if (onBoat()) { (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; } // il migliore che possiedi
+  if (isMounted()) { if (!drawBankVehicle('mount', sx, sy)) drawFlyingMount(sx, sy); return; }   // cavalcatura volante di grotta
+  if (onBoat()) { const kind = S.tools.motorboat ? 'motorboat' : 'boat';                          // il migliore che possiedi
+    if (!drawBankVehicle(kind, sx, sy)) (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; }
   shadow(sx, sy + 16, 7);
   if (P.digging) { drawDigging(sx, sy); return; }
   drawPlatinumAura(sx, sy);                                             // AURA dorata glitterata: premio del PLATINO
   const fr = (P.moving ? (Math.floor(P.anim * 7) % 2) : 0); const bob = (P.moving && fr === 1) ? -1 : 0;
   const gear = footGear();
+  if (gear && drawBankVehicle(gear, sx, sy)) return;                  // disegno a mano di pattini/bici (se presente)
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
   if (gear === 'bike' && !fb) drawBike(sx, sy + bob, P.moving);       // profilo: DIETRO l'eroe (ci "siede")
   drawHero(null, sx - 8, sy + bob, P.dir, fr);
   if (gear === 'skates') drawSkates(sx, sy + bob, fr);                // rotelle ai piedi DAVANTI
   if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);                  // fronte/retro: DAVANTI (manubrio/ruota visibili)
 }
+/* per lo SPRITE STUDIO (/sprites): rende un mezzo (eroe + veicolo) in una direzione, statico.
+   NON usato in gioco — è solo la base procedurale da rifinire a mano. */
+export function drawVehiclePreview(kind, sx, sy, dir) {
+  const sd = P.dir, sm = P.moving, sg = P.digging;
+  P.dir = dir; P.moving = false; P.digging = null;
+  try {
+    const fb = dir === 'up' || dir === 'down';
+    if (kind === 'boat') drawBoat(sx, sy);
+    else if (kind === 'motorboat') drawMotorboat(sx, sy);
+    else if (kind === 'mount') drawFlyingMount(sx, sy);
+    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); drawHero(null, sx - 8, sy, dir, 0); if (fb) drawBikeFB(sx, sy, false, dir); }
+    else if (kind === 'skates') { drawHero(null, sx - 8, sy, dir, 0); drawSkates(sx, sy, 0); }
+  } finally { P.dir = sd; P.moving = sm; P.digging = sg; }
+}
 /* rotelle da pattino sotto i piedi (4 ruote) */
-function drawSkates(sx, sy, fr) {
+export function drawSkates(sx, sy, fr) {
   const wy = sy + 16 + (fr === 1 ? -1 : 0);
   for (const fx of [sx - 5, sx - 2, sx + 2, sx + 5]) { px(fx, wy, '#33291f'); px(fx, wy + 1, '#e0b040'); }
 }
@@ -559,7 +591,7 @@ function bikeWheel(wx, wy, rx, ry, moving) {
   px(Math.round(wx - Math.cos(ang) * (rx - 1)), Math.round(wy - Math.sin(ang) * (ry - 1)), '#c9c2b2');
 }
 /* bicicletta di PROFILO (sinistra/destra): due ruote, telaio rosso, sella e manubrio. Centrata sotto l'eroe. */
-function drawBike(sx, sy, moving) {
+export function drawBike(sx, sy, moving) {
   const cx = sx - 1, wy = sy + 15;                                             // centro sotto il corpo
   bikeWheel(cx - 6, wy, 3.2, 3.2, moving); bikeWheel(cx + 6, wy, 3.2, 3.2, moving);
   rect(cx - 5, wy, 11, 1, '#c94f4a');                                          // barra inferiore
@@ -570,7 +602,7 @@ function drawBike(sx, sy, moving) {
 }
 /* bici di FRONTE (giù) / RETRO (su): disegnata DAVANTI all'eroe così si vede.
    Fronte: manubrio largo + ruota di taglio tra i piedi. Retro: sella/catarifrangente + ruota. */
-function drawBikeFB(sx, sy, moving, dir) {
+export function drawBikeFB(sx, sy, moving, dir) {
   const cx = sx - 1, wy = sy + 16;
   bikeWheel(cx, wy, 1.6, 3.6, moving);                                         // ruota di taglio (ovale stretto)
   rect(cx, wy - 5, 1, 4, '#c94f4a');                                           // forcella/telaio verticale
@@ -614,7 +646,7 @@ function voxWing(rx, ry, out, flap, base) {
   for (const [cx, cy] of cells) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (cx + ox) + ',' + (cy + oy); if (!set.has(k)) px(cx + ox, cy + oy, LN); }
   for (const [cx, cy, col] of cells) px(cx, cy, col);
 }
-function drawFlyingMount(sx, sy) {
+export function drawFlyingMount(sx, sy) {
   const obj = companionDrawObj();
   if (obj) obj.face = P.dir;                                  // STESSA creatura del parco/libro, ruota col player
   const spec = companionSpec();
