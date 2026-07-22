@@ -424,8 +424,12 @@ export function companionWorkTick(dt) {
     const gx = job.wx, gy = job.wy - 2, dx = gx - COMP.x, dy = gy - COMP.y, d = Math.hypot(dx, dy) || 1;
     const step = Math.min(d, CW.GO * dt);
     COMP.x += dx / d * step; COMP.y += dy / d * step; COMP.anim += dt;
-    if (Math.abs(dx) >= Math.abs(dy)) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
-    else COMP.face = dy < 0 ? 'up' : 'down';
+    /* ISTERESI sul verso (come nel follow): cambia SOLO se un asse domina ×1.3, altrimenti TIENE il
+       verso attuale. Senza, andando in diagonale a una casella dx≈dy flippava profilo↔fronte ogni
+       frame ("parte per scavare e impazzisce"). */
+    const adx = Math.abs(dx), ady = Math.abs(dy);
+    if (adx > ady * 1.3) { COMP.face = dx < 0 ? 'left' : 'right'; COMP.dir = dx < 0 ? -1 : 1; }
+    else if (ady > adx * 1.3) COMP.face = dy < 0 ? 'up' : 'down';
     if (d < 4) { job.phase = 'work'; job.t = CW.WORK; }
     return;
   }
