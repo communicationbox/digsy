@@ -2809,7 +2809,7 @@ sprites.applyLook();
   /* la banca è ADDITIVA e OVERLAY: il disegno porta solo il VEICOLO, l'eroe resta procedurale.
      Il motoscafo di fronte è già disegnato a mano; gli altri versi restano procedurali. */
   check('banca mezzi: motoscafo (3 viste) disegnato a mano', ['down', 'up', 'side'].every(v => bank.hasSprite('vehicle:motorboat:' + v) === true));
-  check('banca mezzi: i mezzi non disegnati restano procedurali', bank.hasSprite('vehicle:boat:down') === false && bank.hasSprite('vehicle:skates:side') === false);
+  check('banca mezzi: i mezzi non disegnati restano procedurali', bank.hasSprite('vehicle:boat:down') === false && bank.hasSprite('vehicle:boat:side') === false);
   const md = bank.spriteDef('vehicle:motorboat:down');
   /* i mezzi usano la CORNICE FISSA 32×34 con ancora sull'origine del player (16,12): stabile,
      WYSIWYG con l'editor; spostare un pixel al bordo non riancora più il disegno */
@@ -2823,6 +2823,19 @@ sprites.applyLook();
   check('Studio Mezzi: 15 voci (5 mezzi × 3 viste)', ids.length === 15, ids.length + ' voci');
   check('Studio Mezzi: id coerenti (mezzo noto, verso down/up/side)',
     ids.every(m => kinds.includes(m[1]) && ['down', 'up', 'side'].includes(m[2])));
+
+  /* PATTINI a mano ANIMATI: camminando i due pattini si alternano su/giù (sincronizzati col passo),
+     da fermo sono allineati. Si spia il colore ambra delle rotelle (#e0b040). */
+  const { ctx: sctx } = await import('../src/screen.js');
+  const ofr = sctx.fillRect;
+  let amb = [];
+  sctx.fillRect = (x, y) => { if (sctx.fillStyle === '#e0b040') amb.push([Math.round(x), Math.round(y)]); };
+  const grabSk = (moving, fr) => { P.dir = 'down'; P.moving = moving; amb = []; render.drawBankSkates(100, 100, fr); const L = amb.filter(p => p[0] < 100).map(p => p[1]), R = amb.filter(p => p[0] >= 100).map(p => p[1]); return { n: amb.length, minL: Math.min(...L), minR: Math.min(...R) }; };
+  const sk0 = grabSk(true, 0), sk1 = grabSk(true, 1), skStill = grabSk(false, 0);
+  sctx.fillRect = ofr; P.moving = false;
+  check('pattini a mano: le rotelle si disegnano (4)', sk0.n === 4 && sk1.n === 4);
+  check('pattini a mano: ANIMATI, i due piedi si alternano su/giù col passo', sk0.minL !== sk0.minR && sk1.minL !== sk1.minR && sk0.minL !== sk1.minL && sk0.minR !== sk1.minR);
+  check('pattini a mano: da fermo allineati (niente animazione immobili)', skStill.minL === skStill.minR);
 }
 
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */

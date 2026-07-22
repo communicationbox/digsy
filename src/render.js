@@ -559,9 +559,33 @@ function drawPlayer() {
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
   if (gear === 'bike' && !fb && !bank) drawBike(sx, sy + bob, P.moving); // profilo procedurale: DIETRO l'eroe
   drawHero(null, sx - 8, sy + bob, P.dir, fr);
-  if (bank) bankVeh(gear, sx, sy + bob);                              // disegno a mano di pattini/bici (SOPRA l'eroe)
+  if (bank && gear === 'skates') drawBankSkates(sx, sy + bob, fr);    // pattini a mano ANIMATI (i due piedi si alternano col passo)
+  else if (bank) bankVeh(gear, sx, sy + bob);                        // disegno a mano di bici (SOPRA l'eroe)
   else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
   else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: DAVANTI (manubrio/ruota visibili)
+}
+/* PATTINI a mano ANIMATI: disegna lo sprite della banca spezzato in due (piede sinistro cols<ox,
+   destro cols>=ox); i due pattini si ALTERNANO su/giù col frame di camminata (fr), sincronizzati
+   coi piedi dell'eroe. Fermi quando non ci si muove. `y0` porta già il bob dell'eroe. */
+export function drawBankSkates(sx, y0, fr) {
+  const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
+  const d = spriteDef('vehicle:skates:' + view);
+  if (!d) return false;
+  const ox = VEH_FRAME.ox, oy = VEH_FRAME.oy;
+  const stepL = P.moving ? (fr === 1 ? -1 : 0) : 0;   // un pattino su quando l'altro è giù
+  const stepR = P.moving ? (fr === 1 ? 0 : -1) : 0;
+  const flip = P.dir === 'left';
+  if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
+  for (let r = 0; r < d.rows.length; r++) {
+    const row = d.rows[r];
+    for (let c = 0; c < row.length; c++) {
+      const ch = row[c]; if (ch === '.') continue;
+      const col = d.pal[ch]; if (!col) continue;
+      px(sx - ox + c, y0 - oy + r + (c < ox ? stepL : stepR), col);
+    }
+  }
+  if (flip) ctx.restore();
+  return true;
 }
 /* per lo SPRITE STUDIO (/sprites): rende un mezzo (eroe + veicolo) in una direzione, statico.
    NON usato in gioco — è solo la base procedurale da rifinire a mano. */
