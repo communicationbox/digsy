@@ -3,6 +3,7 @@ export const CHANGELOG = [
   {
     v: 'v0.83', it: [
       'ANIMALI: nella vista FRONTALE ora si vede la FACCIA (occhi, muso, corna) — prima la testa finiva dietro al corpo e l\'animale sembrava di spalle',
+      'MEZZI: l\'omino ora è CENTRATO sul mezzo nelle viste di fronte e di dietro (lo sprite era ~1px a sinistra e sullo scafo simmetrico si notava)',
       'MEZZI: barca e motoscafo hanno le 4 VISTE giuste — fronte e retro (scafo compatto di prua/poppa, motore/parabrezza) e i due laterali di profilo; prima erano sempre di lato',
       'PREMI dei TROFEI: ogni traccia all\'ORO sblocca un CAPPELLO d\'oro unico (Corona, Tocco, Alloro, Occhialoni, Corna, Elmetto, Piuma, Casco, Lampada) — indossabile in Sartoria; al PLATINO lo stesso cappello si copre di GLITTER dorato e il personaggio guadagna un\'AURA scintillante',
       'VESTITI a FORME: in Sartoria (e nell\'editor) scegli la FORMA oltre al colore — maglia (Maglietta · Canottiera · Camicia · Felpa) e pantaloni (Pantaloni · Pantaloncini · Gonna · Salopette)',
@@ -57,6 +58,7 @@ export const CHANGELOG = [
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
       'ANIMALS: the FRONT view now shows the FACE (eyes, muzzle, horns) — before the head ended up behind the body and the animal looked like its back was turned',
+      'VEHICLES: the character is now CENTERED on the vehicle in the front and back views (the sprite sat ~1px left and it showed on the symmetric hull)',
       'VEHICLES: the boat and motorboat now have the 4 proper VIEWS — front and back (compact bow/stern hull, motor/windshield) and the two side profiles; before they were always sideways',
       'TROPHY REWARDS: each track at GOLD unlocks a unique golden HAT (Crown, Cap, Laurel, Goggles, Horns, Pith, Feather, Hard Hat, Lamp) — wearable in the Tailor; at PLATINUM the same hat turns to golden GLITTER and your character gains a sparkling AURA',
       'CLOTHES with SHAPES: in the Tailor (and the editor) you pick the SHAPE as well as the color — shirts (T-shirt · Tank · Shirt · Hoodie) and pants (Trousers · Shorts · Skirt · Overalls)',
