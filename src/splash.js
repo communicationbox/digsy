@@ -636,10 +636,7 @@ function buildMenu(inGame) {
     const scrivi = () => {
       const r = saveToSlot(n);
       if (r === true) { buildMenu(inGame); return; }
-      /* sotto cheat il salvataggio è congelato, negli slot compresi: dirlo, non fingere */
-      b.textContent = r === 'cheat'
-        ? tr('Cheat attivi: scrivi `vanilla`', 'Cheats on: type `vanilla`')
-        : tr('Spazio esaurito!', 'Storage full!');
+      b.textContent = tr('Spazio esaurito!', 'Storage full!');
       setTimeout(() => buildMenu(inGame), 2200);
     };
     if (!slotNeedsConfirm(n)) { scrivi(); return; }

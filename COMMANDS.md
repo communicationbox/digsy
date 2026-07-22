@@ -4,15 +4,15 @@ Premi **`\`** (backslash) in gioco per aprire la console. Scrivi un comando e pr
 (esegui) o **Esc** (chiudi). **Tab** completa col primo suggerimento; sotto l'input compaiono i
 suggerimenti mentre scrivi (es. `goto=pal` → `goto=palude`).
 
-> ⚠️ I comandi **cheat** (segnati sotto) **non vengono salvati**: al primo cheat il salvataggio
-> si congela e viene fatto uno snapshot. Il comando **`vanilla`** rimuove tutti i cheat e
-> ripristina il salvataggio normale (monete, museo, DNA, ecc.). Mentre i cheat sono attivi l'HUD
-> mostra il tag **🐞 CHEAT**.
+> ℹ️ I comandi **cheat** (segnati sotto) ora **si salvano come una partita normale**: giocare con
+> essi NON fa perdere i progressi al refresh. Al primo comando si fa uno **snapshot pre-cheat**
+> (persistito, sopravvive al refresh) e l'HUD mostra il tag **🐞**. Il comando **`vanilla`** annulla
+> tutti i cheat **ripristinando quello snapshot** (torna monete/museo/DNA/posizione a com'erano).
 
 ## Comandi
 
-Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = congela il salvataggio
-finché non dai `vanilla`.
+Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende il tag 🐞 e abilita
+`vanilla` (annulla via snapshot); il salvataggio resta normale.
 
 ### Risorse e tempo
 | Comando | Cheat | Effetto |
@@ -153,4 +153,4 @@ i limiti su un telefono, non su una macchina da sviluppo.
 Dopo il comando vai in un **parco di città**: è lì che le creature si vedono tutte insieme.
 Il numero di fps compare in un avviso dopo due secondi di misura.
 
-`vanilla` rimette tutto com'era (è un cheat: il salvataggio resta congelato finché non lo dai).
+`vanilla` rimette tutto com'era ripristinando lo snapshot pre-cheat (funziona anche dopo un refresh).

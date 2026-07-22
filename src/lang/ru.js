@@ -71,8 +71,8 @@ export const RU = {
   'Cave': 'Пещера',
 
   /* ---- console dei comandi ---- */
-  'CHEATS on: saving is FROZEN. Type `vanilla` to go back to normal.':
-    'ЧИТЫ включены: сохранение ЗАМОРОЖЕНО. Введите `vanilla`, чтобы вернуться к обычной игре.',
+  'Commands on: you play and SAVE normally. `vanilla` undoes the cheats and restores how it was.':
+    'Команды включены: игра идёт и СОХРАНЯЕТСЯ как обычно. `vanilla` отменяет читы и возвращает как было.',
   'Dig site': 'Место раскопок',
   'Wreck (E to search)': 'Обломки (E — обыскать)',
   'Coins: ': 'Монеты: ',
@@ -319,7 +319,6 @@ export const RU = {
   'Resume': 'Продолжить игру',
   'Continue': 'Продолжить',
   'Trophies': 'Трофеи',
-  'Cheats on: type `vanilla`': 'Читы включены: введите `vanilla`',
   'Storage full!': 'Хранилище переполнено!',
   'Confirm?': 'Подтвердить?',
   'Sure?': 'Уверены?',

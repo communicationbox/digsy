@@ -33,11 +33,18 @@ export function fresh() {
     look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false, mounted: false,
   };
 }
-/* CHEAT LOCK: in modalità cheat/god NON si salva (non distruttivo) — al ritorno "vanilla"
-   si ripristina lo stato salvato (snapshot). */
+/* CHEAT LOCK: segna che dei comandi cheat sono attivi (tag HUD + `vanilla` disponibile). Il save
+   NON è più congelato: giocare con i comandi PERSISTE come un gioco normale (così testare non fa
+   perdere i progressi al refresh). `vanilla` annulla i cheat ripristinando lo SNAPSHOT pre-cheat,
+   che viene PERSISTITO in localStorage → funziona anche dopo un refresh. */
 let cheatLock = false;
 export function isCheatLock() { return cheatLock; }
 export function setCheatLock(v) { cheatLock = !!v; }
+export const CHEATBAK = SK + '_cheatbak';   // snapshot dello stato PRIMA del primo comando cheat
+export function stashCheatSnapshot() { try { if (!localStorage.getItem(CHEATBAK)) localStorage.setItem(CHEATBAK, JSON.stringify(snapshotState())); } catch (e) { /* extra */ } }
+export function readCheatSnapshot() { try { const r = localStorage.getItem(CHEATBAK); return r ? JSON.parse(r) : null; } catch (e) { return null; } }
+export function clearCheatSnapshot() { try { localStorage.removeItem(CHEATBAK); } catch (e) { /* extra */ } }
+export function hasCheatSnapshot() { try { return !!localStorage.getItem(CHEATBAK); } catch (e) { return false; } }
 /* Lo stato pronto da SPEDIRE: identico a quello che si scrive in localStorage, mappa
    esplorata COMPRESSA compresa. Prima il salvataggio locale la impacchettava per riga e
    quello per il server no: la stessa partita viaggiava molte volte più grande del necessario
@@ -111,7 +118,6 @@ export function setSaveErrorHandler(fn) { onSaveError = fn; }
 let onSaved = null;
 export function setSaveHook(fn) { onSaved = fn; }
 export function save() {
-  if (cheatLock) return false; // cheat attivi: il salvataggio è congelato
   try {
     S.px = P.x; S.py = P.y; S.started = true; S.v = SAVE_V;
     packSets();
@@ -154,10 +160,9 @@ function slotKey(n) { return SK + '_slot' + n; }
 export function slotInfo(n) {
   try { const r = localStorage.getItem(slotKey(n)); if (!r) return null; return JSON.parse(r); } catch (e) { return null; }
 }
-/* Sotto cheat NON si scrive nemmeno negli slot: altrimenti la promessa "i cheat non toccano
-   il salvataggio" sarebbe falsa (bastava passare dal menu Salva per renderli permanenti). */
+/* Anche con i comandi cheat attivi si salva negli slot (tutto persiste; `vanilla` annulla via
+   snapshot). */
 export function saveToSlot(n) {
-  if (cheatLock) return 'cheat';
   save();
   packSets();
   try {

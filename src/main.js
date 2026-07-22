@@ -1,5 +1,5 @@
 /* Boot + game loop */
-import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos } from './state.js';
+import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, hasCheatSnapshot, setCheatLock } from './state.js';
 import { FOOT_DY } from './body.js';
 import { fit } from './screen.js';
 import { findStart, openArea } from './world.js';
@@ -212,6 +212,7 @@ function boot() {
       : tr('Il browser blocca i salvataggi (navigazione privata?): i progressi non verranno salvati.', 'Your browser blocks saving (private mode?): progress will not be kept.')));
   });
   const loaded = initState();
+  if (hasCheatSnapshot()) setCheatLock(true);   // sessione con comandi attivi: dopo il refresh tieni il tag e `vanilla` disponibili
   applyLook();
   if (S.started) {
     P.x = S.px; P.y = S.py;

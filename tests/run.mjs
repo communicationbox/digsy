@@ -2770,6 +2770,7 @@ sprites.applyLook();
   const regionsC = await import('../src/regions.js');
   const dbg2 = await import('../src/debug.js');
   if (state.isCheatLock()) cmds.runCommand('vanilla'); // parti pulito
+  state.clearCheatSnapshot(); state.setCheatLock(false); // nessuno snapshot residuo da test precedenti
   if (dbg2.isDebug()) dbg2.toggleDebug();
   // baseline "salvato" PULITA (lo snapshot del primo cheat la cattura)
   S.coins = 50; S.day = 3; S.energy = 10; S.maxEnergy = 30;
@@ -2785,7 +2786,9 @@ sprites.applyLook();
   check('console: gotosite/gotowreck/gotolandmark rispondono', typeof cmds.runCommand('gotosite') === 'string' && typeof cmds.runCommand('gotowreck') === 'string' && typeof cmds.runCommand('gotolandmark') === 'string');
   cmds.runCommand('speed=8'); check('console: speed=8', P.speedMul === 8);
   cmds.runCommand('speed=99'); check('console: speed clamp a 20', P.speedMul === 20);
-  check('console: primo cheat congela il salvataggio (lock)', state.isCheatLock() === true);
+  check('console: primo cheat accende il lock (tag) e PERSISTE lo snapshot pre-cheat', state.isCheatLock() === true && state.hasCheatSnapshot() === true);
+  /* il save NON è più congelato: con i comandi attivi si salva normalmente (testare non perde i progressi) */
+  { const before = localStorage.getItem(state.SK); S.coins = 777; const ok = state.save(); check('console: con i comandi attivi il gioco SI SALVA (niente più freeze)', ok === true && localStorage.getItem(state.SK) !== before && JSON.parse(localStorage.getItem(state.SK)).coins === 777); }
   cmds.runCommand('goddna');
   check('console: goddna → DNA di tutte le specie, grotte comprese',
     (await import('../src/data.js')).ALL_SPECIES.every(sp => S.dna[sp.id] >= 2));
@@ -3583,10 +3586,11 @@ sprites.applyLook();
   check('salvataggio senza duplicati (dug dedup)', S.dug.length === 1 && S.dug[0] === '7,9');
   /* 4) versione di schema scritta e conservata */
   check('schema versionato', S.v === state.SAVE_V && JSON.parse(localStorage.getItem(SKk)).v === state.SAVE_V);
-  /* 5) sotto cheat non si scrive NEMMENO negli slot */
+  /* 5) con i comandi attivi si SALVA anche negli slot (tutto persiste; `vanilla` annulla via snapshot) */
   state.setCheatLock(true);
   const before = localStorage.getItem(SKk + '_slot1');
-  check('slot rifiutato sotto cheat', state.saveToSlot(1) === 'cheat' && localStorage.getItem(SKk + '_slot1') === before);
+  const slotRes = state.saveToSlot(1);
+  check('slot SALVA anche con i comandi attivi', slotRes !== 'cheat' && localStorage.getItem(SKk + '_slot1') !== before);
   state.setCheatLock(false);
   /* 6) migrazioni: un save VECCHIO si apre senza esplodere e viene portato al presente */
   const legacy = { seed: 12345, coins: 5, day: 2, look: { hat: '#fff', shirt: '#fff', pants: '#fff', skin: '#fff', hatOn: false },

@@ -1,7 +1,7 @@
 /* Console comandi (tipo Minecraft): si apre col tasto \ .
    Due forme: `chiave=valore` (money, energy, day, goto) e comandi secchi
    (godmode, goddna, goditem, heal, help). Aggiungerne di nuovi qui. */
-import { S, P, save, snapshotState, restoreState, setCheatLock, isCheatLock, dugSet } from './state.js';
+import { S, P, save, restoreState, setCheatLock, isCheatLock, dugSet, stashCheatSnapshot, readCheatSnapshot, clearCheatSnapshot } from './state.js';
 import { FOOT_DY } from './body.js';
 import { packExplored } from './packmap.js';
 import { WONDERS } from './wonders.js';
@@ -22,23 +22,23 @@ function measureFps(cb) {
 /* moltiplicatore velocità runtime (comando speed=, non salvato) */
 function setSpeed(n) { P.speedMul = Math.max(1, Math.min(20, n)); }
 
-/* i cheat sono NON DISTRUTTIVI: al primo cheat si fa lo snapshot del salvataggio e si
-   congela il save; `vanilla` ripristina lo snapshot e riprende i salvataggi. */
-let cheatBackup = null;
+/* i comandi cheat sono ANNULLABILI ma NON congelano più il save: al primo cheat si fa lo snapshot
+   pre-cheat (PERSISTITO in localStorage) e si accende il tag; da lì tutto si salva normalmente, così
+   testare non fa perdere i progressi al refresh. `vanilla` ripristina lo snapshot (anche dopo un
+   refresh, perché è persistito) e torna alla partita normale. */
 function enterCheat() {
   if (isCheatLock()) return;
-  cheatBackup = snapshotState(); setCheatLock(true);
-  /* AVVISO FORTE: da qui in poi il gioco NON salva più. Senza questo avviso si gioca per
-     ore e al primo refresh si torna al save pre-cheat (soldi/attrezzi "spariti"). */
-  toast('⚠️ ' + tr('CHEAT attivi: il salvataggio è CONGELATO. Scrivi `vanilla` per tornare normale.',
-                   'CHEATS on: saving is FROZEN. Type `vanilla` to go back to normal.'));
+  stashCheatSnapshot();               // snapshot pre-cheat PERSISTITO (solo la prima volta)
+  setCheatLock(true);
+  toast('🐞 ' + tr('Comandi attivi: giochi e SALVI normalmente. `vanilla` annulla i cheat e torna a com\'era.',
+                   'Commands on: you play and SAVE normally. `vanilla` undoes the cheats and restores how it was.'));
 }
 function exitCheat() {
-  if (isCheatLock()) {
-    if (cheatBackup) { restoreState(cheatBackup); P.x = S.px; P.y = S.py; } // ripristina anche la posizione
-    cheatBackup = null; setCheatLock(false);
-  }
-  setDebug(false); P.speedMul = 1; P.fly = false; // via anche il volo di godmode
+  const snap = readCheatSnapshot();
+  if (snap) { restoreState(snap); P.x = S.px; P.y = S.py; }   // ripristina stato + posizione pre-cheat
+  clearCheatSnapshot(); setCheatLock(false);
+  setDebug(false); P.speedMul = 1; P.fly = false;             // via anche il volo di godmode
+  save();                                                     // persisti la partita ripristinata
 }
 import { updateHUD, toast } from './ui.js';
 import { tr, seasonName, partName, rarLabel } from './i18n.js';
@@ -449,9 +449,9 @@ export function runCommand(raw) {
     /* 'both' = si può dare secco o con un valore (`stress` e `stress=3` sono entrambi validi) */
     if (cmd.type !== 'action' && cmd.type !== 'both') return tr('Usa: ', 'Use: ') + cmd.help;
   }
-  if (cmd.cheat) enterCheat();        // primo cheat: snapshot + congela il save (non distruttivo)
+  if (cmd.cheat) enterCheat();        // primo comando cheat: snapshot pre-cheat PERSISTITO + tag (il save NON si congela)
   const msg = cmd.run(val);
-  save(); updateHUD();                 // save() è no-op mentre i cheat sono attivi
+  save(); updateHUD();                 // tutto persiste (anche coi comandi attivi); `vanilla` annulla via snapshot
   return msg;
 }
 
