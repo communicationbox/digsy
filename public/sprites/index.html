@@ -178,7 +178,6 @@ try {
   STATE = await import('/src/state.js');
   if (STATE.initState && !STATE.S) STATE.initState();
   if (STATE.S) STATE.S.companion = { skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 3 };
-  if (SPR_MOD.applyLook && STATE.S) SPR_MOD.applyLook(); // palette dell'eroe di riferimento
 } catch (e) { console.warn('state.js non caricato', e); }
 /* CORNICE FISSA dei mezzi: l'editor dei veicoli usa una tela di dimensioni fisse con l'eroe e la
    linea d'acqua di RIFERIMENTO; l'ancora cade sull'origine del player (ox, oy). Così quello che
