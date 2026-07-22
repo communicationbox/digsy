@@ -1076,6 +1076,7 @@ sprites.applyLook();
   check('sartoria: cappello/maglia/pantaloni', ['hat', 'shirt', 'pants'].every(k => document.getElementById('m-body').innerHTML.includes(`data-field="${k}"`)));
   const tHtml = document.getElementById('m-body').innerHTML;
   check('sartoria: forme cappello + ✕ senza cappello', tHtml.includes('hatStyle') && tHtml.includes('hatOff'));
+  check('sartoria: selettori FORMA di maglia e pantaloni', tHtml.includes('data-field="shirtStyle"') && tHtml.includes('data-v="tank"') && tHtml.includes('data-field="pantsStyle"') && tHtml.includes('data-v="skirt"'));
   ui.openBuilding({ type: 'lab', name: 'Laboratorio' });
   const labHtml = document.getElementById('m-body').innerHTML;
   check('laboratorio: chimere sì, identifica NO (spostata al museo)', labHtml.includes('Risveglia') && !labHtml.includes('idAll'));

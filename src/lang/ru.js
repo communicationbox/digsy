@@ -318,6 +318,9 @@ export const RU = {
   'Resume': 'Продолжить игру',
   'Continue': 'Продолжить',
   'Trophies': 'Трофеи',
+  /* ---- forme maglia/pantaloni ---- */
+  'T-shirt': 'Футболка', 'Tank top': 'Майка', 'Hoodie': 'Худи',
+  'Trousers': 'Штаны', 'Shorts': 'Шорты', 'Skirt': 'Юбка', 'Overalls': 'Комбинезон',
   /* ---- trofei a livelli ---- */
   'Bronze': 'Бронза', 'Silver': 'Серебро', 'Gold': 'Золото', 'Platinum': 'Платина',
   'Platinum!': 'Платина!',

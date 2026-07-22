@@ -1,5 +1,5 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
-import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, CHIMERA_COST, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
+import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, CHIMERA_COST, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
@@ -38,7 +38,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { groundPalette } from './tiles.js';
-import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel } from './i18n.js';
+import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel } from './i18n.js';
 
 /* ---------- toast / HUD / prompt ---------- */
 export function toast(m) {
@@ -1406,11 +1406,11 @@ function swatchRow(field, colors) {
 }
 /* riga di stili: quelli non posseduti (premium/tematici) mostrano ✨prezzo e sono provabili */
 function styleRow(field, styles) {
-  const kind = field === 'hatStyle' ? 'hat' : 'hair';
+  const kind = field === 'hatStyle' ? 'hat' : field === 'hairStyle' ? 'hair' : field; // shirtStyle/pantsStyle
   return `<div class="swrow">` + styles.map(st => {
-    const owned = kind === 'hat' ? hatOwned(st.id) : hairOwned(st.id);
+    const owned = kind === 'hat' ? hatOwned(st.id) : kind === 'hair' ? hairOwned(st.id) : true; // maglia/pantaloni: tutte disponibili (per ora)
     const on = S.look[field] === st.id;
-    const label = field === 'hatStyle' ? hatLabel(st.id) : hairLabel(st.id);
+    const label = field === 'hatStyle' ? hatLabel(st.id) : field === 'hairStyle' ? hairLabel(st.id) : field === 'shirtStyle' ? shirtLabel(st.id) : pantsLabel(st.id);
     const badge = owned ? '' : ` <span class="lockp">✨${cosmeticCost(kind, st.id)}</span>`;
     return `<button class="btn ghost${on ? ' onbtn' : ''}${owned ? '' : ' locked'}" data-field="${field}" data-v="${st.id}">${label}${badge}</button>`;
   }).join('') + `</div>`;
@@ -1507,9 +1507,11 @@ function renderTailor() {
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Prova quello che vuoi: paghi 🪙 ', 'Try anything you like: pay 🪙 ')}${SERVICE_COST} ${tr('a capo solo alla conferma. I cappelli ✨ speciali si sbloccano pagando. Togliere il cappello (✕) è gratis.', 'per item only on confirm. ✨ special hats unlock on payment. Removing the hat (✕) is free.')}</div>`;
   h += previewHtml();
   h += hatSection();
-  for (const k of ['shirt', 'pants']) h += `<div class="bighead">${lookLabel(k)}</div>` + swatchRow(k, LOOKS[k]);
-  h += confirmBar(['hatStyle', 'hat', 'shirt', 'pants']);
-  mBody.innerHTML = withIcons(h); wireLook(false, renderTailor); wireHatOff(renderTailor); wireConfirm(['hatStyle', 'hat', 'shirt', 'pants'], renderTailor); drawPreview();
+  h += `<div class="bighead">${lookLabel('shirt')}</div>` + styleRow('shirtStyle', SHIRT_STYLES) + swatchRow('shirt', LOOKS.shirt);
+  h += `<div class="bighead">${lookLabel('pants')}</div>` + styleRow('pantsStyle', PANTS_STYLES) + swatchRow('pants', LOOKS.pants);
+  const TF = ['hatStyle', 'hat', 'shirtStyle', 'shirt', 'pantsStyle', 'pants'];
+  h += confirmBar(TF);
+  mBody.innerHTML = withIcons(h); wireLook(false, renderTailor); wireHatOff(renderTailor); wireConfirm(TF, renderTailor); drawPreview();
 }
 
 /* ---------- editor iniziale (prima partita, gratis) ---------- */
@@ -1532,7 +1534,9 @@ export function openEditor(onDone) {
   h += `<input id="pgname" class="nameinput" maxlength="14" value="${(S.name || '').replace(/["<>&]/g, '')}" placeholder="${tr('Nome', 'Name')}">`;
   h += `<button class="btn amber wide" id="rndAll">🎲 ${tr('Personaggio casuale', 'Random character')}</button></div>`;
   h += hatSection(HAT_STYLES); // creazione PG: SOLO cappelli base (i premium si comprano dopo)
-  for (const k of ['shirt', 'pants', 'skin']) h += `<div class="bighead">${lookLabel(k)}</div>` + swatchRow(k, LOOKS[k]);
+  h += `<div class="bighead">${lookLabel('shirt')}</div>` + styleRow('shirtStyle', SHIRT_STYLES) + swatchRow('shirt', LOOKS.shirt);
+  h += `<div class="bighead">${lookLabel('pants')}</div>` + styleRow('pantsStyle', PANTS_STYLES) + swatchRow('pants', LOOKS.pants);
+  h += `<div class="bighead">${lookLabel('skin')}</div>` + swatchRow('skin', LOOKS.skin);
   h += `<div class="bighead">${tr('Occhi', 'Eyes')}</div>` + swatchRow('eyeColor', EYE_COLORS);
   h += `<div class="bighead">${tr('Taglio', 'Haircut')}</div>` + styleRow('hairStyle', HAIR_STYLES);
   h += `<div class="bighead">${tr('Colore capelli', 'Hair color')}</div>` + swatchRow('hairColor', HAIR_COLORS);

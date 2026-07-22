@@ -92,6 +92,10 @@ const HATL = { explorer: ['Esploratore', 'Explorer'], cap: ['Berretto', 'Cap'], 
   flowercrown: ['Coroncina', 'Flower crown'], bandana: ['Bandana', 'Bandana'], hood: ['Cappuccio', 'Hood'],
   snorkel: ['Boccaglio', 'Snorkel'], ushanka: ['Colbacco', 'Ushanka'] };
 export function hatLabel(id) { const e = HATL[id]; return e ? lab(e) : id; }
+const SHIRTL = { tshirt: ['Maglietta', 'T-shirt'], tank: ['Canottiera', 'Tank top'], shirt: ['Camicia', 'Shirt'], hoodie: ['Felpa', 'Hoodie'] };
+const PANTSL = { long: ['Pantaloni', 'Trousers'], shorts: ['Pantaloncini', 'Shorts'], skirt: ['Gonna', 'Skirt'], overall: ['Salopette', 'Overalls'] };
+export function shirtLabel(id) { const e = SHIRTL[id]; return e ? lab(e) : id; }
+export function pantsLabel(id) { const e = PANTSL[id]; return e ? lab(e) : id; }
 
 /* testi statici dell'index.html (HUD, splash, boot) applicati al boot */
 export function applyStaticTexts() {
