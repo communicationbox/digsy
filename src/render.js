@@ -694,8 +694,9 @@ export function drawMotorboatFB(sx, y0, up) {
   rect(sx - 5, y0 + 8, 11, 5, '#eef2f4'); rect(sx - 5, y0 + 11, 11, 2, '#3d8ba0'); // scafo + banda
   px(sx - 6, y0 + 9, '#eef2f4'); px(sx + 5, y0 + 9, '#eef2f4');
   rect(sx - 4, y0 + 13, 9, 1, '#2b6274');
-  if (up) { rect(sx - 2, y0 + 4, 5, 4, '#bfe9f4'); rect(sx - 2, y0 + 4, 5, 1, '#8fd0e6'); px(sx, y0 + 3, '#eef2f4'); } // di spalle: parabrezza + prua
-  else { rect(sx - 2, y0 + 13, 5, 3, '#33291f'); px(sx, y0 + 16, '#20323f'); }    // di fronte: motore fuoribordo verso di noi
+  /* il MOTORE è a POPPA: si vede quando ti ALLONTANI (di spalle), non quando vieni verso l'utente */
+  if (up) { rect(sx - 2, y0 + 13, 5, 3, '#33291f'); px(sx, y0 + 16, '#20323f'); }  // di spalle: motore fuoribordo verso di noi
+  else { rect(sx - 2, y0 + 12, 5, 2, '#bfe9f4'); rect(sx - 2, y0 + 12, 5, 1, '#8fd0e6'); rect(sx - 2, y0 + 14, 5, 1, '#eef2f4'); px(sx, y0 + 15, '#eef2f4'); } // di fronte: parabrezza + prua verso di noi
   px(sx - 4, y0 + 16, '#bfe9f4'); px(sx + 3, y0 + 16, '#bfe9f4');
 }
 /* MOTOSCAFO: scafo bianco/azzurro affusolato, parabrezza, motore fuoribordo, SCIA di spruzzi */
