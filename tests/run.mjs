@@ -3922,6 +3922,11 @@ sprites.applyLook();
   const cmdi = document.getElementById('cmdi'), cmdEl = document.getElementById('cmd');
   fire('keydown', '\\');
   check('il backslash apre la console', cmdEl.classList.contains('on'));
+  /* la console dei CHEAT è uno strumento da DEV: nel build ONLINE (import.meta.env.DEV=false)
+     dev'essere DISATTIVATA. Guardia sul sorgente: gate su import.meta.env.DEV + openConsole che esce. */
+  const { readFileSync: rfsInp } = await import('node:fs');
+  const inputSrc = rfsInp(new URL('../src/input.js', import.meta.url), 'utf8');
+  check('cheat: console gated per il build online (import.meta.env.DEV)', /const CHEATS_ON = !import\.meta\.env \|\| !!import\.meta\.env\.DEV/.test(inputSrc) && /if \(!CHEATS_ON\) return/.test(inputSrc) && /&& CHEATS_ON\)/.test(inputSrc));
   const type = (k) => { const ev = { key: k, target: cmdi, preventDefault() {}, stopPropagation() {} };
     (cmdi.listeners.keydown || []).forEach(fn => fn(ev)); return ev; };
   cmdi.value = 'money=999'; type('Enter');

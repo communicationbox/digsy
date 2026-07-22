@@ -26,7 +26,12 @@ const cmdEl = document.getElementById('cmd'), cmdi = document.getElementById('cm
 let consoleOpen = false;
 function refreshHint() { if (cmdHint) { const s = suggest(cmdi.value); cmdHint.textContent = s.length ? s.slice(0, 6).join('  ') : ''; } }
 function showOut(txt) { if (cmdOut) { if (txt) { cmdOut.textContent = txt; cmdOut.classList.add('on'); } else { cmdOut.textContent = ''; cmdOut.classList.remove('on'); } } }
+/* la console dei CHEAT (`\`) è uno strumento da SVILUPPO: attiva in `npm run dev` e nei test
+   (dove `import.meta.env` non esiste). Nel build ONLINE (vite build → DEV=false) è DISATTIVATA:
+   i giocatori non ci arrivano. */
+const CHEATS_ON = !import.meta.env || !!import.meta.env.DEV;
 function openConsole() {
+  if (!CHEATS_ON) return;                                     // build online: niente console cheat
   consoleOpen = true; for (const k in keys) keys[k] = false; // ferma il movimento
   if (cmdEl) { cmdEl.classList.add('on'); cmdi.value = ''; cmdi.focus(); showOut(''); refreshHint(); }
 }
@@ -87,7 +92,7 @@ export function isTyping(t) {
 }
 addEventListener('keydown', e => {
   if (isTyping(e.target)) { if (e.key === 'Escape' && e.target.blur) e.target.blur(); return; } // ESC = esci dal campo
-  if (e.key === '\\') { consoleOpen ? closeConsole() : openConsole(); e.preventDefault(); return; } // \ = toggle console (anche senza focus)
+  if (e.key === '\\' && CHEATS_ON) { consoleOpen ? closeConsole() : openConsole(); e.preventDefault(); return; } // \ = toggle console cheat (SOLO in dev)
   if (consoleOpen) return; // mentre la console è aperta, il gioco ignora i tasti
   /* FONTANA: durante i tiri, E/spazio FERMANO il tiro (sul premere, per precisione); ESC chiude */
   if (isTossOpen()) {
