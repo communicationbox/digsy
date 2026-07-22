@@ -218,8 +218,8 @@ export const COMMANDS = {
     } },
   speed: { type: 'num', cheat: true, help: 'speed=5 — velocità di movimento (1–20)',
     run: v => { setSpeed(v); return '🏃 ' + tr('Velocità ×', 'Speed ×') + P.speedMul; } },
-  godmode: { aliases: ['god'], type: 'action', cheat: true, help: 'godmode — sblocca e completa tutto (goditem+goddna), infinito, ×5, volo',
-    run: () => { setDebug(true); setSpeed(5); giveAllItems(); giveAllDna(); unlockAllCosmetics(); completeMuseumAndBook(); P.fly = true; return '🐞 ' + tr('GODMODE: tutto sbloccato, infinito, ×5, volo', 'GODMODE: all unlocked, infinite, ×5, fly'); } },
+  godmode: { aliases: ['god'], type: 'action', cheat: true, help: 'godmode — sblocca e completa tutto (goditem+goddna+trofei), infinito, ×5, volo',
+    run: () => { setDebug(true); setSpeed(5); giveAllItems(); giveAllDna(); unlockAllCosmetics(); completeMuseumAndBook(); S.trophies = Object.fromEntries(TRACKS.map(t => [t.id, 4])); P.fly = true; return '🐞 ' + tr('GODMODE: tutto sbloccato (trofei al Platino: aura + glitter), infinito, ×5, volo', 'GODMODE: all unlocked (trophies at Platinum: aura + glitter), infinite, ×5, fly'); } },
   godletters: { aliases: ['letters', 'lettere'], type: 'action', cheat: true,
     help: 'godletters — sblocca tutte le lettere del nonno (finale compreso)',
     run: () => {
