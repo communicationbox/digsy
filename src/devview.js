@@ -9,7 +9,7 @@ import { S, P, cam } from './state.js';
 import { setPref } from './prefs.js';
 import { setCompanion, COMP } from './companion.js';
 import { CAVE_POOL, ALL_SPECIES, TS } from './data.js';
-import { diggable, baseTerrain, townInfo, decoAt, CHOPPABLE, MINEABLE, WATER, DEEP, townForCell, TCELL, openArea } from './world.js';
+import { diggable, baseTerrain, townInfo, decoAt, CHOPPABLE, MINEABLE, WATER, DEEP } from './world.js';
 
 function awakenPick(sp) {
   if (!S.awakened.includes(sp.id)) S.awakened.push(sp.id);
@@ -22,35 +22,10 @@ function findTile(pred) {
   }
   return null;
 }
-/* trova una casa in una città vicina, ci mette il compagno DIETRO (a nord) e il player davanti:
-   serve a fotografare l'occlusione compagno↔edifici (senza console) */
-function setupCompTown() {
-  awakenPick(ALL_SPECIES.find(s => (s.src || 'terra') === 'terra') || ALL_SPECIES[0]);
-  const ccx = Math.floor(P.x / (TS * TCELL)), ccy = Math.floor(P.y / (TS * TCELL));
-  for (let r = 0; r <= 24; r++) for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
-    if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
-    const t = townForCell(cx, cy); if (!t) continue;
-    const x0 = cx * TCELL, y0 = cy * TCELL;
-    for (let ty = y0; ty < y0 + TCELL; ty++) for (let tx = x0; tx < x0 + TCELL; tx++) {
-      const ti = townInfo(tx, ty);
-      if (ti && ti.building && tx === ti.building.x0 && ty === ti.building.y0) {
-        const b = ti.building, mx = Math.floor((b.x0 + b.x1) / 2);
-        for (let yy = b.y1 + 3; yy < b.y1 + 8; yy++) if (openArea(mx, yy)) { P.x = mx * TS + 8; P.y = yy * TS + 2; break; }
-        /* congelo il compagno (job fittizio → updateCompanion esce subito, niente follow che lo sposta) */
-        COMP.init = true; COMP.face = 'down'; COMP.job = { phase: 'hold' };
-        COMP.x = mx * TS + 8; COMP.y = (b.y1 + 1) * TS + 4;   // PIEDI appena sotto la casa: il corpo sale sul tetto
-        cam.x = P.x; cam.y = (P.y + b.y0 * TS) / 2;      // inquadra sia casa che player
-        P.dir = 'up';
-        return;
-      }
-    }
-  }
-}
 export function setupDebugView(params) {
-  const mp = params.get('mount'), dg = params.get('dig'), ct = params.has('comptown');
-  if (!mp && !dg && !ct) return;
+  const mp = params.get('mount'), dg = params.get('dig');
+  if (!mp && !dg) return;
   S.lookDone = true; S.introSeen = true; S.started = true; S.gift = true; setPref('tips', false);
-  if (ct) { setupCompTown(); return; }   // qui l'HUD resta VISIBILE (serve anche per l'icona del compagno)
   try { const h = document.getElementById('hud'), pr = document.getElementById('prompt'); if (h) h.style.display = 'none'; if (pr) pr.style.display = 'none'; } catch (e) { /* headless */ }
   if (mp) {
     awakenPick(CAVE_POOL.find(s => s.r === 'leggendario') || CAVE_POOL[0]);  // Abissodonte (legg. grotta)

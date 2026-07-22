@@ -238,9 +238,11 @@ function boot() {
   document.getElementById('boot').style.display = 'none';
   /* DEBUG VISIVO (SOLO dev): ?mount / ?dig forzano una scena da fotografare. Tutta la logica
      sta in devview.js, importato solo qui sotto DEV → in produzione il ramo è morto. */
+  let devView = false;
   if (import.meta.env && import.meta.env.DEV && typeof location !== 'undefined') {
     const _p = new URLSearchParams(location.search);
-    if (_p.get('mount') || _p.get('dig') || _p.has('comptown')) {
+    if (_p.get('mount') || _p.get('dig')) {
+      devView = true;
       S.lookDone = true; S.introSeen = true; S.started = true; setPref('tips', false); // SINCRONO: prima che initSplash apra editor/tip (il resto è in devview, async)
       import('./devview.js').then(m => m.setupDebugView(_p));
     }
@@ -253,7 +255,7 @@ function boot() {
     if (!S.lookDone) openEditor(() => runIntro(startGame));
     else runIntro(startGame);
   });
-  setInterval(save, 5000);
+  if (!devView) setInterval(save, 5000);   // in modalità dev-view (?mount/?dig) NON si autosalva: lo stato forzato per gli screenshot non deve finire nel salvataggio vero
   /* il battito: quanto si gioca e fin dove si arriva. Serve a chi fa provare il gioco, non
      al gioco — e si spegne dalle Impostazioni. */
   import('./beat.js').then(b => b.avviaBattito()).catch(() => {});
