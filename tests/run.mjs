@@ -2824,22 +2824,36 @@ sprites.applyLook();
   check('Studio Mezzi: id coerenti (mezzo noto, verso down/up/side)',
     ids.every(m => kinds.includes(m[1]) && ['down', 'up', 'side'].includes(m[2])));
 
-  /* PATTINI a mano ANIMATI: camminando i due pattini si alternano su/giù (sincronizzati col passo),
-     da fermo sono allineati. Si spia il colore ambra delle rotelle (#e0b040). */
+  /* PATTINI a mano ANIMATI e ATTACCATI AI PIEDI: si disegnano eroe+pattini come in gioco (bob
+     incluso) e si controlla che le rotelle (ambra #e0b040) stiano SEMPRE 2px sotto le scarpe
+     (W #f2ead8) in ogni frame, e che si SPOSTINO coi piedi tra fr0 e fr1 (animazione). */
+  const sprMod = await import('../src/sprites.js');
   const { ctx: sctx } = await import('../src/screen.js');
   const ofr = sctx.fillRect;
-  let amb = [];
-  sctx.fillRect = (x, y) => { if (sctx.fillStyle === '#e0b040') amb.push([Math.round(x), Math.round(y)]); };
-  const grabSk = (moving, fr) => { P.dir = 'down'; P.moving = moving; amb = []; render.drawBankSkates(100, 100, fr); const L = amb.filter(p => p[0] < 100).map(p => p[1]), R = amb.filter(p => p[0] >= 100).map(p => p[1]); return { n: amb.length, minL: Math.min(...L), minR: Math.min(...R) }; };
-  const sk0 = grabSk(true, 0), sk1 = grabSk(true, 1), skStill = grabSk(false, 0);
+  let W = [], amb = [];
+  sctx.fillRect = (x, y) => { const X = Math.round(x), Y = Math.round(y); if (sctx.fillStyle === '#f2ead8') W.push([X, Y]); if (sctx.fillStyle === '#e0b040') amb.push([X, Y]); };
+  const SX = 100;
+  const shotSk = (dir, moving, fr) => {
+    P.dir = dir; P.moving = moving; W = []; amb = [];
+    const bob = fr === 1 ? -1 : 0;
+    sprMod.drawHero(null, SX - 8, 100 + bob, dir, fr);
+    render.drawBankSkates(SX, 100 + bob, fr);
+    const feetY = Math.max(...W.map(p => p[1]));                     // scarpe = riga più in basso
+    const wheelY = Math.min(...amb.map(p => p[1]));                  // rotelle = riga più in alto
+    const feetXs = W.filter(p => p[1] === feetY).map(p => p[0]).sort((a, b) => a - b);
+    return { n: amb.length, gap: wheelY - feetY, feetC: (feetXs[0] + feetXs[feetXs.length - 1]) / 2, wheelC: (Math.min(...amb.map(p => p[0])) + Math.max(...amb.map(p => p[0]))) / 2 };
+  };
+  const d0 = shotSk('down', true, 0), d1 = shotSk('down', true, 1), sSt = shotSk('down', false, 0);
+  const si0 = shotSk('side', true, 0), si1 = shotSk('side', true, 1);
   sctx.fillRect = ofr; P.moving = false;
-  check('pattini a mano: le rotelle si disegnano (4)', sk0.n === 4 && sk1.n === 4);
-  check('pattini a mano: ANIMATI, i due piedi si alternano su/giù col passo', sk0.minL !== sk0.minR && sk1.minL !== sk1.minR && sk0.minL !== sk1.minL && sk0.minR !== sk1.minR);
-  check('pattini a mano: da fermo allineati (niente animazione immobili)', skStill.minL === skStill.minR);
-  /* REGRESSIONE: drawPlayer deve passare `sy` SENZA bob ai pattini. Con `sy + bob` il bob del passo
-     annullava lo scarto di un pattino e uno restava FERMO (segnalato da Marco). */
+  check('pattini a mano: le rotelle si disegnano (4)', d0.n === 4 && d1.n === 4);
+  check('pattini a mano: ATTACCATI ai piedi (rotelle appena sotto le scarpe, ogni frame)', d0.gap >= 1 && d0.gap <= 3 && d1.gap >= 1 && d1.gap <= 3 && si0.gap >= 1 && si0.gap <= 3 && si1.gap >= 1 && si1.gap <= 3);
+  check('pattini a mano: centrati sotto i piedi (fronte, entrambi i frame)', Math.abs(d0.wheelC - d0.feetC) <= 1 && Math.abs(d1.wheelC - d1.feetC) <= 1);
+  check('pattini a mano: ANIMATI, seguono i piedi che si spostano tra i frame', d0.wheelC !== d1.wheelC || si0.wheelC !== si1.wheelC);
+  /* REGRESSIONE: drawPlayer deve passare `sy + bob` (attaccati al bob dei piedi), non `sy` liscio
+     (che li staccava verticalmente). */
   const renderSrc = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
-  check('pattini a mano: baseline senza bob (uno non resti fermo)', /drawBankSkates\(sx,\s*sy,\s*fr\)/.test(renderSrc) && !/drawBankSkates\(sx,\s*sy\s*\+\s*bob/.test(renderSrc));
+  check('pattini a mano: baseline col bob (attaccati ai piedi)', /drawBankSkates\(sx,\s*sy \+ bob,\s*fr\)/.test(renderSrc));
 }
 
 /* ---------- console: comandi cheat NON distruttivi + vanilla (blocco isolato in fondo) ---------- */

@@ -559,7 +559,7 @@ function drawPlayer() {
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
   if (gear === 'bike' && !fb && !bank) drawBike(sx, sy + bob, P.moving); // profilo procedurale: DIETRO l'eroe
   drawHero(null, sx - 8, sy + bob, P.dir, fr);
-  if (bank && gear === 'skates') drawBankSkates(sx, sy, fr);          // pattini a mano ANIMATI (senza bob: il bob annullerebbe lo scarto di un pattino → uno resterebbe fermo)
+  if (bank && gear === 'skates') drawBankSkates(sx, sy + bob, fr);    // pattini a mano ANIMATI, ATTACCATI ai piedi (bob incluso; l'animazione è orizzontale, non si annulla col bob)
   else if (bank) bankVeh(gear, sx, sy + bob);                        // disegno a mano di bici (SOPRA l'eroe)
   else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
   else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: DAVANTI (manubrio/ruota visibili)
@@ -572,8 +572,20 @@ export function drawBankSkates(sx, y0, fr) {
   const d = spriteDef('vehicle:skates:' + view);
   if (!d) return false;
   const ox = VEH_FRAME.ox, oy = VEH_FRAME.oy;
-  const stepL = P.moving ? (fr === 1 ? -1 : 0) : 0;   // un pattino su quando l'altro è giù
-  const stepR = P.moving ? (fr === 1 ? 0 : -1) : 0;
+  /* ogni metà segue il PIEDE corrispondente: `y0` porta già il bob → i pattini salgono/scendono
+     col corpo (attaccati, niente distacco verticale). Orizzontalmente si spostano per stare sotto
+     i PIEDI VERI dell'eroe: si misura il centro di ogni metà del disegno e lo si porta sul centro
+     del piede in quel frame (dai frame delle gambe: fronte/spalle si allargano, profilo = falcata). */
+  let sL = 0, nL = 0, sR = 0, nR = 0;
+  for (let r = 0; r < d.rows.length; r++) for (let c = 0; c < d.rows[r].length; c++) {
+    if (d.rows[r][c] === '.') continue; const rel = c - ox;
+    if (c < ox) { sL += rel; nL++; } else { sR += rel; nR++; }
+  }
+  const restL = nL ? sL / nL : -3.5, restR = nR ? sR / nR : 3.5;
+  /* centro dei due piedi (in px rispetto a sx) per vista e frame di camminata (0/1) */
+  const FEET = { down: [[-3.5, 2.5], [-4.5, 3.5]], up: [[-3.5, 2.5], [-4.5, 3.5]], side: [[-3.5, 4.5], [-1, 0]] };
+  const foot = P.moving ? FEET[view][fr] : [restL, restR];
+  const dxL = Math.round(foot[0] - restL), dxR = Math.round(foot[1] - restR);
   const flip = P.dir === 'left';
   if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
   for (let r = 0; r < d.rows.length; r++) {
@@ -581,7 +593,7 @@ export function drawBankSkates(sx, y0, fr) {
     for (let c = 0; c < row.length; c++) {
       const ch = row[c]; if (ch === '.') continue;
       const col = d.pal[ch]; if (!col) continue;
-      px(sx - ox + c, y0 - oy + r + (c < ox ? stepL : stepR), col);
+      px(sx - ox + c + (c < ox ? dxL : dxR), y0 - oy + r, col);
     }
   }
   if (flip) ctx.restore();
