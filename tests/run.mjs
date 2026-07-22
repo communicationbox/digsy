@@ -1077,6 +1077,12 @@ sprites.applyLook();
   const tHtml = document.getElementById('m-body').innerHTML;
   check('sartoria: forme cappello + ✕ senza cappello', tHtml.includes('hatStyle') && tHtml.includes('hatOff'));
   check('sartoria: selettori FORMA di maglia e pantaloni', tHtml.includes('data-field="shirtStyle"') && tHtml.includes('data-v="tank"') && tHtml.includes('data-field="pantsStyle"') && tHtml.includes('data-v="skirt"'));
+  /* EXPLOIT cappello gratis: provando un look l'ANTEPRIMA è pendente → il game loop non autosalva
+     (senza, bastava provare un cappello e ricaricare il browser per tenerlo gratis) */
+  S.look.hatStyle = 'santa'; // (come farebbe wireLook in anteprima, senza pagare)
+  check('provando un look l\'anteprima è PENDENTE (autosave sospeso)', ui.lookPreviewPending() === true);
+  ui.revertLook();
+  check('annullando: torna al look originale e niente più anteprima pendente', ui.lookPreviewPending() === false && S.look.hatStyle !== 'santa');
   ui.openBuilding({ type: 'lab', name: 'Laboratorio' });
   const labHtml = document.getElementById('m-body').innerHTML;
   check('laboratorio: chimere sì, identifica NO (spostata al museo)', labHtml.includes('Risveglia') && !labHtml.includes('idAll'));

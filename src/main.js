@@ -8,7 +8,7 @@ import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
 import { updateCompanion } from './companion.js';
 import { playIntro, introActive } from './intro.js';
-import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner } from './ui.js';
+import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending } from './ui.js';
 import { updateCompass } from './compass.js';
 import { trackPlayer } from './map.js';
 import { checkWonderDiscovery } from './gameplay.js';
@@ -255,7 +255,7 @@ function boot() {
     if (!S.lookDone) openEditor(() => runIntro(startGame));
     else runIntro(startGame);
   });
-  if (!devView) setInterval(save, 5000);   // in modalità dev-view (?mount/?dig) NON si autosalva: lo stato forzato per gli screenshot non deve finire nel salvataggio vero
+  if (!devView) setInterval(() => { if (!lookPreviewPending()) save(); }, 5000);   // niente autosave in dev-view, NÉ mentre provi un look (cappello/vestiti): l'anteprima non deve persistere al refresh senza pagare
   /* il battito: quanto si gioca e fin dove si arriva. Serve a chi fa provare il gioco, non
      al gioco — e si spegne dalle Impostazioni. */
   import('./beat.js').then(b => b.avviaBattito()).catch(() => {});

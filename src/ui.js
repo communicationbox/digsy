@@ -1440,6 +1440,10 @@ function hatStylesAvail() { return HAT_STYLES.concat(S.unlocked.hats.filter(id =
 let lookOrig = null;
 function beginLook() { if (!lookOrig) lookOrig = { ...S.look }; }
 export function revertLook() { if (lookOrig) { S.look = { ...lookOrig }; applyLook(); lookOrig = null; } }
+/* c'è un'ANTEPRIMA look non confermata? Serve al game loop per NON autosalvare il look in prova:
+   senza, bastava provare un cappello e RICARICARE il browser per tenerlo gratis (l'autosave a
+   5s persisteva l'anteprima). Chiudere/ESC/fuori già ripristina (closeModal→revertLook). */
+export function lookPreviewPending() { return !!lookOrig; }
 /* campi cambiati DA PAGARE: diversi dall'originale, escluso "togliere il cappello" (gratis) */
 export function lookPaidFields(orig, cur, fields) { return fields.filter(f => cur[f] !== orig[f] && !(f === 'hatStyle' && cur[f] === 'none')); }
 function changedPaid(fields) { return lookPaidFields(lookOrig, S.look, fields); }

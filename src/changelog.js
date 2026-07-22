@@ -2,7 +2,8 @@
 export const CHANGELOG = [
   {
     v: 'v0.83', it: [
-      'COSMETICI in arrivo: preparate le FORME di maglia (Maglietta · Canottiera · Camicia · Felpa) e di pantaloni (Lunghi · Corti · Gonna · Salopette) — il personaggio le disegna già in tutte le viste; presto le sceglierai in Sartoria/editor (colore + forma) e saranno premi Oro/Platino dei trofei',
+      'VESTITI a FORME: in Sartoria (e nell\'editor) scegli la FORMA oltre al colore — maglia (Maglietta · Canottiera · Camicia · Felpa) e pantaloni (Pantaloni · Pantaloncini · Gonna · Salopette)',
+      'FIX exploit: provando un cappello/vestito e RICARICANDO il browser NON te lo tieni più gratis — l\'anteprima non viene più autosalvata (paghi solo alla Conferma, come sempre)',
       'TROFEI A LIVELLI: la Sala dei Trofei ora ha 9 tracce (Scopritore, Collezionista, Genetista, Creatore, Danaroso, Archeologo, Faccendiere, Scavatore, Speleologo), ognuna a 4 gradini Bronzo · Argento · Oro · Platino (36 gradini in tutto). La coppa si colora col grado; il Platino luccica. (I cosmetici Oro/Platino arrivano nella prossima)',
       'MUSEO · Ricariche DNA: ogni specie ora mostra anche se è GIÀ RIVISSUTA e in QUANTE chimere è usato il suo DNA (oltre alle fialette nello zaino)',
       'COMPAGNI: nel selettore le CHIMERE si distinguono dai risvegli — icona 🧬, scritta "Chimera" e riga con accento viola (i risvegli restano 🐾)',
@@ -52,7 +53,8 @@ export const CHANGELOG = [
       'FIX: in DIAGONALE il compagno non gira più all\'infinito fra profilo e fronte — ora tiene il verso finché un asse non domina davvero (isteresi)',
       'IMPOSTAZIONI: Lingua e Audio in cima, le Statistiche anonime in fondo a tutto',
     ], en: [
-      'COSMETICS coming: shirt SHAPES (T-shirt · Tank · Shirt · Hoodie) and pants SHAPES (Long · Shorts · Skirt · Overalls) are in — the character already draws them in every view; soon you will pick them in the Tailor/editor (color + shape) and they become Gold/Platinum trophy rewards',
+      'CLOTHES with SHAPES: in the Tailor (and the editor) you pick the SHAPE as well as the color — shirts (T-shirt · Tank · Shirt · Hoodie) and pants (Trousers · Shorts · Skirt · Overalls)',
+      'FIX exploit: trying on a hat/outfit and REFRESHING the browser no longer keeps it for free — the preview is no longer auto-saved (you only pay on Confirm, as always)',
       'TIERED TROPHIES: the Hall of Fame now has 9 tracks (Discoverer, Collector, Geneticist, Creator, Wealthy, Archaeologist, Fixer, Digger, Spelunker), each with 4 tiers Bronze · Silver · Gold · Platinum (36 tiers total). The cup takes the tier color; Platinum sparkles. (Gold/Platinum cosmetics come next)',
       'MUSEUM · DNA refills: each species now also shows whether it has ALREADY been revived and in HOW MANY chimeras its DNA is used (besides the vials in your bag)',
       'COMPANIONS: in the picker CHIMERAS now stand out from awakened ones — 🧬 icon, "Chimera" label and a purple-accented row (awakened stay 🐾)',
