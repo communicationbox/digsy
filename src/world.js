@@ -198,7 +198,9 @@ export function townForCell(cx, cy) {
       size.defs.forEach(([type, name, dx, dy], i) => {
         /* jitter ±1 per edificio: case meno in riga; fila bassa solo verso l'alto (porte mai sul recinto) */
         const jbx = Math.floor(vhash(cx, cy, 130 + i) * 3) - 1;
-        const jby = dy < 0 ? Math.floor(vhash(cx, cy, 140 + i) * 3) - 1 : Math.floor(vhash(cx, cy, 140 + i) * 2) - 1;
+        /* fila alta: jitter ±1. Fila bassa: solo 0/+1 (VERSO IL BASSO), così la piazza centrale
+           (dove sta la fontana con l'anello) resta libera in alto e le case non invadono l'anello. */
+        const jby = dy < 0 ? Math.floor(vhash(cx, cy, 140 + i) * 3) - 1 : Math.floor(vhash(cx, cy, 140 + i) * 2);
         const bw = type === 'museum' ? 5 : 3; // il museo è GRANDE anche fuori
         const x0 = C.x + dx + jbx, y0 = C.y + dy + jby;
         B.push({ type, name, x0, y0, x1: x0 + bw - 1, y1: y0 + 1, doorx: x0 + (bw >> 1), doory: y0 + 1 });
@@ -209,69 +211,64 @@ export function townForCell(cx, cy) {
       };
       /* le città grandi hanno un parco recintato sotto la piazza (chimere risvegliate) */
       if (size.id === 'città') town.pen = { x0: C.x - 8, y0: C.y + 5, x1: C.x + 7, y1: C.y + 14 }; // 16×10 (parco grande)
-      /* strade sterrate: vialetto porta→strada per ogni casa, strada orizzontale davanti a
-         ogni fila e viale centrale che scende a sud (fino al cancello del parco nelle città) */
+      /* PIAZZA a FONTANA CENTRALE (paese/città): la fontana al centro, un ANELLO di strada che le
+         gira attorno, e da lì le strade raggiungono le porte (fila alta e bassa). Nelle città il
+         viale scende dall'anello al cancello del parco. Il BORGO (2 case) resta semplice. */
       const roads = new Set();
       const rd = (x, y) => roads.add(x + ',' + y);
-      const topRoad = C.y + Math.min(...size.defs.map(d => d[3])) + 3; // sempre sotto ogni porta (jitter incluso)
-      const botB = B.filter(b => b.y0 >= C.y), topB = B.filter(b => b.y0 < C.y);
-      const botRoad = botB.length ? C.y + 3 : null;
-      for (const [grp, ry] of [[topB, topRoad], [botB, botRoad]]) {
-        if (!grp.length) continue;
-        const xs = grp.map(b => b.doorx);
-        for (let x = Math.min(...xs); x <= Math.max(...xs); x++) rd(x, ry);
-        for (const b of grp) for (let y = b.doory + 1; y <= ry; y++) rd(b.doorx, y);
+      const topB = B.filter(b => b.y0 < C.y), botB = B.filter(b => b.y0 >= C.y);
+      let fx = null, fy = null, rL, rR, rT, rB;
+      if (size.id === 'borgo') {
+        const topRoad = C.y - 2; const xs = topB.map(b => b.doorx);
+        for (let x = Math.min(...xs); x <= Math.max(...xs); x++) rd(x, topRoad);
+        for (const b of topB) for (let y = b.doory + 1; y <= topRoad; y++) rd(b.doorx, y);
+      } else {
+        fx = C.x - 1; fy = C.y - 2;                                    // fontana 2×2 al CENTRO
+        rL = C.x - 2; rR = C.x + 1; rT = C.y - 3; rB = C.y;            // ANELLO attorno alla fontana
+        for (let x = rL; x <= rR; x++) { rd(x, rT); rd(x, rB); }
+        for (let y = rT; y <= rB; y++) { rd(rL, y); rd(rR, y); }
+        if (topB.length) { const xs = topB.map(b => b.doorx); for (let x = Math.min(rL, ...xs); x <= Math.max(rR, ...xs); x++) rd(x, rT); for (const b of topB) for (let y = b.doory + 1; y < rT; y++) rd(b.doorx, y); }
+        const botRoad = C.y + 4;                                       // sotto la fila bassa (che ora può scendere a C.y+3)
+        if (botB.length) { const xs = botB.map(b => b.doorx); for (let x = Math.min(...xs); x <= Math.max(...xs); x++) rd(x, botRoad); for (const b of botB) for (let y = b.doory + 1; y <= botRoad; y++) rd(b.doorx, y); }
+        for (let y = rB; y <= botRoad; y++) rd(C.x, y);              // viale dall'anello a sud (verso il parco nelle città)
       }
-      const spineEnd = size.id === 'città' ? C.y + 4 : (botRoad !== null ? botRoad : C.y + 2);
-      for (let y = topRoad; y <= spineEnd; y++) rd(C.x, y);
       town.roads = roads;
       /* arredo urbano: mai su edifici, davanti alle porte, sulle strade, sul corridoio del cancello o fuori piazza */
       const forb = (x, y) => {
-        /* 3 blocchi liberi davanti a ogni porta: il pg esce senza restare bloccato */
         for (const b of B) { if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) return true; if (x === b.doorx && y >= b.doory + 1 && y <= b.doory + 3) return true; }
         if (roads.has(x + ',' + y)) return true;
         if (town.pen && y === town.y1 && (x === C.x - 1 || x === C.x)) return true;
         return x < town.x0 || x > town.x1 || y < town.y0 || y > town.y1;
       };
       const decos = [];
-      if (size.id !== 'borgo') { // fontana 2x2 (nei varchi tra le colonne di case, mai sul viale)
-        const fx = size.id === 'città' ? C.x - 4 : C.x - 3, fy = size.id === 'città' ? C.y - 2 : C.y - 1;
-        let ok = true;
-        for (let xx = fx; xx <= fx + 1; xx++) for (let yy = fy; yy <= fy + 1; yy++) if (forb(xx, yy)) ok = false;
-        if (ok) decos.push({ type: 'fountain', x: fx, y: fy });
-      }
-      /* più la città è grande, più arredo: borgo 1 panchina, paese 2-3, città 3-4 + lampioni */
+      if (fx !== null) decos.push({ type: 'fountain', x: fx, y: fy });  // fontana CENTRALE (il centro è sempre libero: le case sono lontane in y)
       const occupiedByDeco = (x, y) => decos.some(d =>
         (d.type === 'fountain' && x >= d.x && x <= d.x + 1 && y >= d.y && y <= d.y + 1) || (d.x === x && d.y === y));
-      const BCH = [[-4, -1], [3, -1], [-4, 2], [3, 2], [1, 3], [-3, 3], [-6, 0], [5, 0]];
-      let nb = 0; const want = size.id === 'borgo' ? 1 : size.id === 'paese' ? 2 + (vhash(cx, cy, 151) < 0.5 ? 1 : 0) : 3 + (vhash(cx, cy, 151) < 0.5 ? 1 : 0);
-      for (let i = 0; i < BCH.length && nb < want; i++) {
-        if (vhash(cx, cy, 152 + i) < 0.35) continue; // varietà: qualche panchina salta
-        const x = C.x + BCH[i][0], y = C.y + BCH[i][1];
+      /* LAMPIONI accanto alle case (accesi di notte): uno a fianco di ogni edificio */
+      if (size.id !== 'borgo') for (const b of B) {
+        for (const [x, y] of [[b.x1 + 1, b.y1], [b.x0 - 1, b.y1]]) if (!forb(x, y) && !occupiedByDeco(x, y)) { decos.push({ type: 'lamp', x, y }); break; }
+      }
+      /* PANCHINE attorno alla fontana (guardano la piazza) o, nel borgo, davanti alle case */
+      const benchSpots = size.id === 'borgo'
+        ? [[C.x - 3, C.y - 1], [C.x + 3, C.y - 1], [C.x, C.y - 1]]
+        : [[C.x - 3, C.y - 3], [C.x + 2, C.y - 3], [C.x - 3, C.y], [C.x + 2, C.y], [C.x - 3, C.y - 1], [C.x + 2, C.y - 1]];
+      let nb = 0; const want = size.id === 'borgo' ? 1 : size.id === 'paese' ? 3 : 4;
+      for (let i = 0; i < benchSpots.length && nb < want; i++) {
+        if (vhash(cx, cy, 152 + i) < 0.25) continue;                   // varietà: qualche panchina salta
+        const [x, y] = benchSpots[i];
         if (forb(x, y) || occupiedByDeco(x, y)) continue;
         decos.push({ type: 'bench', x, y }); nb++;
-      }
-      if (size.id === 'città') for (const [lx, ly] of [[5, -1], [-6, -1], [-6, 2], [5, 2]]) { // lampioni (accesi di notte)
-        const x = C.x + lx, y = C.y + ly;
-        if (!forb(x, y) && !occupiedByDeco(x, y)) decos.push({ type: 'lamp', x, y });
       }
       for (const [bx, by] of [[size.w[0] + 1, size.h[1]], [size.w[1] - 1, size.h[1]]]) { // cespugli agli angoli bassi
         const x = C.x + bx, y = C.y + by;
         if (vhash(cx, cy, 160 + bx) < 0.55 && !forb(x, y) && !occupiedByDeco(x, y)) decos.push({ type: 'bush', x, y });
       }
-      /* CARTELLO delle missioni: prima tile libera vicino al centro della piazza (invita a tornare
-         in città), ma LONTANO dalla fontana (≥4 caselle dal suo centro): stavano appiccicati e la
-         bacheca finiva a ridosso della fontana. Le candidate a destra vincono (la fontana è a sinistra). */
+      /* CARTELLO delle missioni: LONTANO dalla fontana (ora centrale) → verso i BORDI della piazza. */
       const fnt = decos.find(d => d.type === 'fountain');
       const farFromFnt = (x, y) => !fnt || Math.max(Math.abs(x - (fnt.x + 0.5)), Math.abs(y - (fnt.y + 0.5))) >= 4;
       let board = null;
-      for (const [bx, by] of [[1, -1], [2, 0], [1, 0], [2, -1], [0, -2], [-1, -1], [-2, 0], [-1, 0], [-2, -1]]) {
-        const x = C.x + bx, y = C.y + by;
+      for (const [x, y] of [[C.x + 5, C.y - 1], [C.x - 5, C.y - 1], [C.x + 6, C.y], [C.x - 6, C.y], [C.x + 5, C.y - 2], [C.x - 5, C.y - 2], [C.x + 4, C.y], [C.x - 4, C.y], [C.x + 3, C.y - 1], [C.x - 3, C.y - 1]]) {
         if (!forb(x, y) && !occupiedByDeco(x, y) && farFromFnt(x, y)) { board = { x, y }; break; }
-      }
-      if (!board) for (const [bx, by] of [[1, -1], [2, 0], [-1, -1], [1, 0]]) {   // ripiego: almeno una posizione valida
-        const x = C.x + bx, y = C.y + by;
-        if (!forb(x, y) && !occupiedByDeco(x, y)) { board = { x, y }; break; }
       }
       town.board = board;
       if (board) decos.push({ type: 'board', x: board.x, y: board.y });
