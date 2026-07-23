@@ -65,7 +65,7 @@ export function installStubs() {
     removeItem: k => store.delete(k),
   };
   globalThis.innerWidth = 1440; globalThis.innerHeight = 900;
-  globalThis.location = { href: 'http://localhost/', search: '?nosplash', reload() {}, replace() {} };
+  globalThis.location = { href: 'http://localhost/', origin: 'http://localhost', search: '?nosplash', reload() {}, replace() {} };
   /* `window` esiste anche nei test: così si prova anche il codice che il gioco esegue solo
      nel browser (la sonda __digsy, il loop, gli agganci di boot) invece di saltarlo */
   globalThis.window = globalThis;

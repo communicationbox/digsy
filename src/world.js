@@ -161,12 +161,17 @@ export const TCELL = 62;
 export const TOWN_SIZES = [
   { id: 'borgo', w: [-6, 6], h: [-6, 3], defs: [['store', 'Negozio', -5, -5], ['inn', 'Locanda', 3, -5]] },
   {
-    id: 'paese', w: [-8, 7], h: [-7, 4], defs: [
+    /* h[1]=6 (non 4): la fila bassa (dy=1, porta a C.y+2/+3) deve avere 3 tile di piazza
+       LIBERE davanti (fin oltre C.y+5), o si esce dall'edificio dritti contro il prato/acqua
+       fuori piazza e si resta bloccati (segnalato con foto). */
+    id: 'paese', w: [-8, 7], h: [-7, 6], defs: [
       ['store', 'Negozio', -7, -6], ['lab', 'Laboratorio', 3, -6],
       ['inn', 'Locanda', -7, 1], ['barber', 'Barbiere', 3, 1]]
   },
   {
-    id: 'città', w: [-11, 13], h: [-7, 4], defs: [
+    /* h[1]=6 come il paese: 3 tile di piazza davanti alla fila bassa PRIMA del recinto del
+       parco (che ora inizia più in basso, vedi town.pen). */
+    id: 'città', w: [-11, 13], h: [-7, 6], defs: [
       ['store', 'Negozio', -10, -6], ['lab', 'Laboratorio', -1, -6], ['museum', 'Museo', 8, -6],
       /* fila bassa sfalsata: il viale centrale (x=C.x) resta sempre libero */
       ['inn', 'Locanda', -10, 1], ['barber', 'Barbiere', -4, 1], ['tailor', 'Sartoria', 4, 1]]
@@ -202,15 +207,24 @@ export function townForCell(cx, cy) {
            (dove sta la fontana con l'anello) resta libera in alto e le case non invadono l'anello. */
         const jby = dy < 0 ? Math.floor(vhash(cx, cy, 140 + i) * 3) - 1 : Math.floor(vhash(cx, cy, 140 + i) * 2);
         const bw = type === 'museum' ? 5 : 3; // il museo è GRANDE anche fuori
-        const x0 = C.x + dx + jbx, y0 = C.y + dy + jby;
+        let x0 = C.x + dx + jbx; const y0 = C.y + dy + jby;
+        /* La fontana centrale (paese/città) occupa C.x-1..C.x: se la porta di un edificio della
+           fila ALTA cadrebbe proprio sopra la vasca — capita al Laboratorio, che è al centro —
+           davanti alla porta si esce contro l'acqua. Si sposta l'edificio sul bordo DESTRO
+           dell'anello (porta a C.x+1), dove i 3 tile davanti sono strada. Vale solo per chi
+           finisce sulle colonne della vasca; gli altri (Negozio/Museo, lontani) non si toccano. */
+        if (size.id !== 'borgo' && dy < 0) { const dcx = x0 + (bw >> 1); if (dcx === C.x - 1 || dcx === C.x) x0 += (C.x + 1 - dcx); }
         B.push({ type, name, x0, y0, x1: x0 + bw - 1, y1: y0 + 1, doorx: x0 + (bw >> 1), doory: y0 + 1 });
       });
       town = {
         C, buildings: B, name: townName(cx, cy), size: size.id, key,
         x0: C.x + size.w[0], y0: C.y + size.h[0], x1: C.x + size.w[1], y1: C.y + size.h[1],
       };
-      /* le città grandi hanno un parco recintato sotto la piazza (chimere risvegliate) */
-      if (size.id === 'città') town.pen = { x0: C.x - 8, y0: C.y + 5, x1: C.x + 7, y1: C.y + 14 }; // 16×10 (parco grande)
+      /* le città grandi hanno un parco recintato sotto la piazza (chimere risvegliate).
+         y0=C.y+7 (non +5): il recinto inizia DUE tile più in basso, così la fila bassa (porta a
+         C.y+2/+3) ha 3 tile di piazza libere davanti prima della staccionata — prima si usciva
+         dall'edificio dritti contro il recinto e si restava bloccati (segnalato con foto). */
+      if (size.id === 'città') town.pen = { x0: C.x - 8, y0: C.y + 7, x1: C.x + 7, y1: C.y + 16 }; // 16×10 (parco grande)
       /* PIAZZA a FONTANA CENTRALE (paese/città): la fontana al centro, un ANELLO di strada che le
          gira attorno, e da lì le strade raggiungono le porte (fila alta e bassa). Nelle città il
          viale scende dall'anello al cancello del parco. Il BORGO (2 case) resta semplice. */
@@ -230,7 +244,8 @@ export function townForCell(cx, cy) {
         if (topB.length) { const xs = topB.map(b => b.doorx); for (let x = Math.min(rL, ...xs); x <= Math.max(rR, ...xs); x++) rd(x, rT); for (const b of topB) for (let y = b.doory + 1; y < rT; y++) rd(b.doorx, y); }
         const botRoad = C.y + 4;                                       // sotto la fila bassa (che ora può scendere a C.y+3)
         if (botB.length) { const xs = botB.map(b => b.doorx); for (let x = Math.min(...xs); x <= Math.max(...xs); x++) rd(x, botRoad); for (const b of botB) for (let y = b.doory + 1; y <= botRoad; y++) rd(b.doorx, y); }
-        for (let y = rB; y <= botRoad; y++) rd(C.x, y);              // viale dall'anello a sud (verso il parco nelle città)
+        const vialeEnd = town.pen ? town.pen.y0 : botRoad;           // nelle città il viale scende fino al cancello (pen più in basso)
+        for (let y = rB; y <= vialeEnd; y++) rd(C.x, y);             // viale dall'anello a sud (verso il parco nelle città)
       }
       town.roads = roads;
       /* arredo urbano: mai su edifici, davanti alle porte, sulle strade, sul corridoio del cancello o fuori piazza */

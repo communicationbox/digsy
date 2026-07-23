@@ -145,6 +145,14 @@
     /* Percorso ASSOLUTO dell'API (/server/), non relativo: così vale ovunque stia servita la
        pagina e non dipende da dove vive il gioco. */
     window.DIGSY_API = '/server/api';
+    /* DOVE FUNZIONA L'ACCESSO GOOGLE. Google emette il token SOLO per le "origini JavaScript
+       autorizzate" registrate nella Console (qui digsy.dev-box.it; localhost lo aggiunge il
+       codice in sviluppo). Da qualunque altra origine — l'iframe di itch, un mirror, la
+       CDN a cui itch serve il gioco a schermo intero — Google risponde con un popup di errore
+       "origin_mismatch / non conforme a OAuth 2.0". Da lì non si può fare NIENTE: le origini di
+       itch cambiano e non si possono autorizzare. Quindi su quelle origini non si mostra un
+       pulsante rotto: si spiega e si offre il link al sito vero. localhost resta sempre ok. */
+    window.DIGSY_LOGIN_ORIGINS = ['https://digsy.dev-box.it'];
   </script>
   <script type="module" src="/src/main.js"></script>
 </body>

@@ -34,8 +34,12 @@ sprites.applyLook();
     if (types.includes('tailor')) tailors++;
     for (const b of t.buildings) {
       if (b.x0 < t.x0 || b.x1 > t.x1 || b.y0 < t.y0 || b.y1 > t.y1) bad++;
+      /* 3 TILE LIBERE DAVANTI A OGNI PORTA: si esce senza restare bloccati. Prima si controllava
+         solo la prima: la seconda/terza finivano contro il recinto del parco o la fontana centrale
+         e uscendo da barbiere/sartoria/lab si restava incastrati (segnalato con foto). */
+      for (let dd = 1; dd <= 3; dd++) if (world.isSolidTile(b.doorx, b.doory + dd)) bad++;
       const below = world.townInfo(b.doorx, b.doory + 1);
-      if (!below || !below.floor || world.isSolidTile(b.doorx, b.doory + 1)) bad++;
+      if (!below || !below.floor) bad++;
       const d = world.townInfo(b.doorx, b.doory);
       if (!d || !d.door) bad++;
     }
@@ -741,6 +745,16 @@ sprites.applyLook();
   /* UNA LARGHEZZA SOLA per la colonna dei menu: se ognuno si sceglie la sua, le schermate
      "ballano" passando dall'una all'altra */
   check('design: la colonna dei menu ha una larghezza sola', /--w-menu:\s*\d+px/.test(root));
+
+  /* HUD MOBILE COLLASSATO: UNA RIGA SOLA, MAI a capo. Su telefoni stretti i 6 chip
+     (📊 🪙 ⚡ 🎒 🗺️ ☰) andavano a capo e il ☰ finiva su una seconda riga sopra il gioco,
+     coprendo i toast (segnalato con foto). La riga collassata deve restare `flex-wrap:nowrap`:
+     i chip informativi si stringono, toggle e menu no, ma nessuno scende mai a capo. */
+  const coll = (css.match(/#hud\.collapsed\{[^}]*\}/) || [''])[0];
+  check('HUD: la riga collassata non va MAI a capo (nowrap)', /flex-wrap:\s*nowrap/.test(coll));
+  check('HUD: nel collassato i chip info si stringono (flex:0 1) e toggle/menu no',
+    /#hud\.collapsed \.tag:not\(#hudtoggle\):not\(#menubtn\)\{[^}]*flex:0 1/.test(css)
+    && /#hudtoggle,#menubtn\{[^}]*flex:0 0 auto/.test(css));
 }
 
 /* ---------- perché l'accesso non è riuscito ---------- */
@@ -759,6 +773,21 @@ sprites.applyLook();
   check('errore: una causa sconosciuta si mostra comunque, col suo codice',
     sp2.signInError('boh_42').includes('boh_42'));
   check('errore: senza codice non restano parentesi vuote', !/\(\s*\)/.test(sp2.signInError('')));
+
+  /* L'ACCESSO GOOGLE VA OFFERTO SOLO DOVE FUNZIONA. Dall'iframe di itch (origine diversa)
+     Google risponde con origin_mismatch: mostrare il pulsante lì porta dritti a quell'errore.
+     localhost (sviluppo) è sempre buono; un'origine fuori lista no. */
+  const savedOrigin = globalThis.location.origin;
+  const savedList = globalThis.window.DIGSY_LOGIN_ORIGINS;
+  globalThis.location.origin = 'http://localhost';
+  check('login: localhost è sempre autorizzato (sviluppo)', sp2.loginOriginAllowed() === true);
+  globalThis.window.DIGSY_LOGIN_ORIGINS = ['https://digsy.dev-box.it'];
+  globalThis.location.origin = 'https://digsy.dev-box.it';
+  check('login: il sito vero è autorizzato', sp2.loginOriginAllowed() === true);
+  globalThis.location.origin = 'https://v6p9d9t4.ssl.hwcdn.net';
+  check('login: l\'origine di itch NON è autorizzata (niente pulsante rotto)', sp2.loginOriginAllowed() === false);
+  globalThis.location.origin = savedOrigin;
+  globalThis.window.DIGSY_LOGIN_ORIGINS = savedList;
 }
 
 /* ---------- il collegamento a Discord ---------- */

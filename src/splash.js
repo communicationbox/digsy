@@ -118,6 +118,30 @@ export function slotConfirmLabel(n) {
   return tr('Sovrascrivi', 'Overwrite') + ' ' + tr('g', 'd') + (d.day || 1) + '?';
 }
 
+/* L'ACCESSO GOOGLE FUNZIONA SOLO DALLE ORIGINI AUTORIZZATE.
+ *
+ * Google rilascia il token unicamente per le "origini JavaScript" registrate nella Console.
+ * Da un'altra origine — l'iframe di itch (html.itch.zone), la CDN dello schermo intero, un
+ * mirror qualunque — la finestra di Google si chiude con «Accesso bloccato: origin_mismatch»
+ * (l'errore che il giocatore chiama "non compatibile con OAuth 2.0"). E non c'è config che
+ * tenga: le origini di itch cambiano, autorizzarle è impossibile.
+ *
+ * Quindi lì NON si mostra un pulsante che porta a quell'errore: si riconosce l'origine e si
+ * spiega, con il link al sito vero (dove il login va). La lista sta in index.html
+ * (window.DIGSY_LOGIN_ORIGINS); localhost è sempre buono (in sviluppo è tra le autorizzate). */
+export function loginOriginAllowed() {
+  if (typeof location === 'undefined') return true;
+  const o = location.origin || '';
+  if (/^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/i.test(o)) return true;
+  const list = (typeof window !== 'undefined' && window.DIGSY_LOGIN_ORIGINS) || [];
+  return Array.isArray(list) && list.includes(o);
+}
+/* la prima origine autorizzata (il sito vero), per mandarci chi gioca da itch */
+function loginHomeUrl() {
+  const list = (typeof window !== 'undefined' && window.DIGSY_LOGIN_ORIGINS) || [];
+  return (Array.isArray(list) && list[0]) || 'https://digsy.dev-box.it';
+}
+
 /* carica lo script di Google una volta sola, e solo se serve */
 function loadGoogle() {
   if (typeof document === 'undefined') return Promise.resolve(false);
@@ -166,6 +190,9 @@ export async function openAccount() {
   acc.user = me;
   buildMenu(inGameMode);
   if (me) return;
+  /* origine non autorizzata (itch e simili): niente pulsante Google — porterebbe dritto al
+     popup di errore di Google. buildMenu mostra già la spiegazione + il link al sito vero. */
+  if (!loginOriginAllowed()) return;
   const ok = await loadGoogle();
   if (!ok || !window.google || !window.google.accounts) {
     acc.msg = tr('Google non raggiungibile. Riprova più tardi.', 'Google is unreachable. Try again later.');
@@ -518,6 +545,12 @@ function buildMenu(inGame) {
         h += `<button class="sp-btn" id="sp-signout">${tr('Esci dall\'account', 'Sign out')}</button>`;
         h += `<button class="sp-btn danger" id="sp-delacc">${tr('Cancella account e partite', 'Delete account and games')}</button>`;
       }
+    } else if (!loginOriginAllowed()) {
+      /* itch e altre origini non autorizzate: il login Google qui dà solo l'errore di Google.
+         Lo si DICE e si offre il link al sito vero, dove funziona. Intanto si gioca in locale. */
+      const home = loginHomeUrl();
+      h += `<p class="sp-acc-st">${tr('Qui il gioco è incorporato (itch.io), e Google non permette l\'accesso da un indirizzo diverso dal sito. La partita resta salvata su questo dispositivo.', 'Here the game is embedded (itch.io), and Google won\'t allow sign-in from an address other than the site. Your game stays saved on this device.')}</p>`;
+      h += `<p class="sp-acc-note"><a href="${esc(home)}" target="_blank" rel="noopener">${tr('Apri il gioco su digsy.dev-box.it per il salvataggio in cloud', 'Open the game on digsy.dev-box.it for cloud save')}</a></p>`;
     } else {
       h += `<p class="sp-acc-st">${tr('Entra e ritrovi la stessa partita sul telefono e sul computer. Il salvataggio viene copiato su digsy.dev-box.it.', 'Sign in and find the same game on your phone and computer. Your save is copied to digsy.dev-box.it.')}</p>`;
       h += `<div id="sp-gbtn"></div>`;
