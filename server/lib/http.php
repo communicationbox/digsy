@@ -3,9 +3,10 @@
  * intestazioni di sicurezza non dipendono da chi si ricorda di scriverle.
  *
  * `nosniff` impedisce al browser di indovinare il tipo di contenuto; `no-store` tiene le
- * risposte con dati personali fuori dalle cache. Nessun header CORS: il gioco è servito
+ * risposte con dati personali fuori dalle cache. Di default NIENTE CORS: il gioco è servito
  * dallo stesso dominio, e tenerlo così significa che nessun altro sito può chiamare queste
- * API col cookie del giocatore.
+ * API col cookie del giocatore — vale per TUTTI gli endpoint delle partite (login/save).
+ * L'UNICA eccezione è `corsAnon()` qui sotto, per i due endpoint pubblici e SENZA cookie.
  */
 
 function jsonOut($data, int $status = 200): void
@@ -34,6 +35,22 @@ function jsonBody(): array
 function requireMethod(string $method): void
 {
     if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== $method) jsonErr('method_not_allowed', 405);
+}
+
+/* CORS per i SOLI endpoint pubblici e ANONIMI (battito, schianti): niente cookie, niente
+ * dati personali, quindi possono essere chiamati da un'altra origine. Serve perché il gioco
+ * gira anche dentro l'iframe di itch.io (html.itch.zone), un dominio diverso da
+ * digsy.dev-box.it: senza questo il browser blocca il POST e non arriva nessun dato.
+ * `*` e NESSUN Allow-Credentials: è la coppia origin-jolly + credenziali che aprirebbe un
+ * buco; senza le credenziali un altro sito non può portarsi dietro il cookie del giocatore.
+ * Va chiamata PRIMA di requireMethod: la preflight è un OPTIONS, non un POST. */
+function corsAnon(): void
+{
+    header('Access-Control-Allow-Origin: *');
+    header('Access-Control-Allow-Methods: POST, OPTIONS');
+    header('Access-Control-Allow-Headers: Content-Type');
+    header('Access-Control-Max-Age: 86400');
+    if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'OPTIONS') { http_response_code(204); exit; }
 }
 
 /* utente collegato, o 401: gli endpoint che toccano le partite passano tutti da qui */

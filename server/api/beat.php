@@ -25,6 +25,9 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/ratelimit.php';
 
+/* il gioco gira anche nell'iframe di itch (origine diversa): apre il CORS e risponde alla
+   preflight. Anonimo e senza cookie, quindi si può — vedi corsAnon() in lib/http.php */
+corsAnon();
 requireMethod('POST');
 /* endpoint pubblico: stesso freno degli altri, o diventa un modo per riempire un disco */
 if (!rateLimitOk('beat:' . clientIp(), 30)) jsonErr('too_many', 429);

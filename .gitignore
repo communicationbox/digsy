@@ -8,3 +8,6 @@ dist/
 server/config.php
 server/data/
 .shots/
+
+# zip build itch — rigenerabile con itch/itch-build.sh
+itch/*.zip

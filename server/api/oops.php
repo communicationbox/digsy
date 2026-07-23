@@ -18,6 +18,9 @@ require_once __DIR__ . '/../lib/db.php';
 require_once __DIR__ . '/../lib/http.php';
 require_once __DIR__ . '/../lib/ratelimit.php';
 
+/* anche gli schianti arrivano dall'iframe di itch (origine diversa): CORS + preflight,
+   anonimo e senza cookie — vedi corsAnon() in lib/http.php */
+corsAnon();
 requireMethod('POST');
 /* è un endpoint pubblico come quello dell'accesso: stesso freno, o diventa un modo per
    riempire il disco di qualcun altro */

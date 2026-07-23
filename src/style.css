@@ -657,10 +657,14 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
    della riga di icone) e ogni pulsante la riempie; il testo troppo lungo si accorcia con i
    puntini invece di allargare tutto. Le eccezioni sono `.small` (Salva/Carica dentro le
    righe) e i pulsanti dei segmenti, che vivono in orizzontale. */
+/* flex-center, NON testo inline: con l'inline il testo si appoggiava in basso (l'icona alta
+   1.2em alza il line-box) e `overflow:hidden` TAGLIAVA le code g/y — "Sign"→"Sian",
+   "Settings"→"Settinas". align-items:center centra la riga, le code stanno dentro. gap al posto
+   dello spazio icona↔testo. overflow:hidden resta (bordo arrotondato). */
 .sp-btn{font-family:inherit;font-weight:800;font-size:var(--fs-md);padding:10px 26px;border:none;border-radius:var(--r-3);cursor:pointer;
   background:var(--c-teal);color:#fff;box-shadow:0 4px 0 var(--c-teal-sh);
   width:var(--w-menu);max-width:88vw;box-sizing:border-box;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  display:flex;align-items:center;justify-content:center;gap:.4em;overflow:hidden;white-space:nowrap}
 .sp-btn.primary{background:var(--c-amber);color:var(--c-dark);box-shadow:0 5px 0 var(--c-amber-sh);font-size:var(--fs-lg);padding:13px 34px;animation:spPulse 1.7s ease-in-out infinite}
 .sp-btn.danger{background:var(--c-clay);box-shadow:0 4px 0 var(--c-clay-sh)}
 /* dentro le righe (Salva/Carica, ON/OFF) i pulsanti si stringono sul contenuto:
