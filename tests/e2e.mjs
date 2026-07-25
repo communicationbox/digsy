@@ -330,6 +330,41 @@ const PROBE = `
     if(enTag) enTag.classList.remove('low');
   }
 
+  /* CREAZIONE PERSONAGGIO: il Digsy deve restare IN VISTA mentre si scorrono le impostazioni.
+     Prima l'anteprima stava in cima e usciva dallo schermo al primo scroll: si sceglieva il
+     colore dei capelli senza vedere su chi finiva, e su telefono succedeva subito.
+     Una foto ferma non lo dimostra — la si scatta a scorrimento zero, dove tutto sembra a
+     posto. Qui si scorre DAVVERO fino in fondo e si guarda dov'è finita l'anteprima. */
+  function editorSticky(cb){
+    var G8=window.__digsy||{};
+    if(!G8.openEditor){ cb(); return; }
+    G8.openEditor();
+    setTimeout(function(){
+      var sb=document.querySelector('#modal .sb');
+      var band=document.querySelector('.ed-stick');
+      var prev=document.getElementById('prevCv');
+      if(!sb||!band||!prev){ A('editor: anteprima e corpo esistono', false, 'elementi assenti'); if(G8.closeModal) G8.closeModal(); cb(); return; }
+      A('editor: una sola area che scorre', getComputedStyle(band).position==='sticky',
+        'ed-stick position=' + getComputedStyle(band).position);
+      /* lo sticky si aggancia al PADDING BOX del contenitore che scorre, non al suo bordo:
+         confrontando col bordo restava sempre fuori di quanto vale il padding di .sb */
+      var sbTop = sb.getBoundingClientRect().top + parseFloat(getComputedStyle(sb).paddingTop||0);
+      sb.scrollTop = sb.scrollHeight;                       // fino in fondo alle impostazioni
+      var br = band.getBoundingClientRect(), pr = prev.getBoundingClientRect();
+      A('editor: scorrendo fino in fondo il Digsy resta in vista',
+        pr.height > 8 && pr.bottom <= H + 1 && pr.top >= -1,
+        'anteprima ' + Math.round(pr.top) + '..' + Math.round(pr.bottom) + ' su ' + H);
+      A('editor: anteprima appesa in cima al corpo', Math.abs(br.top - sbTop) <= 2,
+        Math.round(br.top) + ' vs ' + Math.round(sbTop));
+      A('editor: le impostazioni sono scorse davvero', sb.scrollTop > 40, 'scrollTop ' + Math.round(sb.scrollTop));
+      /* e non deve mangiarsi lo schermo: appiccicata a grandezza piena resterebbe una fessura */
+      A('editor: la fascia non occupa più di un terzo dello schermo', br.height <= H / 3,
+        Math.round(br.height) + '/' + H);
+      if(G8.closeModal) G8.closeModal();
+      cb();
+    }, 120);
+  }
+
   /* MONETE nell'intestazione: aperto un pannello l'HUD sparisce sotto, e senza questo chip
      non si sa più quanto si può spendere mentre si compra. Deve stare nello schermo, su
      una riga, e non farsi spingere fuori dal nome della città. */
@@ -520,7 +555,7 @@ const PROBE = `
           try { G4.frame(1500); } catch(e){ errCount++; out.push('FAIL | crash disegnando la grotta | '+e.message); }
           G4.leaveCave();
           A('la grotta si disegna senza crash', errCount===before, errCount-before+' errori');
-          coinsHead(function(){ tapMove(function(){ floatStick(cb); }); });
+          coinsHead(function(){ tapMove(function(){ floatStick(function(){ editorSticky(cb); }); }); });
         }, 120); });
         return;
       }

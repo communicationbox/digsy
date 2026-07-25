@@ -946,7 +946,9 @@ export function grantStarterGift() {
   const it = makeRaw('prati', 0, 'leggendario', 'any');
   S.raw.push(it); // GREZZO (non identificato): lo consegni al museo per imparare il riconoscimento
   save(); updateHUD();
-  toast('✨ ' + tr('Il dono del nonno: un fossile leggendario da identificare al museo!', "Grandpa's gift: a legendary fossil to identify at the museum!"));
+  /* niente toast: il regalo lo si è appena visto arrivare nell'intro, e il tutorial ricorda
+     da solo che va portato al Museo. Un avviso che scorre via nei primi secondi si somma agli
+     altri e li rende tutti rumore. */
 }
 export function sellItem(uid) { const i = S.items.findIndex(x => x.uid === uid); if (i < 0) return; const it = S.items[i]; S.coins += it.val; S.items.splice(i, 1); playSfx('coin'); save(); updateHUD(); }
 export function sellAll() { let g = 0; S.items.forEach(it => g += it.val); S.coins += g; const n = S.items.length; S.items = []; if (n) playSfx('coin'); save(); updateHUD(); return { g, n }; }
@@ -1036,7 +1038,11 @@ export function restInn() {
 /* RISTORI — l'energia era una risorsa finta: 15🪙 fissi e ristori illimitati significavano
    che nessuna giornata poteva mai andare storta. Ora il fornaio ne ha pochi al giorno e il
    prezzo sale a ogni acquisto: la seconda metà di giornata va pianificata, non comprata. */
-export const SNACK_BASE = 15, SNACK_STEP = 12, SNACK_MAX_DAY = 4;
+/* 20 e non 15: la pala costa 15, e nel tutorial il primo obiettivo è mettere insieme
+   ESATTAMENTE quella cifra. Con due cose diverse allo stesso prezzo sullo stesso bancone si
+   compra il ristoro credendo di comprare la pala, e il tutorial resta fermo senza colpa di
+   nessuno. Prezzi: 20 · 32 · 44 · 56. */
+export const SNACK_BASE = 20, SNACK_STEP = 12, SNACK_MAX_DAY = 4;
 function snackDayReset() { if (S.snackDay !== S.day) { S.snackDay = S.day; S.snackBought = 0; } }
 export function snacksLeftToday() { snackDayReset(); return Math.max(0, SNACK_MAX_DAY - (S.snackBought || 0)); }
 export function snackPrice() { snackDayReset(); return SNACK_BASE + SNACK_STEP * (S.snackBought || 0); }

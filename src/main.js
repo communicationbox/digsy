@@ -291,6 +291,9 @@ if (typeof window !== 'undefined') {
       openMap: u.openMap, closeMap: u.closeMap, openGuide: u.openGuide, openWonderBook: u.openWonderBook,
       openLetters: u.openLetters, openAchievements: u.openAchievements, closeModal: u.closeModal,
       openQuests: u.openQuests, updateHUD: u.updateHUD,
+      /* l'EDITOR del personaggio: si apre solo alla primissima partita, quindi senza questa
+         riga non c'era modo di fotografarlo né di farlo disegnare da un test (regola 9) */
+      openEditor: () => u.openEditor(() => {}),
       splashView: (v) => import('./splash.js').then(sp => sp.setView && sp.setView(v)),
       /* entrare/uscire dalle scene: serve agli e2e per DISEGNARLE davvero. Una regressione
          negli interni era passata inosservata perché nessun test ci entrava mai. */

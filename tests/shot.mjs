@@ -9,6 +9,7 @@
  *   npm run shot                  → la schermata iniziale
  *   npm run shot -- settings      → le impostazioni
  *   npm run shot -- saves 390,844 → i salvataggi, su telefono
+ *   npm run shot -- editor 390,844 → la creazione del personaggio, su telefono
  *
  * Le viste sono quelle di splash.js: main · saves · stats · settings · trophies · changelog
  * · credits · account. La foto finisce in `.shots/<vista>.png`.
@@ -61,6 +62,9 @@ async function main() {
        l'HUD com'era CON LA SPLASH DAVANTI — cioè con tutto quello che si nasconde sotto un menu
        aperto ancora nascosto (la lista del tutorial ci è sparita per intero). */
     if (${JSON.stringify(vista)} === 'gioco') { if(sp) sp.classList.add('off'); if(G.updateHUD) G.updateHUD(); }
+    /* 'editor' = la creazione del personaggio: si vede una volta sola nella vita di una
+       partita, ed è esattamente per questo che va guardata di proposito */
+    else if (${JSON.stringify(vista)} === 'editor') { if(sp) sp.classList.add('off'); if(G.openEditor) G.openEditor(); }
     else {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});

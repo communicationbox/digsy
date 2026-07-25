@@ -1492,7 +1492,10 @@ sprites.applyLook();
 
   // ristoro: va nello zaino, si usa dopo
   {
-    S.coins = 20; S.snacks = 0; S.energy = 5; S.maxEnergy = 30;
+    /* il prezzo si legge da SNACK_BASE, non si riscrive qui: era murato a 15 e alzandolo a 20
+       (per non confonderlo con la pala nel tutorial) cadeva un test che col ristoro non
+       c'entrava niente — diceva "energia INTATTA" e falliva sulle monete */
+    S.coins = gameplay.SNACK_BASE + 5; S.snacks = 0; S.energy = 5; S.maxEnergy = 30;
     gameplay.buyEnergy();
     check('ristoro comprato: zaino +1, energia INTATTA', S.snacks === 1 && S.energy === 5 && S.coins === 5);
     gameplay.eatSnack();
@@ -5032,6 +5035,41 @@ sprites.applyLook();
     check('il passo del Museo indica la porta del Museo',
       !!gMus && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gMus.x && b.doory === gMus.y));
   }
+  /* DUE COSE DIVERSE NON POSSONO COSTARE UGUALE SULLO STESSO BANCONE. Il ristoro stava a 15
+     come la pala, e il primo obiettivo del tutorial è mettere insieme esattamente 15: si
+     comprava il ristoro credendo di comprare la pala e il tutorial restava fermo. */
+  check(`il ristoro non costa quanto la pala (${gp5.SNACK_BASE} vs ${gp5.TOOL_COST.spade})`,
+    gp5.SNACK_BASE !== gp5.TOOL_COST.spade);
+
+  /* NIENTE TREMOLIO. Le targhe si appoggiano alla griglia dei PIXEL FISICI (passo 1/K), non a
+     quella dei pixel di gioco: arrotondate al pixel di gioco restano ferme per K fotogrammi e
+     poi scattano, e camminando si vede la scritta vibrare sopra la casa (regola ferrea n.2,
+     segnalata da un giocatore). Si misura sullo spostamento minimo che la camera sa fare. */
+  {
+    const rnd = await import('../src/render.js');
+    const scr = await import('../src/screen.js');
+    const K0 = scr.view.K, W0 = scr.view.W;
+    scr.view.K = 4; scr.view.W = 400;
+    const passo = 1 / scr.view.K;
+    const a = rnd.plateBox(100, 100, 40, 16);
+    const b = rnd.plateBox(100 + passo, 100 + passo, 40, 16);
+    check('la targa segue la casa a passi di 1/K, non a scatti di un pixel intero',
+      Math.abs((b.bx - a.bx) - passo) < 1e-9 && Math.abs((b.by - a.by) - passo) < 1e-9);
+    check('la targa cade esattamente sulla griglia dei pixel fisici',
+      Math.abs(a.bx * scr.view.K - Math.round(a.bx * scr.view.K)) < 1e-9
+      && Math.abs(a.by * scr.view.K - Math.round(a.by * scr.view.K)) < 1e-9);
+    /* mezzo pixel fisico NON deve muovere la targa: se la seguisse, vibrerebbe al contrario */
+    const c = rnd.plateBox(100 + passo / 4, 100, 40, 16);
+    check('sotto il mezzo pixel fisico la targa sta ferma', c.bx === a.bx);
+    scr.view.K = K0; scr.view.W = W0;
+  }
+  {
+    const fs6 = await import('node:fs');
+    const rsrc = fs6.readFileSync('src/render.js', 'utf8');
+    const body = rsrc.slice(rsrc.indexOf('export function plateBox'));
+    check('plateBox non arrotonda ai pixel di GIOCO', !/Math\.round/.test(body.slice(0, body.indexOf('\n}'))));
+  }
+
   /* saltabile, e RIFACIBILE: chi salta al primo minuto non perde l'insegnamento per sempre */
   tut.tutSkip();
   check('saltato: sparisce e non spunta niente', !tut.tutActive() && tut.tutSkipped() && tut.tutChecked(0) === false);

@@ -195,32 +195,72 @@ kbd + .pxi{margin-left:2px}
     max-width:calc(100vw - 24px);white-space:normal;text-align:center}
 }
 
-/* TUTORIAL — un obiettivo alla volta, in alto a sinistra sotto la barra.
-   Sta a SINISTRA e non al centro perché il centro è dove si guarda giocando, e una scatola
-   fissa lì diventa subito qualcosa da chiudere. Larghezza contenuta: se cresce oltre la
-   colonna diventa un muro di testo, cioè il difetto che stiamo togliendo all'intro. */
+/* TUTORIAL = LA NOTA DEL NONNO.
+   La prima versione era un rettangolo grigio con quattro righe di elenco: sembrava un pannello
+   di debug appiccicato sopra al gioco, e con quattro obiettivi scritti tutti uguali non si
+   capiva quale fosse quello da fare ADESSO. Due difetti, uno estetico e uno di guida.
+   Qui il foglio è quello delle LETTERE DEL NONNO (.letter): carta ingiallita, bordo consumato,
+   monospace. È lui che ti ha messo la pala in mano nell'intro, quindi è lui che ti dice cosa
+   fare — l'interfaccia non è un'altra voce, è la sua.
+   E si vede UNA COSA SOLA: l'obiettivo in corso, grande, con la sua icona. Gli altri tre
+   diventano quattro quadratini di avanzamento. Un elenco dice "ecco tutto quello che non hai
+   ancora fatto"; un obiettivo solo dice "fai questo". */
 #tutbox{position:absolute;left:calc(var(--sp-3) + env(safe-area-inset-left));
   top:calc(var(--hudh, 46px) + var(--sp-3) + env(safe-area-inset-top));z-index:60;
-  width:min(272px,calc(100vw - 24px));background:rgba(12,10,8,.86);border:1px solid var(--c-line);
-  border-radius:var(--r-2);padding:var(--sp-2) var(--sp-3);color:var(--c-ink);
-  font-size:var(--fs-sm);line-height:1.35;pointer-events:auto}
-#tutbox .tut-h{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
-  color:var(--c-gold);font-weight:800;font-size:var(--fs-note);letter-spacing:.08em;text-transform:uppercase}
-#tutbox .tut-skip{background:none;border:0;color:var(--c-ink-dim);font:inherit;font-size:var(--fs-note);
+  width:min(300px,calc(100vw - 24px));
+  background:#f6e7c4;color:#3b2f1e;border:2px solid #b99b63;
+  box-shadow:inset 0 0 0 1px var(--c-parch-3), 0 3px 0 rgba(0,0,0,.22), 0 6px 12px rgba(20,12,4,.28);
+  padding:var(--sp-2) var(--sp-3) var(--sp-3);
+  font-family:ui-monospace,Menlo,monospace;line-height:1.4;pointer-events:auto}
+/* la piega dell'angolo: due triangoli che fanno il risvolto della carta, come sulle lettere */
+#tutbox::after{content:'';position:absolute;right:0;bottom:0;width:12px;height:12px;
+  background:linear-gradient(315deg,#e0cda0 50%,transparent 50%);box-shadow:-1px -1px 0 #b99b63}
+
+#tutbox .tut-top{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+  border-bottom:2px solid #d8c08a;padding-bottom:5px;margin-bottom:var(--sp-2)}
+/* i quadratini: quanto manca, senza scrivere quattro righe che nessuno legge */
+#tutbox .tut-pips{display:flex;gap:4px}
+#tutbox .tut-pips i{width:14px;height:6px;background:#e0cda0;box-shadow:inset 0 0 0 1px #c2a86f}
+#tutbox .tut-pips i.ok{background:var(--c-teal);box-shadow:inset 0 0 0 1px var(--c-teal-sh)}
+#tutbox .tut-pips i.on{background:var(--c-amber);box-shadow:inset 0 0 0 1px var(--c-amber-sh)}
+#tutbox .tut-skip{background:none;border:0;color:#6b4a22;font:inherit;font-size:var(--fs-note);
   cursor:pointer;padding:2px 4px;text-decoration:underline}
-#tutbox .tut-skip:hover{color:var(--c-ink)}
-#tutbox ol{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
-#tutbox li{display:flex;gap:var(--sp-2);align-items:baseline;color:var(--c-ink-dim)}
-#tutbox li .tut-m{width:1em;flex:none;text-align:center}
-#tutbox li.on{color:var(--c-ink);font-weight:800}
-#tutbox li.ok{color:var(--c-teal);text-decoration:line-through}
-#tutbox .tut-hint{margin-top:var(--sp-2);color:var(--c-ink-2);font-size:var(--fs-note);font-weight:400}
-#tutbox .tut-bar{margin-top:var(--sp-1);height:4px;background:var(--c-panel);border-radius:2px;overflow:hidden}
-#tutbox .tut-bar i{display:block;height:100%;background:var(--c-amber)}
-/* col telefono in mano la colonna di sinistra è dove sta il pollice: il riquadro si stringe
-   e resta in alto, dove il prompt lo ha già dimostrato leggibile */
+#tutbox .tut-skip:hover{color:#3b2f1e}
+
+#tutbox .tut-main{display:flex;gap:var(--sp-3);align-items:flex-start}
+/* l'icona è il colpo d'occhio: si capisce cosa fare prima di aver letto */
+#tutbox .tut-ic{flex:none;width:34px;height:34px;display:grid;place-items:center;
+  background:var(--c-parch-3);box-shadow:inset 0 0 0 2px #c2a86f}
+#tutbox .tut-ic svg.pxi{width:22px;height:22px;color:#6b4a22 !important}
+#tutbox .tut-obj{font-weight:800;font-size:var(--fs-md);color:#6b4a22;letter-spacing:.2px}
+#tutbox .tut-how{font-size:var(--fs-sm);color:#4a3a26;margin-top:3px}
+#tutbox .tut-how svg.pxi{color:#4a3a26 !important}
+
+/* la barra: chunky e squadrata come tutto il resto, col numero DENTRO — "9/15" senza numero
+   è una barra che si riempie e basta, e non dice quanto manca */
+#tutbox .tut-bar{position:relative;margin-top:var(--sp-2);height:14px;background:#e0cda0;
+  box-shadow:inset 0 0 0 2px #c2a86f;overflow:hidden}
+#tutbox .tut-bar i{display:block;height:100%;background:var(--c-amber);
+  box-shadow:inset 0 -3px 0 var(--c-amber-sh)}
+#tutbox .tut-bar b{position:absolute;inset:0;display:grid;place-items:center;
+  font-size:var(--fs-note);font-weight:800;color:#3b2f1e}
+
+/* UN momento di movimento, e solo quello: alla chiusura di un passo il foglio scatta e
+   l'oro passa una volta sola. Chi ha appena fatto la cosa giusta deve vederselo dire. */
+@keyframes tut-pop{0%{transform:translateY(0) scale(1)}30%{transform:translateY(-3px) scale(1.03)}100%{transform:translateY(0) scale(1)}}
+@keyframes tut-glow{0%{box-shadow:inset 0 0 0 1px var(--c-parch-3), 0 3px 0 rgba(0,0,0,.22), 0 0 0 0 rgba(240,198,116,.9)}
+  100%{box-shadow:inset 0 0 0 1px var(--c-parch-3), 0 3px 0 rgba(0,0,0,.22), 0 0 0 14px rgba(240,198,116,0)}}
+#tutbox.pop{animation:tut-pop .42s cubic-bezier(.2,.9,.3,1), tut-glow .6s ease-out}
+@media(prefers-reduced-motion:reduce){#tutbox.pop{animation:none}}
+
+/* col telefono in mano il foglio si stringe e alza un po' il contrasto del corpo: si legge
+   al sole con lo schermo storto, non alla scrivania */
 @media(pointer:coarse),(max-width:760px){
-  #tutbox{width:min(240px,calc(100vw - 20px));font-size:var(--fs-note)}
+  #tutbox{width:min(258px,calc(100vw - 20px));padding:6px var(--sp-2) var(--sp-2)}
+  #tutbox .tut-ic{width:28px;height:28px}
+  #tutbox .tut-ic svg.pxi{width:18px;height:18px}
+  #tutbox .tut-obj{font-size:var(--fs-sm)}
+  #tutbox .tut-how{font-size:var(--fs-note)}
 }
 
 /* console comandi (tipo Minecraft): si apre col tasto \ */
@@ -366,6 +406,23 @@ body:has(#cmd.on) #touch{display:none!important}
 .edcol{width:360px;max-width:100%;margin:0 auto;display:flex;flex-direction:column;gap:7px}
 .edcol .bighead{margin:6px 0 0}
 .edcol .prev{width:100%}
+/* IL DIGSY RESTA APPESO IN CIMA mentre si scorrono le impostazioni. I margini negativi
+   pareggiano il padding di `.sb` così la fascia arriva ai bordi del foglio e il contenuto
+   le passa sotto senza trasparire. `top:0` la incolla appena sotto l'intestazione, che è
+   già sticky per conto suo. */
+.ed-stick{position:sticky;top:0;z-index:4;margin:-14px -14px 10px;padding:10px 14px 8px;
+  background:var(--c-ink);box-shadow:0 3px 0 rgba(107,81,55,.16)}
+.ed-stick .prev{display:block;margin:0 auto}
+/* su telefono l'anteprima si rimpicciolisce: appiccicata a grandezza piena si mangerebbe
+   metà schermo e resterebbe una fessura per le impostazioni — cioè il problema di prima al
+   contrario. Piccola ma sempre lì. */
+@media(max-width:760px),(pointer:coarse){
+  .ed-stick{margin:-14px -14px 8px;padding:8px 14px 6px}
+  .ed-stick .prev{width:min(230px,62vw)}
+}
+@media(max-height:700px){
+  .ed-stick .prev{width:min(200px,52vw)}
+}
 .nameinput{font:700 16px ui-monospace,Menlo,monospace;padding:9px 12px;border-radius:9px;border:2px solid var(--c-line);background:#efe6d4;color:#2a2016;width:100%;text-align:center}
 .btn.wide{width:100%;justify-content:center}
 .nameinput:focus{outline:none;border-color:var(--c-amber)}

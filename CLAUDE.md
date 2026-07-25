@@ -76,7 +76,7 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   caselle esauribili (`dugSet` salvato). Reperti grezzi → **Laboratorio** identifica → codex.
   **Scavo animato** (~0.5s, `P.digging` + `beginDig/stepDig` nel loop): piccone alzato/colpo,
   terra che schizza, movimento bloccato, esito alla risoluzione (vale anche per i siti).
-- **Negozio**: vendi reperti; **ristoro** 15🪙 → va nello ZAINO (`S.snacks`, +15⚡ quando lo usi);
+- **Negozio**: vendi reperti; **ristoro** 20🪙 (mai quanto la pala: nel tutorial si confondono) → va nello ZAINO (`S.snacks`, +15⚡ quando lo usi);
   **mappe del tesoro** (raro 🪙40 / eccezionale 🪙130 / leggendario 🪙480, `MAP_COST/MAP_DIST`):
   X scavabile lontana (più raro = più lontano), reperto GARANTITO di quella rarità, X rossa
   disegnata a terra (`drawXmark`), mappa consumata allo scavo. **Locanda** (dormi → alba, +1 giorno).

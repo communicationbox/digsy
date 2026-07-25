@@ -2,10 +2,20 @@
 export const CHANGELOG = [
   {
     v: 'v0.85', it: [
+      'TUTORIAL rifatto: è la NOTA DEL NONNO — la carta ingiallita delle sue lettere, con UN SOLO obiettivo alla volta, grande e con la sua icona; gli altri tre diventano quadratini di avanzamento e la barra porta il numero dentro. Prima era un riquadro grigio con quattro righe tutte uguali, e non si capiva quale fosse quella da fare adesso',
+      'CREAZIONE PERSONAGGIO: il Digsy resta SEMPRE in vista mentre scorri le impostazioni — prima usciva dallo schermo al primo scorrimento e sceglievi i capelli senza vedere su chi finivano. Su telefono l\'anteprima si rimpicciolisce invece di mangiarsi lo schermo',
+      'FIX targhe che tremavano camminando: erano agganciate alla griglia dei pixel di GIOCO invece che a quella dei pixel FISICI, quindi restavano ferme per qualche fotogramma e poi scattavano di un pixel intero',
+      'RISTORO da 15 a 20 🪙: costava esattamente quanto la pala, e nel tutorial si finiva per comprare l\'uno al posto dell\'altra',
+      'Via i messaggi che scorrevano nei primi secondi (benvenuto, elenco dei tasti, dono del nonno): adesso c\'è il tutorial, che dice cosa fare e resta lì finché non l\'hai fatto',
       'TUTORIAL D\'APERTURA: quattro obiettivi, uno alla volta, con la spunta quando è fatto — raccogli roba da terra → vendi al Negozio e compra la pala → scava → porta il reperto al Museo. È il ciclo vero del gioco in due minuti, e c\'è una FRECCIA che indica dove andare (la cosa da raccogliere più vicina, la porta del Negozio, quella del Museo). Si salta quando vuoi e si rifà dalla Guida',
       'TARGHE SULLE CASE: quando devi entrare da qualche parte, ogni edificio della piazza mostra sopra il tetto cosa fa (Negozio · vendi e compri, Museo · identifica…) e quello dove devi andare si accende d\'oro. Prima c\'erano sei insegne a icone che a un giocatore nuovo non dicevano niente',
       'INTRO PIÙ CORTA: da 16 battute a 5. Quasi tutti la saltavano, e saltandola si perdevano anche le cose che servivano davvero: ora quelle le insegna il tutorial facendotele fare. Anche la macchina da scrivere è più svelta',
     ], en: [
+      'TUTORIAL REDESIGNED: it is now GRANDPA\'S NOTE — the same yellowed paper as his letters, with ONE objective at a time, large and with its own icon; the other three become progress pips and the bar carries the number inside. Before it was a grey box with four identical lines and you could not tell which one to do now',
+      'CHARACTER CREATION: your Digsy now stays in view while you scroll the settings — before it scrolled off screen and you picked hair without seeing who was wearing it. On phones the preview shrinks instead of eating the screen',
+      'FIX signs that shook while walking: they were snapped to the GAME pixel grid instead of the PHYSICAL one, so they held still for a few frames and then jumped a whole pixel',
+      'SNACK from 15 to 20 coins: it cost exactly what the spade costs, and during the tutorial people bought one instead of the other',
+      'Gone: the messages that scrolled past in the first seconds (welcome, key list, grandpa\'s gift). The tutorial says what to do now, and it stays until you have done it',
       'OPENING TUTORIAL: four objectives, one at a time, ticked off as you do them — gather things off the ground → sell at the Shop and buy the spade → dig → take your find to the Museum. It is the game\'s real loop in two minutes, with an ARROW pointing where to go (nearest thing to pick up, the Shop door, the Museum door). Skippable any time, and redoable from the Guide',
       'BUILDING SIGNS: when you need to walk into somewhere, every building on the plaza shows what it does above its roof (Shop · sell and buy, Museum · identifies…) and the one you want lights up gold. Before, six icon signs told a new player nothing',
       'SHORTER INTRO: from 16 lines to 5. Almost everyone skipped it, and skipping it also lost the parts that mattered: the tutorial now teaches those by having you do them. The typewriter is quicker too',

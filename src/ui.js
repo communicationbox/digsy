@@ -84,20 +84,24 @@ function syncModalCoins() {
 /* TUTORIAL: la lista degli obiettivi, ridisegnata a ogni giro d'HUD. Il testo non sta
    nell'HTML ma qui, perché deve cambiare lingua e mostrare il tasto giusto per il dispositivo
    (su un telefono il tasto E non esiste). */
+/* un'icona per obiettivo: si capisce cosa fare prima di aver letto la riga */
+const TUT_ICON = { pick: '🌾', shop: '🏪', dig: '🪏', museum: '🏛️' };
 function syncTutorial() {
   const box = document.getElementById('tutbox'); if (!box || !box.style) return;
   if (!tutActive() || splashOpen()) { box.style.display = 'none'; return; }
   const cur = tutIndex(), id = tutStepId(), p = tutProgress();
-  let h = `<div class="tut-h"><span>${tr('Per cominciare', 'To get started')}</span>`
-    + `<button class="tut-skip" id="tut-skip" type="button">${tr('salta', 'skip')}</button></div><ol>`;
-  STEP_IDS.forEach((sid, i) => {
-    const ok = tutChecked(i), on = i === cur;
-    h += `<li class="${ok ? 'ok' : on ? 'on' : ''}"><span class="tut-m">${ok ? '✓' : on ? '▸' : '·'}</span><span>${tutTitle(sid)}</span></li>`;
-  });
-  h += '</ol>';
-  if (id) h += `<div class="tut-hint">${tutHint(id)}</div>`;
+  /* i quadratini dicono a che punto sei senza scrivere l'elenco di tutto quello che non hai
+     ancora fatto: quello faceva sembrare il tutorial più lungo di quanto è */
+  let h = '<div class="tut-top"><span class="tut-pips">'
+    + STEP_IDS.map((sid, i) => `<i class="${tutChecked(i) ? 'ok' : i === cur ? 'on' : ''}"></i>`).join('')
+    + `</span><button class="tut-skip" id="tut-skip" type="button">${tr('salta', 'skip')}</button></div>`;
+  h += `<div class="tut-main"><span class="tut-ic">${TUT_ICON[id] || '📜'}</span><div>`
+    + `<div class="tut-obj">${tutTitle(id)}</div><div class="tut-how">${tutHint(id)}</div></div></div>`;
   /* la barra solo quando c'è davvero qualcosa da contare: un "1 su 1" è rumore */
-  if (p.need > 1) h += `<div class="tut-bar"><i style="width:${Math.max(2, Math.round(p.have / p.need * 100))}%"></i></div>`;
+  if (p.need > 1) {
+    const pc = Math.max(3, Math.min(100, Math.round(p.have / p.need * 100)));
+    h += `<div class="tut-bar"><i style="width:${pc}%"></i><b>${p.have} / ${p.need} 🪙</b></div>`;
+  }
   box.innerHTML = withIcons(h);
   box.style.display = '';
   const sk = document.getElementById('tut-skip');
@@ -115,6 +119,14 @@ export function announceTutStep() {
   if (tutDone()) { toast('🎓 ' + tr('Hai finito il tutorial. Da qui in poi decidi tu.', 'Tutorial complete. From here on it is up to you.')); playSfx('found'); return; }
   const id = tutStepId(); if (!id) return;
   toast('✓ ' + tr('Fatto. Ora: ', 'Done. Now: ') + tutTitle(id)); playSfx('found');
+  /* il foglio scatta una volta: senza, l'obiettivo cambia in silenzio in un angolo dello
+     schermo proprio nell'istante in cui il giocatore ha fatto la cosa giusta */
+  const box = document.getElementById('tutbox');
+  if (box && box.classList) {
+    box.classList.remove('pop');
+    if (typeof requestAnimationFrame === 'function') requestAnimationFrame(() => box.classList.add('pop'));
+    else box.classList.add('pop');
+  }
 }
 
 export function updateHUD() {
@@ -243,14 +255,13 @@ export function showBanner(html, ms = 2600) {
   document.body.appendChild(b);
   setTimeout(() => { if (b.classList) b.classList.add('out'); setTimeout(() => b.remove(), 400); }, ms);
 }
-export function welcomeToasts() {
-  const nm = S.name || 'Digsy';
-  const mob = isTouch();
-  setTimeout(() => toast(tr('Benvenuto, ' + nm + '! Il primo tesoro del nonno è nel tuo zaino ⛏️', 'Welcome, ' + nm + "! Grandpa's first treasure is in your bag ⛏️")), 400);
-  setTimeout(() => toast(mob
-    ? tr('Joystick per muoverti · A per interagire · 📖 e 🎒 in alto', 'Joystick to move · A to interact · 📖 and 🎒 up top')
-    : tr('WASD/frecce per muoverti · E scava o entra · I zaino · L libro', 'WASD/arrows to move · E dig or enter · I bag · L book')), 2100);
-}
+/* I TOAST DI BENVENUTO NON CI SONO PIÙ, e la funzione resta vuota apposta (la chiama il boot).
+   Erano due messaggi che scorrevano da soli nei primi due secondi: uno diceva del regalo del
+   nonno, l'altro elencava i tasti. Adesso il TUTORIAL dice cosa fare, con l'obiettivo in
+   chiaro e il tasto giusto per il dispositivo, e resta lì finché non l'hai fatto. Due righe
+   che spariscono da sole mentre stai ancora capendo dove sei non insegnano niente: coprono
+   solo il primo momento di gioco. I comandi restano nella Guida (zaino → ❔). */
+export function welcomeToasts() { /* volutamente vuota: la guida d'apertura è il tutorial */ }
 
 /* ---------- modale ---------- */
 const modal = document.getElementById('modal'), mBody = document.getElementById('m-body'), mTitle = document.getElementById('m-title');
@@ -1595,8 +1606,14 @@ export function openEditor(onDone) {
   modal.classList.add('opaque'); // sfondo nero: la città non si vede dietro l'editor
   if (!S.name) S.name = randomName();                         // parte con un nome a caso, modificabile
   mTitle.innerHTML = withIcons('🎨 ' + tr('Crea il tuo Digsy', 'Create your Digsy'));
-  /* anteprima, nome e "personaggio casuale" nella STESSA colonna: bordi allineati */
-  let h = `<div class="edcol"><canvas id="prevCv" width="60" height="22" class="prev"></canvas>`;
+  /* L'ANTEPRIMA RESTA IN VISTA MENTRE SI SCORRE. Stava in cima alla colonna e usciva dallo
+     schermo al primo scroll: si sceglieva il colore dei capelli senza vedere il personaggio
+     su cui finiva — e su telefono, dove ci sta poco, succedeva subito.
+     È `position:sticky`, non un secondo riquadro che scorre per conto suo: due aree che
+     scorrono una dentro l'altra sono la regola ferrea n.14, e col dito si muove sempre quella
+     sbagliata. Scorre una cosa sola, e il Digsy ci resta appeso sopra. */
+  let h = '<div class="ed-stick"><canvas id="prevCv" width="60" height="22" class="prev"></canvas></div>';
+  h += `<div class="edcol">`;
   h += `<div class="bighead">${tr('Nome', 'Name')}</div>`;
   h += `<input id="pgname" class="nameinput" maxlength="14" value="${(S.name || '').replace(/["<>&]/g, '')}" placeholder="${tr('Nome', 'Name')}">`;
   h += `<button class="btn amber wide" id="rndAll">🎲 ${tr('Personaggio casuale', 'Random character')}</button></div>`;

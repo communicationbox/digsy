@@ -33,7 +33,7 @@ tipo di collezionabile o un nuovo NPC con funzioni proprie. Se il dubbio esiste,
      notte**, l'eccezionale di roccia si stacca **solo in una stagione**. Le finestre stanno
      di proposito su specie che hanno già una fonte dedicata, così scavando la terra ogni
      rarità resta raggiungibile a qualsiasi ora e il pity timer non resta mai a secco.
-2. ✅ **Attrito sull'energia** — ristori a prezzo crescente (15 · 27 · 39 · 51) e **4 al giorno**.
+2. ✅ **Attrito sull'energia** — ristori a prezzo crescente (20 · 32 · 44 · 56) e **4 al giorno**.
 3. ✅ **Un secondo verbo** — tavolo di preparazione al Museo (`prepare.js` + `prepui.js`):
    si spazzola la crosta, fino a ×1,5 di valore e XP. **UN pezzo per consegna**, e solo da
    raro in su: farlo su ogni reperto sarebbe una catena di montaggio, non un momento.

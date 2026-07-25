@@ -382,10 +382,6 @@ export const RU = {
   'Search the wreck 🚢 (': 'Обыскать обломки 🚢 (',
   'Pick ': 'Подобрать ',
   'Pick up ✨': 'Подобрать ✨',
-  'Joystick to move · A to interact · 📖 and 🎒 up top':
-    'Джойстик — движение · A — действие · 📖 и 🎒 сверху',
-  'WASD/arrows to move · E dig or enter · I bag · L book':
-    'WASD/стрелки — движение · E — копать или войти · I — рюкзак · L — книга',
 
   /* ---- pannello missioni ---- */
   'Your missions': 'Ваши задания',
@@ -750,8 +746,6 @@ export const RU = {
   /* ---- ultime voci (stringhe scritte con gli apici doppi nel codice) ---- */
   'drifting in mid-air': 'парящее в воздухе',
   "All of Grandpa's letters unlocked (": 'Все письма дедушки открыты (',
-  "Grandpa's gift: a legendary fossil to identify at the museum!":
-    'Подарок дедушки: легендарное ископаемое — определите его в музее!',
   "I've got one in my bag already: coming!": 'У меня уже есть одно в рюкзаке — иду!',
   "Thank you! I'll fill them all.": 'Спасибо! Я заполню их все.',
   "What's new": 'Что нового',
@@ -788,7 +782,6 @@ export const RU = {
   /* ---- intro accorciata + TUTORIAL d'apertura ---- */
   'Take it, {n}: your first treasure.': 'Держи, {n}: твоё первое сокровище.',
   "I'll find them all. And bring them back!": 'Я найду их всех. И верну их к жизни!',
-  'To get started': 'С чего начать',
   'Dig': 'Копай',
   'chimeras': 'химеры',
   'identifies': 'определяет',

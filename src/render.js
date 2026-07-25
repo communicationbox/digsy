@@ -1266,20 +1266,28 @@ function plate(sx, sy, name, sub, hot) {
   const lines = sub ? [name, sub] : [name];
   let mw = 0; for (const l of lines) mw = Math.max(mw, meas(l));
   const w = Math.ceil(mw) + 6, h = lines.length * 6 + 4;
-  let bx = Math.round(sx - w / 2);
-  bx = Math.max(2, Math.min(view.W - w - 2, bx));               // sempre dentro lo schermo
-  /* MAI SOTTO LA BARRA: l'HUD è alto ~56 px di schermo, che in px di gioco dipende dalla
-     scala. Senza questo, la targa dell'edificio più in alto finiva dietro ai tag e si leggeva
-     "…oratorio" (visto in foto). */
-  const topSafe = Math.ceil(56 / view.K) + 2;
-  const by = Math.max(topSafe, Math.round(sy - h));
-  const tip = Math.max(bx + 3, Math.min(bx + w - 3, Math.round(sx)));
+  const { bx, by } = plateBox(sx, sy, w, h);
+  const tip = Math.max(bx + 3, Math.min(bx + w - 3, snap(sx)));
   ctx.fillStyle = '#241a10'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
   ctx.fillStyle = hot ? '#f0c674' : '#f6efdd'; ctx.fillRect(bx, by, w, h);
   ctx.fillStyle = '#241a10'; ctx.fillRect(tip - 1, by + h, 2, 2);              // codina in giù
   ctx.fillStyle = '#2a2016';
-  lines.forEach((l, i) => ctx.fillText(l, Math.round(bx + (w - meas(l)) / 2), by + 2 + i * 6));
+  lines.forEach((l, i) => ctx.fillText(l, snap(bx + (w - meas(l)) / 2), by + 2 + i * 6));
   ctx.restore();
+}
+/* DOVE si appoggia la targa. Sta fuori da `plate` per una ragione sola: è la parte che si può
+   sbagliare in silenzio, e così un test la può misurare.
+   Le coordinate si arrotondano con `snap` (griglia dei PIXEL FISICI, passo 1/K) e MAI con
+   Math.round (griglia dei pixel di GIOCO, passo 1). Sono due griglie diverse: la casa scorre
+   di 1/K a ogni frame e una targa arrotondata al pixel di gioco resta ferma per K frame e poi
+   scatta di un pixel intero. È il tremolio che si vede camminando — la regola ferrea n.2 del
+   progetto, e questa è l'ennesima volta che la si viola. */
+export function plateBox(sx, sy, w, h) {
+  const bx = Math.max(2, Math.min(view.W - w - 2, snap(sx - w / 2)));   // sempre dentro lo schermo
+  /* MAI SOTTO LA BARRA: l'HUD è alto ~56 px di schermo, che in px di gioco dipende dalla
+     scala. Senza, la targa dell'edificio più in alto finiva dietro ai tag ("…oratorio"). */
+  const topSafe = Math.ceil(56 / view.K) + 2;
+  return { bx, by: Math.max(topSafe, snap(sy - h)) };
 }
 function drawTutorialGuide(time) {
   if (!tutActive()) return;
