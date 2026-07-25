@@ -56,7 +56,11 @@ async function main() {
     var sp=document.getElementById('splash'); var G=window.__digsy||{};
     /* 'gioco' fotografa il gioco vero senza menu davanti: l'HUD e le scene si guardano solo
        così, e sono la parte che il giocatore vede per tutto il tempo */
-    if (${JSON.stringify(vista)} === 'gioco') { if(sp) sp.classList.add('off'); }
+    /* e SUBITO DOPO si rinfresca la barra: in headless requestAnimationFrame non avanza, quindi
+       il giro d'HUD del game loop (ogni 2s) non arriva mai. Senza questa riga la foto ritrae
+       l'HUD com'era CON LA SPLASH DAVANTI — cioè con tutto quello che si nasconde sotto un menu
+       aperto ancora nascosto (la lista del tutorial ci è sparita per intero). */
+    if (${JSON.stringify(vista)} === 'gioco') { if(sp) sp.classList.add('off'); if(G.updateHUD) G.updateHUD(); }
     else {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});

@@ -471,11 +471,6 @@ export const RU = {
   'museum': 'музей',
   ' map': ' карта',
   /* intro: dove si porta il primo fossile */
-  'It is raw, though. You still do not know which creature it is.': 'Но он необработанный. Ты ещё не знаешь, чьи это кости.',
-  'Take it to the Museum: the experts there will identify it.': 'Отнеси его в Музей: тамошние знатоки его определят.',
-  'Every big city has a Museum. Hamlets and towns do not.': 'Музей есть в каждом большом городе. В деревушках и посёлках — нет.',
-  'And how do I find a big city?': 'А как найти большой город?',
-  'The map marks it for you: look for the pale little temple.': 'Карта его отметит: ищи светлый храмик.',
   'has a Museum': 'есть Музей',
   'wonder': 'чудо',
   'arch (travel)': 'арка (переход)',
@@ -790,6 +785,38 @@ export const RU = {
   'Drop': 'Бросить',
   'Frees the slot; your finds stay yours': 'Освобождает место; находки остаются у вас',
   'Mission dropped': 'Задание брошено',
+  /* ---- intro accorciata + TUTORIAL d'apertura ---- */
+  'Take it, {n}: your first treasure.': 'Держи, {n}: твоё первое сокровище.',
+  "I'll find them all. And bring them back!": 'Я найду их всех. И верну их к жизни!',
+  'To get started': 'С чего начать',
+  'Dig': 'Копай',
+  'chimeras': 'химеры',
+  'identifies': 'определяет',
+  'sleep': 'сон',
+  'clothes': 'одежда',
+  'hair': 'волосы',
+  'skip': 'пропустить',
+  'Gather things off the ground': 'Собери всё, что лежит на земле',
+  'Mushrooms, wheat ears, shells: {act} to pick them up. They are your only coins until you own a spade.':
+    'Грибы, колосья, ракушки: {act}, чтобы подобрать. Пока нет лопаты, это твои единственные монеты.',
+  'Sell at the Shop and buy the spade': 'Продай в Лавке и купи лопату',
+  'Enter the Shop, sell what you gathered and buy the spade 🪏. Without it you cannot dig.':
+    'Зайди в Лавку, продай собранное и купи лопату 🪏. Без неё копать нельзя.',
+  'Outside town, press {act} to dig under your feet. The plaza is paved and cannot be dug.':
+    'За городом нажми {act}, чтобы копать под ногами. Площадь вымощена, там копать нельзя.',
+  'Take your find to the Museum': 'Отнеси находку в Музей',
+  "A raw find cannot be sold: at the Museum the Curator identifies it. You already carry Grandpa's.":
+    'Необработанную находку не продать: в Музее Хранитель её определит. Дедушкина уже у тебя.',
+  'sell and buy': 'продать и купить',
+  'Tutorial skipped — you can redo it from the Guide': 'Обучение пропущено — его можно пройти заново из Справки',
+  'Tutorial complete. From here on it is up to you.': 'Обучение пройдено. Дальше решай сам.',
+  'Done. Now: ': 'Готово. Теперь: ',
+  'Opening tutorial': 'Вступительное обучение',
+  'In progress: the objective list is at the top left.': 'Идёт сейчас: список целей слева вверху.',
+  'Skipped. Restart it and the objectives return at the top left.': 'Пропущено. Начни заново — цели снова появятся слева вверху.',
+  'Finished. You can redo it whenever you like.': 'Пройдено. Можно повторить в любой момент.',
+  'Redo': 'Заново',
+  'Tutorial restarted': 'Обучение начато заново',
   "Your board mission expired at day's end": 'Задание с доски сгорело в конце дня',
   " board missions expired at day's end": ' задания с доски сгорели в конце дня',
   "Grandpa's letters": 'Письма дедушки',
@@ -1038,12 +1065,6 @@ export const RU = {
   'Destination marker': 'Метка цели',
 
   /* ---- intro: come si guadagnano le prime monete (i primi tester non lo capivano) ---- */
-  'One more thing: keep your eyes down. Mushrooms, wheat ears, shells…':
-    'И ещё одно: смотри под ноги. Грибы, колосья, ракушки…',
-  'Things glinting on the ground. Pick them up and sell them at the Shop:':
-    'Всё, что поблёскивает на земле. Собирай это и продавай в Магазине:',
-  'that is how you pay for your first tools. The spade before anything else.':
-    'так ты и заработаешь на первые инструменты. Прежде всего — на лопату.',
 
   /* ---- zaino: lasciare a terra (bottone, non trascinamento) ---- */
   'Tap 🗑 on a find to leave it on the ground (you can pick it back up).':
@@ -1210,13 +1231,8 @@ export const RU = {
 
   /* ---- intro: le prime battute ---- */
   'Come, {n}. Look what the earth hides.': 'Иди сюда, {n}. Посмотри, что прячет земля.',
-  'Grandpa… what is that?': 'Дедушка… а это что?',
   'A bone. From a creature of long, long ago.': 'Кость. Существа, жившего очень-очень давно.',
   'I was the first to find them. No one remembered them.': 'Я первым их нашёл. О них никто не помнил.',
-  'And can we… bring them back?': 'А мы можем… вернуть их?',
-  'With patience and a spark of magic… yes.': 'С терпением и капелькой волшебства… да.',
-  'Take it, {n}: a legendary fossil, your first treasure.': 'Держи, {n}: легендарное ископаемое, твоё первое сокровище.',
-  "I promise! I'll find them all and bring them back!": 'Обещаю! Я найду их всех и верну к жизни!',
 
   /* ---- comandi: col mouse si gioca senza tastiera ---- */
   'Keys: <kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions · <kbd>ESC</kbd> menu<br>With the mouse: <b>click</b> to walk, <b>right click</b> to act.':

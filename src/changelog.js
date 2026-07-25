@@ -1,6 +1,17 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.85', it: [
+      'TUTORIAL D\'APERTURA: quattro obiettivi, uno alla volta, con la spunta quando è fatto — raccogli roba da terra → vendi al Negozio e compra la pala → scava → porta il reperto al Museo. È il ciclo vero del gioco in due minuti, e c\'è una FRECCIA che indica dove andare (la cosa da raccogliere più vicina, la porta del Negozio, quella del Museo). Si salta quando vuoi e si rifà dalla Guida',
+      'TARGHE SULLE CASE: quando devi entrare da qualche parte, ogni edificio della piazza mostra sopra il tetto cosa fa (Negozio · vendi e compri, Museo · identifica…) e quello dove devi andare si accende d\'oro. Prima c\'erano sei insegne a icone che a un giocatore nuovo non dicevano niente',
+      'INTRO PIÙ CORTA: da 16 battute a 5. Quasi tutti la saltavano, e saltandola si perdevano anche le cose che servivano davvero: ora quelle le insegna il tutorial facendotele fare. Anche la macchina da scrivere è più svelta',
+    ], en: [
+      'OPENING TUTORIAL: four objectives, one at a time, ticked off as you do them — gather things off the ground → sell at the Shop and buy the spade → dig → take your find to the Museum. It is the game\'s real loop in two minutes, with an ARROW pointing where to go (nearest thing to pick up, the Shop door, the Museum door). Skippable any time, and redoable from the Guide',
+      'BUILDING SIGNS: when you need to walk into somewhere, every building on the plaza shows what it does above its roof (Shop · sell and buy, Museum · identifies…) and the one you want lights up gold. Before, six icon signs told a new player nothing',
+      'SHORTER INTRO: from 16 lines to 5. Almost everyone skipped it, and skipping it also lost the parts that mattered: the tutorial now teaches those by having you do them. The typewriter is quicker too',
+    ],
+  },
+  {
     v: 'v0.84', it: [
       'FIX uscite bloccate: uscendo dal Laboratorio (e da qualsiasi altro edificio) non si finisce più incastrati contro la fontana o il recinto del parco — ogni porta ha 3 caselle LIBERE davanti, e ora il gioco controlla la casella su cui i piedi atterrano davvero, non quella sopra',
       'FIX missioni scadute: a fine giornata spariscono DAVVERO dallo stack — restavano leggibili (e consegnabili) da chi non passava dal cartello, e la missione lucciole di ieri poteva ancora pagarsi da sola. E ora il gioco te lo DICE quando scadono, anche se dormi alla Locanda',

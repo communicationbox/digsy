@@ -195,6 +195,34 @@ kbd + .pxi{margin-left:2px}
     max-width:calc(100vw - 24px);white-space:normal;text-align:center}
 }
 
+/* TUTORIAL — un obiettivo alla volta, in alto a sinistra sotto la barra.
+   Sta a SINISTRA e non al centro perché il centro è dove si guarda giocando, e una scatola
+   fissa lì diventa subito qualcosa da chiudere. Larghezza contenuta: se cresce oltre la
+   colonna diventa un muro di testo, cioè il difetto che stiamo togliendo all'intro. */
+#tutbox{position:absolute;left:calc(var(--sp-3) + env(safe-area-inset-left));
+  top:calc(var(--hudh, 46px) + var(--sp-3) + env(safe-area-inset-top));z-index:60;
+  width:min(272px,calc(100vw - 24px));background:rgba(12,10,8,.86);border:1px solid var(--c-line);
+  border-radius:var(--r-2);padding:var(--sp-2) var(--sp-3);color:var(--c-ink);
+  font-size:var(--fs-sm);line-height:1.35;pointer-events:auto}
+#tutbox .tut-h{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+  color:var(--c-gold);font-weight:800;font-size:var(--fs-note);letter-spacing:.08em;text-transform:uppercase}
+#tutbox .tut-skip{background:none;border:0;color:var(--c-ink-dim);font:inherit;font-size:var(--fs-note);
+  cursor:pointer;padding:2px 4px;text-decoration:underline}
+#tutbox .tut-skip:hover{color:var(--c-ink)}
+#tutbox ol{list-style:none;margin:var(--sp-2) 0 0;padding:0;display:flex;flex-direction:column;gap:3px}
+#tutbox li{display:flex;gap:var(--sp-2);align-items:baseline;color:var(--c-ink-dim)}
+#tutbox li .tut-m{width:1em;flex:none;text-align:center}
+#tutbox li.on{color:var(--c-ink);font-weight:800}
+#tutbox li.ok{color:var(--c-teal);text-decoration:line-through}
+#tutbox .tut-hint{margin-top:var(--sp-2);color:var(--c-ink-2);font-size:var(--fs-note);font-weight:400}
+#tutbox .tut-bar{margin-top:var(--sp-1);height:4px;background:var(--c-panel);border-radius:2px;overflow:hidden}
+#tutbox .tut-bar i{display:block;height:100%;background:var(--c-amber)}
+/* col telefono in mano la colonna di sinistra è dove sta il pollice: il riquadro si stringe
+   e resta in alto, dove il prompt lo ha già dimostrato leggibile */
+@media(pointer:coarse),(max-width:760px){
+  #tutbox{width:min(240px,calc(100vw - 20px));font-size:var(--fs-note)}
+}
+
 /* console comandi (tipo Minecraft): si apre col tasto \ */
 #cmd{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:none;flex-direction:column;gap:6px;
   background:rgba(12,10,8,.97);border-top:2px solid var(--c-line);padding:8px 12px;font-family:ui-monospace,monospace}

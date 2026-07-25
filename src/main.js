@@ -28,6 +28,8 @@ import { showTip } from './ui.js';
 import { waterTile } from './gameplay.js';
 import { pruneExpired } from './commission.js';
 import { expireQuests, questExpiryText } from './quests.js';
+import { tutTick, tutActive } from './tutorial.js';
+import { announceTutStep } from './ui.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
 import { toast } from './ui.js';
 import { isDebug } from './debug.js';
@@ -141,6 +143,10 @@ function loop(ts) {
        quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un
        giocatore ha scavato in grotta fino a zero energia continuando a leggere "46/60". */
     hudAcc += dt; if (hudAcc > 2) { hudAcc = 0; updateHUD(); }
+    /* TUTORIAL: sta qui sopra insieme all'HUD, e per la stessa ragione — i passi che si
+       spuntano da soli (hai abbastanza da comprare la pala, hai la pala) vanno visti in
+       QUALSIASI scena, compresi il Negozio e il Museo, che sono interni. */
+    if (tutActive() && tutTick() === 'step') announceTutStep();
     /* OROLOGIO: sta qui sopra, PRIMA dei `return` di grotte e interni — stesso posto e
        stessa ragione dell'HUD. Il tempo scorre dovunque si stia giocando: sottoterra si
        passano dieci minuti veri a staccare cristalli, e prima si riemergeva alla stessa ora

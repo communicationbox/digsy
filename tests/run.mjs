@@ -4947,18 +4947,26 @@ sprites.applyLook();
   check('il tocco si converte in coordinate del mondo', w.x === 1100 && w.y === 550);
 }
 
-/* ---------- INTRO: il nonno deve spiegare da dove arrivano le prime monete ---------- */
+/* ---------- APERTURA: intro CORTA, e l'insegnamento passato al TUTORIAL ----------
+   L'intro raccontava tutto in sedici battute e quasi tutti premevano Salta — comprese le
+   battute che servivano davvero (il reperto è grezzo, si porta al Museo, la roba a terra si
+   vende per comprare la pala). Ora l'intro fa solo la cornice e le lezioni le FA FARE il
+   tutorial. Questi controlli tengono ferme tutte e due le metà: che l'intro resti corta, e
+   che nessuna delle lezioni si sia persa per strada nel trasloco. */
 {
   const fs4 = (await import('node:fs'));
   const isrc = fs4.readFileSync('src/intro.js', 'utf8');
-  check('l\'intro dice di raccogliere le cose da terra', /Mushrooms, wheat ears, shells|Funghi, spighe, conchiglie/.test(isrc));
-  /* IL NONNO REGALA UN FOSSILE GREZZO. Un grezzo non serve a niente finché non lo si fa
-     identificare, e si identifica SOLO al Museo, che sta SOLO nelle città grandi. Senza
-     dirlo, si gira con un leggendario in tasca senza sapere che farsene. E le battute
-     devono restare VERE: se domani il Museo comparisse anche altrove, questo test cade. */
-  check('il nonno manda al Museo a far identificare il fossile', /Museo|Museum/.test(isrc));
-  check('il nonno dice che il Museo sta nelle città grandi',
-    /città grande|big city/i.test(isrc));
+  const tsrc = fs4.readFileSync('src/tutorial.js', 'utf8');
+  const battute = (isrc.match(/\{ s: '[GD]'/g) || []).length;
+  check(`l'intro non supera le 5 battute (${battute})`, battute > 0 && battute <= 5);
+  check('il tutorial insegna a raccogliere le cose da terra',
+    /Funghi, spighe, conchiglie|Mushrooms, wheat ears, shells/.test(tsrc));
+  check('il tutorial manda a vendere al Negozio e a comprare la pala',
+    /Negozio|Shop/.test(tsrc) && /pala|spade/i.test(tsrc));
+  /* IL REGALO DEL NONNO È GREZZO. Un grezzo non serve a niente finché non lo si fa
+     identificare, e si identifica SOLO al Museo. Se domani il Museo comparisse anche altrove
+     (o sparisse dalle città grandi) i controlli qui sotto cadono, ed è quello che devono fare. */
+  check('il tutorial manda al Museo a far identificare il grezzo', /Museo|Museum/.test(tsrc));
   {
     /* la promessa del nonno regge sul mondo vero? */
     let cities = 0, withMus = 0, smallWithMus = 0;
@@ -4971,8 +4979,71 @@ sprites.applyLook();
     check(`ogni città grande ha davvero il Museo (${withMus}/${cities})`, cities > 0 && withMus === cities);
     check('borghi e paesi davvero non ne hanno', smallWithMus === 0);
   }
-  check('e di venderle al Negozio per i primi attrezzi',
-    /sell them at the Shop|vendila al Negozio/.test(isrc) && /spade before anything|pala prima di tutto/.test(isrc));
+}
+
+/* ---------- TUTORIAL: i quattro passi sono il ciclo d'apertura, e sono ESEGUIBILI ----------
+   Il primo ordine che avevo scritto (esci → scava → raccogli) non stava in piedi: si nasce
+   SENZA pala e con zero monete, e senza pala `tryDig` rifiuta. Un tutorial che chiede una cosa
+   che il gioco vieta è peggio di nessun tutorial. Questi controlli tengono l'ordine ancorato
+   alle regole vere: la pala prima dello scavo, e il Museo raggiungibile da dove si parte. */
+{
+  const tut = await import('../src/tutorial.js');
+  const gp5 = await import('../src/gameplay.js');
+  const S = state.S, P5 = state.P;
+  check('i passi sono quattro, nell\'ordine del ciclo d\'apertura',
+    tut.STEP_IDS.join('>') === 'pick>shop>dig>museum');
+  /* si nasce senza pala: il passo dello scavo NON può venire prima di quello del Negozio */
+  check('lo scavo viene DOPO aver comprato la pala',
+    tut.STEP_IDS.indexOf('shop') < tut.STEP_IDS.indexOf('dig'));
+
+  S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = [];
+  check('si parte dal passo della raccolta', tut.tutStepId() === 'pick' && tut.tutActive());
+  check('la soglia della raccolta è il prezzo della pala', tut.tutProgress().need === gp5.TOOL_COST.spade);
+  check('scavare durante la raccolta non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'pick');
+  /* raccolta: conta il VALORE (monete + merce), non il numero di oggetti — con valori da 1 a 5
+     a seconda del bioma "otto oggetti" qualche volta non bastava per la pala e il tutorial
+     restava fermo senza dire perché */
+  S.goods = [{ id: 'spiga', val: gp5.TOOL_COST.spade, n: 1, good: true }];
+  check('raccolto abbastanza → si passa al Negozio', tut.tutTick() === 'step' && tut.tutStepId() === 'shop');
+  S.tools = { spade: true };
+  check('comprata la pala → si passa allo scavo', tut.tutTick() === 'step' && tut.tutStepId() === 'dig');
+  check('scavato → si passa al Museo', tut.tutBump('dig') === 'step' && tut.tutStepId() === 'museum');
+  check('le targhe sulle case si accendono solo quando serve entrare',
+    tut.tutShowLabels() === true);
+  check('consegnato al Museo → tutorial finito', tut.tutBump('museum') === 'step' && tut.tutDone() && !tut.tutActive());
+  check('finito, le targhe si spengono', tut.tutShowLabels() === false);
+
+  /* SI PARTE IN UNA CITTÀ COL MUSEO: è quello che rende l'ultimo passo un trenta passi invece
+     di una traversata. Se `findStart` cambiasse, il tutorial diventerebbe una caccia. */
+  {
+    const start = world.findStart();
+    const stx = Math.floor(start.x / TS), sty = Math.floor(start.y / TS);
+    const home = world.townForTile(stx, sty);
+    check('si parte dentro una città che ha il Museo', !!home && world.hasMuseum(home));
+    S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; // torna al passo 'pick'
+    const gPick = tut.tutTarget(start.x, start.y);
+    check('il passo della raccolta indica DOVE andare', !!gPick && Number.isFinite(gPick.x));
+    S.goods = [{ id: 'spiga', val: gp5.TOOL_COST.spade, n: 1, good: true }]; tut.tutTick();
+    const gShop = tut.tutTarget(start.x, start.y);
+    check('il passo del Negozio indica la porta del Negozio',
+      !!gShop && (home.buildings || []).some(b => b.type === 'store' && b.doorx === gShop.x && b.doory === gShop.y));
+    S.tools = { spade: true }; tut.tutTick(); tut.tutBump('dig');
+    const gMus = tut.tutTarget(start.x, start.y);
+    check('il passo del Museo indica la porta del Museo',
+      !!gMus && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gMus.x && b.doory === gMus.y));
+  }
+  /* saltabile, e RIFACIBILE: chi salta al primo minuto non perde l'insegnamento per sempre */
+  tut.tutSkip();
+  check('saltato: sparisce e non spunta niente', !tut.tutActive() && tut.tutSkipped() && tut.tutChecked(0) === false);
+  tut.tutRestart();
+  check('rifatto dalla Guida: riparte dal primo passo', tut.tutActive() && tut.tutStepId() === 'pick' && !tut.tutSkipped());
+  {
+    const fs5 = await import('node:fs');
+    const usrc = fs5.readFileSync('src/ui.js', 'utf8');
+    check('la Guida ha il pulsante per rifare il tutorial', /tutAgain/.test(usrc) && /tutRestart/.test(usrc));
+  }
+  S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = [];
+  P5.x = P5.x; // stato del giocatore invariato: il blocco non lo ha mosso
 }
 
 /* ---------- COMANDO prep: apre il minigioco anche senza museo sotto mano ---------- */

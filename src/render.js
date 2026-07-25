@@ -6,7 +6,7 @@ import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
-import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco } from './world.js';
+import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
@@ -17,7 +17,7 @@ import { parks, visParks } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { zonePools, ZONES, MUSEUM_ZONES } from './data.js';
-import { zoneName } from './i18n.js';
+import { zoneName, bldName } from './i18n.js';
 import { drawWonder } from './wonderart.js';
 import { hasSprite, drawSprite, spriteDef } from './spritebank.js';
 import { applyLook } from './sprites.js';
@@ -25,6 +25,7 @@ import { darknessAt, seasonOf, SEASON_LEN } from './daynight.js';
 import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
+import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
@@ -1244,6 +1245,75 @@ export function render(time) {
   drawFireflies(ctx, cam.x, cam.y);
   { const tgt = weatherAt(zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS)).id, S.day); const st = weatherStep(tgt, time); drawWeather(st.w, time, st.level); }
   drawCompassIndicator(time);
+  drawTutorialGuide(time);
+}
+
+/* ---------- TUTORIAL: le targhe sulle case e la freccia verso l'obiettivo ----------
+   La parte che rende attraversabile l'apertura invece che frustrante. Misurando lo spawn:
+   zero oggetti raccoglibili entro dieci caselle, e i 15 🪙 della pala arrivano solo dopo una
+   trentina. Senza un'indicazione, "raccogli roba da terra" è un rastrellamento alla cieca. */
+function plate(sx, sy, name, sub, hot) {
+  if (!ctx.fillText) return;                       // stub dei test: niente testo, niente crash
+  /* l'ancora fuori schermo NON si disegna: una targa agganciata a una casa che non si vede
+     finirebbe schiacciata contro il bordo, indicando il vuoto */
+  if (sx < -8 || sx > view.W + 8 || sy < -8 || sy > view.H + 20) return;
+  ctx.save();
+  /* 5px e non 6: il fumetto di dialogo di props.js sta a 6 perché compare da solo e per pochi
+     secondi; qui le targhe sono SEI e restano accese, e a 6px coprivano mezza piazza. */
+  ctx.font = '600 5px ui-monospace, Menlo, monospace';
+  ctx.textBaseline = 'top';
+  const meas = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * 3; };
+  const lines = sub ? [name, sub] : [name];
+  let mw = 0; for (const l of lines) mw = Math.max(mw, meas(l));
+  const w = Math.ceil(mw) + 6, h = lines.length * 6 + 4;
+  let bx = Math.round(sx - w / 2);
+  bx = Math.max(2, Math.min(view.W - w - 2, bx));               // sempre dentro lo schermo
+  /* MAI SOTTO LA BARRA: l'HUD è alto ~56 px di schermo, che in px di gioco dipende dalla
+     scala. Senza questo, la targa dell'edificio più in alto finiva dietro ai tag e si leggeva
+     "…oratorio" (visto in foto). */
+  const topSafe = Math.ceil(56 / view.K) + 2;
+  const by = Math.max(topSafe, Math.round(sy - h));
+  const tip = Math.max(bx + 3, Math.min(bx + w - 3, Math.round(sx)));
+  ctx.fillStyle = '#241a10'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
+  ctx.fillStyle = hot ? '#f0c674' : '#f6efdd'; ctx.fillRect(bx, by, w, h);
+  ctx.fillStyle = '#241a10'; ctx.fillRect(tip - 1, by + h, 2, 2);              // codina in giù
+  ctx.fillStyle = '#2a2016';
+  lines.forEach((l, i) => ctx.fillText(l, Math.round(bx + (w - meas(l)) / 2), by + 2 + i * 6));
+  ctx.restore();
+}
+function drawTutorialGuide(time) {
+  if (!tutActive()) return;
+  /* le TARGHE: solo la città che si sta guardando, e solo quando il passo è entrare in una casa */
+  const want = tutStepId() === 'shop' ? 'store' : tutStepId() === 'museum' ? 'museum' : null;
+  if (tutShowLabels()) {
+    const pt = Math.floor(P.x / TS), py2 = Math.floor((P.y + FOOT_DY) / TS);
+    const t = townForTile(pt, py2) || townForCell(Math.floor(pt / TCELL), Math.floor(py2 / TCELL));
+    /* la casa dove si deve andare per ULTIMA, sopra le altre: se due targhe si toccano, quella
+       che conta non deve finire sotto */
+    if (t) for (const b of [...(t.buildings || [])].sort((a, c) => (a.type === want) - (c.type === want))) {
+      const sx = (b.doorx + 0.5) * TS - cam.x, sy = b.y0 * TS - cam.y - 4;
+      plate(snap(sx), snap(sy), bldName(b.type), bldPurpose(b.type), b.type === want);
+    }
+  }
+  /* la FRECCIA: dove devi andare adesso. In vista = un mirino che pulsa sulla cosa; fuori
+     vista = la stessa freccia a bordo schermo della bussola, in ambra per non confondersi
+     con la città (gialla) e con la mappa del tesoro (rossa). */
+  const g = tutTarget(P.x, P.y); if (!g) return;
+  const gx = (g.x + 0.5) * TS - cam.x, gy = (g.y + 0.5) * TS - cam.y;
+  const W = view.W, H = view.H, L = 10, R = W - 10, T = 16, B = H - 12;
+  const pulse = (Math.sin(time / 300) + 1) / 2;
+  if (gx >= L && gx <= R && gy >= T && gy <= B) {
+    const r = Math.round(6 + pulse * 3);
+    ctx.fillStyle = 'rgba(216,151,60,' + (0.35 + pulse * 0.35).toFixed(2) + ')';
+    ctx.fillRect(snap(gx - r), snap(gy - 1), r * 2, 2); ctx.fillRect(snap(gx - 1), snap(gy - r), 2, r * 2);
+    return;
+  }
+  const ax = Math.max(L, Math.min(R, gx)), ay = Math.max(T, Math.min(B, gy));
+  const o = octant(gx - W / 2, gy - H / 2);
+  const DIRS = [[1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0], [-1, -1], [0, -1], [1, -1]];
+  const dx = DIRS[o][0], dy = DIRS[o][1], step = Math.round(pulse * 2);
+  ctx.fillStyle = 'rgba(20,15,8,.45)'; arrowPx(ax + dx * step + 1, ay + dy * step + 1, dx, dy);
+  ctx.fillStyle = '#d8973c'; arrowPx(ax + dx * step, ay + dy * step, dx, dy);
 }
 /* overlay meteo a schermo (particelle in coordinate schermo). lvl 0..1 = intensità (crossfade). */
 function drawWeather(w, time, lvl) {

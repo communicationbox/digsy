@@ -12,31 +12,26 @@ const GRANDPA = { hat: '#6e4a2a', shirt: '#7a6a52', pants: '#5c4630', skin: '#e3
 function withLook(look, fn) { const saved = S.look; S.look = look; applyLook(); fn(); S.look = saved; applyLook(); }
 const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
 
-/* dialoghi: 'G' nonno · 'D' piccolo Digsy · act = beat scenico */
+/* dialoghi: 'G' nonno · 'D' piccolo Digsy · act = beat scenico
+ *
+ * CINQUE BATTUTE, NON SEDICI. Erano sedici e quasi tutti premevano Salta: un giocatore che
+ * apre un gioco per la prima volta vuole giocarlo, e ogni frase in più è un invito a saltare
+ * TUTTO — comprese quelle che servivano davvero.
+ *
+ * Le sedici contenevano anche l'insegnamento (il reperto è grezzo, si porta al Museo, il
+ * Museo sta solo nelle città grandi, sulla mappa cerca il tempietto, raccogli la roba a terra
+ * e vendila, compra la pala). Quella roba NON è stata buttata: è passata al TUTORIAL
+ * (tutorial.js), che la fa fare invece di raccontarla. Una cosa che hai fatto una volta te la
+ * ricordi; una frase letta prima di cominciare, no.
+ *
+ * Qui resta solo quello che il tutorial non può dare: chi era il nonno e perché tocca a te.
+ */
 const LINES = [
   { s: 'G', it: 'Vieni, {n}. Guarda cosa nasconde la terra.', en: 'Come, {n}. Look what the earth hides.' },
-  { s: 'D', it: 'Nonno… cos\'è quella?', en: 'Grandpa… what is that?' },
   { s: 'G', it: 'Un osso. Di una creatura di tantissimo tempo fa.', en: 'A bone. From a creature of long, long ago.', act: 'point' },
-  { s: 'G', it: 'Io fui il primo a scoprirle. Nessuno le ricordava.', en: 'I was the first to find them. No one remembered them.' },
-  { s: 'D', it: 'E possiamo… riportarle indietro?', en: 'And can we… bring them back?' },
-  { s: 'G', it: 'Con pazienza e un pizzico di magia… sì.', en: 'With patience and a spark of magic… yes.', act: 'dig' },
-  { s: 'G', it: 'Tienilo, {n}: un fossile leggendario, il tuo primo tesoro.', en: 'Take it, {n}: a legendary fossil, your first treasure.', act: 'give' },
-  /* DOVE SI PORTA IL PRIMO FOSSILE: il regalo del nonno è GREZZO, e un reperto grezzo non
-     serve a niente finché qualcuno non lo identifica. Si identifica SOLO al Museo, che sta
-     solo nelle città grandi — e la città grande può essere lontana. Se non lo dice il nonno,
-     il giocatore gira con un leggendario in tasca senza sapere che farsene. */
-  { s: 'G', it: 'È grezzo, però. Così non sai ancora di che creatura sia.', en: 'It is raw, though. You still do not know which creature it is.' },
-  { s: 'G', it: 'Portalo al Museo: gli esperti lì te lo identificano.', en: 'Take it to the Museum: the experts there will identify it.' },
-  { s: 'G', it: 'Un Museo c\'è in ogni città grande. Borghi e paesi non ne hanno.', en: 'Every big city has a Museum. Hamlets and towns do not.' },
-  { s: 'D', it: 'E come la trovo, una città grande?', en: 'And how do I find a big city?' },
-  { s: 'G', it: 'La mappa te la segna: cerca il tempietto chiaro.', en: 'The map marks it for you: look for the pale little temple.' },
-  /* I PRIMI GIOCATORI NON CAPIVANO DA DOVE ARRIVANO LE PRIME MONETE: giravano senza
-     attrezzi perché nessuno diceva che per terra c'è roba da raccogliere e rivendere.
-     Il nonno lo spiega qui, che è il primo posto in cui uno ascolta. */
-  { s: 'G', it: 'Una cosa ancora: tieni gli occhi bassi. Funghi, spighe, conchiglie…', en: 'One more thing: keep your eyes down. Mushrooms, wheat ears, shells…' },
-  { s: 'G', it: 'Roba che luccica per terra. Raccoglila e vendila al Negozio:', en: 'Things glinting on the ground. Pick them up and sell them at the Shop:' },
-  { s: 'G', it: 'i tuoi primi attrezzi li pagherai così. La pala prima di tutto.', en: 'that is how you pay for your first tools. The spade before anything else.' },
-  { s: 'D', it: 'Lo prometto! Le troverò tutte e le farò rivivere!', en: 'I promise! I\'ll find them all and bring them back!' },
+  { s: 'G', it: 'Io fui il primo a scoprirle. Nessuno le ricordava.', en: 'I was the first to find them. No one remembered them.', act: 'dig' },
+  { s: 'G', it: 'Tienilo, {n}: il tuo primo tesoro.', en: 'Take it, {n}: your first treasure.', act: 'give' },
+  { s: 'D', it: 'Le troverò tutte. E le farò rivivere!', en: 'I\'ll find them all. And bring them back!' },
 ];
 
 function cloud(x, y, s) { px(x, y, Math.round(14 * s), Math.round(4 * s), '#f4eddd'); px(x + Math.round(3 * s), y - Math.round(3 * s), Math.round(9 * s), Math.round(4 * s), '#fbf6ea'); px(x + Math.round(9 * s), y - Math.round(1 * s), Math.round(8 * s), Math.round(4 * s), '#e9ddc6'); }
@@ -214,14 +209,16 @@ export function playIntro(onDone) {
       end.innerHTML = `<div class="et">${tr('Qualche anno dopo…', 'A few years later…')}</div>`;
       box.appendChild(end);
       requestAnimationFrame(() => requestAnimationFrame(() => end.classList.add('show')));
-      setTimeout(finish, 4600); // 2.2s fade nero + testo + attesa
-    }, 800); // pausa per leggere l'ultima frase prima del fade
+      setTimeout(finish, 3200); // fade nero + "Qualche anno dopo…" + attesa
+    }, 500); // pausa per leggere l'ultima frase prima del fade
   }
   function next() { if (ending) return; if (typed < textFull.length) { typed = textFull.length; return; } cur++; if (cur >= LINES.length) endThen(); else showLine(); }
   function frame(ts) {
     if (!active) return;
     const t = ts || now();
-    if (typed < textFull.length) typed = Math.min(textFull.length, Math.floor((t - tStart) / 24));
+    /* 18 ms a carattere invece di 24: la macchina da scrivere si deve SENTIRE, non aspettare.
+       Chi non vuole aspettarla clicca e la riga compare tutta (next() lo fa già). */
+    if (typed < textFull.length) typed = Math.min(textFull.length, Math.floor((t - tStart) / 18));
     drawScene(t);
     requestAnimationFrame(frame);
   }

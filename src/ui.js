@@ -18,6 +18,7 @@ import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName,
 import { letterTitle, letterBody, hasLetter, allLetters } from './letters.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
 import { TIPS, TIP_IDS, tipSeen, markTip, tipTitle, tipText, tipsSeenCount } from './tips.js';
+import { STEP_IDS, tutActive, tutIndex, tutStepId, tutChecked, tutProgress, tutTitle, tutHint, tutSkip, tutRestart, tutDone, tutSkipped } from './tutorial.js';
 import { landmarkForCell, LCELL } from './world.js';
 import { drawWonder } from './wonderart.js';
 import { wonderName, wonderDesc, wonderGrandpa, wonderPower, wonderCd, wonderStatusText, wonderReadyIn, markWonderUsed, archList, travelToArch, isDiscovered, WONDERS } from './wonders.js';
@@ -80,10 +81,47 @@ function syncModalCoins() {
   const el = document.getElementById('m-coins'); if (!el) return;
   el.innerHTML = withIcons('🪙 ' + (isDebug() ? '∞' : String(S.coins)));
 }
+/* TUTORIAL: la lista degli obiettivi, ridisegnata a ogni giro d'HUD. Il testo non sta
+   nell'HTML ma qui, perché deve cambiare lingua e mostrare il tasto giusto per il dispositivo
+   (su un telefono il tasto E non esiste). */
+function syncTutorial() {
+  const box = document.getElementById('tutbox'); if (!box || !box.style) return;
+  if (!tutActive() || splashOpen()) { box.style.display = 'none'; return; }
+  const cur = tutIndex(), id = tutStepId(), p = tutProgress();
+  let h = `<div class="tut-h"><span>${tr('Per cominciare', 'To get started')}</span>`
+    + `<button class="tut-skip" id="tut-skip" type="button">${tr('salta', 'skip')}</button></div><ol>`;
+  STEP_IDS.forEach((sid, i) => {
+    const ok = tutChecked(i), on = i === cur;
+    h += `<li class="${ok ? 'ok' : on ? 'on' : ''}"><span class="tut-m">${ok ? '✓' : on ? '▸' : '·'}</span><span>${tutTitle(sid)}</span></li>`;
+  });
+  h += '</ol>';
+  if (id) h += `<div class="tut-hint">${tutHint(id)}</div>`;
+  /* la barra solo quando c'è davvero qualcosa da contare: un "1 su 1" è rumore */
+  if (p.need > 1) h += `<div class="tut-bar"><i style="width:${Math.max(2, Math.round(p.have / p.need * 100))}%"></i></div>`;
+  box.innerHTML = withIcons(h);
+  box.style.display = '';
+  const sk = document.getElementById('tut-skip');
+  if (sk) sk.onclick = () => { tutSkip(); updateHUD(); toast('🎓 ' + tr('Tutorial saltato — lo rifai dalla Guida', 'Tutorial skipped — you can redo it from the Guide')); };
+}
+/* la splash copre lo schermo: sotto non deve restare acceso niente */
+function splashOpen() {
+  const el = (typeof document !== 'undefined' && document.getElementById) ? document.getElementById('splash') : null;
+  return !!(el && el.classList && typeof el.classList.contains === 'function' && !el.classList.contains('off'));
+}
+/* un passo chiuso si ANNUNCIA una volta sola: la spunta da sola, in un riquadro laterale,
+   passa inosservata proprio nel momento in cui il giocatore ha fatto la cosa giusta. */
+export function announceTutStep() {
+  updateHUD();
+  if (tutDone()) { toast('🎓 ' + tr('Hai finito il tutorial. Da qui in poi decidi tu.', 'Tutorial complete. From here on it is up to you.')); playSfx('found'); return; }
+  const id = tutStepId(); if (!id) return;
+  toast('✓ ' + tr('Fatto. Ora: ', 'Done. Now: ') + tutTitle(id)); playSfx('found');
+}
+
 export function updateHUD() {
   const dbg = isDebug();
   syncModalCoins();
   syncTouchControls();
+  syncTutorial();
   document.getElementById('h-coin').textContent = dbg ? '∞' : String(S.coins);
   document.getElementById('h-en').textContent = dbg ? '∞' : (S.energy + '/' + S.maxEnergy);
   /* orologio: alba (tod=0) = 06:00, il giorno di gioco copre 24h */
@@ -542,8 +580,18 @@ export function openGuide() {
   h += isTouch()
     ? `<div class="muted" style="margin-top:8px;font-size:11px">${tr('Comandi: leva a sinistra per muoverti · <kbd>A</kbd> per agire · zaino in alto · menu ☰', 'Controls: left stick to move · <kbd>A</kbd> to act · bag at the top · menu ☰')}</div>`
     : `<div class="muted" style="margin-top:8px;font-size:11px">${tr('Tasti: <kbd>WASD</kbd> muovi · <kbd>E</kbd> agisci · <kbd>I</kbd> zaino · <kbd>L</kbd> libro · <kbd>M</kbd> mappa · <kbd>Q</kbd> missioni · <kbd>ESC</kbd> menu<br>Col mouse: <b>clic</b> per andare, <b>tasto destro</b> per agire.', 'Keys: <kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions · <kbd>ESC</kbd> menu<br>With the mouse: <b>click</b> to walk, <b>right click</b> to act.')}</div>`;
+  /* RIFARE IL TUTORIAL: chi lo salta al primo minuto (o ricarica per una seconda partita)
+     deve poterselo riprendere. Sta qui e non in un menu suo: la Guida è già il posto dove si
+     torna quando non si è capito qualcosa. */
+  h += `<div class="sp-sep"></div><div class="row"><span class="em">🎓</span><div><div class="nm">${tr('Tutorial d\'apertura', 'Opening tutorial')}</div>
+    <div class="sub">${tutActive() ? tr('In corso: la lista degli obiettivi è in alto a sinistra.', 'In progress: the objective list is at the top left.')
+      : tutSkipped() ? tr('Saltato. Ripartendo, gli obiettivi tornano in alto a sinistra.', 'Skipped. Restart it and the objectives return at the top left.')
+        : tr('Finito. Puoi rifarlo quando vuoi.', 'Finished. You can redo it whenever you like.')}</div></div>
+    <div class="rt"><button class="btn ghost" id="tutAgain">${tr('Rifai', 'Redo')}</button></div></div>`;
   mTitle.innerHTML = withIcons('❔ ' + tr('Guida', 'Guide'));
   mBody.innerHTML = withIcons(h); openModal();
+  const ta = document.getElementById('tutAgain');
+  if (ta) ta.onclick = () => { tutRestart(); updateHUD(); closeModal(); toast('🎓 ' + tr('Tutorial ripartito', 'Tutorial restarted')); };
 }
 export function openQuests() {
   ensureQuests(S.day);

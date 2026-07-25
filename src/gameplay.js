@@ -11,7 +11,7 @@ import { vhash as vhashW } from './noise.js';
 import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememberArch, addBuff, useBuff } from './wonders.js';
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
-import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, showTip } from './ui.js';
+import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, showTip, announceTutStep } from './ui.js';
 import { companionYieldMul, companionType, companionSpec, COMP } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
@@ -21,6 +21,7 @@ import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
 import { expireQuests, questExpiryText } from './quests.js';
+import { tutBump } from './tutorial.js';
 import { tr, actKey, LANG, partName, rarLabel, seasonName } from './i18n.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
@@ -216,6 +217,10 @@ export function tryDig() {
       } else { toast(tr('…solo terra', '…just dirt')); playSfx('dig'); }
       if (S.shovel === 0 && S.shovelWarn) { S.shovelWarn = false; toast('🪏 ' + tr('La pala fortunata si è consumata', 'The lucky shovel wore out')); }
     }
+    /* il tutorial spunta il COLPO, non il ritrovamento: scavare a vuoto è il risultato più
+       probabile (una casella d'erba rende .30) e un passo che si sblocca solo con la fortuna
+       si legge come un tutorial rotto. */
+    if (tutBump('dig') === 'step') announceTutStep();
     save(); updateHUD();
   });
 }
@@ -966,6 +971,7 @@ function addToMuseumJob(arriveDay) {
 export function museumDeposit() {
   if (!S.raw.length) { toast(tr('Niente reperti grezzi da consegnare', 'No raw finds to hand in')); return false; }
   addToMuseumJob(S.day); // consegna di persona: identificazione ISTANTANEA (ready = oggi)
+  if (tutBump('museum') === 'step') announceTutStep();   // ultimo passo: il ciclo è chiuso
   save(); updateHUD();
   return true;
 }
