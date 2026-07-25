@@ -27,6 +27,7 @@ import { caveEntranceAt } from './world.js';
 import { showTip } from './ui.js';
 import { waterTile } from './gameplay.js';
 import { pruneExpired } from './commission.js';
+import { expireQuests, questExpiryText } from './quests.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
 import { toast } from './ui.js';
 import { isDebug } from './debug.js';
@@ -157,6 +158,9 @@ function loop(ts) {
     }
     if (advanceTime(dt)) {
       toast(tr('📅 Giorno ', '📅 Day ') + S.day + ' — ' + seasonName(seasonOf(S.day)));
+      /* missioni del cartello scadute: lo si DICE. Sparivano in silenzio e chi le aveva in
+         corso lo leggeva come una perdita di dati, non come una regola del gioco. */
+      { const t = questExpiryText(expireQuests(S.day)); if (t) toast(t); }
       /* commissione scaduta: lo si dice, non si scopre tornando al museo */
       if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
     }

@@ -25,6 +25,12 @@ sprites.applyLook();
 /* ---------- mondo / città ---------- */
 {
   let n = 0, sizes = {}, bad = 0, barbers = 0, tailors = 0;
+  /* le PORTE hanno un elenco loro, non il contatore `bad` condiviso: questo difetto è tornato
+     più volte (fontana centrale, recinto del parco, bordo piazza) e ogni volta il test diceva
+     solo "città campionate" FALSE, senza dire QUALE porta di QUALE edificio. Un test che non
+     nomina il guasto lo fa ricomparire. */
+  const porteChiuse = [];
+  let doors = 0;
   for (let cx = -10; cx < 10; cx++) for (let cy = -10; cy < 10; cy++) {
     const t = world.townForCell(cx, cy); if (!t) continue; n++;
     sizes[t.size] = (sizes[t.size] || 0) + 1;
@@ -34,12 +40,18 @@ sprites.applyLook();
     if (types.includes('tailor')) tailors++;
     for (const b of t.buildings) {
       if (b.x0 < t.x0 || b.x1 > t.x1 || b.y0 < t.y0 || b.y1 > t.y1) bad++;
-      /* 3 TILE LIBERE DAVANTI A OGNI PORTA: si esce senza restare bloccati. Prima si controllava
-         solo la prima: la seconda/terza finivano contro il recinto del parco o la fontana centrale
-         e uscendo da barbiere/sartoria/lab si restava incastrati (segnalato con foto). */
-      for (let dd = 1; dd <= 3; dd++) if (world.isSolidTile(b.doorx, b.doory + dd)) bad++;
+      /* 3 CASELLE LIBERE DAVANTI A OGNI PORTA: si esce senza restare bloccati. Prima si
+         controllava solo la prima: la seconda/terza finivano contro il recinto del parco o
+         la fontana centrale e uscendo da barbiere/sartoria/lab si restava incastrati. */
+      doors++;
+      const ostruite = [];
+      for (let dd = 1; dd <= 3; dd++) if (world.isSolidTile(b.doorx, b.doory + dd)) {
+        const ti = world.townInfo(b.doorx, b.doory + dd);
+        ostruite.push(dd + '=' + (ti && ti.deco ? ti.deco.type : ti && ti.fence ? 'recinto' : ti && ti.building ? 'edificio' : 'terreno'));
+      }
       const below = world.townInfo(b.doorx, b.doory + 1);
-      if (!below || !below.floor) bad++;
+      if (!below || !below.floor) ostruite.push('1=non-calpestabile');
+      if (ostruite.length) porteChiuse.push(`${t.size}/${b.type} @${b.doorx},${b.doory} (${ostruite.join(' ')})`);
       const d = world.townInfo(b.doorx, b.doory);
       if (!d || !d.door) bad++;
     }
@@ -51,8 +63,59 @@ sprites.applyLook();
     if (t.size === 'paese' && !types.includes('barber')) bad++;
   }
   check(`città campionate (${n}, taglie ${JSON.stringify(sizes)})`, n > 60 && bad === 0);
+  check(`OGNI porta ha 3 caselle libere davanti (${doors} porte)`, porteChiuse.length === 0,
+    porteChiuse.slice(0, 6).join(' · '));
   check(`barbieri nei paesi+città (${barbers}), sartorie nelle città (${tailors})`, barbers > 0 && tailors > 0);
   check('nomi deterministici', world.townName(3, 7) === world.townName(3, 7));
+}
+
+/* ---------- USCIRE da un edificio: non basta che le caselle siano libere sulla carta ----------
+   Il test qui sopra guarda la mappa; questo esce DAVVERO da ogni porta con `exitInterior` e poi
+   prova a camminare con la collisione VERA. È la differenza che conta: la posizione che il gioco
+   assegna uscendo è la TESTA, il corpo urta 10..15 px più in basso, quindi la casella pestata è
+   quella DOPO — e per un pezzo il controllo dell'uscita ha guardato quella sbagliata.
+   Il difetto segnalato dai giocatori (si esce dal Laboratorio e si finisce contro la fontana)
+   nasceva qui: caselle libere sulla carta, personaggio incastrato nei fatti. */
+{
+  const inter = await import('../src/interior.js');
+  const gpx = await import('../src/gameplay.js');
+  const { feetTile: ftile } = await import('../src/body.js');
+  /* quanto lontano si arriva camminando davvero (passi da 4px, BFS): 3 caselle = si è liberi */
+  const raggio = (x0, y0, lim) => {
+    const visti = new Set([x0 + ',' + y0]); const q = [[x0, y0]]; let best = 0;
+    while (q.length) {
+      const [x, y] = q.shift();
+      best = Math.max(best, Math.max(Math.abs(x - x0), Math.abs(y - y0)));
+      if (best >= lim) return best;
+      for (const [dx, dy] of [[4, 0], [-4, 0], [0, 4], [0, -4]]) {
+        const nx = x + dx, ny = y + dy;
+        if (Math.abs(nx - x0) > lim + 8 || Math.abs(ny - y0) > lim + 8) continue;
+        const k = nx + ',' + ny; if (visti.has(k) || gpx.collide(nx, ny)) continue;
+        visti.add(k); q.push([nx, ny]);
+      }
+    }
+    return best;
+  };
+  const oldX = P.x, oldY = P.y, oldB = inter.INT.b, oldA = inter.INT.active;
+  const incastrati = [], stretti = []; let provate = 0;
+  for (let cx = -6; cx < 6; cx++) for (let cy = -6; cy < 6; cy++) {
+    const t = world.townForCell(cx, cy); if (!t) continue;
+    for (const b of t.buildings) {
+      provate++;
+      inter.INT.b = b; inter.INT.active = true;
+      inter.INT.fromX = b.doorx * TS + 8; inter.INT.fromY = b.doory * TS + 10;
+      inter.exitInterior();
+      const f = ftile(P);
+      const chi = `${t.size}/${b.type} @${b.doorx},${b.doory} → piedi ${f.tx},${f.ty}`;
+      if (gpx.collide(P.x, P.y)) { incastrati.push(chi); continue; }
+      if (raggio(P.x, P.y, 3 * TS) < 3 * TS) stretti.push(chi);
+    }
+  }
+  P.x = oldX; P.y = oldY; inter.INT.b = oldB; inter.INT.active = oldA;
+  check(`uscendo non si finisce MAI dentro un solido (${provate} porte)`, incastrati.length === 0,
+    incastrati.slice(0, 6).join(' · '));
+  check('uscendo ci si allontana sempre di almeno 3 caselle', stretti.length === 0,
+    stretti.slice(0, 6).join(' · '));
 }
 
 /* ---------- niente testo italiano murato nell'HTML ---------- */
@@ -3392,8 +3455,68 @@ sprites.applyLook();
   const o2 = q.boardOffers(2, 2, 5);
   q.acceptQuest(o2[0], 5); q.acceptQuest(o2[1], 5); q.acceptQuest(o2[2], 5);
   check('massimo 3 missioni attive', q.acceptQuest(o2[3], 5) === 'full' && q.activeQuests().length === 3);
-  q.ensureQuests(6);
+  /* LASCIA una missione per liberare lo slot e prendere la 4ª (richiesta dei giocatori). */
+  S.items = [{ uid: 8001, s: SPECIES[0].id, t: 'cranio', q: 'raro', val: 30 }];
+  check('lascia una missione: libera lo slot', q.abandonQuest(o2[0].qid) === true && q.activeQuests().length === 2 && !q.isActive(o2[0].qid));
+  check('lasciare NON consuma i reperti', S.items.length === 1);          // solo la consegna spende
+  check('ora si può prendere la 4ª missione', q.acceptQuest(o2[3], 5) === true && q.activeQuests().length === 3);
+  check('la missione lasciata non è segnata "fatta"', !q.isDone(o2[0].qid));
+  /* con uno slot di nuovo libero, la lasciata si ri-accetta (non è bruciata) */
+  check('la missione lasciata è riprendibile', q.abandonQuest(o2[3].qid) === true && q.acceptQuest(o2[0], 5) === true && q.isActive(o2[0].qid));
+  check('abbandonare una missione inesistente torna false', q.abandonQuest('nope') === false);
+  S.items = [];
+  /* il pulsante Lascia esiste nel cartello ed è cablato ad abandonQuest */
+  {
+    const { readFileSync: rfs } = await import('node:fs');
+    const src = rfs(new URL('../src/ui.js', import.meta.url), 'utf8');
+    check('il cartello ha il pulsante Lascia', /data-abandon/.test(src) && /abandonQuest/.test(src));
+  }
+  S.quests.active = []; S.quests.done = [];
+  S.day = 6; q.ensureQuests(6);
   check('a fine giornata le missioni scadono', q.activeQuests().length === 0);
+  /* SCADENZA: non basta che ensureQuests sappia buttarle via, deve essere IMPOSSIBILE vedere
+     o consegnare lo stack di ieri. Prima la pulizia la faceva solo chi si ricordava di
+     chiamare ensureQuests (l'HUD ogni 2s e le due schermate): il minigioco delle lucciole
+     leggeva lo stack diretto e consegnava DA SOLO una richiesta del giorno prima, pagandola.
+     Un giocatore l'ha segnalato come "le missioni scadute non spariscono dallo stack". */
+  {
+    const scaduta = () => {
+      S.day = 9; S.coins = 0; S.goods = [];
+      S.items = [{ uid: 7001, s: SPECIES[0].id, t: 'cranio', q: 'comune', val: 6 }];
+      S.quests = { day: 8, active: [{ type: 'fossils', rar: 'comune', n: 1, reward: 99, qid: 'ieri', day: 8 }], done: ['fatta-ieri'] };
+    };
+    scaduta(); check('scadute: activeQuests() non le mostra più', q.activeQuests().length === 0);
+    scaduta(); check('scadute: isActive() dice di no', q.isActive('ieri') === false);
+    scaduta(); check('scadute: isDone() non tiene le fatte di ieri', q.isDone('fatta-ieri') === false);
+    scaduta(); check('scadute: NON si consegnano più', q.deliverQuest('ieri') === false && S.coins === 0);
+    scaduta(); check('scadute: il minigioco lucciole non le vede', q.fireflyQuest() === null);
+    scaduta(); check('scadute: abbandonarle non risuscita lo stack', q.abandonQuest('ieri') === false && q.activeQuests().length === 0);
+    /* quante se ne perdono: serve per DIRLO, sparire in silenzio si legge come un bug */
+    scaduta(); check('expireQuests conta quante ne sono scadute', q.expireQuests(9) === 1);
+    S.day = 9; S.quests = { day: 9, active: [{ qid: 'a' }, { qid: 'b' }], done: [] };
+    check('expireQuests non tocca le missioni del giorno in corso',
+      q.expireQuests(9) === 0 && q.activeQuests().length === 2);
+    check('avviso di scadenza: singolare, plurale col numero, niente con zero',
+      /missione/.test(q.questExpiryText(1)) && /3 missioni/.test(q.questExpiryText(3)) && q.questExpiryText(0) === '');
+  }
+  /* il giorno avanza in DUE punti (l'orologio del loop e il letto della Locanda): tutti e due
+     devono contare le scadute PRIMA di updateHUD, che è quello che svuota lo stack — dopo non
+     ci sarebbe più niente da contare e chi dorme non saprebbe mai di averle perse */
+  {
+    const { readFileSync: rfs } = await import('node:fs');
+    const mainSrc = rfs(new URL('../src/main.js', import.meta.url), 'utf8');
+    const gpSrc = rfs(new URL('../src/gameplay.js', import.meta.url), 'utf8');
+    check('il cambio giorno dell\'orologio avvisa delle missioni scadute',
+      /expireQuests\(S\.day\)/.test(mainSrc) && /questExpiryText/.test(mainSrc));
+    const rest = gpSrc.slice(gpSrc.indexOf('export function restInn'));
+    /* i commenti vanno via PRIMA di misurare l'ordine: qui sopra ce n'è uno che spiega
+       proprio questo vincolo e nomina updateHUD, e il confronto pescava quello */
+    const body = rest.slice(0, rest.indexOf('\n}')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
+    check('dormire alla Locanda avvisa delle missioni scadute', /expireQuests/.test(body) && /questExpiryText/.test(body));
+    check('le scadute si contano PRIMA di updateHUD (che svuota lo stack)',
+      body.indexOf('expireQuests') < body.indexOf('updateHUD'));
+  }
+  S.quests = null; S.day = 5; S.items = []; S.goods = []; S.coins = 0;
 }
 
 /* ---------- meteo: deterministico per (zona, giorno), pioggia alza i drop ---------- */

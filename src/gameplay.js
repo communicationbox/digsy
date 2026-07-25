@@ -20,6 +20,7 @@ import { INT, nearNpc, nearCase, nearMentorInt } from './interior.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
+import { expireQuests, questExpiryText } from './quests.js';
 import { tr, actKey, LANG, partName, rarLabel, seasonName } from './i18n.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
@@ -1013,11 +1014,17 @@ export function restInn() {
   const night = isNight();
   if (night) { S.day++; S.tod = 0.02; }   // notte → alba del giorno dopo
   else { S.tod = 0.60; }                   // giorno → notte fonda dello stesso giorno
+  /* dormire salta a domani senza passare dall'orologio del game loop: la scadenza delle
+     missioni va CONTATA qui, e prima di updateHUD — è updateHUD stesso a svuotare lo stack
+     scaduto, quindi dopo non ci sarebbe più niente da contare e chi va a letto con tre
+     richieste in corso si sveglierebbe senza che nessuno gliel'abbia spiegato. */
+  const questsLost = night ? expireQuests(S.day) : 0;
   S.energy = S.maxEnergy;
   S.sleepBlockHalf = curHalf() + 1;        // sblocco solo dopo una metà passata sveglio
   save(); updateHUD();
   toast(night ? (tr('Alba del giorno ', 'Dawn of day ') + S.day + tr('! Energia piena', '! Full energy'))
     : tr('Cala la notte. Energia piena', 'Night falls. Full energy'));
+  { const t = questExpiryText(questsLost); if (t) toast(t); }
   return true;
 }
 /* RISTORI — l'energia era una risorsa finta: 15🪙 fissi e ristori illimitati significavano

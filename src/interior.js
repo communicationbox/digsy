@@ -2,7 +2,7 @@
    sulla porta): salvataggi, bussola e titoli non cambiano. Si entra CAMMINANDO sulla porta,
    si esce ripassando dalla porta in basso (o ESC). */
 import { TS } from './data.js';
-import { BODY_HW, FOOT_DY } from './body.js';
+import { BODY_HW, FOOT_DY, feetTile } from './body.js';
 import { P } from './state.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
 import { townInfo, townForTile, isSolidTile, openArea } from './world.js';
@@ -274,15 +274,21 @@ export function exitInterior() {
     if (Number.isFinite(INT.fromX) && Number.isFinite(INT.fromY)) { P.x = INT.fromX; P.y = INT.fromY; }
     return;
   }
-  /* tile davanti alla porta con SPAZIO APERTO attorno: il pg non resta mai bloccato */
+  /* tile davanti alla porta con SPAZIO APERTO attorno: il pg non resta mai bloccato.
+     Si controlla la casella che i PIEDI pesteranno davvero, non quella in cui cade il punto
+     (x,y): la posizione è la testa e il corpo urta 10..15 px più in basso (body.js), quindi
+     scrivendo P.y = ty*TS+10 si finisce a poggiare su ty+1. Il controllo guardava ty e
+     reggeva solo perché davanti a ogni porta ci sono 3 caselle libere: bastava perderne una
+     per uscire dentro un solido senza che niente lo segnalasse. */
   const cands = [[0, 1], [0, 2], [-1, 1], [1, 1], [-1, 2], [1, 2], [0, 3], [-1, 3], [1, 3], [-2, 1], [2, 1]];
+  const spot = (dx, dy) => ({ x: (INT.b.doorx + dx) * TS + 8, y: (INT.b.doory + dy) * TS + 10 });
   for (const [dx, dy] of cands) { // 1° passaggio: libera E non intrappolata
-    const tx = INT.b.doorx + dx, ty = INT.b.doory + dy;
-    if (!isSolidTile(tx, ty) && openArea(tx, ty, 5)) { P.x = tx * TS + 8; P.y = ty * TS + 10; return; }
+    const p = spot(dx, dy), { tx, ty } = feetTile(p);
+    if (!isSolidTile(tx, ty) && openArea(tx, ty, 5)) { P.x = p.x; P.y = p.y; return; }
   }
   for (const [dx, dy] of cands) { // 2° passaggio: almeno libera
-    const tx = INT.b.doorx + dx, ty = INT.b.doory + dy;
-    if (!isSolidTile(tx, ty)) { P.x = tx * TS + 8; P.y = ty * TS + 10; return; }
+    const p = spot(dx, dy), { tx, ty } = feetTile(p);
+    if (!isSolidTile(tx, ty)) { P.x = p.x; P.y = p.y; return; }
   }
   P.x = INT.b.doorx * TS + 8; P.y = (INT.b.doory + 1) * TS + 10; // ripiego (non dovrebbe servire)
 }

@@ -786,7 +786,12 @@ export const RU = {
   'chimera created: it roams the park (pick it as companion)': 'химера создана: гуляет в парке (выбери её спутником)',
   'Sleep until dawn 🌙': 'Спать до рассвета 🌙',
   "Today's requests from the townsfolk. You can hold ": 'Сегодняшние заказы горожан. Можно взять ',
-  " at a time; they expire at day's end.": ' одновременно; они сгорают в конце дня.',
+  " at a time; they expire at day's end. You can drop one to free a slot.": ' одновременно; они сгорают в конце дня. Можно отказаться от одного, чтобы освободить место.',
+  'Drop': 'Бросить',
+  'Frees the slot; your finds stay yours': 'Освобождает место; находки остаются у вас',
+  'Mission dropped': 'Задание брошено',
+  "Your board mission expired at day's end": 'Задание с доски сгорело в конце дня',
+  " board missions expired at day's end": ' задания с доски сгорели в конце дня',
   "Grandpa's letters": 'Письма дедушки',
   "from Grandpa's notebook": 'из тетради дедушки',
   "Active missions (expire at day's end). Deliver at the town board.":

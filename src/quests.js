@@ -14,10 +14,34 @@ const GIVERS = [['Curatore', 'Curator'], ['Mastro Ossa', 'Bone Master'], ['Perla
 const ALL_GOODS = Object.values(goodById);
 export function giverName(i) { const g = GIVERS[i % GIVERS.length]; return tr(g[0], g[1]); }
 
-/* stato per giornata: le missioni scadono e il cartello si rigenera ogni giorno */
+/* stato per giornata: le missioni scadono e il cartello si rigenera ogni giorno.
+   È l'UNICO posto che butta via lo stack scaduto: tutti i lettori qui sotto passano di qui
+   (activeQuests/isActive/isDone/deliverQuest), così non esiste un modo di vedere — o peggio
+   di consegnare — una missione di ieri. Prima la pulizia la faceva solo chi si ricordava di
+   chiamare ensureQuests: l'HUD ogni due secondi e le due schermate delle missioni. Chi
+   leggeva lo stack diretto (il minigioco delle lucciole, che consegna DA SOLO al raggiungimento
+   dell'obiettivo) vedeva ancora la richiesta del giorno prima e la pagava. */
 export function ensureQuests(day) {
   if (!S.quests || S.quests.day !== day) S.quests = { day, active: [], done: [] };
   return S.quests;
+}
+/* SCADENZA: quante missioni si perdono passando a `day`. La pulizia la fa ensureQuests —
+   questa serve per DIRLO. Sparire in silenzio è indistinguibile da un bug: chi aveva tre
+   richieste in corso vede il contatore andare a zero e non sa se le ha perse o se il gioco
+   se le è dimenticate (segnalato da un giocatore). */
+export function expireQuests(day) {
+  const lost = (S.quests && S.quests.day !== day) ? (S.quests.active || []).length : 0;
+  ensureQuests(day);
+  return lost;
+}
+/* l'avviso da mostrare, '' se non è scaduto niente. Il testo sta qui e non nei due punti che
+   fanno passare il giorno (l'orologio e il letto della Locanda): un messaggio scritto due
+   volte è un messaggio che prima o poi diverge. */
+export function questExpiryText(lost) {
+  if (!lost) return '';
+  return '📋 ' + (lost === 1
+    ? tr('La missione del cartello è scaduta a fine giornata', 'Your board mission expired at day\'s end')
+    : lost + tr(' missioni del cartello sono scadute a fine giornata', ' board missions expired at day\'s end'));
 }
 
 /* offerte del cartello: deterministiche per (città, giorno) — 4 richieste */
@@ -81,8 +105,8 @@ export function questHave(q) {
 /* la missione lucciole ATTIVA (se c'è): accende il minigioco notturno. null se non c'è. */
 export function fireflyQuest() { return activeQuests().find(q => q.type === 'fireflies') || null; }
 export function canComplete(q) { return questHave(q) >= q.n; }
-export function isActive(qid) { return (S.quests && S.quests.active || []).some(q => q.qid === qid); }
-export function isDone(qid) { return (S.quests && S.quests.done || []).includes(qid); }
+export function isActive(qid) { return activeQuests().some(q => q.qid === qid); }
+export function isDone(qid) { return ensureQuests(S.day).done.includes(qid); }
 
 export function acceptQuest(offer, day) {
   ensureQuests(day);
@@ -93,9 +117,18 @@ export function acceptQuest(offer, day) {
   S.quests.active.push(q);
   return true;
 }
+/* abbandona una missione attiva: libera lo slot senza consegnarla. NON consuma nulla — i
+   reperti restano tuoi (la consegna è l'unica cosa che li spende). Torna riprendibile: non
+   finisce in "done", quindi ricompare accettabile sul cartello dello stesso giorno. */
+export function abandonQuest(qid) {
+  const act = activeQuests();
+  const before = act.length;
+  S.quests.active = act.filter(x => x.qid !== qid);
+  return S.quests.active.length < before;
+}
 /* consegna: consuma i pezzi richiesti, accredita la ricompensa, sposta in "done" */
 export function deliverQuest(qid) {
-  const q = (S.quests && S.quests.active || []).find(x => x.qid === qid);
+  const q = activeQuests().find(x => x.qid === qid);
   if (!q || !canComplete(q)) return false;
   if (q.type === 'goods') removeN(S.goods, g => g.id === q.goodId, q.n);
   else if (q.type === 'fossils') removeN(S.items, it => it.q === q.rar, q.n);
@@ -124,4 +157,6 @@ function removeN(arr, pred, n) {
     if (best >= 0) arr.splice(best, 1);
   }
 }
-export function activeQuests() { return (S.quests && S.quests.active) || []; }
+/* lo stack, sempre del giorno CORRENTE: la scadenza è dentro la lettura, non a carico di
+   chi legge. Costa un confronto fra due interi, e vale in ogni scena. */
+export function activeQuests() { return ensureQuests(S.day).active; }

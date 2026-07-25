@@ -3,7 +3,7 @@ import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZON
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
-import { ensureQuests, boardOffers, acceptQuest, deliverQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
+import { ensureQuests, boardOffers, acceptQuest, deliverQuest, abandonQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
 import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPowers, companionSpec } from './companion.js';
 import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './progress.js';
@@ -247,13 +247,13 @@ export function openQuestBoard() {
   const tw = townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS));
   const [cx, cy] = (tw ? tw.key : '0,0').split(',').map(Number);
   const offers = boardOffers(cx, cy, S.day);
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Le richieste del giorno degli abitanti. Ne puoi tenere ', "Today's requests from the townsfolk. You can hold ")}${MAX_ACTIVE}${tr(' alla volta; scadono a fine giornata.', " at a time; they expire at day's end.")}</div>`;
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Le richieste del giorno degli abitanti. Ne puoi tenere ', "Today's requests from the townsfolk. You can hold ")}${MAX_ACTIVE}${tr(' alla volta; scadono a fine giornata. Puoi lasciarne una per liberare uno slot.', " at a time; they expire at day's end. You can drop one to free a slot.")}</div>`;
   const act = activeQuests();
   if (act.length) {
     h += `<div class="bighead">${tr('Le tue missioni', 'Your missions')} (${act.length}/${MAX_ACTIVE})</div>`;
     for (const q of act) {
       const have = questHave(q), ok = canComplete(q);
-      h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} ${questRewardText(q)}</div></div><div class="rt"><button class="btn ${ok ? 'amber' : 'ghost'}" ${ok ? '' : 'disabled'} data-deliver="${q.qid}">${tr('Consegna', 'Deliver')}</button></div></div>`;
+      h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} ${questRewardText(q)}</div></div><div class="rt"><button class="btn ghost" data-abandon="${q.qid}" title="${tr('Libera lo slot; i reperti restano tuoi', 'Frees the slot; your finds stay yours')}">${tr('Lascia', 'Drop')}</button> <button class="btn ${ok ? 'amber' : 'ghost'}" ${ok ? '' : 'disabled'} data-deliver="${q.qid}">${tr('Consegna', 'Deliver')}</button></div></div>`;
     }
   }
   /* la commissione del Museo dura 3 giorni: va vista anche da qui, non solo al banco */
@@ -286,6 +286,10 @@ export function openQuestBoard() {
        pagava due — col totem della doppia XP attivo bruciava anche 2 dei 10 carichi invece
        di 1. L'esperienza si conta in un posto solo, quello testato. */
     if (q) { playSfx('coin'); save(); updateHUD(); toast('✅ ' + tr('Consegnata! ', 'Delivered! ') + questRewardText(q)); }
+    openQuestBoard();
+  });
+  mBody.querySelectorAll('[data-abandon]').forEach(b => b.onclick = () => {
+    if (abandonQuest(b.dataset.abandon)) { save(); updateHUD(); toast('📋 ' + tr('Missione lasciata', 'Mission dropped')); }
     openQuestBoard();
   });
 }
