@@ -2,7 +2,7 @@
 import { drawHero } from './sprites.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { tr, LANG, setLang, LANGS, isTouch } from './i18n.js';
+import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
 import { commandHelp } from './commands.js';
 import { withIcons } from './icons.js';
@@ -498,7 +498,10 @@ function buildMenu(inGame) {
   } else if (view === 'changelog') {
     h += closeX();
     h += `<div class="sp-title2">📝 ${tr('Novità', "What's new")}</div><div class="sp-log">`;
-    for (const c of CHANGELOG) h += `<div class="sp-logv"><b>${c.v}</b><ul>` + tr(c.it, c.en).map(l => `<li>${l}</li>`).join('') + `</ul></div>`;
+    /* i segnaposto dei tasti si risolvono ANCHE qui: le note di versione sono testo di gioco
+       come gli altri, e senza `keys()` si leggeva "premi {act}" così com'era — oltre a dire
+       "premi E" a chi gioca col dito, dove il tasto E non esiste (regola ferrea 11). */
+    for (const c of CHANGELOG) h += `<div class="sp-logv"><b>${c.v}</b><ul>` + tr(c.it, c.en).map(l => `<li>${keys(l)}</li>`).join('') + `</ul></div>`;
     h += `</div>` + backBar();
   } else if (view === 'commands') {
     h += closeX();

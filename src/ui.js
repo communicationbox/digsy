@@ -31,7 +31,7 @@ import { fusibleGroups, nextRarity } from './fuse.js';
 import { projectVox } from './voxview.js';
 import { openMap, closeMap, isMapOpen, revealMap, mapZoomBy, mapReset } from './mapui.js';
 export { openMap, closeMap, isMapOpen, revealMap };
-import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, remount3D, drawVoxel2D } from './bookui.js';
+import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, remount3D, drawVoxel2D, mountSpecies3D, litForSpecies } from './bookui.js';
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
@@ -400,6 +400,21 @@ export function openLetters() {
   mTitle.innerHTML = withIcons('✉ ' + tr('Lettere del nonno', "Grandpa's letters"));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-letter]').forEach(el => el.onclick = () => openLetter(el.dataset.letter));
+}
+/* LA TARGA DELLA STATUA. Non è arredo muto: nelle città grandi ci si passa davanti decine di
+   volte andando al Museo, ed è il posto migliore per ricordare PERCHÉ si sta scavando. La targa
+   dice chi era lui; sotto, a che punto sei TU — lo stesso conteggio del cancello del parco e del
+   banco del Curatore, mai riscritto a mano (goal.js). */
+export function openStatue() {
+  mTitle.innerHTML = withIcons('🗿 ' + tr('Monumento al vecchio archeologo', 'Monument to the old archaeologist'));
+  let h = `<div class="letter"><div class="lt-h">${tr('Targa incisa', 'Engraved plaque')}</div>
+    <p>${tr('Trovò ciò che nessuno ricordava,<br>e passò la vita a dimostrare che era esistito.', 'He found what no one remembered,<br>and spent his life proving it had existed.')}</p>
+    <p>${tr('Non ne vide mai una viva.', 'He never saw a single one alive.')}</p>
+    <div class="lt-sign">— ${tr('gli abitanti', 'the townsfolk')}</div></div>`;
+  h += `<div class="row" style="background:#f6e7c4"><span class="em">🧬</span><div>
+    <div class="nm">${goalTitle()}: ${goalLine()}</div>
+    <div class="sub">${alive() ? goalHint() : goalEnd()}</div></div></div>`;
+  mBody.innerHTML = withIcons(h); openModal();
 }
 /* MERAVIGLIA: pannello con nome, descrizione, la riga del nonno e il dono (col riposo).
    Ogni testo dice sempre se è pronta o quanti giorni mancano: niente cooldown misteriosi. */
@@ -1271,14 +1286,20 @@ export function openExhibit(spId) {
   const sp = spById[spId]; const parts = S.museum[spId] || [];
   mTitle.innerHTML = withIcons('🏛️ ' + sp.name + ' ' + sp.emoji);
   const zone = ZONES.find(z => z.id === sp.zone);
-  let h = `<div class="center" style="padding:4px"><canvas id="exhCv" width="72" height="60" style="width:216px;height:180px;image-rendering:pixelated;background:#15120d;border:2px solid #6b5137;border-radius:8px"></canvas></div>`;
+  /* la canvas è più grande e più chiara del francobollo di prima: qui dentro ora GIRA lo
+     scheletro 3D, e un modello che ruota dentro 216×180 non si legge. Fondo carta come nel
+     Libro (il 3D si disegna su sfondo chiaro), e si trascina per ruotarlo. */
+  let h = `<div class="center" style="padding:4px"><canvas id="exhCv" width="220" height="165" style="width:100%;max-width:320px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px;touch-action:none;cursor:grab" title="${tr('Trascina per ruotare', 'Drag to rotate')}"></canvas></div>`;
   h += `<div class="row"><div class="nm">${rarSpan(sp.r)} · ${zone ? zone.icon + ' ' + zoneName(zone.id) : ''}</div></div>`;
   h += `<div class="row"><div class="sub">${tr('Pezzi esposti', 'Pieces on display')}: ${parts.length}/${PARTS.length} — ${PARTS.map(pt => (parts.includes(pt.id) ? '✓ ' : '· ') + partName(pt.id)).join(' · ')}</div></div>`;
   if (parts.length === PARTS.length) h += `<div class="row" style="background:#f1e6cc"><div class="sub">🧬 ${tr('Teca completa: DNA disponibile al banco del Curatore', 'Case complete: DNA available at the Curator\'s desk')} ${dnaBadge(spId)}</div></div>`;
   h += `<div class="muted" style="margin-top:6px">${descFor(sp)}</div>`;
   mBody.innerHTML = withIcons(h); openModal();
   const cv = document.getElementById('exhCv');
-  if (cv) try { projectVox(cv, composedPartsVox(spId, parts)); } catch (e) { /* stub */ }
+  /* LO SCHELETRO 3D, non la proiezione piatta: è lo stesso modello del Libro, con accesi i
+     soli pezzi che hai consegnato — così la teca mostra a colpo d'occhio cosa manca ancora.
+     Se WebGL non c'è, mount3D ripiega da solo sul disegno 2D. */
+  if (cv) try { mountSpecies3D(cv, baseSpec(sp), { lit: litForSpecies(spId) }); } catch (e) { /* stub */ }
 }
 function renderInn() {
   const night = isNight();

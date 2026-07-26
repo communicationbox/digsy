@@ -70,6 +70,9 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'editor') { if(sp) sp.classList.add('off'); if(G.openEditor) G.openEditor(); }
     /* 'museo' = il banco del Curatore: e' dove si vede quanto manca alle sale, cioe' l'unico
        traguardo lungo del gioco. Va guardato, non solo misurato da un test */
+    else if (${JSON.stringify(vista)} === 'statua') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.gotoStatue) G.gotoStatue().then(function(){ if(G.frame) G.frame(1000); }); }
+    else if (${JSON.stringify(vista)} === 'teca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openExhibit) G.openExhibit(); }
     else if (${JSON.stringify(vista)} === 'museo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openMuseum) G.openMuseum(); }
     else {
       if(sp) sp.classList.remove('off');

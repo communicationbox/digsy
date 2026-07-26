@@ -303,6 +303,18 @@ export function townForCell(cx, cy) {
       for (const [x, y] of [[C.x + 5, C.y - 1], [C.x - 5, C.y - 1], [C.x + 6, C.y], [C.x - 6, C.y], [C.x + 5, C.y - 2], [C.x - 5, C.y - 2], [C.x + 4, C.y], [C.x - 4, C.y], [C.x + 3, C.y - 1], [C.x - 3, C.y - 1]]) {
         if (!forb(x, y) && !occupiedByDeco(x, y) && farFromFnt(x, y)) { board = { x, y }; break; }
       }
+      /* STATUA DEL NONNO: solo nelle CITTÀ, accanto al Museo. È lui che chiede al giocatore di
+         riportarle in vita (goal.js) e firma le sette lettere: metterlo davanti alla porta dove
+         si consegnano le ossa chiude il cerchio senza spiegarlo. Sul FIANCO dell'edificio, mai
+         davanti alla porta — le tre caselle libere davanti sono una regola ferrea. */
+      if (size.id === 'città') {
+        const mus = B.find(b => b.type === 'museum');
+        if (mus) {
+          for (const [x, y] of [[mus.x1 + 2, mus.y1], [mus.x0 - 2, mus.y1], [mus.x1 + 2, mus.y1 + 1], [mus.x0 - 2, mus.y1 + 1]]) {
+            if (!forb(x, y) && !occupiedByDeco(x, y)) { town.statue = { x, y }; decos.push({ type: 'statue', x, y }); break; }
+          }
+        }
+      }
       town.board = board;
       if (board) decos.push({ type: 'board', x: board.x, y: board.y });
       /* CASSETTA DELLA POSTA: solo nelle città SENZA Museo (borghi e paesi) — per spedire i

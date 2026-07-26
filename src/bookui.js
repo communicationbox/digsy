@@ -43,6 +43,15 @@ function mount3D(cv, spec, silhouette, flesh, lit, voxels) {
     catch (e) { drawVoxel2D(cv, spec, silhouette, flesh, lit); }
   }).catch(() => drawVoxel2D(cv, spec, silhouette, flesh, lit));
 }
+/* SCHELETRO 3D per chi sta fuori dal Libro (le teche del Museo): stesso motore, stessa regola
+   dei pezzi accesi. Prima la teca mostrava la proiezione PIATTA (projectVox) mentre il Libro,
+   sulla stessa specie, faceva girare il modello: due facce diverse della stessa cosa, e la
+   meno bella proprio dove il pezzo lo hai appena consegnato. */
+export function mountSpecies3D(cv, spec, opts) {
+  const o = opts || {};
+  mount3D(cv, spec, !!o.silhouette, !!o.flesh, o.lit || null);
+}
+export function litForSpecies(spId) { return litFor(spId); }
 /* il contesto WebGL della canvas muore col dispose: si rimonta su una canvas CLONATA fresca */
 export function remount3D(cv, spec, silhouette, flesh, lit) {
   const h = viewByCv.get(cv);

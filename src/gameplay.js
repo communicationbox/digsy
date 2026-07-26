@@ -11,7 +11,7 @@ import { vhash as vhashW } from './noise.js';
 import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememberArch, addBuff, useBuff } from './wonders.js';
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
-import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, showTip, announceTutStep } from './ui.js';
+import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, openStatue, showTip, announceTutStep } from './ui.js';
 import { companionYieldMul, companionType, companionSpec, COMP } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
@@ -532,6 +532,15 @@ export function nearbyBoard() {
   }
   return null;
 }
+/* STATUA del nonno a portata (E): si legge la targa */
+export function nearbyStatue() {
+  const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const ti = townInfo(ptx + dx, pty + dy);
+    if (ti && ti.deco && ti.deco.type === 'statue') return ti.deco;
+  }
+  return null;
+}
 /* cassetta della posta a portata (E): nelle città SENZA Museo, per spedire i grezzi */
 export function nearbyMailbox() {
   const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
@@ -856,6 +865,7 @@ export function act() {
   }
   { const w = nearbyWonder(); if (w) { openWonder(w); return; } } // meraviglia: pannello col suo dono
   if (nearbyBoard()) { openQuestBoard(); return; } // cartello delle missioni
+  if (nearbyStatue()) { openStatue(); return; }    // targa del monumento al nonno
   if (nearbyMailbox()) { openMailbox(); return; } // cassetta: spedisci i grezzi al Museo
   if (nearbyPark()) { openCompanionPicker(); return; } // parco: scegli il compagno
   if (nearbySite()) { digSite(); return; }

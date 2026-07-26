@@ -1738,6 +1738,102 @@ sprites.applyLook();
   check('il timing (fortuna) sposta le probabilità verso i rari', gameplay.tossRarity(1, 0.5) !== null && gameplay.tossRarity(0, 0.5) === null);
   check('tossLuck: centro del bersaglio = fortuna piena', gameplay.tossLuck(0.5, 0.5) === 1);
 
+  /* le NOTE DI VERSIONE sono testo di gioco: i segnaposto dei tasti vanno risolti anche lì.
+     Scrivendo "premi {act}" la riga usciva col segnaposto in chiaro (visto in foto) — e senza
+     `keys()` direbbe comunque "premi E" a chi gioca col dito, dove quel tasto non esiste. */
+  {
+    const chg = await import('../src/changelog.js');
+    const fs17 = await import('node:fs');
+    const spsrc = fs17.readFileSync('src/splash.js', 'utf8');
+    check('le note di versione risolvono i segnaposto dei tasti', /keys\(l\)/.test(spsrc));
+    /* e i segnaposto usati devono essere quelli che `keys` conosce */
+    const righe = chg.CHANGELOG.flatMap(c => c.it.concat(c.en));
+    const ignoti = righe.flatMap(l => (String(l).match(/\{[^}]+\}/g) || []))
+      .filter(t => t !== '{act}' && !/^\{key:[A-Z]\}$/.test(t));
+    check('nessun segnaposto sconosciuto nelle note di versione', ignoti.length === 0, ignoti.slice(0, 3).join(' '));
+  }
+
+  /* ---- STATUA DEL NONNO: il monumento allo scopo, non un sasso in più ----
+     Nelle città grandi ci si passa davanti decine di volte andando al Museo: è il posto giusto
+     per ricordare PERCHÉ si scava. Ma un arredo nuovo in piazza è anche il modo più facile per
+     murare una porta senza accorgersene — le tre caselle libere davanti a ogni porta sono una
+     regola ferrea, e questo test le ricontrolla con la statua in mezzo. */
+  {
+    let citta = 0, conStatua = 0, fuoriPosto = 0, porteChiuse = 0, sopraStrada = 0;
+    for (let cx = -8; cx < 8; cx++) for (let cy = -8; cy < 8; cy++) {
+      const t = world.townForCell(cx, cy); if (!t) continue;
+      if (t.size !== 'città') { if (t.statue) fuoriPosto++; continue; }
+      citta++;
+      if (!t.statue) continue;
+      conStatua++;
+      /* mai davanti a una porta, mai sulle strade, mai sopra un edificio */
+      for (const b of t.buildings) {
+        for (let dd = 1; dd <= 3; dd++) if (t.statue.x === b.doorx && t.statue.y === b.doory + dd) porteChiuse++;
+        if (t.statue.x >= b.x0 && t.statue.x <= b.x1 && t.statue.y >= b.y0 && t.statue.y <= b.y1) porteChiuse++;
+      }
+      if (t.roads && t.roads.has(t.statue.x + ',' + t.statue.y)) sopraStrada++;
+      /* è ACCANTO al Museo: il legame col posto dove si consegnano le ossa si deve leggere */
+      const mus = t.buildings.find(b => b.type === 'museum');
+      if (mus && Math.max(Math.abs(t.statue.x - mus.doorx), Math.abs(t.statue.y - mus.doory)) > 6) fuoriPosto++;
+    }
+    check(`ogni città grande ha la statua (${conStatua}/${citta})`, citta > 0 && conStatua === citta);
+    check('e nessun borgo o paese ce l\'ha', fuoriPosto === 0);
+    check('la statua non chiude mai una porta né sta su un edificio', porteChiuse === 0);
+    check('e non finisce in mezzo a una strada', sopraStrada === 0);
+    /* la targa si apre e dice le due cose: chi era lui, e a che punto sei TU */
+    {
+      const ui15 = ui, S15 = state.S;
+      let crash = null;
+      try { ui15.openStatue(); } catch (e) { crash = e.message; }
+      check('la targa si apre senza crash', crash === null, crash || '');
+      const html15 = document.getElementById('m-body').innerHTML;
+      check('la targa parla del nonno', /nessuno ricordava|no one remembered/i.test(html15));
+      check('e mostra il traguardo, senza riscriverlo a mano',
+        html15.includes(String((S15.awakened || []).length)) && /66/.test(html15));
+      ui15.closeModal(true);
+    }
+    /* e si disegna: un arredo che nessuno disegna è un crash che aspetta (regola 9) */
+    {
+      const fs16 = await import('node:fs');
+      const rsrc16 = fs16.readFileSync('src/render.js', 'utf8');
+      check('la statua ha il suo disegno', /d\.type === 'statue'/.test(rsrc16) && /function drawStatue/.test(rsrc16));
+    }
+  }
+
+  /* ---- LA TECA MOSTRA LO SCHELETRO 3D, non la proiezione piatta ----
+     Il Libro faceva girare il modello voxel; la teca del Museo, sulla STESSA specie, mostrava
+     un francobollo 2D — la faccia peggiore proprio dove il pezzo lo hai appena consegnato. Il
+     motore c'era già (mountSkeleton, con `lit` = i pezzi consegnati accesi): bastava usarlo. */
+  {
+    const fs14 = await import('node:fs');
+    const usrc14 = fs14.readFileSync('src/ui.js', 'utf8');
+    const ex = usrc14.slice(usrc14.indexOf('export function openExhibit'));
+    const corpo14 = ex.slice(0, ex.indexOf('\n}'));
+    check('la teca monta lo scheletro 3D', /mountSpecies3D\(/.test(corpo14));
+    check('e non usa più la proiezione piatta', !/projectVox\(/.test(corpo14));
+    /* i pezzi accesi sono quelli consegnati: la teca deve dire anche cosa MANCA */
+    check('accende solo i pezzi consegnati al museo', /litForSpecies\(/.test(corpo14));
+    /* chiudere la modale deve smontare il contesto WebGL, o resta appeso a ogni apertura */
+    const cm = usrc14.slice(usrc14.indexOf('export function closeModal'));
+    check('chiudendo la teca il contesto 3D si smonta', /disposeViews\(\)/.test(cm.slice(0, cm.indexOf('\n}'))));
+    /* il ripiego 2D resta per chi non ha WebGL: senza, quei giocatori vedrebbero un buco */
+    const bsrc14 = fs14.readFileSync('src/bookui.js', 'utf8');
+    check('senza WebGL si ripiega sul disegno 2D', /drawVoxel2D\(cv, spec/.test(bsrc14));
+    /* e la teca si disegna DAVVERO senza crash (regola 9: ogni schermata provata) */
+    {
+      const S14 = state.S, sp14 = SPECIES[0];
+      const prima = S14.museum[sp14.id];
+      S14.museum[sp14.id] = ['cranio', 'torace'];
+      let crash = null;
+      try { ui.openExhibit(sp14.id); } catch (e) { crash = e.message; }
+      check('la scheda della teca si apre senza crash', crash === null, crash || '');
+      check('e dice quanti pezzi hai esposto',
+        /2\/5|2 \/ 5/.test(document.getElementById('m-body').innerHTML));
+      ui.closeModal(true);
+      if (prima === undefined) delete S14.museum[sp14.id]; else S14.museum[sp14.id] = prima;
+    }
+  }
+
   /* ---- FONTANA SU MOBILE: si fermava dove NON avevi toccato ----
      Due difetti sommati, tutti e due invisibili leggendo il codice.
      1) Si ascoltava `click`, che su un telefono arriva 250-300 ms dopo il dito: a quel punto il

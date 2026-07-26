@@ -327,6 +327,21 @@ if (typeof window !== 'undefined') {
       resume: () => import('./splash.js').then(sp => sp.resumeSplash()),
       openStore: () => import('./ui.js').then(u => u.openBuilding({ type: 'store', name: 'Negozio' })),
       openMuseum: () => import('./ui.js').then(u => u.openBuilding({ type: 'museum', name: 'Museo' })),
+      /* porta il giocatore ACCANTO alla statua: senza, fotografarla è questione di fortuna */
+      gotoStatue: () => import('./world.js').then(w => {
+        for (let r = 0; r < 14; r++) for (let cy = -r; cy <= r; cy++) for (let cx = -r; cx <= r; cx++) {
+          const t = w.townForCell(cx, cy);
+          if (t && t.statue) { P.x = t.statue.x * TS + 8; P.y = (t.statue.y + 2) * TS + 2; return true; }
+        }
+        return false;
+      }),
+      /* la scheda di una TECA: ci gira dentro lo scheletro 3D, e senza questo ponte non si
+         poteva né fotografare né far disegnare da un test */
+      openExhibit: (id) => import('./ui.js').then(u => import('./data.js').then(d => {
+        const sp = id ? d.spById[id] : d.ALL_SPECIES[0];
+        if (sp) { S.museum[sp.id] = ['cranio', 'torace']; u.openExhibit(sp.id); }
+        return !!sp;
+      })),
     };
   });
 }

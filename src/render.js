@@ -225,6 +225,7 @@ function drawTownDeco(d, sx, sy, time) {
   else if (d.type === 'lamp') drawLamp(sx, sy);
   else if (d.type === 'board') drawBoard(sx, sy, time);
   else if (d.type === 'mailbox') drawMailbox(sx, sy);
+  else if (d.type === 'statue') drawStatue(sx, sy, time);
   else drawBushDeco(sx, sy);
 }
 /* CARTELLO delle missioni: due pali + tabellone di legno con fogli e un pennino luccicante */
@@ -237,6 +238,43 @@ function drawBoard(sx, sy, time) {
   rect(sx + 3, sy + 4, 4, 1, '#b8ad8c'); rect(sx + 3, sy + 6, 3, 1, '#b8ad8c'); rect(sx + 9, sy + 4, 4, 1, '#b8ad8c'); // righe di testo
   rect(sx + 1, sy, 14, 1, '#5c4229');                                                // cornice alta
   if (Math.floor(time / 400) % 3 === 0) { px(sx + 13, sy + 2, '#fff3b0'); px(sx + 14, sy + 1, '#fff8d0'); } // luccichio "novità"
+}
+/* STATUA DEL NONNO (solo città, accanto al Museo): piedistallo di pietra con targa d'ottone,
+   il vecchio archeologo col cappello a tesa e la pala piantata a terra. Tutta in toni di PIETRA
+   — è l'unica cosa in piazza senza colori vivi, così si legge come monumento e non come un NPC
+   con cui parlare per sbaglio. La targa manda un riflesso ogni tanto: dice "qui c'è da leggere"
+   senza scriverlo. */
+function drawStatue(sx, sy, time) {
+  shadow(sx + 8, sy + 15, 7);
+  /* pietra a quattro toni + un contorno scuro: senza il contorno la statua si scioglieva nel
+     lastricato chiaro della piazza (regola ferrea 4 — ogni cosa stacca dal suo sfondo). */
+  const D = '#4e4a42', P1 = '#7d766a', P2 = '#9a9384', P3 = '#b6ae9d', P4 = '#cfc7b4';
+  /* BASAMENTO: due gradini, il più largo in basso. Alto e stretto = monumento; largo e basso
+     sembrava una cassetta degli attrezzi. */
+  rect(sx + 1, sy + 12, 14, 4, D);                                    // ombra/base scura
+  rect(sx + 2, sy + 12, 12, 3, P1); rect(sx + 2, sy + 12, 12, 1, P2);
+  rect(sx + 4, sy + 8, 8, 4, D);                                      // colonna del piedistallo
+  rect(sx + 5, sy + 8, 6, 4, P2); rect(sx + 5, sy + 8, 6, 1, P3);
+  rect(sx + 4, sy + 13, 8, 2, '#b9a15c'); rect(sx + 4, sy + 13, 8, 1, '#dcc078'); // targa d'ottone
+  /* LA FIGURA: snella e verticale. Cappotto lungo che si stringe in vita, spalle strette,
+     testa piccola sotto una tesa larga — la silhouette di un vecchio, non di un armadio. */
+  rect(sx + 5, sy + 1, 6, 8, D);                                      // contorno del corpo
+  rect(sx + 6, sy + 2, 4, 6, P2);                                     // cappotto
+  rect(sx + 6, sy + 2, 4, 1, P3);                                     // luce sulle spalle
+  px(sx + 6, sy + 6, P1); px(sx + 9, sy + 6, P1);                     // pieghe in vita
+  rect(sx + 6, sy + 8, 4, 1, P1);                                     // orlo del cappotto
+  rect(sx + 6, sy - 3, 4, 4, D);                                      // contorno della testa
+  rect(sx + 7, sy - 2, 2, 2, P3);                                     // viso
+  rect(sx + 6, sy, 4, 1, P4);                                         // barba chiara
+  rect(sx + 4, sy - 4, 8, 1, D); rect(sx + 5, sy - 4, 6, 1, P2);      // tesa larga del cappello
+  rect(sx + 6, sy - 6, 4, 2, D); rect(sx + 6, sy - 5, 4, 1, P1);      // cupola del cappello
+  /* LA PALA, tenuta in mano: il braccio la raggiunge, così non sembra piantata lì per caso */
+  rect(sx + 11, sy + 3, 1, 6, D);                                     // manico
+  rect(sx + 10, sy + 4, 1, 1, P3);                                    // mano che lo stringe
+  rect(sx + 10, sy + 1, 3, 3, D); rect(sx + 11, sy + 1, 1, 2, P3);    // lama in alto
+  /* riflesso sulla targa: passa ogni tanto, come sull'ottone lucidato. Dice "qui c'è da
+     leggere" senza scriverlo. */
+  if (Math.floor(time / 520) % 4 === 0) { px(sx + 5, sy + 13, '#fff3c8'); px(sx + 6, sy + 14, '#fff8e0'); }
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {

@@ -778,6 +778,13 @@ export const RU = {
   'Drop': 'Бросить',
   'Frees the slot; your finds stay yours': 'Освобождает место; находки остаются у вас',
   'Mission dropped': 'Задание брошено',
+  /* ---- statua del nonno (città grandi, accanto al Museo) ---- */
+  'Monument to the old archaeologist': 'Памятник старому археологу',
+  'Engraved plaque': 'Табличка',
+  'He found what no one remembered,<br>and spent his life proving it had existed.':
+    'Он нашёл то, чего никто не помнил,<br>и всю жизнь доказывал, что оно существовало.',
+  'He never saw a single one alive.': 'Он не увидел ни одного живым.',
+  'the townsfolk': 'горожане',
   /* ---- LO SCOPO: riportarle in vita (goal.js) ---- */
   'BROUGHT BACK': 'ВОЗВРАЩЕНО',
   'Bring back all ': 'Верни все ',
