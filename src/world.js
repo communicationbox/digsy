@@ -139,6 +139,18 @@ export function decoSolid(d) {
    sparsi su terreno camminabile, mai in città, mai sopra un ostacolo; deterministici; esaurimento in pickedSet.
    Ritorna l'ID dell'oggetto (es. 'conchiglia'): ciò che vedi è ciò che raccogli. */
 const PICKUP_ZONES = ['prati', 'dune', 'boschi', 'terre', 'palude', 'ghiacci'];
+/* dentro la fascia di raccolta attorno a un abitato? Si guarda la cella della città (la
+   ricerca è già in cache) e la distanza dal suo rettangolo. */
+const BAND = 12;
+function nearTownBand(tx, ty) {
+  const cx = Math.floor(tx / TCELL), cy = Math.floor(ty / TCELL);
+  for (let jy = -1; jy <= 1; jy++) for (let jx = -1; jx <= 1; jx++) {
+    const t = townForCell(cx + jx, cy + jy); if (!t) continue;
+    const dx = Math.max(t.x0 - tx, 0, tx - t.x1), dy = Math.max(t.y0 - ty, 0, ty - t.y1);
+    if (Math.max(dx, dy) <= BAND) return true;
+  }
+  return false;
+}
 export function pickupAt(tx, ty) {
   if (pickedSet.has(tx + ',' + ty)) return null;
   const t = baseTerrain(tx, ty);
@@ -148,7 +160,13 @@ export function pickupAt(tx, ty) {
   /* DENSITÀ: la raccolta è il BOOTSTRAP (i primi 15🪙 per la pala), non una rendita che
      compete con lo scavo — quello costa energia e deve restare la fonte principale.
      0.8% dava ~200🪙 in 5 minuti camminando: più dell'intera giornata di scavi. */
-  if (vhash(tx, ty, 21) >= 0.003) return null;          // ~0.3% delle caselle
+  /* PIÙ FITTI ATTORNO AGLI ABITATI. Con lo 0.3% ovunque, attorno al punto di partenza non
+     c'era NIENTE entro dieci caselle e i 15🪙 della pala arrivavano solo allargandosi a una
+     trentina: il primo obiettivo del gioco era un rastrellamento alla cieca (misurato).
+     Vicino a una città la densità sale; lontano resta quella di prima, così la raccolta
+     continua a essere il bootstrap dei primi attrezzi e non una rendita che compete con lo
+     scavo. E si esaurisce: `pickedSet` è salvato, una casella raccolta non ricresce. */
+  if (vhash(tx, ty, 21) >= (nearTownBand(tx, ty) ? 0.04 : 0.003)) return null;
   const list = GOODS[PICKUP_ZONES[zoneIdxAt(tx, ty)] || 'prati'];
   const k = vhash(tx, ty, 22);                          // 60/30/10: comune→raro (per valore)
   const idx = k < 0.6 ? 0 : k < 0.9 ? 1 : 2;
@@ -354,18 +372,35 @@ function townInfoCompute(tx, ty) {
    siepe/sassi sull'anello interno, aiuole sparse al centro. Puro e testabile: pen={x0,y0,x1,y1},
    cx = colonna centrale (il cancello, sempre libero). Ritorna {kind[,px,py]} o null. Sta tutto
    sull'ANELLO interno + angoli, così il centro resta alle creature. */
-export function parkDeco(pen, cx, tx, ty) {
+/* IL PARCO CRESCE COL TRAGUARDO. `n` = quante specie sono tornate in vita (goal.js).
+   Lo scopo del gioco è riportarle indietro, e un numero che sale in un pannello non lo fa
+   sentire: il posto dove vivono deve CAMBIARE. A recinto vuoto il parco è prato nudo — un
+   recinto che aspetta — e a ogni soglia diventa più un posto: il primo albero, lo stagno, i
+   cespugli, le aiuole. Il progresso lo si cammina invece di leggerlo.
+   `n` non passato = tutto acceso: la funzione resta compatibile con chi non conosce il
+   traguardo, e i test possono fissare le due letture separatamente.
+   NB: qui NON si decide niente di solido — parkDeco la usa solo il disegno (render.js), mai
+   la collisione. È il motivo per cui il parco può cambiare a partita in corso senza il rischio
+   di far comparire un albero addosso a chi ci sta dentro. */
+export function parkDeco(pen, cx, tx, ty, n) {
   if (!pen) return null;
+  const N = (n === undefined || n === null) ? Infinity : n;
   const { x0, y0, x1, y1 } = pen;
   if (tx <= x0 || tx >= x1 || ty <= y0 || ty >= y1) return null;      // il bordo è la staccionata
   if (tx === cx - 1 || tx === cx) return null;                         // colonna del cancello: libera
   const px = x0 + 1, py = y0 + 1;                                      // stagno 3×2 nell'angolo alto-sinistra
-  if (tx >= px && tx <= px + 2 && ty >= py && ty <= py + 1) return { kind: 'pond', px: tx - px, py: ty - py };
+  if (N >= 5 && tx >= px && tx <= px + 2 && ty >= py && ty <= py + 1) return { kind: 'pond', px: tx - px, py: ty - py };
   const corner = (tx === x0 + 1 || tx === x1 - 1) && (ty === y0 + 1 || ty === y1 - 1);
-  if (corner) return { kind: 'tree' };                                 // alberi agli altri 3 angoli
+  /* il PRIMO albero arriva con la prima creatura: è il segno che qualcuno ci abita davvero.
+     Gli altri angoli si riempiono a metà strada. */
+  if (corner) {
+    const primo = tx === x1 - 1 && ty === y1 - 1;                      // angolo in basso a destra
+    if (N >= 50 || (primo && N >= 1)) return { kind: 'tree' };
+    return null;
+  }
   const ring = tx === x0 + 1 || tx === x1 - 1 || ty === y0 + 1 || ty === y1 - 1;
-  if (ring) { const h = vhash(tx, ty, 61); if (h < 0.5) return { kind: h < 0.32 ? 'bush' : 'rock' }; }
-  else if (vhash(tx, ty, 62) < 0.07) return { kind: 'flowerbed' };     // aiuole SPARSE (piatte) al centro
+  if (ring) { if (N < 15) return null; const h = vhash(tx, ty, 61); if (h < 0.5) return { kind: h < 0.32 ? 'bush' : 'rock' }; }
+  else if (N >= 30 && vhash(tx, ty, 62) < 0.07) return { kind: 'flowerbed' }; // aiuole SPARSE (piatte) al centro
   return null;
 }
 /* ingressi delle grotte: su una MONTAGNA con terra camminabile SOTTO (ci si avvicina da sud).

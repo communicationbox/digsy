@@ -16,7 +16,7 @@ import { cam } from './state.js';
 import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
-import { INT, exitInterior, intCollide } from './interior.js';
+import { INT, exitInterior, intCollide, CUT } from './interior.js';
 
 export const keys = {};
 const KM = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
@@ -108,10 +108,16 @@ addEventListener('keydown', e => {
   if (KM[e.key]) { keys[KM[e.key]] = true; e.preventDefault(); }
   /* azione (E/spazio): si scatena al RILASCIO (keyup), non tenendo premuto → niente spam */
   if ((e.key === 'e' || e.key === 'E' || e.key === ' ') && !isModalOpen()) e.preventDefault();
-  if ((e.key === 'i' || e.key === 'I' || e.key === 'z' || e.key === 'Z') && !isModalOpen()) { openBag(); e.preventDefault(); }
-  if ((e.key === 'l' || e.key === 'L') && !isModalOpen()) { openBook(); e.preventDefault(); }
-  if ((e.key === 'm' || e.key === 'M') && !isModalOpen()) { openMap(); e.preventDefault(); } // mappa del mondo
-  if ((e.key === 'q' || e.key === 'Q') && !isModalOpen()) { openQuests(); e.preventDefault(); }
+  /* DURANTE UNA CUTSCENE non si apre NIENTE. La consegna del Libro toglie il controllo, ma i
+     tasti degli overlay restavano vivi: zaino/libro/mappa/missioni si aprivano SOPRA il video,
+     che intanto andava avanti da solo, e il clic per farlo proseguire finiva sulla modale.
+     Si restava in un limbo da cui si usciva solo ricaricando (segnalato con foto).
+     `busy` è la stessa domanda per tutti: c'è già qualcosa che ha il controllo? */
+  const busy = () => isModalOpen() || CUT.on;
+  if ((e.key === 'i' || e.key === 'I' || e.key === 'z' || e.key === 'Z') && !busy()) { openBag(); e.preventDefault(); }
+  if ((e.key === 'l' || e.key === 'L') && !busy()) { openBook(); e.preventDefault(); }
+  if ((e.key === 'm' || e.key === 'M') && !busy()) { openMap(); e.preventDefault(); } // mappa del mondo
+  if ((e.key === 'q' || e.key === 'Q') && !busy()) { openQuests(); e.preventDefault(); }
   if ((e.key === 'f' || e.key === 'F') && !isModalOpen() && companionRides()) { toggleMount(); e.preventDefault(); } // cavalca/scendi il compagno volante di grotta
   if (e.key === 'Escape') { if (isPrepOpen()) closePrepare(); else if (isMapOpen()) closeMap(); else if (isBookOpen()) closeBook(); else if (isBagOpen()) closeBag(); else if (isModalOpen()) closeModal(); else if (INT.active) exitInterior(); else showSplash(); e.preventDefault(); }
 });

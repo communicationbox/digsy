@@ -128,6 +128,37 @@ export function roomFilled(zoneId) {
   const pool = zonePools[zoneId] || [];
   return pool.length > 0 && pool.every(sp => ((S.museum || {})[sp.id] || []).length > 0);
 }
+/* QUANTO MANCA A RIEMPIRE UNA SALA. Il gioco lo sapeva già — `roomFilled` risponde sì/no — ma
+   un sì/no non è un traguardo: è una sorpresa. Il giocatore non ha mai potuto vedere che gli
+   mancavano tre specie alle Dune, quindi non ha mai potuto puntarci.
+   Sette sale piene = l'ultima lettera del nonno, cioè il finale. È l'unica strada lunga che il
+   gioco abbia, ed era invisibile: nessuna schermata la nominava. */
+/* lo stato si può passare da fuori: la schermata delle statistiche è una funzione PURA che
+   riceve il salvataggio, e non può leggere la S del modulo */
+export function roomProgress(zoneId, st) {
+  const s = st || S;
+  const pool = zonePools[zoneId] || [];
+  const have = pool.filter(sp => ((s.museum || {})[sp.id] || []).length > 0).length;
+  return { have, need: pool.length };
+}
+export function roomsDone(st) {
+  return MUSEUM_ZONES.filter(z => { const p = roomProgress(z.id, st); return p.need > 0 && p.have === p.need; }).length;
+}
+export function roomsTotal() { return MUSEUM_ZONES.length; }
+/* la sala più VICINA a chiudersi fra quelle ancora aperte: è il consiglio da dare, non
+   l'elenco di tutte. A parità vince quella che ne ha di più esposte in assoluto. */
+export function nextRoom() {
+  let best = null;
+  for (const z of MUSEUM_ZONES) {
+    if (roomFilled(z.id)) continue;
+    const p = roomProgress(z.id);
+    if (!p.need) continue;
+    const manca = p.need - p.have;
+    if (!best || manca < best.manca || (manca === best.manca && p.have > best.have))
+      best = { id: z.id, have: p.have, need: p.need, manca };
+  }
+  return best;
+}
 export function hasLetter(id) { return (S.letters || []).includes(id); }
 /* prossima lettera da consegnare: la prima sala piena la cui lettera non è ancora stata data */
 export function pendingLetter() {

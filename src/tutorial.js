@@ -47,15 +47,19 @@ export const STEP_IDS = STEPS.map(s => s.id);
 
 /* titolo + istruzione. Il tasto NON si concatena da fuori: `actKey()` dentro la stringa
    cambierebbe la chiave del dizionario e la traduzione non si troverebbe più (i18n.js). */
+/* FRASI CORTE, UNA COSA PER VOLTA, all'imperativo. Le prime erano spiegazioni: dicevano il
+   perché insieme al cosa, e chi legge poco (o ha otto anni) si ferma alla prima virgola.
+   Qui c'è solo il gesto da fare — il perché lo capisci facendolo, ed è il senso del tutorial.
+   La freccia a schermo dice DOVE, quindi il testo non deve descrivere anche il posto. */
 const TEXT = {
-  pick: () => [tr('Raccogli roba da terra', 'Gather things off the ground'),
-    tr('Funghi, spighe, conchiglie: {act} per raccoglierli. Sono le tue uniche monete finché non hai la pala.', 'Mushrooms, wheat ears, shells: {act} to pick them up. They are your only coins until you own a spade.')],
-  shop: () => [tr('Vendi al Negozio e compra la pala', 'Sell at the Shop and buy the spade'),
-    tr('Entra nel Negozio, vendi quello che hai raccolto e prendi la pala 🪏. Senza, non si scava.', 'Enter the Shop, sell what you gathered and buy the spade 🪏. Without it you cannot dig.')],
-  dig: () => [tr('Scava', 'Dig'),
-    tr('Fuori dalla città, {act} per scavare sotto i piedi. In piazza è lastricato e non si può.', 'Outside town, press {act} to dig under your feet. The plaza is paved and cannot be dug.')],
-  museum: () => [tr('Porta il reperto al Museo', 'Take your find to the Museum'),
-    tr('Un reperto grezzo non si vende: al Museo il Curatore te lo identifica. Hai già quello del nonno.', 'A raw find cannot be sold: at the Museum the Curator identifies it. You already carry Grandpa\'s.')],
+  pick: () => [tr('Raccogli le cose che luccicano', 'Pick up the shiny things'),
+    tr('Seguile con la freccia e premi {act}. Ti servono 15 monete.', 'Follow the arrow and press {act}. You need 15 coins.')],
+  shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
+    tr('Vendi tutto quello che hai raccolto, poi compra la pala 🪏.', 'Sell everything you gathered, then buy the spade 🪏.')],
+  dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),
+    tr('Sull\'erba, premi {act}. In piazza è lastricato e non si può.', 'On the grass, press {act}. The plaza is paved and cannot be dug.')],
+  museum: () => [tr('Porta i reperti al Museo', 'Take your finds to the Museum'),
+    tr('Il Curatore ti dirà che creature sono. Adesso ti aspetta.', 'The Curator will tell you what creatures they are. He is waiting for you now.')],
 };
 export function tutTitle(id) { return TEXT[id] ? TEXT[id]()[0] : id; }
 export function tutHint(id) { return TEXT[id] ? TEXT[id]()[1].replace(/\{act\}/g, actKey()) : ''; }
@@ -177,6 +181,18 @@ const PURPOSE = {
   tailor: () => tr('vestiti', 'clothes'),
 };
 export function bldPurpose(type) { return PURPOSE[type] ? PURPOSE[type]() : ''; }
+
+/* IL MUSEO RESTA CHIUSO finché il tutorial non ci manda. Senza, si può entrare al primo
+   minuto e consegnare il reperto del nonno prima di aver capito cosa sia una consegna: il
+   passo del Museo scatta a vuoto e il ciclo che il tutorial vuole insegnare si spezza a metà.
+   Chiuso NON vuol dire bloccato per sempre: appena il tutorial arriva al suo passo si apre, e
+   se lo si SALTA si apre subito — saltare deve restituire il gioco intero, non un mondo con
+   una porta murata. */
+export function museumOpen() { return !tutActive() || tutStepId() === 'museum'; }
+export function museumClosedText() {
+  return tr('Il Curatore è di là a catalogare: torna quando hai qualcosa da mostrargli.',
+    'The Curator is in the back cataloguing: come back when you have something to show him.');
+}
 
 export function tutSkip() { const t = st(); t.done = true; t.skipped = true; save(); return true; }
 /* rifacibile dalla Guida: chi salta per sbaglio non perde l'insegnamento per sempre */

@@ -61,10 +61,16 @@ async function main() {
        il giro d'HUD del game loop (ogni 2s) non arriva mai. Senza questa riga la foto ritrae
        l'HUD com'era CON LA SPLASH DAVANTI — cioè con tutto quello che si nasconde sotto un menu
        aperto ancora nascosto (la lista del tutorial ci è sparita per intero). */
-    if (${JSON.stringify(vista)} === 'gioco') { if(sp) sp.classList.add('off'); if(G.updateHUD) G.updateHUD(); }
+    /* e display:none, non solo la classe: .off sfuma con una transizione e allo scatto la
+       splash traspariva ancora — nella foto si leggevano "Continue" e "Save" in mezzo al
+       mondo. Vale solo per la pagina della foto, il gioco non la vede mai. */
+    if (${JSON.stringify(vista)} === 'gioco') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.updateHUD) G.updateHUD(); }
     /* 'editor' = la creazione del personaggio: si vede una volta sola nella vita di una
        partita, ed è esattamente per questo che va guardata di proposito */
     else if (${JSON.stringify(vista)} === 'editor') { if(sp) sp.classList.add('off'); if(G.openEditor) G.openEditor(); }
+    /* 'museo' = il banco del Curatore: e' dove si vede quanto manca alle sale, cioe' l'unico
+       traguardo lungo del gioco. Va guardato, non solo misurato da un test */
+    else if (${JSON.stringify(vista)} === 'museo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openMuseum) G.openMuseum(); }
     else {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});

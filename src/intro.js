@@ -29,9 +29,13 @@ const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
 const LINES = [
   { s: 'G', it: 'Vieni, {n}. Guarda cosa nasconde la terra.', en: 'Come, {n}. Look what the earth hides.' },
   { s: 'G', it: 'Un osso. Di una creatura di tantissimo tempo fa.', en: 'A bone. From a creature of long, long ago.', act: 'point' },
-  { s: 'G', it: 'Io fui il primo a scoprirle. Nessuno le ricordava.', en: 'I was the first to find them. No one remembered them.', act: 'dig' },
-  { s: 'G', it: 'Tienilo, {n}: il tuo primo tesoro.', en: 'Take it, {n}: your first treasure.', act: 'give' },
-  { s: 'D', it: 'Le troverò tutte. E le farò rivivere!', en: 'I\'ll find them all. And bring them back!' },
+  /* LO SCOPO SI DICE QUI. Il nonno ha passato la vita a dimostrare che esistevano; quello che
+     non gli è riuscito è rivederle vive. È la cosa che il giocatore può fare al posto suo, ed
+     è il traguardo del gioco (goal.js) — detto all'inizio, da chi ha diritto di chiederlo.
+     Non allunga l'intro: sono le stesse cinque battute, una dice una cosa in più. */
+  { s: 'G', it: 'Io fui il primo a trovarle. Ma trovarle non basta: nessuno le ha mai riviste vive.', en: 'I was the first to find them. But finding them is not enough: no one has ever seen one alive.', act: 'dig' },
+  { s: 'G', it: 'Tienilo, {n}: il tuo primo tesoro. A me il tempo è finito.', en: 'Take it, {n}: your first treasure. My time ran out.', act: 'give' },
+  { s: 'D', it: 'Allora le riporterò indietro. Tutte.', en: 'Then I will bring them back. All of them.' },
 ];
 
 function cloud(x, y, s) { px(x, y, Math.round(14 * s), Math.round(4 * s), '#f4eddd'); px(x + Math.round(3 * s), y - Math.round(3 * s), Math.round(9 * s), Math.round(4 * s), '#fbf6ea'); px(x + Math.round(9 * s), y - Math.round(1 * s), Math.round(8 * s), Math.round(4 * s), '#e9ddc6'); }

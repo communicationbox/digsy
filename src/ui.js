@@ -15,7 +15,8 @@ import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep,
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
-import { letterTitle, letterBody, hasLetter, allLetters } from './letters.js';
+import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
+import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
 import { TIPS, TIP_IDS, tipSeen, markTip, tipTitle, tipText, tipsSeenCount } from './tips.js';
 import { STEP_IDS, tutActive, tutIndex, tutStepId, tutChecked, tutProgress, tutTitle, tutHint, tutSkip, tutRestart, tutDone, tutSkipped } from './tutorial.js';
@@ -1096,6 +1097,14 @@ function renderMuseum() {
   /* CONSEGNA sempre disponibile se hai grezzi: consegnare AGGIUNGE al lotto in corso, così con la
      borsa piena non si resta bloccati (prima: se non ritiravi non potevi consegnare né svuotarla).
      Il restauro si propone al RITIRO, sul miglior doppione che torna, se ≥3 raro+ insieme. */
+  /* LO SCOPO IN CIMA, prima di tutto il resto. Il Museo era la schermata che diceva "teche
+     complete: 3/66" e faceva sembrare il gioco un catalogo. Il catalogo è il MEZZO; il fine è
+     che tornino a camminare. Chi apre questo pannello deve leggere per prima cosa dove sta
+     andando, non quanti oggetti ha in tasca. */
+  h += `<div class="row" style="background:#f6e7c4"><span class="em">🧬</span><div>
+    <div class="nm">${goalTitle()}: ${goalLine()}</div>
+    <div class="sub">${goalHint()}</div>
+    <div class="sub">${goalEnd()}</div></div></div>`;
   h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div><div class="sub">${tr('Scoperte', 'Discovered')}: ${S.codex.length}/${ALL_SPECIES.length}</div></div>
     <div class="rt"><button class="btn amber" id="mudep" ${S.raw.length ? '' : 'disabled'}>${tr('Consegna tutto', 'Hand in all')}</button></div></div>`;
   if (S.museumJob && !museumJobReady()) {
@@ -1108,6 +1117,27 @@ function renderMuseum() {
   h += commissionBlock();
   h += `<div class="row" style="background:#f1e6cc"><div class="nm">${tr('Specie complete', 'Complete species')}: ${complete}/${ALL_SPECIES.length}</div>
     <div class="rt"><button class="btn ghost" id="mbook">📖 ${tr('Libro', 'Book')}</button></div></div>`;
+  /* LE SALE: la strada lunga del gioco, e finora non la nominava nessuno. Sette sale piene =
+     l'ultima lettera del nonno. Il gioco sapeva già dirlo — sapeva quali erano piene — ma non
+     lo diceva da nessuna parte, e un traguardo che non puoi vedere non è un traguardo: è una
+     sorpresa, e su una sorpresa non puoi puntare. Sta QUI, al banco dove si consegna, perché
+     è qui che la cosa si può fare, non nella schermata delle statistiche. */
+  {
+    const fatte = roomsDone(), tot = roomsTotal(), prossima = nextRoom();
+    const sub = prossima
+      ? tr('Più vicina: ', 'Closest: ') + zoneName(prossima.id) + ' — ' + prossima.have + '/' + prossima.need
+        + tr(' specie esposte', ' species on display')
+      : tr('Tutte piene. Il nonno ha lasciato un\'ultima lettera.', 'All filled. Your grandparent left one last letter.');
+    h += `<div class="row" style="background:#f1e6cc"><span class="em">✉</span><div>
+      <div class="nm">${tr('Sale del Museo', 'Museum rooms')}: ${fatte}/${tot}</div>
+      <div class="sub">${sub}</div>
+      ${fatte === 0 ? `<div class="sub">${tr('Una sala è piena quando ogni specie della zona ha un pezzo esposto: il Curatore ti consegna la lettera che il nonno gli aveva lasciato.', 'A room is full when every species of that zone has a piece on display: the Curator hands you the letter your grandparent left with him.')}</div>` : ''}
+    </div></div>`;
+    /* la spiegazione lunga sta SOLO finché non hai chiuso la prima sala. Serve a capire la
+       regola; chi ha già una lettera in mano l'ha capita, e da lì in poi due righe che non
+       cambiano mai sono rumore permanente sopra il pulsante che gli serve. Il conteggio
+       invece resta: quello è il traguardo, e va visto sempre. */
+  }
   /* ricariche di DNA: solo per specie con teca completa, prezzo per rarità */
   const rechargeable = ALL_SPECIES.filter(s => (S.museum[s.id] || []).length === PARTS.length);
   if (rechargeable.length) {

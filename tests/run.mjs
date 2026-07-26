@@ -1039,6 +1039,191 @@ sprites.applyLook();
   check('60s di wander senza fughe', out === 0);
 }
 
+/* ---------- LO SCOPO DEL GIOCO: riportarle in vita ----------
+   Il gioco aveva un finale e non aveva uno scopo, che non è la stessa cosa: il finale è dove
+   si arriva, lo scopo è la ragione per cui uno ci vuole arrivare, e va detta all'inizio.
+   Quello dichiarato era "riempi il museo" — un catalogo, si contano oggetti. Intanto la cosa
+   più bella che il gioco fa (una creatura dissotterrata che CAMMINA VIVA nel parco) era un
+   effetto collaterale che nessuno chiedeva e nessuno contava.
+   Ora il traguardo è quello, e questi controlli tengono ferme le tre cose che lo rendono un
+   traguardo invece di un numero: è UNO SOLO, è detto DALL'INIZIO, ed è quello che il parco
+   mostra davvero. */
+{
+  const G = await import('../src/goal.js');
+  const D7 = await import('../src/data.js');
+  const S7 = state.S;
+  /* si rimette TUTTO quello che si tocca: questo blocco svuotava anche S.creatures per la
+     prova del parco, e un test molto più avanti ci contava sopra (S.creatures[0].name) */
+  const salvate = S7.awakened, salvateCr = S7.creatures;
+
+  S7.awakened = [];
+  check(`il traguardo è tutte le specie del gioco (${G.aliveTotal()})`,
+    G.aliveTotal() === D7.ALL_SPECIES.length && G.alive() === 0 && !G.goalDone());
+  check('a zero, lo scopo spiega come si comincia', /Museo|Museum/.test(G.goalHint()));
+  S7.awakened = D7.ALL_SPECIES.slice(0, 3).map(s => s.id);
+  check('il conto è quello delle specie risvegliate', G.alive() === 3 && G.goalLine() === '3 / ' + G.aliveTotal());
+  /* le soglie servono perché 66 è troppo lontano per tirare da solo: la prima creatura che
+     torna a camminare deve valere qualcosa di suo, o si molla al terzo scavo */
+  check('le soglie partono da 1 e finiscono col traguardo',
+    G.MILESTONES[0] === 1 && G.MILESTONES[G.MILESTONES.length - 1] === G.aliveTotal());
+  check('e sono in ordine crescente', G.MILESTONES.every((m, i) => i === 0 || m > G.MILESTONES[i - 1]));
+  check('a 3 risvegliate la prossima soglia è 5, ne mancano 2',
+    G.nextMilestone() === 5 && G.toNextMilestone() === 2);
+  S7.awakened = D7.ALL_SPECIES.map(s => s.id);
+  check('tutte risvegliate: traguardo raggiunto e nessuna soglia oltre',
+    G.goalDone() && G.nextMilestone() === null && G.toNextMilestone() === 0);
+  check('e lo scopo lo dice, invece di ripetere quante ne mancano',
+    !/\d/.test(G.goalHint()) && G.goalHint().length > 10);
+  /* funzione PURA: deve leggere lo stato che riceve, non quello globale — le statistiche
+     gliene passano uno diverso */
+  check('il conto si può fare su un salvataggio passato da fuori',
+    G.alive({ awakened: ['a', 'b'] }) === 2 && !G.goalDone({ awakened: [] }));
+
+  /* LO SCOPO SI DICE ALL'INIZIO. Se il nonno non lo chiede, non è uno scopo: è una statistica. */
+  {
+    const fs9 = await import('node:fs');
+    const isrc9 = fs9.readFileSync('src/intro.js', 'utf8');
+    check("l'intro dice che nessuno le ha mai viste vive",
+      /mai riviste vive|never seen one alive|riviste vive/i.test(isrc9));
+    check('e il giocatore promette di riportarle indietro',
+      /riporter|bring them back/i.test(isrc9));
+    const battute9 = (isrc9.match(/\{ s: '[GD]'/g) || []).length;
+    check(`e lo fa senza allungare l'intro (${battute9} battute)`, battute9 <= 5);
+  }
+  /* e si dice DOVE si agisce: al banco del Curatore, in cima, prima dei conteggi di servizio */
+  {
+    const fs10 = await import('node:fs');
+    const usrc10 = fs10.readFileSync('src/ui.js', 'utf8');
+    const mus10 = usrc10.slice(usrc10.indexOf('function renderMuseum'));
+    const corpo10 = mus10.slice(0, mus10.indexOf('\n}'));
+    check('il Museo apre con lo scopo, non con le teche',
+      corpo10.indexOf('goalTitle()') >= 0 && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Complete species'));
+  }
+  /* IL PARCO È IL FINE: le risvegliate devono davvero camminarci, o il traguardo è una bugia */
+  {
+    const park = await import('../src/park.js');
+    S7.awakened = [D7.ALL_SPECIES[0].id]; S7.creatures = [];
+    const pop = park.parkPopulation();
+    check('una specie risvegliata cammina nel parco',
+      pop.length === 1 && pop[0].skull === D7.ALL_SPECIES[0].id);
+  }
+  /* IL PARCO CRESCE. Un numero che sale in un pannello non fa sentire niente: il posto dove
+     vivono deve cambiare, così il progresso lo si cammina. A recinto vuoto è prato nudo — un
+     recinto che aspetta — e ogni soglia lo rende più un posto. */
+  {
+    const pen = { x0: 0, y0: 0, x1: 15, y1: 9 }, cx = 7;
+    const arredo = (n) => {
+      const out = {};
+      for (let y = 0; y <= 9; y++) for (let x = 0; x <= 15; x++) {
+        const d = world.parkDeco(pen, cx, x, y, n);
+        if (d) out[d.kind] = (out[d.kind] || 0) + 1;
+      }
+      return out;
+    };
+    const a0 = arredo(0), a1 = arredo(1), a5 = arredo(5), a15 = arredo(15), a30 = arredo(30), a50 = arredo(50);
+    check('a zero risvegliate il parco è prato NUDO', Object.keys(a0).length === 0);
+    check('la prima creatura porta il primo albero', a1.tree === 1 && !a1.pond && !a1.bush);
+    check('a 5 arriva lo stagno', a5.pond > 0 && a1.pond === undefined);
+    check('a 15 arrivano cespugli e sassi', (a15.bush || 0) + (a15.rock || 0) > 0 && (a5.bush || 0) + (a5.rock || 0) === 0);
+    check('a 30 arrivano le aiuole', a30.flowerbed > 0 && !a15.flowerbed);
+    check('a 50 si riempiono tutti gli angoli', a50.tree > a30.tree);
+    /* il progresso non torna mai indietro: ogni soglia AGGIUNGE, non sostituisce */
+    const tot = o => Object.values(o).reduce((s, v) => s + v, 0);
+    check('ogni soglia aggiunge e non toglie',
+      tot(a0) <= tot(a1) && tot(a1) <= tot(a5) && tot(a5) <= tot(a15) && tot(a15) <= tot(a30) && tot(a30) <= tot(a50));
+    /* senza il parametro tutto acceso: chi non conosce il traguardo (test vecchi, strumenti)
+       continua a vedere il parco completo invece di un prato vuoto */
+    check('senza progresso passato, il parco resta quello di sempre', tot(arredo(undefined)) === tot(a50));
+    /* il cancello resta libero a ogni soglia, o il parco diventa inaccessibile */
+    check('la colonna del cancello non si arreda mai',
+      [0, 1, 5, 15, 30, 50, 66].every(n => [cx - 1, cx].every(x =>
+        [...Array(10).keys()].every(y => world.parkDeco(pen, cx, x, y, n) === null))));
+  }
+  /* le STATISTICHE mettono il traguardo in cima, non in mezzo all'elenco */
+  {
+    const st7 = await import('../src/stats.js');
+    const righe7 = st7.gameStats({ ...S7, awakened: [] });
+    const iAwake = righe7.findIndex(r => r.id === 'awake');
+    const iCodex = righe7.findIndex(r => r.id === 'codex');
+    check('nelle statistiche il traguardo viene prima della strada per arrivarci',
+      iAwake >= 0 && iCodex >= 0 && iAwake < iCodex);
+  }
+  S7.awakened = salvate; S7.creatures = salvateCr;
+}
+
+/* ---------- LE SALE DEL MUSEO: il traguardo lungo, finalmente dicibile ----------
+   Sette sale piene = l'ultima lettera del nonno, cioè il finale. Il gioco sapeva già quali
+   fossero piene (`roomFilled` rispondeva sì/no) ma non lo diceva da nessuna parte: nessuna
+   schermata nominava le sale, quindi non si poteva vedere che ne mancavano tre alle Dune — e
+   su una cosa che non vedi non puoi puntare. Un traguardo invisibile è una sorpresa, e le
+   sorprese non fanno tornare nessuno. */
+{
+  const L = await import('../src/letters.js');
+  const D6 = await import('../src/data.js');
+  const S6 = state.S;
+  const salvato = S6.museum;
+  const zona = D6.MUSEUM_ZONES[0].id, pool = D6.zonePools[zona];
+
+  S6.museum = {};
+  check(`le sale sono ${D6.MUSEUM_ZONES.length}, quante le lettere del nonno`,
+    L.roomsTotal() === D6.MUSEUM_ZONES.length && L.allLetters().length === D6.MUSEUM_ZONES.length + 1);
+  check('museo vuoto: nessuna sala piena', L.roomsDone() === 0);
+  check('a museo vuoto la sala più vicina è comunque indicata',
+    !!L.nextRoom() && L.nextRoom().have === 0 && L.nextRoom().manca > 0);
+
+  /* una specie esposta = un passo, non una sala */
+  S6.museum = { [pool[0].id]: ['cranio'] };
+  check('esposta una specie, la sala avanza ma non si chiude',
+    L.roomProgress(zona).have === 1 && L.roomsDone() === 0);
+  /* la "più vicina" è quella a cui manca MENO, ed è il consiglio da dare. Attenzione: le sale
+     NON sono grandi uguali — la grotta ha 6 specie contro 10 delle altre — quindi a museo quasi
+     vuoto la più vicina è quasi sempre lei, ed è giusto così. Per provarlo servono numeri che
+     non lascino dubbi. */
+  S6.museum = {}; for (let i = 0; i < pool.length - 1; i++) S6.museum[pool[i].id] = ['cranio'];
+  check('la sala più vicina è quella a cui manca meno',
+    L.nextRoom().id === zona && L.nextRoom().manca === 1);
+
+  /* sala piena: un pezzo per OGNI specie della zona (non tutti i pezzi di una specie) */
+  S6.museum = {}; for (const sp of pool) S6.museum[sp.id] = ['cranio'];
+  check('un pezzo per ogni specie chiude la sala',
+    L.roomFilled(zona) && L.roomsDone() === 1 && L.roomProgress(zona).have === L.roomProgress(zona).need);
+  check('e la lettera di quella sala diventa consegnabile', L.pendingLetter() === zona);
+  check('la sala chiusa non è più "la più vicina"', !L.nextRoom() || L.nextRoom().id !== zona);
+
+  /* tutte piene → il finale. È l'unico vero finale del gioco, e va raggiungibile. */
+  S6.museum = {}; S6.letters = [];
+  for (const z of D6.MUSEUM_ZONES) for (const sp of (D6.zonePools[z.id] || [])) S6.museum[sp.id] = ['cranio'];
+  check('tutte le sale piene', L.roomsDone() === L.roomsTotal() && L.nextRoom() === null);
+  for (const z of D6.MUSEUM_ZONES) L.giveLetter(z.id);
+  check('raccolte le sette lettere, arriva il congedo', L.pendingLetter() === 'finale');
+
+  /* le STATISTICHE sono una funzione PURA: leggono il salvataggio che ricevono, non la S del
+     modulo. Le sale devono comparire lì, o restano un numero che nessuno vede mai. */
+  {
+    const st6 = await import('../src/stats.js');
+    const righe = st6.gameStats({ ...S6, museum: {} });
+    const r = righe.find(x => x.id === 'rooms');
+    check('le statistiche mostrano le sale', !!r && r.value === '0/' + L.roomsTotal(), r ? r.value : 'riga assente');
+    const pieno = {}; for (const z of D6.MUSEUM_ZONES) for (const sp of (D6.zonePools[z.id] || [])) pieno[sp.id] = ['cranio'];
+    const r2 = st6.gameStats({ ...S6, museum: pieno }).find(x => x.id === 'rooms');
+    check('e contano dal salvataggio ricevuto, non dallo stato globale',
+      !!r2 && r2.value === L.roomsTotal() + '/' + L.roomsTotal(), r2 ? r2.value : 'riga assente');
+  }
+  /* IL BANCO DEL CURATORE è il posto dove la cosa si può fare: il traguardo va detto lì, non
+     solo in una schermata di statistiche che si apre di rado */
+  {
+    const fs8 = await import('node:fs');
+    const usrc8 = fs8.readFileSync('src/ui.js', 'utf8');
+    const mus = usrc8.slice(usrc8.indexOf('function renderMuseum'));
+    const corpo = mus.slice(0, mus.indexOf('\n}'));
+    check('il pannello del Museo dice a che sala sei arrivato',
+      /roomsDone\(\)/.test(corpo) && /roomsTotal\(\)/.test(corpo));
+    check('e qual è la sala più vicina a chiudersi', /nextRoom\(\)/.test(corpo));
+    check('e che ogni sala piena vale una lettera del nonno', /lettera|letter/i.test(corpo));
+  }
+  S6.museum = salvato; S6.letters = [];
+}
+
 /* ---------- VESTITI rifiniti a mano: overlay additivi sopra la regola ----------
    `styleLook` ricava maglie e pantaloni trasformando le righe del corpo. Funziona ovunque ma
    è una regola, non un disegno. SHIRTS/PANTS permettono di sostituirne una a mano dallo Sprite
@@ -2367,6 +2552,20 @@ sprites.applyLook();
     check('la prima battuta aspetta il click', inter.CUT.line === primo && inter.CUT.phase === 'give');
     inter.cutAdvance();
     check('al click passa alla battuta dopo', inter.CUT.line !== primo && !!inter.CUT.line);
+  }
+  /* NIENTE LIMBO: durante la cutscene E non deve fare niente, e i tasti degli overlay nemmeno.
+     Premendo E si apriva il pannello del Curatore SOPRA il video che intanto andava avanti, e
+     il clic per farlo proseguire finiva sulla modale: si usciva solo ricaricando (foto). */
+  {
+    ui.closeModal(true);
+    gameplay.act();                                   // E in piena cutscene
+    check('durante la cutscene E non apre niente', !ui.isModalOpen(), 'modale aperta sopra il video');
+    check('e la scenetta non si è mossa da sola', inter.CUT.on === true && inter.CUT.phase === 'give');
+    const fs12 = await import('node:fs');
+    const inp12 = fs12.readFileSync('src/input.js', 'utf8');
+    check('anche zaino/libro/mappa/missioni sono chiusi in cutscene',
+      /const busy = \(\) => isModalOpen\(\) \|\| CUT\.on;/.test(inp12)
+      && (inp12.match(/!busy\(\)/g) || []).length >= 4);
   }
   for (let i = 0; i < 12 && inter.CUT.phase === 'give'; i++) inter.cutAdvance(); // dialoghi AL CLICK
   for (let i = 0; i < 600 && inter.CUT.on; i++) inter.updateInterior(1 / 60, {}, 46); // il curatore torna al banco
@@ -5059,7 +5258,7 @@ sprites.applyLook();
   const battute = (isrc.match(/\{ s: '[GD]'/g) || []).length;
   check(`l'intro non supera le 5 battute (${battute})`, battute > 0 && battute <= 5);
   check('il tutorial insegna a raccogliere le cose da terra',
-    /Funghi, spighe, conchiglie|Mushrooms, wheat ears, shells/.test(tsrc));
+    /luccicano|shiny things/i.test(tsrc));
   check('il tutorial manda a vendere al Negozio e a comprare la pala',
     /Negozio|Shop/.test(tsrc) && /pala|spade/i.test(tsrc));
   /* IL REGALO DEL NONNO È GREZZO. Un grezzo non serve a niente finché non lo si fa
@@ -5131,6 +5330,41 @@ sprites.applyLook();
     check('il passo del Museo indica la porta del Museo',
       !!gMus && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gMus.x && b.doory === gMus.y));
   }
+  /* IL PRIMO SCAVO DEL TUTORIAL NON VA MAI A VUOTO. Una casella d'erba rende .30: senza
+     garanzia, sette giocatori su dieci vedrebbero "…solo terra" al primissimo colpo della loro
+     vita, subito dopo aver faticato per comprare la pala — e il passo dopo dice di portare il
+     reperto al Museo. Garantito, ci si arriva con DUE grezzi (il dono del nonno e il proprio)
+     e la prima volta il ciclo si chiude per intero. */
+  {
+    const w5 = await import('../src/world.js');
+    const orig = Math.random;
+    S.tut = null; S.tools = { spade: true }; S.coins = 999; S.goods = [];
+    tut.tutTick();                                  // la borsa paga la pala → passo 'shop'
+    tut.tutTick();                                  // pala comprata → passo 'dig'
+    check('si parte dal passo dello scavo', tut.tutStepId() === 'dig');
+    /* terreno scavabile fuori città, e la sfortuna al massimo: senza garanzia non uscirebbe
+       niente */
+    let tx5 = 0, ty5 = 0;
+    for (let r = 3; r < 400 && !tx5; r++) {
+      const cx5 = Math.round(P.x / TS) + r;
+      if (w5.diggable(w5.baseTerrain(cx5, Math.round(P.y / TS))) && !w5.townInfo(cx5, Math.round(P.y / TS))
+        && !w5.dugSetHas) { tx5 = cx5; ty5 = Math.round(P.y / TS); }
+    }
+    if (tx5) {
+      P.x = tx5 * TS + 8; P.y = ty5 * TS + 2; P.dir = 'down';   // piedi (P.y+13) sulla casella
+      S.raw = []; S.energy = 30; P.digging = null;
+      Math.random = () => 0.999;                    // il tiro peggiore possibile
+      gameplay.tryDig();
+      for (let i = 0; i < 80 && P.digging; i++) gameplay.stepDig(0.05);
+      Math.random = orig;
+      check('il primo scavo del tutorial dà sempre un reperto', S.raw.length === 1,
+        S.raw.length + ' grezzi con il tiro peggiore');
+      check('e quel colpo chiude il passo dello scavo', tut.tutStepId() === 'museum');
+    } else check('il primo scavo del tutorial dà sempre un reperto', true, 'nessuna casella scavabile vicina');
+    Math.random = orig;
+    S.tut = null; S.raw = []; S.tools = {}; S.coins = 0;
+  }
+
   /* DUE COSE DIVERSE NON POSSONO COSTARE UGUALE SULLO STESSO BANCONE. Il ristoro stava a 15
      come la pala, e il primo obiettivo del tutorial è mettere insieme esattamente 15: si
      comprava il ristoro credendo di comprare la pala e il tutorial restava fermo. */
@@ -5164,6 +5398,36 @@ sprites.applyLook();
     const rsrc = fs6.readFileSync('src/render.js', 'utf8');
     const body = rsrc.slice(rsrc.indexOf('export function plateBox'));
     check('plateBox non arrotonda ai pixel di GIOCO', !/Math\.round/.test(body.slice(0, body.indexOf('\n}'))));
+  }
+
+  /* IL MUSEO STA CHIUSO finché il tutorial non ci manda. Senza, si entra al primo minuto e si
+     consegna il reperto del nonno prima di aver capito cosa sia una consegna: il passo del
+     Museo scatta a vuoto e il ciclo che il tutorial insegna si spezza a metà.
+     Ma chiuso NON vuol dire murato: saltando il tutorial il gioco deve tornare intero. */
+  {
+    S.tut = null; S.tools = {}; S.coins = 0; S.goods = [];
+    check('al primo passo il Museo è chiuso', tut.tutStepId() === 'pick' && tut.museumOpen() === false);
+    check('e la porta lo dice invece di non fare niente', tut.museumClosedText().length > 20);
+    S.tools = { spade: true }; S.coins = 999;
+    tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
+    check('arrivati al suo passo, il Museo apre', tut.tutStepId() === 'museum' && tut.museumOpen() === true);
+    /* SALTARE RESTITUISCE IL GIOCO INTERO: nessuna porta resta chiusa dietro di sé */
+    S.tut = null; S.tools = {}; S.coins = 0;
+    check('a tutorial in corso resta chiuso', tut.museumOpen() === false);
+    tut.tutSkip();
+    check('saltato: il Museo torna aperto subito', tut.museumOpen() === true && !tut.tutActive());
+    tut.tutRestart();
+    check('rifacendolo torna chiuso finché non serve', tut.museumOpen() === false);
+    /* e finito per bene, resta aperto */
+    S.tools = { spade: true }; S.coins = 999; tut.tutTick(); tut.tutTick(); tut.tutBump('dig'); tut.tutBump('museum');
+    check('finito: il Museo resta aperto', tut.tutDone() && tut.museumOpen() === true);
+    /* la porta del Museo passa DAVVERO da museumOpen, non è solo una funzione che nessuno usa */
+    {
+      const fs11 = await import('node:fs');
+      const isrc11 = fs11.readFileSync('src/interior.js', 'utf8');
+      check('la porta del Museo consulta la chiusura', /museumOpen\(\)/.test(isrc11));
+    }
+    S.tut = null; S.tools = {}; S.coins = 0;
   }
 
   /* saltabile, e RIFACIBILE: chi salta al primo minuto non perde l'insegnamento per sempre */

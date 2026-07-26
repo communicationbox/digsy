@@ -16,12 +16,13 @@ import { companionYieldMul, companionType, companionSpec, COMP } from './compani
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
-import { INT, nearNpc, nearCase, nearMentorInt } from './interior.js';
+import { INT, nearNpc, nearCase, nearMentorInt, CUT } from './interior.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
 import { expireQuests, questExpiryText } from './quests.js';
-import { tutBump } from './tutorial.js';
+import { tutBump, tutStepId } from './tutorial.js';
+import { goalLine, goalTitle, alive, aliveTotal, milestoneReached, milestoneGift } from './goal.js';
 import { tr, actKey, LANG, partName, rarLabel, seasonName } from './i18n.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
@@ -210,7 +211,14 @@ export function tryDig() {
       ch *= companionYieldMul('terra');                                    // compagno Scavatore: +resa per rarità
       ch *= weatherDropMul(weatherAt(zoneAt(tx, ty).id, S.day));            // pioggia: un po' più ritrovamenti
       ch = Math.min(0.8, ch);                                              // cap totale: mai troppo facile
-      if (Math.random() < ch) {
+      /* IL PRIMO SCAVO DEL TUTORIAL NON VA MAI A VUOTO. Una casella d'erba rende .30: sette
+         giocatori su dieci avrebbero visto "…solo terra" al primissimo colpo della loro vita,
+         subito dopo aver faticato per comprare la pala — e il passo successivo del tutorial
+         dice di portare il reperto al Museo. Garantendolo si arriva al banco con DUE grezzi
+         (il dono del nonno e il proprio) e il ciclo si chiude per intero la prima volta.
+         Vale solo finché il passo in corso è lo scavo: `tutBump` lo chiude subito dopo. */
+      const primoGarantito = tutStepId() === 'dig';
+      if (primoGarantito || Math.random() < ch) {
         const raw = makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty));
         if (addFossil(raw, tx, ty)) { toast(tr('Reperto grezzo trovato! (da identificare)', 'Raw find unearthed! (needs identifying)')); showTip('raw'); }
         playSfx('found');
@@ -825,6 +833,12 @@ export function digWreck() {
 }
 export function act() {
   if (P.digging) return; // un colpo alla volta
+  /* DURANTE UNA CUTSCENE NON SI AGISCE. Il Curatore che consegna il Libro toglie il controllo
+     al giocatore, ma `act()` restava viva: premendo E si apriva il pannello del Museo MENTRE
+     la scenetta andava avanti, e ci si ritrovava con una modale aperta sopra un video che
+     nessuno poteva più far avanzare — un limbo da cui si usciva solo ricaricando (segnalato
+     con foto). La scenetta si fa avanzare col clic, che ha già la sua strada (cutAdvance). */
+  if (CUT.on) return;
   if (isMounted()) { toast('🐾 ' + tr('In volo non si scava: scendi dallo zaino', "Can't dig while flying: land from the bag")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
@@ -1171,10 +1185,32 @@ export function awakenSpecies(spId) {
   if (S.awakened.includes(spId) || !awakenReady(spId)) return false;
   if (!isDebug()) S.dna[spId] = dnaOf(spId) - 2; // 2 fialette consumate
   S.awakened.push(spId);
-  bigMoment('🧬 ' + tr('SPECIE RISVEGLIATA', 'SPECIES AWAKENED'), spById[spId] ? spById[spId].name : '');
+  /* IL RISVEGLIO È IL TRAGUARDO DEL GIOCO (goal.js), non un evento fra gli altri: il momento
+     lo deve dire. Prima annunciava la specie e basta, e il giocatore non aveva modo di capire
+     che aveva appena fatto UNA di sessantasei cose che portano da qualche parte. */
+  bigMoment('🧬 ' + tr('SPECIE RISVEGLIATA', 'SPECIES AWAKENED'),
+    (spById[spId] ? spById[spId].name : '') + ' — ' + goalLine());
   gainXp(25);
   save(); updateHUD();
-  toast('🧬 ' + spById[spId].name + tr(' è stato risvegliato! Guardalo VIVO nel Libro (L)', ' has been awakened! See it ALIVE in the Book (L)'));
+  /* la PRIMA volta si dice dove porta tutto questo: è l'unico istante in cui il giocatore ha
+     appena visto con i suoi occhi cosa vuol dire "riportarle in vita", ed è lì che la frase
+     attacca. Dalla seconda in poi basta il conto. */
+  toast('🧬 ' + spById[spId].name + tr(' cammina di nuovo nel parco.', ' walks the park again.')
+    + (alive() === 1
+      ? tr(' Il nonno non ne vide mai una viva: tu sì. Ne restano ', ' Your grandparent never saw one alive: you did. ')
+        + (aliveTotal() - 1) + tr('.', ' left to go.')
+      : ' ' + goalTitle() + ': ' + goalLine()));
+  /* LA SOGLIA SI ANNUNCIA QUANDO SCATTA, dicendo cosa è comparso nel parco. Il parco cresce da
+     solo (parkDeco legge il conteggio), ma senza dirlo il giocatore non collega le due cose:
+     torna al recinto settimane dopo e crede che sia sempre stato così. */
+  {
+    const m = milestoneReached();
+    if (m) {
+      const dono = milestoneGift(m);
+      if (m === aliveTotal()) bigMoment('🌳 ' + tr('IL MONDO DEL NONNO', "YOUR GRANDPARENT'S WORLD"), dono);
+      else toast('🌳 ' + goalTitle() + ': ' + goalLine() + ' — ' + dono);
+    }
+  }
   return true;
 }
 

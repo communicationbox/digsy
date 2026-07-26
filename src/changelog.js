@@ -1,6 +1,27 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.86', it: [
+      'IL GIOCO HA UNO SCOPO: riportarle in vita. Il nonno passò la vita a dimostrare che esistevano, ma nessuno ne ha mai vista una viva — quello puoi farlo tu. Un cartello al cancello del parco conta a che punto sei (0/66), e il Museo apre con lo stesso numero: le teche sono il mezzo, il parco è il fine',
+      'IL PARCO CRESCE con te: a recinto vuoto è prato nudo, poi la prima creatura porta il primo albero, a 5 si riempie lo stagno, a 15 arrivano cespugli e sassi, a 30 le aiuole, a 50 alberi in ogni angolo. Il progresso lo CAMMINI, non lo leggi',
+      'SALE DEL MUSEO: al banco del Curatore vedi quante ne hai riempite (0/7) e qual è la più vicina a chiudersi. Ogni sala piena vale una lettera che il nonno gli aveva lasciato — prima era una sorpresa, e su una sorpresa non puoi puntare',
+      'TUTORIAL più guidato: frasi corte, una cosa per volta, e il primo scavo dà SEMPRE un reperto (con l\'erba al 30% sette su dieci trovavano "solo terra" al primo colpo della loro vita). Il Museo resta chiuso finché non è il momento di andarci: saltando il tutorial si riapre subito',
+      'Più cose da raccogliere ATTORNO ALLE CITTÀ: i primi 15🪙 per la pala erano a una trentina di caselle di distanza, ora sono a una passeggiata',
+      'FIX limbo: premendo E (o aprendo zaino/libro/mappa) mentre il Curatore ti consegna il Libro si finiva con un pannello aperto sopra il video, e si usciva solo ricaricando',
+      'SPRITE STUDIO: nuova scheda VESTITI — 4 maglie e 4 pantaloni si possono rifinire a mano nelle tre viste (i pantaloni per ogni passo: fra i due fotogrammi le gambe cambiano, il torso no)',
+      'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle',
+    ], en: [
+      'THE GAME HAS A PURPOSE: bring them back to life. Your grandparent spent a lifetime proving they existed, but nobody ever saw one alive — that part is yours. A sign at the park gate counts how far you are (0/66), and the Museum opens with the same number: cases are the means, the park is the end',
+      'THE PARK GROWS with you: an empty pen is bare grass, then the first creature brings the first tree, at 5 the pond fills, at 15 bushes and rocks arrive, at 30 flower beds, at 50 trees in every corner. You WALK your progress instead of reading it',
+      'MUSEUM ROOMS: the Curator\'s desk shows how many you filled (0/7) and which one is closest to done. Every full room is a letter your grandparent left with him — before it was a surprise, and you cannot aim at a surprise',
+      'MORE GUIDED TUTORIAL: short lines, one thing at a time, and the first dig ALWAYS yields a find (with grass at 30%, seven in ten hit "just dirt" on the first swing of their life). The Museum stays shut until it is time to go: skipping the tutorial reopens it at once',
+      'MORE things to pick up AROUND TOWNS: the first 15 coins for the spade used to be thirty tiles away, now they are a short walk',
+      'FIX limbo: pressing E (or opening bag/book/map) while the Curator hands you the Book left a panel open over the cutscene, and only a reload got you out',
+      'SPRITE STUDIO: new CLOTHES tab — 4 shirts and 4 trousers can be hand-refined in all three views (trousers per walk frame: the legs change between frames, the torso does not)',
+      'FIX a stray column of pixels with TANK TOP + DUNGAREES seen from behind',
+    ],
+  },
+  {
     v: 'v0.85', it: [
       'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle: le bretelle cercavano la maglia per appoggiarsi, ma la canottiera di dietro scopre le spalle e di maglia non ne resta — finivano fuori dal corpo. Ora si agganciano al torso e si vedono anche sulla pelle nuda, come una salopette vera',
       'TUTORIAL rifatto: è la NOTA DEL NONNO — la carta ingiallita delle sue lettere, con UN SOLO obiettivo alla volta, grande e con la sua icona; gli altri tre diventano quadratini di avanzamento e la barra porta il numero dentro. Prima era un riquadro grigio con quattro righe tutte uguali, e non si capiva quale fosse quella da fare adesso',

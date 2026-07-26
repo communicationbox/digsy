@@ -17,7 +17,7 @@ import { parks, visParks } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { zonePools, ZONES, MUSEUM_ZONES } from './data.js';
-import { zoneName, bldName } from './i18n.js';
+import { zoneName, bldName, tr } from './i18n.js';
 import { drawWonder } from './wonderart.js';
 import { hasSprite, drawSprite, spriteDef } from './spritebank.js';
 import { applyLook } from './sprites.js';
@@ -26,6 +26,7 @@ import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
+import { alive, goalLine } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
@@ -1079,7 +1080,7 @@ export function render(time) {
     /* entità */
     if (ti) {
       if (ti.park && ti.floor) {                                        // ARREDO del parco (stagno/aiuole piatti; alberi/cespugli/sassi y-sort)
-        const tp = townForTile(tx, ty), pd = tp && parkDeco(tp.pen, tp.C.x, tx, ty);
+        const tp = townForTile(tx, ty), pd = tp && parkDeco(tp.pen, tp.C.x, tx, ty, alive());
         if (pd) {
           if (pd.kind === 'pond') drawParkPond(sx, sy, pd.px, pd.py, tx, ty, time);
           else if (pd.kind === 'flowerbed') drawFlowerbed(sx, sy, tx, ty);
@@ -1140,7 +1141,9 @@ export function render(time) {
     for (const a of parks.get(t.key) || []) {
       const ax = snap(a.x - cam.x), ay = snap(a.y - cam.y);
       if (ax < -20 || ax > W + 20 || ay < -20 || ay > H + 20) continue;
-      const pd = t.pen && parkDeco(t.pen, t.C.x, Math.floor(a.x / TS), Math.floor(a.y / TS));
+      /* stesso `alive()` del disegno: senza, una creatura nuoterebbe in uno stagno che non
+         è ancora comparso */
+      const pd = t.pen && parkDeco(t.pen, t.C.x, Math.floor(a.x / TS), Math.floor(a.y / TS), alive());
       if (pd && pd.kind === 'pond') {
         ents.push({ y: ay, f: () => {                            // in acqua: metà sotto la linea d'acqua + increspature
           const wl = ay - 3;                                     // linea d'acqua (sotto = sommerso)
@@ -1245,7 +1248,39 @@ export function render(time) {
   drawFireflies(ctx, cam.x, cam.y);
   { const tgt = weatherAt(zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS)).id, S.day); const st = weatherStep(tgt, time); drawWeather(st.w, time, st.level); }
   drawCompassIndicator(time);
+  drawParkSign();
   drawTutorialGuide(time);
+}
+
+/* ---------- IL CARTELLO DEL PARCO: il traguardo, in mezzo al mondo ----------
+   Il conteggio "riportate in vita" viveva solo dentro il pannello del Museo e nelle statistiche
+   — due schermate che si aprono di rado. Uno scopo che si vede solo entrando in una casa non
+   guida nessuno mentre gioca. Qui sta al cancello del recinto: ci passi davanti ogni volta che
+   vai a vedere le tue creature, ed è appeso esattamente al posto che il numero descrive. */
+function drawParkSign() {
+  const t = townForTile(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
+  const pen = t && t.pen; if (!pen) return;
+  /* accanto al cancello (le due colonne centrali), sul palo della staccionata a destra */
+  const sx = (t.C.x + 2) * TS - cam.x, sy = pen.y0 * TS - cam.y;
+  if (sx < -40 || sx > view.W + 40 || sy < -30 || sy > view.H + 30) return;
+  if (!ctx.fillText) return;
+  /* due righe: l'etichetta dice DI COSA, il numero dice a che punto sei. Col solo numero il
+     cartello era una frazione appesa a un palo — si legge, ma non vuol dire niente a chi passa. */
+  const eti = tr('TORNATE IN VITA', 'BROUGHT BACK'), testo = goalLine();
+  ctx.save();
+  ctx.font = '600 5px ui-monospace, Menlo, monospace';
+  ctx.textBaseline = 'top';
+  const mis = t2 => { const m = ctx.measureText && ctx.measureText(t2); return Math.ceil((m && m.width) || t2.length * 3); };
+  const tw = Math.max(mis(eti), mis(testo));
+  const w = Math.max(20, tw + 6), h = 19;
+  const bx = snap(sx - w / 2), by = snap(sy - h - 5);
+  ctx.fillStyle = '#4a3524'; ctx.fillRect(bx + Math.round(w / 2) - 1, by + h, 2, 6);   // palo
+  ctx.fillStyle = '#3a2a1a'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);               // cornice
+  ctx.fillStyle = '#8a6a3a'; ctx.fillRect(bx, by, w, h);                                // tavola
+  ctx.fillStyle = '#9a7a48'; ctx.fillRect(bx, by, w, 2);                                // luce in cima
+  ctx.fillStyle = '#d8c8a8'; ctx.fillText(eti, snap(bx + (w - mis(eti)) / 2), by + 3);
+  ctx.fillStyle = '#f3ecda'; ctx.fillText(testo, snap(bx + (w - mis(testo)) / 2), by + 10);
+  ctx.restore();
 }
 
 /* ---------- TUTORIAL: le targhe sulle case e la freccia verso l'obiettivo ----------

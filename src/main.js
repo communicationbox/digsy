@@ -326,6 +326,7 @@ if (typeof window !== 'undefined') {
       }))),
       resume: () => import('./splash.js').then(sp => sp.resumeSplash()),
       openStore: () => import('./ui.js').then(u => u.openBuilding({ type: 'store', name: 'Negozio' })),
+      openMuseum: () => import('./ui.js').then(u => u.openBuilding({ type: 'museum', name: 'Museo' })),
     };
   });
 }

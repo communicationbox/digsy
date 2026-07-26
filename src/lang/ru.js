@@ -234,7 +234,6 @@ export const RU = {
   'CHIMERA CREATED': 'ХИМЕРА СОЗДАНА',
   ' has woken up! It roams the big-city park': ' оживлена! Она гуляет в парке большого города',
   'SPECIES AWAKENED': 'ВИД ПРОБУЖДЁН',
-  ' has been awakened! See it ALIVE in the Book (L)': ' пробуждён! Посмотрите на него ЖИВЫМ в Книге (L)',
 
   /* ---- HUD e intro ---- */
   'bag ': 'рюкзак ',
@@ -779,27 +778,56 @@ export const RU = {
   'Drop': 'Бросить',
   'Frees the slot; your finds stay yours': 'Освобождает место; находки остаются у вас',
   'Mission dropped': 'Задание брошено',
+  /* ---- LO SCOPO: riportarle in vita (goal.js) ---- */
+  'BROUGHT BACK': 'ВОЗВРАЩЕНО',
+  'Bring back all ': 'Верни все ',
+  ' and the park becomes the world your grandparent could only draw.':
+    ' — и парк станет тем миром, который дедушка мог только нарисовать.',
+  'The park has its first tree.': 'В парке появилось первое дерево.',
+  'The pond has filled.': 'Пруд наполнился.',
+  'Bushes and rocks along the fence.': 'Кусты и камни вдоль ограды.',
+  'Flower beds have come up.': 'Поднялись цветочные клумбы.',
+  'Trees in every corner: it is a wood by now.': 'Деревья по всем углам: это уже роща.',
+  'Not one is missing. Your grandparent\'s world walks again.': 'Не пропал никто. Мир дедушки снова ходит по земле.',
+  "YOUR GRANDPARENT'S WORLD": 'МИР ДЕДУШКИ',
+  'Brought back to life': 'Возвращено к жизни',
+  'All of them. Your grandparent\'s world walks again.': 'Все. Мир дедушки снова ходит по земле.',
+  'Complete a case at the Museum and awaken the species at the Laboratory: it will walk the park again.':
+    'Собери витрину в Музее и пробуди вид в Лаборатории: он снова будет ходить по парку.',
+  '1 more to the next milestone.': 'До следующей вехи остался 1.',
+  ' more to the next milestone.': ' до следующей вехи.',
+  ' walks the park again.': ' снова ходит по парку.',
+  ' Your grandparent never saw one alive: you did. ': ' Дедушка не видел ни одного живым: а ты видишь. ',
+  ' left to go.': ' осталось.',
+  'I was the first to find them. But finding them is not enough: no one has ever seen one alive.':
+    'Я первым их нашёл. Но найти — мало: никто никогда не видел их живыми.',
+  'Take it, {n}: your first treasure. My time ran out.': 'Держи, {n}: твоё первое сокровище. Моё время вышло.',
+  'Then I will bring them back. All of them.': 'Тогда я верну их. Всех.',
+  /* ---- tutorial: frasi corte, una cosa per volta ---- */
+  'Pick up the shiny things': 'Собирай блестящее',
+  'Follow the arrow and press {act}. You need 15 coins.': 'Иди по стрелке и жми {act}. Нужно 15 монет.',
+  'Go to the Shop': 'Иди в Лавку',
+  'Sell everything you gathered, then buy the spade 🪏.': 'Продай всё собранное и купи лопату 🪏.',
+  'Leave town and dig': 'Выйди из города и копай',
+  'On the grass, press {act}. The plaza is paved and cannot be dug.': 'На траве жми {act}. Площадь вымощена, там копать нельзя.',
+  'Take your finds to the Museum': 'Отнеси находки в Музей',
+  'The Curator will tell you what creatures they are. He is waiting for you now.': 'Хранитель скажет, что это за существа. Он уже ждёт.',
+  'The Curator is in the back cataloguing: come back when you have something to show him.':
+    'Хранитель в подсобке разбирает коллекцию: возвращайся, когда будет что показать.',
+  /* ---- SALE del Museo: la strada verso l'ultima lettera del nonno ---- */
+  'Museum rooms': 'Залы Музея',
+  'Closest: ': 'Ближе всего: ',
+  ' species on display': ' видов выставлено',
+  'All filled. Your grandparent left one last letter.': 'Все заполнены. Дедушка оставил последнее письмо.',
+  'A room is full when every species of that zone has a piece on display: the Curator hands you the letter your grandparent left with him.':
+    'Зал заполнен, когда у каждого вида этой зоны выставлена хотя бы одна кость: Хранитель отдаёт письмо, оставленное дедушкой.',
   /* ---- intro accorciata + TUTORIAL d'apertura ---- */
-  'Take it, {n}: your first treasure.': 'Держи, {n}: твоё первое сокровище.',
-  "I'll find them all. And bring them back!": 'Я найду их всех. И верну их к жизни!',
-  'Dig': 'Копай',
   'chimeras': 'химеры',
   'identifies': 'определяет',
   'sleep': 'сон',
   'clothes': 'одежда',
   'hair': 'волосы',
   'skip': 'пропустить',
-  'Gather things off the ground': 'Собери всё, что лежит на земле',
-  'Mushrooms, wheat ears, shells: {act} to pick them up. They are your only coins until you own a spade.':
-    'Грибы, колосья, ракушки: {act}, чтобы подобрать. Пока нет лопаты, это твои единственные монеты.',
-  'Sell at the Shop and buy the spade': 'Продай в Лавке и купи лопату',
-  'Enter the Shop, sell what you gathered and buy the spade 🪏. Without it you cannot dig.':
-    'Зайди в Лавку, продай собранное и купи лопату 🪏. Без неё копать нельзя.',
-  'Outside town, press {act} to dig under your feet. The plaza is paved and cannot be dug.':
-    'За городом нажми {act}, чтобы копать под ногами. Площадь вымощена, там копать нельзя.',
-  'Take your find to the Museum': 'Отнеси находку в Музей',
-  "A raw find cannot be sold: at the Museum the Curator identifies it. You already carry Grandpa's.":
-    'Необработанную находку не продать: в Музее Хранитель её определит. Дедушкина уже у тебя.',
   'sell and buy': 'продать и купить',
   'Tutorial skipped — you can redo it from the Guide': 'Обучение пропущено — его можно пройти заново из Справки',
   'Tutorial complete. From here on it is up to you.': 'Обучение пройдено. Дальше решай сам.',
@@ -1225,7 +1253,6 @@ export const RU = {
   /* ---- intro: le prime battute ---- */
   'Come, {n}. Look what the earth hides.': 'Иди сюда, {n}. Посмотри, что прячет земля.',
   'A bone. From a creature of long, long ago.': 'Кость. Существа, жившего очень-очень давно.',
-  'I was the first to find them. No one remembered them.': 'Я первым их нашёл. О них никто не помнил.',
 
   /* ---- comandi: col mouse si gioca senza tastiera ---- */
   'Keys: <kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions · <kbd>ESC</kbd> menu<br>With the mouse: <b>click</b> to walk, <b>right click</b> to act.':

@@ -10,6 +10,8 @@
  * di scoprirli con la partita di qualcuno.
  */
 import { ALL_SPECIES, PARTS } from './data.js';
+import { roomsDone, roomsTotal } from './letters.js';
+import { goalTitle } from './goal.js';
 import { WONDERS } from './wonders.js';
 import { tr } from './i18n.js';
 
@@ -41,12 +43,19 @@ export function gameStats(st) {
     { id: 'day', icon: '☀️', label: tr('Giorno', 'Day'), value: String(s.day || 1) },
     { id: 'level', icon: '⭐', label: tr('Livello', 'Level'), value: String(s.level || 1) },
     { id: 'coins', icon: '🪙', label: tr('Monete', 'Coins'), value: String(s.coins || 0) },
+    /* IL TRAGUARDO STA IN CIMA, non in mezzo all'elenco: riportarle in vita e' lo scopo del
+       gioco (goal.js), scoperte e teche sono la strada per arrivarci. Era la sesta riga di
+       nove, scritta uguale alle altre, e non lo distingueva niente. */
+    { id: 'awake', icon: '🧬', label: goalTitle(),
+      value: arr('awakened').length + '/' + ALL_SPECIES.length },
     { id: 'codex', icon: '📖', label: tr('Specie scoperte', 'Species discovered'),
       value: arr('codex').length + '/' + ALL_SPECIES.length },
     { id: 'cases', icon: '🏛️', label: tr('Teche complete', 'Complete cases'),
       value: completeCases(s) + '/' + ALL_SPECIES.length },
-    { id: 'awake', icon: '🧬', label: tr('Specie risvegliate', 'Species awakened'),
-      value: arr('awakened').length + '/' + ALL_SPECIES.length },
+    /* LE SALE sono la strada lunga: sette piene = l'ultima lettera del nonno, cioè il finale.
+       Era l'unico traguardo del gioco che nessuna schermata nominasse. */
+    { id: 'rooms', icon: '✉', label: tr('Sale del Museo', 'Museum rooms'),
+      value: roomsDone(s) + '/' + roomsTotal() },
     { id: 'chimeras', icon: '🐾', label: tr('Chimere create', 'Chimeras created'),
       value: String(arr('creatures').length) },
     { id: 'wonders', icon: '✨', label: tr('Meraviglie trovate', 'Wonders found'),

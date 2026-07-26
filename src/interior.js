@@ -12,6 +12,7 @@ import { tr, zoneName } from './i18n.js';
 import { zoneAt } from './regions.js';
 import { playSfx } from './audio.js';
 import { pendingLetter, giveLetter, letterTitle } from './letters.js';
+import { museumOpen, museumClosedText } from './tutorial.js';
 
 export const INT = {
   active: false, b: null, town: null,
@@ -398,6 +399,12 @@ export function checkDoorEnter() {
        col "tocca dove andare" si arriva da qualsiasi lato, e allora vale l'intenzione:
        si entra se la porta è proprio dove si è toccato */
     if (!(P.moving && P.dir === 'up') && !goalIsTile(tx, ty)) return;
+    /* porta chiusa: il Museo si apre solo quando il tutorial ci manda (tutorial.js) */
+    if (ti.door.type === 'museum' && !museumOpen()) {
+      INT.justLeft = true;                            // niente ritentativi a ogni fotogramma
+      import('./ui.js').then(u => u.toast('🏛️ ' + museumClosedText()));
+      return;
+    }
     enterInterior(ti.door, townForTile(tx, ty));
   } else INT.justLeft = false;
 }
