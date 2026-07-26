@@ -220,8 +220,19 @@ export function blitPairs(pairs, px, py, flip, tctx) {
 function setAt(r, i, ch) { return i < 0 || i >= r.length ? r : r.slice(0, i) + ch + r.slice(i + 1); }
 export function styleLook(rows, shirtStyle, pantsStyle) {
   rows = rows.slice();
-  const torso = [], legs = [];
-  for (let y = 0; y < rows.length; y++) { if (rows[y].includes('S')) torso.push(y); if (rows[y].includes('P')) legs.push(y); }
+  const torso = [], legs = [], span = {};
+  for (let y = 0; y < rows.length; y++) {
+    if (rows[y].includes('S')) { torso.push(y); span[y] = [rows[y].indexOf('S'), rows[y].lastIndexOf('S')]; }
+    if (rows[y].includes('P')) legs.push(y);
+  }
+  /* `span` è la larghezza del torso PRIMA di toccare la maglia, e va misurata qui.
+     Le forme si applicano in fila — prima la maglia, poi i pantaloni — e la salopette cercava
+     la maglia per appoggiarci le bretelle. Con la CANOTTIERA, però, di spalle le spalle
+     diventano pelle e nella riga non resta una sola 'S': `indexOf` tornava -1, la bretella
+     finiva a -1+1 = 0 e comparivano quattro pixel staccati in colonna 0, sul bordo sinistro
+     dello sprite (segnalato con foto). La guardia di `setAt` ferma i negativi, non lo zero.
+     Agganciandole al corpo invece che a quel che resta della maglia, le bretelle stanno al
+     posto giusto anche sopra la pelle nuda — che è poi come si porta una salopette. */
   /* ---- MAGLIE ---- */
   if (shirtStyle === 'tank' && torso.length) {           // canottiera: spalle/braccia scoperte + bretelline
     for (const y of torso) { let r = rows[y]; const f = r.indexOf('S'), l = r.lastIndexOf('S');
@@ -249,17 +260,59 @@ export function styleLook(rows, shirtStyle, pantsStyle) {
     let s = rows[top].split(''); for (let x = Math.max(0, f - 1); x <= Math.min(15, l + 1); x++) s[x] = 'P'; s[Math.max(0, f - 1)] = 'p'; s[Math.min(15, l + 1)] = 'p'; rows[top] = s.join('');
     for (let i = 1; i < legs.length; i++) rows[legs[i]] = rows[legs[i]].replace(/P/g, 'F');
   } else if (pantsStyle === 'overall' && torso.length && legs.length) { // salopette: bretelle di pantalone sul torso
-    for (const y of torso) { const f = rows[y].indexOf('S'), l = rows[y].lastIndexOf('S'), a = f + 1, b = l - 1;
-      rows[y] = setAt(setAt(rows[y], a, 'P'), b, 'P'); }
+    for (const y of torso) {
+      const [f, l] = span[y]; const a = f + 1, b = l - 1;
+      if (a > b) continue;                       // torso troppo stretto: non ci sta una bretella
+      rows[y] = setAt(setAt(rows[y], a, 'P'), b, 'P');
+    }
   }
   return rows;
 }
+/* VESTITI RIFINITI A MANO. `styleLook` qui sopra ricava maglie e pantaloni trasformando le
+   righe del corpo: si adatta a tutto da solo, ma è una regola, non un disegno — e certe forme
+   (la felpa col cappuccio, la gonna svasata) una regola non le fa belle.
+   Queste due tabelle sono la via d'uscita, con lo stesso patto della banca degli sprite:
+   ADDITIVE. Finché una casella è vuota si vede il procedurale di sempre; appena la disegni
+   nello Sprite Studio (scheda Vestiti) prende il posto SOLO di quel capo, e l'altro resta
+   procedurale — maglia e pantaloni restano mescolabili a piacere.
+   Formato identico a HAIRS/HATS: vista → [[riga, "mappa di 16 caratteri"], …].
+
+   I PANTALONI HANNO UNA CHIAVE PER PASSO ('skirt:0', 'skirt:1'), le maglie no. Non è una
+   stranezza: fra i due fotogrammi di camminata il TORSO è identico in tutte e tre le viste,
+   le GAMBE no (una riga di fronte e di dietro, due di profilo). Un pantalone disegnato una
+   volta sola si incollerebbe alla gamba e la camminata si spegnerebbe. */
+export const SHIRTS = {};   // stile → { down:[…], side:[…], up:[…] }
+export const PANTS = {};    // stile:passo → { down:[…], side:[…], up:[…] }
+export function shirtOverlay(style, view) {
+  const d = SHIRTS[style]; const r = d && d[view];
+  return (r && r.length) ? r : null;
+}
+export function pantsOverlay(style, view, frame) {
+  const d = PANTS[style + ':' + (frame ? 1 : 0)]; const r = d && d[view];
+  return (r && r.length) ? r : null;
+}
+/* COSA INDOSSA il personaggio in questo fotogramma: quale forma dare al corpo procedurale e
+   quali overlay disegnarci sopra. Sta fuori da drawHero perché è la parte che si può sbagliare
+   in silenzio — un capo a mano che si somma alla regola invece di sostituirla si vede solo
+   guardando il pixel giusto, mentre qui un test lo misura.
+   La regola: se il capo è disegnato a mano, il corpo sotto va disegnato NEUTRO. Altrimenti
+   l'overlay finirebbe sopra una silhouette già trasformata — la gonna a mano sopra le gambe
+   che la gonna procedurale aveva già scoperto. */
+export function heroClothes(look, view, frame) {
+  const L = look || {};
+  const shirt = L.shirtStyle || 'tshirt', pants = L.pantsStyle || 'long';
+  const shOv = shirtOverlay(shirt, view), ptOv = pantsOverlay(pants, view, frame);
+  return { shOv, ptOv, shirt: shOv ? 'tshirt' : shirt, pants: ptOv ? 'long' : pants };
+}
+
 /* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
 export function drawHero(tctx, x, y, dir, frame, noHat) {
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const flip = dir === 'left';
-  const L = S.look;
-  blit(styleLook(SPR[key][frame], L.shirtStyle || 'tshirt', L.pantsStyle || 'long'), x, y, flip, tctx);
+  const c = heroClothes(S.look, key, frame);
+  blit(styleLook(SPR[key][frame], c.shirt, c.pants), x, y, flip, tctx);
+  if (c.shOv) blitPairs(c.shOv, x, y, flip, tctx);
+  if (c.ptOv) blitPairs(c.ptOv, x, y, flip, tctx);
   const hs = HAIRS[S.look.hairStyle] || HAIRS.none;
   const hat = !noHat ? HATS[S.look.hatStyle] : null;
   const crown = hat ? HAT_CROWN[S.look.hatStyle] : -1;

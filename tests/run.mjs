@@ -1039,6 +1039,102 @@ sprites.applyLook();
   check('60s di wander senza fughe', out === 0);
 }
 
+/* ---------- VESTITI rifiniti a mano: overlay additivi sopra la regola ----------
+   `styleLook` ricava maglie e pantaloni trasformando le righe del corpo. Funziona ovunque ma
+   è una regola, non un disegno. SHIRTS/PANTS permettono di sostituirne una a mano dallo Sprite
+   Studio, con lo stesso patto della banca degli sprite: finché la casella è vuota si vede il
+   procedurale, e un capo a mano non trascina con sé l'altro. */
+{
+  const DATA5 = await import('../src/data.js');
+  const shirtIds = DATA5.SHIRT_STYLES.map(s => s.id), pantsIds = DATA5.PANTS_STYLES.map(s => s.id);
+  const S5 = state.S;
+  /* di serie NON c'è niente disegnato: il gioco parte tutto procedurale */
+  check('le tabelle dei vestiti nascono vuote (additive)',
+    Object.keys(sprites.SHIRTS).length === 0 && Object.keys(sprites.PANTS).length === 0);
+  check('senza disegno non c\'è overlay, per ogni forma e vista',
+    shirtIds.every(id => ['down', 'side', 'up'].every(v => sprites.shirtOverlay(id, v) === null))
+    && pantsIds.every(id => ['down', 'side', 'up'].every(v => [0, 1].every(f => sprites.pantsOverlay(id, v, f) === null))));
+
+  sprites.SHIRTS.hoodie = { down: [[8, '....AAAAAAAA....']], side: [], up: [] };
+  sprites.PANTS['skirt:1'] = { down: [[14, '...BBBBBBBBBB...']], side: [], up: [] };
+  check('disegnata una vista, le altre restano procedurali',
+    !!sprites.shirtOverlay('hoodie', 'down') && sprites.shirtOverlay('hoodie', 'side') === null);
+  /* IL PASSO CONTA: fra i due fotogrammi le gambe cambiano, e un pantalone disegnato una volta
+     sola si incollerebbe alla gamba spegnendo la camminata. Per questo la chiave porta il passo. */
+  check('i pantaloni sono per PASSO: disegnarne uno non tocca l\'altro',
+    !!sprites.pantsOverlay('skirt', 'down', 1) && sprites.pantsOverlay('skirt', 'down', 0) === null);
+
+  /* la regola dello scambio: col capo a mano il corpo sotto si disegna NEUTRO, o l'overlay
+     finisce sopra una silhouette già trasformata e i due disegni si combattono */
+  const look = { shirtStyle: 'hoodie', pantsStyle: 'skirt' };
+  const c1 = sprites.heroClothes(look, 'down', 1);
+  check('col capo a mano il corpo sotto è neutro', c1.shirt === 'tshirt' && c1.pants === 'long' && !!c1.shOv && !!c1.ptOv);
+  const c0 = sprites.heroClothes(look, 'down', 0);
+  check('e SOLO per il capo disegnato: l\'altro resta procedurale',
+    c0.shirt === 'tshirt' && c0.pants === 'skirt' && !!c0.shOv && c0.ptOv === null);
+  const cx = sprites.heroClothes(look, 'side', 0);
+  check('vista senza disegni: tutto procedurale come prima', cx.shirt === 'hoodie' && cx.pants === 'skirt');
+  check('senza look si torna ai valori di serie',
+    sprites.heroClothes(null, 'up', 0).shirt === 'tshirt' && sprites.heroClothes({}, 'up', 0).pants === 'long');
+  /* disegnare non deve far esplodere il disegno dell'eroe */
+  {
+    let crash = null;
+    try { S5.look = { ...S5.look, ...look }; sprites.applyLook(); sprites.drawHero(null, 0, 0, 'down', 1); }
+    catch (e) { crash = e.message; }
+    check('l\'eroe si disegna coi vestiti a mano senza crash', crash === null, crash || '');
+  }
+  delete sprites.SHIRTS.hoodie; delete sprites.PANTS['skirt:1'];
+  S5.look = { ...S5.look, shirtStyle: 'tshirt', pantsStyle: 'long' }; sprites.applyLook();
+
+  /* NESSUN PIXEL STACCATO DAL CORPO, in nessuna delle 96 combinazioni.
+     Le forme si applicano IN FILA (prima la maglia, poi i pantaloni) e la seconda leggeva la
+     prima: la salopette cercava la maglia per appoggiarci le bretelle, ma con la CANOTTIERA di
+     spalle le spalle diventano pelle e nella riga non resta una sola 'S'. `indexOf` tornava -1,
+     la bretella finiva a -1+1 = 0 e comparivano quattro pixel sul bordo sinistro dello sprite,
+     staccati da tutto (segnalato con foto da un giocatore).
+     Il controllo è "staccato", non "fuori dalla sagoma": la gonna si svasa più larga delle gambe
+     e il cappuccio sta sopra le spalle, e sono due cose volute. Quello che non si può mai vedere
+     è un pixel che non tocca niente. */
+  {
+    const stacc = [];
+    for (const view of ['down', 'up', 'side']) for (const fr of [0, 1])
+      for (const sh of shirtIds) for (const pt of pantsIds) {
+        const out = sprites.styleLook(sprites.SPR[view][fr], sh, pt);
+        const acceso = (x, y) => y >= 0 && y < out.length && x >= 0 && x < 16 && out[y][x] !== '.';
+        for (let y = 0; y < out.length; y++) for (let x = 0; x < 16; x++) {
+          if (out[y][x] === '.') continue;
+          if (!acceso(x - 1, y) && !acceso(x + 1, y) && !acceso(x, y - 1) && !acceso(x, y + 1))
+            stacc.push(`${view}/passo${fr + 1} ${sh}+${pt} riga ${y} col ${x}`);
+        }
+      }
+    check(`nessun pixel staccato dal corpo (${shirtIds.length * pantsIds.length * 6} combinazioni)`,
+      stacc.length === 0, stacc.slice(0, 4).join(' · '));
+    /* e le bretelle DEVONO esserci anche sopra la pelle nuda: correggendo si poteva "risolvere"
+       togliendole del tutto, ed è la correzione sbagliata */
+    const conCanottiera = sprites.styleLook(sprites.SPR.up[0], 'tank', 'overall');
+    const soloCanottiera = sprites.styleLook(sprites.SPR.up[0], 'tank', 'long');
+    check('la salopette mette le bretelle anche sulla canottiera',
+      conCanottiera.some((r, y) => r.includes('P') && !soloCanottiera[y].includes('P')));
+    check('e nessuna finisce in colonna 0', conCanottiera.every(r => r[0] === '.'));
+  }
+
+  /* LO SPRITE STUDIO deve saperli modificare, o la tabella resta una porta senza maniglia */
+  {
+    const fs7 = await import('node:fs');
+    const st7 = fs7.readFileSync('public/sprites/index.html', 'utf8');
+    check('lo Studio ha la scheda Vestiti', /vestiti:\s*\{\s*label:\s*'Vestiti'/.test(st7));
+    check('lo Studio tratta maglie e pantaloni come overlay',
+      /kind === 'shirt' \|\| it\.kind === 'pants'/.test(st7) || /it\.kind === 'shirt'/.test(st7));
+    check('lo Studio dice in QUALE tabella incollare',
+      /shirt:\s*'SHIRTS'/.test(st7) && /pants:\s*'PANTS'/.test(st7));
+    /* la chiave dei pantaloni contiene i due punti: senza virgolette il file non si carica */
+    check('lo Studio quota le chiavi non-identificatore', /A-Za-z_\$\]\[A-Za-z0-9_\$\]\*\$/.test(st7));
+    const voci = shirtIds.length + pantsIds.length * 2;
+    check(`lo Studio copre tutte le forme (${voci} voci × 3 viste = ${voci * 3} caselle)`,
+      /SHIRT_STYLES\)\s*\|\|\s*\[\]\)\.map/.test(st7) && /PANTS_STYLES\)\s*\|\|\s*\[\]\)\.flatMap/.test(st7));
+  }
+}
+
 /* ---------- sprite / look ---------- */
 {
   let bad = 0;

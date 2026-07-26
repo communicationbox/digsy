@@ -23,7 +23,8 @@ src/noise.js        SEED, vhash/smooth/fbm (value-noise deterministico)
 src/state.js        S (+fresh/save/load/initState), dugSet, P (player), cam
 src/screen.js       canvas, ctx, view{K,W,H,VW,VH}, fit() fullscreen a scala intera
 src/world.js        terreni, decorazioni, città (TCELL, TOWN_SIZES, townInfo, parco), findStart
-src/sprites.js      PAL mutabile, shade/applyLook, SPR (fronte/retro/profilo), HAIRS, blit/drawHero
+src/sprites.js      PAL mutabile, shade/applyLook, SPR (fronte/retro/profilo), HAIRS/HATS,
+                    SHIRTS/PANTS (vestiti a mano, additivi sopra styleLook), blit/drawHero
 src/park.js         sim chimere nel recinto (parks Map, refreshVisParks/updatePark)
 src/compass.js      città più vicina, octant, updateCompass (HUD + toast benvenuto)
 src/gameplay.js     tryDig/economia/chimere (chimeraName/assembleChimera), collide, act
@@ -520,7 +521,8 @@ in oro maiuscolo e una riga `.sp-sep`.
 - Ogni feature nuova: aggiungere check a `tests/run.mjs` e tenerla verde.
 - Pagine di prova: `/wonders` (meraviglie, mostra gli sprite rifiniti a mano quando ci sono),
   `/sprites` (Sprite Studio: meraviglie, personaggio, capelli e cappelli nelle TRE viste, icone,
-  **Natura** 14 = alberi/rocce/funghi/canne… e **Città** 11 = i 6 edifici + fontana/panchina/
+  **Vestiti** 12 (4 maglie + 4 pantaloni × 2 passi: le gambe cambiano fra i
+  fotogrammi, il torso no), **Natura** 14 = alberi/rocce/funghi/canne… e **Città** 11 = i 6 edifici + fontana/panchina/
   lampione/staccionata/imbocco grotta), `/playground` (mobile).
   Lo Studio si tira dentro il **markup vero del gioco** (fetch di `index.html` in un contenitore
   fuori schermo) prima di importare i moduli: così `getElementById('bagbtn').onclick = …` e

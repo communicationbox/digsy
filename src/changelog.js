@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.85', it: [
+      'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle: le bretelle cercavano la maglia per appoggiarsi, ma la canottiera di dietro scopre le spalle e di maglia non ne resta — finivano fuori dal corpo. Ora si agganciano al torso e si vedono anche sulla pelle nuda, come una salopette vera',
       'TUTORIAL rifatto: è la NOTA DEL NONNO — la carta ingiallita delle sue lettere, con UN SOLO obiettivo alla volta, grande e con la sua icona; gli altri tre diventano quadratini di avanzamento e la barra porta il numero dentro. Prima era un riquadro grigio con quattro righe tutte uguali, e non si capiva quale fosse quella da fare adesso',
       'CREAZIONE PERSONAGGIO: il Digsy resta SEMPRE in vista mentre scorri le impostazioni — prima usciva dallo schermo al primo scorrimento e sceglievi i capelli senza vedere su chi finivano. Su telefono l\'anteprima si rimpicciolisce invece di mangiarsi lo schermo',
       'FIX targhe che tremavano camminando: erano agganciate alla griglia dei pixel di GIOCO invece che a quella dei pixel FISICI, quindi restavano ferme per qualche fotogramma e poi scattavano di un pixel intero',
@@ -11,6 +12,7 @@ export const CHANGELOG = [
       'TARGHE SULLE CASE: quando devi entrare da qualche parte, ogni edificio della piazza mostra sopra il tetto cosa fa (Negozio · vendi e compri, Museo · identifica…) e quello dove devi andare si accende d\'oro. Prima c\'erano sei insegne a icone che a un giocatore nuovo non dicevano niente',
       'INTRO PIÙ CORTA: da 16 battute a 5. Quasi tutti la saltavano, e saltandola si perdevano anche le cose che servivano davvero: ora quelle le insegna il tutorial facendotele fare. Anche la macchina da scrivere è più svelta',
     ], en: [
+      'FIX a stray column of pixels on the left edge with TANK TOP + DUNGAREES seen from behind: the straps looked for the shirt to sit on, but from behind a tank top leaves no shirt at all on those rows — so they landed outside the body. They now anchor to the torso and show over bare skin, the way real dungarees do',
       'TUTORIAL REDESIGNED: it is now GRANDPA\'S NOTE — the same yellowed paper as his letters, with ONE objective at a time, large and with its own icon; the other three become progress pips and the bar carries the number inside. Before it was a grey box with four identical lines and you could not tell which one to do now',
       'CHARACTER CREATION: your Digsy now stays in view while you scroll the settings — before it scrolled off screen and you picked hair without seeing who was wearing it. On phones the preview shrinks instead of eating the screen',
       'FIX signs that shook while walking: they were snapped to the GAME pixel grid instead of the PHYSICAL one, so they held still for a few frames and then jumped a whole pixel',

@@ -203,6 +203,17 @@ const CATS = {
   ] },
   capelli: { label: 'Capelli', items: Object.keys(SPR_MOD.HAIRS || {}).map(k => ({ id: 'hair:' + k, name: k, kind: 'hair', key: k })) },
   cappelli: { label: 'Cappelli', items: Object.keys(SPR_MOD.HATS || {}).map(k => ({ id: 'hat:' + k, name: k, kind: 'hat', key: k })) },
+  /* VESTITI: le forme di maglia e pantaloni. Sono OVERLAY come i cappelli, ma il gioco sa
+     ricavarle anche da solo (styleLook): finché non ne disegni una si vede il procedurale.
+     I pantaloni hanno una voce per PASSO perché fra i due fotogrammi le gambe cambiano — il
+     torso no, quindi le maglie ne hanno una sola. */
+  vestiti: { label: 'Vestiti', items: [
+    ...((DATA && DATA.SHIRT_STYLES) || []).map(st => ({ id: 'shirt:' + st.id, name: st.label, kind: 'shirt', key: st.id })),
+    ...((DATA && DATA.PANTS_STYLES) || []).flatMap(st => [0, 1].map(f => ({
+      id: 'pants:' + st.id + ':' + f, name: st.label + ' · passo ' + (f + 1),
+      kind: 'pants', key: st.id + ':' + f, style: st.id, frame: f,
+    }))),
+  ] },
   natura: { label: 'Natura', items: [
     { id: 'deco:tree', name: 'albero', kind: 'deco', fn: 'drawTree', w: 40, h: 40 },
     { id: 'deco:boulder', name: 'masso', kind: 'deco', fn: 'drawBoulder', w: 40, h: 40 },
@@ -344,6 +355,21 @@ function paintNaked(it, ctx, w, h) {
     const view = it.view || 'down', oy = -overlayTop(d0, view);
     drawHeadBase(ctx, oy, view); drawOverlaySafe(ctx, d0, view, oy);
   }
+  else if (it.kind === 'shirt' || it.kind === 'pants') {
+    const d0 = overlayDef(it);
+    const view = it.view || 'down', oy = -overlayTop(d0, view);
+    clothBase(ctx, oy, view, it.frame || 0);
+    if (d0) drawOverlaySafe(ctx, d0, view, oy);
+    /* senza disegno a mano si mostra come lo fa la REGOLA: la casella non è vuota, è "così
+       viene adesso", che è il punto di partenza da cui si migliora */
+    else if (SPR_MOD.styleLook) {
+      const key = view === 'side' ? 'side' : view === 'up' ? 'up' : 'down';
+      const src = (SPR_MOD.SPR && SPR_MOD.SPR[key]) ? SPR_MOD.SPR[key][it.frame ? 1 : 0] : null;
+      if (src) drawCharRows(ctx, SPR_MOD.styleLook(src,
+        it.kind === 'shirt' ? it.key : 'tshirt',
+        it.kind === 'pants' ? String(it.key).split(':')[0] : 'long'), SPR_MOD.PAL || {});
+    }
+  }
 }
 
 /* ---------- disegno di un elemento su un canvas (la sorgente da cui si parte) ---------- */
@@ -361,6 +387,23 @@ function paintItem(it, ctx, w, h) {
     const hh = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
     const view = it.view || curView;
     drawOverlaySafe(ctx, hh, view, -overlayTop(hh, view));
+  } else if (it.kind === 'shirt' || it.kind === 'pants') {
+    const dd = overlayDef(it), view = it.view || curView;
+    if (dd) drawOverlaySafe(ctx, dd, view, -overlayTop(dd, view));
+    /* niente disegno a mano ancora: si parte da quello che fa la regola, così non si comincia
+       da una tela bianca ma da ciò che il gioco mostra oggi */
+    else if (SPR_MOD.styleLook) {
+      const key = view === 'side' ? 'side' : view === 'up' ? 'up' : 'down';
+      const src = (SPR_MOD.SPR && SPR_MOD.SPR[key]) ? SPR_MOD.SPR[key][it.frame ? 1 : 0] : null;
+      const neutro = src && SPR_MOD.styleLook(src, 'tshirt', 'long');
+      const vest = src && SPR_MOD.styleLook(src,
+        it.kind === 'shirt' ? it.key : 'tshirt',
+        it.kind === 'pants' ? String(it.key).split(':')[0] : 'long');
+      /* solo ciò che il capo CAMBIA rispetto al corpo nudo: il resto è il personaggio, non il
+         vestito, e finirebbe dentro l'overlay facendolo sovrascrivere pelle e faccia */
+      if (vest) drawCharRows(ctx, vest.map((r, y) => r.split('').map((ch, x) =>
+        (neutro[y] && neutro[y][x] === ch) ? '.' : ch).join('')), SPR_MOD.PAL || {});
+    }
   } else if (it.kind === 'icon') {
     /* l'SVG si rasterizza in modo asincrono: si disegna appena l'immagine è pronta
        (il colore `currentColor` va sostituito, altrimenti esce nero su nero) */
@@ -481,8 +524,25 @@ const cv = document.getElementById('edcv'), out = document.getElementById('out')
 let cur = null, W = 0, H = 0, px = [], pal = [], color = 0, tool = 'pen', showGrid = true, undoStack = [];
 
 let curView = 'down';                      // vista in modifica per capelli/cappelli
-function isOverlay(it) { return it && (it.kind === 'hair' || it.kind === 'hat'); }
-function overlayDef(it) { return it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key]; }
+function isOverlay(it) { return it && (it.kind === 'hair' || it.kind === 'hat' || it.kind === 'shirt' || it.kind === 'pants'); }
+function overlayDef(it) {
+  if (it.kind === 'hair') return SPR_MOD.HAIRS[it.key];
+  if (it.kind === 'hat') return SPR_MOD.HATS[it.key];
+  if (it.kind === 'shirt') return (SPR_MOD.SHIRTS || {})[it.key];
+  return (SPR_MOD.PANTS || {})[it.key];                     // 'stile:passo'
+}
+/* i vestiti si guardano sul CORPO, non sulla testa: sotto ci va il personaggio intero nel
+   passo giusto, tenue, con la forma NEUTRA — così si disegna sopra la silhouette vera e non
+   sopra una già trasformata dalla regola */
+function clothBase(ctx, oy, view, frame) {
+  const key = view === 'side' ? 'side' : view === 'up' ? 'up' : 'down';
+  const src = (SPR_MOD.SPR && SPR_MOD.SPR[key]) ? SPR_MOD.SPR[key][frame ? 1 : 0] : null;
+  if (!src) return;
+  const rows = SPR_MOD.styleLook ? SPR_MOD.styleLook(src, 'tshirt', 'long') : src;
+  ctx.save(); ctx.translate(0, oy || 0);
+  ctx.globalAlpha = 0.45; drawCharRows(ctx, rows, SPR_MOD.PAL || {}); ctx.globalAlpha = 1;
+  ctx.restore();
+}
 function openEditor(it) {
   cur = it;
   curView = 'down';
@@ -790,8 +850,14 @@ document.getElementById('export').onclick = () => {
       }
       parts.push('    ' + v + ': [' + lines.join(', ') + '],');
     }
-    out.value = "/* " + cur.id + " — incollare in HAIRS/HATS dentro src/sprites.js */\n"
-      + '  ' + cur.key + ": {\n" + parts.join('\n') + "\n  },";
+    /* la riga di intestazione dice DOVE va incollato: le tabelle sono quattro e sbagliarla
+       significa un capo che non compare mai senza un solo errore a schermo */
+    const TAB = { hair: 'HAIRS', hat: 'HATS', shirt: 'SHIRTS', pants: 'PANTS' }[cur.kind] || 'HAIRS';
+    /* i pantaloni hanno la chiave 'stile:passo': con i due punti dentro va per forza quotata,
+       o il file non si carica più */
+    const chiave = /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(cur.key) ? cur.key : "'" + cur.key + "'";
+    out.value = "/* " + cur.id + " — incollare in " + TAB + " dentro src/sprites.js */\n"
+      + '  ' + chiave + ": {\n" + parts.join('\n') + "\n  },";
     return;
   }
 
