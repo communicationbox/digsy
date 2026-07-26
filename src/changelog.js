@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.86', it: [
+      'FIX fontana su TELEFONO: il tiro si fermava dove NON avevi toccato. Si ascoltava il click, che sul telefono arriva un quarto di secondo dopo il dito — abbastanza perché il cursore percorresse da 2 a 5 volte la zona d\'oro. Ora scatta al contatto. E la barra va alla stessa velocità su ogni schermo: col passo per fotogramma su un 120 Hz correva al doppio',
       'IL GIOCO HA UNO SCOPO: riportarle in vita. Il nonno passò la vita a dimostrare che esistevano, ma nessuno ne ha mai vista una viva — quello puoi farlo tu. Un cartello al cancello del parco conta a che punto sei (0/66), e il Museo apre con lo stesso numero: le teche sono il mezzo, il parco è il fine',
       'IL PARCO CRESCE con te: a recinto vuoto è prato nudo, poi la prima creatura porta il primo albero, a 5 si riempie lo stagno, a 15 arrivano cespugli e sassi, a 30 le aiuole, a 50 alberi in ogni angolo. Il progresso lo CAMMINI, non lo leggi',
       'SALE DEL MUSEO: al banco del Curatore vedi quante ne hai riempite (0/7) e qual è la più vicina a chiudersi. Ogni sala piena vale una lettera che il nonno gli aveva lasciato — prima era una sorpresa, e su una sorpresa non puoi puntare',
@@ -11,6 +12,7 @@ export const CHANGELOG = [
       'SPRITE STUDIO: nuova scheda VESTITI — 4 maglie e 4 pantaloni si possono rifinire a mano nelle tre viste (i pantaloni per ogni passo: fra i due fotogrammi le gambe cambiano, il torso no)',
       'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle',
     ], en: [
+      'FIX fountain on PHONES: the toss stopped where you had NOT tapped. It listened for `click`, which on a phone lands a quarter second after your finger — long enough for the cursor to travel 2 to 5 times the width of the golden zone. It now fires on contact. And the bar runs at the same speed on every screen: with a per-frame step it went double on a 120 Hz display',
       'THE GAME HAS A PURPOSE: bring them back to life. Your grandparent spent a lifetime proving they existed, but nobody ever saw one alive — that part is yours. A sign at the park gate counts how far you are (0/66), and the Museum opens with the same number: cases are the means, the park is the end',
       'THE PARK GROWS with you: an empty pen is bare grass, then the first creature brings the first tree, at 5 the pond fills, at 15 bushes and rocks arrive, at 30 flower beds, at 50 trees in every corner. You WALK your progress instead of reading it',
       'MUSEUM ROOMS: the Curator\'s desk shows how many you filled (0/7) and which one is closest to done. Every full room is a letter your grandparent left with him — before it was a surprise, and you cannot aim at a surprise',

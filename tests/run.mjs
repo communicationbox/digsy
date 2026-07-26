@@ -1737,6 +1737,40 @@ sprites.applyLook();
     gameplay.tossRarity(0, 0.999) === 'leggendario' && gameplay.tossRarity(0, 0.3) === null && gameplay.tossRarity(0, 0.9) === 'raro');
   check('il timing (fortuna) sposta le probabilità verso i rari', gameplay.tossRarity(1, 0.5) !== null && gameplay.tossRarity(0, 0.5) === null);
   check('tossLuck: centro del bersaglio = fortuna piena', gameplay.tossLuck(0.5, 0.5) === 1);
+
+  /* ---- FONTANA SU MOBILE: si fermava dove NON avevi toccato ----
+     Due difetti sommati, tutti e due invisibili leggendo il codice.
+     1) Si ascoltava `click`, che su un telefono arriva 250-300 ms dopo il dito: a quel punto il
+        cursore aveva percorso 0.27-0.60 della barra, cioè 2-5 volte la zona d'oro (12%). Non
+        era difficile: era impossibile, e il gioco registrava il tocco dove il cursore non era
+        più (segnalato da un giocatore).
+     2) Il passo era per FOTOGRAMMA: su uno schermo a 120 Hz la barra correva al doppio. */
+  {
+    const SP = ui.tossSpeed(3);
+    /* stessa mezza-secondo, frequenze diverse: deve finire nello stesso punto */
+    const corri = (fps) => {
+      let p = 0, d = 1; const dt = 1 / fps;
+      for (let i = 0; i < fps / 2; i++) { const r = ui.tossAdvance(p, d, SP, dt); p = r.pos; d = r.dir; }
+      return p;
+    };
+    check('la barra va alla stessa velocità a 60 e 120 Hz',
+      Math.abs(corri(60) - corri(120)) < 0.01, corri(60).toFixed(3) + ' vs ' + corri(120).toFixed(3));
+    check('e rimbalza ai bordi invece di uscire',
+      ui.tossAdvance(0.99, 1, SP, 1).pos === 1 && ui.tossAdvance(0.99, 1, SP, 1).dir === -1
+      && ui.tossAdvance(0.01, -1, SP, 1).pos === 0 && ui.tossAdvance(0.01, -1, SP, 1).dir === 1);
+    /* quanto costava il ritardo del click: mezzo secondo di deriva contro una zona larga .12 */
+    const derivaMobile = SP * 0.25;
+    check('il ritardo del click valeva più della zona d\'oro (per questo era impossibile)',
+      derivaMobile > 0.12, 'deriva ' + derivaMobile.toFixed(2) + ' vs zona 0.12');
+    /* il tocco ora scatta al CONTATTO, e il click fantasma che segue viene scartato */
+    {
+      const fs13 = await import('node:fs');
+      const usrc13 = fs13.readFileSync('src/ui.js', 'utf8');
+      check('la fontana ascolta il tocco, non il click ritardato', /onpointerdown\s*=/.test(usrc13));
+      check('e scarta il click fantasma che segue il tocco',
+        /e\.type === 'click'/.test(usrc13) && /tossPointerAt/.test(usrc13));
+    }
+  }
   check('tossLuck: FUORI dalla zona d\'oro = NESSUN boost (0)', gameplay.tossLuck(0.5, 0.62) === 0 && gameplay.tossLuck(0.5, 0.5 + 0.06) === 0 && gameplay.tossLuck(0, 1) === 0);
   check('tossLuck: dentro la zona d\'oro, più centri più fortuna', gameplay.tossLuck(0.5, 0.53) > 0 && gameplay.tossLuck(0.5, 0.53) < 1);
   /* ESITO 3 giri: centrarli TUTTI E TRE = premio ASSICURATO (mai nulla), rarità random pesata

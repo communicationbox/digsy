@@ -727,8 +727,38 @@ export function openToss(onDone) {
   tossOnDone = onDone || null; tossActive = true; tossRound = 0; tossHits = 0;
   const title = document.getElementById('toss-title'); if (title) title.innerHTML = withIcons(tr('Aumenta la tua fortuna', 'Boost your luck'));
   ov.classList.add('on');
-  ov.onclick = () => { if (tossOpen) stopRound(); };
+  tossArm(ov, () => { if (tossOpen) stopRound(); });
   startRound();
+}
+/* IL TOCCO DEVE FERMARE IL TIRO NELL'ISTANTE IN CUI TOCCHI.
+   Prima si ascoltava `click`, che su un telefono arriva 250-300 ms DOPO il dito: nel frattempo
+   il cursore aveva percorso da 0.27 a 0.60 della barra, cioè da 2 a 5 volte la larghezza della
+   zona d'oro (12%). Centrarla era impossibile, e non per bravura — il gioco registrava il tocco
+   dove il cursore NON era più (segnalato da un giocatore).
+   `pointerdown` scatta al contatto. Il `click` che il browser genera subito dopo va ignorato,
+   o il tiro seguente si fermerebbe da solo: per questo l'ultimo pointerdown si ricorda. */
+/* IL MOVIMENTO DEL CURSORE, puro e misurabile. Sta fuori dal ciclo di disegno perché è la
+   parte che si poteva sbagliare in silenzio: prima il passo era per FOTOGRAMMA, quindi su uno
+   schermo a 120 Hz la barra correva al doppio e su un telefono lento strisciava — lo stesso
+   minigioco era facile o impossibile a seconda del dispositivo, e nessuno poteva accorgersene
+   guardando il codice. Ora la velocità è al SECONDO e un test la confronta a due frequenze. */
+export function tossSpeed(round) { return (TOSS_SPEEDS[round - 1] || 0.04) * 60; }
+export function tossAdvance(pos, dir, speed, dt) {
+  let p = pos + dir * speed * dt, d = dir;
+  if (p >= 1) { p = 1; d = -1; } else if (p <= 0) { p = 0; d = 1; }
+  return { pos: p, dir: d };
+}
+let tossPointerAt = -1;
+function tossNow() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0; }
+function tossArm(ov, fn) {
+  const azione = (e) => {
+    /* il click fantasma che segue il tocco: stessa azione a pochi ms di distanza, si scarta */
+    if (e && e.type === 'click' && tossPointerAt >= 0 && tossNow() - tossPointerAt < 700) return;
+    if (e && e.type === 'pointerdown') { tossPointerAt = tossNow(); if (e.preventDefault) e.preventDefault(); }
+    fn();
+  };
+  ov.onpointerdown = azione;
+  ov.onclick = azione;                 // mouse senza PointerEvent, e i test
 }
 function startRound() {
   tossRound++; tossOpen = true; tossBetween = false; tossPos = 0; tossDir = 1;
@@ -736,10 +766,19 @@ function startRound() {
   const tgt = document.getElementById('toss-target'); if (tgt) tgt.style.left = (tossTarget * 100) + '%';
   const mk = document.getElementById('toss-marker'); if (mk) mk.style.background = '#fff';
   const hint = document.getElementById('toss-hint'); if (hint) hint.innerHTML = withIcons(tr('Ferma il tiro nel riflesso d\'oro', 'Land the toss in the golden ripple'));
-  const speed = TOSS_SPEEDS[tossRound - 1] || 0.04;
-  const step = () => {
+  /* la velocità è AL SECONDO, non a fotogramma: col passo per frame la barra correva al doppio
+     su uno schermo a 120 Hz e più piano su un telefono lento — lo stesso minigioco era facile
+     o impossibile a seconda del dispositivo. I numeri sono quelli di prima moltiplicati per 60,
+     così su uno schermo a 60 Hz non cambia niente. */
+  const speed = tossSpeed(tossRound);
+  let last = -1;
+  const step = (ts) => {
     if (!tossOpen) return;
-    tossPos += tossDir * speed; if (tossPos >= 1) { tossPos = 1; tossDir = -1; } else if (tossPos <= 0) { tossPos = 0; tossDir = 1; }
+    const t = (typeof ts === 'number') ? ts : tossNow();
+    const dt = last < 0 ? 1 / 60 : Math.min(0.05, (t - last) / 1000);   // cap: se la scheda torna in primo piano non salta
+    last = t;
+    const r = tossAdvance(tossPos, tossDir, speed, dt);
+    tossPos = r.pos; tossDir = r.dir;
     if (mk) mk.style.left = 'calc(' + (tossPos * 100) + '% - 2px)';
     tossRAF = requestAnimationFrame(step);
   };
@@ -768,7 +807,7 @@ function endToss() {
     const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
     const cb = tossOnDone; tossOnDone = null; if (cb) cb(tossHits);
   };
-  const ov = document.getElementById('tossov'); if (ov) ov.onclick = () => finish();
+  const ov = document.getElementById('tossov'); if (ov) tossArm(ov, finish);
   if (typeof setTimeout !== 'undefined') setTimeout(finish, 1200);
 }
 /* stessa cosa del click, ma da TASTIERA (E/spazio): ferma il tiro (o chiude l'esito) */
