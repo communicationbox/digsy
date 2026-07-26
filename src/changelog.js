@@ -2,6 +2,9 @@
 export const CHANGELOG = [
   {
     v: 'v0.86', it: [
+      'MUSEO più PULITO: il pannello del Curatore ora ha due schede — BANCO (consegna, commissione, ricariche DNA) e PROGRESSI (i numeri). Prima erano sette blocchi impilati con due o tre righe di spiegazione ciascuno: su telefono era alto tre schermate e il pulsante \"Consegna tutto\" spariva in mezzo al testo',
+      'I PREMI di una commissione sono in COLONNA, uno per riga: in fila andavano a capo in mezzo a un premio e non si capiva dove finiva uno e cominciava l\'altro',
+      'MOBILE: nei pannelli i pulsanti stanno sotto alla riga, a tutta larghezza — a destra strozzavano il testo in una colonna di tre parole',
       'TECHE del Museo: cliccando una vetrina ora GIRA lo scheletro 3D (lo stesso del Libro), con accesi solo i pezzi che hai consegnato — così si vede a colpo d\'occhio cosa manca ancora. Prima era una figurina piatta',
       'STATUA DEL NONNO nelle città grandi, accanto al Museo: con {act} leggi la targa incisa e a che punto sei. È lui che ti guarda mentre porti dentro le ossa',
       'FIX fontana su TELEFONO: il tiro si fermava dove NON avevi toccato. Si ascoltava il click, che sul telefono arriva un quarto di secondo dopo il dito — abbastanza perché il cursore percorresse da 2 a 5 volte la zona d\'oro. Ora scatta al contatto. E la barra va alla stessa velocità su ogni schermo: col passo per fotogramma su un 120 Hz correva al doppio',
@@ -14,6 +17,9 @@ export const CHANGELOG = [
       'SPRITE STUDIO: nuova scheda VESTITI — 4 maglie e 4 pantaloni si possono rifinire a mano nelle tre viste (i pantaloni per ogni passo: fra i due fotogrammi le gambe cambiano, il torso no)',
       'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle',
     ], en: [
+      'CLEANER MUSEUM: the Curator\'s panel now has two tabs — DESK (hand in, commission, DNA refills) and PROGRESS (the numbers). Before it stacked seven blocks with two or three lines of explanation each: on a phone it ran three screens tall and the \"Hand in all\" button was lost in the text',
+      'COMMISSION REWARDS are now a COLUMN, one per line: in a row they wrapped mid-reward and you could not tell where one ended and the next began',
+      'MOBILE: panel buttons now sit below their row at full width — on the right they squeezed the text into a three-word column',
       'MUSEUM CASES: clicking a display now SPINS the 3D skeleton (the same one as the Book), with only the pieces you handed in lit up — so you can see at a glance what is still missing. Before it was a flat little picture',
       'STATUE OF YOUR GRANDPARENT in big cities, beside the Museum: press {act} to read the engraved plaque and how far along you are. He watches you carry the bones inside',
       'FIX fountain on PHONES: the toss stopped where you had NOT tapped. It listened for `click`, which on a phone lands a quarter second after your finger — long enough for the cursor to travel 2 to 5 times the width of the golden zone. It now fires on contact. And the bar runs at the same speed on every screen: with a per-frame step it went double on a 120 Hz display',

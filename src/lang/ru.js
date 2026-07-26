@@ -106,7 +106,6 @@ export const RU = {
 
   /* ---- commissione del museo ---- */
   'pieces of ': 'частей вида ',
-  'finds': 'находок',
   '1 vial of ': '1 пробирка ',
   'expired': 'просрочено',
   'last day': 'последний день',
@@ -613,7 +612,6 @@ export const RU = {
 
   /* ---- museo ---- */
   '📖 New pages in the book: ': '📖 Новые страницы в книге: ',
-  'Discovered': 'Открыто',
   'Hand in all': 'Сдать всё',
   'up to ×1.5': 'до ×1,5',
   'Skip': 'Пропустить',
@@ -623,7 +621,6 @@ export const RU = {
   'Ready!': 'Готово!',
   'finds identified': 'находок определено',
   'Collect': 'Забрать',
-  'Complete species': 'Полных видов',
   'Book': 'Книга',
   'DNA refills': 'Пополнение ДНК',
   'Handed in! Come back tomorrow to collect': 'Сдано! Возвращайтесь завтра за результатом',
@@ -634,7 +631,6 @@ export const RU = {
   'New pieces displayed': 'Новых частей в экспозиции',
   'Needs <b>identified</b> pieces: hand raw finds to the desk first.':
     'Нужны <b>определённые</b> части: сначала сдайте необработанные находки на стойку.',
-  'You get': 'У вас есть',
   'days': 'дн.',
   'One at a time. If it expires you lose nothing: the Curator offers another.':
     'Только один за раз. Если просрочите, вы ничего не теряете: Хранитель предложит новый.',
@@ -821,13 +817,18 @@ export const RU = {
   'The Curator will tell you what creatures they are. He is waiting for you now.': 'Хранитель скажет, что это за существа. Он уже ждёт.',
   'The Curator is in the back cataloguing: come back when you have something to show him.':
     'Хранитель в подсобке разбирает коллекцию: возвращайся, когда будет что показать.',
+  'Species discovered': 'Видов открыто',
+  'finds': 'находок',
+  'Complete cases': 'Витрин собрано',
+  'closest: ': 'ближе всего: ',
+  'all filled': 'все заполнены',
+  'Fossil Book': 'Книга окаменелостей',
+  'A room is full when every species of its zone has a piece on display: the Curator hands you the letter your grandparent left with him.':
+    'Зал заполнен, когда у каждого вида его зоны выставлена кость: Хранитель отдаёт письмо, оставленное дедушкой.',
+  'Desk': 'Стойка',
+  'Progress': 'Прогресс',
   /* ---- SALE del Museo: la strada verso l'ultima lettera del nonno ---- */
   'Museum rooms': 'Залы Музея',
-  'Closest: ': 'Ближе всего: ',
-  ' species on display': ' видов выставлено',
-  'All filled. Your grandparent left one last letter.': 'Все заполнены. Дедушка оставил последнее письмо.',
-  'A room is full when every species of that zone has a piece on display: the Curator hands you the letter your grandparent left with him.':
-    'Зал заполнен, когда у каждого вида этой зоны выставлена хотя бы одна кость: Хранитель отдаёт письмо, оставленное дедушкой.',
   /* ---- intro accorciata + TUTORIAL d'apertura ---- */
   'chimeras': 'химеры',
   'identifies': 'определяет',

@@ -1096,8 +1096,12 @@ sprites.applyLook();
     const usrc10 = fs10.readFileSync('src/ui.js', 'utf8');
     const mus10 = usrc10.slice(usrc10.indexOf('function renderMuseum'));
     const corpo10 = mus10.slice(0, mus10.indexOf('\n}'));
-    check('il Museo apre con lo scopo, non con le teche',
-      corpo10.indexOf('goalTitle()') >= 0 && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Complete species'));
+    /* il pannello ha due schede (azioni | numeri): lo SCOPO apre la scheda dei numeri, sopra
+       le teche e le sale — è il fine, quelle sono la strada */
+    check('il Museo mostra lo scopo sopra teche e sale',
+      corpo10.indexOf('goalTitle()') >= 0
+      && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Complete cases')
+      && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Museum rooms'));
   }
   /* IL PARCO È IL FINE: le risvegliate devono davvero camminarci, o il traguardo è una bugia */
   {
@@ -1737,6 +1741,43 @@ sprites.applyLook();
     gameplay.tossRarity(0, 0.999) === 'leggendario' && gameplay.tossRarity(0, 0.3) === null && gameplay.tossRarity(0, 0.9) === 'raro');
   check('il timing (fortuna) sposta le probabilità verso i rari', gameplay.tossRarity(1, 0.5) !== null && gameplay.tossRarity(0, 0.5) === null);
   check('tossLuck: centro del bersaglio = fortuna piena', gameplay.tossLuck(0.5, 0.5) === 1);
+
+  /* ---- IL PANNELLO DEL MUSEO NON DEVE ESSERE UN MURO ----
+     Aveva finito per impilare sette blocchi, ognuno con due o tre righe di spiegazione
+     permanente sotto: su telefono era alto tre schermate e il pulsante "Consegna tutto"
+     spariva in mezzo al testo (segnalato con foto). Ora due schede — quello che si FA e
+     quello che si GUARDA — e le spiegazioni si dicono una volta sola. */
+  {
+    const fs18 = await import('node:fs');
+    const usrc18 = fs18.readFileSync('src/ui.js', 'utf8');
+    const mus18 = usrc18.slice(usrc18.indexOf('function renderMuseum'));
+    const corpo18 = mus18.slice(0, mus18.indexOf('\n  mBody.innerHTML'));
+    check('il Museo ha due schede', /data-mtab/.test(corpo18) && /museumTab === 'desk'/.test(corpo18));
+    /* le AZIONI stanno tutte da una parte: cercarle in due schede diverse è peggio del muro */
+    for (const [che, cosa] of [['consegna', 'mudep'], ['commissione', 'commissionBlock'], ['ricariche DNA', 'data-dna']]) {
+      const i = corpo18.indexOf(cosa), iProg = corpo18.indexOf("} else {");
+      check(`la ${che} sta nella scheda del banco`, i > 0 && i < iProg, i + ' vs ' + iProg);
+    }
+    /* e i NUMERI dall'altra */
+    const iProg = corpo18.indexOf("} else {");
+    for (const [che, cosa] of [['lo scopo', 'goalTitle()'], ['le sale', 'roomsDone()'], ['le teche', 'Complete cases']]) {
+      check(`${che} sta nella scheda dei progressi`, corpo18.indexOf(cosa) > iProg);
+    }
+    /* la spiegazione delle sale sparisce appena ne chiudi una: serve a capire, non per sempre */
+    check('la spiegazione delle sale è temporanea', /roomsDone\(\) === 0/.test(corpo18));
+    /* i PREMI di una commissione si contano a colpo d'occhio: uno per riga, non in fila */
+    const cm18 = await import('../src/commission.js');
+    const off18 = cm18.offerFor(5);
+    check('i premi sono un elenco, non una frase', cm18.rewardParts(off18).length >= 2
+      && cm18.rewardParts(off18).every(p => typeof p === 'string' && p.length));
+    check('e restano leggibili anche in fila (compatibilità)', cm18.rewardText(off18).includes('·'));
+    check('il pannello li impila', /pn-prizes/.test(usrc18));
+    /* MOBILE: il bottone di una riga va SOTTO, largo. A destra strozzava il testo in una
+       colonna di tre parole e la riga diventava alta il doppio. */
+    const css18 = fs18.readFileSync('src/style.css', 'utf8');
+    check('su telefono i bottoni delle righe vanno a tutta larghezza',
+      /\.row \.rt \.btn\{width:100%/.test(css18.replace(/\s+/g, m => m.includes('\n') ? '\n' : ' ')));
+  }
 
   /* le NOTE DI VERSIONE sono testo di gioco: i segnaposto dei tasti vanno risolti anche lì.
      Scrivendo "premi {act}" la riga usciva col segnaposto in chiaro (visto in foto) — e senza

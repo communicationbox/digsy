@@ -73,7 +73,12 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'statua') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.gotoStatue) G.gotoStatue().then(function(){ if(G.frame) G.frame(1000); }); }
     else if (${JSON.stringify(vista)} === 'teca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openExhibit) G.openExhibit(); }
-    else if (${JSON.stringify(vista)} === 'museo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openMuseum) G.openMuseum(); }
+    else if (${JSON.stringify(vista)} === 'progressi') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.openMuseum) G.openMuseum().then(function(){ var t=document.querySelector('[data-mtab="prog"]'); if(t) t.click(); }); }
+    else if (${JSON.stringify(vista)} === 'museo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openMuseum) G.openMuseum().then(function(){
+        /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
+        var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();
+      }); }
     else {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});

@@ -37,7 +37,7 @@ import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.j
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
 import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver as cmDeliver,
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
-  dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM } from './commission.js';
+  dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { groundPalette } from './tiles.js';
 import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel } from './i18n.js';
@@ -1142,63 +1142,69 @@ function renderStore() {
   mBody.querySelectorAll('[data-map]').forEach(btn => btn.onclick = () => { buyMap(btn.dataset.map); renderStore(); });
   mBody.querySelectorAll('[data-tool]').forEach(btn => btn.onclick = () => { buyTool(btn.dataset.tool); renderStore(); });
 }
+let museumTab = 'desk';
 function renderMuseum() {
   /* il museo INDICIZZA la sua zona nel Libro dei Fossili (sagome ???) */
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
   if (!S.book[z.id]) { S.book[z.id] = true; save(); toast(tr('📖 Nuove pagine nel libro: ', '📖 New pages in the book: ') + zoneName(z.id) + '!'); }
   const complete = Object.keys(S.museum).filter(k => (S.museum[k] || []).length === PARTS.length).length;
-  let h = '';   // niente muro di testo: i bottoni (Consegna / Ritira) parlano da soli
-  /* CONSEGNA sempre disponibile se hai grezzi: consegnare AGGIUNGE al lotto in corso, così con la
-     borsa piena non si resta bloccati (prima: se non ritiravi non potevi consegnare né svuotarla).
-     Il restauro si propone al RITIRO, sul miglior doppione che torna, se ≥3 raro+ insieme. */
-  /* LO SCOPO IN CIMA, prima di tutto il resto. Il Museo era la schermata che diceva "teche
-     complete: 3/66" e faceva sembrare il gioco un catalogo. Il catalogo è il MEZZO; il fine è
-     che tornino a camminare. Chi apre questo pannello deve leggere per prima cosa dove sta
-     andando, non quanti oggetti ha in tasca. */
-  h += `<div class="row" style="background:#f6e7c4"><span class="em">🧬</span><div>
-    <div class="nm">${goalTitle()}: ${goalLine()}</div>
-    <div class="sub">${goalHint()}</div>
-    <div class="sub">${goalEnd()}</div></div></div>`;
-  h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div><div class="sub">${tr('Scoperte', 'Discovered')}: ${S.codex.length}/${ALL_SPECIES.length}</div></div>
-    <div class="rt"><button class="btn amber" id="mudep" ${S.raw.length ? '' : 'disabled'}>${tr('Consegna tutto', 'Hand in all')}</button></div></div>`;
-  if (S.museumJob && !museumJobReady()) {
-    h += `<div class="row" style="background:#f1e6cc"><span class="em">🔬</span><div><div class="nm">${tr('In lavorazione', 'Being examined')}: ${S.museumJob.items.length} ${tr('reperti', 'finds')}</div><div class="sub">${tr('Torna domani (giorno ', 'Come back tomorrow (day ')}${S.museumJob.ready})</div></div></div>`;
-  } else if (S.museumJob) {
-    h += `<div class="row" style="background:#f1e6cc"><span class="em">💫</span><div><div class="nm">${tr('Pronti!', 'Ready!')} ${S.museumJob.items.length} ${tr('reperti identificati', 'finds identified')}</div></div>
-      <div class="rt"><button class="btn amber" id="mucol">${tr('Ritira', 'Collect')}</button></div></div>`;
-  }
-  h += `<div id="idResult"></div>`;
-  h += commissionBlock();
-  h += `<div class="row" style="background:#f1e6cc"><div class="nm">${tr('Specie complete', 'Complete species')}: ${complete}/${ALL_SPECIES.length}</div>
-    <div class="rt"><button class="btn ghost" id="mbook">📖 ${tr('Libro', 'Book')}</button></div></div>`;
-  /* LE SALE: la strada lunga del gioco, e finora non la nominava nessuno. Sette sale piene =
-     l'ultima lettera del nonno. Il gioco sapeva già dirlo — sapeva quali erano piene — ma non
-     lo diceva da nessuna parte, e un traguardo che non puoi vedere non è un traguardo: è una
-     sorpresa, e su una sorpresa non puoi puntare. Sta QUI, al banco dove si consegna, perché
-     è qui che la cosa si può fare, non nella schermata delle statistiche. */
-  {
-    const fatte = roomsDone(), tot = roomsTotal(), prossima = nextRoom();
-    const sub = prossima
-      ? tr('Più vicina: ', 'Closest: ') + zoneName(prossima.id) + ' — ' + prossima.have + '/' + prossima.need
-        + tr(' specie esposte', ' species on display')
-      : tr('Tutte piene. Il nonno ha lasciato un\'ultima lettera.', 'All filled. Your grandparent left one last letter.');
-    h += `<div class="row" style="background:#f1e6cc"><span class="em">✉</span><div>
-      <div class="nm">${tr('Sale del Museo', 'Museum rooms')}: ${fatte}/${tot}</div>
-      <div class="sub">${sub}</div>
-      ${fatte === 0 ? `<div class="sub">${tr('Una sala è piena quando ogni specie della zona ha un pezzo esposto: il Curatore ti consegna la lettera che il nonno gli aveva lasciato.', 'A room is full when every species of that zone has a piece on display: the Curator hands you the letter your grandparent left with him.')}</div>` : ''}
-    </div></div>`;
-    /* la spiegazione lunga sta SOLO finché non hai chiuso la prima sala. Serve a capire la
-       regola; chi ha già una lettera in mano l'ha capita, e da lì in poi due righe che non
-       cambiano mai sono rumore permanente sopra il pulsante che gli serve. Il conteggio
-       invece resta: quello è il traguardo, e va visto sempre. */
-  }
-  /* ricariche di DNA: solo per specie con teca completa, prezzo per rarità */
-  const rechargeable = ALL_SPECIES.filter(s => (S.museum[s.id] || []).length === PARTS.length);
-  if (rechargeable.length) {
-    h += `<div class="bighead" style="margin-top:10px">🧬 ${tr('Ricariche DNA', 'DNA refills')}</div>`;
-    h += rechargeable.map(s => `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name} ${dnaBadge(s.id)}</div><div class="sub">${rarSpan(s.r)}${dnaExtra(s.id)}</div></div><div class="rt"><button class="btn amber" data-dna="${s.id}">🪙 ${DNA_COST[s.r]}</button></div></div>`).join('');
+  /* DUE SCHEDE: le AZIONI da una parte, i NUMERI dall'altra.
+     Questo pannello aveva finito per impilare sette blocchi, ognuno con due o tre righe di
+     spiegazione permanente sotto: sul telefono diventava un muro alto tre schermate in cui il
+     pulsante "Consegna tutto" spariva in mezzo al testo (visto in foto). Il criterio è quello
+     dello zaino, che nel gioco funziona già: si SEPARA quello che si fa da quello che si
+     guarda. E le spiegazioni si dicono una volta, non a ogni apertura. */
+  const rechargeable = ALL_SPECIES.filter(sp2 => (S.museum[sp2.id] || []).length === PARTS.length);
+  const TABS = [
+    ['desk', tr('Banco', 'Desk'), S.raw.length],
+    ['prog', tr('Progressi', 'Progress'), 0],
+  ];
+  if (!TABS.some(t => t[0] === museumTab)) museumTab = 'desk';
+  let h = '<div class="pn-tabs">' + TABS.map(([id, lab, n]) =>
+    `<button class="pn-tab${museumTab === id ? ' on' : ''}" data-mtab="${id}">${lab}${n ? ` <span class="tn">${n}</span>` : ''}</button>`).join('') + '</div>';
+
+  if (museumTab === 'desk') {
+    /* CONSEGNA sempre disponibile se hai grezzi: consegnare AGGIUNGE al lotto in corso, così con
+       la borsa piena non si resta bloccati. Il restauro si propone al RITIRO. */
+    h += `<div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Reperti grezzi', 'Raw finds')}: ${S.raw.length}</div></div>
+      <div class="rt"><button class="btn amber" id="mudep" ${S.raw.length ? '' : 'disabled'}>${tr('Consegna tutto', 'Hand in all')}</button></div></div>`;
+    if (S.museumJob && !museumJobReady()) {
+      h += `<div class="row" style="background:#f1e6cc"><span class="em">🔬</span><div><div class="nm">${tr('In lavorazione', 'Being examined')}: ${S.museumJob.items.length}</div><div class="sub">${tr('Torna domani (giorno ', 'Come back tomorrow (day ')}${S.museumJob.ready})</div></div></div>`;
+    } else if (S.museumJob) {
+      h += `<div class="row" style="background:#f1e6cc"><span class="em">💫</span><div><div class="nm">${tr('Pronti!', 'Ready!')} ${S.museumJob.items.length} ${tr('reperti identificati', 'finds identified')}</div></div>
+        <div class="rt"><button class="btn amber" id="mucol">${tr('Ritira', 'Collect')}</button></div></div>`;
+    }
+    h += `<div id="idResult"></div>`;
+    h += commissionBlock();
+    /* ricariche di DNA: solo per specie con teca completa, prezzo per rarità */
+    if (rechargeable.length) {
+      h += `<div class="bighead" style="margin-top:10px">🧬 ${tr('Ricariche DNA', 'DNA refills')}</div>`;
+      h += rechargeable.map(sp2 => `<div class="row"><span class="em">🧬</span><div><div class="nm">${sp2.name} ${dnaBadge(sp2.id)}</div><div class="sub">${rarSpan(sp2.r)}${dnaExtra(sp2.id)}</div></div><div class="rt"><button class="btn amber" data-dna="${sp2.id}">🪙 ${DNA_COST[sp2.r]}</button></div></div>`).join('');
+    }
+  } else {
+    /* PROGRESSI: quattro numeri, uno per riga, senza un paragrafo sotto ciascuno. Lo SCOPO in
+       cima e più grande: è il fine, gli altri sono la strada per arrivarci. */
+    const prossima = nextRoom();
+    h += `<div class="row" style="background:#f6e7c4"><span class="em">🧬</span><div>
+      <div class="nm">${goalTitle()}: ${goalLine()}</div>
+      <div class="sub">${goalHint()}</div></div></div>`;
+    h += '<div class="letter" style="padding:2px 4px">';
+    h += `<div class="pn-stat"><span class="k">${tr('Specie scoperte', 'Species discovered')}</span><span class="v">${S.codex.length}/${ALL_SPECIES.length}</span></div>`;
+    h += `<div class="pn-stat"><span class="k">${tr('Teche complete', 'Complete cases')}</span><span class="v">${complete}/${ALL_SPECIES.length}</span></div>`;
+    h += `<div class="pn-stat"><span class="k">${tr('Sale del Museo', 'Museum rooms')}`
+      + (prossima ? `<small>${tr('più vicina: ', 'closest: ')}${zoneName(prossima.id)} ${prossima.have}/${prossima.need}</small>`
+        : `<small>${tr('tutte piene', 'all filled')}</small>`)
+      + `</span><span class="v">${roomsDone()}/${roomsTotal()}</span></div>`;
+    h += '</div>';
+    h += `<div class="center" style="margin-top:10px"><button class="btn ghost" id="mbook">📖 ${tr('Libro dei Fossili', 'Fossil Book')}</button></div>`;
+    /* la spiegazione delle sale SOLO finché non ne hai chiusa una: serve a capire la regola, e
+       chi ha già una lettera in mano l'ha capita. Da lì in poi è rumore permanente. */
+    if (roomsDone() === 0) {
+      h += `<div class="muted" style="margin-top:8px;font-size:11px">${tr('Una sala è piena quando ogni specie della sua zona ha un pezzo esposto: il Curatore ti consegna la lettera che il nonno gli aveva lasciato.', 'A room is full when every species of its zone has a piece on display: the Curator hands you the letter your grandparent left with him.')}</div>`;
+    }
   }
   mBody.innerHTML = withIcons(h); hydratePv();
+  mBody.querySelectorAll('[data-mtab]').forEach(b => b.onclick = () => { museumTab = b.dataset.mtab; renderMuseum(); });
   const dep = document.getElementById('mudep'); if (dep) dep.onclick = () => {
     if (museumDeposit()) toast('🏛️ ' + (museumJobReady() ? tr('Consegnati! Pronti da ritirare', 'Handed in! Ready to collect') : tr('Consegnati! Torna domani per il ritiro', 'Handed in! Come back tomorrow to collect')));
     renderMuseum();
@@ -1229,6 +1235,12 @@ function renderMuseum() {
 }
 /* COMMISSIONE — il blocco del Curatore: una alla volta, 3 giorni, ricompensa grossa.
    Tutto è scritto: cosa serve, quanto ne hai, quanto manca alla scadenza, cosa ti danno. */
+/* i premi IMPILATI, uno per riga con la sua icona: su una riga sola si spezzavano in mezzo
+   ("🧬 1 / fialetta di Soleburo") e non si capiva dove finiva un premio e cominciava l'altro. */
+function prizeList(c) {
+  const parts = cmRewardParts(c); if (!parts.length) return '';
+  return '<ul class="pn-prizes">' + parts.map(p => `<li>${p}</li>`).join('') + '</ul>';
+}
 function commissionBlock() {
   cmPrune(S.day);
   const c = cmActive();
@@ -1238,16 +1250,20 @@ function commissionBlock() {
     h += `<div class="row" style="background:#f1e6cc"><span class="em">📜</span><div>
       <div class="nm">${cmText(c)}</div>
       <div class="sub">${tr('Ne hai', 'You have')} ${Math.min(n, c.n)}/${c.n} · ⏳ ${cmDueText(c, S.day)}</div>
-      <div class="sub">${cmRewardText(c)}</div></div>
+      ${prizeList(c)}</div>
       <div class="rt"><button class="btn amber" id="cmdel" ${ok ? '' : 'disabled'}>${tr('Consegna', 'Deliver')}</button></div></div>`;
     if (!ok) h += `<div class="muted" style="margin-bottom:6px">${tr('Servono pezzi <b>identificati</b>: i grezzi vanno prima consegnati al banco.', 'Needs <b>identified</b> pieces: hand raw finds to the desk first.')}</div>`;
   } else {
     const o = cmOfferFor(S.day);
     h += `<div class="row"><span class="em">📜</span><div>
       <div class="nm">${cmText(o)}</div>
-      <div class="sub">${tr('Hai', 'You get')} ${DURATION_CM} ${tr('giorni di tempo', 'days')} · ${cmRewardText(o)}</div>
-      <div class="sub">${tr('Una alla volta. Se scade non perdi niente: il Curatore ne propone un\'altra.', 'One at a time. If it expires you lose nothing: the Curator offers another.')}</div></div>
+      <div class="sub">⏳ ${DURATION_CM} ${tr('giorni', 'days')}</div>
+      ${prizeList(o)}</div>
       <div class="rt"><button class="btn amber" id="cmacc">${tr('Accetta', 'Accept')}</button></div></div>`;
+    /* la regola ("una alla volta, se scade non perdi niente") sta SOTTO la riga e in piccolo,
+       non dentro il blocco: infilata lì spingeva il bottone in una colonna di tre parole e su
+       telefono la riga diventava alta il doppio (visto in foto). */
+    h += `<div class="muted" style="margin:-2px 0 6px;font-size:11px">${tr('Una alla volta. Se scade non perdi niente: il Curatore ne propone un\'altra.', 'One at a time. If it expires you lose nothing: the Curator offers another.')}</div>`;
   }
   return h;
 }

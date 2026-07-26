@@ -195,6 +195,36 @@ kbd + .pxi{margin-left:2px}
     max-width:calc(100vw - 24px);white-space:normal;text-align:center}
 }
 
+/* PREMI di una commissione, uno per riga. Contarli deve essere immediato: in fila andavano a
+   capo in mezzo a un premio e diventavano una frase da decifrare. */
+.pn-prizes{list-style:none;margin:4px 0 0;padding:0;display:flex;flex-direction:column;gap:2px}
+.pn-prizes li{font-size:11px;font-weight:700;color:#6b4a22;display:flex;align-items:center;gap:5px}
+.pn-prizes li .pxi{width:13px;height:13px}
+
+/* SCHEDE dei pannelli su carta (Museo). Lo zaino ha già le sue (.bag-tabs) ma sono su fondo
+   scuro: qui servono sulla carta chiara. Stessa forma, stessa altezza del dito. */
+.pn-tabs{display:flex;gap:4px;margin:0 0 10px}
+.pn-tab{flex:1;min-width:0;cursor:pointer;background:#e7d9b6;color:var(--c-line);border:none;padding:9px 6px;font-family:inherit;font-size:12px;font-weight:800;
+  letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pn-tab{box-shadow:inset 0 0 0 2px #cbb488}
+.pn-tab.on{background:var(--c-amber);color:#3a2f1a;box-shadow:inset 0 0 0 2px var(--c-amber-sh)}
+.pn-tab .tn{opacity:.75;font-weight:700}
+/* una riga di NUMERI: etichetta a sinistra, valore grosso a destra. Sostituisce i blocchi con
+   due righe di spiegazione sotto — quelli erano un muro appena ce n'erano più di due. */
+.pn-stat{display:flex;align-items:baseline;justify-content:space-between;gap:var(--sp-3);
+  padding:7px 10px;border-bottom:1px solid #e0d3b0}
+.pn-stat:last-child{border-bottom:0}
+.pn-stat .k{font-size:12px;font-weight:700;color:var(--c-wood-2);min-width:0}
+.pn-stat .k small{display:block;font-size:10px;font-weight:400;color:#8a755a;margin-top:1px}
+.pn-stat .v{font-size:15px;font-weight:800;color:#6b4a22;flex:none;font-variant-numeric:tabular-nums}
+/* MOBILE: il bottone di una riga va SOTTO, largo. Restando a destra strozzava il testo in una
+   colonna di tre parole e la riga diventava alta il doppio (visto in foto su telefono). */
+@media(max-width:520px),(pointer:coarse){
+  .row{flex-wrap:wrap}
+  .row .rt{margin-left:0;width:100%;text-align:left}
+  .row .rt .btn{width:100%;justify-content:center}
+}
+
 /* TUTORIAL = LA NOTA DEL NONNO.
    La prima versione era un rettangolo grigio con quattro righe di elenco: sembrava un pannello
    di debug appiccicato sopra al gioco, e con quattro obiettivi scritti tutti uguali non si

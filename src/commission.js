@@ -98,12 +98,16 @@ export function text(c) {
   }
   return c.n + ' ' + tr('reperti', 'finds') + ' ' + rarLabel(c.rar);
 }
-export function rewardText(c) {
-  if (!c) return '';
-  const bits = ['🪙 ' + c.reward, '⭐ ' + c.xp + ' XP'];
-  if (c.dna) bits.push('🧬 ' + tr('1 fialetta di ', '1 vial of ') + (spById[c.dna] ? spById[c.dna].name : c.dna));
-  return bits.join(' · ');
+/* I PREMI, uno per voce. Su una riga sola andavano a capo in mezzo a un premio ("🧬 1 /
+   fialetta di Soleburo") e non si capiva più dove finiva uno e cominciava l'altro: chi legge
+   deve poter contare cosa prende, non decifrare una frase. Chi disegna li impila. */
+export function rewardParts(c) {
+  if (!c) return [];
+  const out = ['🪙 ' + c.reward, '⭐ ' + c.xp + ' XP'];
+  if (c.dna) out.push('🧬 ' + tr('1 fialetta di ', '1 vial of ') + (spById[c.dna] ? spById[c.dna].name : c.dna));
+  return out;
 }
+export function rewardText(c) { return rewardParts(c).join(' · '); }
 export function dueText(c, day = S.day) {
   if (!c) return '';
   const d = c.due - day + 1;
