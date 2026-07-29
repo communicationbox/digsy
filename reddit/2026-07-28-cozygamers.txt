@@ -1,0 +1,61 @@
+DIGSY WORLD — post per r/CozyGamers
+Data: 28 luglio 2026
+Sub: https://www.reddit.com/r/CozyGamers/
+
+PRIMA DI POSTARE — controlla reddit.com/r/CozyGamers/about/rules
+  [ ] autopromozione: libera, giorno dedicato, o solo megathread?
+  [ ] flair obbligatorio? (senza, il bot rimuove in silenzio)
+  [ ] link nel corpo ammesso? se no, NON metterlo: lo dai nei commenti quando lo chiedono
+  [ ] riempi [DURATA] qui sotto, oppure togli "for [DURATA]"
+
+Quando: martedì-giovedì, 13:00-16:00 ora italiana (mattina USA East).
+Dopo: rispondi a OGNI commento nelle prime due ore. Decide se il post sale o muore.
+
+IMMAGINI — reddit/immagini/, in quest'ordine:
+  1-parco.png   <- la prima che si vede nel feed
+  2-libro.png
+  3-citta.png
+  4-notte.png
+  5-palude.png
+
+
+========================================================================
+TITOLO  (copia da qui)
+========================================================================
+
+I made a cozy game where you dig up fossils of animals that never existed, and slowly rebuild their skeletons
+
+
+========================================================================
+CORPO  (copia da qui)
+========================================================================
+
+I've been working on a small game called Digsy World for [DURATA], and it's finally at a
+point where it's nice to just wander around in.
+
+You're a tiny archaeologist. You dig — anywhere, in meadows, deserts, marshes, frozen wastes —
+and you pull up broken fossils. You carry them to a town Museum, the experts take a day to
+identify them, and each piece you hand over lights up one more part of a little 3D skeleton
+in your book. Five pieces and the creature is whole. Get its DNA and you can wake it up, and
+then it just... lives in the park, walking around, while you go back out to dig.
+
+There's no combat, nothing chasing you, no way to lose, and no timers on anything. Day turns
+to night, seasons change, and the only pressure is your energy bar, which a nap at the inn
+fixes.
+
+The bit I'm most fond of is that you can take a skull from one species, a body from another
+and legs from a third, and the game builds you an actual creature out of them, with a name of
+its own, that then wanders the park with everyone else.
+
+It's free and plays in the browser, on phones too. If anyone tries it I'd genuinely love to
+hear whether it's relaxing or just aimless — that's the line I'm trying to walk and I can't
+judge it from the inside anymore.
+
+
+========================================================================
+LINK — solo se le regole lo permettono nel corpo
+========================================================================
+
+https://digsy.dev-box.it/
+
+(anche su itch: https://giacomarco.itch.io/digsy-world)

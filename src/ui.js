@@ -1095,7 +1095,9 @@ function renderStore() {
       ? tr('Ne restano ', 'Left today: ') + left + tr(' oggi · il prezzo sale a ogni ristoro', ' · the price rises with each one')
       : tr('Esauriti per oggi: il fornaio ne rifà domani', 'Sold out for today: the baker bakes more tomorrow');
     const btn = left > 0 ? `<button class="btn amber" id="buyEn">🪙 ${cost}</button>` : `<button class="btn" disabled>${tr('Esauriti', 'Sold out')}</button>`;
-    h += `<hr class="hr"><div class="row"><span class="em">🍞</span><div><div class="nm">${tr('Ristoro', 'Snack')} (+15 ⚡)</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
+    /* non è energia istantanea: finisce nello zaino e la mangi tu quando serve */
+    const keep = tr('Va nello zaino: +15 ⚡ quando lo mangi', 'Goes in your bag: +15 ⚡ when you eat it');
+    h += `<hr class="hr"><div class="row"><span class="em">🍞</span><div><div class="nm">${tr('Ristoro', 'Snack')}</div><div class="sub">${keep}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
   }
   h += `<div class="row"><span class="em">📜</span><div><div class="nm">${tr('Pergamena di ritorno', 'Return scroll')}${S.teleports > 0 ? ` ×${S.teleports}` : ''}</div><div class="sub">${tr('Dallo zaino: teletrasporto alla città più vicina', 'From your bag: teleport to the nearest city')}</div></div><div class="rt"><button class="btn amber" id="buyTp">🪙 ${TELEPORT_COST}</button></div></div>`;
   { const nb = nextBagCost(), nextCap = BAG_CAPS[bagLevel() + 1];

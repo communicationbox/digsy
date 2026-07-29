@@ -1,0 +1,41 @@
+DIGSY WORLD — post per r/WebGames
+Data: 28 luglio 2026
+Tipo di post: LINK (non Testo)
+
+PRIMA DI PREMERE POST
+  [ ] "Aggiungi flair e tag": se ce n'è uno obbligatorio, mettilo (senza, il bot rimuove in silenzio)
+  [ ] resta sul post un paio d'ore e rispondi a TUTTI, anche a "cool"
+      (sono commenti: ti fanno anche il karma che ti serve per r/CozyGamers)
+
+
+========================================================================
+TITOLO
+========================================================================
+
+Digsy World: a cozy game about digging up fossils of creatures that never existed. Free, in-browser, no sign-up.
+
+
+========================================================================
+URL DEL LINK
+========================================================================
+
+https://digsy.dev-box.it/
+
+
+========================================================================
+CORPO DEL TESTO
+(un paragrafo = una riga sola: Reddit va a capo da sé.
+ le righe vuote fra i paragrafi SERVONO, non toglierle)
+========================================================================
+
+You're a small archaeologist with a shovel. Dig anywhere in an endless procedural world (golden meadows, bone deserts, ashen woods, red lands, ancient marshes, frozen wastes), pull up raw fossils, and carry them to a Museum to get them identified. Every species you complete lights up its own rotating 3D voxel skeleton in your Fossil Book.
+
+Then you mix skulls, bodies and legs into chimeras with names of their own, gather a species' DNA to awaken it, and watch your creations wander the town park.
+
+No combat, no game over, no timers. 6 biomes, 60+ species, day/night and seasons, boats, caves with their own creatures.
+
+Controls: WASD/arrows to move, E to dig and interact, L for the Fossil Book, I for the bag. Works on phones too (on-screen joystick), installs as an app, and plays offline, because the world is procedural and the save lives on your device.
+
+Still in active development, so anything you have to say is useful: where you got stuck or bored, what you expected to be able to do and couldn't, ideas, changes you'd make. The first two minutes are the part I most need to hear about. I can't see my own game with fresh eyes any more.
+
+Also on itch if you prefer: https://giacomarco.itch.io/digsy-world

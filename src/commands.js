@@ -101,19 +101,30 @@ function spawnCompanion(type, rar) {
   return sp;
 }
 
-/* teletrasporto: prima tile CAMMINABILE del bioma `zid`, cercata a spirale attorno al player */
+/* teletrasporto DENTRO il bioma `zid`, cercato a spirale attorno al player.
+ *
+ * "Dentro" e non "la prima tile utile": cercando a spirale la prima tile che risponde è per
+ * forza sul CONFINE, e chi chiedeva `goto=ghiacci` si ritrovava con mezzo schermo di ghiaccio e
+ * mezzo del bioma da cui veniva — inutile sia per provare il bioma sia per fotografarlo. Si
+ * pretende quindi che anche i quattro punti a 8 tile di distanza siano dello stesso bioma; se
+ * in tutta la spirale non ne esce uno, si ripiega sulla prima tile buona (meglio il confine che
+ * niente: un bioma può essere una lingua stretta). */
 function teleportToZone(zid) {
   const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
+  const ok = (x, y) => zoneAt(x, y).id === zid && walkableGround(baseTerrain(x, y)) && !townInfo(x, y) && openArea(x, y);
+  const dentro = (x, y) => [[8, 0], [-8, 0], [0, 8], [0, -8]].every(([dx, dy]) => zoneAt(x + dx, y + dy).id === zid);
+  let ripiego = null;
   for (let r = 0; r <= 900; r += 2) {
     for (let a = -r; a <= r; a += 2) {
       for (const [x, y] of [[ptx + a, pty - r], [ptx + a, pty + r], [ptx - r, pty + a], [ptx + r, pty + a]]) {
-        if (zoneAt(x, y).id !== zid) continue;
-        if (!walkableGround(baseTerrain(x, y)) || townInfo(x, y)) continue;
-        if (!openArea(x, y)) continue;
+        if (!ok(x, y)) continue;
+        if (!ripiego) ripiego = [x, y];
+        if (!dentro(x, y)) continue;
         P.x = x * TS + 8; P.y = y * TS + 2; return true;
       }
     }
   }
+  if (ripiego) { P.x = ripiego[0] * TS + 8; P.y = ripiego[1] * TS + 2; return true; }
   return false;
 }
 /* imbocco di grotta più vicino al player (a spirale sulle montagne) */
@@ -137,6 +148,25 @@ function teleportToCity() {
         const sx = t.C.x;
         for (let yy = t.C.y + 4; yy < t.C.y + 10; yy++) if (openArea(sx, yy)) { P.x = sx * TS + 8; P.y = yy * TS + 2; return t.name; }
       }
+    }
+  }
+  return null;
+}
+
+/* teletrasporto DENTRO il recinto del parco della città grande più vicina.
+   `goto=city` lascia sul viale, e il recinto resta mezzo fuori dall'inquadratura: il posto che
+   il gioco promette ("tornano a vivere") era l'unico che non si poteva raggiungere di proposito,
+   né per provarlo né per fotografarlo. */
+function teleportToPark() {
+  const ccx = Math.floor(P.x / (TS * TCELL)), ccy = Math.floor(P.y / (TS * TCELL));
+  for (let r = 0; r <= 24; r++) {
+    for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
+      if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
+      const t = townForCell(cx, cy);
+      if (!t || !t.pen) continue;
+      const p = t.pen, mx = Math.floor((p.x0 + p.x1) / 2), my = Math.floor((p.y0 + p.y1) / 2);
+      P.x = mx * TS + 8; P.y = my * TS + 2;               // in mezzo al recinto: si vede tutto attorno
+      return t.name;
     }
   }
   return null;
@@ -402,6 +432,8 @@ export const COMMANDS = {
       if (!z) return tr('Mete: ', 'Targets: ') + ['grotta', 'city', ...ZONES.map(z => z.id)].join(', ');
       return teleportToZone(z.id) ? '🌍 ' + z.name : tr('Bioma non trovato vicino', 'Biome not found nearby');
     } },
+  gotopark: { aliases: ['parco', 'park'], type: 'action', help: 'gotopark — vai DENTRO il recinto del parco (dove vivono chimere e risvegliate)',
+    run: () => { const n = teleportToPark(); return n ? '🌳 ' + n : tr('Nessun parco trovato vicino', 'No park found nearby'); } },
   gotosite: { type: 'action', help: 'gotosite — vai al sito di scavo più vicino',
     run: () => teleportToSite() ? '⛏️ ' + tr('Sito di scavo', 'Dig site') : tr('Nessun sito trovato vicino', 'No site found nearby') },
   gotowreck: { type: 'action', help: 'gotowreck — vai al relitto in mare più vicino (attiva la barca)',

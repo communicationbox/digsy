@@ -616,6 +616,25 @@ sprites.applyLook();
   check('battito: lo stesso dispositivo si riconosce fra un battito e l\'altro',
     beat.datiBattito().id === d.id);
 
+  /* IL PRIMO BATTITO ARRIVA PRESTO. Con il solo intervallo da cinque minuti, chi aveva appena
+     aperto il gioco non compariva da nessuna parte: durante una prova con quattro persone
+     collegate insieme, «in questo momento» su /stats ne segnava due. */
+  {
+    const orig = { si: globalThis.setInterval, st: globalThis.setTimeout,
+      ci: globalThis.clearInterval, ct: globalThis.clearTimeout };
+    const attese = [];
+    globalThis.setInterval = (fn, ms) => { attese.push(ms); return 'I'; };
+    globalThis.setTimeout = (fn, ms) => { attese.push(ms); return 'T'; };
+    globalThis.clearInterval = () => {}; globalThis.clearTimeout = () => {};
+    beat.fermaBattito();
+    beat.avviaBattito();
+    check('battito: il primo parte entro un minuto, non dopo cinque',
+      attese.includes(60 * 1000) && attese.includes(5 * 60 * 1000), attese.join(','));
+    beat.fermaBattito();
+    Object.assign(globalThis, { setInterval: orig.si, setTimeout: orig.st,
+      clearInterval: orig.ci, clearTimeout: orig.ct });
+  }
+
   /* SI PUÒ DIRE DI NO, e da spento non parte niente */
   check('battito: acceso di serie', beat.battitoAcceso() === true);
   beat.accendiBattito(false);
@@ -711,6 +730,27 @@ sprites.applyLook();
   check('il service worker chiede l\'HTML alla rete, non alla copia',
     /await fetch\(req\)[\s\S]{0,400}catch/.test(sw));
   check('il service worker non tocca mai l\'API', sw.includes("'/server/'"));
+
+  /* IN PRODUZIONE CI STA SOLO IL GIOCO. Vite copia TUTTA public/ dentro dist/: ogni strumento
+     nuovo (Sprite Studio, playground, la pagina delle statistiche…) finisce online da solo, in
+     silenzio, se nessuno lo toglie dal deploy. Invece di ricordarselo ogni volta, la lista la
+     scrive la cartella: qui si pretende che ogni public/<nome>/index.html compaia fra le
+     esclusioni. Le pagine di lavoro importano i sorgenti e mostrano dati di casa. */
+  const depl = rf3(new URL('../tests/deploy.mjs', import.meta.url), 'utf8');
+  const fsT = (await import('node:fs')).default;
+  const strumenti = fsT.readdirSync(new URL('../public', import.meta.url), { withFileTypes: true })
+    .filter(d => d.isDirectory() && fsT.existsSync(new URL('../public/' + d.name + '/index.html', import.meta.url)))
+    .map(d => d.name);
+  check('ci sono strumenti in public/ da controllare', strumenti.length >= 3);
+  /* le statistiche dei giocatori non arrivano nemmeno in dist/: là dentro non ci sono dati
+     (l'endpoint vive nel dev server), ma una pagina che si chiama "chi sta giocando" non deve
+     stare in una cartella che qualcuno può caricare a mano */
+  check('la build non produce nemmeno dist/stats',
+    rf3(new URL('../vite.config.js', import.meta.url), 'utf8').includes("dist/stats"));
+  for (const t of strumenti) {
+    check('il deploy toglie ' + t + ' dalla produzione',
+      new RegExp('rm -rf [^"\\n]*\\b' + t + '\\b').test(depl) && depl.includes('--exclude=' + t));
+  }
 }
 
 /* ---------- le zone: nessun buco nelle tabelle ---------- */
@@ -5708,7 +5748,37 @@ sprites.applyLook();
   check('mappa: colora per BIOMA (MAP_ZONE + zoneIdxAt)', /const MAP_ZONE = \[/.test(mapSrc) && /zoneIdxAt\(tx, ty\)/.test(mapSrc) && /mapTerrColor\(tx, ty\)/.test(mapSrc));
   const mzCols = ((mapSrc.match(/MAP_ZONE = \[([^\]]+)\]/) || [])[1] || '').match(/#[0-9a-fA-F]{6}/g) || [];
   check('mappa: un colore di bioma per zona, tutti distinti', mzCols.length === ZM.length && new Set(mzCols).size === mzCols.length);
-  check('mappa: legenda con i biomi', /ZONES\.map\(\(z, i\) =>.*MAP_ZONE\[i\]/.test(mapSrc));
+  /* NIENTE NOMI DI BIOMA in legenda: erano sei voci su quattordici, metà dello spazio speso a
+     dire che il verde è prato — cosa che si impara camminando e che il tag della zona nell'HUD
+     dice già mentre ci sei dentro. La legenda spiega i SIMBOLI, quelli che non si indovinano. */
+  check('mappa: la legenda NON elenca i nomi dei biomi',
+    !/ZONES\.map\(/.test(mapSrc) && !/z\.name/.test(mapSrc));
+  for (const voce of ['museo', 'meraviglia', 'X del tesoro', 'sei qui', 'da esplorare']) {
+    check('mappa: la legenda spiega ancora "' + voce + '"', mapSrc.includes(`'${voce}'`));
+  }
+
+  /* DOVE SEI: una stellina che pulsa, non un quadratino identico a quello dei paesi.
+     La fase viene dal TEMPO (regola 1): legata alle coordinate, trascinando la mappa la
+     stella batterebbe a scatti. E pulsa fra due MISURE, mai fino a scomparire: un indicatore
+     di posizione che se ne va a intermittenza si cerca due volte invece di una. */
+  check('mappa: "sei qui" è uno spillo rosso, disegnato a parte dai pin quadrati',
+    /function sagomaSpillo\(/.test(mapSrc) && /function meStar\(/.test(mapSrc) && /meStar\(c,/.test(mapSrc));
+  /* lampeggia cambiando TINTA: sparendo si cerca due volte, cambiando misura balla sul foglio */
+  check('mappa: lo spillo lampeggia fra due rossi, senza sparire né cambiare misura',
+    /acceso \? '#f03b2e' : '#8f2018'/.test(mapSrc) && !/ellipse\(X, Y/.test(mapSrc));
+  /* la pulsazione va anche ACCESA. Il primo giro l'ho scritta e non chiamata: la funzione
+     esisteva, i test sul tempo passavano, e in gioco l'alone stava fermo. */
+  check('mappa: aprendola la pulsazione parte davvero', /avviaPulsazione\(\);/.test(mapSrc.split('export function openMap')[1] || ''));
+  /* si apre a ×3: a un pixel per tile la città sotto i piedi era grande sei pixel */
+  check('mappa: si apre già zoomata, non alla vista d\'insieme',
+    /const MAP_ZOOM_DEF = 3;/.test(mapSrc) && /let mapZoom = MAP_ZOOM_DEF/.test(mapSrc)
+    && /mapZoom = MAP_ZOOM_DEF; mapOff/.test(mapSrc));
+  check('mappa: la stella pulsa e la fase viene dal tempo',
+    /Math\.floor\(\(t \|\| 0\) \/ 380\)/.test(mapSrc) && /requestAnimationFrame/.test(mapSrc));
+  check('mappa: la pulsazione si ferma chiudendo la mappa',
+    /cancelAnimationFrame/.test(mapSrc) && /if \(!mapOpenFlag\) \{ pulseRaf = null; return; \}/.test(mapSrc));
+  check('mappa: si ridisegna solo al CAMBIO di fase, non a ogni fotogramma',
+    /if \(f !== pulseFase\) \{ pulseFase = f; drawMapCanvas\(\); \}/.test(mapSrc));
 }
 
 /* ---------- BETA: aggiornamento forzato, nelle Impostazioni ---------- */

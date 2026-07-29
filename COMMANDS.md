@@ -46,9 +46,10 @@ Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende i
 ### Vai a
 | Comando | Cheat | Effetto |
 |---|:---:|---|
-| `goto=palude` | ✖ | Bioma indicato (`prati`/`dune`/`boschi`/`terre`/`palude`/`ghiacci`) |
+| `goto=palude` | ✖ | Bioma indicato (`prati`/`dune`/`boschi`/`terre`/`palude`/`ghiacci`) — **dentro**, non sul confine |
 | `goto=grotta` | ✖ | Un imbocco di **grotta** vero (all'uscita ci torni) |
 | `goto=city` | ✖ | Città **grande** (col Museo) più vicina |
+| `gotopark` | ✖ | **Dentro** il recinto del parco, dove vivono chimere e risvegliate (alias `parco`, `park`) |
 | `gotosite` | ✖ | Sito di scavo più vicino |
 | `gotowreck` | ✖ | Relitto in mare più vicino (attiva la barca) |
 | `gotolandmark` | ✖ | Landmark più vicino (alias `goland`) |

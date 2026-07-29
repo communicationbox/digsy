@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Digsy — Chi sta giocando (solo in locale)</title>
+<!--
+  GLI STESSI NUMERI DI `npm run tester`, MA DA GUARDARE.
+  Vive solo con `npm run dev` (http://localhost:5173/stats): i dati arrivano da /dev/battito.json,
+  che è un pezzo di vite.config.js e legge i file del server via SSH. In produzione la pagina non
+  ci arriva — il deploy la toglie e poi VERIFICA che non risponda.
+-->
+<style>
+  :root{
+    --bg:#15120d; --card:#1e1a13; --line:#3a3123;
+    --ink:#f3ecda; --mute:#a89b7e;
+    --teal:#57c0b6;      /* la serie normale: quante persone */
+    --amber:#e0a53f;     /* quello che va tenuto d'occhio */
+    --clay:#d1704f;      /* schianti */
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,monospace}
+  .wrap{max-width:1180px;margin:0 auto;padding:18px 18px 60px}
+  h1{font-size:20px;letter-spacing:2px;margin:0 0 4px}
+  p.lead{color:var(--mute);font-size:12px;margin:0 0 14px;line-height:1.6}
+  .bar{display:flex;gap:10px;align-items:center;margin:0 0 16px;flex-wrap:wrap}
+  button{font:700 12px ui-monospace,monospace;background:#3a8c85;color:#fff;border:0;padding:7px 12px;cursor:pointer}
+  button.alt{background:#6b5137}
+  .k{font-size:11px;color:var(--mute)}
+
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:18px}
+  .card{background:var(--card);border:1px solid var(--line);padding:12px 14px}
+  .card .n{font-size:30px;line-height:1.1;font-weight:700}
+  .card .n.hi{color:var(--teal)}
+  .card .n.warn{color:var(--amber)}
+  .card .t{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--mute);margin-top:6px}
+  .card .s{font-size:11px;color:var(--mute);margin-top:2px}
+
+  section{background:var(--card);border:1px solid var(--line);padding:14px;margin-bottom:14px}
+  section h2{margin:0 0 2px;font-size:11px;letter-spacing:1px;color:var(--teal);text-transform:uppercase}
+  section p.why{margin:0 0 12px;font-size:11px;color:var(--mute);line-height:1.6}
+  /* due colonne, mai tre: con tre riquadri per riga il quarto resta solo, con mezzo schermo
+     vuoto accanto */
+  .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(430px,1fr));gap:14px}
+
+  /* barre: una serie sola, quindi niente legenda. Valore scritto in fondo alla barra:
+     nessuno deve misurare a occhio contro una griglia. */
+  .rows{display:flex;flex-direction:column;gap:6px}
+  .row{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;font-size:11px}
+  .row .lab{color:var(--mute);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  /* `display:block` non è decorazione: uno <span> resta in linea e ignora width/height, e la
+     barra si vedeva SOLO come binario vuoto (già successo) */
+  .track{display:block;background:#241f17;height:14px;position:relative}
+  .fill{display:block;height:14px;background:var(--teal);border-radius:0 4px 4px 0}
+  .fill.warn{background:var(--amber)}
+  .row .val{color:var(--ink);font-variant-numeric:tabular-nums;min-width:26px;text-align:right}
+
+  table{width:100%;border-collapse:collapse;font-size:11px}
+  th{text-align:left;color:var(--mute);font-weight:400;text-transform:uppercase;letter-spacing:1px;
+     font-size:10px;padding:0 8px 6px;border-bottom:1px solid var(--line)}
+  td{padding:5px 8px;border-bottom:1px solid #241f17;vertical-align:top}
+  /* RIGHE VERTICALI: con otto colonne, di cui sei di numeri, l'occhio perde la riga a metà
+     strada. La riga si ferma prima dell'ultima colonna, o resterebbe una stanghetta appesa
+     al bordo destro della tabella. */
+  th:not(:last-child), td:not(:last-child){border-right:1px solid #241f17}
+  th:not(:last-child){border-right-color:var(--line)}
+  /* la prima e l'ultima colonna non rientrano dal bordo della tabella: il rientro si vedrebbe
+     come uno scalino rispetto a tutto il resto della pagina */
+  th:first-child, td:first-child{padding-left:0;white-space:nowrap} /* "2 giorni fa" a capo sfalsa la riga */
+  th:last-child, td:last-child{padding-right:0}
+  td.num{text-align:right;font-variant-numeric:tabular-nums}
+  /* l'intestazione segue la colonna: i numeri stanno a destra, e con la testata rimasta a
+     sinistra "giocato" e "2h 14m" non erano sulla stessa verticale. Con sei colonne numeriche
+     di fila la tabella sembrava scomposta. */
+  th.num{text-align:right}
+  tr.now td{color:var(--teal)}
+  .err td.msg{color:var(--clay)}
+  .scroll{max-height:420px;overflow:auto}
+  .empty{color:var(--mute);font-size:12px}
+  .warnbox{border:1px solid #6b3a28;background:#2a1a13;color:#f0c7b4;padding:12px;font-size:12px;line-height:1.6}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>CHI STA GIOCANDO</h1>
+  <p class="lead">Gli stessi numeri di <code>npm run tester</code>, in forma di grafici.
+  I dati arrivano dal battito: una riga per giocatore, aggiornata ogni cinque minuti, con
+  quanto ha giocato e fin dove è arrivato. <strong>Niente che dica chi è la persona.</strong><br>
+  Pagina di lavoro: esiste solo qui, con <code>npm run dev</code>. Online non ci va.<br>
+  Con pochi tester i numeri sono indizi, non verità: una sessione lunghissima può essere una
+  scheda lasciata aperta.</p>
+
+  <div class="bar">
+    <button id="ric">Aggiorna adesso</button>
+    <button class="alt" id="auto">Aggiornamento automatico: ON</button>
+    <span class="k" id="info">carico…</span>
+  </div>
+
+  <div id="out"></div>
+</div>
+
+<script type="module">
+const out = document.getElementById('out');
+const info = document.getElementById('info');
+const esc = (s) => String(s).replace(/[<>&]/g, c => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+
+const durata = (m) => (m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm');
+const quando = (ts, ora) => {
+  const min = Math.round((ora - ts) / 60);
+  const q = (n, uno, tanti) => n + ' ' + (n === 1 ? uno : tanti) + ' fa';
+  if (min < 2) return 'adesso';
+  if (min < 60) return q(min, 'minuto', 'minuti');
+  if (min < 60 * 24) return q(Math.round(min / 60), 'ora', 'ore');
+  return q(Math.round(min / 1440), 'giorno', 'giorni');
+};
+/* il telefono si legge dalla stringa del browser solo per capire SU COSA gira il gioco */
+const coso = (ua) => /iPhone|iPad|Android/i.test(ua || '') ? 'telefono' : 'computer';
+
+/* una serie sola per grafico: la scala è sul massimo, il valore è scritto in fondo */
+function barre(voci, opt = {}) {
+  const max = Math.max(1, ...voci.map(v => v.v));
+  return '<div class="rows">' + voci.map(v => {
+    /* niente barra per lo zero: un moncone di due pixel si legge come "qualcuno c'è" */
+    const w = v.v ? Math.max(1, Math.round(v.v / max * 100)) : 0;
+    const cl = opt.warn && opt.warn(v) ? ' warn' : '';
+    return `<div class="row" title="${esc(v.k)}: ${v.v}">`
+      + `<span class="lab">${esc(v.k)}</span>`
+      + `<span class="track">${w ? `<span class="fill${cl}" style="width:${w}%"></span>` : ''}</span>`
+      + `<span class="val">${v.v}</span></div>`;
+  }).join('') + '</div>';
+}
+
+function disegna(d) {
+  const { som: s, righe, errori, ora } = d;
+  if (!s.n) { out.innerHTML = '<p class="empty">Nessun dato ancora. Il battito parte dopo cinque minuti di gioco vero.</p>'; return; }
+
+  const pct = (n) => Math.round(n / s.n * 100) + '%';
+  const cards = [
+    ['n hi', s.attivi, 'in questo momento', 'battito negli ultimi 10 minuti'],
+    ['n', s.oggi, 'nelle ultime 24 ore', s.n + ' giocatori in tutto'],
+    ['n', durata(s.mediana), 'sessione tipica', 'la più lunga: ' + durata(s.max)],
+    ['n warn', s.subito + '/' + s.n, 'ha smesso entro 5 min', 'il numero da tenere d\'occhio · ' + pct(s.subito)],
+    ['n hi', s.tornati + '/' + s.n, 'è tornato almeno 2 volte', pct(s.tornati) + ' di chi ha provato'],
+    ['n', 'liv ' + s.lvl, 'più avanti di tutti', s.spec + ' specie scoperte'],
+  ].map(([cl, n, t, sub]) => `<div class="card"><div class="${cl}">${esc(n)}</div>`
+    + `<div class="t">${esc(t)}</div><div class="s">${esc(sub)}</div></div>`).join('');
+
+  const perDispositivo = [
+    { k: 'telefono', v: s.tel }, { k: 'computer', v: s.n - s.tel },
+    { k: 'app installata', v: s.app },
+  ];
+
+  const tab = righe.map(r => `<tr${ora - r.ts < 600 ? ' class="now"' : ''}>`
+    + `<td>${esc(quando(r.ts, ora))}</td>`
+    + `<td class="num">${esc(durata(r.min || 0))}</td>`
+    + `<td class="num">${r.day || 1}</td><td class="num">${r.lvl || 1}</td><td class="num">${r.spec || 0}</td>`
+    + `<td class="num">${r.sessioni || 1}</td>`
+    + `<td>${r.tocco ? 'telefono' : 'computer'}${r.app ? ' (app)' : ''}</td>`
+    + `<td>${esc(r.ver || '?')}</td></tr>`).join('');
+
+  const err = errori.length ? errori.map(e => `<tr class="err">`
+    + `<td>${esc(quando(e.ultimo, ora))}</td><td class="num">×${e.n}</td>`
+    + `<td class="msg">${esc(String(e.msg || '').slice(0, 90))}</td>`
+    + `<td>${esc(String(e.dove || '').replace(/^https?:\/\/[^/]+/, '').slice(0, 60))}</td>`
+    + `<td>${esc(e.ver || '?')}</td><td>${esc(coso(e.ua))}</td></tr>`).join('')
+    : '<tr><td colspan="6" class="empty">nessuno schianto segnalato</td></tr>';
+
+  out.innerHTML = `
+  <div class="cards">${cards}</div>
+
+  <div class="cols">
+    <section>
+      <h2>Quanto durano</h2>
+      <p class="why">La mediana nasconde la cosa che conta: quanti mollano prima di aver
+      visto qualcosa. La prima barra è quella da guardare.</p>
+      ${barre(s.perMinuti, { warn: (v) => v.k === 'meno di 5 min' })}
+    </section>
+
+    <section>
+      <h2>Fin dove arrivano</h2>
+      <p class="why">Giorno di gioco raggiunto. Dove la coda si assottiglia, lì la gente smette.</p>
+      ${barre(s.perGiorno.map(g => ({ k: 'giorno ' + g.k, v: g.v })))}
+    </section>
+
+    <section>
+      <h2>Come giocano</h2>
+      <p class="why">Su cosa gira il gioco e chi se l'è installato sulla schermata (PWA).</p>
+      ${barre(perDispositivo)}
+    </section>
+
+    <section>
+      <h2>Con che versione</h2>
+      <p class="why">Se una versione vecchia resta viva, qualcuno è rimasto in cache:
+      è il segnale che il service worker non ha fatto il suo lavoro.</p>
+      ${barre(s.perVersione)}
+    </section>
+  </div>
+
+  <section>
+    <h2>Uno per uno</h2>
+    <p class="why">Una riga per giocatore, dall'ultimo battito. In teal chi sta giocando adesso.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>ultimo battito</th><th class="num">giocato</th><th class="num">giorno</th><th class="num">liv</th>
+        <th class="num">specie</th><th class="num">volte</th><th>dove</th><th>versione</th></tr></thead>
+      <tbody>${tab}</tbody>
+    </table></div>
+  </section>
+
+  <section>
+    <h2>Schianti segnalati</h2>
+    <p class="why">Errori JavaScript arrivati da <code>server/api/oops.php</code>, raggruppati e contati.</p>
+    <div class="scroll"><table>
+      <thead><tr><th>ultimo</th><th class="num">volte</th><th>errore</th><th>dove</th><th>versione</th><th>da</th></tr></thead>
+      <tbody>${err}</tbody>
+    </table></div>
+  </section>`;
+}
+
+async function carica() {
+  info.textContent = 'carico…';
+  try {
+    const r = await fetch('/dev/battito.json', { cache: 'no-store' });
+    const d = await r.json();
+    if (!r.ok || d.errore) throw new Error(d.errore || ('HTTP ' + r.status));
+    disegna(d);
+    const o = new Date();
+    info.textContent = 'letto alle ' + String(o.getHours()).padStart(2, '0') + ':' + String(o.getMinutes()).padStart(2, '0')
+      + ' · ' + d.righe.length + ' giocatori · ' + d.errori.length + ' schianti';
+  } catch (e) {
+    info.textContent = '';
+    out.innerHTML = `<div class="warnbox"><strong>Niente dati.</strong><br>
+      Questa pagina funziona solo con <code>npm run dev</code> e con l'accesso al server aperto
+      (<code>bash dbssh/dbssh.sh up</code>): i file del battito stanno là e si leggono via SSH.<br>
+      Dettaglio: ${esc(e.message)}</div>`;
+  }
+}
+
+/* il battito arriva ogni cinque minuti: ricontrollare più spesso di un minuto non aggiunge
+   niente, e una pagina che si ridisegna mentre la guardi è solo fastidiosa */
+let timer = setInterval(carica, 60000);
+document.getElementById('ric').onclick = carica;
+document.getElementById('auto').onclick = (e) => {
+  if (timer) { clearInterval(timer); timer = 0; e.target.textContent = 'Aggiornamento automatico: OFF'; }
+  else { timer = setInterval(carica, 60000); e.target.textContent = 'Aggiornamento automatico: ON'; carica(); }
+};
+carica();
+</script>
+</body>
+</html>

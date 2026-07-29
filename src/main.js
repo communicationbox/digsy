@@ -299,6 +299,10 @@ if (typeof window !== 'undefined') {
          negli interni era passata inosservata perché nessun test ci entrava mai. */
       enterRoom: (t) => import('./interior.js').then(m => { m.enterInterior({ type: t, name: t, x: Math.floor(P.x / 16), y: Math.floor(P.y / 16) }); return true; }),
       leaveRoom: () => import('./interior.js').then(m => { try { m.exitInterior(); } catch (e) { /* la tile d'uscita dipende dalla città */ } }),
+      /* dove si sta DENTRO la stanza. La galleria del museo è 60×62 tile e si entra sempre dalla
+         porta in fondo: senza questo, ogni foto e ogni test la ritraggono dall'atrio e le sale
+         con i piedistalli — cioè quasi tutta la scena — non vengono mai disegnate. */
+      intPos: (tx, ty) => import('./interior.js').then(m => { m.INT.x = tx * TS + 8; m.INT.y = ty * TS + 8; return [m.INT.x, m.INT.y]; }),
       enterCave: () => import('./cave.js').then(m => { m.enterCave(1, Math.floor(P.x / 16), Math.floor(P.y / 16)); return true; }),
       leaveCave: () => import('./cave.js').then(m => m.exitCave()),
       inRoom: () => import('./interior.js').then(m => !!m.INT.active),
@@ -312,6 +316,24 @@ if (typeof window !== 'undefined') {
       /* un passo del mondo su richiesta: in headless il rAF è fermo, quindi senza questo
          gli e2e non potrebbero verificare NIENTE di ciò che accade camminando */
       stepWorld: (dt) => { steerFollow(); walk(dt || 1 / 60); return { moving: P.moving, anim: P.anim, x: P.x, y: P.y }; },
+      /* un passo del PARCO: le chimere partono tutte da una posizione derivata dall'uid e si
+         sparpagliano solo camminando. Senza questo, in headless (rAF fermo) ogni foto del
+         recinto le ritrae schierate sulla stessa griglia, che non è come si vede giocando. */
+      stepPark: (dt) => { refreshVisParks(); for (const t of visParks) updatePark(t, dt || 1 / 60); return visParks.length; },
+      /* la console dei comandi, senza doverla aprire e digitare: serve a portare una partita
+         in uno stato preciso (godmode, goto=..., chimera) prima di fotografarla o misurarla. */
+      cmd: (s) => import('./commands.js').then(m => m.runCommand(s)),
+      /* lo stato della partita in chiaro. I comandi arrivano fin dove arrivano — `godmode`
+         sblocca tutto O NIENTE, e per una foto serve la via di mezzo (dieci specie risvegliate,
+         non sessantasei; uno zaino con dentro qualcosa, non 330 pezzi su 14 posti). */
+      state: () => S,
+      /* il giocatore (posizione compresa). I `goto=` lasciano dove capita — accanto alla statua,
+         sulla prima tile del bioma — e da lì l'inquadratura è quella che è: serve poter spostare
+         la camera di qualche tile per comporre la scena. */
+      player: () => P,
+      /* `godmode` accende anche la modalità debug, e con quella l'HUD mostra ∞ e il tag 🐞:
+         va bene mentre si prova, non in una foto che finisce in vetrina. */
+      debug: (on) => import('./debug.js').then(m => { m.setDebug(!!on); return u.updateHUD(), !!on; }),
       /* stato del "tocca dove andare": gli e2e verificano che il tocco sulla canvas
          diventi davvero una meta (listener + preferenze + conversione schermo→mondo) */
       goalInfo: () => import('./tapmove.js').then(m => ({ on: m.goal.on, x: m.goal.x, y: m.goal.y,

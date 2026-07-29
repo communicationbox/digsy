@@ -8,22 +8,14 @@
  *
  * `npm run tester`             → il quadro di adesso
  * `npm run tester -- --errori` → anche gli schianti segnalati dai giocatori
+ * `/stats` con `npm run dev`   → gli stessi numeri, ma da guardare (grafici, solo in locale)
+ *
+ * La lettura e i conti stanno in `tests/battito.mjs`: qui c'è solo il racconto.
  *
  * NB: i numeri sono pochi e vanno letti come indizi, non come verità. Con tre tester, una
  * sessione lunga può essere qualcuno che ha lasciato la scheda aperta.
  */
-import { execFileSync } from 'node:child_process';
-
-const HOST = 'digsy';
-const DATI = '/var/www/digsy.dev-box.it/httpdocs/server/data';
-const MUX = `/tmp/dbssh-mux-${process.getuid()}-%C`;
-
-const ssh = (cmd) => {
-  try {
-    return execFileSync('ssh', ['-o', 'ControlMaster=no', '-o', `ControlPath=${MUX}`, HOST, cmd],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], maxBuffer: 8 * 1024 * 1024 });
-  } catch (e) { return ''; }
-};
+import { righeBattito, righeErrori } from './battito.mjs';
 
 const durata = (m) => (m < 60 ? m + ' min' : Math.floor(m / 60) + 'h ' + (m % 60) + 'm');
 const quando = (ts) => {
@@ -34,10 +26,7 @@ const quando = (ts) => {
   return Math.round(min / 1440) + ' giorni fa';
 };
 
-const raw = ssh(`cat ${DATI}/battito.json 2>/dev/null`);
-let dati = {};
-try { dati = JSON.parse(raw || '{}'); } catch (e) { /* file rotto o assente */ }
-const righe = Object.values(dati).sort((a, b) => b.ts - a.ts);
+const righe = righeBattito();
 
 if (!righe.length) {
   console.log('\nNessun dato ancora. Il battito parte dopo cinque minuti di gioco vero.\n');
@@ -89,10 +78,7 @@ if (!righe.length) {
 }
 
 if (process.argv.includes('--errori')) {
-  const rawE = ssh(`cat ${DATI}/oops.json 2>/dev/null`);
-  let err = {};
-  try { err = JSON.parse(rawE || '{}'); } catch (e) { /* niente */ }
-  const lista = Object.values(err).sort((a, b) => b.ultimo - a.ultimo);
+  const lista = righeErrori();
   console.log('── SCHIANTI SEGNALATI ' + '─'.repeat(40));
   if (!lista.length) console.log('  nessuno\n');
   else {

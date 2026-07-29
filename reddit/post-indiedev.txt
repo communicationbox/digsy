@@ -1,0 +1,54 @@
+DIGSY WORLD — post per r/IndieDev (vale anche per r/gamedev)
+Quando: giorno 12 del piano, cioè per ultimo
+Tipo di post: TESTO
+
+PERCHÉ QUESTO È DIVERSO DAGLI ALTRI
+  Qui NON si vende il gioco: si racconta un problema tecnico e come è stato risolto. Il link
+  sta in fondo, come conseguenza, non come scopo. È la forma che r/gamedev accetta (un "provate
+  il mio gioco" là viene rimosso in mezz'ora) ed è il post con la resa migliore a lungo termine,
+  perché lo leggono altri sviluppatori e lo ricondividono.
+
+  [ ] flair: controlla
+  [ ] niente immagini caricate: è un post di testo, il codice basta
+  [ ] resta nei commenti: qui arrivano domande tecniche vere, e rispondere fa karma
+
+NOTA
+  Puoi pubblicarlo su r/IndieDev E su r/gamedev, ma a giorni diversi (almeno due o tre di
+  distanza) e non in crosspost. Lo stesso testo in due sub nello stesso minuto è esattamente
+  quello che il filtro antispam cerca.
+
+
+========================================================================
+TITOLO
+========================================================================
+
+I generated 60 creature skeletons procedurally and they all looked like the same animal. Hand writing 60 recipes fixed it.
+
+
+========================================================================
+CORPO DEL TESTO
+(un paragrafo = una riga sola. le righe vuote fra i paragrafi SERVONO.
+ il blocco di codice va indentato di 4 spazi, come è già qui sotto)
+========================================================================
+
+My game has 60 extinct species, each with its own 3D voxel skeleton that you rebuild piece by piece. The obvious way to make 60 skeletons is to derive them from a hash of the species id: pick a skull scale, a limb type, a tail shape, a posture, and let the parameters do the work.
+
+I did that. It gave me 60 skeletons that were all measurably different and all felt identical. Every one was a quadruped with a slightly different snout. The variation was real in the data and invisible on screen, because parameters interpolate. They hand you the average of your design space over and over, and never the interesting corners.
+
+What fixed it was writing 60 blueprints by hand. Each one is a small recipe:
+
+    { seg: 3, legs: [6, 'short'], wings: [2, 'insect'], head: 1, mand: true, tail: 'sting' }
+
+Then a single assembler turns any recipe into voxels, guaranteeing the joints connect: overlapping segments at hips, neck, wings and tail. So the shapes are authored, but the construction is shared. I still maintain one assembler, not 60 models.
+
+Two things made this safe to do:
+
+1. A test asserts all 60 recipes are distinct. Uniqueness you don't test for silently decays the moment you add number 61.
+
+2. A flood fill test asserts every assembled body is at least 90% connected. Hand authored recipes are exactly where you get a leg floating three voxels off the hip, and you will not notice by eye across 60 creatures.
+
+The chimera system then inherits from the same recipes: take a skull from one species and legs from another and the assembler joins them, so player made creatures come out as coherent as the authored ones.
+
+The lesson I keep relearning: when you need N things that all feel different, parameters give you N things that feel the same. Author them, and use the code to guarantee the joints, not the taste.
+
+Game is Digsy World, cozy fossil digging, free in the browser if you want to see the results: https://digsy.dev-box.it/

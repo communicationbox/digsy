@@ -1,0 +1,43 @@
+DIGSY WORLD — post per r/IndieGaming
+Quando: giorno 6 del piano, cioè TRE GIORNI dopo r/playmygame
+Tipo di post: IMMAGINI E VIDEO (non Link)
+
+PERCHÉ NON UN LINK
+  Qui la gente scorre e guarda. Un post di tipo Link scompare in tre secondi; un'immagine
+  caricata su Reddit resta nel feed. Il link va nel PRIMO COMMENTO, scritto da te subito
+  dopo aver pubblicato, non nel corpo.
+
+  [ ] carica le immagini in QUEST'ORDINE (la prima è la copertina del post):
+        reddit/immagini/1-parco.png
+        reddit/immagini/2-libro.png
+        reddit/immagini/3-citta.png
+        reddit/immagini/4-notte.png
+  [ ] flair: controlla, molti sub visivi lo pretendono
+  [ ] pubblica, POI scrivi subito il primo commento col link
+
+SE UN GIORNO FAI LA CLIP
+  Un video nativo rende 5-10 volte più delle immagini su questo sub. Il piano ripresa e i
+  comandi ffmpeg stanno in POST-REDDIT.md sezione 2. Con la clip, questo post diventa un
+  video e le immagini si buttano.
+
+
+========================================================================
+TITOLO (scegline UNO)
+========================================================================
+
+Every fossil you dig up completes a 3D voxel skeleton, and then you can mix them into your own creature
+
+--- oppure ---
+
+My cozy game has no combat and no game over. You dig up bones and build animals that never existed.
+
+
+========================================================================
+PRIMO COMMENTO (scrivilo TU, subito dopo aver pubblicato)
+========================================================================
+
+It's called Digsy World, it's free and runs in the browser: https://digsy.dev-box.it/
+
+Also on itch: https://giacomarco.itch.io/digsy-world
+
+Endless procedural world, 6 biomes, 60+ species, each with a hand authored voxel skeleton you rebuild piece by piece. Still in active development, happy to answer anything about how it's built.

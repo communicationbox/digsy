@@ -15,6 +15,18 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Digsy">
+<!-- ANTEPRIMA quando il link viene incollato (Reddit, Discord, WhatsApp, Telegram, Bluesky).
+     Senza questi tag esce un rettangolo grigio vuoto, e su un sub di link l'anteprima è quasi
+     tutto quello che si vede prima di decidere se cliccare. L'indirizzo dell'immagine va
+     ASSOLUTO: i siti che generano l'anteprima non risolvono i percorsi relativi.
+     Reddit tiene in cache l'anteprima per indirizzo: se si pubblica un link prima di avere
+     questi tag, quel post resta senza miniatura per sempre. -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Digsy World">
+<meta property="og:description" content="A cozy game about digging up fossils of creatures that never existed. Free, in your browser, no sign-up.">
+<meta property="og:image" content="https://digsy.dev-box.it/og.png">
+<meta property="og:url" content="https://digsy.dev-box.it/">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="stylesheet" href="/src/style.css">
 </head>
 <body>

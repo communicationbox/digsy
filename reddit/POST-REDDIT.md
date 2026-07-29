@@ -7,6 +7,8 @@ Link ufficiali:
 - Gioco: <https://digsy.dev-box.it/>
 - itch.io: <https://giacomarco.itch.io/digsy-world>
 
+Le immagini pronte da caricare stanno in **`reddit/immagini/`** — vedi §3.4.
+
 ---
 
 ## 0. Prima di tutto: le regole le verifichi TU
@@ -221,6 +223,23 @@ judge it from the inside anymore.
 
 > Il link **va messo solo se il sub lo permette** nel corpo. Se le regole lo vietano, non
 > metterlo: qualcuno lo chiederà nei commenti e lo dai lì. Un post rimosso vale zero.
+
+**Immagini** — `reddit/immagini/`, da caricare IN QUEST'ORDINE (la prima è quella che si vede
+nel feed, e decide se qualcuno apre il post):
+
+| # | File | Cosa mostra |
+|---|---|---|
+| 1 | `1-parco.png` | Tredici chimere che passeggiano nel recinto. È la promessa del post mantenuta in una foto: se qui il prato fosse vuoto, il resto non lo leggerebbe nessuno |
+| 2 | `2-libro.png` | Gli scheletri voxel 3D nel Libro. È la cosa che nessun altro gioco cozy ha |
+| 3 | `3-citta.png` | Il Museo con frontone e colonne, la statua del nonno, la fontana, i biomi attorno |
+| 4 | `4-notte.png` | La stessa città di notte, lampioni e finestre accese |
+| 5 | `5-palude.png` | Un bioma diverso: dice "mondo grande" senza doverlo scrivere |
+
+`extra-ghiacci.png` e `extra-museo.png` esistono ma **non** li caricherei: i ghiacci sono
+bianco su bianco e la sala del museo è un ettaro di verde oliva. Ci sono se servono altrove.
+
+Si rifanno tutte con `npm run promo` (`.shots/promo/`, poi si copiano qui). Le scene, i semi
+del mondo e il motivo di ogni inquadratura stanno in `tests/promo.mjs`.
 
 ---
 

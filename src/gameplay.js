@@ -23,7 +23,7 @@ import { isNight, seasonOf } from './daynight.js';
 import { expireQuests, questExpiryText } from './quests.js';
 import { tutBump, tutStepId } from './tutorial.js';
 import { goalLine, goalTitle, alive, aliveTotal, milestoneReached, milestoneGift } from './goal.js';
-import { tr, actKey, LANG, partName, rarLabel, seasonName } from './i18n.js';
+import { tr, actKey, keys, LANG, partName, rarLabel, seasonName } from './i18n.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
 function availableNow2() { return { night: isNight(), season: seasonOf(S.day) }; }
@@ -1081,7 +1081,8 @@ export function buyEnergy() {
   if (!isDebug()) { S.coins -= cost; S.snackBought = (S.snackBought || 0) + 1; }
   playSfx('coin');
   S.snacks = (S.snacks || 0) + 1;
-  toast('🍞 ' + tr('Ristoro nello zaino (I per usarlo)', 'Snack in your bag (I to use it)'));
+  /* non è energia subito: lo si mangia dallo zaino. Il tasto passa da {key:} — sul telefono non esiste */
+  toast('🍞 ' + keys(tr('Ristoro nello zaino{key:I}: +15 ⚡ quando lo mangi', 'Snack in your bag{key:I}: +15 ⚡ when you eat it')));
   save(); updateHUD();
 }
 export function eatSnack() {

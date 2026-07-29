@@ -4,7 +4,7 @@
    trascinamento) che non c'entra con il resto dell'interfaccia. */
 import { S, P, save } from './state.js';
 import { FOOT_DY } from './body.js';
-import { TS, ZONES } from './data.js';
+import { TS } from './data.js';
 import { CH, isExplored, exploredTiles, revealArea } from './map.js';
 import { townForCell, TCELL, landmarkForCell, LCELL, townInfo, townForTile, baseTerrain, hasMuseum } from './world.js';
 import { wonderName, isDiscovered, WONDERS } from './wonders.js';
@@ -18,8 +18,27 @@ import { rarLabel, townSizeLabel } from './i18n.js';
 
 let mapOpenFlag = false;
 export function isMapOpen() { return mapOpenFlag; }
+
+/* PULSAZIONE della stellina "sei qui". Due battiti al secondo, dal TEMPO e da nient'altro.
+   La mappa si ridisegna solo quando la fase CAMBIA (due volte al secondo), non a ogni
+   fotogramma: ridisegnarla sessanta volte al secondo vorrebbe dire ricampionare duecentomila
+   celle di terreno per far battere una stella. */
+let pulseRaf = null, pulseFase = 1;
+export function fasePulsazione() { return pulseFase; }
+function avviaPulsazione() {
+  if (pulseRaf !== null || typeof requestAnimationFrame !== 'function') return;
+  const giro = (t) => {
+    if (!mapOpenFlag) { pulseRaf = null; return; }              // chiusa la mappa, il giro muore
+    const f = Math.floor((t || 0) / 380) % 2;
+    if (f !== pulseFase) { pulseFase = f; drawMapCanvas(); }
+    pulseRaf = requestAnimationFrame(giro);
+  };
+  pulseRaf = requestAnimationFrame(giro);
+}
 export function closeMap() {
   mapOpenFlag = false;
+  if (pulseRaf !== null && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(pulseRaf);
+  pulseRaf = null;
   const o = document.getElementById('mapov'); if (o && o.classList) o.classList.remove('on');
 }
 
@@ -49,14 +68,69 @@ function mapTerrColor(tx, ty) {
 /* zoom < 1 = zoom OUT (vista d'insieme): non si disegna mezza tile (sfocherebbe), si CAMPIONA —
    1 pixel ogni N tile (N intero). Così la pixel-art resta netta anche vedendo mezzo continente. */
 const MAP_ZOOMS = [0.25, 0.5, 1, 2, 3, 4, 6]; // px per tile (sotto 1 = campionamento in zoom out)
+/* Si APRE a ×3, non a ×1. A un pixel per tile si vedeva mezzo continente: bello da guardare e
+   inutile per la domanda che si fa aprendo la mappa, che è «dove sono e cosa ho intorno».
+   La città sotto i piedi era grande sei pixel e il segnalino ci si perdeva dentro. Chi vuole la
+   vista d'insieme fa due clic su −, che è meno lavoro che cercarsi da capo ogni volta. */
+const MAP_ZOOM_DEF = 3;
 let mapPins = [];                         // punti cliccabili disegnati sull'ultima mappa
-let mapZoom = 1, mapOff = { x: 0, y: 0 }; // offset in tile rispetto al player
+let mapZoom = MAP_ZOOM_DEF, mapOff = { x: 0, y: 0 }; // offset in tile rispetto al player
 export function mapZoomBy(d) {
   const i = Math.max(0, Math.min(MAP_ZOOMS.length - 1, MAP_ZOOMS.indexOf(mapZoom) + d));
   if (MAP_ZOOMS[i] === mapZoom) return;
   mapZoom = MAP_ZOOMS[i]; drawMapCanvas();
 }
-export function mapReset() { mapZoom = 1; mapOff = { x: 0, y: 0 }; drawMapCanvas(); }
+export function mapReset() { mapZoom = MAP_ZOOM_DEF; mapOff = { x: 0, y: 0 }; drawMapCanvas(); }
+/* DOVE SEI: uno SPILLO da mappa, con l'alone che pulsa a terra.
+ *
+ * Prima era un quadratino bianco disegnato dalla stessa funzione dei paesi e delle X del
+ * tesoro: su una mappa piena di quadratini, l'unico che conta davvero non si distingueva da
+ * quelli attorno. Poi ho provato una stella a quattro punte: a tre pixel per tile diventava
+ * una macchia pallida senza forma, perché una stella ha bisogno di spazio per leggersi.
+ * Lo spillo funziona in piccolo perché ha una SAGOMA: testa tonda, punta in basso, e la punta
+ * cade esattamente sulla tua tile. È anche il simbolo che tutti leggono come "sei qui" senza
+ * che nessuno lo spieghi, e non somiglia a niente altro sulla mappa.
+ * L'alone pulsa fra due misure e non fra visibile e invisibile: un indicatore di posizione che
+ * se ne va a intermittenza si cerca due volte invece di una.
+ * La fase viene SOLO dal tempo (`fasePulsazione`), mai dalle coordinate: la mappa si trascina,
+ * e una fase legata alla posizione farebbe battere l'alone a scatti mentre scorri.
+ */
+/* la goccia classica: semicerchio in cima, due fianchi che si chiudono sulla punta in basso.
+   La punta cade ESATTAMENTE sulla tua tile, non il centro della testa: è l'unico punto dello
+   spillo che indica un posto, e sbagliarlo sposta la tua posizione di mezzo centimetro. */
+function sagomaSpillo(c, X, Y, r) {
+  const cy = Y - r * 2.5;                       // centro della testa
+  c.beginPath();
+  c.moveTo(X, Y);
+  c.quadraticCurveTo(X - r * 1.02, cy + r * 0.62, X - r, cy);
+  c.arc(X, cy, r, Math.PI, 0, false);
+  c.quadraticCurveTo(X + r * 1.02, cy + r * 0.62, X, Y);
+  c.closePath();
+  return cy;
+}
+function meStar(c, tx, ty, x0, y0, SC, cv) {
+  const X = Math.round((tx - x0) * SC), Y = Math.round((ty - y0) * SC);
+  if (X < -30 || Y < -30 || X > cv.width + 30 || Y > cv.height + 30) return;
+  /* misura FISSA, non legata allo zoom: questo è interfaccia, non terreno. Scalandolo con SC
+     era grande sette pixel nella vista d'insieme, cioè illeggibile proprio dove serve di più. */
+  const r = 7;
+  const acceso = fasePulsazione() === 1;
+  /* LAMPEGGIA cambiando tinta, non sparendo e non cambiando misura: uno spillo che se ne va a
+     intermittenza si cerca due volte, e uno che si gonfia e si sgonfia balla sulla pergamena.
+     Due rossi, uno acceso e uno spento: si vede battere anche con la coda dell'occhio e la
+     sagoma non si muove di un pixel. */
+  const cy = sagomaSpillo(c, X, Y, r);
+  c.fillStyle = acceso ? '#f03b2e' : '#8f2018';
+  c.fill();
+  c.strokeStyle = '#241a10'; c.lineWidth = 2; c.lineJoin = 'round';
+  c.stroke();                                    // contorno scuro: stacca da ogni terreno
+  /* occhiello: senza, la testa è una macchia rossa piatta e lo spillo non si legge */
+  c.fillStyle = acceso ? '#fff3ea' : '#d9b4ab';
+  c.beginPath(); c.arc(X, cy, r * 0.38, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = '#241a10'; c.lineWidth = 1; c.stroke();
+  mapPins.push({ x: X, y: cy, r: r + 6, kind: 'me' });
+}
+
 function drawMapCanvas() {
   const cv = document.getElementById('mapcv'); if (!cv || !cv.getContext) return;
   /* zoom ≥ 1: `cell` px per tile (1 tile per cella). zoom < 1: 1px per cella ma OGNI cella copre
@@ -127,7 +201,7 @@ function drawMapCanvas() {
         { kind: 'town', name: tw.name, size: tw.size, museum, tx: tw.C.x, ty: tw.C.y });
       if (museum) museumPin(tw.C.x, tw.C.y);
     } }
-  mark(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), '#ffffff', true, { kind: 'me' }); // dove sei
+  meStar(c, Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), x0, y0, SC, cv);  // dove sei
   const sub = document.getElementById('mp-sub');
   if (sub) sub.textContent = 'zoom ×' + mapZoom + ' · ' + tr('esplorato ', 'explored ') + exploredTiles().toLocaleString() +
     ' · ' + tr('meraviglie ', 'wonders ') + (S.wonders || []).length + '/' + Object.keys(WONDERS).length;
@@ -137,11 +211,15 @@ export function openMap() {
   if (!ov || !cv || !cv.getContext) return;
   mapOff = { x: 0, y: 0 };
   drawMapCanvas();
+  avviaPulsazione();          // senza questa riga l'alone sta fermo: scritta e mai chiamata
   const tt = document.getElementById('mp-title'); if (tt) tt.textContent = tr('MAPPA DEL MONDO', 'WORLD MAP');
   const lg = document.getElementById('mp-legend');
   if (lg) {
-    const biomes = ZONES.map((z, i) => `<span><i style="background:${MAP_ZONE[i]}"></i>${z.name}</span>`).join('');
-    lg.innerHTML = withIcons(biomes + `<span><i style="background:#2f6b8f"></i>${tr('acqua', 'water')}</span><span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#fff"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
+    /* NIENTE NOMI DI BIOMA in legenda. Erano sei voci su quattordici, cioè metà della legenda
+       spesa a dire che il verde è prato: una cosa che si impara camminando, e che il tag della
+       zona nell'HUD dice già mentre ci sei dentro. Restano i SIMBOLI, che invece non si possono
+       indovinare: chi ha il Museo, dov'è una meraviglia, quale X è la tua. */
+    lg.innerHTML = withIcons(`<span><i style="background:#2f6b8f"></i>${tr('acqua', 'water')}</span><span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#f03b2e;clip-path:polygon(50% 100%,14% 44%,22% 20%,50% 8%,78% 20%,86% 44%)"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
   }
   ov.classList.add('on'); mapOpenFlag = true; setPrompt(null);
   const x = document.getElementById('mp-close'); if (x) x.onclick = () => closeMap();

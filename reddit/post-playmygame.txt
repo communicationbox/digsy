@@ -1,0 +1,48 @@
+DIGSY WORLD — post per r/playmygame
+Quando: giorno 3 del piano, cioè DUE GIORNI dopo r/WebGames
+Tipo di post: TESTO
+
+ATTENZIONE, QUESTO SUB HA UN TEMPLATE OBBLIGATORIO
+  [ ] apri reddit.com/r/playmygame/about/rules e guarda il formato che pretendono
+  [ ] se il loro template è diverso da questo, USA IL LORO: il bot rimuove chi non lo segue
+  [ ] flair: quasi sempre obbligatorio qui
+  [ ] niente crosspost dal post di r/WebGames, va scritto nuovo
+
+Il taglio è diverso da r/WebGames: là si presenta il gioco, qui si chiede una prova.
+La domanda è volutamente stretta (i primi due minuti). "Any feedback welcome" non porta
+risposte: chi legge non sa da dove cominciare.
+
+Immagini: reddit/immagini/, stesso ordine (1-parco, 2-libro, 3-citta, 4-notte, 5-palude).
+
+
+========================================================================
+TITOLO
+========================================================================
+
+[Digsy World] Cozy fossil-digging in an endless procedural world. Browser, free.
+
+
+========================================================================
+CORPO DEL TESTO
+(un paragrafo = una riga sola. le righe vuote fra i paragrafi SERVONO)
+========================================================================
+
+**Game title:** Digsy World
+
+**Playable link:** https://digsy.dev-box.it/ (also on itch: https://giacomarco.itch.io/digsy-world)
+
+**Platform:** Browser, desktop and mobile. Installs as an app and plays offline.
+
+**Price:** Free, no account needed.
+
+**Description:** You play a small archaeologist digging up fossils of extinct creatures that never existed. You carry the raw pieces to a Museum, the experts take a day to identify them, and every piece you hand over lights up one more part of a 3D voxel skeleton in your Fossil Book. Five pieces and the creature is whole. Then you can mix a skull from one species with a body from another and legs from a third, and the game builds you an actual creature out of them, which wanders your town park. No combat, no game over, no timers.
+
+**What I'd like feedback on:** most people who open it stop within the first five minutes, and I can't tell why from the numbers alone. So, specifically:
+
+What did you do in your first two minutes, and did anything feel unclear?
+
+Did you find a town? Did you work out what to do with the raw fossils you were carrying?
+
+Was there a moment where you thought "ok, I get it" or did that never arrive?
+
+If something made you close the tab, say it plainly. That's the useful part and I'd rather hear it now.

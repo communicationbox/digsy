@@ -409,10 +409,14 @@ Un test pretende che ogni zona compaia in ogni tabella, che ogni cosmetico nomin
 suo disegno e che ognuna stia in una fascia di temperatura.
 
 ## In produzione ci sta SOLO il gioco
-Sprite Studio (`/sprites`), playground, editor e le pagine `__*.html` dei test importano i
-**sorgenti** (`/src/…`), non il bundle: tenerli online vorrebbe dire pubblicare tutto il
-codice per far funzionare uno strumento che serve a una persona sola sul suo computer.
-Vivono in locale con `npm run dev`. Il deploy li esclude e **verifica** che non ci siano.
+Sprite Studio (`/sprites`), playground, editor, la pagina delle statistiche (`/stats`) e le
+pagine `__*.html` dei test importano i **sorgenti** (`/src/…`), non il bundle: tenerli online
+vorrebbe dire pubblicare tutto il codice per far funzionare uno strumento che serve a una
+persona sola sul suo computer.
+Vivono in locale con `npm run dev`. Il deploy li esclude e **verifica** che non ci siano, e un
+test pretende che OGNI `public/<nome>/index.html` compaia nelle esclusioni: Vite copia tutta
+`public/` in `dist/`, quindi uno strumento nuovo va online da solo se nessuno lo toglie.
+`/stats` non entra nemmeno in `dist/` (la build la cancella): mostra dati dei giocatori.
 
 ## Pubblicare
 `npm run deploy` — prove verdi, mette da parte la versione online, pubblica, **verifica otto
@@ -442,7 +446,13 @@ quando lo spazio scarseggia.
 `npm run tester` racconta cosa sta succedendo: quanti stanno giocando, **quanto durano le
 sessioni**, a che giorno si fermano, chi è tornato una seconda volta, da telefono o computer.
 `npm run tester -- --errori` aggiunge gli schianti segnalati dal gioco, con la scena in cui
-erano. I dati arrivano dal battito (`src/beat.js` → `server/api/beat.php`): una riga ogni
+erano. Gli **stessi numeri da guardare**: `npm run dev` → http://localhost:5173/stats
+(fasce di durata, giorno raggiunto, dispositivo, versioni in giro, tabella per giocatore,
+schianti; si riaggiorna da sola ogni minuto). La lettura e i conti stanno in un posto solo
+(`tests/battito.mjs`, usato sia dal terminale sia dalla pagina): due lettori vorrebbero dire
+due risposte diverse alla stessa domanda. I file del battito NON sono scaricabili dal web —
+stanno fuori dalla webroot e si leggono via SSH, quindi la pagina passa da `/dev/battito.json`,
+un pezzo di `vite.config.js` che esiste solo nel dev server. I dati arrivano dal battito (`src/beat.js` → `server/api/beat.php`): una riga ogni
 cinque minuti con minuti giocati, giorno, livello, specie, versione. **Niente che dica chi è
 la persona** — l'identificativo lo genera il gioco a caso e vive nel dispositivo, nessun IP,
 nessun legame con l'account. Si spegne da Impostazioni → Statistiche anonime, ed è scritto
@@ -463,6 +473,14 @@ repository, come la password del database. Registro in `.watch-log`, ultimi 500 
 ## GUARDARE le schermate prima di consegnarle
 `npm run shot -- <vista> [larghezza,altezza]` fotografa una schermata vera del gioco in
 `.shots/`. Viste: `main saves stats settings trophies changelog credits account`.
+`npm run promo` fa invece le **immagini per la vetrina** (Reddit, itch) in `.shots/promo/`:
+partite già avanti portate nello stato giusto dai comandi veri (`G.cmd`), in orizzontale, senza
+tag di debug né toast — quelli si spengono con una regola CSS, perché nasconderli da JavaScript
+è una gara col tempo che si perde (lo scatto avviene quando finisce il tempo virtuale, non
+quando decide la sonda). Ogni scena porta il SEME del suo mondo (`?seed=`, letto da `initState`
+solo su una partita NUOVA): senza, ogni scatto nasceva in un mondo diverso e la stessa foto non
+si poteva rifare. Serve WebGL vero (SwiftShader, niente `--disable-gpu`) o gli scheletri del
+Libro escono come macchie 2D.
 Serve perché i test misurano che i comandi ESISTANO, non che siano messi bene: sono passati
 tre salvataggi schiacciati fino a sparire, riquadri di larghezze diverse e tre taglie di
 pulsante nella stessa schermata, tutti con la suite verde. Build → foto → **guardarla** →

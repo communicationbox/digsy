@@ -81,6 +81,9 @@ function verifica(atteso) {
      tutto il codice per far funzionare una cosa che serve a una persona sola, sul suo
      computer. Vivono in locale con `npm run dev`. */
   for (const [nome, url] of [['i sorgenti', '/src/sprites.js'], ['lo Sprite Studio', '/sprites/'],
+    /* le statistiche dei giocatori sono roba di casa: nomi di versione, schianti, quanto
+       gioca ognuno. Non è un segreto di stato, ma non si pubblica */
+    ['le statistiche', '/stats/'],
     ['le pagine di prova', '/__e2e.html']]) {
     const st = stato(SITO + url);
     dai(nome + ' non è in produzione', st === '404' || st === '403', 'HTTP ' + st);
@@ -131,7 +134,7 @@ function main() {
     ssh(`cd ${REMOTO} && rm -rf .prev && mkdir .prev && ` +
         `tar cf - --exclude=.prev --exclude=server --exclude='__*.html' --exclude=src ` +
         `--exclude=sprites --exclude=wonders --exclude=playground --exclude=editor ` +
-        `--exclude=bag-editor . | (cd .prev && tar xf -) && chmod -R a+rX .prev`);
+        `--exclude=bag-editor --exclude=stats . | (cd .prev && tar xf -) && chmod -R a+rX .prev`);
 
     console.log('· pubblico ' + v);
     /* `--exclude`: la dist contiene anche gli strumenti (Vite copia tutta public/), ma in
@@ -141,7 +144,7 @@ function main() {
       /* gli strumenti si tolgono DOPO l'estrazione invece di escluderli dal tar: i pattern
          di `--exclude` si comportano diversamente fra il tar di macOS e quello di Linux, e
          un'esclusione che silenziosamente non funziona è peggio di nessuna esclusione. */
-      `"mkdir -p ${GIOCO} && cd ${GIOCO} && tar xzf - && rm -rf __*.html src sprites wonders playground editor bag-editor .DS_Store && ` +
+      `"mkdir -p ${GIOCO} && cd ${GIOCO} && tar xzf - && rm -rf __*.html src sprites wonders playground editor bag-editor stats .DS_Store && ` +
       `find . -name '._*' -delete && chmod -R a+rX ."`,
       { stdio: 'pipe', shell: '/bin/bash' });
   }

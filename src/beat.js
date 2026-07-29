@@ -19,6 +19,12 @@ import { isTouch } from './i18n.js';
 
 const CHIAVE = 'digsy_beat_id';
 const OGNI = 5 * 60 * 1000;      // cinque minuti: abbastanza per non perdere una sessione corta
+/* Il PRIMO battito però va mandato presto. Con il solo intervallo, chi ha appena aperto il
+   gioco non esisteva per nessuno finché non passavano cinque minuti: durante una prova con
+   quattro persone collegate insieme, «in questo momento» ne segnava due. Il numero che serve a
+   guardare una sessione dal vivo è proprio quello, e arrivava sempre in ritardo di un quarto
+   d'ora. Un minuto è abbastanza: sotto, si conterebbe anche chi apre e chiude subito. */
+const PRIMO = 60 * 1000;
 
 /* L'identificativo: casuale, nel dispositivo, senza niente di riconoscibile dentro.
    Cancellando i dati del browser sparisce e si ridiventa uno nuovo — ed è giusto così. */
@@ -55,7 +61,7 @@ export function datiBattito() {
   };
 }
 
-let timer = null;
+let timer = null, primo = null;
 /* esposta apposta: una regola che decide se mandare o no dei dati dev'essere provabile
    da un test, non solo dal comportamento a runtime */
 export async function mandaOra() { return manda(); }
@@ -81,6 +87,7 @@ async function manda() {
 
 export function avviaBattito() {
   if (timer || typeof setInterval !== 'function') return false;
+  if (typeof setTimeout === 'function') primo = setTimeout(() => { manda(); }, PRIMO);
   timer = setInterval(() => { manda(); }, OGNI);
   /* alla chiusura si manda l'ultimo: è il battito che dice DOVE si è smesso, cioè
      esattamente il dato per cui esiste tutto questo */
@@ -89,4 +96,7 @@ export function avviaBattito() {
   }
   return true;
 }
-export function fermaBattito() { if (timer) { clearInterval(timer); timer = null; } }
+export function fermaBattito() {
+  if (timer) { clearInterval(timer); timer = null; }
+  if (primo) { clearTimeout(primo); primo = null; }   // anche il primo, o parte a battito spento
+}

@@ -213,6 +213,18 @@ export function sanitizePos() {
 
 export function initState() {
   const loaded = load(); S = loaded || fresh();
+  /* `?seed=123` su una partita NUOVA fissa il mondo.
+   *
+   * Il seme è casuale a ogni partita nuova, quindi ogni sessione di prova e ogni foto nascono
+   * in un mondo diverso: un difetto visto in una città non si può far rivedere a nessuno, e la
+   * stessa immagine non si può rifare dopo una modifica. Vale SOLO senza salvataggio: a chi sta
+   * giocando il suo mondo non lo cambia nessuno, nemmeno per sbaglio con un link. */
+  if (!loaded) {
+    try {
+      const q = parseInt(new URLSearchParams(location.search).get('seed'), 10);
+      if (Number.isFinite(q)) S.seed = q;
+    } catch (e) { /* niente location (test in Node): si tiene il seme casuale */ }
+  }
   /* SCHEMA: `v` dice con che forma di dati è stato scritto il save. Se manca è un save
      pre-versionamento (v0), e le migrazioni qui sotto lo portano al presente. Un save dal
      FUTURO (v maggiore) non si tocca: meglio caricarlo com'è che romperlo. */
