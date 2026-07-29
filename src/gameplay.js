@@ -154,8 +154,10 @@ export function fossilCount() { return S.raw.length + S.items.length; }
 export function bagFull() { return !isDebug() && fossilCount() >= bagCap(); }
 export function dropAt(tx, ty, kind, payload) { if (!S.drops) S.drops = []; S.drops.push({ uid: S.uid++, tx, ty, kind, payload }); }
 /* aggiunge un fossile grezzo: in zaino se c'è posto, altrimenti a TERRA sulla tile (tx,ty) */
-export function addFossil(raw, tx, ty) {
-  gainXp(XP_BY_RAR[raw.q] || 4); // trovare un reperto dà XP (anche se lo lasci a terra)
+export function addFossil(raw, tx, ty, opts) {
+  /* `{ xp: false }`: il reperto entra ma NON fa livellare. Serve al raccoglitore leggendario,
+     che lavora da solo — l'XP è la ricompensa di chi scava, non di chi guarda scavare. */
+  if (!opts || opts.xp !== false) gainXp(XP_BY_RAR[raw.q] || 4); // trovare un reperto dà XP (anche se lo lasci a terra)
   S.findsTotal = (S.findsTotal || 0) + 1; // contatore lifetime per il trofeo "Scavatore"
   if (bagFull()) { dropAt(tx, ty, 'raw', raw); toast('🎒 ' + tr('Zaino pieno: reperto lasciato a terra', 'Bag full: find left on the ground')); playSfx('nope'); showTip('bagfull'); return false; }
   S.raw.push(raw); return true;
@@ -399,14 +401,45 @@ export function tryFish() {
    casella valida vicina, la lavora con animazione, e ti porta un fossile nello zaino. Cadenza
    lenta + cap (zaino pieno → si ferma) così resta più LENTO dello scavo attivo: è comodità e
    prestigio, non un sostituto (scavo = fonte principale). La grotta ha il suo potere a parte. */
-const CW = { GO: 118, WORK: 1.3, COOL: 6, RETRY: 1.6, R: 5 };
+/* PAUSA fra un lavoro e l'altro: `COOL` per un caso fra 3× e 10×, cioè 18–60 s.
+   Prima era 6 s fissi e il raccoglitore riempiva lo zaino senza che tu facessi niente: non era
+   più una comodità, era un secondo giocatore più bravo di te. Il caso serve perché una cadenza
+   fissa si impara a memoria e si aspetta col cronometro.
+   `LUCK`: metà delle volte non trova nulla, esattamente come capita a te. */
+const CW = { GO: 118, WORK: 1.3, COOL: 6, SLOW_MIN: 3, SLOW_MAX: 10, LUCK: 0.5, RETRY: 1.6, R: 5 };
 const WORK_SRC = { terra: 'terra', acqua: 'acqua', albero: 'albero', roccia: 'roccia' };
 function tileValidForWork(type, tx, ty) {
   if (townInfo(tx, ty)) return false;
   if (type === 'acqua') return waterTile(tx, ty);
+  /* albero e roccia: `decoAt` restituisce già null su quelli abbattuti e spaccati */
   if (type === 'albero') return CHOPPABLE.includes(decoAt(tx, ty));
   if (type === 'roccia') return MINEABLE.includes(decoAt(tx, ty));
-  return diggable(baseTerrain(tx, ty)) && !decoAt(tx, ty); // terra: terreno scavabile e libero
+  /* terra: scavabile, libera e MAI GIÀ SCAVATA. Senza l'ultimo controllo il raccoglitore
+     tornava trenta volte sulla stessa casella — la prima buona che trovava a spirale — mentre
+     a te la stessa casella dice "già scavato qui". */
+  return diggable(baseTerrain(tx, ty)) && !decoAt(tx, ty) && !dugSet.has(tx + ',' + ty);
+}
+/* LA PAUSA VIVE NEL SALVATAGGIO, non in memoria.
+ *
+ * Era un contatore a runtime (`COMP.cool`), azzerato a ogni caricamento della pagina: bastava
+ * ricaricare per far ripartire subito il raccoglitore, e ricaricando in continuazione scavava a
+ * raffica — la pausa di 18-60 secondi non contava niente (segnalato da un giocatore).
+ * Ora si salva l'ORA in cui potrà ricominciare: un ricarico non la sposta. Scorre anche a gioco
+ * chiuso, ed è giusto — è un'attesa, non un lavoro che continua senza di te: al ritorno gli
+ * spetta UN turno, non tutti quelli che si è perso.
+ * Cambiare compagno non la azzera, altrimenti si tornerebbe al punto di partenza da un'altra
+ * porta: si scambia due volte il compagno e il raccoglitore riparte quando vuoi. */
+function pausaAttiva() { return (S.compNext || 0) > Date.now(); }
+function mettiPausa(sec) { S.compNext = Date.now() + sec * 1000; save(); }
+
+/* la casella si CONSUMA come quando la lavori tu: buca nel terreno, albero abbattuto, masso
+   spaccato. È anche l'unica cosa che rende visibile dove ha lavorato. L'acqua no: nemmeno a te
+   si esaurisce un punto di pesca. */
+function segnaLavorata(type, tx, ty) {
+  const key = tx + ',' + ty;
+  if (type === 'terra' && !dugSet.has(key)) { dugSet.add(key); S.dug.push(key); }
+  else if (type === 'albero' && !choppedSet.has(key)) { choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); }
+  else if (type === 'roccia' && !minedSet.has(key)) { minedSet.add(key); if (!S.mined) S.mined = []; S.mined.push(key); }
 }
 function findWorkTile(type, cx, cy) {
   for (let r = 1; r <= CW.R; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -433,7 +466,7 @@ export function companionWorkTick(dt) {
   COMP.cool = Math.max(0, (COMP.cool || 0) - dt);
   const job = COMP.job;
   if (!job) {
-    if (bagFull() || COMP.cool > 0) return;                 // zaino pieno o in pausa: segue e basta
+    if (bagFull() || COMP.cool > 0 || pausaAttiva()) return; // zaino pieno o in pausa: segue e basta
     const cx = Math.floor(COMP.x / TS), cy = Math.floor((COMP.y + FOOT_DY) / TS);
     const t = findWorkTile(type, cx, cy);
     if (!t) { COMP.cool = CW.RETRY; return; }                // niente da lavorare qui: riprova tra poco
@@ -458,11 +491,14 @@ export function companionWorkTick(dt) {
     const ph = 1 - job.t / CW.WORK, hit = Math.floor(ph * 4);  // due colpi come lo scavo manuale
     if (hit !== job.hit) { job.hit = hit; if (hit % 2 === 1) playSfx(type === 'acqua' ? 'fish' : type === 'terra' ? 'dig' : type === 'albero' ? 'chop' : 'mine'); }
     if (job.t <= 0) {
-      if (!bagFull()) {                                       // esito: un fossile della fonte del tipo
+      segnaLavorata(job.type, job.tx, job.ty);                // la buca resta, la casella è finita
+      /* metà delle volte a mani vuote, e MAI XP: quello lo prende chi scava. */
+      if (!bagFull() && Math.random() < CW.LUCK) {
         const raw = makeRaw(zoneAt(job.tx, job.ty).id, Math.hypot(job.tx, job.ty), null, WORK_SRC[type]);
-        if (raw && addFossil(raw, job.tx, job.ty)) { playSfx('found'); COMP.fx.push({ x: COMP.x, y: COMP.y - 10, life: 1, q: raw.q }); }
+        if (raw && addFossil(raw, job.tx, job.ty, { xp: false })) { playSfx('found'); COMP.fx.push({ x: COMP.x, y: COMP.y - 10, life: 1, q: raw.q }); }
       }
-      COMP.job = null; COMP.cool = CW.COOL;
+      COMP.job = null;
+      mettiPausa(CW.COOL * (CW.SLOW_MIN + Math.random() * (CW.SLOW_MAX - CW.SLOW_MIN)));
     }
   }
 }

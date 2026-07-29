@@ -656,7 +656,10 @@ function abilLabel(spec) {
   let base = powers.map(p => powLabel(p.type, p.mag)).filter(Boolean).join(' · ');
   if (spec && spec.q === 'leggendario') base += companionType(spec) === 'grotta'
     ? ' · 🐾 ' + tr('CAVALCABILE: vola sulla mappa', 'RIDEABLE: fly over the map')
-    : ' · 🐾 ' + tr('raccoglie da solo e ti porta i fossili', 'gathers on its own and brings you fossils');
+    /* dice anche i LIMITI, non solo il potere: è lento, metà delle volte torna a mani vuote e
+       non fa livellare. Scritto solo "raccoglie da solo e ti porta i fossili" sembrava un
+       secondo giocatore al posto tuo, ed è la cosa che poi si scopre di persona e delude. */
+    : ' · 🐾 ' + tr('raccoglie da solo: lento, spesso a vuoto, niente XP', 'gathers on its own: slow, often nothing, no XP');
   return base;
 }
 export function openCompanionPicker() {

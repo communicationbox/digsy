@@ -2,6 +2,12 @@
 export const CHANGELOG = [
   {
     v: 'v0.86', it: [
+      'RACCOGLITORE leggendario RIDIMENSIONATO: era un secondo giocatore più bravo di te. Ora NON dà XP (l\'esperienza la prende chi scava), lavora ogni 18-60 secondi invece di ogni 6, riesce metà delle volte e la casella se la CONSUMA — lascia la buca come quando scavi tu, e non torna trenta volte sullo stesso punto',
+      'FIX: ricaricare la pagina non fa più ripartire subito il raccoglitore. La pausa era un contatore in memoria, azzerato a ogni caricamento: ricaricando di continuo scavava a raffica. Ora è un\'ora salvata, e un refresh non la sposta',
+      'MAPPA: "sei qui" è uno SPILLO ROSSO che lampeggia. Era un quadratino bianco disegnato come i paesi e le X: l\'unico pin che conta non si distingueva dagli altri. E la mappa si apre già a zoom ×3 — a un pixel per casella si vedeva mezzo continente e la città sotto i piedi era grande sei pixel',
+      'Via i nomi dei biomi dalla legenda della mappa: sei voci su quattordici per dire che il verde è prato, cosa che il tag della zona ti dice già mentre ci cammini',
+      'ICONA DELLE MISSIONI ridisegnata: era una pergamena fatta di sette strisce della stessa larghezza, e nella barra — a 16 pixel — restava un rettangolo rigato',
+      'IL RISTORO dice cosa fa: "+15 ⚡ quando lo mangi", in negozio e nel messaggio. Prima diceva solo "Ristoro nello zaino" e si comprava credendo di recuperare energia subito',
       'MUSEO più PULITO: il pannello del Curatore ora ha due schede — BANCO (consegna, commissione, ricariche DNA) e PROGRESSI (i numeri). Prima erano sette blocchi impilati con due o tre righe di spiegazione ciascuno: su telefono era alto tre schermate e il pulsante \"Consegna tutto\" spariva in mezzo al testo',
       'I PREMI di una commissione sono in COLONNA, uno per riga: in fila andavano a capo in mezzo a un premio e non si capiva dove finiva uno e cominciava l\'altro',
       'MOBILE: nei pannelli i pulsanti stanno sotto alla riga, a tutta larghezza — a destra strozzavano il testo in una colonna di tre parole',
@@ -17,6 +23,12 @@ export const CHANGELOG = [
       'SPRITE STUDIO: nuova scheda VESTITI — 4 maglie e 4 pantaloni si possono rifinire a mano nelle tre viste (i pantaloni per ogni passo: fra i due fotogrammi le gambe cambiano, il torso no)',
       'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle',
     ], en: [
+      'LEGENDARY GATHERER TONED DOWN: it was a second player better than you. It now gives NO XP (experience belongs to whoever digs), works every 18-60 seconds instead of every 6, succeeds half the time, and CONSUMES the tile — it leaves the hole like your own digging does, instead of returning thirty times to the same spot',
+      'FIX: reloading the page no longer restarts the gatherer at once. The pause was a counter in memory, wiped on every load: reloading repeatedly made it dig in bursts. It is now a saved deadline, and a refresh does not move it',
+      'MAP: "you are here" is a blinking RED PIN. It used to be a white square drawn like towns and treasure X marks: the one pin that matters looked like all the others. And the map now opens at ×3 zoom — at one pixel per tile you saw half a continent and the town under your feet was six pixels wide',
+      'Biome names are gone from the map legend: six entries out of fourteen spent saying that green is grass, which the zone tag already tells you while you walk it',
+      'MISSION ICON redrawn: the scroll was seven stripes of the same width, and in the bar — at 16 pixels — it stayed a striped rectangle',
+      'THE SNACK says what it does: "+15 ⚡ when you eat it", in the shop and in the message. Before it only said "Snack in your bag" and people bought it expecting energy right away',
       'CLEANER MUSEUM: the Curator\'s panel now has two tabs — DESK (hand in, commission, DNA refills) and PROGRESS (the numbers). Before it stacked seven blocks with two or three lines of explanation each: on a phone it ran three screens tall and the \"Hand in all\" button was lost in the text',
       'COMMISSION REWARDS are now a COLUMN, one per line: in a row they wrapped mid-reward and you could not tell where one ended and the next began',
       'MOBILE: panel buttons now sit below their row at full width — on the right they squeezed the text into a three-word column',

@@ -751,7 +751,7 @@ export const RU = {
   'richer crystals + light at night': 'богаче кристаллы + свет ночью',
   'finds ': 'находки ',
   'RIDEABLE: fly over the map': 'ВЕРХОМ: летай над картой',
-  'gathers on its own and brings you fossils': 'сам добывает и приносит тебе окаменелости',
+  'gathers on its own: slow, often nothing, no XP': 'сам добывает: медленно, часто впустую, без опыта',
   'No flying here: get down and walk': 'Здесь не летают: спустись и иди пешком',
   'You need a legendary cave companion to fly': 'Чтобы летать, нужен легендарный пещерный спутник',
   'Airborne! You cross anything': 'В полёте! Пролетаешь над всем',

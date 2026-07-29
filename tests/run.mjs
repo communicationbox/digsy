@@ -3845,9 +3845,56 @@ sprites.applyLook();
   comp.setCompanion(legTerra);
   COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = null; COMP.cool = 0; COMP.fx = [];
   P.x = COMP.x; P.y = COMP.y;   // il player è VICINO: il raccoglitore lavora (non ti sta seguendo)
+  /* IL CASO SI FISSA: la pausa fra un lavoro e l'altro va da 18 a 60 secondi e la riuscita è
+     al 50%, quindi un test che aspetta "prima o poi un fossile" diventa una monetina. Con
+     Math.random a 0 la pausa è la più corta e la fortuna gira sempre bene. */
+  const dado = Math.random;
+  Math.random = () => 0;
+  const xpPrima = S.xp || 0, livPrima = S.level || 1;
   let got = false;
   for (let i = 0; i < 4000 && !got; i++) { gp.companionWorkTick(1 / 60); if (S.raw.length > 0) got = true; } // il grezzo va in S.raw
   check('raccoglitore leggendario: lavora e PORTA un fossile nello zaino', got && COMP.fx.length >= 1);
+  /* NIENTE XP: l'esperienza la prende chi scava, non chi guarda scavare. Un raccoglitore che
+     livellava da solo faceva salire di livello lasciando il gioco aperto. */
+  check('raccoglitore: il fossile che porta NON dà XP', (S.xp || 0) === xpPrima && (S.level || 1) === livPrima);
+  /* LA BUCA RESTA: la casella si consuma come quando la scavi tu. Senza, tornava trenta volte
+     sulla stessa casella — la prima buona che trovava a spirale. */
+  const st5 = await import('../src/state.js');
+  check('raccoglitore: la casella lavorata resta SCAVATA (buca, come per te)', st5.dugSet.size > 0);
+  const primaBuca = st5.dugSet.size;
+  /* la pausa va a OROLOGIO VERO e questo ciclo gira in tempo zero: senza azzerarla, il secondo
+     lavoro non partirebbe mai e il test misurerebbe la pausa invece della scelta della casella */
+  COMP.job = null; COMP.cool = 0; S.compNext = 0;
+  for (let i = 0; i < 4000; i++) { gp.companionWorkTick(1 / 60); S.compNext = 0; }
+  check('raccoglitore: scava caselle NUOVE, non sempre la stessa', st5.dugSet.size > primaBuca);
+  /* pausa fra 3× e 10× la vecchia cadenza: al minimo del dado deve essere 3× (18 s).
+     Sta nel SALVATAGGIO (`S.compNext`) e non in memoria: era un contatore a runtime, azzerato a
+     ogni caricamento, e ricaricando la pagina in continuazione il raccoglitore scavava a
+     raffica — la pausa non contava niente. */
+  /* il compagno si è allontanato lavorando: se resta lontano dal player il primo controllo
+     molla il lavoro e la pausa non viene mai impostata */
+  S.compNext = 0; COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; P.x = COMP.x; P.y = COMP.y;
+  COMP.job = { type: 'terra', tx: wx, ty: wy, wx: COMP.x, wy: COMP.y, phase: 'work', t: 0.001, hit: 3 };
+  gp.companionWorkTick(1 / 30);
+  const attesa1 = ((S.compNext || 0) - Date.now()) / 1000;
+  check('raccoglitore: la pausa è almeno 3× la vecchia (18 s, non 6)', attesa1 >= 17.5, 'attesa=' + attesa1.toFixed(1));
+  Math.random = () => 0.999;                 // dado al massimo: pausa lunghissima e mani vuote
+  S.raw = []; S.compNext = 0; COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; P.x = COMP.x; P.y = COMP.y;
+  COMP.job = { type: 'terra', tx: wx, ty: wy, wx: COMP.x, wy: COMP.y, phase: 'work', t: 0.001, hit: 3 };
+  gp.companionWorkTick(1 / 30);
+  const attesa2 = ((S.compNext || 0) - Date.now()) / 1000;
+  check('raccoglitore: al massimo la pausa è 10× (60 s)', attesa2 > 55 && attesa2 <= 60.1, 'attesa=' + attesa2.toFixed(1));
+  check('raccoglitore: metà delle volte torna a mani vuote', S.raw.length === 0);
+  /* IL REFRESH NON AZZERA LA PAUSA: con la pausa attiva non si prende nessun lavoro, nemmeno
+     ripartendo da zero come dopo un caricamento (COMP è in memoria, S.compNext no). */
+  Math.random = () => 0;
+  S.raw = []; COMP.job = null; COMP.cool = 0;               // come dopo un ricarico della pagina
+  S.compNext = Date.now() + 30000;
+  for (let i = 0; i < 600; i++) gp.companionWorkTick(1 / 60);
+  check('raccoglitore: ricaricare la pagina NON azzera la pausa', COMP.job === null && S.raw.length === 0);
+  Math.random = dado;
+  S.compNext = 0;
+  st5.dugSet.clear(); S.dug = []; S.raw = []; COMP.job = null; COMP.cool = 0;
   /* se il player si ALLONTANA, il raccoglitore MOLLA il lavoro (job=null) e torna a seguirlo */
   COMP.x = wx * TS + 8; COMP.y = wy * TS + 8; COMP.job = { type: 'terra', phase: 'work', t: 1, wx: COMP.x, wy: COMP.y, hit: -1 }; COMP.cool = 0;
   P.x = COMP.x + 8 * TS; P.y = COMP.y;   // player lontano
