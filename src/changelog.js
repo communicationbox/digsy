@@ -2,6 +2,7 @@
 export const CHANGELOG = [
   {
     v: 'v0.86', it: [
+      'FIX MISSIONI del cartello: con 2 gusci di lumaca nello zaino la richiesta leggeva 1/2 e non si chiudeva mai. Gli oggetti di superficie stanno in PILE (una voce, quantità dentro) e il cartello contava le voci, non i pezzi. E la consegna avrebbe portato via la pila INTERA: 4 giunchi richiesti, 14 spariti. Ora la pila si scala',
       'RACCOGLITORE leggendario RIDIMENSIONATO: era un secondo giocatore più bravo di te. Ora NON dà XP (l\'esperienza la prende chi scava), lavora ogni 18-60 secondi invece di ogni 6, riesce metà delle volte e la casella se la CONSUMA — lascia la buca come quando scavi tu, e non torna trenta volte sullo stesso punto',
       'FIX: ricaricare la pagina non fa più ripartire subito il raccoglitore. La pausa era un contatore in memoria, azzerato a ogni caricamento: ricaricando di continuo scavava a raffica. Ora è un\'ora salvata, e un refresh non la sposta',
       'MAPPA: "sei qui" è uno SPILLO ROSSO che lampeggia. Era un quadratino bianco disegnato come i paesi e le X: l\'unico pin che conta non si distingueva dagli altri. E la mappa si apre già a zoom ×3 — a un pixel per casella si vedeva mezzo continente e la città sotto i piedi era grande sei pixel',
@@ -23,6 +24,7 @@ export const CHANGELOG = [
       'SPRITE STUDIO: nuova scheda VESTITI — 4 maglie e 4 pantaloni si possono rifinire a mano nelle tre viste (i pantaloni per ogni passo: fra i due fotogrammi le gambe cambiano, il torso no)',
       'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle',
     ], en: [
+      'BOARD MISSIONS FIX: with 2 snail shells in your bag the request read 1/2 and could never be completed. Surface goods live in STACKS (one entry, quantity inside) and the board counted entries, not pieces. And delivery would have taken the WHOLE stack: 4 reeds asked, 14 gone. The stack is now decremented',
       'LEGENDARY GATHERER TONED DOWN: it was a second player better than you. It now gives NO XP (experience belongs to whoever digs), works every 18-60 seconds instead of every 6, succeeds half the time, and CONSUMES the tile — it leaves the hole like your own digging does, instead of returning thirty times to the same spot',
       'FIX: reloading the page no longer restarts the gatherer at once. The pause was a counter in memory, wiped on every load: reloading repeatedly made it dig in bursts. It is now a saved deadline, and a refresh does not move it',
       'MAP: "you are here" is a blinking RED PIN. It used to be a white square drawn like towns and treasure X marks: the one pin that matters looked like all the others. And the map now opens at ×3 zoom — at one pixel per tile you saw half a continent and the town under your feet was six pixels wide',

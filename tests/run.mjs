@@ -3981,7 +3981,7 @@ sprites.applyLook();
   check('accetta una missione', q.acceptQuest(off, 5) === true && q.isActive(off.qid));
   const a = q.activeQuests()[0];
   if (a.type === 'fossils') for (let i = 0; i < a.n; i++) S.items.push({ uid: 900 + i, s: 'lepre', t: 'cranio', q: a.rar, val: 5 });
-  else if (a.type === 'goods') for (let i = 0; i < a.n; i++) S.goods.push({ uid: 900 + i, id: a.goodId, val: 3, good: true });
+  else if (a.type === 'goods') S.goods.push({ uid: 900, id: a.goodId, n: a.n, val: 3 * a.n, good: true }); // come in gioco: UNA pila
   else for (let i = 0; i < a.n; i++) S.items.push({ uid: 900 + i, s: 'lepre', t: a.part, q: 'comune', val: 5 });
   const xpQ = S.xp || 0, lvQ = S.level || 1;
   check('consegna: ricompensa e chiusura', q.canComplete(a) && !!q.deliverQuest(a.qid) && S.coins === a.reward && q.isDone(a.qid) && !q.isActive(a.qid));
@@ -4006,6 +4006,26 @@ sprites.applyLook();
       check('la missione consuma il pezzo MENO prezioso', S.items.length === 1 && S.items[0].q === 'leggendario');
     } else check('la missione consuma il pezzo MENO prezioso', true, 'nessuna offerta parts');
     S.items = [];
+  }
+  /* I GOODS SONO IMPILATI: il cartello deve contare le UNITÀ, non le voci dell'elenco, e la
+     consegna deve SCALARE la pila. Prima "Guscio di lumaca ×2" nello zaino leggeva 1/2 sul
+     cartello (missione impossibile), e una richiesta di 4 avrebbe cancellato la pila da 14. */
+  {
+    S.quests.active = []; S.quests.done = []; S.items = []; S.coins = 0;
+    const gid = Object.keys((await import('../src/data.js')).goodById)[0];
+    S.goods = [{ uid: 7001, id: gid, n: 14, val: 140, good: true }];
+    const off = { qid: 'g1', type: 'goods', goodId: gid, n: 4, reward: 20, giver: 0 };
+    q.acceptQuest(off, 5);
+    const qa = q.activeQuests().find(x => x.qid === 'g1');
+    check('cartello: conta le UNITÀ dentro la pila', q.questHave(qa) === 14 && q.canComplete(qa));
+    check('consegna: scala la pila, non la cancella', !!q.deliverQuest('g1') && S.goods.length === 1 && S.goods[0].n === 10 && S.goods[0].val === 100);
+    /* pila esaurita → sparisce; più pile → si svuotano una alla volta */
+    S.quests.active = []; S.quests.done = [];
+    S.goods = [{ uid: 7002, id: gid, n: 64, val: 640, good: true }, { uid: 7003, id: gid, n: 2, val: 20, good: true }];
+    const off2 = { qid: 'g2', type: 'goods', goodId: gid, n: 3, reward: 10, giver: 0 };
+    q.acceptQuest(off2, 5); q.deliverQuest('g2');
+    check('più pile: si svuota prima la piccola e sparisce', S.goods.length === 1 && S.goods[0].n === 63);
+    S.goods = []; S.quests.active = []; S.quests.done = [];
   }
   S.quests.active = []; S.quests.done = [];
   const o2 = q.boardOffers(2, 2, 5);
