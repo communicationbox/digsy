@@ -93,10 +93,14 @@ export const RU = {
   'No site found nearby': 'Поблизости нет места раскопок',
   'No wreck found nearby': 'Поблизости нет обломков',
   'No landmark found nearby': 'Поблизости нет чуда',
+  'No buried skeleton found nearby': 'Поблизости нет закопанного скелета',
+  '5 parts to dig': '5 частей на раскопку',
   'Seen everything around — reset, run tour again': 'Вокруг всё осмотрено — сброшено, запустите тур снова',
   'Replaying intro…': 'Повтор вступления…',
   'auto weather': 'погода автоматически',
   'weather: rain/sandstorm/fog/ash/snow/clear/off': 'погода: дождь/песчаная буря/туман/пепел/снег/ясно/выкл',
+  'auto market (per species, changes by day)': 'рынок автоматически (по видам, меняется по дням)',
+  'market: basso/normale/alto/record/off': 'рынок: низкий/обычный/высокий/рекорд/выкл',
   'Fly ON': 'Полёт ВКЛ',
   'Fly OFF': 'Полёт ВЫКЛ',
   'Vanilla: cheats removed, save restored': 'Vanilla: читы убраны, сохранение восстановлено',
@@ -212,7 +216,7 @@ export const RU = {
   'You free ': 'Вы освобождаете ',
   ' of ': ' вида ',
   ' from the ice!': ' изо льда!',
-  'Lucky spores: 10 digs with doubled finds': 'Счастливые споры: 10 раскопок с удвоенной добычей',
+  'Lucky spores: 10 digs with better odds of a find': 'Счастливые споры: 10 раскопок с повышенным шансом находки',
   'Blessing: 10 digs with double XP': 'Благословение: 10 раскопок с двойным опытом',
   'Nothing happens': 'Ничего не происходит',
 
@@ -229,10 +233,6 @@ export const RU = {
   'Snack in your bag{key:I}: +15 ⚡ when you eat it': 'Перекус в рюкзаке{key:I}: +15 ⚡ когда съешь',
   'No snacks in your bag': 'В рюкзаке нет перекусов',
   'Energy already full': 'Энергия уже полная',
-  'Missing DNA of: ': 'Не хватает ДНК: ',
-  ' (museum, case 5/5)': ' (музей, витрина 5/5)',
-  'CHIMERA CREATED': 'ХИМЕРА СОЗДАНА',
-  ' has woken up! It roams the big-city park': ' оживлена! Она гуляет в парке большого города',
   'SPECIES AWAKENED': 'ВИД ПРОБУЖДЁН',
 
   /* ---- HUD e intro ---- */
@@ -291,6 +291,60 @@ export const RU = {
   'Brush: drag to dust it off — the pale fossil appears in the rock': 'Кисть: веди, чтобы смахнуть пыль — светлое ископаемое проступит в породе',
   'Chisel: drag on the dark ROCK to chip it away — don\'t touch the pale fossil': 'Зубило: веди по тёмной ПОРОДЕ, чтобы скалывать — не задевай светлое ископаемое',
   'Spatula: drag on the fossil to clean it — don\'t keep scraping bone that\'s already clean': 'Шпатель: веди по ископаемому, чтобы очистить — не скобли уже чистую кость',
+
+  /* ---- ricomponi lo scheletro (museo) ---- */
+  'SKELETON': 'СКЕЛЕТ',
+  'Drag the piece into the right socket': 'Перетащи кость в нужное гнездо',
+  'Perfect fit!': 'Идеально подогнано!',
+  'Nicely fitted': 'Хорошо подогнано',
+  'Fitted': 'Подогнано',
+  'Skipped': 'Пропущено',
+  'Pedestal updated': 'Постамент обновлён',
+  'Rebuild the skeleton: drag the piece into the right socket': 'Собери скелет: перетащи кость в нужное гнездо',
+  'New hat at the Tailor: ': 'Новая шляпа у портного: ',
+
+  /* ---- allevamento (uova, genetica) ---- */
+  '🥚 An egg is about to hatch… head back to the Laboratory to see it!': '🥚 Яйцо вот-вот вылупится… вернись в лабораторию!',
+  'Breed a chimera': 'Вывести химеру',
+  'Ready to hatch!': 'Готово к вылуплению!',
+  'Child of': 'Дитя',
+  'Hatch!': 'Вылупить!',
+  'Incubating': 'Высиживается',
+  'days left': 'дней осталось',
+  'You need at least 2 chimeras (or awakened species) in the park.': 'Нужно минимум 2 химеры (или пробуждённых вида) в парке.',
+  'Pick the two parents, then who each part is inherited from. The egg eats the': 'Выбери двух родителей, а затем от кого наследуется каждая часть. Яйцо съедает',
+  'least valuable duplicates you have (the finer they are, the better the odds of a surprise), and takes': 'наименее ценные дубликаты, что у тебя есть (чем они ценнее, тем выше шанс сюрприза), и созревает',
+  'days to hatch.': 'дней до вылупления.',
+  'Skull: parent 1': 'Череп: родитель 1',
+  'Skull: parent 2': 'Череп: родитель 2',
+  'Ribcage: parent 1': 'Грудь: родитель 1',
+  'Ribcage: parent 2': 'Грудь: родитель 2',
+  'Leg: parent 1': 'Нога: родитель 1',
+  'Leg: parent 2': 'Нога: родитель 2',
+  'Lay the egg': 'Отложить яйцо',
+  'HATCHED!': 'ВЫЛУПИЛОСЬ!',
+  'Pick two DIFFERENT parents': 'Выбери двух РАЗНЫХ родителей',
+  "You don't have enough duplicates (": 'Недостаточно дубликатов (',
+  'mutation': 'мутация',
+  'extra rarity': 'доп. редкость',
+  'food': 'корм',
+  'Egg laid! Come back in ': 'Яйцо отложено! Возвращайся через ',
+  ' days': ' дней',
+  'Egg laid: ': 'Яйцо отложено: ',
+  'Could not lay the egg': 'Не удалось отложить яйцо',
+  'No egg incubating': 'Нет яйца в кладке',
+  'Hatched: ': 'Вылупилось: ',
+  'Not ready yet': 'Ещё не готово',
+
+  /* ---- parco che rende (idle) ---- */
+  'Welcome back! The park earned: ': 'С возвращением! Парк заработал: ',
+  'half a vial of ': 'полфлакона ',
+
+  /* ---- gioca col compagno (lancia e riporta) ---- */
+  'Caught it perfectly! Better odds on your next 3 digs': 'Поймано влёт! Повышенный шанс находки на следующих 3 раскопках',
+  'Nice fetch! Better odds on your next dig': 'Хорошая подача! Повышенный шанс находки на следующей раскопке',
+  'Thrown! Press E at the right moment when it comes back (watch the bar over its head)': 'Брошено! Нажми E в нужный момент, когда он вернётся (следи за полоской над головой)',
+  'No open space around you: move and try again': 'Вокруг нет свободного места: отойди и попробуй снова',
 
   /* ---- missioni ---- */
   'Deliver ': 'Сдайте ',
@@ -375,8 +429,12 @@ export const RU = {
   'Talk to ': 'Поговорить: ',
   'Dig at the site ⛏️ (': 'Копать на раскопках ⛏️ (',
   'Site exhausted': 'Место исчерпано',
+  'Dig: ': 'Копать: ',
+  ' · skeleton complete!': ' · скелет собран!',
   'Mission board 📋': 'Доска заданий 📋',
   'Choose your companion 🐾': 'Выбрать спутника 🐾',
+  'Play with your companion 🐾': 'Поиграть со спутником 🐾',
+  'Catch it NOW! 🐾': 'Лови СЕЙЧАС! 🐾',
   'Toss 1 🪙 into the fountain': 'Бросить 1 🪙 в фонтан',
   'Search the wreck 🚢 (': 'Обыскать обломки 🚢 (',
   'Pick ': 'Подобрать ',
@@ -490,8 +548,8 @@ export const RU = {
   'ready': 'готово',
 
   /* ---- compagno ---- */
-  'No chimera or awakened fossil yet. Assemble a chimera or awaken a species at the Lab!':
-    'Пока нет ни химеры, ни пробуждённого вида. Соберите химеру или пробудите вид в Лаборатории!',
+  'No chimera or awakened fossil yet. Awaken a species at the Lab (then you can breed chimeras too)!':
+    'Пока нет ни химеры, ни пробуждённого вида. Пробудите вид в Лаборатории (потом сможете и разводить химер)!',
   'No companion': 'Без спутника',
   'go on your own': 'иди в одиночку',
   'on your own': 'в одиночку',
@@ -540,14 +598,6 @@ export const RU = {
   /* ---- laboratorio ---- */
   'The laboratory awakens: chimeras and complete species. (Raw finds are identified at the <b>Museum</b>.)':
     'Лаборатория оживляет: химеры и целые виды. (Необработанные находки определяют в <b>Музее</b>.)',
-  'Awaken a chimera': 'Оживить химеру',
-  'Assemble an identified <b>Skull + Ribcage + Leg</b>': 'Соберите определённые <b>Череп + Грудная клетка + Лапа</b>',
-  '1 vial per species used': '1 пробирка на каждый использованный вид',
-  'the creature comes alive in the big-city <b>park</b>. Chimeras created':
-    'существо оживает в <b>парке</b> большого города. Химер создано',
-  'Missing': 'Не хватает',
-  'Awaken!': 'Оживить!',
-  'Preview of the assembled creature': 'Предпросмотр собранного существа',
   'DEBUG: infinite DNA vials. Awakened': 'ОТЛАДКА: бесконечные пробирки ДНК. Пробуждено',
   'Discover some fossils to awaken them.': 'Найдите ископаемых, чтобы их пробудить.',
   'No DNA vials in your bag.': 'В рюкзаке нет пробирок ДНК.',
@@ -672,8 +722,8 @@ export const RU = {
   'Vehicles': 'Транспорт',
   'Other': 'Прочее',
   'DNA': 'ДНК',
-  'Infinite DNA: free awakenings and chimeras at the Lab':
-    'Бесконечная ДНК: пробуждения и химеры в Лаборатории бесплатно',
+  'Infinite DNA: free awakenings at the Lab':
+    'Бесконечная ДНК: пробуждения в Лаборатории бесплатно',
   'At the museum': 'В музее',
   'pickup from day ': 'забрать с дня ',
   'Chimeras': 'Химеры',
@@ -927,7 +977,7 @@ export const RU = {
     'Идеальный круг грибов, светящихся ночью зелёным.',
   'Spores on your spade bring luck. Do not ask me why.':
     'Споры на лопате приносят удачу. Не спрашивай почему.',
-  'Lucky spores: doubled finds for 10 digs.': 'Счастливые споры: удвоенная добыча на 10 раскопок.',
+  'Lucky spores: better odds of a find for 10 digs.': 'Счастливые споры: повышенный шанс находки на 10 раскопок.',
   'The Hollow Stump': 'Полый пень',
   'The stump of an enormous tree: you can stand inside it.':
     'Пень огромного дерева: внутри можно встать во весь рост.',
@@ -1134,14 +1184,14 @@ export const RU = {
     'открывает консоль: введите команду и нажмите ввод. Они нужны для тестов: включают читы, и сохранение остаётся замороженным, пока вы не введёте <b>vanilla</b>.',
 
   /* ---- DNA: 2 fialette risvegliano, 1 basta per una chimera ---- */
-  'Complete a Museum case (5 pieces of one species) to get a <b>DNA vial</b>. The Laboratory needs <b>2</b> to awaken the species, <b>1</b> to use it in a chimera.':
-    'Соберите витрину Музея (5 частей одного вида) и получите <b>пробирку ДНК</b>. Лаборатории нужно <b>2</b>, чтобы пробудить вид, и <b>1</b>, чтобы использовать его в химере.',
+  'Complete a Museum case (5 pieces of one species) to get a <b>DNA vial</b>. The Laboratory needs <b>2</b> to awaken the species. Chimeras don\'t come from bones: you breed TWO creatures you already have.':
+    'Соберите витрину Музея (5 частей одного вида) и получите <b>пробирку ДНК</b>. Лаборатории нужно <b>2</b>, чтобы пробудить вид. Химеры не рождаются из костей: скрестите ДВУХ существ, которые у вас уже есть.',
   'You need <b>2 DNA vials</b> of the same species (a complete case 5/5 gives one; more can be bought at the Museum): we inject them here and the species comes back <b>ALIVE</b> in the Book. Awakened':
     'Нужны <b>2 пробирки ДНК</b> одного вида (полная витрина 5/5 даёт одну, остальные покупаются в Музее): здесь их вводят, и вид оживает <b>ЖИВЫМ</b> в Книге. Пробуждено',
-  'vials · at the Lab: 2 awaken the species, 1 is enough for a chimera':
-    'пробирки · в Лаборатории: 2 пробуждают вид, 1 хватает на химеру',
-  'This is where you build chimeras: bring me an identified skull, torso and leg (+ some coins) and I assemble them — one DNA vial per species used. With TWO vials of the same species I can instead bring it back whole.':
-    'Здесь собирают химер: принесите определённые череп, грудную клетку и лапу (плюс немного монет), и я их соберу — по одной пробирке ДНК на каждый использованный вид. А с ДВУМЯ пробирками одного вида я верну его целиком.',
+  'vials · at the Lab: 2 awaken the species':
+    'пробирки · в Лаборатории: 2 пробуждают вид',
+  'This is where things get awakened: with TWO vials of the same species I can bring it back whole. Chimeras, though, don\'t come from bones — breed TWO creatures you already have, and choose who each part is inherited from.':
+    'Здесь пробуждают: с ДВУМЯ пробирками одного вида я верну его целиком. А химеры не рождаются из костей — скрестите ДВУХ существ, которые у вас уже есть, и выберите, от кого унаследована каждая часть.',
   'Bring me your RAW finds and I identify them right away. New pieces stay on display; complete a case (5 of 5) and you earn a DNA vial — the Laboratory needs two of them to bring a species back.':
     'Несите мне НЕОБРАБОТАННЫЕ находки — определю сразу. Новые части останутся в экспозиции; соберите витрину (5 из 5) и получите пробирку ДНК — Лаборатории нужны две, чтобы вернуть вид к жизни.',
 

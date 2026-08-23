@@ -3,7 +3,7 @@ import { installStubs, check, summary } from './stub.mjs';
 installStubs();
 
 /* import dopo gli stub: i moduli toccano il DOM al load */
-const { TS, SPECIES, RAR, CHIMERA_COST, SERVICE_COST, HAIR_STYLES, HAIR_COLORS, LOOKS } = await import('../src/data.js');
+const { TS, SPECIES, RAR, SERVICE_COST, HAIR_STYLES, HAIR_COLORS, LOOKS } = await import('../src/data.js');
 const { setSeed } = await import('../src/noise.js');
 const state = await import('../src/state.js');
 const world = await import('../src/world.js');
@@ -230,6 +230,23 @@ sprites.applyLook();
     iTime > 0 && iTime < iCave && iTime < iInt);
   check('l\'orologio avanza in un posto solo', mainSrc.split('advanceTime(dt)').length - 1 === 1);
   S.energy = before;
+}
+
+/* ---------- PARCO CHE RENDE: quanto tempo VERO sei stato via (logica pura) ---------- */
+{
+  const idle = await import('../src/idle.js');
+  const H = 3600000;
+  check('meno della soglia minima: zero, niente arrotondamenti regalati',
+    idle.idleEligible(idle.idleHours(idle.IDLE_MIN_MINUTES * 60000 - 1000, 0)) === false);
+  check('appena sopra la soglia: eleggibile', idle.idleEligible(idle.idleHours(idle.IDLE_MIN_MINUTES * 60000 + 1000, 0)) === true);
+  check('le ore non vanno mai sotto zero (orologio tornato indietro)', idle.idleHours(0, 10 * H) === 0);
+  check('le ore sono CAPPATE: una settimana vale come il tetto, non di più',
+    idle.idleHours(7 * 24 * H, 0) === idle.IDLE_CAP_HOURS && idle.idleHours(idle.IDLE_CAP_HOURS * H, 0) === idle.IDLE_CAP_HOURS);
+  check('senza chimere: zero monete (il parco vuoto non rende)', idle.idleCoins(idle.IDLE_CAP_HOURS, 0) === 0);
+  check('monete = creature × tasso × ore, ma con un tetto sulle creature contate (rendimenti calanti)',
+    idle.idleCoins(2, 5) === Math.round(5 * idle.IDLE_COIN_PER_CREATURE_HOUR * 2) &&
+    idle.idleCoins(2, 999) === idle.idleCoins(2, idle.IDLE_MAX_CREATURES));
+  check('sotto soglia: zero monete comunque, anche con tante creature', idle.idleCoins(0.1, 50) === 0);
 }
 
 /* ---------- partita in cloud: accesso, rete assente, conflitti ---------- */
@@ -993,25 +1010,21 @@ sprites.applyLook();
     check('la distanza fra nomi è misurata davvero',
       gameplay.nameDistance('Grillosso', 'Grillolosso') === 2 && gameplay.nameDistance('Osso', 'Osso') === 0);
   }
-  S.coins = 100; S.items = [
-    { uid: 1, s: 'gastro', t: 'cranio', q: 'raro', val: 10 },
-    { uid: 2, s: 'prato', t: 'torace', q: 'comune', val: 8 },
-    { uid: 3, s: 'magma', t: 'zampa', q: 'leggendario', val: 30 },
-    { uid: 4, s: 'alce', t: 'coda', q: 'comune', val: 5 },
-  ]; S.creatures = [];
-  /* chimera SENZA DNA: rifiutata */
-  S.dna = {};
-  check('senza DNA rifiuta', !gameplay.assembleChimera(1, 2, 3) && S.creatures.length === 0);
-  /* con ½ fialetta per ogni specie distinta: ok, e le mezze si consumano */
-  S.dna = { gastro: 2, prato: 1, magma: 1 };
-  const ok = gameplay.assembleChimera(1, 2, 3);
-  check('assembla: economia esatta (monete + ½ DNA a specie)', ok && S.coins === 100 - CHIMERA_COST && S.items.length === 1 && S.creatures.length === 1 &&
-    S.dna.gastro === 1 && S.dna.prato === 0 && S.dna.magma === 0);
-  check('rarità = max delle parti', S.creatures[0].q === 'leggendario');
-  S.coins = 5; S.items.push({ uid: 5, s: 'gufo', t: 'cranio', q: 'comune', val: 4 }, { uid: 6, s: 'lepre', t: 'torace', q: 'comune', val: 4 }, { uid: 7, s: 'pinna', t: 'zampa', q: 'comune', val: 4 });
-  check('senza monete rifiuta', !gameplay.assembleChimera(5, 6, 7) && S.creatures.length === 1);
-  S.coins = 100;
-  check('slot sbagliato rifiuta', !gameplay.assembleChimera(6, 5, 7));
+  /* le chimere nascono SOLO dall'allevamento (breeding.js, testato a parte): qui basta
+     seminarne UNA a mano per i test del parco/compagno che seguono */
+  S.coins = 100; S.items = []; S.dna = {};
+  S.creatures = [{ uid: 900, name: 'Testseme', skull: 'magma', torso: 'prato', leg: 'gastro', q: 'leggendario' }];
+  check('rarità della chimera seminata per i test', S.creatures[0].q === 'leggendario');
+  /* ...e il toast si deve VEDERE: sopra modali, zaino, libro, mappa, tavolo, fontana */
+  {
+    const cssZ = (await import('node:fs')).readFileSync('src/style.css', 'utf8');
+    const zOf = sel => { const m = cssZ.match(new RegExp(sel + '\\{[^}]*z-index:(\\d+)')); return m ? +m[1] : -1; };
+    const over = ['#modal', '#bagov', '#bookov', '#mapov', '#prepov', '#tossov', '#skfitov', '#splash', '\\.banner'];
+    const worst = Math.max(...over.map(zOf));
+    check('i toast stanno sopra ogni pannello (' + zOf('#toasts') + ' > ' + worst + ')', zOf('#toasts') > worst);
+    check('nessuna regola successiva li rimanda dietro', !/#toasts\{[^}]*z-index:(\d|[1-9]\d)\}/.test(cssZ)
+      && (cssZ.match(/#toasts\{[^}]*z-index/g) || []).length === 1);
+  }
 }
 
 /* ---------- parco ---------- */
@@ -1483,6 +1496,9 @@ sprites.applyLook();
     check('5 cappelli premium: sprite + crown + prezzo', PREMIUM_HATS.length === 5 &&
       PREMIUM_HATS.every(h => h.id in spr.HATS && h.id in spr.HAT_CROWN && PREMIUM_HAT_COST[h.id] > 0));
     check('vikingo NON è un cappello base (è premium)', !HS.some(s => s.id === 'vikingo') && PREMIUM_HAT_COST.vikingo > 0);
+    /* traguardo di livello: ogni premium ha una soglia, in ordine crescente col prezzo */
+    check('ogni premium ha una soglia di livello, in ordine col prezzo', PREMIUM_HATS.every(h => h.lvl > 0) &&
+      [...PREMIUM_HATS].sort((a, b) => a.cost - b.cost).every((h, i, arr) => i === 0 || h.lvl >= arr[i - 1].lvl));
     check('elmetto (minerhelm) rimosso ovunque', !('minerhelm' in spr.HATS) && !('minerhelm' in spr.HAT_CROWN) && !THEMED_HAT.includes('minerhelm'));
     S.coins = 100; S.unlocked = { hats: [], hairs: [] };
     check('sblocco taglio tematico scala monete', gameplay.unlockCosmetic('hair', 'meadow', 24) === true && S.unlocked.hairs.includes('meadow') && S.coins === 76);
@@ -1494,7 +1510,34 @@ sprites.applyLook();
   check('sartoria: cappello/maglia/pantaloni', ['hat', 'shirt', 'pants'].every(k => document.getElementById('m-body').innerHTML.includes(`data-field="${k}"`)));
   const tHtml = document.getElementById('m-body').innerHTML;
   check('sartoria: forme cappello + ✕ senza cappello', tHtml.includes('hatStyle') && tHtml.includes('hatOff'));
+  /* BUG: togliere il cappello (gratis) non doveva restare invisibile al bottone Conferma —
+     era escluso dal conteggio "campi cambiati" perché è l'unica modifica senza costo */
+  {
+    S.look.hatStyle = 'explorer';
+    ui.openBuilding({ type: 'tailor', name: 'Sartoria' });
+    const ho = document.getElementById('hatOff'); if (ho && ho.onclick) ho.onclick();
+    const okHtml = document.getElementById('m-body').innerHTML.match(/<button[^>]*id="lookOk"[^>]*>/);
+    check('sartoria: togliere il cappello (✕) accende Conferma', S.look.hatStyle === 'none' && !!okHtml && !okHtml[0].includes('disabled'));
+  }
   check('sartoria: selettori FORMA di maglia e pantaloni', tHtml.includes('data-field="shirtStyle"') && tHtml.includes('data-v="tank"') && tHtml.includes('data-field="pantsStyle"') && tHtml.includes('data-v="skirt"'));
+  /* traguardo di livello: un premium sotto soglia si VEDE (fa venire voglia di arrivarci)
+     ma è spento del tutto — sopra soglia si comporta come i premium normali (provabile) */
+  {
+    S.level = 1; S.xp = 0; S.unlocked = { hats: [], hairs: [] };
+    ui.openBuilding({ type: 'tailor', name: 'Sartoria' });
+    const low = document.getElementById('m-body').innerHTML;
+    const piLow = low.indexOf('data-v="partyhat"');
+    check('sotto la soglia: il premium SI VEDE ma è spento (Lv, non prezzo)', piLow >= 0 && /lvlocked/.test(low.slice(piLow - 40, piLow)) && /Lv5/.test(low.slice(piLow, piLow + 200)));
+    S.level = 5;
+    ui.openBuilding({ type: 'tailor', name: 'Sartoria' });
+    const high = document.getElementById('m-body').innerHTML;
+    const pi = high.indexOf('data-v="partyhat"');
+    check('raggiunta la soglia: torna un premium normale, provabile con il suo prezzo', pi >= 0 && !/lvlocked/.test(high.slice(pi - 40, pi)) && /130/.test(high.slice(pi, pi + 200)));
+    /* la stessa guardia che blocca il click: sotto soglia dice quanto manca, sopra è libero */
+    S.level = 1; check('hatLevelLock: sotto soglia', ui.hatLevelLock('partyhat') === 5);
+    S.level = 5; check('hatLevelLock: raggiunta, via libera', ui.hatLevelLock('partyhat') === null);
+    S.level = 1; S.xp = 0;
+  }
   /* EXPLOIT cappello gratis: provando un look l'ANTEPRIMA è pendente → il game loop non autosalva
      (senza, bastava provare un cappello e ricaricare il browser per tenerlo gratis) */
   S.look.hatStyle = 'santa'; // (come farebbe wireLook in anteprima, senza pagare)
@@ -2383,6 +2426,47 @@ sprites.applyLook();
   S.sites = {};
 }
 
+/* ---------- SCHELETRO SEPOLTO: 5 caselle, 5 parti, UNA specie garantita ---------- */
+{
+  const { spById } = await import('../src/data.js');
+  const regions3 = await import('../src/regions.js');
+  let boneSites = [];
+  for (let cx = -8; cx < 8; cx++) for (let cy = -8; cy < 8; cy++) { const s = world.boneSiteForCell(cx, cy); if (s) boneSites.push(s); }
+  check(`scheletri sepolti nel campione (${boneSites.length} su 256 celle)`, boneSites.length > 3);
+  check('deterministico', world.boneSiteForCell(2, 2) === world.boneSiteForCell(2, 2));
+  const b0 = boneSites[0];
+  check('5 parti, 5 caselle DIVERSE, tutte solide (monticello)', Object.keys(b0.parts).length === 5 &&
+    new Set(Object.values(b0.parts).map(p => p.x + ',' + p.y)).size === 5 &&
+    Object.values(b0.parts).every(p => world.isSolidTile(p.x, p.y)));
+  check('la specie è della zona del sito', spById[b0.sp].zone === regions3.zoneAt(b0.x, b0.y).id);
+  check('boneSiteAt riconosce ogni casella e sa a chi appartiene', Object.entries(b0.parts).every(([part, p]) => {
+    const hit = world.boneSiteAt(p.x, p.y); return hit && hit.site === b0 && hit.part === part;
+  }));
+  check('una casella FUORI dal sito non è niente', world.boneSiteAt(b0.x + 20, b0.y + 20) === null);
+
+  /* scavo: ogni casella dà SEMPRE quella parte di QUELLA specie, mai a vuoto, mai un'altra */
+  S.energy = 30; S.raw = []; S.boneSites = {};
+  const parts0 = Object.keys(b0.parts);
+  let dug2 = 0;
+  for (const part of parts0) {
+    const p = b0.parts[part];
+    P.x = p.x * TS - TS + 8; P.y = p.y * TS + 8; // adiacente da ovest
+    const nb = gameplay.nearbyBoneSite();
+    check('nearbyBoneSite trova la parte giusta (' + part + ')', !!nb && nb.site === b0 && nb.part === part);
+    gameplay.digBoneSite();
+    check('scavo animato: esito differito (' + part + ')', P.digging !== null);
+    gameplay.stepDig(2);
+    dug2++;
+    check('sempre quella parte di quella specie, mai a vuoto (' + part + ')',
+      S.raw.length === dug2 && S.raw[dug2 - 1].s === b0.sp && S.raw[dug2 - 1].t === part && S.raw[dug2 - 1].q === spById[b0.sp].r);
+    check('il progresso persiste per sito', gameplay.boneSiteProgress(b0) === dug2 && gameplay.boneSiteDug(b0, part) === true);
+  }
+  check('tutte e 5 scavate: il sito è finito, niente altro da prendere lì', gameplay.nearbyBoneSite() === null);
+  check('5/5: il set è COMPLETO e garantito (una di ogni parte, stessa specie)',
+    S.raw.length === 5 && new Set(S.raw.map(r => r.t)).size === 5 && S.raw.every(r => r.s === b0.sp));
+  S.raw = []; S.boneSites = {};
+}
+
 /* ---------- risveglio: SOLO con fialetta DNA intera (2 mezze) ---------- */
 {
   S.awakened = []; S.items = []; S.codex = ['prato']; S.book = { prati: true }; S.dna = {};
@@ -2415,14 +2499,18 @@ sprites.applyLook();
   P.digging = null; // un dig random di un test precedente poteva restare in volo e bloccare questo (flaky)
   gameplay.tryDig(); gameplay.stepDig(2);
   check('debug: scava con 0 energia, senza consumarla', S.energy === 0 && state.dugSet.has(dug2[0] + ',' + dug2[1]));
-  // monete infinite: chimera gratis con 0 monete
-  S.items = [
-    { uid: 901, s: 'prato', t: 'cranio', q: 'comune', val: 5 },
-    { uid: 902, s: 'lepre', t: 'torace', q: 'comune', val: 5 },
-    { uid: 903, s: 'alce', t: 'zampa', q: 'comune', val: 5 },
-  ];
-  const nCr = S.creatures.length;
-  check('debug: chimera gratis', gameplay.assembleChimera(901, 902, 903) === true && S.coins === 0 && S.creatures.length === nCr + 1);
+  // debug: si depone un uovo GRATIS anche con zero doppioni e zero energia
+  {
+    const br11 = await import('../src/breeding.js');
+    S.items = []; S.energy = 0; S.egg = null;
+    const p1b = S.creatures[0] || { uid: 9001, name: 'A', skull: 'prato', torso: 'prato', leg: 'prato', q: 'comune' };
+    const p2b = { uid: 9002, name: 'B', skull: 'lepre', torso: 'lepre', leg: 'lepre', q: 'comune' };
+    if (!S.creatures.length) S.creatures = [p1b];
+    S.creatures.push(p2b);
+    check('debug: uovo gratis (niente doppioni/energia richiesti)',
+      br11.layEgg(p1b.uid, p2b.uid, { skull: 1, torso: 2, leg: 1 }).ok === true && S.items.length === 0 && S.energy === 0);
+    S.egg = null;
+  }
   // spawn di tutti i fossili: ogni specie × ogni parte
   S.items = []; S.codex = [];
   {
@@ -2969,6 +3057,18 @@ sprites.applyLook();
     companionMod.setCompanion({ skull: 'lepre', torso: 'lepre', leg: 'lepre', q: 'comune', key: 'r2', name: 'Rot' });
     const { COMP: COMP2 } = companionMod;
     for (const f of ['up', 'down', 'left', 'right']) { COMP2.face = f; render(3500); }
+    /* "gioca col compagno": pallina in volo (throw), ferma ad aspettare (chase), e la barra
+       di tempismo sopra la testa (catch) — tutte e tre le fasi vanno disegnate */
+    COMP2.x = P.x - 10; COMP2.y = P.y;
+    COMP2.play = { phase: 'throw', t: 0.15, tx: P.x + 40, ty: P.y + 10 };
+    render(3600);
+    COMP2.play = { phase: 'chase', t: 0, tx: P.x + 40, ty: P.y + 10 };
+    render(3600);
+    COMP2.play = { phase: 'catch', t: 0.5, tx: P.x + 40, ty: P.y + 10 };
+    render(3600);
+    COMP2.play = { phase: 'return', t: 0.1, tx: P.x + 40, ty: P.y + 10 };
+    render(3600);
+    COMP2.play = null;
     companionMod.clearCompanion();
   } catch (e) { smokeThrew = true; }
   check('smoke render esteso (biomi/meteo/landmark/compagno/notte/raccoglitore/volo)', smokeThrew === false);
@@ -3568,6 +3668,21 @@ sprites.applyLook();
   cmds.runCommand('weather=pioggia'); check('console: weather=pioggia (override)', S.weatherOverride === 'rain' && wthC.weatherAt('prati', 5) === 'rain');
   cmds.runCommand('weather=off'); check('console: weather=off (auto)', S.weatherOverride === null);
   check('console: gotosite/gotowreck/gotolandmark rispondono', typeof cmds.runCommand('gotosite') === 'string' && typeof cmds.runCommand('gotowreck') === 'string' && typeof cmds.runCommand('gotolandmark') === 'string');
+  /* segnalato: "quando uso gotobone rimango bloccato" — con 5 parti impacchettate vicine
+     (corno e cranio distano UNA casella) il vicino della parte più vicina è spesso UN'ALTRA
+     parte dello stesso scheletro, e il teletrasporto ci piazzava DENTRO un monticello solido.
+     Su tanti scheletri diversi, non deve capitare mai più. */
+  {
+    let stuck = 0, tried = 0;
+    for (let x = -6; x <= 6; x++) for (let y = -6; y <= 6; y++) {
+      const s = world.boneSiteForCell(x, y); if (!s) continue;
+      tried++;
+      P.x = s.x * TS; P.y = s.y * TS; // già dentro la SUA cella: gotobone prende proprio questo
+      cmds.runCommand('gotobone');
+      if (world.isSolidTile(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS))) stuck++;
+    }
+    check('gotobone: mai teletrasportati dentro un monticello solido (' + tried + ' scheletri)', tried > 3 && stuck === 0);
+  }
   cmds.runCommand('speed=8'); check('console: speed=8', P.speedMul === 8);
   cmds.runCommand('speed=99'); check('console: speed clamp a 20', P.speedMul === 20);
   check('console: primo cheat accende il lock (tag) e PERSISTE lo snapshot pre-cheat', state.isCheatLock() === true && state.hasCheatSnapshot() === true);
@@ -3763,6 +3878,18 @@ sprites.applyLook();
   S.level = 1; S.xp = 0; S.maxEnergy = 30;
   pr.addXp(pr.xpToNext() - 1);
   check('sotto soglia: accumula senza salire', pr.playerLevel() === 1 && pr.playerXp() === pr.xpToNext() - 1);
+  /* il livello ora dà anche un traguardo che si VEDE: al livello del primo premium (5),
+     un secondo toast annuncia il cappello nuovo in Sartoria (non solo "Livello 5!") */
+  {
+    const box5 = document.getElementById('toasts'), said5 = [];
+    const origApp5 = box5.appendChild;
+    box5.appendChild = c => { said5.push(String(c.innerHTML)); return c; };
+    S.level = 4; S.xp = 0;
+    while (S.level < 5) gameplay.gainXp(pr.xpToNext());
+    box5.appendChild = origApp5;
+    check('a livello 5 arriva anche l\'annuncio del cappello', said5.some(t => /Sartoria|Tailor/.test(t)), said5.join(' | '));
+  }
+  S.level = 1; S.xp = 0; S.maxEnergy = 30;
 }
 
 /* ---------- compagno: candidati (chimere + risvegliati), scelta, abilità ---------- */
@@ -3912,6 +4039,102 @@ sprites.applyLook();
   for (let i = 0; i < 400; i++) gp.companionWorkTick(1 / 60);
   check('zaino pieno: il raccoglitore NON lavora', COMP.job === null && S.raw.length === 0);
   comp.clearCompanion(); COMP.job = null; COMP.fx = []; S.items = []; S.raw = [];
+}
+
+/* ---------- MINIGIOCO #7: gioca col compagno (lancia e riporta) ---------- */
+{
+  const comp = await import('../src/companion.js');
+  const gp = await import('../src/gameplay.js');
+  const world = await import('../src/world.js');
+  const dataN = await import('../src/data.js');
+  const wo = await import('../src/wonders.js');
+  const { COMP } = comp;
+  const terra = dataN.ALL_SPECIES.find(s => (s.src || 'terra') === 'terra');
+  const pet = { skull: terra.id, torso: terra.id, leg: terra.id, q: 'comune', key: 'pet1', name: 'Pet' };
+
+  comp.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
+  check('senza compagno: non giocabile', gp.companionPlayable() === false);
+
+  comp.setCompanion(pet);
+  /* su terra scavabile e libera vince lo scavo, non si gioca */
+  let gx = null, gy = null;
+  for (let ty = -20; ty <= 20 && gx === null; ty++) for (let tx = -20; tx <= 20; tx++) {
+    if (world.diggable(world.baseTerrain(tx, ty)) && !world.townInfo(tx, ty) && !world.decoAt(tx, ty)) { gx = tx; gy = ty; break; }
+  }
+  P.x = gx * TS + 8; P.y = gy * TS + 8 - 13; COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; COMP.playCool = 0;
+  check('su terra scavabile: vince lo scavo, non si gioca', gp.companionPlayable() === false);
+
+  /* nel parco (townInfo blocca lo scavo): si gioca — è la casa naturale del minigioco */
+  let pen = null;
+  for (let cx = -8; cx <= 8 && !pen; cx++) for (let cy = -8; cy <= 8 && !pen; cy++) { const t = world.townForCell(cx, cy); if (t && t.pen) pen = t; }
+  check('trovato un parco per il test', !!pen);
+  const px0 = Math.floor((pen.pen.x0 + pen.pen.x1) / 2), py0 = Math.floor((pen.pen.y0 + pen.pen.y1) / 2);
+  P.x = px0 * TS + 8; P.y = py0 * TS + 8 - 13; P.dir = 'down'; COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; COMP.playCool = 0;
+  check('nel parco: compagno giocabile', gp.companionPlayable() === true);
+  COMP.job = { phase: 'go' }; check('compagno al lavoro: non giocabile', gp.companionPlayable() === false); COMP.job = null;
+  COMP.playCool = 1; check('appena finito un round: pausa, non giocabile', gp.companionPlayable() === false); COMP.playCool = 0;
+
+  /* IL PROMPT DEVE DIRE LA VERITÀ: con un solo tasto per tutto, un E che non fa quello che il
+     prompt dice è la cosa che confonde di più (segnalato). */
+  ui.closeBag(); ui.closeBook(); ui.closeMap(); ui.closeModal(); ui.updatePrompt();
+  const prReady = document.getElementById('prompt').innerHTML || '';
+  check('pronto a giocare: il prompt lo dice ("Gioca")', /Gioca|Play/.test(prReady), prReady.slice(0, 40));
+
+  /* il round intero: lancio → insegue → cattura → torna */
+  const started = gp.playWithCompanion();
+  check('E avvia il lancio', started === true && !!COMP.play && COMP.play.phase === 'throw');
+  for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+  check('dopo il lancio il compagno insegue', COMP.play.phase === 'chase');
+  ui.updatePrompt();
+  check('in inseguimento: niente prompt (E non fa nulla adesso, meglio tacere)', document.getElementById('prompt').style.display === 'none');
+  for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  check('raggiunto il bersaglio: finestra di cattura aperta', COMP.play.phase === 'catch');
+  ui.updatePrompt();
+  const prCatch = document.getElementById('prompt').innerHTML || '';
+  check('finestra aperta: il prompt dice di prenderlo AL VOLO', /AL VOLO|NOW/.test(prCatch), prCatch.slice(0, 40));
+
+  /* la finestra d'oro deve premiare un riflesso NATURALE ("lo prendo appena arriva"), non
+     un'attesa deliberata — segnalato: "mi dà sempre bel riporto" perché la finestra era a
+     metà di un secondo di attesa, mentre chi gioca preme presto. ~220ms dopo il "ding" (tempo
+     di reazione realistico) deve bastare. */
+  {
+    const bR = wo.buffLeft('digX2');
+    COMP.play.t = 0.22;
+    const okReflex = gp.tryCatchCompanion();
+    check('un riflesso pronto (~220ms) prende al volo, non solo l\'attesa a metà barra', okReflex === true && wo.buffLeft('digX2') === bR + 3);
+    for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
+    COMP.playCool = 0; gp.playWithCompanion();
+    for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+    for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  }
+
+  /* presa PERFETTA (dentro la finestra d'oro) → 3 cariche */
+  const b1 = wo.buffLeft('digX2');
+  COMP.play.t = (gp.PLAY_PERFECT[0] + gp.PLAY_PERFECT[1]) / 2 * gp.PLAY_CATCH;
+  const caught = gp.tryCatchCompanion();
+  check('presa al volo nella finestra d\'oro: 3 cariche di digX2', caught === true && wo.buffLeft('digX2') === b1 + 3 && COMP.play.phase === 'return');
+  for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
+  check('tornato dal player: round chiuso, in pausa', COMP.play === null && COMP.playCool > 0);
+
+  /* mai un fallimento vero: se il tempo scade da solo, torna comunque (1 carica, non zero) */
+  COMP.playCool = 0; gp.playWithCompanion();
+  for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+  for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  const b2 = wo.buffLeft('digX2');
+  for (let i = 0; i < 200 && COMP.play && COMP.play.phase === 'catch'; i++) gp.companionPlayTick(1 / 60);
+  check('tempo scaduto: comunque riportato, 1 carica (mai un fallimento vero)', wo.buffLeft('digX2') === b2 + 1 && !!COMP.play && COMP.play.phase === 'return');
+  for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
+
+  /* E durante la finestra di cattura ha SEMPRE priorità in act(), prima di ogni altra cosa */
+  COMP.playCool = 0; gp.playWithCompanion();
+  for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+  for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  check('finestra aperta: act() la risolve subito', gp.companionPlayable() === false); // il round è già in corso: niente doppio lancio
+  gp.act();
+  check('act() durante la cattura risolve il gioco (E = prendilo)', COMP.play && COMP.play.phase === 'return');
+  for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
+  comp.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
+  delete S.buffs.digX2; // non lasciare cariche in giro per i test dopo di questo
 }
 
 /* ---------- compagno GROTTA leggendario: cavalcatura volante (Fase 2) ---------- */
@@ -4104,6 +4327,37 @@ sprites.applyLook();
   check('etichetta meteo è stringa', typeof wth.weatherLabel('snow') === 'string');
 }
 
+/* ---------- MERCATO: la richiesta cambia per specie+giorno, si applica SOLO alla vendita ---------- */
+{
+  const mkt = await import('../src/market.js');
+  const dataM = await import('../src/data.js');
+  const sp1 = dataM.ALL_SPECIES[3].id, sp2 = dataM.ALL_SPECIES[10].id;
+  check('deterministico: stessa specie, stesso giorno → stesso prezzo', mkt.marketMul(sp1, 7) === mkt.marketMul(sp1, 7));
+  check('specie diverse nello stesso giorno possono avere fasce diverse', dataM.ALL_SPECIES.slice(0, 20).some(s => mkt.marketMul(s.id, 7) !== mkt.marketMul(sp1, 7)));
+  check('lo stesso giorno cambia la fascia (mercato che si muove col tempo)', dataM.ALL_SPECIES.some(s => mkt.marketMul(s.id, 1) !== mkt.marketMul(s.id, 2)));
+  check('ogni fascia è una di quelle dichiarate', mkt.MARKET_TIERS.some(t => t.mul === mkt.marketMul(sp1, 7)));
+  check('il prezzo finale arrotonda e non scende mai sotto 1', mkt.marketPrice(1, sp1, 7) >= 1 && mkt.marketPrice(10, sp1, 7) === Math.round(10 * mkt.marketMul(sp1, 7)));
+  check('etichetta: stringa (vuota per la fascia "normale")', typeof mkt.marketLabel(sp1, 7) === 'string');
+  /* override da console (market=alto): forza la fascia per OGNI specie, per provarlo/fotografarlo */
+  const state2 = state;
+  state2.S.marketOverride = 'record';
+  check('override: ogni specie va alla fascia forzata', mkt.marketMul(sp1, 7) === 1.7 && mkt.marketMul(sp2, 9) === 1.7);
+  state2.S.marketOverride = null;
+  /* si applica ALLA VENDITA, non al valore base: commissioni/restauro/Museo restano quelli che erano */
+  const base = { uid: 8001, s: sp1, t: 'cranio', q: 'raro', val: 40 };
+  S.items = [base]; S.coins = 0; S.day = 5;
+  const expected = mkt.marketPrice(40, sp1, 5);
+  gameplay.sellItem(8001);
+  check('sellItem paga il prezzo di MERCATO, non sempre il valore base', S.coins === expected);
+  check('il valore base del reperto (per commissioni/restauro) non viene toccato', base.val === 40);
+  S.items = [{ uid: 8002, s: sp1, t: 'cranio', q: 'raro', val: 40 }, { uid: 8003, s: sp2, t: 'torace', q: 'comune', val: 10 }];
+  S.coins = 0;
+  const wantSum = mkt.marketPrice(40, sp1, S.day) + mkt.marketPrice(10, sp2, S.day);
+  const r = gameplay.sellAll();
+  check('sellAll somma i prezzi di mercato di OGNI pezzo (specie diverse, fasce diverse)', r.g === wantSum && S.coins === wantSum);
+  S.items = [];
+}
+
 /* ---------- audio: mood per bioma + crossfade non lancia (senza AudioContext in Node) ---------- */
 {
   const audio = await import('../src/audio.js');
@@ -4126,6 +4380,37 @@ sprites.applyLook();
   check('ogni bioma e in una tonalita vicina alla tonica (<=2)', lontani.length === 0);
   // i due colpevoli segnalati ora sono vicini
   check('palude e ghiacci restano tonalita VICINE (non le vecchie lontane FA#/DO#)', audio.keyDistance(tonica, audio.MOODS.palude.shift) <= 2 && audio.keyDistance(tonica, audio.MOODS.ghiacci.shift) <= 2);
+}
+
+/* ---------- audio: scheda in BACKGROUND = silenzio (su Android la musica continuava col
+   browser ridotto, e per zittirla si doveva chiudere l'app) ---------- */
+{
+  const audio = await import('../src/audio.js');
+  let susp = 0, res = 0, oscs = 0;
+  const par = () => ({ value: 0, setValueAtTime() {}, exponentialRampToValueAtTime() {} });
+  class FakeAC {
+    constructor() { this.state = 'running'; this.currentTime = 0; this.destination = {}; }
+    createGain() { return { gain: par(), connect() {} }; }
+    createOscillator() { oscs++; return { type: '', frequency: par(), connect() {}, start() {}, stop() {} }; }
+    suspend() { susp++; this.state = 'suspended'; }
+    resume() { res++; this.state = 'running'; return Promise.resolve(); }
+  }
+  globalThis.AudioContext = FakeAC;
+  audio.setMusicOn(true); audio.armAudioResume(); audio.startAudio();
+  document.visibilityState = 'hidden';
+  document.dispatchEvent({ type: 'visibilitychange' });
+  check('scheda nascosta: il contesto audio viene SOSPESO (non basta fermare il sequencer)', susp === 1);
+  oscs = 0; audio.playSfx('coin');
+  check('a contesto sospeso gli SFX non si accodano (sparerebbero tutti al ritorno)', oscs === 0);
+  document.visibilityState = 'visible';
+  document.dispatchEvent({ type: 'visibilitychange' });
+  check('tornando davanti la musica riparte', res >= 1);
+  // musica SPENTA dalle impostazioni: tornare davanti non gliela rimette addosso
+  audio.setMusicOn(false); const res0 = res;
+  document.visibilityState = 'hidden'; document.dispatchEvent({ type: 'visibilitychange' });
+  document.visibilityState = 'visible'; document.dispatchEvent({ type: 'visibilitychange' });
+  check('musica spenta: il ritorno in primo piano non la riaccende', res === res0);
+  audio.suspendAudio(); delete globalThis.AudioContext;
 }
 
 /* ---------- SMOKE del tasto E: act() non deve MAI lanciare (un identificatore rimosto a
@@ -4518,6 +4803,16 @@ sprites.applyLook();
   check('legacy: vials → dna in fialette', S2.vials === undefined && S2.dna.lepre === 1);
   check('legacy: la barca non è più un gear attivabile', S2.gear === null && S2.tools.boat === true);
   check('legacy: campi nuovi popolati', Array.isArray(S2.maps) && typeof S2.fountains === 'object' && S2.museumJob === null);
+  /* PARCO CHE RENDE: un save legacy senza `idleAt` non deve inventarsi un arretrato di ore —
+     si migra ad ADESSO, non a zero (che darebbe subito il tetto massimo) né a niente
+     (che farebbe esplodere idle.js al prossimo boot). */
+  check('legacy: idleAt manca → migrato ad ADESSO, niente arretrato regalato', typeof S2.idleAt === 'number' && S2.idleAt >= Date.now() - 5000);
+  /* e chi gioca DAVVERO lo tiene fresco: ogni save() lo riporta ad ADESSO */
+  S2.idleAt = Date.now() - 5 * 3600000; // finta assenza di 5 ore vere
+  const stale = S2.idleAt;
+  state.save();
+  check('giocando (save) il conto dell\'assenza riparte da ADESSO', S2.idleAt > stale);
+  check('partita nuova: idleAt parte da ADESSO', typeof state.fresh().idleAt === 'number' && state.fresh().idleAt >= Date.now() - 5000);
   /* 7) un save dal FUTURO non viene declassato */
   localStorage.setItem(SKk, JSON.stringify({ ...legacy, v: 99 }));
   state.initState();
@@ -4899,6 +5194,42 @@ sprites.applyLook();
   S.raw = [];
 }
 
+/* ---------- RICOMPONI LO SCHELETRO: il gesto di trascinamento (museo) ---------- */
+{
+  const S = state.S;
+  const ui2 = await import('../src/ui.js');
+  const sk = await import('../src/skeletonfit.js');
+  S.xp = 0;
+  const piece1 = { s: 'lepre', t: 'torace', q: 'raro', val: 40 };
+  const piece2 = { s: 'lepre', t: 'zampa', q: 'raro', val: 30 };
+  let allDone = 0;
+  ui2.openSkeletonFit([piece1, piece2], () => { allDone++; });
+  check('si apre sul primo pezzo della coda', ui2.isSkeletonFitOpen() === true);
+  const piece = document.getElementById('sk-piece');
+  const drag = (x, y, type) => piece.dispatchEvent({ type, clientX: x, clientY: y, pointerId: 1, preventDefault() {}, touches: null });
+  const torace = sk.socketFor('torace');
+  drag(50, 92, 'pointerdown');
+  /* socket SBAGLIATO prima: niente fallimento vero, il pezzo torna alla base e si può riprovare */
+  const zampa = sk.socketFor('zampa');
+  drag(zampa.x * 100, zampa.y * 100, 'pointermove');
+  drag(zampa.x * 100, zampa.y * 100, 'pointerup');
+  check('socket sbagliato: il minigioco resta aperto sullo stesso pezzo', ui2.isSkeletonFitOpen() === true);
+  drag(50, 92, 'pointerdown');
+  drag(torace.x * 100, torace.y * 100, 'pointermove');
+  drag(torace.x * 100, torace.y * 100, 'pointerup');
+  check('socket giusto: XP bonus assegnato', S.xp > 0);
+  check('passa al pezzo successivo della coda', ui2.isSkeletonFitOpen() === true);
+  /* sempre saltabile: mai una tassa sul loop base */
+  const xpAfterFirst = S.xp;
+  const skipBtn = document.getElementById('sk-skip'); if (skipBtn && skipBtn.onclick) skipBtn.onclick();
+  check('Salta chiude senza bonus e passa oltre', S.xp === xpAfterFirst);
+  check('coda esaurita: il minigioco si chiude e richiama chi lo ha aperto', ui2.isSkeletonFitOpen() === false && allDone === 1);
+  /* ESC = salta, stessa via del bottone */
+  ui2.openSkeletonFit([piece1], () => { allDone++; });
+  ui2.skeletonFitSkip();
+  check('ESC salta come il bottone', ui2.isSkeletonFitOpen() === false && allDone === 2);
+}
+
 /* ---------- BUSSOLA: nome, direzione e passi verso la città più vicina ---------- */
 {
   const S = state.S, P3 = state.P;
@@ -5219,8 +5550,8 @@ sprites.applyLook();
      non il testo, il gioco mente al giocatore. Qui i due valori si confrontano. */
   const eat = 15;                                    // quanto rende un ristoro (eatSnack)
   check('il testo del ristoro dice il vero (+' + eat + ' ⚡)', all.includes('+' + eat + ' ⚡'));
-  check('il costo della chimera nel testo è quello vero',
-    uiSrc.includes('${CHIMERA_COST}') && dN.CHIMERA_COST === 40);
+  check('il costo dell\'uovo nel testo è quello vero (interpolato, non scritto a mano)',
+    uiSrc.includes('${EGG_FOOD}') && uiSrc.includes('${EGG_ENERGY}') && uiSrc.includes('${EGG_DAYS}'));
   /* DNA: 2 fialette per il risveglio, 1 per una chimera. Nessun testo deve dire "una
      fialetta risveglia": è stato sbagliato davvero. */
   check('nessun testo promette il risveglio con UNA sola fialetta',
@@ -5356,6 +5687,70 @@ sprites.applyLook();
   ];
   check('parti diverse non fanno gruppo', fz.fusibleGroups(S.items).length === 0);
   S.items = [];
+}
+
+/* ---------- ALLEVAMENTO: la prole nasce da 2 chimere che hai già, tu scegli i tratti ---------- */
+{
+  const S = state.S;
+  const br = await import('../src/breeding.js');
+  const d10 = await import('../src/data.js');
+  const water3 = d10.ALL_SPECIES.find(s2 => s2.src === 'acqua'), tree3 = d10.ALL_SPECIES.find(s2 => s2.src === 'albero');
+  const keepC = S.creatures, keepI = S.items, keepEn = S.energy, keepEgg = S.egg, keepDay = S.day, keepUid = S.uid;
+  S.egg = null; S.day = 5; S.uid = 8000;
+  const p1 = { uid: 7001, name: 'Mamma', skull: water3.id, torso: water3.id, leg: water3.id, q: 'raro' };
+  const p2 = { uid: 7002, name: 'Papà', skull: tree3.id, torso: tree3.id, leg: tree3.id, q: 'eccezionale' };
+  S.creatures = [p1, p2];
+
+  /* anteprima PURA: da chi eredita cosa, senza tirare i dadi */
+  const prev = br.previewOffspring(p1, p2, { skull: 1, torso: 2, leg: 1 });
+  check('anteprima: eredita esattamente quello scelto (skull=p1, torso=p2, leg=p1)',
+    prev.skull === water3.id && prev.torso === tree3.id && prev.leg === water3.id);
+
+  /* canLay: servono 2 genitori diversi, abbastanza doppioni, abbastanza energia */
+  S.items = []; S.energy = 30;
+  check('senza doppioni a sufficienza: non si può deporre', br.canLay(p1.uid, p2.uid).ok === false);
+  S.items = Array.from({ length: br.EGG_FOOD }, (_, i) => ({ uid: 100 + i, s: water3.id, t: 'coda', q: 'comune', val: 3 + i }));
+  check('con genitori uguali: rifiutato', br.canLay(p1.uid, p1.uid).ok === false);
+  S.energy = 0;
+  check('senza energia: rifiutato', br.canLay(p1.uid, p2.uid).ok === false);
+  S.energy = 30;
+  check('genitori diversi + doppioni + energia: via libera', br.canLay(p1.uid, p2.uid).ok === true);
+
+  /* il cibo previsto sono i MENO preziosi (protegge quelli buoni), come la commissione */
+  S.items = [{ uid: 200, s: water3.id, t: 'coda', q: 'leggendario', val: 90 }, ...S.items];
+  const food = br.foodPreview();
+  check('il cibo sceglie i doppioni MENO preziosi, non i più pregiati', !food.some(it => it.uid === 200));
+
+  /* depone l'uovo: consuma cibo+energia, un solo uovo alla volta */
+  S.items = Array.from({ length: br.EGG_FOOD }, (_, i) => ({ uid: 300 + i, s: water3.id, t: 'coda', q: 'comune', val: 3 + i }));
+  const before = { items: S.items.length, energy: S.energy };
+  const omB = Math.random; Math.random = () => 0.99; // mai mutazione, mai bonus rarità: la base esatta
+  const r1 = br.layEgg(p1.uid, p2.uid, { skull: 1, torso: 2, leg: 1 }, S.day);
+  check('layEgg riesce e consuma cibo+energia', r1.ok === true && S.items.length === before.items - br.EGG_FOOD && S.energy === before.energy - br.EGG_ENERGY);
+  check('senza mutazione/bonus: eredita esattamente la scelta, rarità = la massima dei 2 genitori',
+    S.egg.skull === water3.id && S.egg.torso === tree3.id && S.egg.leg === water3.id && S.egg.q === 'eccezionale');
+  check('un uovo alla volta: non se ne depone un secondo', br.layEgg(p1.uid, p2.uid, { skull: 1, torso: 1, leg: 1 }).ok === false);
+  Math.random = omB;
+
+  /* non è pronto prima del tempo, lo è dopo EGG_DAYS */
+  check('non ancora pronto', br.eggReady(S.day) === false && br.eggDaysLeft(S.day) === br.EGG_DAYS);
+  check('pronto dopo EGG_DAYS giorni', br.eggReady(S.day + br.EGG_DAYS) === true);
+  check('non si schiude in anticipo', br.hatchEgg(S.day) === null);
+  const nCreaturesBefore = S.creatures.length;
+  const child = br.hatchEgg(S.day + br.EGG_DAYS);
+  check('la schiusa materializza la creatura già decisa alla deposizione', !!child && child.skull === water3.id && child.torso === tree3.id && child.q === 'eccezionale');
+  check('finisce nel parco (S.creatures) e libera lo slot per il prossimo uovo', S.creatures.length === nCreaturesBefore + 1 && br.egg() === null);
+
+  /* mutazione: con la fortuna sempre a favore, ESCE una specie imparentata, non quella scelta */
+  S.creatures = [p1, p2]; S.items = Array.from({ length: br.EGG_FOOD }, (_, i) => ({ uid: 400 + i, s: water3.id, t: 'coda', q: 'leggendario', val: 50 }));
+  const omB2 = Math.random; Math.random = () => 0.0; // mutazione SEMPRE, bonus rarità SEMPRE
+  const r2 = br.layEgg(p1.uid, p2.uid, { skull: 1, torso: 1, leg: 1 }, S.day);
+  Math.random = omB2;
+  check('mutazione garantita: la prole NON è la specie scelta, ma della stessa FONTE (un altro Pescatore)',
+    r2.ok === true && S.egg.skull !== water3.id && (d10.spById[S.egg.skull].src || 'terra') === 'acqua');
+  check('bonus di rarità garantito: sale di un gradino oltre il massimo dei genitori (eccezionale→leggendario)', S.egg.q === 'leggendario');
+
+  S.creatures = keepC; S.items = keepI; S.energy = keepEn; S.egg = keepEgg; S.day = keepDay; S.uid = keepUid;
 }
 
 /* ---------- TOCCO: si deve poter ENTRARE toccando la porta ---------- */
@@ -5748,6 +6143,54 @@ sprites.applyLook();
   S.raw = [];
 }
 
+/* ---------- COMANDO skfit: apre il minigioco «ricomponi lo scheletro» ovunque ---------- */
+{
+  const S = state.S;
+  const cmds5 = await import('../src/commands.js');
+  const ui5 = await import('../src/ui.js');
+  const out5 = cmds5.runCommand('skfit');
+  await new Promise(r => setTimeout(r, 30));
+  check('skfit apre il minigioco', ui5.isSkeletonFitOpen() === true, out5);
+  ui5.skeletonFitSkip();
+  check('e si può chiudere subito con lo stesso ESC di sempre', ui5.isSkeletonFitOpen() === false);
+  check('alias scheletro/montaggio', /scheletro|skeleton/i.test(cmds5.runCommand('montaggio') || ''));
+  ui5.skeletonFitSkip();
+}
+
+/* ---------- COMANDO playcomp: gioca col compagno OVUNQUE (anche senza uno) ---------- */
+{
+  const S = state.S;
+  const cmds6 = await import('../src/commands.js');
+  const comp6 = await import('../src/companion.js');
+  const gp6 = await import('../src/gameplay.js');
+  const { COMP } = comp6;
+  comp6.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
+  const out6 = cmds6.runCommand('playcomp');
+  check('playcomp senza compagno: te ne dà uno e lancia comunque', !!S.companion && !!COMP.play && COMP.play.phase === 'throw', out6);
+  /* alias, e forza il round anche su terra scavabile (dove il gioco normale non partirebbe) */
+  COMP.job = null; COMP.play = null; COMP.playCool = 0;
+  const out7 = cmds6.runCommand('gioca');
+  check('alias gioca/fetch: parte OVUNQUE (bypassa il controllo del terreno)', !!COMP.play);
+  for (let i = 0; i < 900 && COMP.play; i++) gp6.companionPlayTick(1 / 20); // lascia esaurire il round
+  delete S.buffs.digX2;
+  comp6.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
+}
+
+/* ---------- COMANDO layegg/hatchegg: depone e schiude un uovo senza dover cercare nulla ---------- */
+{
+  const S = state.S;
+  const cmds7 = await import('../src/commands.js');
+  const br7 = await import('../src/breeding.js');
+  const keep = { creatures: S.creatures, items: S.items, egg: S.egg, energy: S.energy };
+  S.creatures = []; S.items = []; S.egg = null;
+  const out8 = cmds7.runCommand('layegg');
+  check('layegg: crea genitori/cibo se mancano e depone davvero', !!S.egg, out8);
+  const out9 = cmds7.runCommand('hatchegg');
+  check('hatchegg: pronto SUBITO, si schiude', S.egg === null && /Hatched|Schiuso/.test(out9), out9);
+  check('senza uovo: hatchegg lo dice, non esplode', /No egg|Nessun uovo/.test(cmds7.runCommand('hatchegg')));
+  S.creatures = keep.creatures; S.items = keep.items; S.egg = keep.egg; S.energy = keep.energy;
+}
+
 /* ---------- COMANDO stress: deve caricare davvero, e vanilla deve ripulire ---------- */
 {
   const S = state.S;
@@ -6039,6 +6482,19 @@ sprites.applyLook();
   check('Personaggio casuale: palette allineata al nuovo look',
     spr.PAL.F === S.look.skin && spr.PAL.S === S.look.shirt && spr.PAL.P === S.look.pants && spr.PAL.A === S.look.hairColor);
   uiL.lockModal(false); uiL.closeModal();
+}
+
+/* ---------- RICOMPONI LO SCHELETRO (logica pura) ---------- */
+{
+  const sk = await import('../src/skeletonfit.js');
+  const dt = await import('../src/data.js');
+  check('un socket per ogni parte del reperto', dt.PARTS.every(p => !!sk.socketFor(p.id)) && sk.SOCKETS.length === dt.PARTS.length);
+  const torace = sk.socketFor('torace');
+  check('dentro il raggio: si prende il socket giusto', sk.nearestSocket(torace.x, torace.y).id === 'torace');
+  check('fuori dal raggio: nessun socket (niente prese a caso)', sk.nearestSocket(0.5, 0.5 + sk.HIT_R * 3) == null || sk.nearestSocket(0.99, 0.99) == null);
+  check('grado veloce = XP pieno', sk.gradeForTime(500).id === 'perfetto' && sk.gradeForTime(500).xp > sk.gradeForTime(9000).xp);
+  check('grado lento comunque premia (mai un fallimento vero)', sk.gradeForTime(60000).xp > 0);
+  check('saltare non penalizza (0 XP, non un malus)', sk.SKIP_GRADE.xp === 0);
 }
 
 /* ---------- PREPARAZIONE DEL REPERTO (il secondo verbo) ---------- */

@@ -13,8 +13,10 @@ import { spById } from './data.js';
 import { parkPopulation } from './park.js';
 
 /* job/cool/fx pilotati dal raccoglitore leggendario (gameplay.companionWorkTick, Fase 1):
-   job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale */
-export const COMP = { x: 0, y: 0, dir: -1, face: 'right', anim: 0, init: false, job: null, cool: 0, fx: [] };
+   job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale.
+   play/playCool pilotati da gameplay.companionPlayTick (minigioco "gioca col compagno",
+   qualsiasi compagno): play = round di riporto in corso · playCool = pausa fra un round e l'altro. */
+export const COMP = { x: 0, y: 0, dir: -1, face: 'right', anim: 0, init: false, job: null, cool: 0, fx: [], play: null, playCool: 0 };
 
 /* i cinque tipi (fonti). 'any'/assente → terra (lo Scavatore è il default sempre valido) */
 export const COMP_TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
@@ -85,8 +87,9 @@ export function updateCompanion(dt, mounted) {
   const c = S.companion; if (!c) { COMP.job = null; return; }
   /* IN VOLO la cavalcatura È il player: tienila INCOLLATA a lui. Senza, il compagno resta indietro
      (segue a 90px/s mentre voli ×3) e all'atterraggio "torna" dal punto di decollo (segnalato). */
-  if (mounted) { COMP.x = P.x; COMP.y = P.y; COMP.job = null; return; }
+  if (mounted) { COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; return; }
   if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
+  if (COMP.play) return;              // durante il riporto guida il movimento gameplay.companionPlayTick
   if (!COMP.init) { COMP.x = P.x - 16; COMP.y = P.y + 6; COMP.init = true; }
   const off = P.dir === 'left' ? 16 : P.dir === 'right' ? -16 : 0;
   const offy = P.dir === 'up' ? 16 : P.dir === 'down' ? -14 : 8;

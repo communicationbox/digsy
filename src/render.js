@@ -6,11 +6,11 @@ import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
-import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL } from './world.js';
+import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
-import { siteRemaining, onBoat, footGear, waterTile, isMounted } from './gameplay.js';
+import { siteRemaining, onBoat, footGear, waterTile, isMounted, PLAY_THROW, PLAY_CATCH, PLAY_PERFECT, boneSiteDug } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
 import { drawHero, setHeroTime } from './sprites.js';
 import { parks, visParks } from './park.js';
@@ -201,6 +201,47 @@ export function drawSite(sx, sy, remaining, time, tx, ty) {
     const a = (Math.sin(time / 300 + ph) + 1) / 2;
     if (a > 0.4) { px(sx + 2, sy + 2, '#fff6c8'); px(sx + 1, sy + 3, '#f6d95c'); px(sx + 3, sy + 3, '#f6d95c'); px(sx + 2, sy + 4, '#fff6c8'); }
   }
+}
+/* SCHELETRO SEPOLTO — un VERO scavo archeologico, non un mucchietto d'ossa come i siti normali:
+   terra smossa dentro un riquadro delimitato da paletti e corda (i segnali di ogni scavo vero),
+   con le parti ADAGIATE nella terra invece che ammucchiate sopra. Deve leggersi da lontano come
+   UN riquadro, non come 5 incontri sparsi — per questo il fondo si disegna su OGNI casella del
+   bounding-box (anche quelle senza parte), non solo sulle 5 che si scavano. */
+const BONE_BOX_R = { x0: -1, x1: 1, y0: -2, y1: 1 };
+export function drawBonePit(sx, sy, rx, ry) {
+  rect(sx, sy, TS, TS, (rx + ry) % 2 === 0 ? '#6b4a30' : '#5c3f28'); // terra smossa, gradoni a scacchiera lieve
+  rect(sx, sy, TS, 2, '#7a5638');                                    // orlo chiaro in cima (luce dall'alto)
+  const edgeX = rx === BONE_BOX_R.x0 || rx === BONE_BOX_R.x1, edgeY = ry === BONE_BOX_R.y0 || ry === BONE_BOX_R.y1;
+  if (edgeX && edgeY) {                                              // PALETTO d'angolo, sporge in alto
+    const px0 = sx + (rx < 0 ? 2 : 12);
+    rect(px0, sy - 3, 2, 8, '#5c4228'); px(px0, sy - 3, '#8a5f38');
+  } else if (edgeX) { for (let i = 1; i < TS; i += 4) px(sx + (rx < 0 ? 1 : 14), sy + i, '#d8c79c'); }   // corda verticale
+  else if (edgeY) { for (let i = 1; i < TS; i += 4) px(sx + i, sy + (ry < 0 ? 1 : 14), '#d8c79c'); }    // corda orizzontale
+}
+/* le 5 parti, SAGOME DIVERSE (non lo stesso mucchietto ripetuto): si legge quale osso è quale
+   anche prima di scavarlo. Ferme (la scintilla sola basta a dire "qui c'è ancora da scavare"). */
+export function drawBonePart(sx, sy, part, time, tx, ty) {
+  const ph = ((tx || 0) * 7 + (ty || 0) * 13);
+  const boneC = '#ece5d2', boneD = '#cbbfa4', dark = '#3a3128';
+  shadow(sx + 8, sy + 13, 6);
+  if (part === 'cranio') {
+    rect(sx + 4, sy + 6, 8, 6, boneC); rect(sx + 2, sy + 8, 3, 3, boneC);          // cranio ovale + muso
+    px(sx + 6, sy + 8, dark); px(sx + 9, sy + 8, dark);                            // occhi
+    rect(sx + 4, sy + 11, 8, 1, boneD);
+  } else if (part === 'torace') {
+    for (let i = 0; i < 3; i++) { const bx = sx + 3 + i * 3;                       // costole ad arco
+      px(bx, sy + 5 + i, boneC); px(bx + 1, sy + 4 + i, boneC); px(bx + 2, sy + 5 + i, boneD); px(bx, sy + 7 + i, boneD); }
+    rect(sx + 7, sy + 4, 1, 8, boneD);                                             // colonna
+  } else if (part === 'zampa') {
+    rect(sx + 2, sy + 3, 3, 3, boneC); rect(sx + 4, sy + 5, 2, 6, boneD);          // osso lungo in diagonale
+    rect(sx + 6, sy + 9, 2, 3, boneD); rect(sx + 8, sy + 11, 3, 3, boneC);
+  } else if (part === 'coda') {
+    for (let i = 0; i < 5; i++) { const yy = sy + 3 + i * 2 - (i > 2 ? (i - 2) : 0); px(sx + 2 + i * 3, yy, boneC); px(sx + 3 + i * 3, yy, boneD); } // vertebre che si accorciano curvando
+  } else { // corno
+    for (let i = 0; i < 7; i++) px(sx + 5 + Math.floor(i / 2), sy + 13 - i, i % 2 ? boneC : boneD);
+  }
+  const a = (Math.sin(time / 300 + ph) + 1) / 2;                                   // scintilla: c'è ancora da scavare
+  if (a > 0.4) { px(sx + 8, sy + 1, '#fff6c8'); px(sx + 7, sy + 2, '#f6d95c'); px(sx + 9, sy + 2, '#f6d95c'); }
 }
 /* RELITTO in mare: scafo spezzato e albero pendente che affiorano dall'acqua (bob leggero) */
 export function drawWreck(sx, sy, time, tx, ty) {
@@ -397,6 +438,29 @@ function drawCompanionFx(cam, time) {
     px(gx, gy, w); px(gx - 1, gy, w2); px(gx + 1, gy, w2); px(gx, gy - 1, w2);      // ossino "+"
     if (a > 0.4) px(gx, gy - 2, COMP_RARCOL[p.q] || '#e8d9b0');                      // scintilla rarità
   }
+}
+/* MINIGIOCO "gioca col compagno": pallina lanciata con un arco, ferma dove atterra finché il
+   compagno non arriva, e la barra di TEMPISMO sopra la sua testa quando è il momento di
+   prenderla al volo — la zona d'oro (dove scatta il bonus pieno) SI VEDE, un cursore bianco
+   la attraversa: non è indovinare al buio, è leggere il momento giusto. Coordinate schermo
+   (cxs/cys = compagno già -cam, come il resto del blocco che lo disegna). */
+function drawCompanionPlay(cxs, cys, cam, time) {
+  const pl = COMP.play; if (!pl) return;
+  let bx, by;
+  if (pl.phase === 'throw') {
+    const f = Math.min(1, pl.t / PLAY_THROW), arc = Math.sin(f * Math.PI) * 16;
+    bx = snap(P.x + (pl.tx - P.x) * f - cam.x); by = snap(P.y + (pl.ty - P.y) * f - cam.y - arc);
+  } else if (pl.phase === 'chase' || pl.phase === 'catch') {
+    bx = snap(pl.tx - cam.x); by = snap(pl.ty - cam.y + (Math.sin(time / 140) > 0 ? -1 : 0)); // un filo di vita mentre aspetta
+  } else { bx = cxs; by = cys - 18; } // 'return': il compagno se la porta dietro
+  px(bx, by, '#e8763c'); px(bx - 1, by, '#c65a2e'); px(bx + 1, by, '#c65a2e'); px(bx, by - 1, '#f2935c'); px(bx, by + 1, '#a8451f');
+  if (pl.phase !== 'catch') return;
+  const W = 16, H = 3, x0 = cxs - W / 2, y0 = cys - 26;
+  rect(x0 - 1, y0 - 1, W + 2, H + 2, '#2a2115');                     // cornice
+  rect(x0, y0, W, H, '#4a3a26');                                     // fondo
+  rect(x0 + PLAY_PERFECT[0] * W, y0, (PLAY_PERFECT[1] - PLAY_PERFECT[0]) * W, H, '#c79a3c'); // zona d'oro
+  const cur = x0 + Math.min(1, pl.t / PLAY_CATCH) * W;
+  rect(Math.round(cur), y0 - 1, 1, H + 2, '#fff');                   // cursore: dove sei ORA
 }
 /* MERAVIGLIE: il disegno vive in wonderart.js (modulo puro) così si può guardare e
    rifinire anche fuori dal gioco, nella pagina /wonders. */
@@ -1115,6 +1179,7 @@ export function render(time) {
     let t = ti ? (ti.park ? PARK : ti.road ? ROAD : FLOOR) : baseTerrain(tx, ty);
     groundTile(t, tx, ty, sx, sy, time, ti ? 0 : zoneIdxAt(tx, ty));
     if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy);
+    if (!ti) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* entità */
     if (ti) {
       if (ti.park && ti.floor) {                                        // ARREDO del parco (stagno/aiuole piatti; alberi/cespugli/sassi y-sort)
@@ -1139,6 +1204,12 @@ export function render(time) {
     }
     const st = siteAt(tx, ty);
     if (st) { ents.push({ y: sy + 14, f: () => drawSite(sx, sy, siteRemaining(st), time, tx, ty) }); continue; }
+    const bs = boneSiteAt(tx, ty);
+    if (bs) {
+      const dug = boneSiteDug(bs.site, bs.part);
+      ents.push({ y: sy + 14, f: () => dug ? drawHole(sx, sy) : drawBonePart(sx, sy, bs.part, time, tx, ty) });
+      continue;
+    }
     const wk = wreckAt(tx, ty);
     if (wk) { ents.push({ y: sy + 14, f: () => drawWreck(sx, sy, time, tx, ty) }); continue; }
     if (caveEntranceAt(tx, ty)) { ents.push({ y: sy + 14, f: () => drawCaveEntrance(sx, sy, time) }); continue; }
@@ -1228,6 +1299,7 @@ export function render(time) {
       }
       drawCompanionGlyph(ctype, cxs, cys - 16, time);
       drawCompanionWork(cxs, cys, time, compObj);
+      drawCompanionPlay(cxs, cys, cam, time);
     } });
   }
   drawCompanionFx(cam, time);   // "+fossile" che salgono dal raccoglitore (sopra tutto)

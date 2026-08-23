@@ -124,6 +124,8 @@ export function applyStaticTexts() {
   set('#pr-t-spatola', tr('Spatola', 'Spatula'));
   set('#pr-lab-clean', tr('Pulizia', 'Cleaned'));
   set('#pr-lab-integ', tr('Integrità', 'Intact'));
+  set('#sk-title', tr('SCHELETRO', 'SKELETON'));
+  set('#sk-skip', tr('Salta', 'Skip'));
   set('#exitbtn', '🚪 ' + tr('Esci', 'Exit'));
   set('#debugtag', '🐞 ' + tr('CHEAT · NIENTE SALVATAGGIO', 'CHEAT · NO SAVE'));
 }

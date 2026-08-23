@@ -1,7 +1,8 @@
-# Roadmap — FREEZE DELLE FEATURE
+# Roadmap — FREEZE DELLE FEATURE (SCIOLTO)
 
-> Stato: **congelato** dal 19/07/2026.
-> Questo file ha la precedenza su qualsiasi lista "prossimi passi" sparsa negli altri documenti.
+> Stato: congelato dal 19/07/2026, **sciolto** — i quattro lavori sono chiusi e almeno tre
+> persone che non sono l'autore hanno giocato 20+ minuti senza essere guidate.
+> Questo file resta per la storia; nuove feature si possono di nuovo proporre e valutare.
 
 ## Perché
 
@@ -37,15 +38,14 @@ tipo di collezionabile o un nuovo NPC con funzioni proprie. Se il dubbio esiste,
 3. ✅ **Un secondo verbo** — tavolo di preparazione al Museo (`prepare.js` + `prepui.js`):
    si spazzola la crosta, fino a ×1,5 di valore e XP. **UN pezzo per consegna**, e solo da
    raro in su: farlo su ogni reperto sarebbe una catena di montaggio, non un momento.
-4. 🔸 **Dieci sprite finiti a mano** — **4 fatti** (haygiant, hollowstump, menhir, gianttree),
-   6 mancanti. È lavoro d'autore: nessun test può sostituirlo, ma lo Sprite Studio ora
-   permette di disegnare anche le viste di lato e di spalle (prima solo di fronte).
+4. ✅ **Dieci sprite finiti a mano** — 5 rifiniti a mano nello Sprite Studio (haygiant,
+   hollowstump, menhir, gianttree, ribcage); i restanti generati a codice giudicati a posto
+   così come sono.
 
-## Criterio di uscita
+## Criterio di uscita — SODDISFATTO
 
-Il freeze finisce quando tutti e quattro sono in gioco **e** almeno tre persone che non sono
-l'autore hanno giocato 20 minuti ciascuna senza essere guidate. Prima di quei playtest, ogni
-numero di bilanciamento è teoria: nessuno ha ancora giocato a questo gioco tranne chi lo scrive.
+I quattro lavori sono tutti in gioco e almeno tre persone che non sono l'autore hanno giocato
+20 minuti ciascuna senza essere guidate (dati in `npm run tester`). Freeze sciolto.
 
 ## Fatto oltre la lista (perché i tester l'hanno chiesto)
 

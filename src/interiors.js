@@ -14,6 +14,7 @@ import { zoneIdxAt } from './regions.js';
 import { INT_WOOD, night } from './tiles.js';
 import { drawSayBalloon } from './props.js';
 import { vhash } from './noise.js';
+import { egg as breedEgg, eggReady } from './breeding.js';
 
 /* MAESTRO SCAVATORE: esploratore che passeggia nell'atrio del museo (nessun glifo sopra la testa) */
 const MENTOR_LOOK = { hat: '#8a5a2a', shirt: '#b5622e', pants: '#4a3524', skin: '#e3b98a', hairStyle: 'short', hairColor: '#5a4636', hatStyle: 'explorer', eyeColor: '#33291f' };
@@ -434,6 +435,28 @@ export function drawTailorRoom(rw, rh, time) {
   for (let i = 0; i < 5; i++) px(60 + (i * 19) % 44, 80 + (i * 13) % 20, ['#c65a54', '#5a86c8', '#e08aa8', '#5fa04e', '#e8c34a'][i]);
 }
 /* LABORATORIO: lavagna con scheletro, scaffale pozioni, alambicco con fiamma e bolle, banco studio */
+/* TECA DI COVA: sta SEMPRE nella stanza, non solo nel pannello del Lab — spenta e vuota
+   finché non deponi un uovo, poi ci galleggia dentro davvero (bagliore quando è pronto). */
+function drawEggTank(x, y, time) {
+  /* stessa TAGLIA delle altre postazioni sul banco (alambicco/microscopio, non un pilastro
+     alto quanto la stanza): W/H combaciano col piedistallo di legno sotto, come i vasetti */
+  const e = breedEgg(), ready = !!e && eggReady();
+  const W = 14, H = 16;
+  rect(x - 2, y + H, W + 4, 3, '#5c4229');                                   // piedistallo
+  rect(x - 1, y - 1, W + 2, 2, '#5a5248');                                   // bocchetta
+  rect(x, y, W, H, ready ? '#dff4e0' : (e ? '#cdeef2' : '#a8b4ad'));         // vetro/liquido (spento se vuota)
+  rect(x + 1, y + 1, 2, H - 4, 'rgba(255,255,255,.30)');                     // riflesso sul vetro
+  if (e) {
+    const bob = Math.round(Math.sin(time / 480) * 1.5);
+    const ex = x + W / 2 - 2, ey = y + H / 2 - 4 + bob;
+    rect(ex, ey, 4, 1, '#d8973c'); rect(ex - 1, ey + 1, 6, 5, '#d8973c'); rect(ex, ey + 6, 4, 1, '#d8973c');
+    px(ex, ey + 2, '#f2c53d');                                              // riflesso sul guscio
+    if (ready) {
+      const sp = Math.floor(time / 200) % 2;
+      px(ex - 3, ey + 1 + sp, '#f6efdd'); px(ex + 6, ey + 4 - sp, '#f6efdd'); // scintille
+    }
+  }
+}
 export function drawLabRoom(rw, rh, time) {
   /* lavagna al centro della parete */
   const bx = rw / 2 - 26;
@@ -460,6 +483,8 @@ export function drawLabRoom(rw, rh, time) {
     const x = shx + i * 8;
     rect(x, 24 - hgt, 5, hgt, c); rect(x + 1, 24 - hgt - 2, 3, 2, '#cfe8f2'); px(x + 1, 26 - hgt, '#f6efdd');
   });
+  /* teca di cova: sul pavimento in basso a destra, fuori dal corridoio centrale porta→banco */
+  drawEggTank(126, 74, time);
   /* postazione ALAMBICCO: bruciatore, storta con bolle, tubo con GOCCIA che cade, beuta */
   rect(12, 44, 36, 22, '#8a5f38'); rect(12, 44, 36, 3, '#a97a4c'); rect(14, 66, 4, 4, '#5c4229'); rect(42, 66, 4, 4, '#5c4229');
   const fl = Math.floor(time / 160) % 2;

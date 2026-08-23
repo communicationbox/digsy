@@ -1,17 +1,19 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
-import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, CHIMERA_COST, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
+import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
 import { ensureQuests, boardOffers, acceptQuest, deliverQuest, abandonQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
-import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPowers, companionSpec } from './companion.js';
+import { companionCandidates, setCompanion, clearCompanion, isCurrentCompanion, companionType, companionPowers, companionSpec, COMP } from './companion.js';
 import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './progress.js';
 import { TRACKS, checkAchievements, trackLabel, trackGoal, trackTier, trophyTier, trophyCount, nextThreshold, tierLabel, tierCol, TIER_TOTAL, TIERS } from './achievements.js';
 import { weatherAt, weatherLabel } from './weather.js';
+import { marketPrice, marketLabel } from './market.js';
+import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
-import { nearbyWonder, useWonder, bagFull, nearbyHarvest } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, assembleChimera, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
@@ -24,17 +26,18 @@ import { landmarkForCell, LCELL } from './world.js';
 import { drawWonder } from './wonderart.js';
 import { wonderName, wonderDesc, wonderGrandpa, wonderPower, wonderCd, wonderStatusText, wonderReadyIn, markWonderUsed, archList, travelToArch, isDiscovered, WONDERS } from './wonders.js';
 import { CAVE, caveNodeReach, exitCave, nearCaveExit } from './cave.js';
-import { baseSpec, partParams, buildVoxels, buildFleshVoxels, partVoxels, composedPartsVox, shadeHex, BP } from './bones.js';
+import { baseSpec, buildVoxels, buildFleshVoxels, partVoxels, composedPartsVox, shadeHex, BP } from './bones.js';
 import { isDebug } from './debug.js';
 import { tipsOn, joystickOn, leftHanded } from './prefs.js';
 import { fusibleGroups, nextRarity } from './fuse.js';
 import { projectVox } from './voxview.js';
 import { openMap, closeMap, isMapOpen, revealMap, mapZoomBy, mapReset } from './mapui.js';
 export { openMap, closeMap, isMapOpen, revealMap };
-import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, remount3D, drawVoxel2D, mountSpecies3D, litForSpecies } from './bookui.js';
+import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawVoxel2D, mountSpecies3D, litForSpecies } from './bookui.js';
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
+import { nearestSocket, gradeForTime, SKIP_GRADE, SOCKETS, partLabel } from './skeletonfit.js';
 import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver as cmDeliver,
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
@@ -224,12 +227,30 @@ export function updatePrompt() {
     }
     setPrompt(null); return;
   }
+  /* "GIOCA COL COMPAGNO": il prompt deve dire la VERITÀ su cosa fa E in questo istante — con
+     un solo tasto per tutto, un E che non corrisponde a niente (o corrisponde a qualcos'altro)
+     è quello che confonde di più. Durante il round E ha SEMPRE la priorità assoluta (act() la
+     controlla per prima), quindi anche qui viene prima di ogni altro prompt. */
+  if (COMP.play) {
+    setPrompt(COMP.play.phase === 'catch'
+      ? withIcons(actKey() + ' ' + tr('Prendilo AL VOLO! 🐾', 'Catch it NOW! 🐾'))
+      : null); // lancio/inseguimento/ritorno: E non fa niente adesso, meglio tacere che mentire
+    return;
+  }
   { /* MERAVIGLIA: il prompt dice sempre se il dono è pronto o quanto deve riposare */
     const w = nearbyWonder();
     if (w) {
       const st2 = wonderStatusText(w.type, w.x, w.y);
       setPrompt(withIcons(actKey() + ' ' + wonderName(w.type) + ' ✨ (' + st2 + ')')); return;
     }
+  }
+  /* SCHELETRO SEPOLTO: dice SUBITO di chi è (il traguardo è chiaro, non una sorpresa scavata
+     alla cieca) e a che punto sei — così un sito a metà si riconosce a colpo d'occhio */
+  const bs = nearbyBoneSite();
+  if (bs) {
+    const sp = spById[bs.site.sp];
+    setPrompt(withIcons(actKey() + ' ' + tr('Scava: ', 'Dig: ') + partName(bs.part) + tr(' di ', ' of ') + (sp ? sp.name : '?') + ' 🦴 (' + boneSiteProgress(bs.site) + '/5)'));
+    return;
   }
   const st = nearbySite();
   if (st) {
@@ -238,6 +259,9 @@ export function updatePrompt() {
     return;
   }
   if (nearbyBoard()) { setPrompt(withIcons(actKey() + ' ' + tr('Bacheca delle missioni 📋', 'Mission board 📋'))); return; }
+  /* già ne hai uno pronto? nel parco si GIOCA invece di riaprire il selettore (stessa
+     priorità di act(): companionPlayable() prima di nearbyPark()) */
+  if (companionPlayable()) { setPrompt(withIcons(actKey() + ' ' + tr('Gioca col compagno 🐾', 'Play with your companion 🐾'))); return; }
   if (nearbyPark()) { setPrompt(withIcons(actKey() + ' ' + tr('Scegli il compagno 🐾', 'Choose your companion 🐾'))); return; }
   if (nearbyDrop()) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli da terra ✨', 'Pick up from the ground ✨'))); return; } // il fossile caduto viene prima della fontana
   if (nearbyFountain()) { setPrompt(withIcons(actKey() + ' ' + tr('Lancia 1 🪙 nella fontana', 'Toss 1 🪙 into the fountain'))); return; }
@@ -263,6 +287,16 @@ export function showBanner(html, ms = 2600) {
    che spariscono da sole mentre stai ancora capendo dove sei non insegnano niente: coprono
    solo il primo momento di gioco. I comandi restano nella Guida (zaino → ❔). */
 export function welcomeToasts() { /* volutamente vuota: la guida d'apertura è il tutorial */ }
+/* "BENTORNATO" del parco che rende (idle.js): un toast, non un banner — è un piccolo regalo,
+   non un evento di trama. Chiamato dal boot SOLO se il conto (fatto lì) ha dato qualcosa. */
+export function showIdleWelcome(r) {
+  if (!r) return;
+  const bits = [];
+  if (r.coins > 0) bits.push('🪙 ' + r.coins);
+  if (r.dnaSp) { const sp = spById[r.dnaSp]; if (sp) bits.push('🧬 ' + tr('mezza fialetta di ', 'half a vial of ') + sp.name); }
+  if (!bits.length) return;
+  toast('🐾 ' + tr('Bentornato! Il parco ha reso: ', 'Welcome back! The park earned: ') + bits.join(' · '));
+}
 
 /* ---------- modale ---------- */
 const modal = document.getElementById('modal'), mBody = document.getElementById('m-body'), mTitle = document.getElementById('m-title');
@@ -665,7 +699,7 @@ function abilLabel(spec) {
 export function openCompanionPicker() {
   const cands = companionCandidates(), cur = companionSpec();
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli chi ti segue nel mondo. Il potere dipende dal TIPO (fonte) e cresce con la RARITÀ; ogni compagno dà anche fiuto e bussola.', 'Choose who follows you in the world. The power depends on its TYPE (source) and grows with RARITY; every companion also gives sniff and compass.')}</div>`;
-  if (!cands.length) h += `<div class="center muted">${tr('Nessuna chimera o fossile risvegliato. Assembla una chimera o risveglia una specie al Laboratorio!', 'No chimera or awakened fossil yet. Assemble a chimera or awaken a species at the Lab!')}</div>`;
+  if (!cands.length) h += `<div class="center muted">${tr('Nessuna chimera o fossile risvegliato. Risveglia una specie al Laboratorio (poi potrai anche allevare chimere)!', 'No chimera or awakened fossil yet. Awaken a species at the Lab (then you can breed chimeras too)!')}</div>`;
   else {
     h += `<div class="row"${cur ? '' : ' style="background:#f1e6cc"'}><span class="em">🚫</span><div><div class="nm">${tr('Nessun compagno', 'No companion')}</div><div class="sub">${tr('vai da solo', 'go on your own')}</div></div><div class="rt">${cur ? `<button class="btn amber" data-comp="">${tr('Scegli', 'Choose')}</button>` : '<b>✓ ' + tr('da solo', 'on your own') + '</b>'}</div></div>`;
     h += cands.map(c => {
@@ -839,6 +873,92 @@ export function tossAbort() {
   const ov = document.getElementById('tossov'); if (ov && ov.classList) ov.classList.remove('on');
   const cb = tossOnDone; tossOnDone = null; if (cb) cb(tossHits);
 }
+
+/* RICOMPONI LO SCHELETRO — museo: un pezzo NUOVO va esposto, lo trascini nel socket giusto.
+   Coda di pezzi (un lotto al Museo può contenerne più di uno): si gioca un pezzo alla volta.
+   Sempre saltabile (bottone Salta), mai un fallimento vero: un socket sbagliato rimanda il
+   pezzo alla base, il tempo continua — la fretta è quello che dà il bonus, non l'errore. */
+let skQueue = [], skItem = null, skStart = 0, skDone = null, skWired = false;
+export function isSkeletonFitOpen() { return !!skItem; }
+/* ESC (o un tasto) = come premere Salta: il pezzo è già garantito, si salta solo il bonus */
+export function skeletonFitSkip() { if (skItem) skResolve(SK_SKIP); }
+function skPieceEl() { return document.getElementById('sk-piece'); }
+function skPlacePiece(xFrac, yFrac) {
+  const el = skPieceEl(); if (!el) return;
+  el.style.left = (xFrac * 100) + '%'; el.style.top = (yFrac * 100) + '%';
+}
+function skHighlight(sockId) {
+  document.querySelectorAll('.sk-sock').forEach(s => s.classList.toggle('hot', s.dataset.sock === sockId));
+}
+export function openSkeletonFit(items, onAllDone) {
+  skDone = onAllDone || null;
+  skQueue = (items || []).slice();
+  skNext();
+}
+function skNext() {
+  if (!skQueue.length) { skClose(); return; }
+  const ov = document.getElementById('skfitov');
+  if (!ov || typeof requestAnimationFrame === 'undefined') {                 // headless/no-DOM: niente minigioco
+    const it = skQueue.shift(); gainXp(SK_SKIP.xp); skNext(); return;
+  }
+  skItem = skQueue.shift();
+  skStart = (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+  ov.classList.add('on');
+  const sp = spById[skItem.s];
+  const ttl = document.getElementById('sk-title'); if (ttl) ttl.innerHTML = withIcons(partName(skItem.t) + ' ' + tr('di', 'of') + ' ' + (sp ? sp.name : skItem.s));
+  const hint = document.getElementById('sk-hint'); if (hint) hint.innerHTML = withIcons(tr('Trascina il pezzo nel socket giusto', 'Drag the piece into the right socket'));
+  /* ogni socket mostra l'ICONA della sua parte (stessa del Libro/zaino): senza, sono 5 cerchi
+     identici e non è una sfida, è indovinare a caso (segnalato da un giocatore) */
+  for (const s of SOCKETS) { const el = document.getElementById('sk-s-' + s.id); if (el) el.innerHTML = withIcons(partLabel(s.id)); }
+  skPlacePiece(0.5, 0.92); skHighlight(null);
+  const pv = document.getElementById('sk-pv'); if (pv) { try { projectVox(pv, partVoxels(skItem.s, skItem.t)); } catch (e) { /* stub nei test */ } }
+  const skip = document.getElementById('sk-skip'); if (skip) skip.onclick = () => skResolve(SK_SKIP);
+  skWire();
+}
+function skWire() {
+  const el = skPieceEl(), board = document.getElementById('sk-board');
+  if (!el || !board || skWired) return;
+  skWired = true;
+  let down = false;
+  const frac = ev => {
+    const r = board.getBoundingClientRect(), p = ev.touches ? ev.touches[0] : ev;
+    return { x: (p.clientX - r.left) / r.width, y: (p.clientY - r.top) / r.height };
+  };
+  el.addEventListener('pointerdown', ev => { down = true; el.classList.add('dragging'); el.setPointerCapture && el.setPointerCapture(ev.pointerId); ev.preventDefault && ev.preventDefault(); });
+  el.addEventListener('pointermove', ev => {
+    if (!down || !skItem) return;
+    const p = frac(ev); skPlacePiece(p.x, p.y);
+    skHighlight(nearestSocket(p.x, p.y) ? nearestSocket(p.x, p.y).id : null);
+  });
+  const release = ev => {
+    if (!down || !skItem) return;
+    down = false; el.classList.remove('dragging');
+    const p = frac(ev), s = nearestSocket(p.x, p.y);
+    if (s && s.id === skItem.t) {
+      const ms = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : 0) - skStart;
+      skResolve(gradeForTime(ms));
+    } else {
+      skPlacePiece(0.5, 0.92); skHighlight(null); playSfx('nope');    // sbagliato: torna alla base, il tempo corre
+    }
+  };
+  el.addEventListener('pointerup', release);
+  el.addEventListener('pointercancel', () => { down = false; el.classList.remove('dragging'); skPlacePiece(0.5, 0.92); });
+}
+function skResolve(grade) {
+  const it = skItem; skItem = null;
+  if (grade.xp) { gainXp(grade.xp); playSfx('found'); }
+  const label = { perfetto: tr('Montaggio perfetto!', 'Perfect fit!'), buono: tr('Ben incastrato', 'Nicely fitted'),
+    ok: tr('Incastrato', 'Fitted'), saltato: tr('Saltato', 'Skipped') }[grade.id] || '';
+  if (it) toast('🦴 ' + label + (grade.xp ? ' — +' + grade.xp + ' XP' : ''));
+  const ov = document.getElementById('skfitov'); if (ov && ov.classList) ov.classList.remove('on');
+  skNext();
+}
+function skClose() {
+  const ov = document.getElementById('skfitov'); if (ov && ov.classList) ov.classList.remove('on');
+  const cb = skDone; skDone = null; if (cb) cb();
+}
+const SK_SKIP = SKIP_GRADE;
+
 /* click sulle statistiche dell'HUD (non su zaino/menu) → guida */
 if (typeof document !== 'undefined' && document.getElementById) {
   for (const id of ['h-coin', 'h-en', 'h-day', 'h-lvl', 'h-zone', 'h-compass', 'h-comp']) {
@@ -959,8 +1079,8 @@ const NPC_NOBUY = [
 ];
 /* PRIMA visita di ogni edificio: una frase che spiega a cosa serve. Poi le 10 a rotazione. */
 const NPC_FIRST = {
-  lab: ['Qui costruisci le chimere: portami un cranio, un torace e una zampa identificati (+ un po\' di monete) e le assemblo — una fialetta di DNA per ogni specie usata. Con DUE fialette della stessa specie, invece, la faccio rivivere tutta intera.',
-    'This is where you build chimeras: bring me an identified skull, torso and leg (+ some coins) and I assemble them — one DNA vial per species used. With TWO vials of the same species I can instead bring it back whole.'],
+  lab: ['Qui si risveglia: con DUE fialette della stessa specie la faccio rivivere tutta intera. Le chimere invece non nascono da ossa — alleva DUE creature che hai già, e scegli tu da chi eredita ogni parte.',
+    'This is where things get awakened: with TWO vials of the same species I can bring it back whole. Chimeras, though, don\'t come from bones — breed TWO creatures you already have, and choose who each part is inherited from.'],
   store: ['Qui vendi i reperti identificati e compri il necessario: attrezzi, zaini più grandi, mappe del tesoro, ristori e mezzi. Dai pure un\'occhiata.',
     'Here you sell identified finds and buy what you need: tools, bigger bags, treasure maps, snacks and vehicles. Have a look around.'],
   museum: ['Portami i reperti GREZZI e te li identifico subito. I pezzi nuovi restano esposti; completa una teca (5 su 5) e guadagni una fialetta di DNA — al Laboratorio ne servono due per far rivivere una specie.',
@@ -1009,7 +1129,7 @@ function renderLab() {
         const up = nextRarity(g.q);
         const mine = (S.museum[g.spId] || []).includes(g.part);
         /* avviso onesto: se quel pezzo non è ancora in vetrina, fonderlo ti toglie la teca */
-        const warn = mine ? '' : `<div class="sub" style="color:#a8512e">${tr('non ancora esposto al Museo', 'not yet on display at the Museum')}</div>`;
+        const warn = mine ? '' : `<div class="sub" style="color:var(--c-clay-sh)">${tr('non ancora esposto al Museo', 'not yet on display at the Museum')}</div>`;
         return `<div class="row"><canvas class="pv" width="36" height="30" data-pv="${g.spId}|${g.part}"></canvas>
           <div><div class="nm">${partName(g.part)} ${tr('di', 'of')} ${sp ? sp.name : g.spId} ×${g.uids.length}</div>
           <div class="sub">${rarSpan(g.q)} → ${rarSpan(up)} · ${tr('stessa zona', 'same zone')}: ${zoneName(sp ? sp.zone : '')}</div>${warn}</div>
@@ -1017,18 +1137,40 @@ function renderLab() {
       }).join('');
     }
   }
-  h += `<div class="bighead">${tr('Risveglia una chimera', 'Awaken a chimera')}</div>`;
-  h += `<div class="muted" style="margin-bottom:8px">${tr('Monta <b>Cranio + Torace + Zampa</b> identificati', 'Assemble an identified <b>Skull + Ribcage + Leg</b>')} (🪙 ${CHIMERA_COST} + 🧬 ${tr('1 fialetta per ogni specie usata', '1 vial per species used')}): ${tr('la creatura rivive nel <b>parco</b> delle città grandi. Chimere create', 'the creature comes alive in the big-city <b>park</b>. Chimeras created')}: ${S.creatures.length}</div>`;
-  const crn = S.items.filter(i => i.t === 'cranio'), tor = S.items.filter(i => i.t === 'torace'), zmp = S.items.filter(i => i.t === 'zampa');
-  if (!crn.length || !tor.length || !zmp.length) {
-    const miss = [!crn.length ? partName('cranio') : null, !tor.length ? partName('torace') : null, !zmp.length ? partName('zampa') : null].filter(Boolean).join(', ');
-    h += `<div class="center muted">${tr('Ti manca', 'Missing')}: ${miss}.</div>`;
-  } else {
-    const opt = list => list.map(i => `<option value="${i.uid}">${spById[i.s].name} (${rarLabel(i.q)})</option>`).join('');
-    h += `<div class="row" style="flex-wrap:wrap;gap:6px">
-      <select id="selC" class="sel">${opt(crn)}</select><select id="selT" class="sel">${opt(tor)}</select><select id="selZ" class="sel">${opt(zmp)}</select>
-      <div class="rt"><button class="btn clay" id="doChimera">${tr('Risveglia!', 'Awaken!')} 🪙${CHIMERA_COST}</button></div></div>`;
-    h += `<div class="center" style="padding:4px 0"><canvas id="chimPrev" class="bp-cv" width="120" height="90"></canvas><div class="muted" style="font-size:11px">${tr('Anteprima della creatura assemblata', 'Preview of the assembled creature')}</div></div>`;
+  /* ALLEVAMENTO: le chimere nascono SOLO da qui (l'assemblaggio diretto da ossa è stato tolto:
+     due strade per la stessa cosa rendevano questa una scorciatoia più lenta). Prima risveglia
+     specie PURE (sotto), poi ibridale — per ogni parte SCEGLI da quale genitore la eredita.
+     Mangia i doppioni meno preziosi (terza strada oltre a vendita e fusione) e matura in
+     qualche giorno: un motivo a tornare che nasce da una scelta già fatta, non dall'attesa sola. */
+  h += `<hr class="hr"><div class="bighead">🥚 ${tr('Alleva una chimera', 'Breed a chimera')}</div>`;
+  {
+    const e = breedEgg();
+    /* niente teca disegnata QUI: sta nella stanza vera del Laboratorio (drawEggTank in
+       interiors.js), sempre visibile camminandoci — nel pannello basta il testo */
+    if (e) {
+      if (eggReady()) {
+        h += `<div class="row" style="background:#f1e6cc"><span class="em">🥚</span><div><div class="nm">${tr('Pronto a schiudersi!', 'Ready to hatch!')}</div><div class="sub">${tr('Figlio di', 'Child of')} ${e.p1} × ${e.p2}</div></div><div class="rt"><button class="btn amber" id="doHatch">${tr('Schiudi!', 'Hatch!')}</button></div></div>`;
+      } else {
+        h += `<div class="row"><span class="em">🥚</span><div><div class="nm">${tr('In cova', 'Incubating')}</div><div class="sub">${tr('Figlio di', 'Child of')} ${e.p1} × ${e.p2} · ${tr('ancora', '')} ${eggDaysLeft()} ${tr('giorni', 'days left')}</div></div></div>`;
+      }
+    } else if (S.creatures.length < 2) {
+      h += `<div class="center muted">${tr('Servono almeno 2 chimere (o risvegli) nel parco.', 'You need at least 2 chimeras (or awakened species) in the park.')}</div>`;
+    } else {
+      const optC = S.creatures.map(c => `<option value="${c.uid}">${c.name} (${rarLabel(c.q)})</option>`).join('');
+      /* selP2 parte dal SECONDO in elenco: coi due select uguali di default il bottone nasce
+         spento e il primo avviso che si vede è "scegli due genitori diversi" — vero ma inutile
+         come prima impressione, quando basta un default sensato */
+      const optC2 = S.creatures.map((c, i) => `<option value="${c.uid}"${i === 1 ? ' selected' : ''}>${c.name} (${rarLabel(c.q)})</option>`).join('');
+      h += `<div class="muted" style="margin-bottom:6px">${tr('Scegli i due genitori, poi da chi eredita OGNI parte. L\'uovo mangia i', 'Pick the two parents, then who each part is inherited from. The egg eats the')} ${EGG_FOOD} ${tr('doppioni meno preziosi che hai (più sono pregiati, più chance di sorpresa) e matura in', 'least valuable duplicates you have (the finer they are, the better the odds of a surprise), and takes')} ${EGG_DAYS} ${tr('giorni.', 'days to hatch.')}</div>`;
+      h += `<div class="row" style="flex-wrap:wrap;gap:6px">
+        <select id="selP1" class="sel">${optC}</select><select id="selP2" class="sel">${optC2}</select></div>`;
+      h += `<div class="row" style="flex-wrap:wrap;gap:6px">
+        <select id="selInhS" class="sel"><option value="1">${tr('Cranio: genitore 1', 'Skull: parent 1')}</option><option value="2">${tr('Cranio: genitore 2', 'Skull: parent 2')}</option></select>
+        <select id="selInhT" class="sel"><option value="1">${tr('Torace: genitore 1', 'Ribcage: parent 1')}</option><option value="2">${tr('Torace: genitore 2', 'Ribcage: parent 2')}</option></select>
+        <select id="selInhL" class="sel"><option value="1">${tr('Zampa: genitore 1', 'Leg: parent 1')}</option><option value="2">${tr('Zampa: genitore 2', 'Leg: parent 2')}</option></select></div>`;
+      h += `<div id="eggPreview" class="sub" style="margin:6px 0"></div>`;
+      h += `<div class="center"><button class="btn clay" id="doLay">${tr('Deponi l\'uovo', 'Lay the egg')} ⚡${EGG_ENERGY}</button></div>`;
+    }
   }
   h += `<hr class="hr"><div class="bighead">${tr('Risveglia una specie', 'Awaken a species')}</div>`;
   h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('Servono <b>2 fialette di DNA</b> della stessa specie (una teca completa 5/5 ne dà una; le altre si comprano al Museo): qui le iniettiamo e la specie torna <b>VIVA</b> nel Libro. Risvegliate', 'You need <b>2 DNA vials</b> of the same species (a complete case 5/5 gives one; more can be bought at the Museum): we inject them here and the species comes back <b>ALIVE</b> in the Book. Awakened')}: ${S.awakened.length}/${ALL_SPECIES.length}</div>`;
@@ -1044,10 +1186,6 @@ function renderLab() {
   /* le miniature dei pezzi vanno DISEGNATE dopo l'innerHTML: senza, al posto del fossile
      resta il fondo scuro della canvas (un quadrato nero) */
   mBody.innerHTML = withIcons(h); hydratePv();
-  const dc = document.getElementById('doChimera'); if (dc) dc.onclick = () => {
-    const v = id => parseInt(document.getElementById(id).value, 10);
-    if (assembleChimera(v('selC'), v('selT'), v('selZ'))) renderLab();
-  };
   mBody.querySelectorAll('[data-fuse]').forEach(b => b.onclick = () => {
     const [spId, part] = b.dataset.fuse.split('|');
     const out = fuseDupes(spId, part);
@@ -1061,29 +1199,70 @@ function renderLab() {
   const lb = document.getElementById('labBook'); if (lb) lb.onclick = () => { openBook(0); };
   const ds = document.getElementById('dbgSpawn'); if (ds) ds.onclick = () => { if (debugSpawnAll()) { toast('🐞 ' + tr('Tutti i fossili nello zaino!', 'All fossils in your bag!')); renderLab(); } };
   mBody.querySelectorAll('[data-awaken]').forEach(b => b.onclick = () => { if (awakenSpecies(b.dataset.awaken)) renderLab(); });
-  /* anteprima 3D della chimera: testa dal cranio, petto dal torace, arti dalla zampa (VIVA) */
-  const pv = document.getElementById('chimPrev');
-  if (pv) {
-    const specNow = () => {
-      const pick = id => { const it = S.items.find(x => x.uid === parseInt(document.getElementById(id).value, 10)); return it ? spById[it.s] : null; };
-      const c = pick('selC'), t = pick('selT'), z = pick('selZ');
-      if (!c || !t || !z) return null;
-      return { heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
+  /* ALLEVAMENTO: anteprima live (chi eredita cosa, che potere ne esce, chance di sorpresa) e
+     i due bottoni (deponi/schiudi) — la sorpresa vera resta alla schiusa, qui si vede solo
+     la base garantita, senza mutazione. */
+  {
+    const doHatch = document.getElementById('doHatch');
+    if (doHatch) doHatch.onclick = () => {
+      const cr = hatchEgg();
+      if (cr) showBanner('🥚 ' + tr('SCHIUSO!', 'HATCHED!'), cr.name);
+      renderLab();
     };
-    const refresh = () => {
-      const cur = document.getElementById('chimPrev'); if (!cur) return;
-      const sp = specNow(); if (sp) remount3D(cur, sp, false, true);
-    };
-    ['selC', 'selT', 'selZ'].forEach(id => { const el = document.getElementById(id); if (el) el.onchange = refresh; });
-    refresh();
+    const selP1 = document.getElementById('selP1'), selP2 = document.getElementById('selP2');
+    if (selP1 && selP2) {
+      const refreshEgg = () => {
+        const box = document.getElementById('eggPreview'), btn = document.getElementById('doLay');
+        if (!box) return;
+        const p1 = S.creatures.find(c => c.uid === parseInt(selP1.value, 10));
+        const p2 = S.creatures.find(c => c.uid === parseInt(selP2.value, 10));
+        const inh = { skull: parseInt(document.getElementById('selInhS').value, 10),
+          torso: parseInt(document.getElementById('selInhT').value, 10),
+          leg: parseInt(document.getElementById('selInhL').value, 10) };
+        if (!p1 || !p2 || p1.uid === p2.uid) {
+          box.innerHTML = withIcons(`<span style="color:var(--c-clay-sh)">${tr('Scegli due genitori DIVERSI', 'Pick two DIFFERENT parents')}</span>`);
+          if (btn) btn.disabled = true; return;
+        }
+        const base = previewOffspring(p1, p2, inh);
+        const qi = Math.max(RAR.findIndex(r => r.id === p1.q), RAR.findIndex(r => r.id === p2.q));
+        const spec = { skull: base.skull, torso: base.torso, leg: base.leg, q: RAR[qi].id };
+        const food = foodPreview();
+        const mut = Math.round(mutationChance(food) * 100), bump = Math.round(bumpChance(food) * 100);
+        const foodTxt = food.length < EGG_FOOD ? `<span style="color:var(--c-clay-sh)">${tr('Non hai abbastanza doppioni (', "You don't have enough duplicates (")}${food.length}/${EGG_FOOD})</span>`
+          : food.map(it => spById[it.s].name + ' ' + partName(it.t)).join(' · ');
+        box.innerHTML = withIcons(rarLabel(spec.q) + ' · ' + abilLabel(spec)
+          + `<br>${tr('mutazione', 'mutation')} ${mut}% · ${tr('rarità in più', 'extra rarity')} ${bump}%`
+          + `<br>${tr('cibo', 'food')}: ${foodTxt}`);
+        const chk = canLay(p1.uid, p2.uid);
+        if (btn) btn.disabled = !chk.ok;
+      };
+      [selP1, selP2, 'selInhS', 'selInhT', 'selInhL'].forEach(x => { const el = typeof x === 'string' ? document.getElementById(x) : x; if (el) el.onchange = refreshEgg; });
+      refreshEgg();
+      const doLay = document.getElementById('doLay');
+      if (doLay) doLay.onclick = () => {
+        const p1 = parseInt(selP1.value, 10), p2 = parseInt(selP2.value, 10);
+        const inh = { skull: parseInt(document.getElementById('selInhS').value, 10),
+          torso: parseInt(document.getElementById('selInhT').value, 10),
+          leg: parseInt(document.getElementById('selInhL').value, 10) };
+        const r = layEgg(p1, p2, inh);
+        if (r.ok) toast('🥚 ' + tr('Uovo deposto! Torna fra ', 'Egg laid! Come back in ') + EGG_DAYS + tr(' giorni', ' days'));
+        renderLab();
+      };
+    }
   }
 }
 function renderStore() {
   let h = `<div class="muted" style="margin-bottom:10px">${tr('Il negozio compra i reperti <b>identificati</b>. Quelli grezzi vanno prima al Laboratorio.', 'The shop buys <b>identified</b> finds. Raw ones must go to the Laboratory first.')}</div>`;
   if (!S.items.length) h += `<div class="center muted">${tr('Non hai reperti identificati da vendere.', 'No identified finds to sell.')}</div>`;
   else {
-    h += `<div class="row" style="background:#f1e6cc"><div class="nm">${tr('Totale vendibile', 'Total sellable')}: 🪙 ${S.items.reduce((a, x) => a + x.val, 0)}</div><div class="rt"><button class="btn" id="sellAll">${tr('Vendi tutto', 'Sell all')}</button></div></div>`;
-    h += S.items.map(it => itemRow(it, `<button class="btn ghost" data-sell="${it.uid}">${tr('Vendi', 'Sell')} 🪙${it.val}</button>`)).join('');
+    /* MERCATO: la richiesta cambia per specie ogni giorno — si vede PRIMA di vendere, non si
+       scopre alla cassa (regola: ogni testo dice cosa fa davvero). */
+    h += `<div class="row" style="background:#f1e6cc"><div class="nm">${tr('Totale vendibile', 'Total sellable')}: 🪙 ${S.items.reduce((a, x) => a + marketPrice(x.val, x.s, S.day), 0)}</div><div class="rt"><button class="btn" id="sellAll">${tr('Vendi tutto', 'Sell all')}</button></div></div>`;
+    h += S.items.map(it => {
+      const price = marketPrice(it.val, it.s, S.day), lab = marketLabel(it.s, S.day);
+      const badge = lab ? ` <span class="lockp">${lab}</span>` : '';
+      return itemRow(it, `<button class="btn ghost" data-sell="${it.uid}">${tr('Vendi', 'Sell')} 🪙${price}</button>${badge}`);
+    }).join('');
   }
   /* oggetti di superficie (non fossili) raccolti in overworld */
   if (S.goods && S.goods.length) {
@@ -1233,6 +1412,8 @@ function renderMuseum() {
       const pg = document.getElementById('prepGo'); if (pg) pg.onclick = () => openPrepare(r.prepCand, () => { save(); renderMuseum(); });
       const ps = document.getElementById('prepSkip'); if (ps) ps.onclick = () => { const b = pg && pg.closest ? pg.closest('.row') : null; if (b) b.remove(); };
     }
+    /* RICOMPONI LO SCHELETRO — un pezzo alla volta per ogni nuova esposizione, XP bonus */
+    if (r.shown.length) openSkeletonFit(r.shown, () => { save(); renderMuseum(); });
   };
   wireCommission(renderMuseum);
   const mb = document.getElementById('mbook'); if (mb) mb.onclick = () => { openBook(0); };
@@ -1432,9 +1613,9 @@ export function openBag(tab) {
   /* ---- SCHEDA DNA & CHIMERE ---- */
   let secDna = '';
   if (isDebug()) secDna += `<div class="bag-sec"><h3>${tr('DNA', 'DNA')}</h3><div class="bag-list">` +
-    row('🧬', '🐞 DEBUG', tr('DNA infinito: risvegli e chimere gratis al Lab', 'Infinite DNA: free awakenings and chimeras at the Lab'), '<span class="bqt">∞</span>') + `</div></div>`;
+    row('🧬', '🐞 DEBUG', tr('DNA infinito: risvegli gratis al Lab', 'Infinite DNA: free awakenings at the Lab'), '<span class="bqt">∞</span>') + `</div></div>`;
   else if (dnaIds.length) secDna += `<div class="bag-sec"><h3>${tr('DNA', 'DNA')}</h3><div class="bag-list">` +
-    dnaIds.map(id => row('🧬', spById[id].name, tr('fialette · al Lab: 2 risvegliano la specie, 1 basta per una chimera', 'vials · at the Lab: 2 awaken the species, 1 is enough for a chimera'), `<span class="bqt">×${S.dna[id]}</span>`)).join('') + `</div></div>`;
+    dnaIds.map(id => row('🧬', spById[id].name, tr('fialette · al Lab: 2 risvegliano la specie', 'vials · at the Lab: 2 awaken the species'), `<span class="bqt">×${S.dna[id]}</span>`)).join('') + `</div></div>`;
   const cr = [];
   if (S.museumJob) cr.push(row('🏛️', tr('Al museo', 'At the museum') + ' ×' + S.museumJob.items.length, tr('ritiro dal giorno ', 'pickup from day ') + S.museumJob.ready));
   cr.push(...S.creatures.map(c => row('🐾', c.name + ' · ' + rarLabel(c.q), spById[c.skull].name + ' / ' + spById[c.torso].name + ' / ' + spById[c.leg].name)));
@@ -1589,15 +1770,18 @@ function swatchRow(field, colors) {
   return `<div class="swrow">` + colors.map(c =>
     `<button class="sw${S.look[field] === c ? ' on' : ''}" data-field="${field}" data-v="${c}" style="background:${c}"></button>`).join('') + `</div>`;
 }
-/* riga di stili: quelli non posseduti (premium/tematici) mostrano ✨prezzo e sono provabili */
+/* riga di stili: quelli non posseduti (premium/tematici) mostrano ✨prezzo e sono provabili;
+   un premium con la soglia di livello NON ANCORA raggiunta si VEDE (fa venire voglia di
+   arrivarci) ma resta bloccato del tutto: niente anteprima finché non ci sei. */
 function styleRow(field, styles) {
   const kind = field === 'hatStyle' ? 'hat' : field === 'hairStyle' ? 'hair' : field; // shirtStyle/pantsStyle
   return `<div class="swrow">` + styles.map(st => {
     const owned = kind === 'hat' ? hatOwned(st.id) : kind === 'hair' ? hairOwned(st.id) : true; // maglia/pantaloni: tutte disponibili (per ora)
+    const needLvl = kind === 'hat' ? hatLevelLock(st.id) : null;
     const on = S.look[field] === st.id;
     const label = field === 'hatStyle' ? hatLabel(st.id) : field === 'hairStyle' ? hairLabel(st.id) : field === 'shirtStyle' ? shirtLabel(st.id) : pantsLabel(st.id);
-    const badge = owned ? '' : ` <span class="lockp">✨${cosmeticCost(kind, st.id)}</span>`;
-    return `<button class="btn ghost${on ? ' onbtn' : ''}${owned ? '' : ' locked'}" data-field="${field}" data-v="${st.id}">${label}${badge}</button>`;
+    const badge = needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>` : owned ? '' : ` <span class="lockp">✨${cosmeticCost(kind, st.id)}</span>`;
+    return `<button class="btn ghost${on ? ' onbtn' : ''}${owned ? '' : ' locked'}${needLvl ? ' lvlocked' : ''}" data-field="${field}" data-v="${st.id}">${label}${badge}</button>`;
   }).join('') + `</div>`;
 }
 /* posseduto = base OPPURE già sbloccato */
@@ -1605,7 +1789,14 @@ function hatOwned(id) { return HAT_STYLES.some(s => s.id === id) || S.unlocked.h
 function hairOwned(id) { return HAIR_STYLES.some(s => s.id === id) || S.unlocked.hairs.includes(id); }
 /* prezzo di sblocco: premium dal registro, tematici di zona = SERVICE_COST × 3 */
 function cosmeticCost(kind, id) { return isDebug() ? 0 : (PREMIUM_HAT_COST[id] != null ? PREMIUM_HAT_COST[id] : SERVICE_COST * 3); }
-/* opzioni BLOCCATE provabili qui: tematico di zona (nel negozio di quella zona) + tutti i premium (in Sartoria) */
+/* livello ancora mancante per un premium NON posseduto, o null se già ok/posseduto/debug */
+export function hatLevelLock(id) {
+  if (isDebug() || hatOwned(id)) return null;
+  const p = PREMIUM_HATS.find(h => h.id === id);
+  return (p && p.lvl != null && playerLevel() < p.lvl) ? p.lvl : null;
+}
+/* opzioni BLOCCATE provabili qui: tematico di zona (nel negozio di quella zona) + TUTTI i
+   premium (in Sartoria) — anche quelli ancora chiusi dal livello, che qui si VEDONO e basta */
 function lockedHatOpts() {
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS)), zc = ZONE_COSMETICS[z.id], out = [];
   if (zc && zc.hat && !S.unlocked.hats.includes(zc.hat)) out.push(zc.hat);
@@ -1661,6 +1852,9 @@ function confirmLook(fields, rerender) {
 function wireLook(free, rerender) {
   mBody.querySelectorAll('[data-field]').forEach(b => b.onclick = () => {
     const f = b.dataset.field, v = b.dataset.v;
+    /* bloccato dal LIVELLO: si vede (fa venire voglia di arrivarci) ma non si prova nemmeno,
+       a differenza dei premium sbloccati-per-soldi che si provano gratis */
+    if (f === 'hatStyle' && hatLevelLock(v)) { toast('🔒 Lv' + hatLevelLock(v)); return; }
     if (S.look[f] === v && !(f === 'hat' && S.look.hatStyle === 'none')) return;
     if (f === 'hat' && S.look.hatStyle === 'none') S.look.hatStyle = 'explorer'; // scegliere un colore lo rimette
     S.look[f] = v; applyLook();
@@ -1670,8 +1864,12 @@ function wireLook(free, rerender) {
 }
 /* barra conferma: mostra il totale (servizio + sblocchi premium/tematici) */
 function confirmBar(fields) {
-  const { total, changed, pend } = lookOrig ? lookCost(fields) : { total: 0, changed: [], pend: [] };
-  const n = changed.length + pend.length;
+  const { total, pend } = lookOrig ? lookCost(fields) : { total: 0, pend: [] };
+  /* "c'è qualcosa da confermare" conta OGNI campo diverso dall'originale, non solo quelli a
+     pagamento: togliere il cappello è gratis (lookPaidFields lo esclude apposta) ma è
+     comunque una modifica — altrimenti il bottone Conferma restava spento e il giocatore
+     non poteva mai salvare "senza cappello" */
+  const n = (lookOrig ? fields.filter(f => S.look[f] !== lookOrig[f]).length : 0) + pend.length;
   const pendTxt = pend.length ? ' · ' + tr('sblocco', 'unlock') + ' ' + pend.map(p => (p.kind === 'hat' ? hatLabel(p.id) : hairLabel(p.id))).join(', ') : '';
   return `<div class="row" style="position:sticky;bottom:0;background:#e7d9b6;margin-top:10px">
     <div class="nm">${n ? tr('Totale', 'Total') + ': 🪙 ' + total + pendTxt : tr('Prova pure: gratis finché non confermi', 'Try freely: free until you confirm')}</div>

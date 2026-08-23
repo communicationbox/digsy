@@ -7,6 +7,7 @@ import { packExplored } from './packmap.js';
 import { WONDERS } from './wonders.js';
 import { allLetters } from './letters.js';
 import { TIP_IDS } from './tips.js';
+import * as breed from './breeding.js';
 /* misura i frame VERI per 2 secondi e richiama con la media (serve al comando `stress`) */
 function measureFps(cb) {
   if (typeof requestAnimationFrame !== 'function' || typeof performance === 'undefined') { cb(0); return; }
@@ -47,10 +48,10 @@ import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
 import { TRACKS, TROPHY_HATS } from './achievements.js';
-import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers } from './gameplay.js';
+import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers, playWithCompanion } from './gameplay.js';
 import { setCompanion, COMP } from './companion.js';
 import { zoneAt } from './regions.js';
-import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL } from './world.js';
+import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL, boneSiteForCell, BCELL, isSolidTile } from './world.js';
 import { enterCave } from './cave.js';
 import { WEATHER_TYPES } from './weather.js';
 import { playIntro } from './intro.js';
@@ -182,6 +183,31 @@ function teleportToSite() {
   }
   return false;
 }
+/* punto libero adiacente a (x,y): NON basta il terreno giusto, la casella non deve essere
+   SOLIDA — con 5 parti impacchettate vicine (corno e cranio distano UNA casella) un vicino
+   di una parte è spesso un'ALTRA parte dello stesso scheletro, e lì si finiva TELETRASPORTATI
+   DENTRO un monticello solido: bloccati, non un passo possibile (segnalato). */
+function freeSpotNear(x, y) {
+  for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) {
+    const nx = x + dx, ny = y + dy;
+    if (walkableGround(baseTerrain(nx, ny)) && !townInfo(nx, ny) && !isSolidTile(nx, ny)) return { x: nx, y: ny };
+  }
+  return null;
+}
+/* teletrasporto allo SCHELETRO SEPOLTO più vicino (adiacente a una parte QUALSIASI: se quella
+   più vicina è circondata dalle altre 4, si prova la successiva) */
+function teleportToBoneSite() {
+  const ccx = Math.floor(P.x / (TS * BCELL)), ccy = Math.floor(P.y / (TS * BCELL));
+  for (let r = 0; r <= 24; r++) for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
+    if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
+    const s = boneSiteForCell(cx, cy); if (!s) continue;
+    for (const part in s.parts) {
+      const spot = freeSpotNear(s.parts[part].x, s.parts[part].y);
+      if (spot) { P.x = spot.x * TS + 8; P.y = spot.y * TS + 2; return s; }
+    }
+  }
+  return null;
+}
 /* teletrasporto al RELITTO più vicino (attiva la barca e ti mette sull'acqua accanto) */
 function teleportToWreck() {
   const ccx = Math.floor(P.x / (TS * WCELL)), ccy = Math.floor(P.y / (TS * WCELL));
@@ -220,6 +246,8 @@ function tourNext() {
         if (caveEntranceAt(x, y)) { const k = 'C' + x + ',' + y; if (!toured.has(k)) { toured.add(k); P.x = x * TS + 8; P.y = (y + 1) * TS + 10; enterCave((x + y) | 0, x, y); return '🕳️ ' + tr('Grotta', 'Cave'); } }
         const scx = Math.floor(x / SCELL), scy = Math.floor(y / SCELL), s = siteForCell(scx, scy);
         if (s) { const k = 'S' + scx + ',' + scy; if (!toured.has(k)) { for (const [dx, dy] of [[0, 1], [1, 0], [-1, 0], [0, -1]]) if (walkableGround(baseTerrain(s.x + dx, s.y + dy)) && !townInfo(s.x + dx, s.y + dy)) { toured.add(k); P.x = (s.x + dx) * TS + 8; P.y = (s.y + dy) * TS + 2; return '⛏️ ' + tr('Sito di scavo', 'Dig site'); } } }
+        const bcx = Math.floor(x / BCELL), bcy = Math.floor(y / BCELL), bs = boneSiteForCell(bcx, bcy);
+        if (bs) { const k = 'B' + bcx + ',' + bcy; if (!toured.has(k)) { for (const part in bs.parts) { const spot = freeSpotNear(bs.parts[part].x, bs.parts[part].y); if (spot) { toured.add(k); P.x = spot.x * TS + 8; P.y = spot.y * TS + 2; const sp = spById[bs.sp]; return '🦴 ' + (sp ? sp.name : bs.sp); } } } }
         const wcx = Math.floor(x / WCELL), wcy = Math.floor(y / WCELL), w = wreckForCell(wcx, wcy);
         if (w) { const k = 'W' + wcx + ',' + wcy; if (!toured.has(k)) { toured.add(k); if (!S.tools) S.tools = {}; S.tools.boat = true; S.gear = 'boat'; P.x = (w.x + 1) * TS + 8; P.y = w.y * TS + 2; return '🚢 ' + tr('Relitto (E per frugare)', 'Wreck (E to search)'); } }
       }
@@ -344,6 +372,19 @@ export const COMMANDS = {
       Promise.all([import('./ui.js'), import('./gameplay.js')]).then(([u, g]) => { if (u.openToss) u.openToss(luck => g.grantToss(luck)); });
       return '⛲ ' + tr('Fontana: ferma il cursore sulla zona d\'oro', 'Fountain: stop the marker on the golden zone');
     } },
+  /* MINIGIOCO ricomponi lo scheletro (#2): lo apre ovunque, su un pezzo NUOVO (non doppione)
+     di una specie a caso — serve a provare il trascinamento senza cercare un museo e un
+     grezzo di specie mai esposta */
+  skfit: { aliases: ['scheletro', 'montaggio'], type: 'action', cheat: true, help: 'skfit — apre il minigioco «ricomponi lo scheletro»',
+    run: () => {
+      const sp = ALL_SPECIES[Math.floor(Math.random() * ALL_SPECIES.length)];
+      const part = PARTS[Math.floor(Math.random() * PARTS.length)];
+      if (!S.museum) S.museum = {};
+      S.museum[sp.id] = (S.museum[sp.id] || []).filter(p => p !== part.id);   // GARANTISCE che sia un pezzo NUOVO
+      const item = { uid: S.uid++, s: sp.id, t: part.id, q: 'raro', val: Math.max(2, Math.round(7 * ptById[part.id].mult * RAR.find(r => r.id === 'raro').mult)) };
+      import('./ui.js').then(u => u.openSkeletonFit([item], () => toast('🦴 ' + tr('Piedistallo aggiornato', 'Pedestal updated'))));
+      return '🦴 ' + tr('Ricomponi lo scheletro: trascina il pezzo nel socket giusto', 'Rebuild the skeleton: drag the piece into the right socket');
+    } },
   /* doppioni pronti da fondere: serve a provare la fusione senza scavare per mezz'ora */
   dupes: { aliases: ['doppioni', 'fuse', 'fondi'], type: 'both', cheat: true,
     help: 'dupes[=comune|raro|eccezionale] — 3 pezzi uguali per provare la fusione',
@@ -397,6 +438,18 @@ export const COMMANDS = {
       return ok ? '🐾 ' + tr('In groppa a ', 'Riding ') + sp.name + ' — ' + tr('vola sulla mappa (dallo zaino per scendere)', 'fly over the map (land from the bag)')
         : '🕳️ ' + tr('In grotta non si vola: esci prima', 'No flying in caves: leave first');
     } },
+  /* MINIGIOCO #7 — gioca col compagno (lancia e riporta): se non ne hai uno te ne dà uno al
+     volo, e forza il round OVUNQUE (in gioco parte solo dove non si scava, tipo il parco) */
+  playcomp: { aliases: ['gioca', 'fetch'], type: 'action', cheat: true,
+    help: 'playcomp — gioca col compagno (lancia e riporta): se non ne hai uno te ne dà uno',
+    run: () => {
+      if (!S.companion) spawnCompanion('terra', 'comune');
+      COMP.job = null; COMP.play = null; COMP.playCool = 0;
+      const ok = playWithCompanion(true);   // ignoreTile: si prova ovunque, non solo nel parco
+      return ok ? '🐾 ' + tr('Lanciato! Premi E al momento giusto quando torna (guarda la barra sopra la sua testa)',
+                             'Thrown! Press E at the right moment when it comes back (watch the bar over its head)')
+                : tr('Niente spazio libero attorno a te: spostati e riprova', 'No open space around you: move and try again');
+    } },
   chimera: { aliases: ['chimere'], type: 'action', cheat: true,
     help: 'chimera — crea una chimera di prova (parco + scelta come compagno)',
     run: () => {
@@ -406,6 +459,30 @@ export const COMMANDS = {
       const name = chimeraName(a, c, S.creatures.map(x => x.name));
       S.creatures.push({ uid: S.uid++, name, skull: a.id, torso: b.id, leg: c.id, q: 'raro' });
       return '🐾 ' + name + ' — ' + tr('chimera creata: passeggia nel parco (sceglila come compagno)', 'chimera created: it roams the park (pick it as companion)');
+    } },
+  /* ALLEVAMENTO: due genitori (ne crea se mancano) + doppioni + energia, poi depone davvero —
+     stessa strada di un giocatore vero, solo senza dover scavare o cercare i pezzi a mano */
+  layegg: { aliases: ['uovo', 'breed'], type: 'action', cheat: true, help: 'layegg — depone un uovo (crea genitori/doppioni/energia se mancano)',
+    run: () => {
+      if (!S.creatures) S.creatures = [];
+      while (S.creatures.length < 2) {
+        const pick = () => ALL_SPECIES[Math.floor(vhash(S.uid, S.day, 750 + S.creatures.length) * ALL_SPECIES.length)];
+        const a = pick(), b = pick(), c = pick();
+        S.creatures.push({ uid: S.uid++, name: chimeraName(a, c, S.creatures.map(x => x.name)), skull: a.id, torso: b.id, leg: c.id, q: 'raro' });
+      }
+      if (!S.items) S.items = [];
+      while (S.items.length < breed.EGG_FOOD) { const sp = ALL_SPECIES[0]; S.items.push({ uid: S.uid++, s: sp.id, t: 'coda', q: 'comune', val: 3 }); }
+      S.energy = Math.max(S.energy || 0, breed.EGG_ENERGY);
+      const [p1, p2] = S.creatures;
+      const r = breed.layEgg(p1.uid, p2.uid, { skull: 1, torso: 2, leg: 1 });
+      return r.ok ? '🥚 ' + tr('Uovo deposto: ', 'Egg laid: ') + p1.name + ' × ' + p2.name : tr('Non è stato possibile deporre l\'uovo', 'Could not lay the egg');
+    } },
+  hatchegg: { aliases: ['schiudi'], type: 'action', cheat: true, help: 'hatchegg — l\'uovo in cova è pronto SUBITO',
+    run: () => {
+      if (!S.egg) return tr('Nessun uovo in cova', 'No egg incubating');
+      S.egg.readyDay = S.day;
+      const cr = breed.hatchEgg(S.day);
+      return cr ? '🥚 ' + tr('Schiuso: ', 'Hatched: ') + cr.name : tr('Non ancora pronto', 'Not ready yet');
     } },
   /* NOTTE/ALBA: per provare le LUCCIOLE (#5), che compaiono solo di notte, all'aperto */
   night: { aliases: ['notte'], type: 'action', cheat: true, help: 'night — notte fonda + missione lucciole attiva (per provarle)',
@@ -440,6 +517,8 @@ export const COMMANDS = {
     run: () => teleportToWreck() ? '🚢 ' + tr('Relitto (E per frugare)', 'Wreck (E to search)') : tr('Nessun relitto trovato vicino', 'No wreck found nearby') },
   gotolandmark: { aliases: ['goland'], type: 'action', help: 'gotolandmark — vai al landmark più vicino',
     run: () => { const t = teleportToLandmark(); return t ? '🗿 ' + t : tr('Nessun landmark trovato vicino', 'No landmark found nearby'); } },
+  gotobone: { aliases: ['bonesite', 'sepolto'], type: 'action', help: 'gotobone — vai allo scheletro sepolto più vicino',
+    run: () => { const s = teleportToBoneSite(); if (!s) return tr('Nessuno scheletro sepolto trovato vicino', 'No buried skeleton found nearby'); const sp = spById[s.sp]; return '🦴 ' + (sp ? sp.name : s.sp) + ' — ' + tr('5 parti da scavare', '5 parts to dig'); } },
   tour: { aliases: ['explore', 'esplora'], type: 'action', help: 'tour — vai alla prossima cosa speciale NON ancora vista (landmark/grotta/sito/relitto)',
     run: () => { const m = tourNext(); if (m) return m; toured.clear(); return '🧭 ' + tr('Hai visitato tutto qui intorno — riparto da capo, ripeti tour', 'Seen everything around — reset, run tour again'); } },
   intro: { aliases: ['storia', 'story'], type: 'action', help: 'intro — rivedi il filmato introduttivo (nonno + bimbo)',
@@ -454,6 +533,13 @@ export const COMMANDS = {
       const w = map[v] || (WEATHER_TYPES.includes(v) ? v : null);
       if (!w) return tr('meteo: pioggia/sabbia/nebbia/cenere/neve/sereno/off', 'weather: rain/sandstorm/fog/ash/snow/clear/off');
       S.weatherOverride = w; return '🌦️ ' + w;
+    } },
+  market: { aliases: ['mercato'], type: 'str', help: 'market=alto — forza la fascia di mercato per tutte le specie (basso/normale/alto/record/off)',
+    suggest: p => ['basso', 'normale', 'alto', 'record', 'off'].filter(s => s.startsWith(p)),
+    run: v => {
+      if (v === 'off' || v === 'auto') { S.marketOverride = null; return '📈 ' + tr('mercato automatico (per specie, cambia col giorno)', 'auto market (per species, changes by day)'); }
+      if (!['basso', 'normale', 'alto', 'record'].includes(v)) return tr('mercato: basso/normale/alto/record/off', 'market: basso/normale/alto/record/off');
+      S.marketOverride = v; return '📈 ' + v;
     } },
   fly: { type: 'action', cheat: true, help: 'fly — attraversa gli ostacoli (on/off)',
     run: () => { P.fly = !P.fly; return (P.fly ? '🕊 ' + tr('Volo ON', 'Fly ON') : tr('Volo OFF', 'Fly OFF')); } },

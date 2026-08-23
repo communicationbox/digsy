@@ -5,10 +5,11 @@ import { fit } from './screen.js';
 import { findStart, openArea } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
-import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
+import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, companionPlayTick, isMounted } from './gameplay.js';
 import { updateCompanion } from './companion.js';
 import { playIntro, introActive } from './intro.js';
-import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending } from './ui.js';
+import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending, showIdleWelcome } from './ui.js';
+import { idleHours, idleCoins, idleEligible, IDLE_DNA_CHANCE } from './idle.js';
 import { updateCompass } from './compass.js';
 import { trackPlayer } from './map.js';
 import { checkWonderDiscovery } from './gameplay.js';
@@ -27,6 +28,7 @@ import { caveEntranceAt } from './world.js';
 import { showTip } from './ui.js';
 import { waterTile } from './gameplay.js';
 import { pruneExpired } from './commission.js';
+import { eggReady } from './breeding.js';
 import { expireQuests, questExpiryText } from './quests.js';
 import { tutTick, tutActive } from './tutorial.js';
 import { announceTutStep } from './ui.js';
@@ -84,7 +86,7 @@ if (typeof window !== 'undefined') {
 if (typeof navigator !== 'undefined' && navigator.serviceWorker && location.protocol === 'https:') {
   addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
-      .then(reg => { try { reg.update(); } catch (e) { /* niente rete: pazienza */ } })
+      .then(reg => { reg.update().catch(() => { /* niente rete o registrazione invalidata: pazienza */ }); })
       .catch(() => { /* il gioco funziona lo stesso: non è un errore da mostrare */ });
   });
   /* Il salvataggio non deve poter sparire. Senza questo, il sistema può ripulire i dati di un
@@ -169,6 +171,8 @@ function loop(ts) {
       { const t = questExpiryText(expireQuests(S.day)); if (t) toast(t); }
       /* commissione scaduta: lo si dice, non si scopre tornando al museo */
       if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
+      /* l'uovo è pronto: lo si dice appena il giorno scatta, non si scopre tornando al Lab */
+      if (eggReady(S.day)) toast(tr('🥚 Un uovo si è schiuso… quasi: torna al Laboratorio per vederlo!', '🥚 An egg is about to hatch… head back to the Laboratory to see it!'));
     }
     if (CAVE.active) { // dentro una grotta: area buia esplorabile
       updateCave(dt, keys, P.speed * gearSpeedMul() * (P.speedMul || 1));
@@ -182,6 +186,7 @@ function loop(ts) {
     }
     walk(dt);
     companionWorkTick(dt);  // raccoglitore leggendario: se lavora, guida lui il movimento
+    companionPlayTick(dt);  // "gioca col compagno": lancio, corsa, finestra di cattura
     updateCompanion(dt, isMounted());    // in volo resta incollato; a terra insegue il player
     if (!isMounted()) {               // in volo si SORVOLA: per entrare scendi (tasto cavalcatura)
       checkDoorEnter(); // pestare una porta = entrare (niente E)
@@ -222,6 +227,27 @@ function boot() {
       : tr('Il browser blocca i salvataggi (navigazione privata?): i progressi non verranno salvati.', 'Your browser blocks saving (private mode?): progress will not be kept.')));
   });
   const loaded = initState();
+  /* PARCO CHE RENDE (idle.js): quanto tempo VERO è passato dall'ultimo salvataggio, calcolato
+     SUBITO — prima che qualunque `save()` qui sotto lo azzeri riscrivendo S.idleAt a adesso.
+     Si racconta solo dopo la splash (startGame), ma si misura qui. */
+  let idleResult = null;
+  if (loaded && S.idleAt) {
+    const hrs = idleHours(Date.now(), S.idleAt);
+    if (idleEligible(hrs)) {
+      const coins = idleCoins(hrs, (S.creatures || []).length);
+      if (coins > 0) { S.coins += coins; idleResult = { coins }; }
+      if ((S.creatures || []).length && S.donated && S.donated.length && Math.random() < IDLE_DNA_CHANCE) {
+        const sp = S.donated[Math.floor(Math.random() * S.donated.length)];
+        S.dna[sp] = (S.dna[sp] || 0) + 1;
+        idleResult = idleResult || { coins: 0 };
+        idleResult.dnaSp = sp;
+      }
+    }
+    /* riparte da ADESSO, sempre — un doppio refresh entro pochi secondi non deve ripetere il
+       premio finché il prossimo autosave (5s) non arriva a coprirlo da solo */
+    S.idleAt = Date.now();
+    if (idleResult) save();
+  }
   /* lo SNAPSHOT dei comandi è per-SESSIONE: si azzera al caricamento. Persisteva fra i refresh e
      `vanilla` finiva per ripristinare uno stato VECCHIO di una sessione passata (vecchio compagno +
      vecchia posizione), sovrascrivendo la partita corrente. Ora la partita coi comandi è salvata e
@@ -260,7 +286,7 @@ function boot() {
   requestAnimationFrame(loop);
   /* splash → (prima volta) editor personaggio → INTRO (lore) → gioco */
   initSplash(() => {
-    const startGame = () => { if (!loaded) welcomeToasts(); };
+    const startGame = () => { if (!loaded) welcomeToasts(); else if (idleResult) showIdleWelcome(idleResult); };
     const runIntro = (cb) => { if (!S.introSeen) playIntro(() => { S.introSeen = true; grantStarterGift(); save(); cb(); }); else cb(); };
     if (!S.lookDone) openEditor(() => runIntro(startGame));
     else runIntro(startGame);
@@ -347,8 +373,20 @@ if (typeof window !== 'undefined') {
         modal: u.isModalOpen(), splash: sp.splashActive(), prep: u.isPrepOpen(),
       }))),
       resume: () => import('./splash.js').then(sp => sp.resumeSplash()),
+      /* audio: acceso/spento e stato del contesto. Gli e2e lo usano per provare, in un browser
+         VERO, che mandare la pagina in background zittisce il gioco (su Android la musica
+         continuava col browser ridotto e si doveva chiudere l'app). */
+      audio: () => import('./audio.js').then(a => a.audioState()),
+      audioStart: () => import('./audio.js').then(a => { a.setMusicOn(true); a.startAudio(); return a.audioState(); }),
       openStore: () => import('./ui.js').then(u => u.openBuilding({ type: 'store', name: 'Negozio' })),
+      /* un toast su richiesta: serve agli e2e per provare, in un browser VERO, che il
+         messaggio si veda anche con un pannello aperto (là finiva dietro la modale) */
+      toast: (m) => { u.toast(m || 'test'); return true; },
+      /* il LABORATORIO: fusione, chimera e risveglio. È il pannello dove un bottone che
+         rifiuta senza spiegare sembra rotto, quindi va guardato, non solo misurato. */
+      openLab: () => import('./ui.js').then(u => u.openBuilding({ type: 'lab', name: 'Laboratorio' })),
       openMuseum: () => import('./ui.js').then(u => u.openBuilding({ type: 'museum', name: 'Museo' })),
+      openTailor: () => import('./ui.js').then(u => u.openBuilding({ type: 'tailor', name: 'Sartoria' })),
       /* porta il giocatore ACCANTO alla statua: senza, fotografarla è questione di fortuna */
       gotoStatue: () => import('./world.js').then(w => {
         for (let r = 0; r < 14; r++) for (let cy = -r; cy <= r; cy++) for (let cx = -r; cx <= r; cx++) {

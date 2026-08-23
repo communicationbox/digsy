@@ -182,7 +182,6 @@ kbd + .pxi{margin-left:2px}
     order:2;flex:0 0 100%;display:flex;align-items:center;gap:6px;margin:0;padding:8px 12px;font-size:16px;
     background:rgba(14,20,16,.72);border:1px solid rgba(243,236,218,.12);border-radius:9px;box-sizing:border-box;white-space:nowrap}
   #hud:not(.collapsed) #h-zone,#hud:not(.collapsed) #h-compass{max-width:none}
-  #toasts{z-index:10}
 }
 #prompt{position:absolute;left:50%;bottom:calc(12px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--c-wood);padding:8px 16px;
   border-radius:10px;font-size:clamp(13px,2vmin,16px);font-weight:800;display:none;text-shadow:0 1px 0 #000;white-space:nowrap;border:1px solid var(--c-line)}
@@ -359,7 +358,11 @@ body:has(#cmd.on) #touch{display:none!important}
 .sheet,.sb,.bag-scroll,.bkpage,#bk-pages,.sp-hall,.sp-log,.sp-keys,#sp-slots,#cmdout,#bagbox,.edcol{touch-action:pan-y}
 
 /* toasts */
-#toasts{position:absolute;bottom:calc(52px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none}
+/* SOPRA OGNI OVERLAY (modali, zaino, libro, mappa): il rifiuto di un'azione fatta DENTRO un
+   pannello (chimera senza DNA, acquisto senza monete) si annuncia col toast, e a z-index 10
+   finiva dietro la modale (z-index 20) — al giocatore il bottone sembrava morto.
+   Resta sotto la console comandi (1000), che è uno strumento e non deve essere coperta. */
+#toasts{position:absolute;bottom:calc(52px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;z-index:900}
 .toast{background:rgba(30,24,18,.94);border:1px solid var(--c-line);padding:7px 14px;border-radius:10px;font-size:clamp(13px,2vmin,15px);font-weight:700;
   animation:ti .2s ease, to .4s ease 2.1s forwards;max-width:86vw;text-align:center}
 /* mobile: i toast vanno IN ALTO (sotto l'HUD), il prompt resta in basso → mai sovrapposti */
@@ -424,6 +427,10 @@ body:has(#cmd.on) #touch{display:none!important}
 .btn.ghost.locked.onbtn{background:#e8c34a;border-color:var(--c-amber-sh);border-style:solid}
 .lockp{font-size:10px;font-weight:700;color:#8a6a1e;background:#f6e6b0;border-radius:4px;padding:0 3px;margin-left:2px}
 .lockp svg.pxi{width:9px;height:9px;vertical-align:-1px}
+/* premium bloccato dal LIVELLO: si vede (fa venire voglia di arrivarci) ma è spento — diverso
+   dal locked normale (dashato, provabile gratis), qui non si prova nemmeno */
+.btn.ghost.lvlocked{opacity:.55;border-style:dotted;cursor:not-allowed}
+.btn.ghost.lvlocked .lockp{color:#6b5636;background:#e2d3a6}
 .btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .sel{font-family:inherit;font-size:12px;border:2px solid var(--c-line);border-radius:7px;background:#fbf5e4;color:var(--c-wood);padding:5px 6px;max-width:31%}
 .hr{border:0;border-top:2px dashed #d8c79c;margin:12px 0}
@@ -949,6 +956,25 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
 .toss-marker{position:absolute;top:-3px;bottom:-3px;width:5px;left:0;background:#fff;box-shadow:0 0 0 2px #23180d}
 .toss-hint{margin-top:12px;font-size:13px;color:var(--c-line-3);font-weight:700}
 
+/* RICOMPONI LO SCHELETRO — museo: trascini il pezzo nuovo nel socket giusto della tavola */
+#skfitov{position:fixed;inset:0;z-index:24;background:rgba(14,12,10,.86);display:none;align-items:center;justify-content:center;padding:12px}
+#skfitov.on{display:flex}
+#skfitbox{width:min(340px,90vw);display:flex;flex-direction:column;
+  background:var(--c-parch-3);color:#3b2f1e;box-shadow:inset 0 0 0 3px var(--c-parch), inset 0 0 0 6px var(--c-parch-3), 0 0 0 3px var(--c-deep)}
+.sk-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;font-weight:800;letter-spacing:1px;
+  color:var(--c-line-3);border-bottom:3px solid var(--c-parch)}
+.sk-x{font:inherit;font-weight:700;font-size:12px;color:var(--c-line-3);background:var(--c-parch);border:0;padding:6px 10px;cursor:pointer;box-shadow:inset 0 0 0 2px #8a6f42}
+.sk-board{position:relative;width:100%;aspect-ratio:1/1;background:#15120d;box-shadow:0 0 0 3px var(--c-deep);touch-action:none;overflow:hidden}
+.sk-sock{position:absolute;width:15%;aspect-ratio:1/1;transform:translate(-50%,-50%);border-radius:50%;
+  box-shadow:inset 0 0 0 2px #6b5636,0 0 0 2px #0006;background:#2a2115;
+  display:flex;align-items:center;justify-content:center;font-size:16px;color:#c9a86a}
+.sk-sock.hot{box-shadow:inset 0 0 0 3px var(--c-gold),0 0 0 2px #0006;background:#3a2e18}
+#sk-s-corno{left:50%;top:10%}#sk-s-cranio{left:50%;top:28%}#sk-s-torace{left:50%;top:52%}#sk-s-zampa{left:30%;top:80%}#sk-s-coda{left:70%;top:80%}
+.sk-piece{position:absolute;left:50%;top:92%;transform:translate(-50%,-50%);width:44px;height:36px;
+  background:var(--c-parch);box-shadow:0 0 0 3px var(--c-amber);cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center}
+.sk-piece.dragging{cursor:grabbing;box-shadow:0 0 0 3px var(--c-gold)}
+.sk-hint{padding:10px 12px 12px;font-size:13px;color:var(--c-line-3);font-weight:700;text-align:center}
+
 /* BETA: aggiornamento forzato, nascosto nei Credits (serve solo ai tester).
    Blocco isolato di proposito: a fine test si cancella tutto questo. */
 .sp-refresh{background:#2c3a36;color:#cfe0da;border:0;box-shadow:0 0 0 2px #16211e;
@@ -1050,7 +1076,7 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
    cioè il punto su cui si deve poter cliccare */
 /* i comandi a schermo spariscono sotto un overlay: leva e tasto A restavano attivi e
    disegnati sopra zaino, libro e mappa, e il dito li incontrava prima del pannello */
-body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on) #touch{display:none}
+body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov.on) #touch{display:none}
 #exitbtn{position:absolute;right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));
   display:none;align-items:center;gap:6px;z-index:14;
   background:#3a2f1e;color:var(--c-paper);border:2px solid var(--c-gold);border-radius:10px;

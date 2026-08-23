@@ -1,5 +1,5 @@
 /* Input: tastiera (WASD/frecce, E/spazio, I, Esc) + touch (joystick, tasto A) + console (\) */
-import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare, isTossOpen, tossPress, tossAbort } from './ui.js';
+import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare, isTossOpen, tossPress, tossAbort, isSkeletonFitOpen, skeletonFitSkip } from './ui.js';
 import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach } from './tapmove.js';
 import { findPath, fits } from './path.js';
@@ -94,6 +94,11 @@ addEventListener('keydown', e => {
   if (isTyping(e.target)) { if (e.key === 'Escape' && e.target.blur) e.target.blur(); return; } // ESC = esci dal campo
   if (e.key === '\\' && CHEATS_ON) { consoleOpen ? closeConsole() : openConsole(); e.preventDefault(); return; } // \ = toggle console cheat (SOLO in dev)
   if (consoleOpen) return; // mentre la console è aperta, il gioco ignora i tasti
+  /* RICOMPONI LO SCHELETRO: ESC = salta il pezzo corrente (si può sempre saltare) */
+  if (isSkeletonFitOpen()) {
+    if (e.key === 'Escape') { skeletonFitSkip(); e.preventDefault(); }
+    return;
+  }
   /* FONTANA: durante i tiri, E/spazio FERMANO il tiro (sul premere, per precisione); ESC chiude */
   if (isTossOpen()) {
     if (e.key === 'e' || e.key === 'E' || e.key === ' ' || e.key === 'Enter') { tossPress(); e.preventDefault(); return; }

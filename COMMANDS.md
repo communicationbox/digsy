@@ -24,6 +24,7 @@ Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende i
 | `season=inverno` | ✖ | Cambia stagione (`primavera`/`estate`/`autunno`/`inverno` o `0-3`) |
 | `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
 | `weather=pioggia` | ✖ | Forza il meteo (`pioggia`/`sabbia`/`nebbia`/`cenere`/`neve`/`sereno`/`off`; alias `meteo`) |
+| `market=alto` | ✖ | Forza la fascia di **mercato** per tutte le specie (`basso`/`normale`/`alto`/`record`/`off`; alias `mercato`) |
 | `night` | ✔ | Notte fonda **+ missione lucciole** (per provarle; alias `notte`). La missione vera è **rara** e **stagionale** (estate) |
 | `dawn` | ✔ | Riporta all'alba (alias `alba`) |
 
@@ -42,6 +43,8 @@ Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende i
 | `companion=grotta` | ✔ | Compagno di quel **TIPO** (`terra`/`acqua`/`albero`/`roccia`/`grotta`), rarità opzionale — `companion=terra leggendario` (alias `compagno`, `buddy`) |
 | `mount` | ✔ | Compagno di **grotta leggendario** e **su in volo** (in grotta non si vola; alias `cavalca`, `ride`) |
 | `chimera` | ✔ | Crea una **chimera** di prova (passeggia nel parco, sceglibile come compagno; alias `chimere`) |
+| `layegg` | ✔ | Depone un **uovo** (crea genitori/doppioni/energia se mancano; alias `uovo`, `breed`) |
+| `hatchegg` | ✔ | L'uovo in cova è pronto **subito** (alias `schiudi`) |
 
 ### Vai a
 | Comando | Cheat | Effetto |
@@ -51,15 +54,18 @@ Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende i
 | `goto=city` | ✖ | Città **grande** (col Museo) più vicina |
 | `gotopark` | ✖ | **Dentro** il recinto del parco, dove vivono chimere e risvegliate (alias `parco`, `park`) |
 | `gotosite` | ✖ | Sito di scavo più vicino |
+| `gotobone` | ✖ | **Scheletro sepolto** più vicino (5 parti da scavare; alias `bonesite`, `sepolto`) |
 | `gotowreck` | ✖ | Relitto in mare più vicino (attiva la barca) |
 | `gotolandmark` | ✖ | Landmark più vicino (alias `goland`) |
-| `tour` | ✖ | Prossima cosa speciale **non ancora vista** (landmark/grotta/sito/relitto; alias `explore`, `esplora`) |
+| `tour` | ✖ | Prossima cosa speciale **non ancora vista** (landmark/grotta/sito/relitto/scheletro sepolto; alias `explore`, `esplora`) |
 
 ### Prova minigiochi e scene
 | Comando | Cheat | Effetto |
 |---|:---:|---|
 | `prep` | ✔ | Tavolo di **preparazione** (`prep=raro\|eccezionale\|leggendario`; alias `minigioco`, `tavolo`) |
 | `toss` | ✔ | Minigioco della **fontana** (mira; alias `fontana`, `fountain`) |
+| `skfit` | ✔ | **Ricomponi lo scheletro** (trascina il pezzo nel socket giusto; alias `scheletro`, `montaggio`) |
+| `playcomp` | ✔ | **Gioca col compagno** (lancia e riporta, ovunque; se non ne hai uno te ne dà uno; alias `gioca`, `fetch`) |
 | `dupes` | ✔ | 3 **doppioni** da fondere (`dupes=raro\|eccezionale`; alias `doppioni`, `fondi`) |
 | `museo` | ✔ | 3 doppioni **già consegnati** + città col Museo (premi «Ritira» per il restauro; alias `museum`) |
 | `stress=1..5` | ✔ | Riempie il gioco e **misura gli fps** sul dispositivo |
@@ -127,6 +133,31 @@ Si spazzola trascinando il dito (o il mouse) sul fossile.
 
 In partita normale il tavolo si apre **al Museo**, su **un pezzo per consegna** e solo da
 **raro in su**: sui comuni sarebbe una catena di montaggio.
+
+## `skfit` — apre il minigioco «ricomponi lo scheletro»
+
+`skfit` (alias: `scheletro`, `montaggio`)
+
+Apre subito il minigioco del **Museo**: un pezzo NUOVO (raro, di specie a caso) da trascinare
+nel socket giusto della tavola. Sempre saltabile (bottone **Salta** o **Esc**); un socket
+sbagliato rimanda il pezzo alla base, il tempo continua — mai un fallimento vero, la fretta è
+solo quello che dà il bonus XP.
+
+## `playcomp` — apre il minigioco «gioca col compagno»
+
+`playcomp` (alias: `gioca`, `fetch`)
+
+Lancia subito un oggetto per il tuo compagno (se non ne hai uno, te ne dà uno di terra comune):
+lui/lei corre a riportarlo, e appena torna c'è **una finestra di tempismo** per prenderlo al
+volo — si vede dalla barra che riempie sopra la sua testa, con la zona d'oro in evidenza.
+Presa perfetta = 3 cariche di ×2 sulla prossima raccolta (`digX2`, lo stesso buff delle spore
+del Cerchio di Funghi); un riporto qualsiasi (tardi o scaduto) = 1 carica — **mai un
+fallimento vero**, la fretta è solo quello che dà il bonus in più.
+
+In partita normale parte solo dove **non si scava** (il parco, tipicamente): se hai già un
+compagno pronto, E nel parco gioca invece di riaprire il selettore; il selettore resta per
+chi non ne ha ancora scelto uno, o mentre il compagno lavora/riposa dal round precedente.
+Il comando bypassa questo controllo del terreno, per provarlo ovunque.
 
 ## `museo` — prova il tavolo nel FLUSSO VERO
 

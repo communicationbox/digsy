@@ -198,7 +198,7 @@ const PROBE = `
           checkGaps('splash/principale', '#sp-menu .sp-btn');
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
-          rooms(function(){ checkSettings(finish); });
+          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkSettings(finish); }); }); });
         }, 120);
         return; }
       var v=views[vi++];
@@ -227,7 +227,7 @@ const PROBE = `
       }, 80);
     };
     stepView();
-  } else { rooms(function(){ checkSettings(finish); }); }
+  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkSettings(finish); }); }); }); }
 
   /* USCIRE DAL MUSEO COL SOLO MOUSE: la galleria è enorme e la camera la segue, quindi la
      porta finiva sull'ultimo pixel dello schermo e oltre non c'era nulla da cliccare. */
@@ -673,6 +673,73 @@ const PROBE = `
       var gMin = Math.min.apply(null, tutti), gMax = Math.max.apply(null, tutti);
       A(dove + ': lo spazio fra le voci è sempre lo stesso', gMax - gMin <= 1, tutti.join('/'));
     }
+  }
+
+  /* BACKGROUND = SILENZIO. Su Android, ridurre il browser non fermava la musica e per
+     zittirla si finiva a chiudere l'app dalle app recenti. Qui gira Chrome VERO con WebAudio
+     vero: si guarda lo STATO del contesto e del sequencer, non se una funzione è stata
+     chiamata (quello lo prova già lo stub di Node). */
+  function checkAudioBg(next){
+    var g = window.__digsy;
+    if (!g || !g.audioStart) { A('audio: sonda presente', false); return next(); }
+    /* la visibilità della pagina è di sola lettura: si sostituisce il getter, così l'evento
+       percorre la stessa strada che percorre quando è il sistema a mandare l'app in fondo */
+    var vs = 'visible';
+    try { Object.defineProperty(document, 'visibilityState', { configurable: true, get: function(){ return vs; } }); }
+    catch (e) { A('audio: visibilità simulabile', false, String(e)); return next(); }
+    g.audioStart().then(function(st){
+      A('audio: la musica parte davvero', st.playing === true, JSON.stringify(st));
+      vs = 'hidden'; document.dispatchEvent(new Event('visibilitychange'));
+      setTimeout(function(){ g.audio().then(function(s2){
+        A('audio: pagina in background → sequencer FERMO', s2.playing === false, JSON.stringify(s2));
+        A('audio: pagina in background → contesto NON running', s2.ctx !== 'running', String(s2.ctx));
+        vs = 'visible'; document.dispatchEvent(new Event('visibilitychange'));
+        setTimeout(function(){ g.audio().then(function(s3){
+          A('audio: tornando davanti la musica riprende', s3.playing === true, JSON.stringify(s3));
+          next();
+        }); }, 80);
+      }); }, 80);
+    });
+  }
+
+  /* IL LABORATORIO NON RIFIUTA IN SILENZIO.
+     Un giocatore ha segnalato "clicco Risveglia e non succede nulla": il click funzionava,
+     mancava la fialetta di DNA, ma il toast che lo diceva finiva DIETRO il pannello
+     (z-index 10 contro 20) e nessuno lo vedeva mai. */
+  function checkLabRefusal(next){
+    var g = window.__digsy;
+    if (!g || !g.openLab || !g.toast) { A('lab: sonda presente', false, 'niente openLab/toast'); return next(); }
+    g.cmd('goditem').then(function(){
+      var S = g.state(); S.dna = {}; S.coins = 500; S.items = [];
+      S.creatures = [
+        { uid: 9001, name: 'Provuno', skull: 'prato', torso: 'prato', leg: 'prato', q: 'comune' },
+        { uid: 9002, name: 'Provadue', skull: 'lepre', torso: 'lepre', leg: 'lepre', q: 'comune' }
+      ];
+      return g.openLab();
+    }).then(function(){
+      setTimeout(function(){
+        var req = document.getElementById('eggPreview'), btn = document.getElementById('doLay');
+        A('lab: i requisiti dell uovo si leggono senza cliccare',
+          !!req && (req.textContent || '').length > 0, req ? req.textContent : 'nessuna riga');
+        A('lab: senza doppioni il bottone è spento', !!btn && btn.disabled === true);
+        /* e il messaggio si deve VEDERE: sopra il pannello, dentro lo schermo */
+        g.toast('prova');
+        setTimeout(function(){
+          var box = document.getElementById('toasts');
+          var t = box && box.lastChild;
+          var zT = box ? +getComputedStyle(box).zIndex || 0 : -1;
+          var md = document.getElementById('modal');
+          var zM = md ? +getComputedStyle(md).zIndex || 0 : 0;
+          A('lab: il toast sta sopra il pannello (' + zT + ' > ' + zM + ')', zT > zM);
+          var r = t && t.getBoundingClientRect ? t.getBoundingClientRect() : null;
+          A('lab: il toast è dentro lo schermo e visibile',
+            !!r && r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= H + 1,
+            r ? Math.round(r.top) + '..' + Math.round(r.bottom) + ' su ' + H : 'nessun toast');
+          if (g.closeModal) g.closeModal();
+          next();
+        }, 60);
+      }, 200);
+    });
   }
 
   function checkSettings(next){

@@ -1,7 +1,84 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.92.5', it: [
+      'FIX Sartoria: cliccando ✕ per togliere il cappello, Conferma restava spento e non si poteva salvare — togliere il cappello è gratis, ma il bottone contava solo le modifiche a pagamento',
+    ], en: [
+      'FIX Tailor: clicking ✕ to remove the hat left Confirm greyed out and you could not save it — removing the hat is free, but the button only counted paid changes',
+    ],
+  },
+  {
+    v: 'v0.92.4', it: [
+      'TECA DI COVA spostata nella STANZA vera del Laboratorio (non nel pannello: lì non aveva senso, era solo testo con un\'icona sopra). Sta sempre accanto ai banchi, spenta e vuota finché non deponi un uovo — poi ci galleggia dentro davvero, con un bagliore quando è pronto a schiudersi',
+    ], en: [
+      'INCUBATION TANK moved to the actual Laboratory ROOM (not the panel — there it didn\'t make sense, just text with an icon on top). It always sits by the workbenches, empty and dim until you lay an egg — then it actually floats inside, glowing when ready to hatch',
+    ],
+  },
+  {
+    v: 'v0.92.1', it: [
+      'L\'uovo in cova ora si VEDE al Laboratorio: un\'icona grande che dondola mentre matura e scuote quando è pronto, non solo una riga di testo',
+    ], en: [
+      'The incubating egg now actually SHOWS at the Laboratory: a big icon that bobs while it matures and shakes when ready, not just a line of text',
+    ],
+  },
+  {
+    v: 'v0.92', it: [
+      'CHIMERE: tolto l\'assemblaggio diretto (cranio+torace+zampa+🪙40 al volo) — era una scorciatoia più veloce dell\'allevamento e lo rendeva inutile. Ora le chimere nascono SOLO allevando: prima risvegli specie PURE al Laboratorio, poi ibridi due creature che hai già — la prima chimera diventa un vero traguardo, non un click appena hai i tre pezzi giusti',
+    ], en: [
+      'CHIMERAS: removed direct assembly (skull+ribcage+leg+🪙40 on the spot) — it was a faster shortcut than breeding and made breeding pointless. Chimeras now come ONLY from breeding: awaken PURE species at the Lab first, then hybridize two creatures you already have — your first chimera becomes a real milestone, not a click as soon as you have the right three pieces',
+    ],
+  },
+  {
+    v: 'v0.91', it: [
+      'ALLEVAMENTO: al Laboratorio, scegli DUE chimere che hai già e per ogni parte (cranio/torace/zampa) decidi da quale genitore la eredita — 8 combinazioni per coppia, una scelta vera. L\'uovo mangia i 3 doppioni meno preziosi (una terza strada per i doppioni, oltre a vendita e fusione: più sono pregiati, più chance di mutazione o di un gradino di rarità in più) e matura in 2 giorni. Dà uno scopo a tutte le chimere doppioni che oggi passeggiano nel parco senza motivo',
+    ], en: [
+      'BREEDING: at the Laboratory, pick TWO chimeras you already have and for each part (skull/ribcage/leg) decide which parent it\'s inherited from — 8 combinations per pair, a real choice. The egg eats your 3 least valuable duplicates (a third path for duplicates, besides selling and fusing: the finer they are, the better the odds of a mutation or an extra rarity step) and takes 2 days to hatch. Gives a purpose to all the duplicate chimeras that today just wander the park for no reason',
+    ],
+  },
+  {
+    v: 'v0.90', it: [
+      'LABORATORIO: si vede il COMPAGNO prima di spendere. Scegliendo cranio/torace/zampa per una chimera, ora compare subito che potere avresti (tipo, se pieno o diviso in due, rarità) — prima si scopriva solo DOPO aver già pagato 🪙+DNA. Ora puoi cercare le parti giuste apposta per il compagno che vuoi, invece di assemblare a caso e sperare',
+    ], en: [
+      'LABORATORY: you see the COMPANION before spending. Picking a skull/ribcage/leg for a chimera now shows right away what power you would get (type, whether full or split in two, rarity) — before, you only found out AFTER already paying 🪙+DNA. Now you can hunt for the right parts on purpose for the companion you want, instead of assembling blind and hoping',
+    ],
+  },
+  {
+    v: 'v0.89', it: [
+      'SCHELETRO SEPOLTO: un nuovo tipo di sito, raro, con uno scheletro INTERO sotto 5 caselle vicine — ognuna è una parte precisa (corno/cranio/torace/zampa/coda) della STESSA specie. Si scava come i siti normali, anche in visite diverse, e finirlo dà il set COMPLETO garantito di quella specie: l\'unico modo nel gioco di chiudere una teca con un evento invece che con la fortuna sparsa di decine di scavi. Si vede da lontano come un VERO scavo archeologico — terra smossa, paletti e corda a delimitare il riquadro, ogni parte con la sua sagoma — non un mucchietto d\'ossa come i siti normali',
+    ], en: [
+      'BURIED SKELETON: a new, rare kind of site with a WHOLE skeleton under 5 nearby tiles — each one holds a specific part (horn/skull/chest/leg/tail) of the SAME species. You dig it like normal sites, across visits if you like, and finishing it gives the full GUARANTEED set of that species — the only way in the game to complete a display case in one event instead of scattered luck across dozens of digs. It reads from afar as a REAL archaeological dig — turned earth, stakes and string marking the square, each part with its own shape — not a bone pile like normal sites',
+    ],
+  },
+  {
+    v: 'v0.88', it: [
+      'PARCO CHE RENDE: mentre sei via, le tue chimere attirano visitatori — al rientro trovi qualche moneta (e ogni tanto una mezza fialetta a sorpresa). Tempo VERO, cappato a 10 ore: sparire una settimana non paga più di sparire una notte. Niente scavo automatico, niente rendita che scala, niente decadimento — solo un piccolo bentornato',
+      'FIX minigioco del compagno: la finestra per prenderlo al volo era piazzata a metà di un secondo di attesa, mentre l\'istinto è premere E appena arriva — risultato, sempre "bel riporto" e mai "preso al volo". Ora la finestra è prima e più larga, con un "ding" che dice quando scatta',
+      'I testi sul bonus di scavo non promettevano più di quanto danno: "raddoppia" si leggeva come reperto garantito doppio. Ora dicono "più probabilità di reperto" — quello che succede davvero',
+      'MERCATO A PREZZI VARIABILI: la richiesta di ogni specie cambia col giorno (si vede nel Negozio prima di vendere) — a volte conviene vendere subito, a volte aspettare. Tocca solo il prezzo alla vendita: il valore che conta per commissioni e restauro resta quello di sempre',
+    ], en: [
+      'THE PARK EARNS WHILE YOU\'RE AWAY: your chimeras draw visitors — come back to find some coins (and every so often a surprise half-vial). REAL time, capped at 10 hours: vanishing for a week pays no more than vanishing for a night. No auto-digging, no scaling income, no decay — just a small welcome back',
+      'COMPANION MINIGAME FIX: the window to catch it on the way back sat in the middle of a second-long wait, while instinct says press E the moment it arrives — result: always "nice fetch", never "caught it perfectly". The window now opens sooner and wider, with a "ding" telling you when',
+      'The digging-bonus text promised more than it gave: "doubles" read as a guaranteed double find. It now says "better odds of a find" — what actually happens',
+      'VARIABLE MARKET PRICES: demand for each species shifts by the day (you see it in the Shop before selling) — sometimes it pays to sell now, sometimes to wait. Only touches the sale price: the value behind commissions and restoration stays what it always was',
+    ],
+  },
+  {
+    v: 'v0.87', it: [
+      'FIX uscite dagli edifici: avvicinandosi al bancone dentro una stanza piccola si veniva sbalzati fuori da soli. La zona "sei sulla porta" era tarata su una stanza grande (la galleria del Museo) e in una stanza normale copriva anche il bancone',
+      'RICOMPONI LO SCHELETRO: al Museo, un pezzo NUOVO da esporre si trascina nel socket giusto della tavola — ogni socket mostra l\'icona della sua parte, la sfida è trovare quella giusta in fretta, non indovinare. Bonus di XP sulla velocità, sempre saltabile, mai un fallimento vero',
+      'CAPPELLI PREMIUM legati al LIVELLO: prima l\'esperienza dava solo numeri invisibili (scavo più veloce, più rari). Ora i 5 cappelli premium si vedono in Sartoria fin da subito, spenti con il livello che serve — un traguardo che si VEDE, non solo un numero che sale',
+      'GIOCA COL COMPAGNO: lanci, lui/lei corre a riportare, e c\'è un attimo giusto per prenderlo al volo mentre torna (si legge dalla barra sopra la sua testa). Presa perfetta = 3 raccolte doppie, un riporto qualsiasi = 1 — mai una penalità. Parte dove non si scava, tipicamente il parco',
+    ], en: [
+      'BUILDING EXIT FIX: getting close to the counter inside a small room used to bounce you straight back outside. The "you\'re on the door" zone was tuned for a big room (the Museum gallery) and in a normal room it also covered the counter',
+      'REBUILD THE SKELETON: at the Museum, a NEW piece to display gets dragged into the right socket on the board — each socket shows its part\'s icon, the challenge is finding the right one fast, not guessing. XP bonus scales with speed, always skippable, never a real fail',
+      'PREMIUM HATS tied to LEVEL: XP used to give only invisible numbers (faster digging, more rares). Now the 5 premium hats are visible in the Tailor shop from the start, locked with the level they need — a goal you can SEE, not just a number going up',
+      'PLAY WITH YOUR COMPANION: throw, they run to fetch it, and there\'s a right moment to catch it on the way back (read it off the bar over their head). Perfect catch = 3 doubled finds, any fetch at all = 1 — never a penalty. Works wherever digging doesn\'t, typically the park',
+    ],
+  },
+  {
     v: 'v0.86', it: [
+      'FIX LABORATORIO: "Risveglia!" sembrava rotto. Il click c\'era, ma senza la fialetta di DNA la chimera veniva rifiutata e il messaggio finiva DIETRO al pannello, invisibile. Ora i toast stanno sopra ogni finestra, e il Laboratorio scrive sotto ai selettori quanto costa e cosa manca (con il bottone spento finché non ce l\'hai)',
+      'FIX ANDROID: riducendo il browser la musica continuava a suonare, e per zittirla bisognava chiudere il gioco dalle app recenti. Ora la pagina in secondo piano SOSPENDE l\'audio (non basta fermare la musica: finché il contesto audio è attivo il telefono tiene viva l\'app e la mostra come player). Tornando davanti riparte — a meno che tu non l\'abbia spenta dalle impostazioni',
       'FIX MISSIONI del cartello: con 2 gusci di lumaca nello zaino la richiesta leggeva 1/2 e non si chiudeva mai. Gli oggetti di superficie stanno in PILE (una voce, quantità dentro) e il cartello contava le voci, non i pezzi. E la consegna avrebbe portato via la pila INTERA: 4 giunchi richiesti, 14 spariti. Ora la pila si scala',
       'RACCOGLITORE leggendario RIDIMENSIONATO: era un secondo giocatore più bravo di te. Ora NON dà XP (l\'esperienza la prende chi scava), lavora ogni 18-60 secondi invece di ogni 6, riesce metà delle volte e la casella se la CONSUMA — lascia la buca come quando scavi tu, e non torna trenta volte sullo stesso punto',
       'FIX: ricaricare la pagina non fa più ripartire subito il raccoglitore. La pausa era un contatore in memoria, azzerato a ogni caricamento: ricaricando di continuo scavava a raffica. Ora è un\'ora salvata, e un refresh non la sposta',
@@ -24,6 +101,8 @@ export const CHANGELOG = [
       'SPRITE STUDIO: nuova scheda VESTITI — 4 maglie e 4 pantaloni si possono rifinire a mano nelle tre viste (i pantaloni per ogni passo: fra i due fotogrammi le gambe cambiano, il torso no)',
       'FIX una riga di pixel sul bordo sinistro con CANOTTIERA + SALOPETTE visti di spalle',
     ], en: [
+      'LAB FIX: "Awaken!" looked broken. The click worked, but without a DNA vial the chimera was refused and the message ended up BEHIND the panel, invisible. Toasts now sit above every window, and the Laboratory prints the cost and what is missing right under the selectors (with the button disabled until you have it)',
+      'ANDROID FIX: minimising the browser left the music playing, and the only way to silence it was killing the game from the recent apps. A backgrounded page now SUSPENDS the audio (stopping the music is not enough: while the audio context is alive the phone keeps the app running and lists it as a player). It resumes when you come back — unless you turned it off in the settings',
       'BOARD MISSIONS FIX: with 2 snail shells in your bag the request read 1/2 and could never be completed. Surface goods live in STACKS (one entry, quantity inside) and the board counted entries, not pieces. And delivery would have taken the WHOLE stack: 4 reeds asked, 14 gone. The stack is now decremented',
       'LEGENDARY GATHERER TONED DOWN: it was a second player better than you. It now gives NO XP (experience belongs to whoever digs), works every 18-60 seconds instead of every 6, succeeds half the time, and CONSUMES the tile — it leaves the hole like your own digging does, instead of returning thirty times to the same spot',
       'FIX: reloading the page no longer restarts the gatherer at once. The pause was a counter in memory, wiped on every load: reloading repeatedly made it dig in bursts. It is now a saved deadline, and a refresh does not move it',

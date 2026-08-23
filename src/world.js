@@ -1,5 +1,5 @@
 /* Mondo procedurale: terreni, decorazioni, città (con parco), collisioni, spawn */
-import { TS, GOODS } from './data.js';
+import { TS, GOODS, ZONES, zonePools } from './data.js';
 import { vhash, fbm } from './noise.js';
 import { zoneIdxAt } from './regions.js';
 import { wonderWidth } from './wonders.js';
@@ -460,6 +460,7 @@ export function isSolidTile(tx, ty) {
   if (t === DEEP || t === WATER || t === MTN) return true;
   const d = decoAt(tx, ty); if (d && decoSolid(d)) return true;
   if (siteAt(tx, ty)) return true; // affioramento d'ossa
+  if (boneSiteAt(tx, ty)) return true; // scheletro sepolto: monticello, si aggira
   return false;
 }
 export function solidPx(px, py) { return isSolidTile(Math.floor(px / TS), Math.floor(py / TS)); }
@@ -482,6 +483,66 @@ export function siteForCell(cx, cy) {
 export function siteAt(tx, ty) {
   const s = siteForCell(Math.floor(tx / SCELL), Math.floor(ty / SCELL));
   return s && s.x === tx && s.y === ty ? s : null;
+}
+
+/* ---------- SCHELETRO SEPOLTO: uno scheletro INTERO sotto 5 caselle vicine ----------
+   Un evento, non un incontro (celle grandi come i landmark): 5 caselle in una piccola croce
+   attorno a un'ancora, ognuna la casa di UNA parte precisa (corno/cranio/torace/zampa/coda)
+   della STESSA specie, scelta per la zona. Scavando tutte e 5 (anche in visite diverse: sta
+   in S.boneSites come i siti normali) si esce con il set COMPLETO garantito di quella specie —
+   l'unico modo nel gioco di chiudere una teca con UN evento invece che con la fortuna sparsa
+   di decine di scavi a caso. La specie NON dipende dai progressi del giocatore (come tutto il
+   resto del mondo procedurale): è una funzione del seme e del posto, non del salvataggio. */
+export const BCELL = 90;
+const BONE_OFFS = { corno: [0, -2], cranio: [0, -1], torace: [0, 0], zampa: [-1, 1], coda: [1, 1] };
+const boneSiteCache = new Map();
+export function boneSiteForCell(cx, cy) {
+  const key = cx + ',' + cy; if (boneSiteCache.has(key)) return boneSiteCache.get(key);
+  let site = null;
+  if (vhash(cx, cy, 231) < 0.16) {
+    const x0 = cx * BCELL + 8 + Math.floor(vhash(cx, cy, 232) * (BCELL - 16));
+    const y0 = cy * BCELL + 8 + Math.floor(vhash(cx, cy, 233) * (BCELL - 16));
+    const okSpot = (x, y) => diggable(baseTerrain(x, y)) && !townInfo(x, y) && !decoNatural(x, y) && !siteAt(x, y);
+    let allOk = okSpot(x0, y0);
+    const parts = {};
+    for (const id in BONE_OFFS) {
+      const [dx, dy] = BONE_OFFS[id], x = x0 + dx, y = y0 + dy;
+      if (!okSpot(x, y)) { allOk = false; break; }
+      parts[id] = { x, y };
+    }
+    if (allOk) {
+      const zone = ZONES[zoneIdxAt(x0, y0)] || ZONES[0];
+      const pool = zonePools[zone.id] || [];
+      if (pool.length) {
+        const sp = pool[Math.floor(vhash(cx, cy, 234) * pool.length)];
+        site = { x: x0, y: y0, sp: sp.id, parts, key };
+      }
+    }
+  }
+  boneSiteCache.set(key, site); return site;
+}
+/* la casella (tx,ty) fa parte di uno scheletro sepolto? torna {site, part} o null.
+   Guarda anche la cella VICINA (offset fino a 2): l'ancora può stare in una cella diversa
+   da quella della parte più lontana (corno/coda), come i confini dei siti normali. */
+export function boneSiteAt(tx, ty) {
+  const bcx = Math.floor(tx / BCELL), bcy = Math.floor(ty / BCELL);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const s = boneSiteForCell(bcx + dx, bcy + dy); if (!s) continue;
+    for (const part in s.parts) { const p = s.parts[part]; if (p.x === tx && p.y === ty) return { site: s, part }; }
+  }
+  return null;
+}
+/* il RIQUADRO DI SCAVO (terra smossa + paletti e corda, come un vero scavo archeologico):
+   il bounding-box delle 5 parti, coi margini per i paletti d'angolo. Deve essere UN riquadro
+   solo (non 5 monticelli sparsi) perché SI VEDA da lontano che lì c'è qualcosa di grosso. */
+const BONE_BOX = { x0: -1, x1: 1, y0: -2, y1: 1 };
+export function boneSitePitAt(tx, ty) {
+  const bcx = Math.floor(tx / BCELL), bcy = Math.floor(ty / BCELL);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const s = boneSiteForCell(bcx + dx, bcy + dy); if (!s) continue;
+    if (tx >= s.x + BONE_BOX.x0 && tx <= s.x + BONE_BOX.x1 && ty >= s.y + BONE_BOX.y0 && ty <= s.y + BONE_BOX.y1) return s;
+  }
+  return null;
 }
 /* ---------- LANDMARK endemici: strutture rare e UNICHE per bioma (rompono l'omogeneità) ----------
    deterministici, sparsi (~1 ogni 3 celle 46×46), su terreno camminabile fuori città. 3 per bioma. */

@@ -46,7 +46,7 @@ export const WONDERS = {
     n: ['Cerchio di Funghi', 'The Fairy Ring'],
     d: ['Un anello perfetto di funghi che di notte brillano di verde.', 'A perfect ring of mushrooms that glow green at night.'],
     gp: ['Le spore attaccate alla pala portano fortuna. Non chiedermi perché.', 'Spores on your spade bring luck. Do not ask me why.'],
-    p: ['Spore fortunate: ritrovamenti raddoppiati per 10 scavi.', 'Lucky spores: doubled finds for 10 digs.'] },
+    p: ['Spore fortunate: più probabilità di reperto per 10 scavi.', 'Lucky spores: better odds of a find for 10 digs.'] },
   hollowstump: { w: 5, cd: 5, zone: 'boschi',
     n: ['Ceppo Cavo', 'The Hollow Stump'],
     d: ['Il moncone di un albero enorme: dentro ci stai in piedi.', 'The stump of an enormous tree: you can stand inside it.'],

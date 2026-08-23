@@ -31,6 +31,7 @@ export function fresh() {
     raw: [], items: [], codex: [], donated: [], dug: [], creatures: [],
     uid: 1, px: 0, py: 0, started: false, lastTown: null, tod: 0.25, book: {}, sites: {}, awakened: [], museum: {},
     look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false, mounted: false,
+    idleAt: Date.now(),
   };
 }
 /* CHEAT LOCK: segna che dei comandi cheat sono attivi (tag HUD + `vanilla` disponibile). Il save
@@ -120,6 +121,10 @@ export function setSaveHook(fn) { onSaved = fn; }
 export function save() {
   try {
     S.px = P.x; S.py = P.y; S.started = true; S.v = SAVE_V;
+    /* PARCO CHE RENDE (idle.js): ogni salvataggio "azzera" il tempo d'assenza — l'idle deve
+       accumularsi SOLO quando il gioco non gira più (tab chiusa/sfondo senza autosave), mai
+       mentre stai davvero giocando. */
+    S.idleAt = Date.now();
     packSets();
     /* la mappa esplorata si salva COMPRESSA (intervalli per riga): senza, una partita
        molto esplorata supera la quota di localStorage e smette di salvarsi — proprio a chi
@@ -244,6 +249,8 @@ export function initState() {
   /* la mappa arriva compressa dal disco (o nel vecchio formato: unpack li gestisce entrambi) */
   S.explored = unpackExplored(S.explored);
   if (!S.sites) S.sites = {};
+  if (!S.boneSites) S.boneSites = {}; // scheletri sepolti: parti già scavate per sito {key: [parte,...]}
+  if (S.egg === undefined) S.egg = null; // allevamento: l'uovo in cova, uno alla volta
   if (!S.awakened) S.awakened = [];
   if (!S.museum) S.museum = {};
   if (!S.fountains) S.fountains = {}; // lanci nella fontana per città {n, d0}
@@ -283,6 +290,11 @@ export function initState() {
   if (!S.trophies) S.trophies = {}; if (S.findsTotal === undefined) S.findsTotal = 0; // trofei a livelli + reperti trovati (lifetime)
   if (!S.glitterHats) S.glitterHats = []; // cappelli-trofeo portati al PLATINO: si disegnano con glitter dorato
   if (S.introSeen === undefined) S.introSeen = !!S.started; // i save già avviati non rivedono l'intro
+  /* PARCO CHE RENDE: un save che non aveva ancora questo campo parte da ADESSO, non da quando
+     ha iniziato la partita — altrimenti chi gioca da mesi si ritroverebbe un conto arretrato
+     di ore (cappato lo stesso, ma un regalo enorme al primo avvio dopo l'update non è quello
+     che deve fare: il tetto orario protegge dalle assenze LUNGHE, non da un arretrato falso). */
+  if (!S.idleAt) S.idleAt = Date.now();
   if (S.gear === undefined) S.gear = null;
   /* i natanti non sono più un "gear attivabile": in acqua si sale da soli (v0.16.5) */
   if (S.gear === 'boat' || S.gear === 'motorboat') S.gear = null;

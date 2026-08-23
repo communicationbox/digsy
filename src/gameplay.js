@@ -1,14 +1,15 @@
 /* Meccaniche: scavo, economia, chimere, collisioni, interazione */
-import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, CHIMERA_COST, GOODS, goodById, availableNow, hasWindow } from './data.js';
+import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PREMIUM_HATS } from './data.js';
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
 import { bodyHits, feetTile, FOOT_DY } from './body.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
-import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE } from './world.js';
+import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL } from './world.js';
 import { compass } from './compass.js';
 import { landmarkNear, harvestDecoAt } from './world.js';
 import { vhash as vhashW } from './noise.js';
 import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememberArch, addBuff, useBuff } from './wonders.js';
+import { marketPrice } from './market.js';
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, openStatue, showTip, announceTutStep } from './ui.js';
@@ -23,7 +24,7 @@ import { isNight, seasonOf } from './daynight.js';
 import { expireQuests, questExpiryText } from './quests.js';
 import { tutBump, tutStepId } from './tutorial.js';
 import { goalLine, goalTitle, alive, aliveTotal, milestoneReached, milestoneGift } from './goal.js';
-import { tr, actKey, keys, LANG, partName, rarLabel, seasonName } from './i18n.js';
+import { tr, actKey, keys, LANG, partName, rarLabel, seasonName, hatLabel } from './i18n.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
 function availableNow2() { return { night: isNight(), season: seasonOf(S.day) }; }
@@ -45,7 +46,15 @@ export function rarWeights(dist) {
   return { comune: 75 / g, raro: 17.5, eccezionale: 6 * g * rb, leggendario: 1.5 * g * rb };
 }
 /* XP con toast di livello (chiamato quando ottieni un reperto/oggetto) */
-export function gainXp(n) { if (useBuff('xpX2')) n *= 2; addXp(n, lv => { toast('🎓 ' + tr('Livello archeologo ', 'Archaeologist level ') + lv + '! +5 ⚡'); playSfx('found'); updateHUD(); }); }
+export function gainXp(n) {
+  if (useBuff('xpX2')) n *= 2;
+  addXp(n, lv => {
+    toast('🎓 ' + tr('Livello archeologo ', 'Archaeologist level ') + lv + '! +5 ⚡'); playSfx('found'); updateHUD();
+    /* traguardo che si VEDE: un cappello premium in più oltre a scavo/rarità (numeri invisibili) */
+    const hat = PREMIUM_HATS.find(p => p.lvl === lv);
+    if (hat) toast('🤠 ' + tr('Nuovo cappello in Sartoria: ', 'New hat at the Tailor: ') + hatLabel(hat.id) + '!');
+  });
+}
 /* reperto della ZONA: specie pescata con peso = rarità intrinseca (× gradiente distanza) */
 /* src: da dove si estrae — 'terra' (default), 'albero', 'roccia', 'acqua', 'any' (siti/fontana/mappe) */
 export function makeRaw(zoneId, dist, forceRar, src = 'terra') {
@@ -457,6 +466,7 @@ export function companionGathers() {
 /* passo del raccoglitore: chiamato nel game loop PRIMA di updateCompanion (che segue solo se
    non c'è un job). In grotta/interni non lavora: là il compagno non c'è. */
 export function companionWorkTick(dt) {
+  if (COMP.play) return;               // sta giocando: il raccoglitore aspetta il suo turno
   if (!companionGathers()) { COMP.job = null; return; }
   /* se il player si è ALLONTANATO, molla il lavoro e RAGGIUNGILO (updateCompanion segue quando
      job=null): il raccoglitore lavora SOLO restandoti vicino, così non rimane "piantato" su una
@@ -501,6 +511,97 @@ export function companionWorkTick(dt) {
       mettiPausa(CW.COOL * (CW.SLOW_MIN + Math.random() * (CW.SLOW_MAX - CW.SLOW_MIN)));
     }
   }
+}
+
+/* ---------- MINIGIOCO #7: GIOCA COL COMPAGNO (lancia e riporta) ----------
+   QUALSIASI compagno (non solo i leggendari raccoglitori): lanci, lui/lei corre a riportarlo,
+   e c'è UNA finestra di tempismo per "prenderlo al volo" mentre torna — il timing lo si legge
+   dalla barra che riempie sopra la sua testa (render.js), non è indovinare al buio.
+   Ricompensa: cariche di digX2 (lo stesso buff delle spore del Cerchio di Funghi — niente
+   sistema nuovo). Presa perfetta = 3 cariche, riporto qualsiasi (tardi o scaduto) = 1: MAI un
+   fallimento vero, la fretta è solo quello che dà il bonus, come nel tavolo di preparazione e
+   in "ricomponi lo scheletro".
+   Il PARCO è la casa naturale di questo minigioco: lì non si scava (townInfo blocca tryDig),
+   quindi E è libero — ma nearbyPark() apre ANCHE il selettore del compagno, e quello ha già
+   diritto su E. Si dà priorità al gioco SOLO se hai già un compagno pronto: altrimenti (nessun
+   compagno, o sta ancora lavorando/riposando dal round precedente) resta il selettore, come
+   prima. */
+/* esportate: render.js le usa per disegnare l'arco del lancio e la barra di tempismo alla
+   STESSA scala di questi numeri — due copie separate sarebbero potute divergere in silenzio */
+export const PLAY_THROW = 0.35, PLAY_CHASE = 150, PLAY_CATCH = 1.05, PLAY_COOL = 2.5;
+/* finestra d'oro dentro il tempo di cattura (frazione 0..1). PRESTO e LARGA di proposito:
+   l'istinto naturale è premere E APPENA il compagno arriva (non a metà di un secondo di
+   attesa) — un giocatore l'ha segnalato ("mi dà sempre bel riporto"). La finestra ora parte
+   quasi subito e copre un terzo abbondante della barra, più uno "ding" (sfx) al suo inizio:
+   il tempismo resta una sfida (non è premere a caso), ma è allineato a come si gioca davvero. */
+export const PLAY_PERFECT = [0.12, 0.48];
+/* `ignoreTile`=true salta il controllo "si scava qui" — usato dal comando console `playcomp`
+   per provare il minigioco ovunque, senza dover prima cercare un parco */
+export function companionPlayable(ignoreTile) {
+  if (!S.companion || isMounted() || CAVE.active || INT.active || CUT.on) return false;
+  if (COMP.job || COMP.play || COMP.playCool > 0) return false;
+  if (!ignoreTile) {
+    const { tx, ty } = digTarget(), key = tx + ',' + ty;
+    if (!townInfo(tx, ty) && diggable(baseTerrain(tx, ty)) && !dugSet.has(key)) return false; // si scava qui: vince lo scavo
+  }
+  return true;
+}
+/* lancia l'oggetto davanti a te (con un po' di spargimento): il compagno lo insegue */
+export function playWithCompanion(ignoreTile) {
+  if (!companionPlayable(ignoreTile)) return false;
+  const dv = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[P.dir] || [0, 1];
+  const base = Math.atan2(dv[1], dv[0]);
+  let tx = null, ty = null;
+  for (let i = 0; i < 6 && tx == null; i++) {
+    const ang = base + (Math.random() - 0.5) * 0.9, dist = 46 + Math.random() * 30;
+    const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
+    if (!bodyHits(cx, cy, (px, py) => !passable(px, py))) { tx = cx; ty = cy; }
+  }
+  if (tx == null) return false; // niente spazio libero attorno: pazienza, ci si riprova
+  COMP.play = { phase: 'throw', t: 0, tx, ty };
+  playSfx('click');
+  return true;
+}
+/* risolve la cattura: `auto`=true quando scade il tempo da sola (nessuna penalità, solo il
+   bonus minore) — MAI chiamata due volte per lo stesso round (il chiamante controlla la fase) */
+function finishCompanionCatch(auto) {
+  const pl = COMP.play; if (!pl || pl.phase !== 'catch') return;
+  const frac = pl.t / PLAY_CATCH;
+  const perfect = !auto && frac >= PLAY_PERFECT[0] && frac <= PLAY_PERFECT[1];
+  addBuff('digX2', perfect ? 3 : 1);
+  playSfx(perfect ? 'found' : 'click');
+  toast('🐾 ' + (perfect
+    ? tr('Preso al volo! Prossimi 3 scavi con più probabilità di reperto', 'Caught it perfectly! Better odds on your next 3 digs')
+    : tr('Bel riporto! Prossimo scavo con più probabilità', 'Nice fetch! Better odds on your next dig')));
+  pl.phase = 'return'; pl.t = 0;
+}
+/* E durante la finestra di cattura: SEMPRE prioritario su ogni altra azione (chiamato in cima
+   ad act(), come isMounted()) — un compagno che sta per prendere l'oggetto non aspetta */
+export function tryCatchCompanion() {
+  const pl = COMP.play; if (!pl || pl.phase !== 'catch') return false;
+  finishCompanionCatch(false);
+  return true;
+}
+/* passo del minigioco: chiamato nel game loop come companionWorkTick, PRIMA di updateCompanion
+   (che segue solo a play=null) */
+export function companionPlayTick(dt) {
+  if (COMP.playCool > 0) COMP.playCool = Math.max(0, COMP.playCool - dt);
+  const pl = COMP.play; if (!pl) return;
+  pl.t += dt;
+  if (pl.phase === 'throw') { if (pl.t >= PLAY_THROW) { pl.phase = 'chase'; pl.t = 0; } return; }
+  if (pl.phase === 'chase' || pl.phase === 'return') {
+    const gx = pl.phase === 'chase' ? pl.tx : P.x, gy = pl.phase === 'chase' ? pl.ty : P.y + 6;
+    const dx = gx - COMP.x, dy = gy - COMP.y, d = Math.hypot(dx, dy) || 1;
+    const step = Math.min(d, PLAY_CHASE * dt);
+    COMP.x += dx / d * step; COMP.y += dy / d * step; COMP.anim += dt;
+    if (Math.abs(dx) > 2) COMP.face = dx < 0 ? 'left' : 'right';
+    if (d < (pl.phase === 'chase' ? 4 : 10)) {
+      if (pl.phase === 'chase') { pl.phase = 'catch'; pl.t = 0; playSfx('click'); } // "ding": ORA si può prendere
+      else { COMP.play = null; COMP.playCool = PLAY_COOL; }
+    }
+    return;
+  }
+  if (pl.phase === 'catch' && pl.t >= PLAY_CATCH) finishCompanionCatch(true);
 }
 
 /* ---------- COMPAGNO LEGGENDARIO DI GROTTA: cavalcatura volante (Fase 2) ----------
@@ -759,6 +860,41 @@ export function digSite() {
     save(); updateHUD();
   });
 }
+/* ---------- SCHELETRO SEPOLTO: 5 caselle, 5 parti, UNA specie garantita ----------
+   Ogni casella del sito è UNA parte precisa (world.js decide quale). Si scava come i siti
+   normali (adiacente, non sotto i piedi: sono monticelli solidi), ma ogni colpo dà SEMPRE
+   quella parte di QUELLA specie — mai un'altra, mai a vuoto. Il progresso vive per SITO
+   (S.boneSites[key] = parti già scavate), quindi si può finire in più visite. */
+export function boneSiteDug(site, part) { return (S.boneSites[site.key] || []).includes(part); }
+export function boneSiteProgress(site) { return (S.boneSites[site.key] || []).length; }
+export function nearbyBoneSite() {
+  const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const b = boneSiteAt(ptx + dx, pty + dy);
+    if (b && !boneSiteDug(b.site, b.part)) return b;
+  }
+  return null;
+}
+export function digBoneSite() {
+  const b = nearbyBoneSite(); if (!b) return;
+  const { site, part } = b;
+  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
+  beginDig(0.55, () => {
+    if (!isDebug()) spendEnergy(1);
+    if (!S.boneSites[site.key]) S.boneSites[site.key] = [];
+    S.boneSites[site.key].push(part);
+    const sp = spById[site.sp], dist = Math.hypot(site.x, site.y);
+    const val = Math.max(2, Math.round(7 * ptById[part].mult * RAR.find(r => r.id === sp.r).mult * (1 + dist / 900)));
+    const raw = { uid: S.uid++, s: site.sp, t: part, q: sp.r, val };
+    const done = boneSiteProgress(site) >= 5;
+    if (addFossil(raw, site.x, site.y)) {
+      toast('🦴✨ ' + partName(part) + tr(' di ', ' of ') + sp.name + ' — ' + boneSiteProgress(site) + '/5' + (done ? tr(' · scheletro completo!', ' · skeleton complete!') : ''));
+      playSfx(done ? 'fanfare' : 'found');
+    }
+    save(); updateHUD();
+  });
+}
 /* oggetto di superficie a portata (tile sotto i piedi o adiacente) */
 export function nearbyPickup() {
   const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
@@ -884,6 +1020,14 @@ export function act() {
      nessuno poteva più far avanzare — un limbo da cui si usciva solo ricaricando (segnalato
      con foto). La scenetta si fa avanzare col clic, che ha già la sua strada (cutAdvance). */
   if (CUT.on) return;
+  /* il compagno che sta per prendere il riporto NON aspetta: se c'è una finestra di cattura
+     aperta, E vale sempre "prendilo", prima di ogni altra cosa vicina */
+  if (tryCatchCompanion()) return;
+  /* il round è in corso ma non ancora catturabile (lancio/inseguimento/ritorno): E non deve
+     "sfuggire" ad altro (riaprire il selettore del parco, scavare) — resta in attesa, muto,
+     come premere E un attimo troppo presto. Senza questo un E impaziente durante l'inseguimento
+     apriva il pannello del compagno SOPRA al round ancora in corso. */
+  if (COMP.play) return;
   if (isMounted()) { toast('🐾 ' + tr('In volo non si scava: scendi dallo zaino', "Can't dig while flying: land from the bag")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
@@ -903,7 +1047,11 @@ export function act() {
   if (nearbyBoard()) { openQuestBoard(); return; } // cartello delle missioni
   if (nearbyStatue()) { openStatue(); return; }    // targa del monumento al nonno
   if (nearbyMailbox()) { openMailbox(); return; } // cassetta: spedisci i grezzi al Museo
+  /* già ne hai uno pronto? nel parco si GIOCA invece di riaprire il selettore (che resta per
+     chi non ha ancora scelto, o mentre il compagno lavora/riposa dal round precedente) */
+  if (companionPlayable()) { if (playWithCompanion()) return; }
   if (nearbyPark()) { openCompanionPicker(); return; } // parco: scegli il compagno
+  if (nearbyBoneSite()) { digBoneSite(); return; }
   if (nearbySite()) { digSite(); return; }
   if (nearbyDrop()) { collectPickup(); return; } // un FOSSILE caduto a terra (zaino pieno) ha la PRIORITÀ sulla fontana
   if (nearbyFountain()) { tossCoin(); return; }
@@ -972,7 +1120,7 @@ export function useWonder(lm) {
       out = '🧊 ' + tr('Liberi ', 'You free ') + partName(part) + tr(' di ', ' of ') + sp.name + tr(' dal ghiaccio!', ' from the ice!');
       break;
     }
-    case 'mushring': addBuff('digX2', 10); out = '🍄 ' + tr('Spore fortunate: 10 scavi con drop doppio', 'Lucky spores: 10 digs with doubled finds'); playSfx('found'); break;
+    case 'mushring': addBuff('digX2', 10); out = '🍄 ' + tr('Spore fortunate: 10 scavi con più probabilità di reperto', 'Lucky spores: 10 digs with better odds of a find'); playSfx('found'); break;
     case 'totem': addBuff('xpX2', 10); out = '🗿 ' + tr('Benedizione: 10 scavi con XP doppia', 'Blessing: 10 digs with double XP'); playSfx('found'); break;
     case 'willow': out = 'sleep'; break;                 // gestito da chi chiama (dorme)
     case 'menhir': case 'icespire': out = 'reveal'; break; // rivelazione mappa (vedi ui/map)
@@ -1010,8 +1158,11 @@ export function grantStarterGift() {
      da solo che va portato al Museo. Un avviso che scorre via nei primi secondi si somma agli
      altri e li rende tutti rumore. */
 }
-export function sellItem(uid) { const i = S.items.findIndex(x => x.uid === uid); if (i < 0) return; const it = S.items[i]; S.coins += it.val; S.items.splice(i, 1); playSfx('coin'); save(); updateHUD(); }
-export function sellAll() { let g = 0; S.items.forEach(it => g += it.val); S.coins += g; const n = S.items.length; S.items = []; if (n) playSfx('coin'); save(); updateHUD(); return { g, n }; }
+/* MERCATO: il prezzo alla vendita scala con la richiesta del giorno per quella specie (market.js).
+   Il valore base (it.val) resta intatto — guida commissioni/restauro/Museo, non tocca a loro
+   sapere di questo. Qui, e SOLO qui, si applica. */
+export function sellItem(uid) { const i = S.items.findIndex(x => x.uid === uid); if (i < 0) return; const it = S.items[i]; S.coins += marketPrice(it.val, it.s, S.day); S.items.splice(i, 1); playSfx('coin'); save(); updateHUD(); }
+export function sellAll() { let g = 0; S.items.forEach(it => g += marketPrice(it.val, it.s, S.day)); S.coins += g; const n = S.items.length; S.items = []; if (n) playSfx('coin'); save(); updateHUD(); return { g, n }; }
 /* ---------- museo: consegni i GREZZI, gli esperti identificano in 1 giorno ----------
    Al ritiro: i pezzi che il museo HA GIÀ tornano a te (identificati, vendibili);
    i pezzi NUOVI vengono esposti (niente monete). Teca completa 5/5 → FIALETTA DNA
@@ -1188,30 +1339,11 @@ export function fuseDupes(spId, part) {
   save(); updateHUD();
   return out;
 }
-export function assembleChimera(uidC, uidT, uidZ) {
-  if (S.coins < CHIMERA_COST && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + CHIMERA_COST); return false; }
-  const pick = u => S.items.find(x => x.uid === u);
-  const c = pick(uidC), t = pick(uidT), z = pick(uidZ);
-  if (!c || !t || !z || c.t !== 'cranio' || t.t !== 'torace' || z.t !== 'zampa') return false;
-  /* 1 fialetta DNA per ogni specie DISTINTA usata (ricariche al museo, teca 5/5) */
-  const species = [...new Set([c.s, t.s, z.s])];
-  if (!isDebug()) {
-    const missing = species.filter(sp => dnaOf(sp) < 1);
-    if (missing.length) {
-      toast('🧬 ' + tr('Manca il DNA di: ', 'Missing DNA of: ') + missing.map(sp => spById[sp].name).join(', ') + tr(' (museo, teca 5/5)', ' (museum, case 5/5)'));
-      return false;
-    }
-    for (const sp of species) S.dna[sp] = dnaOf(sp) - 1; // una fialetta ciascuna
-  }
-  if (!isDebug()) S.coins -= CHIMERA_COST;
-  [uidC, uidT, uidZ].forEach(u => { const i = S.items.findIndex(x => x.uid === u); S.items.splice(i, 1); });
-  const ri = Math.max(...[c, t, z].map(it => RAR.findIndex(r => r.id === it.q)));
-  const cr = { uid: S.uid++, name: chimeraName(spById[c.s], spById[z.s], (S.creatures || []).map(x => x.name)), skull: c.s, torso: t.s, leg: z.s, q: RAR[ri].id };
-  S.creatures.push(cr); save(); updateHUD();
-  bigMoment('🐾 ' + tr('CHIMERA CREATA', 'CHIMERA CREATED'), cr.name);
-  toast('✨ ' + cr.name + tr(' si è risvegliato! Passeggia nel parco delle città grandi', ' has woken up! It roams the big-city park'));
-  return true;
-}
+/* L'ASSEMBLAGGIO DIRETTO (cranio+torace+zampa → chimera al volo) È STATO TOLTO: due strade per
+   la stessa cosa (assembla o alleva) rendevano l'allevamento una scorciatoia più lenta e
+   nessuno lo usava. Ora le chimere nascono SOLO dall'allevamento (breeding.js): prima risvegli
+   specie PURE (awakenSpecies, invariato), poi le ibridi fra loro — la prima chimera è un
+   traguardo di metà partita, non un click a 🪙40 appena hai i tre pezzi giusti. */
 
 /* ---------- DNA (FIALETTE INTERE, niente mezze) ----------
    2 fialette = 1 risveglio · 1 fialetta = 1 chimera (per specie usata). Prezzi dimezzati. */

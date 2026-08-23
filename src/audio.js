@@ -85,6 +85,9 @@ const SFX = {
 };
 export function playSfx(name) {
   if (!opts.sfx || !actx || !master) return;
+  /* a contesto sospeso (scheda in background) i suoni non si perdono: si ACCODANO e
+     sparerebbero tutti insieme al ritorno. Meglio niente. */
+  if (actx.state !== 'running') return;
   const d = SFX[name] || SFX.click, t = actx.currentTime;
   const o = actx.createOscillator(), g = actx.createGain();
   o.type = d[2]; o.frequency.setValueAtTime(d[0], t);
@@ -112,11 +115,30 @@ export function playSfx(name) {
     o2.start(t + d[1] * 0.5); o2.stop(t + d[1] * 1.4);
   }
 }
+/* SCHEDA IN BACKGROUND = SILENZIO. Su Android, ridurre il browser non ferma né i timer né
+   l'AudioContext: il sistema anzi tiene VIVA l'app finché un contesto audio suona, e per
+   zittire il gioco si finiva a chiudere il browser dalle app recenti (segnalato da un
+   giocatore). Non basta fermare il sequencer: il contesto va SOSPESO, altrimenti resta
+   "running" e l'app continua a comparire come player attivo. Al ritorno si riparte solo se
+   la musica era accesa (chi l'ha spenta dalle impostazioni non se la ritrova addosso). */
+export function suspendAudio() {
+  stopAudio();
+  if (actx && actx.state === 'running' && actx.suspend) { try { actx.suspend(); } catch (e) { /* ok */ } }
+}
 /* la musica riparte al PRIMO gesto dopo un refresh (l'AudioContext nasce sospeso) */
 export function armAudioResume() {
   if (typeof window === 'undefined') return;
-  const go = () => { if (opts.music) startAudio(); else if (actx && actx.state === 'suspended') actx.resume(); };
+  const go = () => { if (opts.music) startAudio(); else if (actx && actx.state === 'suspended') actx.resume().catch(() => {}); };
   for (const ev of ['pointerdown', 'keydown', 'touchstart']) window.addEventListener(ev, go);
+  if (typeof document !== 'undefined' && document.addEventListener) {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'hidden') suspendAudio();
+      else if (opts.music) startAudio();
+    });
+  }
+  /* pagehide: iOS/Android non mandano sempre visibilitychange quando la scheda viene messa
+     in cache (bfcache) o l'app va in background da un cambio di app */
+  window.addEventListener('pagehide', suspendAudio);
 }
 function note(semi, dur, type, vol) {
   const o = actx.createOscillator(), g = actx.createGain();
@@ -179,7 +201,11 @@ export function startAudio() {
   }
   if (curMoodId == null) curMoodId = targetId = 'prati';
   liveTempo = MOODS[targetId].tempo;
-  if (actx.state === 'suspended') actx.resume();
+  if (actx.state === 'suspended') actx.resume().catch(() => { /* dispositivo audio non disponibile: pazienza */ });
   if (!timer) timer = setInterval(tick, Math.round(liveTempo));
 }
 export function stopAudio() { if (timer) { clearInterval(timer); timer = 0; } }
+/* stato in chiaro per gli e2e: `state` del contesto e sequencer acceso/spento. Serve a
+   provare in un browser VERO che mandare la pagina in background zittisce davvero — con lo
+   stub di Node si prova solo che la funzione viene chiamata. */
+export function audioState() { return { ctx: actx ? actx.state : null, playing: !!timer }; }

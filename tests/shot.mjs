@@ -68,13 +68,56 @@ async function main() {
     /* 'editor' = la creazione del personaggio: si vede una volta sola nella vita di una
        partita, ed è esattamente per questo che va guardata di proposito */
     else if (${JSON.stringify(vista)} === 'editor') { if(sp) sp.classList.add('off'); if(G.openEditor) G.openEditor(); }
+    /* 'scheletrosepolto' = i 5 monticelli del sito grande, appena scoperto */
+    else if (${JSON.stringify(vista)} === 'scheletrosepolto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('gotobone').then(function(){ if(G.updateHUD) G.updateHUD(); }); }
     /* 'museo' = il banco del Curatore: e' dove si vede quanto manca alle sale, cioe' l'unico
        traguardo lungo del gioco. Va guardato, non solo misurato da un test */
     else if (${JSON.stringify(vista)} === 'statua') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.gotoStatue) G.gotoStatue().then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'lab' = il banco del Laboratorio con tre pezzi e NIENTE DNA: è lo stato in cui il
+       bottone "Risveglia!" non può partire, e si deve leggere il perché senza cliccare */
+    else if (${JSON.stringify(vista)} === 'lab') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('goditem').then(function(){ var S=G.state(); S.dna={}; S.coins=510; if(G.openLab) G.openLab(); }); }
+    /* 'allevamento' = il Lab con 2 chimere già in parco: la scheda "Alleva una chimera" */
+    else if (${JSON.stringify(vista)} === 'allevamento') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('chimera').then(function(){ return G.cmd('chimera'); }).then(function(){ if(G.openLab) G.openLab(); }); }
+    /* 'uovo' = il Lab con un uovo GIÀ deposto e pronto a schiudersi: si deve VEDERE (non solo leggere) */
+    else if (${JSON.stringify(vista)} === 'uovo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('chimera').then(function(){ return G.cmd('chimera'); }).then(function(){
+        var S=G.state(); var cs=S.creatures;
+        S.egg={ uid:9999, skull:cs[0].skull, torso:cs[0].torso, leg:cs[0].leg, q:'raro',
+          p1:cs[0].name, p2:cs[1].name, laidDay:S.day, readyDay:S.day };
+        if(G.openLab) G.openLab(); }); }
+    /* 'lab-room' = la STANZA vera del Laboratorio (non il pannello): la teca di cova sta lì,
+       sempre visibile camminandoci, vuota finché non deponi l'uovo */
+    else if (${JSON.stringify(vista)} === 'lab-room') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('chimera').then(function(){ return G.cmd('chimera'); }).then(function(){
+        var S=G.state(); var cs=S.creatures;
+        S.egg={ uid:9999, skull:cs[0].skull, torso:cs[0].torso, leg:cs[0].leg, q:'raro',
+          p1:cs[0].name, p2:cs[1].name, laidDay:S.day, readyDay:S.day };
+        return G.enterRoom('lab');
+      }).then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
+    else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* l'altro caso: fialette in mano, requisiti soddisfatti, bottone acceso */
+    else if (${JSON.stringify(vista)} === 'lab-dna') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goddna'); }).then(function(){
+        G.state().coins=510; if(G.openLab) G.openLab(); }); }
     else if (${JSON.stringify(vista)} === 'teca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openExhibit) G.openExhibit(); }
+    /* 'scheletro' = il minigioco al banco del Museo: un pezzo nuovo, grezzo, di una specie
+       ancora senza teca — deposito e ritiro veri (stessi bottoni del giocatore) fanno
+       scattare il montaggio da soli */
+    else if (${JSON.stringify(vista)} === 'scheletro') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.openMuseum) { var S=G.state(); S.museum.lepre=[]; S.raw=[{uid:9001,s:'lepre',t:'cranio',q:'raro',val:40}];
+        G.openMuseum().then(function(){ var d=document.getElementById('mudep'); if(d) d.click();
+          var c=document.getElementById('mucol'); if(c) c.click(); }); } }  /* mucol si ripesca DOPO il click di mudep: quello ridisegna il pannello e sostituisce il nodo */
     else if (${JSON.stringify(vista)} === 'progressi') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.openMuseum) G.openMuseum().then(function(){ var t=document.querySelector('[data-mtab="prog"]'); if(t) t.click(); }); }
+    /* 'sartoria' = il banco del sarto a basso livello: i premium sotto soglia si VEDONO ma
+       sono spenti (Lv, non prezzo) — il traguardo che dà voglia di salire */
+    else if (${JSON.stringify(vista)} === 'sartoria') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.openTailor) { var S=G.state(); S.level=1; S.xp=0; S.unlocked.hats=[]; G.openTailor(); } }
     else if (${JSON.stringify(vista)} === 'museo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openMuseum) G.openMuseum().then(function(){
         /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
         var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();

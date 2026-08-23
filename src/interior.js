@@ -121,6 +121,7 @@ const FURN = {
   lab: [
     { x0: 12, y0: 46, x1: 48, y1: 68 },    // postazione alambicco
     { x0: 112, y0: 46, x1: 148, y1: 68 },  // banco da lavoro
+    { x0: 124, y0: 74, x1: 142, y1: 96 },  // teca di cova (in basso a destra, il corridoio centrale resta libero)
   ],
   store: [
     { x0: 12, y0: 46, x1: 46, y1: 68 },    // casse e sacchi
@@ -334,7 +335,7 @@ export function goalIsExit() {
   const g = goalTile();
   /* vale anche la STRADA disegnata oltre la porta (ty >= INT.h): è lì che si clicca per
      uscire, ed è l'unico punto in cui il gesto è naturale */
-  return g.ty >= INT.h - 4 && Math.abs(g.tx - (INT.w >> 1)) <= 3;
+  return g.ty >= INT.h - 2 && Math.abs(g.tx - (INT.w >> 1)) <= 3;
 }
 /* si è vicini all'uscita? (per il suggerimento a schermo) */
 export function nearExit() {

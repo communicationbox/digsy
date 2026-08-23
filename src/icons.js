@@ -8,7 +8,7 @@ try { files = import.meta.glob('./pxicons/*.svg', { query: '?raw', import: 'defa
 const SVGS = {};
 for (const [p, raw] of Object.entries(files)) SVGS[p.split('/').pop().replace('.svg', '')] = raw;
 
-export const ICON_NAMES = ["arD", "arDL", "arDR", "arL", "arR", "arU", "arUL", "arUR", "axe", "bag", "barber", "bed", "bike", "bolt", "bone", "book", "bread", "bug", "cal", "cave", "check", "close", "coin", "compass", "cloud", "dice", "discord", "dna", "door", "dune", "fish", "flower", "gear", "gem", "star", "bulb", "gift", "target", "warn", "mail", "tree", "village", "human", "info", "frog", "globe", "hat", "home", "horn", "ice", "lab", "leaf", "map", "menu", "moon", "mount", "museum", "note", "palette", "paw", "pick", "pine", "rib", "save", "scroll", "shell", "shirt", "ship", "shovel", "skate", "skull", "snow", "sparkle", "spiral", "sprout", "stats", "store", "sun", "torch", "trash", "wheat"];
+export const ICON_NAMES = ["arD", "arDL", "arDR", "arL", "arR", "arU", "arUL", "arUR", "axe", "bag", "barber", "bed", "bike", "bolt", "bone", "book", "bread", "bug", "cal", "cave", "chartdown", "chartup", "check", "close", "coin", "compass", "cloud", "dice", "discord", "dna", "door", "dune", "egg", "fire", "fish", "flower", "gear", "gem", "star", "bulb", "gift", "target", "warn", "mail", "tree", "village", "human", "info", "frog", "globe", "hat", "home", "horn", "ice", "lab", "leaf", "lock", "map", "menu", "moon", "mount", "museum", "note", "palette", "paw", "pick", "pine", "rib", "save", "scroll", "shell", "shirt", "ship", "shovel", "skate", "skull", "snow", "sparkle", "spiral", "sprout", "stats", "store", "sun", "torch", "trash", "wheat"];
 
 
 /* colore tematico per icona (fill=currentColor eredita da style) */
@@ -24,6 +24,7 @@ const ICOL = {
   pick: '#8f887a', menu: '#e6dcc4', sprout: '#5fa04e', save: '#5a86c8', note: '#8d7ba0', globe: '#4e8d7c', bread: '#c98a5a',
   axe: '#b5622e', shovel: '#c9a06a', ship: '#5a86c8', fish: '#4e8d7c', check: '#5fa04e',
   skate: '#d8973c', bike: '#5a86c8', torch: '#f2c53d', scroll: '#c9a06a', shell: '#e0a86a', dice: '#d8973c', info: '#8fd0e6', discord: '#8d9bf0', cloud: '#8fd0e6',
+  lock: '#8a6a1e', chartup: '#5fa04e', chartdown: '#c65a54', fire: '#e0722e', egg: '#e8dcc0',
   /* close: NIENTE colore fisso → eredita currentColor del bottone (chiaro o scuro) */
   arU: '#e8b93c', arUR: '#e8b93c', arR: '#e8b93c', arDR: '#e8b93c', arD: '#e8b93c', arDL: '#e8b93c', arL: '#e8b93c', arUL: '#e8b93c',
 };
@@ -55,6 +56,7 @@ const EMAP = {
   '↑': 'arU', '↗': 'arUR', '→': 'arR', '↘': 'arDR', '↓': 'arD', '↙': 'arDL', '←': 'arL', '↖': 'arUL',
   '☰': 'menu', '▲': 'arU', '▼': 'arD', '◀': 'arL', '▶': 'arR',
   '✕': 'close', '✗': 'close', '✓': 'check', '☑': 'check',
+  '🔒': 'lock', '📈': 'chartup', '📉': 'chartdown', '🔥': 'fire', '🥚': 'egg',
 };
 export { EMAP };
 const EKEYS = Object.keys(EMAP).sort((a, b) => b.length - a.length);

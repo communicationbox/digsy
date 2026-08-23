@@ -130,7 +130,6 @@ export const GOODS = {
 export const goodById = {};
 for (const z in GOODS) for (const g of GOODS[z]) goodById[g[0]] = { id: g[0], it: g[1], en: g[2], val: g[3] };
 
-export const CHIMERA_COST = 40;   // risvegliare una chimera al Laboratorio
 export const SERVICE_COST = 8;    // barbiere / sartoria, per modifica
 
 /* palette scelte per l'editor / negozi */
@@ -179,13 +178,16 @@ export const PANTS_STYLES = [
 ];
 
 /* CAPPELLI PREMIUM: rari, sbloccabili a parte in Sartoria pagando tanto.
-   Provabili GRATIS in anteprima; si sbloccano solo alla Conferma (scala i 🪙). */
+   Provabili GRATIS in anteprima; si sbloccano solo alla Conferma (scala i 🪙).
+   `lvl` = livello archeologo minimo perché il cappello compaia in Sartoria: prima di
+   allora l'XP dava solo numeri invisibili (scavo più veloce, più rari) — questo dà un
+   traguardo che si VEDE, in più al prezzo che già c'era (non lo sostituisce). */
 export const PREMIUM_HATS = [
-  { id: 'vikingo', cost: 220 },
-  { id: 'cowboy', cost: 180 },
-  { id: 'sombrero', cost: 160 },
-  { id: 'partyhat', cost: 130 },
-  { id: 'santa', cost: 260 },
+  { id: 'partyhat', cost: 130, lvl: 5 },
+  { id: 'sombrero', cost: 160, lvl: 10 },
+  { id: 'cowboy', cost: 180, lvl: 15 },
+  { id: 'vikingo', cost: 220, lvl: 20 },
+  { id: 'santa', cost: 260, lvl: 25 },
 ];
 export const PREMIUM_HAT_COST = Object.fromEntries(PREMIUM_HATS.map(h => [h.id, h.cost]));
 
