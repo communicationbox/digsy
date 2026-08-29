@@ -174,6 +174,7 @@ export function drawFountain(sx, sy, time) {
   shadow(sx + 16, sy + 31, 13);
   rect(sx + 2, sy + 10, 28, 20, '#aaa294');            // bordo esterno
   rect(sx + 3, sy + 11, 26, 18, '#9a9285');
+  rect(sx + 3, sy + 11, 3, 18, '#b8b0a2'); rect(sx + 27, sy + 11, 3, 18, '#75695c'); // luce sx / ombra dx sul bordo di pietra
   rect(sx + 5, sy + 13, 22, 14, '#4d8fb5');            // acqua
   rect(sx + 5, sy + 13, 22, 2, '#5cb6d6');
   const ph = Math.floor(time / 220);                   // riflessi che scorrono
@@ -193,6 +194,7 @@ export function drawBench(sx, sy) {
   rect(sx + 2, sy + 4, 12, 2, '#c79a66'); px(sx + 2, sy + 4, '#a97a4c'); px(sx + 13, sy + 4, '#a97a4c'); // schienale
   rect(sx + 2, sy + 8, 12, 3, '#c79a66'); rect(sx + 2, sy + 8, 12, 1, '#dcb27e');                        // seduta
   rect(sx + 3, sy + 11, 2, 3, '#8a5f38'); rect(sx + 11, sy + 11, 2, 3, '#8a5f38');                       // gambe
+  px(sx + 3, sy + 4, '#e0c090'); rect(sx + 10, sy + 10, 3, 1, '#a97a4c'); // luce sullo schienale + ombra sulla seduta a dx
 }
 export function drawBushDeco(sx, sy) {
   shadow(sx + 8, sy + 14, 6);
@@ -200,10 +202,11 @@ export function drawBushDeco(sx, sy) {
   px(sx + 5, sy + 5, '#7cd07f'); px(sx + 9, sy + 4, '#7cd07f');
   px(sx + 6, sy + 9, '#e05a7a'); px(sx + 10, sy + 8, '#f2dd7a'); // bacche/fiori
   rect(sx + 3, sy + 12, 10, 1, '#2f6b3b');
+  rect(sx + 4, sy + 11, 8, 1, '#245631'); // ombra propria alla base del cespuglio
 }
 export function drawLamp(sx, sy) {
   shadow(sx + 8, sy + 15, 4);
-  rect(sx + 7, sy + 3, 2, 12, '#5a5248');                        // palo
+  rect(sx + 7, sy + 3, 2, 12, '#5a5248'); px(sx + 7, sy + 3, '#847a6c');                        // palo (luce sul lato sx)
   rect(sx + 5, sy, 6, 4, '#3f3a33'); rect(sx + 6, sy + 1, 4, 2, night() > 0.4 ? '#ffdf8a' : '#c9c2b4'); // lanterna
   if (night() > 0.4) { px(sx + 5, sy + 1, '#ffe9a0'); px(sx + 10, sy + 1, '#ffe9a0'); }
   rect(sx + 5, sy + 14, 6, 1, '#3f3a33');
