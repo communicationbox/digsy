@@ -7,38 +7,45 @@ export const PAL = {
   '.': null, 'K': '#33291f', 'F': '#f3cfa0', 'f': '#d7a377', 'H': '#d06b43', 'h': '#a04a2c',
   'S': '#57a58f', 's': '#3d7a68', 'P': '#c88a44', 'p': '#96622e', 'W': '#f2ead8', 'E': '#33291f',
   'B': '#8a5f38', 'b': '#6e4a2a', 'A': '#6e4a2a', 'a': '#523620',
+  /* terzo tono: LUCE (non solo base+ombra). N pelle · T maglia · U pantaloni · L cappello · M capelli —
+     shading vero a 3 bande invece del blocco piatto di prima (vedi CLAUDE.md, feedback sull'HD fasullo) */
+  'N': '#f9dfb8', 'T': '#6ebba3', 'U': '#d9a05c', 'L': '#e0865c', 'M': '#8a6248',
   /* ORO fisso per i CAPPELLI-TROFEO (non seguono il colore scelto): G oro · g ombra · Y luce ·
      R gemma rossa · D ciano platino · Q verde alloro */
   'G': '#e8b93c', 'g': '#a8842a', 'Y': '#f8dd82', 'R': '#c65a54', 'D': '#8fe7dd', 'Q': '#5fa04e',
 };
+/* schiarisce/scurisce un hex, CLAMPATO (k>1 senza clamp sfora il byte e il colore vira, es.
+   arancio→verde: bug reale trovato e corretto qui, non solo nell'esperimento HD abbandonato) */
 export function shade(hex, k) {
   const n = parseInt(hex.slice(1), 16);
-  const r = Math.round(((n >> 16) & 255) * k), g = Math.round(((n >> 8) & 255) * k), b = Math.round((n & 255) * k);
+  const cl = v => Math.max(0, Math.min(255, Math.round(v)));
+  const r = cl(((n >> 16) & 255) * k), g = cl(((n >> 8) & 255) * k), b = cl((n & 255) * k);
   return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 }
 export function applyLook() {
   const L = S.look;
-  PAL.H = L.hat; PAL.h = shade(L.hat, 0.72);
-  PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.72);
-  PAL.P = L.pants; PAL.p = shade(L.pants, 0.74);
-  PAL.F = L.skin; PAL.f = shade(L.skin, 0.85);
-  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.75);
+  PAL.H = L.hat; PAL.h = shade(L.hat, 0.72); PAL.L = shade(L.hat, 1.32);
+  PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.72); PAL.T = shade(L.shirt, 1.3);
+  PAL.P = L.pants; PAL.p = shade(L.pants, 0.74); PAL.U = shade(L.pants, 1.28);
+  PAL.F = L.skin; PAL.f = shade(L.skin, 0.85); PAL.N = shade(L.skin, 1.16);
+  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.75); PAL.M = shade(L.hairColor, 1.35);
   PAL.E = L.eyeColor || '#33291f';
 }
 
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
-/* fronte */
-const bDown = [".....FFFFFF.....", "....FFFFFFFF....", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFEFFFFEFF...", "...FFFFFFFFFF...", "....FfFFFFfF....", "....KFFFFFFK....", "....SSSSSSSS....", "...SSSSSSSSSS...", "...SSsSSSSsSS...", "...SSSSSSSSSS..."];
+/* fronte: N=luce sulla fronte (alto-sx), T=luce sul petto, U=luce sulla coscia sx —
+   TERZO tono oltre a base F/S/P e ombra f/s/p già esistenti (non solo un blocco piatto) */
+const bDown = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFEFFFFEFF...", "...FFFFFFFFFF...", "....FfFFFFfF....", "....KFFFFFFK....", "....STSSSSSS....", "...SSTSSSSSSS...", "...SSsSSSSsSS...", "...SSSSSSSSSS..."];
 /* retro: nuca + zaino */
-const bUp = [".....FFFFFF.....", "....FFFFFFFF....", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FfFFFFFFfF...", "....KFFFFFFK....", "....SBBBBBBS....", "...SSBBBBBBSS...", "...SSBbbbbBSS...", "...SSBBBBBBSS..."];
+const bUp = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FfFFFFFFfF...", "....KFFFFFFK....", "....SBBBBBBS....", "...SSBBBBBBSS...", "...SSBbbbbBSS...", "...SSBBBBBBSS..."];
 /* profilo (guarda a destra; flip per sinistra): occhio singolo, naso */
-const bSide = [".....FFFFFF.....", "....FFFFFFFF....", "....FFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFEFf..", "....FFFFFFFFF...", "....FfFFFFFFf...", ".....KFFFFFK....", ".....SSSSSSSS...", "....SSSSSSSSSS..", "....SsSSSSSSSS..", "....SSSSSSSSSS.."];
-/* gambe fronte/retro (aperte/chiuse) */
-const lA = ["....PPP..PPP....", "....PPP..PPP....", "....WW....WW...."];
-const lB = ["....PPP..PPP....", "...PPP....PPP...", "...WW......WW..."];
+const bSide = [".....FFFFFF.....", "....NFFFFFFF....", "....NFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFEFf..", "....FFFFFFFFF...", "....FfFFFFFFf...", ".....KFFFFFK....", ".....STSSSSSS...", "....SSTSSSSSSS..", "....SsSSSSSSSS..", "....SSSSSSSSSS.."];
+/* gambe fronte/retro (aperte/chiuse): U = luce sul davanti della coscia sinistra */
+const lA = ["....UPP..PPP....", "....PPP..PPP....", "....WW....WW...."];
+const lB = ["....UPP..PPP....", "...PPP....PPP...", "...WW......WW..."];
 /* gambe profilo: falcata (avanti/dietro) e passaggio (unite) */
-const lsA = [".....PPP..PPP...", "....PPP....PPP..", "....WW......WW.."];
-const lsB = ["......PPPPPP....", "......PPPPPP....", "......WWWW......"];
+const lsA = [".....UPP..PPP...", "....PPP....PPP..", "....WW......WW.."];
+const lsB = ["......UPPPPP....", "......PPPPPP....", "......WWWW......"];
 
 export const SPR = {
   down: [bDown.concat(lA), bDown.concat(lB)],
@@ -46,8 +53,28 @@ export const SPR = {
   side: [bSide.concat(lsA), bSide.concat(lsB)],
 };
 
+/* terzo tono su cappelli/capelli: schiarisce il TERZO centrale della riga più alta della
+   silhouette (segue la forma, non il tile intero — niente riga piatta bordo a bordo come
+   nel tentativo precedente). mapChar→hiChar, es. 'H'→'L' cappello, 'A'→'M' capelli. */
+function litOverlay(ov, mapChar, hiChar) {
+  if (!ov || !ov.length) return ov;
+  const minRow = Math.min(...ov.map(p => p[0]));
+  return ov.map(([row, s]) => {
+    if (row !== minRow) return [row, s];
+    const idxs = []; for (let i = 0; i < s.length; i++) if (s[i] === mapChar) idxs.push(i);
+    if (!idxs.length) return [row, s];
+    const lo = idxs[0], hi = idxs[idxs.length - 1], span = hi - lo;
+    const a = lo + Math.floor(span / 3), b = hi - Math.floor(span / 3);
+    let arr = s.split('');
+    for (let i = a; i <= b; i++) if (arr[i] === mapChar) arr[i] = hiChar;
+    return [row, arr.join('')];
+  });
+}
+function litHat(v) { return { down: litOverlay(v.down, 'H', 'L'), side: litOverlay(v.side, 'H', 'L'), up: litOverlay(v.up, 'H', 'L') }; }
+function litHair(v) { return { down: litOverlay(v.down, 'A', 'M'), side: litOverlay(v.side, 'A', 'M'), up: litOverlay(v.up, 'A', 'M') }; }
+
 /* ---------- cappelli: overlay [riga, mappa] sopra corpo e capelli, per forma ---------- */
-export const HATS = {
+const HATS_RAW = {
   explorer: { // tesa larga da archeologo
     down: [[0, ".....HHHHHH....."], [1, "....HHHHHHHH...."], [2, "...HHHHHHHHHH..."], [3, "...HH......HH..."], [4, "...H........H..."], [5, "...H........H..."], [6, "...H........H..."], [7, "...H........H..."]],
     side: [[0, ".....HHHHHH....."], [1, "....HHHHHHHH...."], [2, "...HHHHHHHHHHH.."], [3, "....H..........."], [4, "....H..........."], [5, "....H..........."], [6, "....H..........."], [7, "....H..........."]],
@@ -134,6 +161,9 @@ export const HATS = {
   hardhatGold: { down: [[0, "....GGGGGG......"], [1, "...GWWGGGGG....."], [2, "..GGGGGGGGGG...."], [3, ".GGGGGGGGGGGGGG."]], side: [[0, "....GGGGGG......"], [1, "...WWGGGGGG....."], [2, "..GGGGGGGGGGG..."], [3, ".GGGGGGGGGGGGG.."]], up: [[0, "....GGGGGG......"], [1, "...GGGGGGGG....."], [2, "..GGGGGGGGGG...."], [3, ".GGGGGGGGGGGGGG."]] },
   lampGold: { down: [[0, "...GGGWWGGGG...."], [1, "...GGGGGGGGGG..."], [2, "...gggggggggg..."]], side: [[0, "...WWGGGGGGGG..."], [1, "...GGGGGGGGGG..."], [2, "...gggggggggg..."]], up: [[0, "...GGGGGGGGGG..."], [1, "...GGGGGGGGGG..."], [2, "...gggggggggg..."]] },
 };
+/* i cappelli-trofeo (oro, ...Gold) hanno già un loro schema chiaro/scuro/luce (G/g/Y): non
+   toccarli. Gli altri (in H/h) prendono il terzo tono qui, una volta sola al caricamento. */
+export const HATS = Object.fromEntries(Object.entries(HATS_RAW).map(([k, v]) => [k, /Gold$/.test(k) ? v : litHat(v)]));
 /* ultima riga di "corona" per forma: col cappello indossato i capelli NON si disegnano
    su queste righe (niente compenetrazioni); sotto restano frangia/lati/lunghezze */
 export const HAT_CROWN = { explorer: 2, cap: 2, beanie: 3,
@@ -142,7 +172,7 @@ export const HAT_CROWN = { explorer: 2, cap: 2, beanie: 3,
   crownGold: 2, gradGold: 2, laurelGold: 1, gogglesGold: 2, hornsGold: 1, pithGold: 3, featherGold: 2, hardhatGold: 3, lampGold: 2 };
 
 /* ---------- capelli: overlay a testa piena (il cappello, se indossato, copre la parte alta) ---------- */
-export const HAIRS = {
+const HAIRS_RAW = {
   none: { down: [], side: [], up: [] }, // Rasato
   short: {
     down: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AA......AA..."]],
@@ -201,6 +231,7 @@ export const HAIRS = {
     up: [[0, "....A..AA..A...."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."]],
   },
 };
+export const HAIRS = Object.fromEntries(Object.entries(HAIRS_RAW).map(([k, v]) => [k, litHair(v)]));
 
 /* ---------- blit ---------- */
 export function blit(rows, px, py, flip, tctx) {
