@@ -89,9 +89,11 @@ export function drawBuilding(b, sx, sy) {
   };
   const dcx = sx + w / 2;
   const door = (col1, col2) => { rect(dcx - 5, sy + h - 12, 10, 12, col1 || '#7a5a3a'); rect(dcx - 3, sy + h - 10, 6, 10, col2 || '#5c4229'); px(dcx + 1, sy + h - 6, '#d9b98a'); };
+  /* 16bit HD: la parete non è un blocco piatto — luce da sx, ombra propria a dx (dà volume) */
+  const wallDepth = (wx, wy, ww, wh, base) => { rect(wx, wy, 2, wh, shade8(base, 1.14)); rect(wx + ww - 2, wy, 2, wh, shade8(base, 0.8)); };
 
   if (b.type === 'museum') { /* TEMPIO: frontone triangolare + colonne elleniche */
-    rect(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0'); rect(sx + 1, sy + h - 2, w - 2, 2, '#c4baa2');
+    rect(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0'); rect(sx + 1, sy + h - 2, w - 2, 2, '#c4baa2'); wallDepth(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0');
     ctx.fillStyle = '#d9d0bb'; ctx.beginPath(); ctx.moveTo(sx - 2, sy + 12); ctx.lineTo(sx + w / 2, sy - 6); ctx.lineTo(sx + w + 2, sy + 12); ctx.closePath(); ctx.fill();
     ctx.fillStyle = '#efe8d6'; ctx.beginPath(); ctx.moveTo(sx + 3, sy + 11); ctx.lineTo(sx + w / 2, sy - 3); ctx.lineTo(sx + w - 3, sy + 11); ctx.closePath(); ctx.fill();
     rect(sx - 2, sy + 11, w + 4, 3, '#c9a227'); // architrave dorato
@@ -106,7 +108,7 @@ export function drawBuilding(b, sx, sy) {
     rect(dcx - 5, sy + h - 12, 10, 12, '#3a3a44'); rect(dcx - 3, sy + h - 10, 6, 10, '#23232c'); // portale scuro
     if (BB.snow) { rect(sx - 2, sy + 10, w + 4, 1, '#eef7fa'); px(dcx, sy - 5, '#eef7fa'); px(dcx - 1, sy - 4, '#eef7fa'); px(dcx + 1, sy - 4, '#eef7fa'); } // neve sul timpano
   } else if (b.type === 'store') { /* NEGOZIO: pareti VERDE SALVIA (staccano dal pavimento) + tenda a strisce */
-    rect(sx + 2, sy + 8, w - 4, h - 6, '#7fa06a'); rect(sx + 2, sy + 8, w - 4, 2, '#93b47c'); rect(sx + 2, sy + h - 2, w - 4, 2, '#5f7d4c');
+    rect(sx + 2, sy + 8, w - 4, h - 6, '#7fa06a'); rect(sx + 2, sy + 8, w - 4, 2, '#93b47c'); rect(sx + 2, sy + h - 2, w - 4, 2, '#5f7d4c'); wallDepth(sx + 2, sy + 8, w - 4, h - 6, '#7fa06a');
     rect(sx, sy + 2, w, 7, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); roofMat(sy + 2, 7);
     for (let i = 0; i < w; i += 8) { rect(sx + i, sy + 9, 4, 6, '#c65a54'); rect(sx + i + 4, sy + 9, 4, 6, '#f1e6cc'); px(sx + i + 1, sy + 15, '#a3494e'); px(sx + i + 5, sy + 15, '#cdbd97'); } // tenda
     rect(sx + 5, sy + 18, 9, 8, glass); rect(sx + 5, sy + 18, 9, 1, '#efe6cf'); rect(sx + 5, sy + 25, 9, 1, '#cdbd97'); // vetrina
@@ -114,7 +116,7 @@ export function drawBuilding(b, sx, sy) {
     rect(sx + w - 12, sy + h - 7, 7, 7, '#b98d59'); rect(sx + w - 12, sy + h - 7, 7, 2, '#d9b98a'); px(sx + w - 10, sy + h - 4, '#6e4a2e'); // cassa fuori
     snowCap(); door();
   } else if (b.type === 'inn') { /* LOCANDA: pareti MATTONE CALDO a due piani (staccano dal pavimento) */
-    rect(sx + 2, sy - 2, w - 4, h + 2, '#c07a52'); rect(sx + 2, sy - 2, w - 4, 2, '#d0906a'); rect(sx + 2, sy + 10, w - 4, 2, '#7a4526'); // marcapiano
+    rect(sx + 2, sy - 2, w - 4, h + 2, '#c07a52'); rect(sx + 2, sy - 2, w - 4, 2, '#d0906a'); rect(sx + 2, sy + 10, w - 4, 2, '#7a4526'); wallDepth(sx + 2, sy - 2, w - 4, h + 2, '#c07a52'); // marcapiano
     rect(sx, sy - 8, w, 8, BB.roof); rect(sx, sy - 8, w, 2, BB.roof2); rect(sx - 1, sy - 1, w + 2, 2, shade8(BB.roof, 0.75)); roofMat(sy - 8, 8); snowCap(sy - 7); // tetto alto
     rect(sx + 6, sy - 6, 4, 9, '#9a8874'); rect(sx + 6, sy - 6, 4, 2, '#7f6f5e'); // camino
     px(sx + 7, sy - 8 - (Math.floor(bv * 2)), '#cfcabf'); px(sx + 8, sy - 10, '#dcd8cf');
@@ -123,7 +125,7 @@ export function drawBuilding(b, sx, sy) {
     rect(sx + w - 7, sy + 13, 2, 2, '#e8c34a'); px(sx + w - 6, sy + 12, '#8a5f38'); // lanterna
     door('#6e4a2e', '#4c3018');
   } else if (b.type === 'barber') { /* BARBIERE: palo a spirale + tenda blu */
-    rect(sx + 2, sy + 8, w - 4, h - 6, '#eef4f6'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b7c8cf');
+    rect(sx + 2, sy + 8, w - 4, h - 6, '#eef4f6'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b7c8cf'); wallDepth(sx + 2, sy + 8, w - 4, h - 6, '#eef4f6');
     rect(sx, sy + 2, w, 8, '#5a86c8'); rect(sx, sy + 2, w, 2, '#7aa2dc'); rect(sx - 1, sy + 9, w + 2, 2, '#41639a');
     for (let i = 2; i < w - 2; i += 6) rect(sx + i, sy + 10, 3, 4, '#e8f2f5'); // frangia tenda
     rect(sx + 5, sy + 16, 7, 7, glass); rect(sx + 5, sy + 19, 7, 1, '#b7c8cf');
@@ -132,14 +134,14 @@ export function drawBuilding(b, sx, sy) {
     for (let i = 0; i < 5; i++) { const yy = sy + h - 13 + i * 2; rect(dcx + 8, yy, 3, 1, i % 2 ? '#c65a54' : '#5a86c8'); }
     door('#5b7e99', '#3d5a72'); snowCap(sy + 1);
   } else if (b.type === 'tailor') { /* SARTORIA: vetrina col manichino + rullo di stoffa */
-    rect(sx + 2, sy + 8, w - 4, h - 6, '#f2e4ea'); rect(sx + 2, sy + h - 2, w - 4, 2, '#cfb4c0');
+    rect(sx + 2, sy + 8, w - 4, h - 6, '#f2e4ea'); rect(sx + 2, sy + h - 2, w - 4, 2, '#cfb4c0'); wallDepth(sx + 2, sy + 8, w - 4, h - 6, '#f2e4ea');
     rect(sx, sy + 2, w, 8, '#b06a8c'); rect(sx, sy + 2, w, 2, '#c887a4'); rect(sx - 1, sy + 9, w + 2, 2, '#8c4e6c');
     rect(sx + 4, sy + 14, 11, 12, glass); rect(sx + 4, sy + 14, 11, 1, '#efe6cf'); rect(sx + 4, sy + 25, 11, 1, '#cfb4c0'); // vetrina grande
     rect(sx + 8, sy + 17, 3, 5, '#e08aa8'); px(sx + 9, sy + 16, '#f3cfa0'); rect(sx + 7, sy + 22, 5, 2, '#8a5f38'); // manichino vestito
     rect(sx + w - 10, sy + h - 8, 4, 8, '#8fd0a0'); rect(sx + w - 9, sy + h - 8, 1, 8, '#6faa80'); // rullo di stoffa
     door('#8c5a74', '#6a4056'); snowCap(sy + 1);
   } else { /* LABORATORIO: torretta con alambicco e fumo verde */
-    rect(sx + 2, sy + 10, w - 4, h - 8, '#e0e4d4'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b9c0a8');
+    rect(sx + 2, sy + 10, w - 4, h - 8, '#e0e4d4'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b9c0a8'); wallDepth(sx + 2, sy + 10, w - 4, h - 8, '#e0e4d4');
     rect(sx, sy + 4, w, 8, '#5f7a52'); rect(sx, sy + 4, w, 2, '#78966a'); rect(sx - 1, sy + 11, w + 2, 2, '#485e3e');
     rect(sx + w - 14, sy - 6, 9, 12, '#9a9285'); rect(sx + w - 14, sy - 6, 9, 2, '#aaa294'); // torretta
     rect(sx + w - 12, sy - 3, 5, 5, glass); px(sx + w - 10, sy - 9, '#8fd0a0'); px(sx + w - 9, sy - 11, '#b2e4be'); // oblò + fumo verde
@@ -159,6 +161,7 @@ export function drawHouse(hf, sx, sy) {
   const dcx = sx + w / 2;
   shadow(dcx, sy + h + 2, Math.floor(w / 2) - 2);
   rect(sx + 2, sy + 8, w - 4, h - 6, '#d8a878'); rect(sx + 2, sy + 8, w - 4, 2, '#e6bb8e'); rect(sx + 2, sy + h - 2, w - 4, 2, '#a97a4c');
+  rect(sx + 2, sy + 8, 2, h - 6, shade8('#d8a878', 1.14)); rect(sx + w - 4, sy + 8, 2, h - 6, shade8('#d8a878', 0.8)); // luce sx / ombra dx: la parete ha volume
   rect(sx, sy + 2, w, 8, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); rect(sx - 1, sy + 9, w + 2, 2, shade8(BB.roof, 0.75));
   { const d = shade8(BB.roof, 0.72); for (let i = 0; i < w; i += 4) px(sx + i, sy + 9, d); } // dettaglio tetto (coppi)
   if (BB.snow) rect(sx - 2, sy + 1, w + 4, 2, '#eef7fa');
