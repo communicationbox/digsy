@@ -6,14 +6,14 @@ import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
-import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL } from './world.js';
+import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile, isMounted, PLAY_THROW, PLAY_CATCH, PLAY_PERFECT, boneSiteDug } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
 import { drawHero, setHeroTime } from './sprites.js';
-import { parks, visParks } from './park.js';
+import { yardAnimals, yardNear, gateClosingProgress } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { zonePools, ZONES, MUSEUM_ZONES } from './data.js';
@@ -26,7 +26,7 @@ import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
-import { alive, goalLine } from './goal.js';
+import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
@@ -55,6 +55,9 @@ function drawSignIcon(type, cx, y) {
       rect(cx - 1, y, 1, 5, '#e05a5a'); rect(cx, y, 1, 5, '#f3ecda'); rect(cx + 1, y, 1, 5, '#e05a5a'); break;
     case 'tailor': // maglietta
       rect(cx - 2, y + 1, 5, 1, '#e08aa8'); rect(cx - 1, y + 2, 3, 3, '#e08aa8'); px(cx - 2, y + 2, '#c06a88'); px(cx + 2, y + 2, '#c06a88'); break;
+    case 'house': // casetta stilizzata
+      px(cx, y, '#8a5f38'); px(cx - 1, y + 1, '#8a5f38'); px(cx + 1, y + 1, '#8a5f38');
+      rect(cx - 2, y + 2, 5, 3, '#c98a5a'); px(cx, y + 3, '#6e4a2e'); break;
   }
 }
 function drawSign(type, cx, y) {
@@ -146,6 +149,22 @@ export function drawBuilding(b, sx, sy) {
   }
   // insegna appesa sopra la porta (comunque utile da lontano)
   drawSign(b.type, dcx, sy + 12);
+}
+/* CASA del giocatore: un cottage piccolo e caldo (3×2, fuori dal sistema città), non un
+   mestiere — pareti terracotta, una finestrella tonda, nessuna vetrina. */
+export function drawHouse(hf, sx, sy) {
+  const w = (hf.x1 - hf.x0 + 1) * TS, h = (hf.y1 - hf.y0 + 1) * TS;
+  const BB = biomeBuild(hf.x0, hf.y0);
+  const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
+  const dcx = sx + w / 2;
+  shadow(dcx, sy + h + 2, Math.floor(w / 2) - 2);
+  rect(sx + 2, sy + 8, w - 4, h - 6, '#d8a878'); rect(sx + 2, sy + 8, w - 4, 2, '#e6bb8e'); rect(sx + 2, sy + h - 2, w - 4, 2, '#a97a4c');
+  rect(sx, sy + 2, w, 8, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); rect(sx - 1, sy + 9, w + 2, 2, shade8(BB.roof, 0.75));
+  { const d = shade8(BB.roof, 0.72); for (let i = 0; i < w; i += 4) px(sx + i, sy + 9, d); } // dettaglio tetto (coppi)
+  if (BB.snow) rect(sx - 2, sy + 1, w + 4, 2, '#eef7fa');
+  rect(sx + w - 12, sy + 12, 5, 5, glass); rect(sx + w - 12, sy + 12, 5, 1, '#efe6cf'); rect(sx + w - 12, sy + 16, 5, 1, '#a97a4c'); // finestrella
+  rect(dcx - 5, sy + h - 12, 10, 12, '#8a5f38'); rect(dcx - 3, sy + h - 10, 6, 10, '#6e4a2e'); px(dcx + 1, sy + h - 6, '#d9b98a'); // porta di casa (mai chiusa a nessuno)
+  drawSign('house', dcx, sy + 12);
 }
 /* ---------- arredo urbano ---------- */
 export function drawFountain(sx, sy, time) {
@@ -488,6 +507,39 @@ export function drawFence(sx, sy, fv, fh) {
     rect(sx + 3, sy + 11, 11, 2, '#8a5f38'); px(sx + 3, sy + 11, '#c79a66'); px(sx + 3, sy + 12, '#c79a66');
   }
 }
+/* CANCELLO del cortile: il varco di 2 caselle nella staccionata (a sud, lontano dalla porta)
+   NON era altro che un buco — indistinguibile da "manca un pezzo di recinto". Due montanti
+   più alti della staccionata normale + un architrave che li unisce lo rendono un varco
+   VOLUTO (regola ferrea n.4, segnalato guardando lo screenshot).
+   Si chiude visto da FUORI (appena si esce dal cortile), con un'ANIMAZIONE — non un flip
+   istantaneo e NON una serranda che scende: sono due ANTE A BATTUTA, incernierate ognuna al
+   proprio montante ESTERNO, che si chiudono ruotando verso il centro (`closeT` 0→1, vedi
+   `gateClosingProgress()` in park.js) fino a toccarsi — a chiusura fatta compare un lucchetto
+   nel punto in cui combaciano. `open=true` = ante spalancate, niente da disegnare oltre
+   l'arco. Chiamata una volta per cella (`side` 'l'/'r'): il lucchetto lo disegna solo la 'r'
+   (altrimenti comparirebbe due volte, una per anta). */
+export function drawGate(sx, sy, side, open = true, closeT = 1) {
+  const post = '#8a5f38', cap = '#c79a66', beam = '#a97a4c', beamHi = '#e0b97c';
+  const outer = side === 'l' ? sx + 1 : sx + TS - 4;      // montante sul lato ESTERNO del varco
+  rect(outer, sy - 3, 3, TS + 3, post);                    // più alto della staccionata: si vede da lontano
+  px(outer, sy - 3, cap); px(outer + 1, sy - 3, cap); px(outer + 2, sy - 3, cap);
+  rect(sx, sy - 2, TS, 3, beam);                           // architrave: le due metà si toccano al centro
+  rect(sx, sy - 2, TS, 1, beamHi);
+  if (!open) {
+    const t = Math.max(0, Math.min(1, closeT));
+    const leaf = shade8(post, 1.12), edge = shade8(post, 0.8);
+    const w = Math.round((TS - 4) * t); // l'anta CRESCE dal montante verso il centro, non scende dall'alto
+    if (w > 0) {
+      if (side === 'l') { rect(outer + 3, sy + 1, w, TS - 3, leaf); rect(outer + 2 + w, sy + 1, 1, TS - 3, edge); }
+      else { const x0 = outer - w; rect(x0, sy + 1, w, TS - 3, leaf); rect(x0, sy + 1, 1, TS - 3, edge); }
+    }
+    if (side === 'r' && t >= 1) drawGateLock(sx, sy + 6); // lucchetto dove le due ante si toccano
+  }
+}
+function drawGateLock(sx, sy) {
+  rect(sx - 2, sy, 4, 3, '#e0b97c'); px(sx - 2, sy - 1, '#e0b97c'); px(sx + 1, sy - 1, '#e0b97c'); // staffa
+  rect(sx - 2, sy + 3, 4, 3, '#3a2e20');                                                            // corpo
+}
 /* STAGNO del parco (3×2): ACQUA VERA del gioco (stesse onde/riflessi del mondo) — ma è solo
    decorazione su una casella di parco, quindi NON ci si pesca. Riva scura tutt'attorno + ninfea. */
 export function drawParkPond(sx, sy, ppx, ppy, tx, ty, time) {
@@ -632,6 +684,16 @@ function drawXmark(sx, sy, time) {
     px(sx + 11 - i, sy + 4 + i, '#b8402e'); px(sx + 11 - i, sy + 5 + i, '#8e2f22');
   }
   if (Math.floor(time / 400) % 2) { px(sx + 8, sy + 1, '#ffe98a'); px(sx + 2, sy + 12, '#ffe98a'); }
+}
+/* PORTALE DI RITORNO (goHome): un vortice viola che ti riporta dove eri, a uso singolo.
+   Fase dal TEMPO (regola ferrea), contorno scuro perché stacchi da ogni terreno. */
+export function drawReturnPortal(sx, sy, time) {
+  const t = Math.floor(time / 150) % 4;
+  shadow(sx + 8, sy + 15, 6);
+  rect(sx + 3, sy + 2, 10, 10, '#2b2140'); rect(sx + 4, sy + 3, 8, 8, '#6a4fa0');
+  const cols = ['#c7b6f2', '#9a7ee0', '#6a4fa0', '#9a7ee0'];
+  px(sx + 6, sy + 3 + t, cols[t]); px(sx + 10, sy + 3 + ((t + 2) % 4), cols[(t + 2) % 4]);
+  px(sx + 8, sy + 7, '#f3ecda');
 }
 
 /* SEGNALINO DELLA META ("tocca dove andare"): senza, non si capisce se il tocco è stato
@@ -1172,18 +1234,46 @@ export function render(time) {
   // UNICA passata tile: disegna il terreno E raccoglie le entità (townInfo 1× per tile)
   const ents = [];
   const lampGlows = [];
+  const hf = houseFootprint(); // CASA del giocatore: un solo edificio, fuori dal sistema città
+  /* CANCELLO: chiuso quando lo si vede da FUORI (usciti dal cortile), aperto quando si è
+     dentro (o proprio sul varco) — è solo l'ASPETTO, il varco resta sempre percorribile
+     (non è ancora la meccanica di chiusura vera, quella sarà un'altra cosa). Un giro solo per
+     frame, non per le due caselle del cancello. */
+  const yrNow = yardRect();
+  const gateOpenNow = !yrNow || (() => {
+    const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
+    return ptx >= yrNow.x0 && ptx <= yrNow.x1 && pty >= yrNow.y0 && pty <= yrNow.y1;
+  })();
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const sx = tx * TS - cam.x, sy = ty * TS - cam.y;
     const ti = townInfo(tx, ty);
+    const yd = ti ? null : yardInfo(tx, ty); // CORTILE di casa: fuori dal sistema città, un solo rettangolo fisso
     /* terreno */
-    let t = ti ? (ti.park ? PARK : ti.road ? ROAD : FLOOR) : baseTerrain(tx, ty);
-    groundTile(t, tx, ty, sx, sy, time, ti ? 0 : zoneIdxAt(tx, ty));
+    let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : baseTerrain(tx, ty);
+    groundTile(t, tx, ty, sx, sy, time, (ti || yd) ? 0 : zoneIdxAt(tx, ty));
     if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy);
-    if (!ti) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
+    if (!ti && !yd) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
+    /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */
+    if (!ti && !yd && hf && tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) {
+      if (tx === hf.x0 && ty === hf.y0) ents.push({ y: (hf.y1 + 1) * TS - cam.y, f: () => drawHouse(hf, sx, sy) });
+      continue;
+    }
     /* entità */
     if (ti) {
-      if (ti.park && ti.floor) {                                        // ARREDO del parco (stagno/aiuole piatti; alberi/cespugli/sassi y-sort)
-        const tp = townForTile(tx, ty), pd = tp && parkDeco(tp.pen, tp.C.x, tx, ty, alive());
+      if (ti.deco && ti.anchor) {
+        const d = ti.deco;
+        const ey = d.type === 'fountain' ? sy + 30 : sy + 13;
+        ents.push({ y: ey, f: () => drawTownDeco(d, sx, sy, time) });
+        if (d.type === 'lamp') lampGlows.push({ x: sx + 8, y: sy + 2 });
+      }
+      else if (ti.building && tx === ti.building.x0 && ty === ti.building.y0) { const b = ti.building; ents.push({ y: (b.y1 + 1) * TS - cam.y, f: () => drawBuilding(b, b.x0 * TS - cam.x, b.y0 * TS - cam.y) }); }
+      continue;
+    }
+    if (yd) {                                                           // CORTILE: stesso arredo/staccionata del vecchio parco cittadino
+      if (yd.path) { /* vialetto: solo terreno ROAD, già disegnato sopra */ }
+      else if (yd.gate) { ents.push({ y: sy + 12, f: () => drawGate(sx, sy, yd.gateSide, yd.gateOpen !== false && gateOpenNow, yd.gateOpen === false ? 1 : gateClosingProgress()) }); }
+      else if (yd.floor) {
+        const yr = yardRect(), pd = yr && parkDeco(yr, yr.cx, tx, ty, alive());
         if (pd) {
           if (pd.kind === 'pond') drawParkPond(sx, sy, pd.px, pd.py, tx, ty, time);
           else if (pd.kind === 'flowerbed') drawFlowerbed(sx, sy, tx, ty);
@@ -1191,15 +1281,7 @@ export function render(time) {
           else if (pd.kind === 'bush') ents.push({ y: sy + 13, f: () => drawBushDeco(sx, sy) });
           else if (pd.kind === 'rock') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy) });
         }
-      }
-      if (ti.fence) { const fv = ti.fv, fh = ti.fh; ents.push({ y: sy + 12, f: () => drawFence(sx, sy, fv, fh) }); }
-      else if (ti.deco && ti.anchor) {
-        const d = ti.deco;
-        const ey = d.type === 'fountain' ? sy + 30 : sy + 13;
-        ents.push({ y: ey, f: () => drawTownDeco(d, sx, sy, time) });
-        if (d.type === 'lamp') lampGlows.push({ x: sx + 8, y: sy + 2 });
-      }
-      else if (ti.building && tx === ti.building.x0 && ty === ti.building.y0) { const b = ti.building; ents.push({ y: (b.y1 + 1) * TS - cam.y, f: () => drawBuilding(b, b.x0 * TS - cam.x, b.y0 * TS - cam.y) }); }
+      } else if (yd.fence) { const fv = yd.fv, fh = yd.fh; ents.push({ y: sy + 12, f: () => drawFence(sx, sy, fv, fh) }); }
       continue;
     }
     const st = siteAt(tx, ty);
@@ -1238,6 +1320,7 @@ export function render(time) {
     if (sx < -TS || sx > W + TS || sy < -TS || sy > H + TS) continue;
     ents.push({ y: sy + 2, f: () => drawXmark(sx, sy, time) });
   }
+  // il portale di ritorno (goHome) sta DENTRO l'atrio, non qui nel mondo — vedi drawHouseCorridor
   // fossili/oggetti lasciati a TERRA (zaino pieno o scartati): riprendibili con E
   for (const d of (S.drops || [])) {
     const sx = d.tx * TS - cam.x, sy = d.ty * TS - cam.y;
@@ -1245,14 +1328,15 @@ export function render(time) {
     const pid = d.kind === 'good' ? (d.payload && d.payload.id) : 'fossil';
     ents.push({ y: sy + 12, f: () => drawPickup(pid, sx, sy, time, d.tx, d.ty) });
   }
-  // chimere nei parchi in vista (NUOTANO se sono nello stagno)
-  for (const t of visParks) {
-    for (const a of parks.get(t.key) || []) {
+  // chimere nel cortile in vista (NUOTANO se sono nello stagno)
+  if (yardNear) {
+    const yr = yardRect();
+    for (const a of yardAnimals) {
       const ax = snap(a.x - cam.x), ay = snap(a.y - cam.y);
       if (ax < -20 || ax > W + 20 || ay < -20 || ay > H + 20) continue;
       /* stesso `alive()` del disegno: senza, una creatura nuoterebbe in uno stagno che non
          è ancora comparso */
-      const pd = t.pen && parkDeco(t.pen, t.C.x, Math.floor(a.x / TS), Math.floor(a.y / TS), alive());
+      const pd = yr && parkDeco(yr, yr.cx, Math.floor(a.x / TS), Math.floor(a.y / TS), alive());
       if (pd && pd.kind === 'pond') {
         ents.push({ y: ay, f: () => {                            // in acqua: metà sotto la linea d'acqua + increspature
           const wl = ay - 3;                                     // linea d'acqua (sotto = sommerso)
@@ -1335,9 +1419,8 @@ export function render(time) {
       /* città illuminata + ALONE graduale attorno (falloff su 5 tile, a scalini) */
       const tw = townForTile(tx, ty);
       if (tw) {
-        const y1 = tw.pen ? tw.pen.y1 : tw.y1;
         const dxd = Math.max(tw.x0 - tx, 0, tx - tw.x1);
-        const dyd = Math.max(tw.y0 - ty, 0, ty - y1);
+        const dyd = Math.max(tw.y0 - ty, 0, ty - tw.y1);
         const dist = Math.max(dxd, dyd);
         const light = dist <= 0 ? 0.8 : dist < 5 ? 0.8 * (1 - dist / 5) : 0;
         base *= (1 - light);
@@ -1358,39 +1441,20 @@ export function render(time) {
   drawFireflies(ctx, cam.x, cam.y);
   { const tgt = weatherAt(zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS)).id, S.day); const st = weatherStep(tgt, time); drawWeather(st.w, time, st.level); }
   drawCompassIndicator(time);
-  drawParkSign();
   drawTutorialGuide(time);
+  drawGateCutbars(W, H);
 }
-
-/* ---------- IL CARTELLO DEL PARCO: il traguardo, in mezzo al mondo ----------
-   Il conteggio "riportate in vita" viveva solo dentro il pannello del Museo e nelle statistiche
-   — due schermate che si aprono di rado. Uno scopo che si vede solo entrando in una casa non
-   guida nessuno mentre gioca. Qui sta al cancello del recinto: ci passi davanti ogni volta che
-   vai a vedere le tue creature, ed è appeso esattamente al posto che il numero descrive. */
-function drawParkSign() {
-  const t = townForTile(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
-  const pen = t && t.pen; if (!pen) return;
-  /* accanto al cancello (le due colonne centrali), sul palo della staccionata a destra */
-  const sx = (t.C.x + 2) * TS - cam.x, sy = pen.y0 * TS - cam.y;
-  if (sx < -40 || sx > view.W + 40 || sy < -30 || sy > view.H + 30) return;
-  if (!ctx.fillText) return;
-  /* due righe: l'etichetta dice DI COSA, il numero dice a che punto sei. Col solo numero il
-     cartello era una frazione appesa a un palo — si legge, ma non vuol dire niente a chi passa. */
-  const eti = tr('TORNATE IN VITA', 'BROUGHT BACK'), testo = goalLine();
-  ctx.save();
-  ctx.font = '600 5px ui-monospace, Menlo, monospace';
-  ctx.textBaseline = 'top';
-  const mis = t2 => { const m = ctx.measureText && ctx.measureText(t2); return Math.ceil((m && m.width) || t2.length * 3); };
-  const tw = Math.max(mis(eti), mis(testo));
-  const w = Math.max(20, tw + 6), h = 19;
-  const bx = snap(sx - w / 2), by = snap(sy - h - 5);
-  ctx.fillStyle = '#4a3524'; ctx.fillRect(bx + Math.round(w / 2) - 1, by + h, 2, 6);   // palo
-  ctx.fillStyle = '#3a2a1a'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);               // cornice
-  ctx.fillStyle = '#8a6a3a'; ctx.fillRect(bx, by, w, h);                                // tavola
-  ctx.fillStyle = '#9a7a48'; ctx.fillRect(bx, by, w, 2);                                // luce in cima
-  ctx.fillStyle = '#d8c8a8'; ctx.fillText(eti, snap(bx + (w - mis(eti)) / 2), by + 3);
-  ctx.fillStyle = '#f3ecda'; ctx.fillText(testo, snap(bx + (w - mis(testo)) / 2), by + 10);
-  ctx.restore();
+/* BARRE CINEMATOGRAFICHE 16:9: il fermo-immagine + svolta mentre il cancello chiude durava
+   solo mezzo secondo e sembrava un lag, non una scena voluta (a richiesta: "fai comparire le
+   barre 16/9 per far capire che è un'animazione") — le stesse barre nere sopra e sotto che
+   segnalano un momento fuori dal controllo diretto, per tutta la durata del fermo (vedi
+   P.gateTurnUntil, impostato in park.js insieme al blocco del movimento in main.js). */
+function drawGateCutbars(W, H) {
+  if (!P.gateTurnUntil || Date.now() >= P.gateTurnUntil) return;
+  const barH = Math.round(H * 0.09);
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, W, barH);
+  ctx.fillRect(0, H - barH, W, barH);
 }
 
 /* ---------- TUTORIAL: le targhe sulle case e la freccia verso l'obiettivo ----------

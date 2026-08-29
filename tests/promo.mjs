@@ -149,6 +149,30 @@ const SCENE = [
     await G.openMap();
     await new Promise(function(r){ setTimeout(r, 900); });
   ` },
+  /* La teca di cova nel Laboratorio, per il devlog dell'allevamento: l'uovo dentro il vetro,
+     non un pannello di testo. Due chimere finte bastano da genitori, l'uovo si pianta a mano
+     già pronto (stesso trucco usato dai test — vedi tests/shot.mjs vista 'uovo'). */
+  { nome: '09-covata', size: WIDE, passi: `
+    ${PARTITA}
+    await G.cmd('chimera');
+    await G.cmd('chimera');
+    await G.enterRoom('lab');
+    if (G.intPos) await G.intPos(8, 6);
+    var S = G.state(), cs = S.creatures;
+    S.egg = { uid: 99999, skull: cs[0].skull, torso: cs[0].torso, leg: cs[0].leg, q: 'raro',
+      p1: cs[0].name, p2: cs[1].name, laidDay: S.day, readyDay: S.day };
+    ${ANIMA}
+  ` },
+  /* Il vero USP del gioco per il marketing: due scheletri vistosi affiancati (drago alato +
+     verme delle dune serpentino), non l'ennesimo screenshot dall'alto uguale a tutti i cozy
+     game. Pagina 9 (0-based) del Libro = ossidraco (eccezionale, alato) + duneterno
+     (leggendario, serpentino) — scelti a mano guardando bones.js per il profilo più diverso. */
+  { nome: '10-scheletri', size: WIDE, passi: `
+    ${PARTITA}
+    await G.cmd('goto=prati');
+    await G.openBook(9);
+    await new Promise(function(r){ setTimeout(r, 2500); });
+  ` },
 ];
 
 function sonda(passi) {

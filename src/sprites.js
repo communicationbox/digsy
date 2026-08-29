@@ -64,13 +64,16 @@ export const HATS = {
     up: [[-2, ".......WW......."], [-1, ".......WW......."], [0, ".....HHHHHH....."], [1, "....HHHHHHHH...."], [2, "...HHHHHHHHHH..."], [3, "...hhhhhhhhhh..."]],
   },
   /* ---- CAPPELLI TEMATICI PER ZONA — silhouette DISTINTE, accenti W (chiaro) e K (scuro) ---- */
-  flowercrown: { // Prati: coroncina disegnata a mano (fiori W sulle punte, banda con gemme)
-    down: [[-2, "...W..W..W..W..."], [-1, "...H..H..H..H..."], [0, "...HhhHhhHhhH..."], [1, "...HHHHHHHHHH..."]],
+  flowercrown: { // Prati: coroncina disegnata a mano (fiori W a BLOCCHI 2×2 con altezze diverse —
+    // i vecchi puntini singoli W/H alternati si leggevano come "rumore", non come fiori: revisione
+    // estetica Gemini, "eliminare i pixel sparsi e usare blocchi 2x2 con altezze diverse")
+    down: [[-3, "....WW....WW...."], [-2, "....WW.WW.WW...."], [-1, "...HHHHHHHHHHH.."], [0, "...HhHhHhHhHhH.."], [1, "...HHHHHHHHHH..."]],
     side: [[-2, "....W.W.W.W.W..."], [-1, "....H.H.H.H.H..."], [0, "....HhHhHhHhH..."], [1, "....HHHHHHHHH..."]],
-    up: [[-2, "...W..W..W..W..."], [-1, "...H..H..H..H..."], [0, "...HhhHhhHhhH..."], [1, "...HHHHHHHHHH..."]],
+    up: [[-3, "....WW....WW...."], [-2, "....WW.WW.WW...."], [-1, "...HHHHHHHHHHH.."], [0, "...HhHhHhHhHhH.."], [1, "...HHHHHHHHHH..."]],
   },
-  bandana: { // Dune: fascia annodata disegnata a mano (nodo K, codina laterale)
-    down: [[-1, "....HHHHHHHH...."], [0, "...HHHHHHHHHH..."], [1, "...HHHHHHHHHH.h."], [2, "...HHHHHHHHHHh.."], [3, "............K.h."]],
+  bandana: { // Dune: fascia annodata disegnata a mano — coda ALLARGATA a 2px (prima erano
+    // puntini isolati: "sembra solo una calotta piatta", revisione estetica Gemini)
+    down: [[-1, "....HHHHHHHH...."], [0, "...HHHHHHHHHH..."], [1, "...HHHHHHHHHhh.."], [2, "...HHHHHHHHHKh.."], [3, "............Khh."], [4, ".............hh."]],
     side: [[-1, ".....HHHHHHH...."], [0, "....HHHHHHHHH..."], [1, "...hHHHHHHHHHH.."], [2, "..hKHHHHHHHHHH.."], [3, "..h..hh........."]],
     up: [[-1, "....HHHHHHHH...."], [0, "...HHHHHHHHHH..."], [1, "..HHHHHHHHHHHH.."], [2, "..HHHHHhhHHHHH.."], [3, "..HHHHhKKhHHHH.."], [4, "......h..h......"]],
   },
@@ -99,20 +102,23 @@ export const HATS = {
     side: [[0, ".....HHHHHH....."], [1, "....HHHHHHHH...."], [2, "....HWKWKWKWH..."], [3, ".HHHHHHHHHHHHHHH"], [4, ".hHHHHHHHHHHHHHh"]],
     up: [[0, ".....HHHHHH....."], [1, "....HHHHHHHH...."], [2, "...hHHHHHHHHh..."], [3, ".HHHHHHHHHHHHHH."], [4, ".hHHHHHHHHHHHHh."]],
   },
-  partyhat: { // cono da festa con pompon (disegnato a mano)
-    down: [[-3, ".......WW......."], [-2, ".......HH......."], [-1, "......HhhH......"], [0, ".....HhHHhH....."], [1, "....HhHhhHhH...."], [2, "...HhHhHHhHhH..."], [3, "...hhhhhhhhhh..."]],
-    side: [[-3, ".......WW......."], [-2, ".......HH......."], [-1, "......HhhH......"], [0, ".....HhHHhH....."], [1, "....HhHhhHhH...."], [2, "...HhHhHHhHhH..."], [3, "...hhhhhhhhhh..."]],
-    up: [[-3, ".......WW......."], [-2, ".......HH......."], [-1, "......HhhH......"], [0, ".....HhHHhH....."], [1, "....HhHhhHhH...."], [2, "...HhHhHHhHhH..."], [3, "...hhhhhhhhhh..."]],
+  partyhat: { // cono da festa con pompon — base ALLARGATA di 1px per lato (era troppo magro,
+    // sembrava uno spuntone: revisione estetica Gemini, "allarga la base per dare stabilità")
+    down: [[-3, ".......WW......."], [-2, ".......HH......."], [-1, "......HhhH......"], [0, ".....HhHHhH....."], [1, "....HhHhhHhH...."], [2, "...HhHhHHhHhH..."], [3, "..hhhhhhhhhhhh.."]],
+    side: [[-3, ".......WW......."], [-2, ".......HH......."], [-1, "......HhhH......"], [0, ".....HhHHhH....."], [1, "....HhHhhHhH...."], [2, "...HhHhHHhHhH..."], [3, "..hhhhhhhhhhhh.."]],
+    up: [[-3, ".......WW......."], [-2, ".......HH......."], [-1, "......HhhH......"], [0, ".....HhHHhH....."], [1, "....HhHhhHhH...."], [2, "...HhHhHHhHhH..."], [3, "..hhhhhhhhhhhh.."]],
   },
   cowboy: { // cappello da cowboy con tesa curva (disegnato a mano)
     down: [[-1, ".....HHHHhh....."], [0, "....HHHHHHHH...."], [1, ".H.HHKHKHKHKH.H."], [2, ".HHHHHHHHHHHHHH."]],
     side: [[-1, ".....HHHHHH....."], [0, "....HhhHHHHH...."], [1, "..H.HhHHHHHHH.H."], [2, "..HHHHHHHHHHHHH."]],
     up: [[-1, ".....hhHHHH....."], [0, "....HHHHHHHH...."], [1, ".H.HHKHKHKHKH.H."], [2, ".HHHHHHHHHHHHHH."]],
   },
-  santa: { // berretto di Babbo Natale, bordo bianco e pompon (disegnato a mano)
-    down: [[-3, "...........WW..."], [-2, "...........WW..."], [-1, ".......HHHHHh..."], [0, ".....HHHHHHH...."], [1, "....HHHHHHHH...."], [2, "...WWWWWWWWWW..."], [3, "..WWWWWWWWWWWW.."]],
-    side: [[-3, "...WW..........."], [-2, "...WW..........."], [-1, "....hhHHH......."], [0, "....hHHHHHHH...."], [1, "....HHHHHHHH...."], [2, "....HHHHHHHHH..."], [3, "...WWWWWWWWWWW.."], [4, "...WWWWWWWWWW..."]],
-    up: [[-3, "...........WW..."], [-2, "...........WW..."], [-1, "........HHHHh..."], [0, ".....HHHHHHH...."], [1, "....HHHHHHHH...."], [2, "...HHHHHHHHHH..."], [3, "...WWWWWWWWWW..."], [4, "..WWWWWWWWWWWW.."]],
+  santa: { // berretto di Babbo Natale — allargato di 1px per lato e la punta col pompon spostata
+    // verso sinistra: era troppo stretto e dritto, "sembrava deforme" (revisione estetica Gemini,
+    // "allarga la base e falla cadere lateralmente invece di stare dritta in cima")
+    down: [[-3, "..........WW...."], [-2, "..........WW...."], [-1, "......HHHHHh...."], [0, "....HHHHHHHHH..."], [1, "...HHHHHHHHHH..."], [2, "..WWWWWWWWWWWW.."], [3, ".WWWWWWWWWWWWWW."]],
+    side: [[-3, "...WW..........."], [-2, "...WW..........."], [-1, "....hhHHH......."], [0, "....hHHHHHHH...."], [1, "....HHHHHHHH...."], [2, "....HHHHHHHHH..."], [3, "..WWWWWWWWWWWW.."], [4, "..WWWWWWWWWWW..."]],
+    up: [[-3, "..........WW...."], [-2, "..........WW...."], [-1, "......HHHHHh...."], [0, "....HHHHHHHHH..."], [1, "...HHHHHHHHHH..."], [2, "..HHHHHHHHHHHH.."], [3, "..WWWWWWWWWWWW.."], [4, ".WWWWWWWWWWWWWW."]],
   },
   /* ================= CAPPELLI-TROFEO (oro fisso G/g/Y). Sbloccati raggiungendo l'ORO di una traccia;
      al PLATINO la stessa forma si illumina di glitter (vedi glitterHats in drawHero). ================= */
@@ -122,7 +128,9 @@ export const HATS = {
   gogglesGold: { down: [[0, "...GGGGGGGGGG..."], [1, "...GDDGGGDDG...."], [2, "...gGGGGGGGGg..."]], side: [[0, "...GGGGGGGGGG..."], [1, "...GDDGGGGGG...."], [2, "...gGGGGGGGGg..."]], up: [[0, "...GGGGGGGGGG..."], [1, "...GGGGGGGGGG..."], [2, "...gGGGGGGGGg..."]] },
   hornsGold: { down: [[-3, "..GG........GG.."], [-2, "...GG......GG..."], [-1, "...gG......Gg..."], [0, "...GGGGGGGGGG..."], [1, "...gGgGGGGgGg..."]], side: [[-3, "...GG..........."], [-2, "....GG.........."], [-1, "....gG.........."], [0, "...GGGGGGGGGG..."], [1, "...gGgGGGGgGg..."]], up: [[-3, "..GG........GG.."], [-2, "...GG......GG..."], [-1, "...gG......Gg..."], [0, "...GGGGGGGGGG..."], [1, "...gggggggggg..."]] },
   pithGold: { down: [[0, "....GGGGGG......"], [1, "...GGGGGGGG....."], [2, "..GGGGGGGGGG...."], [3, ".gGGGGGGGGGGg..."]], side: [[0, "....GGGGGG......"], [1, "...GGGGGGGGG...."], [2, "..GGGGGGGGGGG..."], [3, ".gGGGGGGGGGGg..."]], up: [[0, "....GGGGGG......"], [1, "...GGGGGGGG....."], [2, "..GGGGGGGGGG...."], [3, ".gGGGGGGGGGGg..."]] },
-  featherGold: { down: [[-2, "...........R...."], [-1, "..........RG...."], [0, "...GGGGGGGGh...."], [1, "...GgggggggG...."], [2, "...ggggggggg...."]], side: [[-2, "...........R...."], [-1, "..........RG...."], [0, "...GGGGGGGGh...."], [1, "...GgggggggG...."], [2, "...ggggggggg...."]], up: [[0, "...GGGGGGGGGG..."], [1, "...GgggggggG...."], [2, "...ggggggggg...."]] },
+  /* piuma ISPESSITA a 2px e inclinata verso l'esterno (prima 1px dritto: "sembra un'antenna",
+     revisione estetica Gemini — "spessa 2px alla base, inclinata di 45°, sporge oltre il bordo") */
+  featherGold: { down: [[-3, ".............R.."], [-2, "............RR.."], [-1, "...........RGG.."], [0, "...GGGGGGGGh...."], [1, "...GgggggggG...."], [2, "...ggggggggg...."]], side: [[-3, ".............R.."], [-2, "............RR.."], [-1, "...........RGG.."], [0, "...GGGGGGGGh...."], [1, "...GgggggggG...."], [2, "...ggggggggg...."]], up: [[0, "...GGGGGGGGGG..."], [1, "...GgggggggG...."], [2, "...ggggggggg...."]] },
   hardhatGold: { down: [[0, "....GGGGGG......"], [1, "...GWWGGGGG....."], [2, "..GGGGGGGGGG...."], [3, ".GGGGGGGGGGGGGG."]], side: [[0, "....GGGGGG......"], [1, "...WWGGGGGG....."], [2, "..GGGGGGGGGGG..."], [3, ".GGGGGGGGGGGGG.."]], up: [[0, "....GGGGGG......"], [1, "...GGGGGGGG....."], [2, "..GGGGGGGGGG...."], [3, ".GGGGGGGGGGGGGG."]] },
   lampGold: { down: [[0, "...GGGWWGGGG...."], [1, "...GGGGGGGGGG..."], [2, "...gggggggggg..."]], side: [[0, "...WWGGGGGGGG..."], [1, "...GGGGGGGGGG..."], [2, "...gggggggggg..."]], up: [[0, "...GGGGGGGGGG..."], [1, "...GGGGGGGGGG..."], [2, "...gggggggggg..."]] },
 };

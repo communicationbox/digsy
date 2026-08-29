@@ -1,10 +1,10 @@
 /* Meccaniche: scavo, economia, chimere, collisioni, interazione */
-import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PREMIUM_HATS } from './data.js';
+import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PREMIUM_HATS, PEDESTAL_ID } from './data.js';
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
 import { bodyHits, feetTile, FOOT_DY } from './body.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
-import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL } from './world.js';
+import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo } from './world.js';
 import { compass } from './compass.js';
 import { landmarkNear, harvestDecoAt } from './world.js';
 import { vhash as vhashW } from './noise.js';
@@ -12,19 +12,20 @@ import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememb
 import { marketPrice } from './market.js';
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
-import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, openStatue, showTip, announceTutStep } from './ui.js';
+import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, openStatue, openRoomLock, openFurnitureTray, openPedestal, showTip, announceTutStep } from './ui.js';
 import { companionYieldMul, companionType, companionSpec, COMP } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
-import { INT, nearNpc, nearCase, nearMentorInt, CUT } from './interior.js';
+import { INT, nearNpc, nearCase, nearMentorInt, nearLockedGate, houseFloorHere, enterInterior, nudgeOffFurniture, CUT } from './interior.js';
+import { ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked } from './house.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
 import { expireQuests, questExpiryText } from './quests.js';
 import { tutBump, tutStepId } from './tutorial.js';
 import { goalLine, goalTitle, alive, aliveTotal, milestoneReached, milestoneGift } from './goal.js';
-import { tr, actKey, keys, LANG, partName, rarLabel, seasonName, hatLabel } from './i18n.js';
+import { tr, actKey, keys, LANG, partName, rarLabel, seasonName, hatLabel, furnLabel } from './i18n.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
 function availableNow2() { return { night: isNight(), season: seasonOf(S.day) }; }
@@ -201,6 +202,7 @@ export function tryDig() {
   const t = baseTerrain(tx, ty);
   const ti = townInfo(tx, ty);
   if (ti) { toast(tr('Non si scava in città', 'No digging in town')); return; } // vale anche SOTTO gli edifici
+  if (yardInfo(tx, ty)) { toast(tr('Qui non si può scavare', 'You can\'t dig here')); return; } // cortile di casa
   if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
   if (!diggable(t)) { toast(tr('Qui non si può scavare', 'You can\'t dig here')); return; }
   if (dugSet.has(key)) { toast(tr('Già scavato qui', 'Already dug here')); return; }
@@ -312,7 +314,7 @@ export function useTeleport() {
   for (let r = 0; r <= 30; r++) {
     for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
       if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
-      const t = townForCell(cx, cy); if (!t || !t.pen) continue; // solo CITTÀ col MUSEO (il parco `pen` c'è solo nelle città grandi)
+      const t = townForCell(cx, cy); if (!t || !hasMuseum(t)) continue; // solo CITTÀ col MUSEO
       const sx = t.C.x;
       for (let yy = t.C.y + 4; yy < t.C.y + 12; yy++) if (openArea(sx, yy)) {
         if (INT.active) { INT.active = false; INT.justLeft = true; } // se sei dentro una struttura, esci e teletrasporta comunque
@@ -325,6 +327,88 @@ export function useTeleport() {
     }
   }
   toast(tr('Nessuna città col museo trovata vicino', 'No museum city found nearby')); return false;
+}
+/* ---------- casa: teleport gratuito verso S.home, illimitato ---------- */
+export function goHome() {
+  if (!S.home) { toast(tr('Casa non ancora trovata', 'Home not found yet')); return false; }
+  const htx = Math.floor(P.x / TS), hty = Math.floor((P.y + FOOT_DY) / TS);
+  if (Math.abs(htx - S.home.x) <= 2 && Math.abs(hty - S.home.y) <= 3) {
+    toast('🏠 ' + tr('Sei già a casa', "You're already home")); return false;
+  }
+  S.teleportBack = { x: P.x, y: P.y }; // sovrascrive sempre: mai più di un ritorno attivo
+  if (INT.active) { INT.active = false; INT.justLeft = true; } // se sei dentro, esci e teletrasporta comunque
+  if (CAVE.active) CAVE.active = false;
+  const cands = [[0, 2], [0, 3], [-1, 2], [1, 2], [-1, 3], [1, 3], [0, 4], [-2, 2], [2, 2]];
+  let placed = false;
+  for (const [dx, dy] of cands) {
+    const x = (S.home.x + dx) * TS + 8, y = (S.home.y + dy) * TS + 10;
+    if (!solidPx(x, y) && openArea(Math.floor(x / TS), Math.floor(y / TS), 5)) { P.x = x; P.y = y; placed = true; break; }
+  }
+  if (!placed) { P.x = S.home.x * TS + 8; P.y = (S.home.y + 2) * TS + 10; }
+  S.returnPortal = { x: Math.floor(P.x / TS), y: Math.floor((P.y + FOOT_DY) / TS) };
+  /* si arriva DENTRO, nel corridoio (atrio) — non fuori nel cortile: "il portale mi deve
+     portare NON nel cortile ma nel corridoio di casa". P.x/P.y restano quelli appena trovati
+     fuori dalla porta: è lì che si ricompare uscendo di nuovo, ed è lì che aspetta il
+     portale di ritorno (S.returnPortal, sopra). */
+  enterInterior({ type: 'house', doorx: S.home.x, doory: S.home.y }, null);
+  playSfx('found');
+  toast('🏠 ' + tr('Teletrasportato nel corridoio di casa: un portale ti riporta indietro', "Teleported to your home's hallway: a portal will take you back"));
+  /* teletrasportarsi salta il cancello a piedi: da fuori resta chiuso a chiave (S.gateLocked,
+     persistente) finché non si trova un modo per riaprirlo. Il tono NON si dice qui (si è
+     ancora nel corridoio, il cancello non si vede) — arriva quando ci si arriva davvero
+     vicino da dentro il cortile, vedi checkGateNotice(). */
+  if (!S.gateLocked) { S.gateLocked = true; gateNoticeShown = false; }
+  save(); updateHUD(); return true;
+}
+/* si azzera ogni volta che il cancello torna chiuso a chiave (sopra) o si riapre (sotto):
+   NON salvato, vive solo per questa sessione di gioco — un semplice "l'ho già detto?". */
+let gateNoticeShown = false;
+/* il tono "è chiuso dall'esterno" arriva quando il giocatore, DENTRO il cortile, si avvicina
+   davvero al cancello — non appena teletrasportato (è ancora nel corridoio, il cancello non
+   si vede da lì) e non ogni frame che ci sta vicino (una volta sola per chiusura). */
+export function checkGateNotice() {
+  if (!S.gateLocked || gateNoticeShown) return;
+  const p = yardRect(); if (!p) return;
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
+  const insideNow = ptx >= p.x0 && ptx <= p.x1 && pty >= p.y0 && pty <= p.y1;
+  if (insideNow && (ptx === p.cx - 1 || ptx === p.cx) && pty >= p.y1 - 2 && pty <= p.y1) {
+    gateNoticeShown = true;
+    toast('🚪 ' + tr('Caspita! È chiuso dall\'esterno!!', "Whoa! It's locked from outside!!"));
+  }
+}
+/* il portale di ritorno a portata (E): torna dove eri prima di goHome() e sparisce.
+   Sta IN MEZZO ALL'ATRIO (ATRIO_PORTAL), non fuori nel cortile — a richiesta esplicita: "il
+   portale deve essere in mezzo al corridoio NON FUORI e deve comparirmi E". Si controlla la
+   posizione DENTRO la scena (INT.x/INT.y), non P.x/P.y del mondo: fuori dall'atrio il
+   portale semplicemente non c'è. */
+export function nearbyReturnPortal() {
+  if (!S.returnPortal) return null;
+  if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom != null) return null;
+  return (Math.abs(INT.x - ATRIO_PORTAL.x) < 16 && Math.abs(INT.y - ATRIO_PORTAL.y) < 16) ? S.returnPortal : null;
+}
+export function useReturnPortal() {
+  if (!S.teleportBack) { S.returnPortal = null; return false; }
+  if (INT.active) { INT.active = false; INT.justLeft = true; }
+  if (CAVE.active) CAVE.active = false;
+  P.x = S.teleportBack.x; P.y = S.teleportBack.y;
+  S.teleportBack = null; S.returnPortal = null; // uso singolo: mai più di un ritorno attivo
+  playSfx('found'); toast('🌀 ' + tr('Sei tornato dove eri', 'Back where you were'));
+  save(); updateHUD(); return true;
+}
+/* il cancello chiuso a chiave (teletrasportandosi) NON è un vicolo cieco: dall'esterno lo si
+   riapre sempre con E, come qualunque porta di casa propria — a richiesta: "dall'esterno lo
+   posso sempre aprire". Da DENTRO invece resta come sempre (il cortile non ha mai impedito
+   di uscire). */
+export function nearbyLockedGate() {
+  if (!S.gateLocked) return false;
+  const p = yardRect(); if (!p) return false;
+  const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
+  return (tx === p.cx - 1 || tx === p.cx) && ty === p.y1 + 1; // subito fuori dal cancello
+}
+export function openLockedGate() {
+  S.gateLocked = false;
+  playSfx('found'); toast('🔓 ' + tr('Riapri il cancello', 'You reopen the gate'));
+  save(); updateHUD(); return true;
 }
 /* la tile davanti ai piedi (per abbattere/spaccare quello che guardi) */
 export function facingTile() {
@@ -521,8 +605,8 @@ export function companionWorkTick(dt) {
    sistema nuovo). Presa perfetta = 3 cariche, riporto qualsiasi (tardi o scaduto) = 1: MAI un
    fallimento vero, la fretta è solo quello che dà il bonus, come nel tavolo di preparazione e
    in "ricomponi lo scheletro".
-   Il PARCO è la casa naturale di questo minigioco: lì non si scava (townInfo blocca tryDig),
-   quindi E è libero — ma nearbyPark() apre ANCHE il selettore del compagno, e quello ha già
+   Il CORTILE è la casa naturale di questo minigioco: lì non si scava (tryDig lo blocca),
+   quindi E è libero — ma nearbyYard() apre ANCHE il selettore del compagno, e quello ha già
    diritto su E. Si dà priorità al gioco SOLO se hai già un compagno pronto: altrimenti (nessun
    compagno, o sta ancora lavorando/riposando dal round precedente) resta il selettore, come
    prima. */
@@ -542,7 +626,7 @@ export function companionPlayable(ignoreTile) {
   if (COMP.job || COMP.play || COMP.playCool > 0) return false;
   if (!ignoreTile) {
     const { tx, ty } = digTarget(), key = tx + ',' + ty;
-    if (!townInfo(tx, ty) && diggable(baseTerrain(tx, ty)) && !dugSet.has(key)) return false; // si scava qui: vince lo scavo
+    if (!townInfo(tx, ty) && !yardInfo(tx, ty) && diggable(baseTerrain(tx, ty)) && !dugSet.has(key)) return false; // si scava qui: vince lo scavo
   }
   return true;
 }
@@ -552,8 +636,19 @@ export function playWithCompanion(ignoreTile) {
   const dv = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[P.dir] || [0, 1];
   const base = Math.atan2(dv[1], dv[0]);
   let tx = null, ty = null;
+  /* prima un lancio "vero" (davanti a te, lontano): ma il cortile di casa (M5, la casa
+     naturale di questo minigioco) è un rettangolo piccolo — stando vicino a una staccionata
+     un lancio lungo può cadere FUORI (recinto solido) e restare senza spazio libero nei 6
+     tentativi, un fallimento silenzioso e capriccioso (segnalato: gioco non deterministico).
+     Ripiego su un tiro CORTO, in QUALSIASI direzione libera (spread pieno): dentro un
+     cortile 10×8 c'è sempre un metro libero da qualche parte. */
   for (let i = 0; i < 6 && tx == null; i++) {
     const ang = base + (Math.random() - 0.5) * 0.9, dist = 46 + Math.random() * 30;
+    const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
+    if (!bodyHits(cx, cy, (px, py) => !passable(px, py))) { tx = cx; ty = cy; }
+  }
+  for (let i = 0; i < 10 && tx == null; i++) {
+    const ang = Math.random() * Math.PI * 2, dist = 18 + Math.random() * 20;
     const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
     if (!bodyHits(cx, cy, (px, py) => !passable(px, py))) { tx = cx; ty = cy; }
   }
@@ -701,12 +796,11 @@ export function shipToMuseum() {
   save(); updateHUD();
   return true;
 }
-/* dentro (o al bordo del) parco recintato: da qui si sceglie il compagno */
-export function nearbyPark() {
+/* dentro (o al bordo del) cortile recintato di casa: da qui si sceglie compagno e cortile */
+export function nearbyYard() {
   const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
-  const tw = townForTile(ptx, pty);
-  if (tw && tw.pen) { const p = tw.pen; if (ptx >= p.x0 - 1 && ptx <= p.x1 + 1 && pty >= p.y0 - 1 && pty <= p.y1 + 1) return tw; }
-  return null;
+  const p = yardRect(); if (!p) return null;
+  return (ptx >= p.x0 - 1 && ptx <= p.x1 + 1 && pty >= p.y0 - 1 && pty <= p.y1 + 1) ? p : null;
 }
 /* lancia 1 🪙 nella fontana: quasi sempre nulla, a salire fino al leggendario (molto raro).
    MAX 10 lanci per città: poi la fontana "riposa" e si ricarica dopo 10 giorni */
@@ -1012,6 +1106,28 @@ export function digWreck() {
     playSfx('found'); save(); updateHUD();
   }, 'fish');
 }
+/* ARREDO DI CASA — tocca DIRETTAMENTE il mobile per raccoglierlo, o la casella per posarlo:
+   non serve più camminarci sopra come per {act} (richiesto esplicitamente: "devo poterli
+   spostare come mi pare"). Chiamata dal tocco sulla canvas (input.js), PRIMA del tocca-per-
+   camminare — un `true` vuol dire "gestito qui", niente meta di cammino sopra. Un tocco su
+   una casella VUOTA (senza tenere nulla in mano) torna `false` apposta: deve restare un
+   comando per camminare lì, non aprire il vassoio a ogni passo. */
+export function tapFurnitureAt(gx, gy) {
+  if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return false;
+  const room = INT.houseRoom;
+  if (!isFloorCell(gx, gy)) return false;
+  if (isHolding()) {
+    if (placeHold(room, gx, gy)) { nudgeOffFurniture(); toast('🎨 ' + tr('Piazzato!', 'Placed!')); }
+    else toast('🎨 ' + tr('Qui non si può piazzare', "Can't place it here"));
+    return true;
+  }
+  if (!roomUnlocked(room)) return false;
+  const f = furnAt(room, gx, gy);
+  if (!f) return false; // niente da raccogliere: resta un tocco per camminare
+  if (f.itemId === PEDESTAL_ID) { openPedestal(room, gx, gy); return true; }
+  if (pickUpFurniture(room, gx, gy)) toast('🎨 ' + furnLabel(f.itemId) + ' ' + keys(tr('in mano: tocca dove piazzarlo', 'in hand: tap where to place it')));
+  return true;
+}
 export function act() {
   if (P.digging) return; // un colpo alla volta
   /* DURANTE UNA CUTSCENE NON SI AGISCE. Il Curatore che consegna il Libro toglie il controllo
@@ -1038,19 +1154,38 @@ export function act() {
     return;
   }
   if (INT.active) { // parla con l'NPC o leggi l'etichetta di un'esposizione
+    if (nearbyReturnPortal()) { useReturnPortal(); return; } // portale di ritorno (goHome): in mezzo all'atrio
     if (nearMentorInt()) { openMentor(); return; } // Maestro Scavatore: spiega i livelli
     if (nearNpc()) { openBuilding(INT.b); return; }
     const nc = nearCase(); if (nc) { openExhibit(nc.sp.id); return; }
+    const gate = nearLockedGate(); if (gate != null) { openRoomLock(gate); return; } // casa: porta a lucchetto
+    /* casa: piazzare/raccogliere arredo sulla propria casella (M3) — stesso criterio di
+       digTarget(), si agisce sotto i piedi, mai sul cubetto verso cui si guarda */
+    const cell = houseFloorHere();
+    if (cell) {
+      if (isHolding()) { // mobile in mano (raccolto altrove): {act} lo ripiazza qui
+        /* NIENTE controllo "cella occupata" a priori sul solo `cell.itemId`: una cella può
+           avere un mobile solido E un decoro insieme (tappeto sotto la sedia) — è
+           `placeHold`/`tryPlaceFurniture` (house.js) a sapere se lo STRATO giusto è libero. */
+        if (placeHold(cell.room, cell.gx, cell.gy)) { nudgeOffFurniture(); toast('🎨 ' + tr('Piazzato!', 'Placed!')); }
+        else toast('🎨 ' + tr('Qui non si può piazzare', "Can't place it here"));
+      }
+      else if (cell.itemId === PEDESTAL_ID) openPedestal(cell.room, cell.gx, cell.gy);
+      else if (cell.itemId) {
+        if (pickUpFurniture(cell.room, cell.gx, cell.gy)) toast('🎨 ' + furnLabel(cell.itemId) + ' ' + keys(tr('in mano: cammina e {act} per ripiazzarlo', 'in hand: walk and {act} to place it')));
+      } else if (cell.unlocked) openFurnitureTray(cell.room, cell.gx, cell.gy);
+    }
     return;
   }
   { const w = nearbyWonder(); if (w) { openWonder(w); return; } } // meraviglia: pannello col suo dono
+  if (nearbyLockedGate()) { openLockedGate(); return; } // cancello chiuso a chiave: si riapre sempre da fuori
   if (nearbyBoard()) { openQuestBoard(); return; } // cartello delle missioni
   if (nearbyStatue()) { openStatue(); return; }    // targa del monumento al nonno
   if (nearbyMailbox()) { openMailbox(); return; } // cassetta: spedisci i grezzi al Museo
   /* già ne hai uno pronto? nel parco si GIOCA invece di riaprire il selettore (che resta per
      chi non ha ancora scelto, o mentre il compagno lavora/riposa dal round precedente) */
   if (companionPlayable()) { if (playWithCompanion()) return; }
-  if (nearbyPark()) { openCompanionPicker(); return; } // parco: scegli il compagno
+  if (nearbyYard()) { openCompanionPicker(); return; } // cortile: scegli compagno e cortile
   if (nearbyBoneSite()) { digBoneSite(); return; }
   if (nearbySite()) { digSite(); return; }
   if (nearbyDrop()) { collectPickup(); return; } // un FOSSILE caduto a terra (zaino pieno) ha la PRIORITÀ sulla fontana

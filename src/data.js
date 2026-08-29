@@ -191,6 +191,68 @@ export const PREMIUM_HATS = [
 ];
 export const PREMIUM_HAT_COST = Object.fromEntries(PREMIUM_HATS.map(h => [h.id, h.cost]));
 
+/* CASA DEL GIOCATORE — stanze: la 0 è quella di partenza (gratis, sempre sbloccata),
+   le altre si comprano dietro una porta a lucchetto (house.js). Crescenti: la seconda
+   stanza costa poco, l'ultima è un traguardo. */
+export const ROOM_PRICES = [0, 150, 400, 900];
+
+/* ARREDO DELLA CASA: 6 set, uno per zona (M3). Venduto SOLO nel Negozio di quella zona
+   (`renderStore`), sbloccato per livello come `PREMIUM_HATS`. `slot` è un'etichetta libera
+   (letto/tavolo/tappeto/decoro), non applica vincoli. `col` = colore del rettangolo
+   segnaposto (vero mobile voxel/3D in M4). */
+export const FURN_SETS = {
+  prati: [
+    { id: 'prati_rug', zone: 'prati', slot: 'tappeto', lvl: 1, cost: 40, icon: '🌾', col: '#e8d27a' },
+    { id: 'prati_bed', zone: 'prati', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#f2a6b8' },
+    { id: 'prati_table', zone: 'prati', slot: 'tavolo', lvl: 6, cost: 150, icon: '🌾', col: '#c9a25a' },
+    { id: 'prati_lamp', zone: 'prati', slot: 'decoro', lvl: 10, cost: 240, icon: '✨', col: '#f6dc78' },
+  ],
+  dune: [
+    { id: 'dune_rug', zone: 'dune', slot: 'tappeto', lvl: 1, cost: 40, icon: '🏜️', col: '#e0c184' },
+    { id: 'dune_bed', zone: 'dune', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#caa15f' },
+    { id: 'dune_chest', zone: 'dune', slot: 'decoro', lvl: 6, cost: 150, icon: '🦴', col: '#d8c9a0' },
+    { id: 'dune_cactus', zone: 'dune', slot: 'decoro', lvl: 10, cost: 240, icon: '🌲', col: '#5c8a52' },
+  ],
+  boschi: [
+    { id: 'boschi_rug', zone: 'boschi', slot: 'tappeto', lvl: 1, cost: 40, icon: '🌲', col: '#7a8f6e' },
+    { id: 'boschi_bed', zone: 'boschi', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#8a6a4a' },
+    { id: 'boschi_chair', zone: 'boschi', slot: 'decoro', lvl: 6, cost: 150, icon: '🌲', col: '#5c4a34' },
+    { id: 'boschi_lamp', zone: 'boschi', slot: 'decoro', lvl: 10, cost: 240, icon: '🍄', col: '#c95a5a' },
+  ],
+  terre: [
+    { id: 'terre_rug', zone: 'terre', slot: 'tappeto', lvl: 1, cost: 40, icon: '⛰️', col: '#c86a4a' },
+    { id: 'terre_bed', zone: 'terre', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#a9502f' },
+    { id: 'terre_throne', zone: 'terre', slot: 'decoro', lvl: 6, cost: 150, icon: '⛰️', col: '#8a4028' },
+    { id: 'terre_crystal', zone: 'terre', slot: 'decoro', lvl: 10, cost: 240, icon: '💎', col: '#e0846a' },
+  ],
+  palude: [
+    { id: 'palude_rug', zone: 'palude', slot: 'tappeto', lvl: 1, cost: 40, icon: '🐸', col: '#5f8a5a' },
+    { id: 'palude_bed', zone: 'palude', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#3f6a52' },
+    { id: 'palude_vase', zone: 'palude', slot: 'decoro', lvl: 6, cost: 150, icon: '🌸', col: '#8ec488' },
+    { id: 'palude_lamp', zone: 'palude', slot: 'decoro', lvl: 10, cost: 240, icon: '✨', col: '#a6e0a0' },
+  ],
+  ghiacci: [
+    { id: 'ghiacci_rug', zone: 'ghiacci', slot: 'tappeto', lvl: 1, cost: 40, icon: '🧊', col: '#dff0f7' },
+    { id: 'ghiacci_bed', zone: 'ghiacci', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#bcdcec' },
+    { id: 'ghiacci_hearth', zone: 'ghiacci', slot: 'decoro', lvl: 6, cost: 150, icon: '🔥', col: '#8fb8d0' },
+    { id: 'ghiacci_lamp', zone: 'ghiacci', slot: 'decoro', lvl: 10, cost: 240, icon: '✨', col: '#c8e6f2' },
+  ],
+};
+export const FURN_BY_ID = Object.fromEntries(Object.values(FURN_SETS).flat().map(f => [f.id, f]));
+/* PIEDISTALLO (M4): pezzo speciale, non venduto (regalato una volta sola in state.js), che
+   in casa non arreda e basta ma espone uno scheletro consegnato al Museo (house.js gestisce
+   l'assegnazione). `slot:'pedestal'` lo distingue dagli arredi normali nel tray/interazione. */
+export const PEDESTAL_ID = 'pedestal';
+export const PEDESTAL_ITEM = { id: PEDESTAL_ID, zone: 'any', slot: 'pedestal', lvl: 1, cost: 0, icon: '🏛️', col: '#c9a227' };
+FURN_BY_ID[PEDESTAL_ID] = PEDESTAL_ITEM;
+
+/* POLTRONA DI PARTENZA (M6, tutorial): regalata una volta sola in state.js, come il
+   piedistallo — serve al passo `armchair` (piazzarla in Sala insegna il piazzamento
+   dell'arredo PRIMA ancora dello scavo). Riuso `boschi_chair` (già "Poltrona di
+   corteccia"/"Bark armchair" in i18n.js): è già la sedia generica del set, niente da
+   inventare — regalarla ignora il suo `lvl` normale (il dono bypassa `buyFurniture`). */
+export const STARTER_FURN_ID = 'boschi_chair';
+
 /* COSMETICI TEMATICI: ogni zona ha un taglio (barbiere) e un cappello (sarto)
    scopribili solo visitando il negozio IN quella zona; una volta sbloccati
    restano scegliibili ovunque. Costo di scoperta = SERVICE_COST × 3. */

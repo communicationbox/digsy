@@ -3,7 +3,7 @@ import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeB
 import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach } from './tapmove.js';
 import { findPath, fits } from './path.js';
-import { tileBlocked, toggleMount, companionRides } from './gameplay.js';
+import { tileBlocked, toggleMount, companionRides, tapFurnitureAt } from './gameplay.js';
 import { interiorCam } from './interiors.js';
 import { CAVE, caveSolid, caveCam } from './cave.js';
 import { toast } from './ui.js';
@@ -16,7 +16,7 @@ import { cam } from './state.js';
 import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
-import { INT, exitInterior, intCollide, CUT } from './interior.js';
+import { INT, interiorLeave, intCollide, CUT, doorTileX } from './interior.js';
 
 export const keys = {};
 const KM = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
@@ -124,7 +124,7 @@ addEventListener('keydown', e => {
   if ((e.key === 'm' || e.key === 'M') && !busy()) { openMap(); e.preventDefault(); } // mappa del mondo
   if ((e.key === 'q' || e.key === 'Q') && !busy()) { openQuests(); e.preventDefault(); }
   if ((e.key === 'f' || e.key === 'F') && !isModalOpen() && companionRides()) { toggleMount(); e.preventDefault(); } // cavalca/scendi il compagno volante di grotta
-  if (e.key === 'Escape') { if (isPrepOpen()) closePrepare(); else if (isMapOpen()) closeMap(); else if (isBookOpen()) closeBook(); else if (isBagOpen()) closeBag(); else if (isModalOpen()) closeModal(); else if (INT.active) exitInterior(); else showSplash(); e.preventDefault(); }
+  if (e.key === 'Escape') { if (isPrepOpen()) closePrepare(); else if (isMapOpen()) closeMap(); else if (isBookOpen()) closeBook(); else if (isBagOpen()) closeBag(); else if (isModalOpen()) closeModal(); else if (INT.active) interiorLeave(); else showSplash(); e.preventDefault(); }
 });
 addEventListener('keyup', e => {
   if (isTyping(e.target)) return; // vedi isTyping: mentre si scrive il gioco non reagisce
@@ -221,7 +221,7 @@ if (cv && cv.addEventListener) {
     const wasDrag = floatMoved;
     floatEnd(e);
     if (wasDrag) return;                                     // si stava guidando: niente meta
-    if (!tapToMoveOn() || isModalOpen() || splashActive() || isPrepOpen()) return;
+    if (isModalOpen() || splashActive() || isPrepOpen()) return;
     /* un TOCCO, non un trascinamento e non una pressione lunga: chi trascina sta guardando */
     if (Math.hypot(e.clientX - downX, e.clientY - downY) > 14 || Date.now() - downT > 600) return;
     const r = cv.getBoundingClientRect();
@@ -230,6 +230,14 @@ if (cv && cv.addEventListener) {
        edifici il tocco finiva su coordinate che non c'entravano nulla. */
     const sc = currentScene();
     const w = screenToWorld(e.clientX, e.clientY, r, view, sc.cam);
+    /* ARREDO DI CASA: si tocca DIRETTAMENTE il mobile per raccoglierlo, o la casella libera
+       per posarlo — senza doverci camminare sopra come col tasto azione (richiesto: "devo
+       poterli spostare come mi pare"). Viene PRIMA del tocca-per-camminare: un tocco su una
+       sedia deve raccoglierla, non diventare una meta di cammino verso quella casella. */
+    if (INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null) {
+      if (tapFurnitureAt(Math.floor(w.x / TS), Math.floor(w.y / TS))) return;
+    }
+    if (!tapToMoveOn()) return;
     if (sc.reach && !sc.reach(w.x, w.y)) return;
     /* La casella di PARTENZA è dove stanno i piedi ora (P.y è l'ancora alta, i piedi +13).
        La casella di ARRIVO è invece quella che si è toccata, senza correzioni: il dito indica
@@ -312,8 +320,8 @@ function currentScene() {
       maxLen: 30,
       /* la strada disegnata SOTTO la porta non è calpestabile: il clic lì si traduce nella
          soglia, l'ultima casella in cui si può stare */
-      exitTile: (tx, ty) => (ty >= INT.h - 1 && Math.abs(tx - (INT.w >> 1)) <= 3)
-        ? { tx: INT.w >> 1, ty: INT.h - 2 } : null,
+      exitTile: (tx, ty) => (ty >= INT.h - 1 && Math.abs(tx - doorTileX()) <= 3)
+        ? { tx: doorTileX(), ty: INT.h - 2 } : null,
     };
   }
   return { pos: P, cam, blocked: tileBlocked, reach: inReach };

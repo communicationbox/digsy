@@ -280,6 +280,12 @@ kbd + .pxi{margin-left:2px}
 @keyframes tut-glow{0%{box-shadow:inset 0 0 0 1px var(--c-parch-3), 0 3px 0 rgba(0,0,0,.22), 0 0 0 0 rgba(240,198,116,.9)}
   100%{box-shadow:inset 0 0 0 1px var(--c-parch-3), 0 3px 0 rgba(0,0,0,.22), 0 0 0 14px rgba(240,198,116,0)}}
 #tutbox.pop{animation:tut-pop .42s cubic-bezier(.2,.9,.3,1), tut-glow .6s ease-out}
+
+/* PULSANTE BERSAGLIO del passo in corso (es. la pala allo step "shop"): lampeggia da solo,
+   niente da leggere per capire cosa comprare. Continuo, non a scatti (steps()) — quello è
+   riservato agli avvisi (.tag.low), qui deve invitare, non allarmare. */
+@keyframes tut-target{0%,100%{box-shadow:0 3px 0 rgba(0,0,0,.22), 0 0 0 0 rgba(240,198,116,.85)}50%{box-shadow:0 3px 0 rgba(0,0,0,.22), 0 0 0 6px rgba(240,198,116,0)}}
+.tut-target{animation:tut-target 1s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){#tutbox.pop{animation:none}}
 
 /* col telefono in mano il foglio si stringe e alza un po' il contrasto del corpo: si legge
@@ -1087,6 +1093,26 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 #exitbtn:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.45)}
 #exitbtn .pxi{width:1.1em;height:1.1em}
 @media(pointer:coarse){ #exitbtn{font-size:16px;padding:12px 20px;bottom:calc(120px + env(safe-area-inset-bottom))} }
+
+/* ARREDO IN MANO: stessi due bottoni dell'uscita, ma CENTRATI sopra il prompt — a sinistra
+   ci sta lo zaino (su desktop è un comando fisso in quell'angolo, non un'informazione: vedi
+   `@media(hover:hover)` più sopra) e a destra il bottone Esci, quindi qui i due si
+   sovrapponevano proprio quando servivano insieme (in una stanza, mobile in mano). */
+#furnhold{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(58px + env(safe-area-inset-bottom));
+  display:none;align-items:center;gap:8px;z-index:14}
+#furnhold.on{display:flex}
+#furnhold button{font:inherit;font-weight:800;font-size:15px;padding:10px 16px;cursor:pointer;
+  background:#3a2f1e;color:var(--c-paper);border:2px solid var(--c-gold);border-radius:10px;
+  box-shadow:0 4px 0 rgba(0,0,0,.45)}
+#furnhold button:hover{background:#4d3f28}
+#furnhold button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.45)}
+/* ANTEPRIMA del pezzo in mano: niente ghost nel mondo (finiva sempre dietro al personaggio,
+   sulla stessa casella — segnalato "disassamento verticale"), si vede QUI per intero. */
+#furnholdpv{width:40px;height:46px;background:#241d14;border:2px solid var(--c-gold);border-radius:8px;
+  image-rendering:pixelated}
+/* su un dito: il joystick arriva fino a bottom:24+150=174px, quindi si sale sopra quello
+   (non solo sopra l'A da 80px) — altrimenti i due bottoni finiscono sotto la leva sinistra. */
+@media(pointer:coarse){ #furnhold button{font-size:16px;padding:12px 18px} #furnhold{bottom:calc(192px + env(safe-area-inset-bottom))} }
 
 /* STATISTICHE della partita, sotto i salvataggi. Griglia a due colonne dove ci sta, una sola
    sul telefono: sono coppie etichetta/numero, e incolonnare i numeri li rende confrontabili

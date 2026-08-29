@@ -12,10 +12,17 @@
  * si spiega il gioco a parole — si dà un obiettivo alla volta, con la spunta quando è fatto e
  * una FRECCIA che punta la cosa da fare. Un rastrellamento cieco diventa una caccia guidata.
  *
- * I quattro passi SONO il ciclo d'apertura, nell'ordine in cui il gioco lo impone:
- *   raccogli fino a 15 🪙 → vendi e compra la pala → scava → porta il grezzo al Museo.
+ * I cinque passi SONO il ciclo d'apertura, nell'ordine in cui il gioco lo impone:
+ *   piazza la poltrona di casa → raccogli fino a 15 🪙 → vendi e compra la pala → scava →
+ *   porta il grezzo al Museo.
  * Chi li finisce ha già fatto una partita intera in piccolo. E l'ultimo passo è vicino, perché
  * `findStart()` fa partire dentro una città grande e le città grandi hanno sempre il Museo.
+ *
+ * IL PASSO DELLA POLTRONA è il PRIMISSIMO apposta: la partita ORA comincia dentro la Sala
+ * (main.js entra nella casa appena finiscono editor/intro), quindi il primo gesto possibile è
+ * quello — leggero, senza rischio (la poltrona è già regalata in `S.furnOwned`, vedi state.js),
+ * il posto giusto per insegnare per la prima volta "casa tua esiste e ci si arreda", prima
+ * ancora di uscire in strada e del primo colpo di pala.
  *
  * Il modulo è PURO in quello che conta: sa dire a che punto sei e dove devi andare. Chi
  * disegna sta in ui.js/render.js. Così i passi si provano senza DOM.
@@ -24,7 +31,7 @@ import { S, save } from './state.js';
 import { tr, actKey } from './i18n.js';
 import { TOOL_COST } from './gameplay.js';
 import { townForTile, townForCell, pickupAt, harvestDecoAt, TCELL, hasMuseum } from './world.js';
-import { TS } from './data.js';
+import { TS, STARTER_FURN_ID } from './data.js';
 
 /* quanto vale adesso quello con cui potresti pagare la pala: monete in tasca + merce da
    vendere. Il primo passo finisce quando basta — non "otto oggetti", che con i valori da 1 a 5
@@ -35,9 +42,14 @@ export function tutPurse() {
 }
 export function spadeCost() { return TOOL_COST.spade; }
 
-/* i quattro passi, in ordine. `auto` = si spunta da solo guardando lo stato; senza `auto` lo
+/* i cinque passi, in ordine. `auto` = si spunta da solo guardando lo stato; senza `auto` lo
    spunta un'azione di gioco che chiama `tutBump`. */
+function armchairPlaced() {
+  const r = S.house && S.house.rooms && S.house.rooms[0];
+  return !!r && (r.furn || []).some(f => f.itemId === STARTER_FURN_ID);
+}
 export const STEPS = [
+  { id: 'armchair', auto: () => armchairPlaced(), have: () => (armchairPlaced() ? 1 : 0), need: () => 1 },
   { id: 'pick', auto: () => tutPurse() >= spadeCost(), have: () => Math.min(tutPurse(), spadeCost()), need: () => spadeCost() },
   { id: 'shop', auto: () => !!(S.tools || {}).spade, have: () => ((S.tools || {}).spade ? 1 : 0), need: () => 1 },
   { id: 'dig', need: () => 1 },
@@ -56,6 +68,8 @@ const TEXT = {
     tr('Seguile con la freccia e premi {act}. Ti servono 15 monete.', 'Follow the arrow and press {act}. You need 15 coins.')],
   shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
     tr('Vendi tutto quello che hai raccolto, poi compra la pala 🪏.', 'Sell everything you gathered, then buy the spade 🪏.')],
+  armchair: () => [tr('Arreda casa tua', 'Furnish your home'),
+    tr('Hai già una poltrona nel vassoio: piazzala qui in Sala con {act}.', 'You already have an armchair in your tray: place it here in the Living room with {act}.')],
   dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),
     tr('Sull\'erba, premi {act}. In piazza è lastricato e non si può.', 'On the grass, press {act}. The plaza is paved and cannot be dug.')],
   museum: () => [tr('Porta i reperti al Museo', 'Take your finds to the Museum'),
@@ -125,6 +139,7 @@ export function tutTarget(px, py) {
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
   if (id === 'pick') return nearestPickup(tx, ty);
   if (id === 'shop') return buildingDoor(tx, ty, 'store');
+  if (id === 'armchair') return S.home || null;   // la porta di casa (world.js: houseDoorAt)
   if (id === 'museum') return buildingDoor(tx, ty, 'museum');
   return null;                                   // 'dig': si scava dove capita, fuori città
 }

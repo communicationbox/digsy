@@ -1,7 +1,7 @@
 /* Stato di gioco (salvato in localStorage) + player/camera runtime */
 import { setSeed } from './noise.js';
 import { packExplored, unpackExplored } from './packmap.js';
-import { DEFAULT_LOOK } from './data.js';
+import { DEFAULT_LOOK, ROOM_PRICES, PEDESTAL_ID, STARTER_FURN_ID } from './data.js';
 
 export const SK = 'ossa_world_pixel_v1';
 
@@ -260,6 +260,11 @@ export function initState() {
   if (S.compassOn === undefined) S.compassOn = true; // bussola-oggetto accesa quando la possiedi
   if (S.museumIntroSeen === undefined) S.museumIntroSeen = Object.keys(S.book || {}).length > 0; // spiegone museo 1-volta
   if (S.trackMap === undefined) S.trackMap = null; // mappa seguita dalla bussola
+  /* il cancello del cortile si blocca DAVVERO (non solo l'aspetto) quando ci si teletrasporta
+     a casa: si è saltato il varco a piedi, quindi da fuori resta chiuso a chiave finché non
+     lo si riapre (a richiesta: "quando mi teletrasporto il cancello deve rimanere chiuso e
+     bloccato dall'esterno"). Persistente: non è un'animazione, è uno stato del salvataggio. */
+  if (S.gateLocked === undefined) S.gateLocked = false;
   if (!S.dna) S.dna = {}; // DNA per specie in FIALETTE INTERE
   if (S.vials) { for (const id of S.vials) S.dna[id] = (S.dna[id] || 0) + 1; delete S.vials; } // migrazione vecchia
   /* migrazione mezze→intere: i vecchi save avevano dna in mezze dosi (2 = 1 fialetta) */
@@ -296,6 +301,20 @@ export function initState() {
      che deve fare: il tetto orario protegge dalle assenze LUNGHE, non da un arretrato falso). */
   if (!S.idleAt) S.idleAt = Date.now();
   if (S.gear === undefined) S.gear = null;
+  if (S.teleportBack === undefined) S.teleportBack = null; // punto da cui torni col portale di casa
+  if (S.returnPortal === undefined) S.returnPortal = null; // portale di ritorno a uso singolo (mai più di uno)
+  /* stanze della casa (M2): la 0 parte sempre sbloccata, le altre dietro un lucchetto a pagamento */
+  if (!S.house) S.house = { rooms: ROOM_PRICES.map((_, i) => ({ id: i, unlocked: i === 0 })) };
+  for (const r of S.house.rooms) if (!Array.isArray(r.furn)) r.furn = []; // arredo piazzato (M3)
+  if (!S.furnOwned) S.furnOwned = []; // arredo comprato (posseduto per sempre, riposizionabile)
+  /* PIEDISTALLO gratis, una volta sola (M4): serve a esporre in casa uno scheletro già
+     consegnato al Museo, senza tornarci ogni volta. Il flag evita di regalarlo di nuovo se
+     il pezzo viene poi tolto dal vassoio in qualche modo. */
+  if (!S.pedestalGiven) { S.pedestalGiven = true; if (!S.furnOwned.includes(PEDESTAL_ID)) S.furnOwned.push(PEDESTAL_ID); }
+  /* POLTRONA DI PARTENZA gratis, una volta sola (M6): serve al passo `armchair` del
+     tutorial (piazzarla in Sala PRIMA di scavare). Stesso schema del piedistallo: il flag
+     evita di regalarla di nuovo se poi sparisce dal vassoio in qualche modo. */
+  if (!S.starterFurnGiven) { S.starterFurnGiven = true; if (!S.furnOwned.includes(STARTER_FURN_ID)) S.furnOwned.push(STARTER_FURN_ID); }
   /* i natanti non sono più un "gear attivabile": in acqua si sale da soli (v0.16.5) */
   if (S.gear === 'boat' || S.gear === 'motorboat') S.gear = null;
   delete S.gearOn; // vecchio modello (mezzi indipendenti) rimosso

@@ -55,11 +55,10 @@ sprites.applyLook();
       const d = world.townInfo(b.doorx, b.doory);
       if (!d || !d.door) bad++;
     }
-    // città (e parco) interamente dentro la cella
+    // città interamente dentro la cella
     const lim = { x0: cx * world.TCELL, y0: cy * world.TCELL, x1: (cx + 1) * world.TCELL - 1, y1: (cy + 1) * world.TCELL - 1 };
-    const y1 = t.pen ? t.pen.y1 : t.y1;
-    if (t.x0 < lim.x0 || t.x1 > lim.x1 || t.y0 < lim.y0 || y1 > lim.y1) bad++;
-    if (t.size === 'città' && (!types.includes('barber') || !types.includes('tailor') || !t.pen)) bad++;
+    if (t.x0 < lim.x0 || t.x1 > lim.x1 || t.y0 < lim.y0 || t.y1 > lim.y1) bad++;
+    if (t.size === 'città' && (!types.includes('barber') || !types.includes('tailor') || t.pen)) bad++;
     if (t.size === 'paese' && !types.includes('barber')) bad++;
   }
   check(`città campionate (${n}, taglie ${JSON.stringify(sizes)})`, n > 60 && bad === 0);
@@ -318,6 +317,24 @@ sprites.applyLook();
   cave.CAVE.y = (cave.CAVE.h - 4) * TS;
   const camBottom = cave.caveCam().y + 200;              // 200 = altezza vista di prova
   check('sotto l\'imbocco c\'è spazio visibile (' + Math.round(camBottom - rh) + ' px)', camBottom > rh);
+
+  /* la scena di grotta (buio + alone + corridoio) non era mai stata disegnata da un test:
+     render() la smista su CAVE.active PRIMA di guardare INT/mondo — se esplode qui, tutta
+     la grotta resta uno schermo nero senza che nessun test se ne accorga */
+  const render = await import('../src/render.js');
+  let caveDrawErr = null;
+  const caveKeep = { x: cave.CAVE.x, y: cave.CAVE.y };
+  try {
+    render.render(1234);
+    const wasTorch = S.tools.torch; S.tools.torch = true;                    // alone più largo
+    cave.CAVE.digging = { t: 0.4, dur: 1 };                                  // scavo del cristallo
+    render.render(1500);
+    cave.CAVE.digging = null; S.tools.torch = wasTorch;
+    cave.CAVE.x = TS; cave.CAVE.y = TS;                                      // in fondo: freccia uscita a bordo
+    render.render(1800);
+  } catch (e) { caveDrawErr = e.message; }
+  cave.CAVE.x = caveKeep.x; cave.CAVE.y = caveKeep.y;                        // il test seguente parte da qui
+  check('la scena di grotta si disegna senza esplodere', caveDrawErr === null, caveDrawErr);
 
   /* il giocatore clicca FUORI, sull'erba: meta oltre l'ultima casella */
   const exTx = cave.CAVE.w >> 1;
@@ -1027,69 +1044,286 @@ sprites.applyLook();
   }
 }
 
-/* ---------- parco ---------- */
+/* ---------- cortile di casa (M5: sostituisce il vecchio parco per-città) ---------- */
 {
-  let big = null;
-  for (let cx = -15; cx < 15 && !big; cx++) for (let cy = -15; cy < 15 && !big; cy++) { const t = world.townForCell(cx, cy); if (t && t.pen) big = t; }
-  check('città con parco trovata', !!big);
-  const p = big.pen;
-  let fenceBad = 0;
-  for (let tx = p.x0; tx <= p.x1; tx++) for (let ty = p.y0; ty <= p.y1; ty++) {
-    const ti = world.townInfo(tx, ty);
-    const gate = ty === p.y0 && (tx === big.C.x - 1 || tx === big.C.x);
-    const edge = (tx === p.x0 || tx === p.x1 || ty === p.y0 || ty === p.y1) && !gate;
-    if (edge && (!ti || !ti.solid)) fenceBad++;
-    if (!edge && (!ti || !ti.floor || world.isSolidTile(tx, ty))) fenceBad++;
+  /* nessun `.pen`: le città grandi non hanno più il recinto (verificato anche più sotto,
+     "città campionate"); qui serve solo trovare UNA città grande per fissare S.home */
+  let town = null;
+  for (let r = 0; r < 16 && !town; r++) {
+    for (let cy = -r; cy <= r && !town; cy++) for (let cx = -r; cx <= r && !town; cx++) {
+      if (Math.max(Math.abs(cx), Math.abs(cy)) !== r) continue;
+      const t = world.townForCell(cx, cy); if (t && t.size === 'città') town = t;
+    }
   }
-  check('recinto: bordi solidi, cancello+interno percorribili', fenceBad === 0);
-  P.x = big.C.x * TS; P.y = big.C.y * TS;
-  park.refreshVisParks();
-  check('parco nei visParks', park.visParks.includes(big));
-  const list = park.parkList(big);
-  check('una chimera nel parco', list.length === S.creatures.length && list.length === 1);
+  check('città grande trovata per la casa', !!town);
+  const savedHome = S.home;
+  const home = town && world.findHomeSpot(town);
+  check('S.home: un posto valido vicino alla città', !!home);
+  S.home = home;
+  world.invalidateHouseDecoCache(); // come farebbe main.js: qui S.home viene fissato a mano
+  const p = world.yardRect();
+  check('cortile: un rettangolo fisso agganciato a S.home', !!p);
+  const hfHome = world.houseFootprint();
 
-  /* LE SPECIE RISVEGLIATE VIVONO NEL PARCO. Costano cinque pezzi e una fialetta intera di
-     DNA, e per mesi il recinto le ha ignorate: comparivano solo nel Libro e fra i compagni.
-     Un giocatore ne aveva risvegliate dieci e le credeva perse. */
+  /* la casa sta DENTRO il recinto (M6): il prato la circonda sui 4 lati, non solo a sud */
+  const sides = [
+    [hfHome.x0 - 1, Math.floor((hfHome.y0 + hfHome.y1) / 2)], // ovest
+    [hfHome.x1 + 1, Math.floor((hfHome.y0 + hfHome.y1) / 2)], // est
+    [Math.floor((hfHome.x0 + hfHome.x1) / 2), hfHome.y0 - 1], // nord
+    [Math.floor((hfHome.x0 + hfHome.x1) / 2), hfHome.y1 + 1], // sud, subito sotto la porta
+  ];
+  check('cortile: circonda la casa sui 4 lati', sides.every(([tx, ty]) => !!world.yardInfo(tx, ty)));
+
+  /* bordo: tutto solido tranne UN cancello di 2 caselle */
+  let fenceBad = 0, gateTiles = 0;
+  for (let tx = p.x0; tx <= p.x1; tx++) for (let ty = p.y0; ty <= p.y1; ty++) {
+    if (!(tx === p.x0 || tx === p.x1 || ty === p.y0 || ty === p.y1)) continue;
+    const yd = world.yardInfo(tx, ty);
+    if (yd && yd.floor) gateTiles++;
+    else if (!yd || !yd.solid) fenceBad++;
+  }
+  check('recinto: bordo tutto solido tranne il cancello', fenceBad === 0);
+  check('recinto: esattamente UN cancello, largo 2', gateTiles === 2);
+
+  /* niente decorazioni selvatiche sotto la casa o dentro il cortile: yardInfo torna null
+     apposta sui tile della casa (ci "buca un buco" per l'edificio), e decoCompute doveva
+     escludere anche QUELLI, non solo il prato/staccionata del cortile — altrimenti un
+     albero/fungo generato prima restava sotto l'edificio (segnalato: "sotto al giardino
+     rimangono degli elementi da raccogliere del bosco"). */
+  let decoLeak = 0;
+  for (let tx = hfHome.x0 - 1; tx <= hfHome.x1 + 1; tx++) for (let ty = hfHome.y0 - 1; ty <= hfHome.y1 + 1; ty++) if (world.decoAt(tx, ty)) decoLeak++;
+  for (let tx = p.x0; tx <= p.x1; tx++) for (let ty = p.y0; ty <= p.y1; ty++) if (world.decoAt(tx, ty)) decoLeak++;
+  check('niente alberi/funghi/rocce sotto la casa o dentro il cortile', decoLeak === 0, decoLeak + ' trovate');
+
+  /* STESSA falla, un TERZO sistema: pickupAt (le scintille da raccogliere a terra) ha una
+     generazione tutta sua, indipendente da decoAt/siteForCell — escluderli non bastava
+     (segnalato: "segna ancora delle cose da raccogliere sotto casa"). */
+  let pickupLeak = 0;
+  for (let tx = hfHome.x0 - 1; tx <= hfHome.x1 + 1; tx++) for (let ty = hfHome.y0 - 1; ty <= hfHome.y1 + 1; ty++) if (world.pickupAt(tx, ty)) pickupLeak++;
+  for (let tx = p.x0; tx <= p.x1; tx++) for (let ty = p.y0; ty <= p.y1; ty++) if (world.pickupAt(tx, ty)) pickupLeak++;
+  check('niente scintille da raccogliere sotto la casa o dentro il cortile', pickupLeak === 0, pickupLeak + ' trovate');
+
+  /* MARGINE di 2 caselle OLTRE il recinto: un oggetto da raccogliere appena fuori dalla
+     staccionata costringeva ad azzuffarsi col recinto per raggiungerlo (segnalato con foto,
+     "gli oggetti qua vicini mi triggerano il recinto"). Qui si controlla l'ANELLO subito
+     fuori dal recinto (margine-1, la cornice più vicina possibile), non solo il recinto
+     stesso — quella è la distanza minima che il giocatore chiede. */
+  const M = world.HOUSE_DECO_MARGIN;
+  let marginLeak = 0;
+  for (let tx = p.x0 - M; tx <= p.x1 + M; tx++) for (let ty = p.y0 - M; ty <= p.y1 + world.HOME_PATH_LEN + M; ty++) {
+    const onRing = tx === p.x0 - M || tx === p.x1 + M || ty === p.y0 - M || ty === p.y1 + world.HOME_PATH_LEN + M;
+    if (onRing && world.decoAt(tx, ty)) marginLeak++;
+  }
+  check('niente da raccogliere nei ' + M + ' tile subito fuori dal recinto', marginLeak === 0, marginLeak + ' trovate');
+
+  /* STESSA amnesia, ma sui SITI DI SCAVO e sugli SCHELETRI SEPOLTI: le loro cache sono per
+     CELLA (SCELL/BCELL), non per tile, ma un sito calcolato PRIMA che S.home esistesse ci
+     restava per sempre — ossa affioranti comprese, magari proprio sotto casa (segnalato:
+     "parte con una X sotto casa"). Si inquina la cache A MANO (come farebbe l'esplorazione di
+     una partita vera prima che la casa nascesse lì), poi si controlla che invalidateHouseDecoCache
+     l'abbia ripulita insieme al resto. */
   {
-    const before = park.parkList(big).length;
+    const x0 = Math.min(hfHome.x0, p.x0) - 1, x1 = Math.max(hfHome.x1, p.x1) + 1;
+    const y0 = Math.min(hfHome.y0, p.y0) - 1, y1 = Math.max(hfHome.y1, p.y1) + world.HOME_PATH_LEN + 1;
+    for (let cx = Math.floor(x0 / world.SCELL); cx <= Math.floor(x1 / world.SCELL); cx++)
+      for (let cy = Math.floor(y0 / world.SCELL); cy <= Math.floor(y1 / world.SCELL); cy++) world.siteForCell(cx, cy);
+    for (let cx = Math.floor(x0 / world.BCELL); cx <= Math.floor(x1 / world.BCELL); cx++)
+      for (let cy = Math.floor(y0 / world.BCELL); cy <= Math.floor(y1 / world.BCELL); cy++) world.boneSiteForCell(cx, cy);
+    world.invalidateHouseDecoCache();
+    let siteLeak = 0;
+    for (let tx = x0; tx <= x1; tx++) for (let ty = y0; ty <= y1; ty++) if (world.siteAt(tx, ty) || world.boneSiteAt(tx, ty)) siteLeak++;
+    check('nessun sito/scheletro sepolto sotto casa o cortile dopo l\'invalidazione', siteLeak === 0, siteLeak + ' trovati');
+  }
+
+  /* IL CANCELLO SI VEDE: un buco nella staccionata non si distingue da uno mancante (regola
+     ferrea n.4, segnalato guardando lo screenshot). Le 2 caselle del varco portano un marcatore
+     proprio (`gate`+`gateSide`+`gateOpen`) che render.js usa per disegnare montanti+architrave
+     invece del solito prato: qui si controlla che il DATO ci sia, il disegno lo guarda
+     l'occhio (vedi npm run promo / lo script di verifica in scratchpad). */
+  {
+    const gl = world.yardInfo(p.cx - 1, p.y1), gr = world.yardInfo(p.cx, p.y1);
+    check('cancello: le 2 caselle sono marcate, non un buco anonimo',
+      !!gl && gl.gate === true && gl.gateSide === 'l' && !!gr && gr.gate === true && gr.gateSide === 'r');
+    check('cancello: aperto per ora (nessuna chiusura costruita)', gl.gateOpen === true && gr.gateOpen === true);
+    const rnd2 = await import('../src/render.js');
+    check('cancello: si disegna senza crash (aperto e, per il futuro, chiuso)', (() => {
+      try { rnd2.drawGate(0, 0, 'l', true); rnd2.drawGate(16, 0, 'r', true); rnd2.drawGate(0, 0, 'l', false); return true; }
+      catch (e) { return false; }
+    })());
+  }
+
+  /* interno percorribile OVUNQUE tranne sotto la casa (che resta solida, porta esclusa) */
+  let interiorBad = 0;
+  for (let tx = p.x0 + 1; tx < p.x1; tx++) for (let ty = p.y0 + 1; ty < p.y1; ty++) {
+    const onHouse = tx >= hfHome.x0 && tx <= hfHome.x1 && ty >= hfHome.y0 && ty <= hfHome.y1;
+    if (onHouse) {
+      const isDoor = tx === hfHome.doorx && ty === hfHome.doory;
+      if (isDoor === world.isSolidTile(tx, ty)) interiorBad++; // porta libera, resto solido
+    } else {
+      const yd = world.yardInfo(tx, ty);
+      if (!yd || !yd.floor || world.isSolidTile(tx, ty)) interiorBad++;
+    }
+  }
+  check('cortile: interno percorribile attorno alla casa', interiorBad === 0);
+
+  /* vialetto: esce dal cancello verso sud, largo 2 per i primi HOME_PATH_LEN tile */
+  let pathBad = 0;
+  for (let i = 1; i <= world.HOME_PATH_LEN; i++) for (const gx of [p.cx - 1, p.cx]) {
+    const yd = world.yardInfo(gx, p.y1 + i);
+    if (!yd || !yd.floor || !yd.path) pathBad++;
+  }
+  check('vialetto: i primi tile fuori dal cancello sono un percorso vero', pathBad === 0);
+
+  /* IL VIALETTO ARRIVA FINO ALLA CITTÀ (a richiesta): prima finiva a metà di un campo, ora
+     prosegue con una spezzata a L (homeRoadAt) fino a toccare il rettangolo della città vicina
+     — la STESSA che findHomeSpot ha usato per piazzare la casa (homeTown() la ritrova da
+     S.home). Si cammina la spezzata dichiarata da homeRoadGeom (via homeRoadAt) e si controlla
+     che arrivi davvero dentro il perimetro della città. */
+  const ht = world.homeTown();
+  check('homeTown ritrova la STESSA città usata da findHomeSpot', !!ht && ht.C.x === town.C.x && ht.C.y === town.C.y);
+  let roadReachesTown = false;
+  if (ht) {
+    const x0 = Math.min(p.cx, ht.x0) - 1, x1 = Math.max(p.cx, ht.x1) + 1;
+    const y0 = Math.min(p.y1, ht.y0) - 1, y1 = Math.max(ht.y1, p.y1 + world.HOME_PATH_LEN + 60) + 1;
+    for (let ty = y0; ty <= y1 && !roadReachesTown; ty++) for (let tx = x0; tx <= x1 && !roadReachesTown; tx++) {
+      if (world.homeRoadAt(tx, ty) && tx >= ht.x0 && tx <= ht.x1 && ty >= ht.y0 && ty <= ht.y1) roadReachesTown = true;
+    }
+  }
+  check('il vialetto raggiunge davvero il territorio della città', roadReachesTown);
+  /* render smoke: una tile qualunque sulla lunga spezzata, lontana dal cortile */
+  {
+    const g0 = world.yardRect();
+    let farRoadTile = null;
+    for (let d = world.HOME_PATH_LEN + 5; d < world.HOME_PATH_LEN + 40 && !farRoadTile; d++) {
+      if (world.homeRoadAt(g0.cx, g0.y1 + d)) farRoadTile = [g0.cx, g0.y1 + d];
+    }
+    if (farRoadTile) {
+      const rnd = await import('../src/render.js');
+      P.x = farRoadTile[0] * TS + 8; P.y = farRoadTile[1] * TS + 8; state.cam.x = P.x; state.cam.y = P.y;
+      let ok = true; try { rnd.render(3000); } catch (e) { ok = false; }
+      check('il vialetto lungo si disegna senza esplodere', ok);
+    }
+  }
+
+  /* casa un pelo più lontana dalla città, mai dentro il suo territorio */
+  check('casa: distanziata dalla città (non appiccicata)',
+    home.x < town.x0 - world.HOME_TOWN_GAP || home.x > town.x1 + world.HOME_TOWN_GAP ||
+    home.y < town.y0 - world.HOME_TOWN_GAP || home.y > town.y1 + world.HOME_TOWN_GAP);
+  let overlapTown = false;
+  for (let ty = p.y0; ty <= p.y1 + world.HOME_PATH_LEN; ty++) for (let tx = p.x0; tx <= p.x1; tx++) {
+    if (world.townInfo(tx, ty)) overlapTown = true;
+  }
+  check('cortile+vialetto: mai dentro il territorio della città', !overlapTown);
+
+  P.x = home.x * TS; P.y = home.y * TS;
+  park.refreshVisParks();
+  check('vicino a casa: cortile "vicino" (yardNear)', park.yardNear === true);
+
+  /* IL CANCELLO SI CHIUDE VISTO DA FUORI, CON UN'ANIMAZIONE (a richiesta: "quando esce deve
+     fare l'animazione della chiusura" — niente tono di testo, si guarda succedere). Uscire
+     dal cortile fa partire gateClosingProgress() da 0 (appena iniziato) verso 1 (tutto
+     chiuso) in ~mezzo secondo; stare dentro o restare fuori non la fa ripartire.
+     SONO ANTE A BATTUTA (a richiesta esplicita: "sono ante a battuta NON una serranda") —
+     ognuna cresce dal proprio montante verso il centro, non scende dall'alto — e a chiusura
+     avvenuta compare un lucchetto dove le due si toccano. */
+  {
+    P.x = p.cx * TS + 8; P.y = (p.y1 - 1) * TS + 2; park.refreshVisParks(); // dentro, come 'parco'
+    check('dentro il cortile: cancello non in chiusura (progress=1, cioè fermo)', park.gateClosingProgress() === 1);
+    P.dir = 'down'; P.x = p.cx * TS + 8; P.y = (p.y1 + 2) * TS + 2; park.refreshVisParks(); // uscito dal cancello
+    const p0 = park.gateClosingProgress();
+    check('uscendo dal cancello: l\'animazione è appena partita (progress < 1)', p0 >= 0 && p0 < 1, p0);
+    check('uscendo dal cancello: ci si gira a guardarlo (dir=up)', P.dir === 'up');
+    const rnd = await import('../src/render.js');
+    let drewOk = true;
+    try {
+      rnd.drawGate(0, 0, 'l', false, 0); rnd.drawGate(0, 0, 'r', false, 0); // ante appena iniziate a chiudersi
+      rnd.drawGate(0, 0, 'l', false, 0.5); rnd.drawGate(0, 0, 'r', false, 0.5); // a metà
+      rnd.drawGate(0, 0, 'l', false, 1); rnd.drawGate(0, 0, 'r', false, 1); // chiuse: qui compare anche il lucchetto ('r')
+    } catch (e) { drewOk = false; }
+    check('le ante e il lucchetto si disegnano ad ogni fase senza esplodere', drewOk);
+
+    /* la svolta durava un fotogramma solo e chi teneva un tasto premuto la sovrascriveva
+       subito (segnalato: "quando esce si deve girare per far capire che sta chiudendo il
+       cancello") — ora il movimento resta bloccato (P.gateTurnUntil) per tutta l'animazione,
+       come P.digging blocca lo scavo. Più le BARRE CINEMATOGRAFICHE 16:9 (a richiesta) per
+       tutta la stessa finestra, sopra e sotto. */
+    check('P.gateTurnUntil è nel futuro appena usciti', typeof P.gateTurnUntil === 'number' && P.gateTurnUntil > Date.now());
+    const { ctx: cx2 } = await import('../src/screen.js');
+    state.cam.x = P.x; state.cam.y = P.y;
+    const seen = new Set(); const of2 = cx2.fillRect;
+    cx2.fillRect = () => seen.add(cx2.fillStyle);
+    try { rnd.render(3500); } catch (e) { /* qui interessa solo il colore visto */ }
+    cx2.fillRect = of2;
+    check('barre nere visibili mentre il cancello chiude', seen.has('#0a0a0a'));
+    P.gateTurnUntil = Date.now() - 1; // fa scadere la finestra: da qui in poi il movimento riparte
+    check('scaduta la finestra: il movimento non è più bloccato', !(P.gateTurnUntil && Date.now() < P.gateTurnUntil));
+    /* il lucchetto compare SOLO a chiusura completa e SOLO dalla cella 'r' (altrimenti doppio) */
+    const seenLock = c => { const seen = new Set(); const of = cx2.fillRect; cx2.fillStyle = ''; cx2.fillRect = () => seen.add(cx2.fillStyle); c(); cx2.fillRect = of; return seen; };
+    const noLockYet = seenLock(() => rnd.drawGate(40, 40, 'r', false, 0.9));
+    const withLock = seenLock(() => rnd.drawGate(40, 40, 'r', false, 1));
+    const lockOnlyOnL = seenLock(() => rnd.drawGate(40, 40, 'l', false, 1));
+    check('nessun lucchetto finché l\'anta non è del tutto chiusa', !noLockYet.has('#3a2e20'));
+    check('il lucchetto compare a chiusura completa (cella destra)', withLock.has('#3a2e20'));
+    check('il lucchetto NON si ridisegna dalla cella sinistra (una volta sola)', !lockOnlyOnL.has('#3a2e20'));
+  }
+
+  /* il cortile è una scelta ESPLICITA: `S.house.yard` parte vuoto, nessuna creatura cammina
+     finché non la ci si mette (M5, a differenza del vecchio parco che mostrava TUTTO). */
+  const house = await import('../src/house.js');
+  house.ensureHouseState();
+  S.house.yard = [];
+  check('cortile vuoto di default: nessuna creatura sceglie da sola', park.yardList().length === 0);
+  S.house.yard.push('chi900'); // la chimera seminata sopra (uid 900)
+  const list = park.yardList();
+  check('una creatura scelta vive nel cortile', list.length === 1 && list[0].c.key === 'chi900');
+
+  /* LE SPECIE RISVEGLIATE POSSONO vivere nel cortile (se scelte). Costano cinque pezzi e una
+     fialetta intera di DNA: per mesi il vecchio recinto le ignorava comunque, comparivano
+     solo nel Libro e fra i compagni — un giocatore ne aveva risvegliate dieci e le credeva
+     perse. Ora ENTRAMBE le liste vengono dalla stessa `parkPopulation()`: la scelta sta solo
+     in `S.house.yard`. */
+  {
     S.awakened.push('fangodonte', 'brontorana');
-    const after = park.parkList(big);
-    check('le specie risvegliate entrano nel parco',
-      after.length === before + 2 && S.creatures.length + S.awakened.length === after.length);
+    check('risvegliate NON scelte: restano fuori dal cortile', park.yardList().length === 1);
+    S.house.yard.push('spfangodonte', 'spbrontorana');
+    const after = park.yardList();
+    check('risvegliate scelte: entrano nel cortile', after.length === 3);
     const nomi = after.map(a => a.c.name);
-    check('nel parco ci sono col loro nome di specie',
+    check('nel cortile ci sono col loro nome di specie',
       nomi.includes('Fangodonte') && nomi.includes('Brontorana'));
     check('una specie risvegliata ha lo sprite della specie (cranio=torace=zampa)',
       after.some(a => a.c.skull === 'fangodonte' && a.c.torso === 'fangodonte' && a.c.leg === 'fangodonte'));
-    /* parco e selettore dei compagni devono pescare dalla STESSA lista: quando erano due
-       elenchi scritti a mano sono divergute proprio così */
+    /* il selettore dei compagni pesca da TUTTE le creature possedute, non solo dal cortile:
+       ogni creatura resta scegliibile come compagno anche se non vive nel cortile */
     const compMod = await import('../src/companion.js');
     const comp = compMod.companionCandidates();
-    check('parco e compagni: stessa popolazione',
-      comp.length === after.length && comp.every((c, i) => c.key === after[i].c.key));
-    /* SDOPPIAMENTO: il compagno "con te" ESCE dal recinto (non si vede due volte), ma resta
-       scegliibile nel selettore; rimandandolo a casa rientra nel recinto */
-    const penFull = park.parkList(big).length;
+    check('il selettore vede anche chi non è nel cortile',
+      comp.length === 3 && comp.some(c => c.key === 'chi900'));
+    /* SDOPPIAMENTO: il compagno "con te" ESCE dal cortile (non si vede due volte), ma resta
+       scegliibile nel selettore; rimandandolo a casa rientra nel cortile */
+    const yardFull = park.yardList().length;
     compMod.setCompanion(park.parkPopulation().find(c => c.key === 'spfangodonte'));
-    const penAfter = park.parkList(big);
-    check('compagno con te: NON è più nel recinto (niente doppione)', penAfter.length === penFull - 1 && !penAfter.some(a => a.c.key === 'spfangodonte'));
+    const yardAfter = park.yardList();
+    check('compagno con te: NON è più nel cortile (niente doppione)', yardAfter.length === yardFull - 1 && !yardAfter.some(a => a.c.key === 'spfangodonte'));
     check('compagno con te: resta nel selettore dei compagni', compMod.companionCandidates().some(c => c.key === 'spfangodonte'));
     compMod.clearCompanion();
-    check('rimandato a casa: rientra nel recinto', park.parkList(big).some(a => a.c.key === 'spfangodonte'));
+    check('rimandato a casa: rientra nel cortile', park.yardList().some(a => a.c.key === 'spfangodonte'));
     S.awakened.length = 0;
-    check('tolte le risvegliate il parco torna alle sole chimere',
-      park.parkList(big).length === S.creatures.length);
+    S.house.yard = ['chi900'];
+    check('tolte le risvegliate il cortile torna alla sola chimera scelta',
+      park.yardList().length === 1);
   }
   let out = 0;
+  const list2 = park.yardList();
   for (let i = 0; i < 3600; i++) {
-    park.updatePark(big, 1 / 60);
-    for (const a of list) {
+    park.updatePark(1 / 60);
+    for (const a of list2) {
       const tx = Math.floor(a.x / TS), ty = Math.floor(a.y / TS);
       if (tx <= p.x0 || tx >= p.x1 || ty <= p.y0 || ty >= p.y1) out++;
     }
   }
   check('60s di wander senza fughe', out === 0);
+  S.home = savedHome; S.house.yard = [];
 }
 
 /* ---------- LO SCOPO DEL GIOCO: riportarle in vita ----------
@@ -2990,10 +3224,9 @@ sprites.applyLook();
         if (!c.roads.has(b.doorx + ',' + (b.doory + 1))) stubOk = false;
         if (world.isSolidTile(b.doorx, b.doory + 1)) exitFree = false;
       }
-      /* città intera (parco compreso) dentro la sua cella: townForTile deve ritrovarla */
-      const y1 = c.pen ? c.pen.y1 : c.y1;
+      /* città intera dentro la sua cella: townForTile deve ritrovarla */
       if (Math.floor(c.x0 / world.TCELL) !== cx || Math.floor(c.x1 / world.TCELL) !== cx ||
-        Math.floor(c.y0 / world.TCELL) !== cy || Math.floor(y1 / world.TCELL) !== cy) inCell = false;
+        Math.floor(c.y0 / world.TCELL) !== cy || Math.floor(c.y1 / world.TCELL) !== cy) inCell = false;
     }
     check('strade camminabili e marcate', roadsOk);
     check('vialetto davanti a ogni porta', stubOk);
@@ -3021,6 +3254,638 @@ sprites.applyLook();
       rows++; if (Math.max(best, run) >= 40) straight++;
     }
     check('confini dei biomi non a righello', straight === 0);
+  }
+}
+
+/* ---------- CASA del giocatore (M1: guscio, spawn, teleport gratuito) ---------- */
+{
+  const inter = await import('../src/interior.js');
+  const cave = await import('../src/cave.js');
+  /* trova una città "città" (come fa findStart) per piazzare la porta accanto */
+  let town = null;
+  for (let r = 0; r < 16 && !town; r++) {
+    for (let cy = -r; cy <= r && !town; cy++) for (let cx = -r; cx <= r && !town; cx++) {
+      if (Math.max(Math.abs(cx), Math.abs(cy)) !== r) continue;
+      const t = world.townForCell(cx, cy); if (t && t.size === 'città') town = t;
+    }
+  }
+  check('trovata una città grande per la casa', !!town);
+  const home = town && world.findHomeSpot(town);
+  check('S.home: un posto valido vicino alla città', !!home);
+  if (home) {
+    /* la porta deve stare su terreno aperto, FUORI dalla città (piazza/parco), prima che la
+       casa esista */
+    check('la porta di casa non è dentro la città', !world.townInfo(home.x, home.y));
+    check('davanti alla porta c\'è area aperta', world.openArea(home.x, home.y + 1));
+    S.home = home;
+    check('houseDoorAt riconosce la porta appena fissata', world.houseDoorAt(home.x, home.y));
+    const hf = world.houseFootprint();
+    check('houseFootprint: 3×2 con la porta al centro della fila bassa', !!hf &&
+      hf.x1 - hf.x0 === 2 && hf.y1 - hf.y0 === 1 && hf.doorx === home.x && hf.doory === home.y);
+    check('la casa è solida tranne la porta', world.isSolidTile(hf.x0, hf.y0) && world.isSolidTile(hf.x1, hf.y1 - 1) && !world.isSolidTile(hf.doorx, hf.doory));
+
+    /* entrare/uscire dalla casa come da qualunque altra porta */
+    inter.INT.active = false; inter.INT.justLeft = false; cave.CAVE.active = false;
+    P.x = home.x * TS + 8; P.y = home.y * TS + 2; P.dir = 'up'; P.moving = true;
+    inter.checkDoorEnter();
+    check('si entra in casa camminando sulla porta', inter.INT.active === true && inter.INT.b && inter.INT.b.type === 'house');
+    inter.exitInterior();
+    check('si esce di nuovo, non intrappolati', inter.INT.active === false && !world.isSolidTile(Math.floor(P.x / TS), Math.floor(P.y / TS)));
+    inter.INT.justLeft = false;
+
+    /* goHome(): gratis, teletrasporto istantaneo + portale di ritorno a uso singolo */
+    P.x = (home.x + 400) * TS; P.y = (home.y + 300) * TS; // lontanissimo da casa
+    const farX = P.x, farY = P.y;
+    S.teleportBack = null; S.returnPortal = null; S.gateLocked = false;
+    const box0 = document.getElementById('toasts'), said0 = [];
+    const orig0 = box0.appendChild;
+    box0.appendChild = c => { said0.push(String(c.innerHTML)); return c; };
+    const went = gameplay.goHome();
+    box0.appendChild = orig0;
+    check('goHome(): teletrasporta gratis quando sei lontano', went === true);
+    /* il tono NON arriva più qui: si è ancora nel corridoio, il cancello non si vede da lì —
+       arriva quando ci si arriva davvero vicino da dentro il cortile (vedi più sotto). */
+    check('al teletrasporto il tono non compare ancora (si è nel corridoio)', !said0.some(t => /chiuso dall.esterno|locked from outside/i.test(t)));
+    check('goHome(): salva da dove sei partito', !!S.teleportBack && S.teleportBack.x === farX && S.teleportBack.y === farY);
+    check('goHome(): apre un portale di ritorno', !!S.returnPortal);
+    const nearHome = Math.abs(Math.floor(P.x / TS) - home.x) < 10 && Math.abs(Math.floor(P.y / TS) - home.y) < 10;
+    check('goHome(): sei vicino a casa', nearHome);
+    /* si arriva DENTRO, nel corridoio (atrio) — non fuori nel cortile: "il portale mi deve
+       portare NON nel cortile ma nel corridoio di casa" */
+    check('goHome(): si entra nel corridoio di casa', inter.INT.active === true && inter.INT.b.type === 'house' && inter.INT.houseRoom === null);
+    inter.INT.active = false; inter.INT.justLeft = false; // si esce a mano: il resto del blocco lavora fuori
+
+    /* TELETRASPORTARSI SALTA IL CANCELLO A PIEDI: da fuori resta chiuso a chiave DAVVERO
+       (non solo l'aspetto) — a richiesta esplicita: "quando mi teletrasporto il cancello deve
+       rimanere chiuso e bloccato dall'esterno. E solo in questo caso, deve comparire caspita è
+       chiuso dall'esterno" (mai quando si esce a piedi, che resta un'animazione muta). */
+    check('teletrasportarsi a casa blocca il cancello per davvero', S.gateLocked === true);
+    const pYard = world.yardRect();
+    const gtx = pYard.cx, gty = pYard.y1;
+    check('il cancello bloccato è SOLIDO (non si passa)', world.isSolidTile(gtx, gty) === true);
+    const ydLocked = world.yardInfo(gtx, gty);
+    check('yardInfo segnala il cancello chiuso (gateOpen=false)', ydLocked.gateOpen === false && ydLocked.solid === true);
+    /* VOLUTO, non un bug: si blocca in ENTRAMBI i versi. Se si potesse uscire a piedi dal
+       cortile appena teletrasportati, il cancello "chiuso dall'esterno" non costerebbe nulla
+       — si resta dentro finché non si usa il portale di ritorno (che atterra nel cortile,
+       non oltre il cancello) o lo si sblocca da fuori più tardi. Da DENTRO, E sul cancello
+       non lo sblocca (nearbyLockedGate è scoperto solo da fuori): l'unica uscita da lì è il
+       portale, che infatti resta a portata. */
+    P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - 1) * TS + 2; // appena dentro il cancello
+    check('da dentro, E sul cancello non lo sblocca', gameplay.nearbyLockedGate() === false);
+    /* IL TONO ARRIVA QUI: avvicinandosi al cancello DA DENTRO il cortile — non al momento del
+       teletrasporto (si era ancora nel corridoio, il cancello non si vedeva). Una volta sola
+       per chiusura (checkGateNotice tiene un flag interno, non salvato). */
+    {
+      const box1 = document.getElementById('toasts'), said1 = [];
+      const orig1 = box1.appendChild;
+      box1.appendChild = c => { said1.push(String(c.innerHTML)); return c; };
+      gameplay.checkGateNotice();
+      box1.appendChild = orig1;
+      check('avvicinandosi al cancello da dentro compare "caspita, chiuso dall\'esterno"', said1.some(t => /chiuso dall.esterno|locked from outside/i.test(t)));
+    }
+    {
+      const box2 = document.getElementById('toasts'), said2 = [];
+      const orig2 = box2.appendChild;
+      box2.appendChild = c => { said2.push(String(c.innerHTML)); return c; };
+      gameplay.checkGateNotice();
+      box2.appendChild = orig2;
+      check('il tono non si ripete ogni frame vicino al cancello', said2.length === 0);
+    }
+    /* IL PORTALE STA IN MEZZO ALL'ATRIO, non fuori nel cortile (a richiesta esplicita: "il
+       portale deve essere in mezzo al corridoio NON FUORI e deve comparirmi E") — si controlla
+       DENTRO la scena (INT.x/INT.y), non più P.x/P.y del mondo. goHome() ci aveva già fatti
+       entrare; il blocco sopra ("si entra nel corridoio di casa") era uscito per lavorare
+       fuori — si rientra apposta per questa prova. */
+    const houseM = await import('../src/house.js');
+    inter.INT.active = true; inter.INT.b = { type: 'house', doorx: S.home.x, doory: S.home.y }; inter.INT.houseRoom = null;
+    inter.INT.x = houseM.ATRIO_PORTAL.x; inter.INT.y = houseM.ATRIO_PORTAL.y;
+    check('il portale di ritorno è raggiungibile in mezzo all\'atrio', !!gameplay.nearbyReturnPortal());
+    inter.INT.x = 4; inter.INT.y = 4; // angolo dell'atrio, lontano dal centro
+    check('lontano dal centro dell\'atrio: il portale non è a portata', !gameplay.nearbyReturnPortal());
+    inter.INT.active = false; inter.INT.justLeft = false; // si esce di nuovo: il resto del blocco lavora fuori
+    {
+      const box = document.getElementById('toasts'), said = [];
+      const orig = box.appendChild;
+      box.appendChild = c => { said.push(String(c.innerHTML)); return c; };
+      P.x = (home.x + 400) * TS; P.y = (home.y + 300) * TS; // di nuovo lontano, per teletrasportarsi una seconda volta
+      gameplay.goHome();
+      box.appendChild = orig;
+      check('già bloccato: il tono "caspita" NON si ripete alla seconda volta', !said.some(t => /chiuso dall.esterno|locked from outside/i.test(t)));
+    }
+
+    /* DALL'ESTERNO LO SI PUÒ SEMPRE RIAPRIRE (a richiesta esplicita: "dall'esterno lo posso
+       sempre aprire") — non è un vicolo cieco, solo una porta come un'altra. */
+    P.x = gtx * TS + 8; P.y = (gty + 1) * TS + 2; // subito fuori dal cancello, come dopo un'uscita a piedi
+    check('subito fuori dal cancello bloccato: E lo riapre', gameplay.nearbyLockedGate() === true);
+    check('riaprirlo riesce', gameplay.openLockedGate() === true);
+    check('il cancello non è più bloccato', S.gateLocked === false && world.isSolidTile(gtx, gty) === false);
+    check('già aperto: E non fa più nulla di speciale lì', gameplay.nearbyLockedGate() === false);
+    S.gateLocked = false; // ripristina: i test seguenti (e altri file più giù) non devono trovare il cancello bloccato
+
+    /* già a casa: nessun effetto (niente doppio portale) */
+    P.x = home.x * TS + 8; P.y = (home.y + 2) * TS + 3;
+    const already = gameplay.goHome();
+    check('goHome(): no-op se sei già a casa', already === false);
+
+    /* il portale di ritorno riporta esattamente dove eri, poi sparisce (uso singolo) — si
+       usa DENTRO l'atrio (in mezzo, ATRIO_PORTAL), non più con P.x/P.y del mondo */
+    S.teleportBack = { x: farX, y: farY }; // ripristina lo stato del portale aperto sopra
+    inter.INT.active = true; inter.INT.b = { type: 'house', doorx: S.home.x, doory: S.home.y }; inter.INT.houseRoom = null;
+    inter.INT.x = houseM.ATRIO_PORTAL.x; inter.INT.y = houseM.ATRIO_PORTAL.y;
+    check('il portale è a portata in mezzo all\'atrio', !!gameplay.nearbyReturnPortal());
+    /* il prompt con "E" mancava (segnalato: "quando mi avvicino al portale non c'è la
+       scritta E per tp") — updatePrompt() ha il suo elenco di vicinanze SEPARATO da act(),
+       nessuno dei due bastava da solo. */
+    ui.updatePrompt();
+    const promptEl = document.getElementById('prompt');
+    check('vicino al portale compare il prompt con E', promptEl && /Torna indietro|Teleport back/.test(promptEl.innerHTML), promptEl && promptEl.innerHTML);
+    const ok = gameplay.useReturnPortal();
+    check('il portale riporta ESATTAMENTE al punto di partenza', ok === true && P.x === farX && P.y === farY);
+    check('usarlo esce dall\'atrio', inter.INT.active === false);
+    check('il portale si consuma (uso singolo)', S.returnPortal === null && S.teleportBack === null);
+
+    /* la casa e il portale si disegnano davvero (ogni scena va disegnata da un test):
+       più fotogrammi/orari, per attraversare anche le fasi animate del vortice e la notte).
+       Il portale sta DENTRO l'atrio (drawHouseCorridor), non più nel mondo aperto. */
+    const { render, drawHouse } = await import('../src/render.js');
+    P.x = home.x * TS; P.y = home.y * TS; state.cam.x = P.x; state.cam.y = P.y;
+    let drewOk = true;
+    const oldTod = S.tod;
+    const oldMaps = S.maps, oldDrops = S.drops;
+    S.maps = [{ x: home.x, y: home.y - 2, rar: 'raro', uid: 1 }];
+    S.drops = [{ tx: home.x + 1, ty: home.y - 2, kind: 'good', payload: { id: 'ambra' } }, { tx: home.x - 1, ty: home.y - 2, kind: 'fossil' }];
+    try {
+      for (const t of [0, 150, 300, 450]) render(t);
+      S.tod = 0.75; render(600); // notte: finestre accese, vetri gialli
+      S.tod = oldTod;
+    } catch (e) { drewOk = false; }
+    S.maps = oldMaps; S.drops = oldDrops;
+    check('la casa si disegna senza errori', drewOk);
+    /* il portale ANIMATO dentro l'atrio (drawHouseCorridor → drawReturnPortal), più fotogrammi
+       per le fasi del vortice */
+    S.returnPortal = { x: home.x, y: home.y + 2 }; // solo un flag ormai: la posizione vera è ATRIO_PORTAL
+    inter.INT.active = true; inter.INT.b = { type: 'house', doorx: S.home.x, doory: S.home.y }; inter.INT.houseRoom = null;
+    let portalDrewOk = true;
+    try { for (const t of [0, 150, 300, 450]) render(t); } catch (e) { portalDrewOk = false; }
+    check('il portale nell\'atrio si disegna senza errori', portalDrewOk);
+    inter.INT.active = false; inter.INT.justLeft = false;
+    S.returnPortal = null;
+    /* la casa nelle Lande Gelide ha la neve sul tetto: stessa funzione, un ramo in più */
+    let snowOk = true;
+    try { drawHouse({ x0: 0, y0: 540, x1: 2, y1: 541, doorx: 1, doory: 541 }, 0, 0); } catch (e) { snowOk = false; }
+    check('la casa innevata si disegna senza errori', snowOk);
+  }
+}
+
+/* ---------- CASA del giocatore (M2: sblocco stanze, SCENE separate vere) ---------- */
+{
+  const house = await import('../src/house.js');
+  const inter = await import('../src/interior.js');
+  const i18nHouse = await import('../src/i18n.js');
+  /* stato pulito, indipendente da quanto girato prima */
+  S.house = { rooms: [{ id: 0, unlocked: true, furn: [] }, { id: 1, unlocked: false, furn: [] }, { id: 2, unlocked: false, furn: [] }, { id: 3, unlocked: false, furn: [] }] };
+  check('la stanza 0 parte sempre sbloccata', house.roomUnlocked(0) === true);
+  check('le altre partono chiuse', !house.roomUnlocked(1) && !house.roomUnlocked(2) && !house.roomUnlocked(3));
+  check('i prezzi crescono ed è gratis solo la stanza 0', house.roomPrice(0) === 0 && house.roomPrice(1) < house.roomPrice(2) && house.roomPrice(2) < house.roomPrice(3));
+
+  /* SCENE SEPARATE (rifatto da capo due volte: prima "stanze in fila", poi "un corridoio
+     con le stanze ai lati" — bocciato anche quello, "le stanze non si devono vedere
+     attraverso le porte", ispirazione Animal Crossing): un piccolo ATRIO con una porta per
+     stanza (su pareti diverse, mai sovrapposte), ogni stanza una scena a sé con la SUA
+     griglia locale (ROOM_TILE_W×ROOM_TILE_H, come i 6 interni a mestiere). */
+  {
+    const gates = house.houseGates();
+    check('4 porte nell\'atrio, una per stanza', gates.length === 4 && gates.every((g, i) => g.id === i));
+    check('le porte stanno su pareti diverse (mai a caso una sull\'altra)',
+      new Set(gates.map(g => g.wall + ':' + Math.round((g.cx || 0) + (g.cy || 0)))).size === 4);
+    check('l\'atrio è piccolo, un vero ingresso (non un corridoio istituzionale)',
+      house.CORR_W * house.CORR_H < house.ROOM_TILE_W * house.ROOM_TILE_H &&
+      house.CORR_H <= house.ROOM_TILE_H + 2);
+    check('ogni stanza è una scena a sé, della stessa taglia dei 6 interni a mestiere',
+      house.ROOM_TILE_W === 10 && house.ROOM_TILE_H === 7);
+    check('le stanze hanno un\'identità di casa vera, non "Stanza N"',
+      i18nHouse.roomName(0) === 'Sala' && i18nHouse.roomName(1) === 'Cucina' &&
+      i18nHouse.roomName(2) === 'Bagno' && i18nHouse.roomName(3) === 'Camera');
+  }
+
+  /* fondi insufficienti: nessun effetto collaterale */
+  const price1 = house.roomPrice(1);
+  S.coins = price1 - 1;
+  const coinsBefore = S.coins;
+  const failed = house.tryUnlockRoom(1);
+  check('sblocco rifiutato senza abbastanza monete', failed === false);
+  check('non spende nulla se rifiuta', S.coins === coinsBefore);
+  check('la stanza resta chiusa se il pagamento fallisce', !house.roomUnlocked(1));
+
+  /* fondi sufficienti: si sblocca e paga */
+  S.coins = price1;
+  const ok = house.tryUnlockRoom(1);
+  check('sblocco riuscito con monete sufficienti', ok === true);
+  check('le monete vengono scalate del prezzo giusto', S.coins === 0);
+  check('la stanza resta sbloccata (persiste in S.house)', house.roomUnlocked(1) === true);
+  check('sbloccarla di nuovo non fa nulla (già tua)', house.tryUnlockRoom(1) === false);
+
+  if (state.S.home) {
+    const home = state.S.home;
+    /* si entra in casa: si arriva SEMPRE nel piccolo atrio, mai dentro una stanza */
+    inter.INT.active = false; inter.INT.justLeft = false;
+    P.x = home.x * TS + 8; P.y = home.y * TS + 2; P.dir = 'up'; P.moving = true;
+    inter.checkDoorEnter();
+    check('si rientra in casa per il test delle stanze', inter.INT.active === true && inter.INT.b.type === 'house');
+    check('si arriva nell\'ATRIO, non in una stanza', inter.INT.houseRoom === null);
+    check('la scena attiva è quella dell\'atrio (piccola)', inter.INT.w === house.CORR_W && inter.INT.h === house.CORR_H);
+    check('si entra vicino alla porta d\'ingresso, in basso al centro', Math.abs(inter.INT.x - (house.CORR_W / 2) * TS) < TS);
+
+    /* varco 1 (stanza 0→1, appena sbloccata): attraversabile e ci si ENTRA (scena cambia);
+       varco 2 (verso la 2, ancora chiusa): muro pieno, lucchetto compreso, NESSUNA scena
+       cambia (le stanze chiuse non si "vedono" nemmeno attraverso la porta) */
+    const g1 = house.corrDoorRect(1), g2 = house.corrDoorRect(2);
+    check('il varco di una stanza sbloccata si attraversa', !inter.interiorSolid(g1.cx, g1.cy));
+    check('il varco di una stanza ancora chiusa è solido (lucchetto)', inter.interiorSolid(g2.cx, g2.cy));
+
+    /* il prompt/interazione trova il varco chiuso più vicino, SOLO mentre si è nell'atrio */
+    inter.INT.x = g2.cx + (g2.wall === 'left' ? 10 : -10); inter.INT.y = g2.cy;
+    check('nearLockedGate riconosce il varco chiuso davanti', inter.nearLockedGate() === 2);
+    inter.INT.x = g1.cx; inter.INT.y = g1.cy;
+    check('nearLockedGate non segnala un varco già sbloccato', inter.nearLockedGate() === null);
+
+    /* si cammina DENTRO il varco sbloccato: si passa alla SCENA della stanza (non più
+       all'atrio) — esattamente come entrare in un edificio del mondo */
+    inter.INT.x = g1.cx; inter.INT.y = g1.wall === 'top' ? -3 : g1.cy;
+    if (g1.wall === 'left') inter.INT.x = -3; else if (g1.wall === 'right') inter.INT.x = house.CORR_W * TS + 3;
+    inter.updateInterior(0, {}, 0); // stepHouseNav gira ad ogni frame, senza input basta un tick
+    check('entrando nel varco sbloccato la scena diventa quella della stanza', inter.INT.houseRoom === 1);
+    check('la stanza ha la sua taglia propria (non più quella dell\'atrio)', inter.INT.w === house.ROOM_TILE_W && inter.INT.h === house.ROOM_TILE_H);
+    /* nessun lucchetto da mostrare DENTRO una stanza (le porte stanno solo nell'atrio) */
+    check('nessun varco a lucchetto dentro una stanza', inter.nearLockedGate() === null);
+
+    /* si torna indietro: si esce dalla stanza dal SUO varco in basso → ATRIO, non il mondo */
+    inter.INT.x = house.ROOM_TILE_W / 2 * TS; inter.INT.y = house.ROOM_TILE_H * TS + 2;
+    inter.updateInterior(0, {}, 0);
+    check('uscendo dalla stanza si torna nell\'atrio', inter.INT.houseRoom === null && inter.INT.active === true);
+    check('la scena torna quella (piccola) dell\'atrio', inter.INT.w === house.CORR_W && inter.INT.h === house.CORR_H);
+
+    /* sblocca anche la 2 e verifica che il varco si apra davvero */
+    S.coins = house.roomPrice(2);
+    check('sblocco della stanza 2 riuscito', house.tryUnlockRoom(2) === true);
+    check('ora il suo varco si attraversa', !inter.interiorSolid(g2.cx, g2.cy));
+
+    /* la scheda della porta a lucchetto si apre e mostra il prezzo (senza crash) */
+    {
+      S.coins = 0;
+      let crash = null;
+      try { ui.openRoomLock(3); } catch (e) { crash = e.message; }
+      check('la porta a lucchetto si apre senza crash', crash === null, crash || '');
+      const html = document.getElementById('m-body').innerHTML;
+      check('la scheda mostra il prezzo della stanza', html.includes(String(house.roomPrice(3))));
+      check('senza monete il bottone di sblocco è disabilitato', /disabled/.test(html));
+      ui.closeModal(true);
+    }
+    /* l'acquisto vero e proprio (tryUnlockRoom, quello che il bottone richiama) */
+    S.coins = house.roomPrice(3);
+    check('con le monete giuste anche l\'ultima stanza si sblocca', house.tryUnlockRoom(3) === true);
+    /* uscire dall'atrio (porta d'ingresso, verso il mondo): lascia DAVVERO la casa */
+    inter.INT.houseRoom = null; inter.INT.w = house.CORR_W; inter.INT.h = house.CORR_H;
+    inter.INT.x = (house.CORR_W / 2) * TS; inter.INT.y = (house.CORR_H - 0.5) * TS;
+    inter.updateInterior(0, {}, 0);
+    check('uscendo dalla porta d\'ingresso si lascia la casa', inter.INT.active === false);
+  }
+}
+
+/* ---------- CASA del giocatore (M3: arredo, piazzamento, negozio) ---------- */
+{
+  const house = await import('../src/house.js');
+  const inter = await import('../src/interior.js');
+  const dataM = await import('../src/data.js');
+  const i18n = await import('../src/i18n.js');
+  const progress = await import('../src/progress.js');
+  const regionsM = await import('../src/regions.js');
+  const { FURN_SETS, FURN_BY_ID } = dataM;
+
+  /* FURN_SETS: 6 zone, ogni pezzo valido, FURN_BY_ID è lo stesso oggetto */
+  check('FURN_SETS copre tutte le 6 zone', dataM.ZONES.every(z => Array.isArray(FURN_SETS[z.id]) && FURN_SETS[z.id].length > 0));
+  const allFurn = Object.values(FURN_SETS).flat();
+  check('ogni pezzo di arredo ha id/zone/slot/lvl/cost/icon validi', allFurn.every(f =>
+    typeof f.id === 'string' && dataM.ZONES.some(z => z.id === f.zone) && typeof f.slot === 'string' &&
+    Number.isFinite(f.lvl) && Number.isFinite(f.cost) && typeof f.icon === 'string'));
+  check('FURN_BY_ID trova ogni pezzo per id', allFurn.every(f => FURN_BY_ID[f.id] === f));
+  check('ogni pezzo ha un nome tradotto (furnLabel)', allFurn.every(f => i18n.furnLabel(f.id) !== f.id));
+
+  /* stato pulito */
+  S.furnOwned = []; S.house = { rooms: [{ id: 0, unlocked: true, furn: [] }, { id: 1, unlocked: false, furn: [] }, { id: 2, unlocked: false, furn: [] }, { id: 3, unlocked: false, furn: [] }] };
+  S.level = 1; S.coins = 0;
+  const cheap = FURN_SETS.prati[0];    // lvl 1, il più economico
+  const highLvl = FURN_SETS.prati.find(f => f.lvl > 1) || FURN_SETS.prati[1];
+
+  /* acquisto sotto livello: rifiutato, nessun effetto */
+  S.coins = 9999;
+  check('sotto il livello richiesto: rifiutato', house.buyFurniture(highLvl.id) === false);
+  check('nessuna moneta spesa se rifiutato per livello', S.coins === 9999);
+  check('non entra nel posseduto se rifiutato per livello', !S.furnOwned.includes(highLvl.id));
+
+  /* fondi insufficienti (livello ok) */
+  S.level = highLvl.lvl; S.coins = highLvl.cost - 1;
+  const coinsBefore = S.coins;
+  check('fondi insufficienti: rifiutato', house.buyFurniture(highLvl.id) === false);
+  check('nessuna moneta spesa se rifiutato per fondi', S.coins === coinsBefore);
+
+  /* acquisto riuscito: livello e fondi ok */
+  S.coins = highLvl.cost;
+  check('acquisto riuscito', house.buyFurniture(highLvl.id) === true);
+  check('le monete sono state scalate', S.coins === 0);
+  check('il pezzo è nel posseduto', S.furnOwned.includes(highLvl.id));
+  check('furnLevelLock torna null per un pezzo già tuo', house.furnLevelLock(highLvl.id) === null);
+  check('comprarlo di nuovo non fa nulla (già tuo)', house.buyFurniture(highLvl.id) === false);
+
+  /* un secondo pezzo, economico, per i test di piazzamento: `cheap` (prati_rug) è un
+     DECORO — un tappeto, non un mobile — e un terzo pezzo (`extraSolid`, prati_table) per
+     isolare il rifiuto "stesso strato già occupato" senza confonderlo col rifiuto "già
+     piazzato altrove" (che scatterebbe riprovando lo stesso `highLvl`). */
+  S.coins = cheap.cost; S.level = Math.max(S.level, cheap.lvl);
+  check('secondo acquisto riuscito (pezzo economico)', house.buyFurniture(cheap.id) === true);
+  const extraSolid = FURN_SETS.prati.find(f => f.slot === 'tavolo');
+  S.coins = extraSolid.cost; S.level = Math.max(S.level, extraSolid.lvl);
+  check('terzo acquisto riuscito (mobile solido di scorta)', house.buyFurniture(extraSolid.id) === true);
+  check('il vassoio (non piazzato) contiene tutti e tre', house.ownedUnplaced().length === 3 &&
+    house.ownedUnplaced().includes(cheap.id) && house.ownedUnplaced().includes(highLvl.id) && house.ownedUnplaced().includes(extraSolid.id));
+
+  /* piazzamento: cella valida di pavimento nella stanza 0 (sempre sbloccata) — coordinate
+     LOCALI DIRETTE alla scena della stanza (0,0 = angolo della SUA griglia, niente più
+     offset di un corridoio condiviso). */
+  const cell = house.floorCellAt(0, 3 * TS + 8, 4 * TS + 8); // dentro ROOM_TILE_W×ROOM_TILE_H
+  check('la cella scelta per il test è pavimento calpestabile', !!cell && cell.room === 0);
+  check('piazzare nella stanza sbloccata riesce', house.tryPlaceFurniture(0, cell.gx, cell.gy, cheap.id) === true);
+  check('il pezzo ora è piazzato in S.house', house.furnAt(0, cell.gx, cell.gy) && house.furnAt(0, cell.gx, cell.gy).itemId === cheap.id);
+  check('esce dal vassoio una volta piazzato', !house.ownedUnplaced().includes(cheap.id));
+  /* `cheap` è un tappeto: un DECORO non blocca il passo — richiesto esplicitamente
+     ("se metto oggetti più piccoli di una casella non ci cammino attorno"). */
+  check('un decoro (tappeto) non blocca il passaggio', house.houseFurnSolid(0, cell.gx * TS + 8, cell.gy * TS + 8) === false);
+
+  /* un mobile SOLIDO sulla STESSA cella di un decoro: "tappeto sotto la sedia" — due strati
+     indipendenti, non un unico slot per casella (richiesto esplicitamente). */
+  check('un mobile solido si piazza SULLA cella di un decoro (tappeto sotto)', house.tryPlaceFurniture(0, cell.gx, cell.gy, highLvl.id) === true);
+  check('ora la cella blocca il passaggio (lo strato solido)', house.houseFurnSolid(0, cell.gx * TS + 8, cell.gy * TS + 8) === true);
+  check('furnAt preferisce il solido quando ci sono entrambi', house.furnAt(0, cell.gx, cell.gy).itemId === highLvl.id);
+  check('decorAt trova comunque il tappeto sotto', house.decorAt(0, cell.gx, cell.gy) && house.decorAt(0, cell.gx, cell.gy).itemId === cheap.id);
+  /* un SECONDO mobile solido sulla stessa cella (stesso strato già occupato): rifiutato */
+  check('un secondo pezzo nello STESSO strato è rifiutato', house.tryPlaceFurniture(0, cell.gx, cell.gy, extraSolid.id) === false);
+
+  /* piazzare in una stanza ANCORA CHIUSA: rifiutato (stanza 1 chiusa in questo stato pulito) */
+  check('piazzare in una stanza chiusa è rifiutato', house.tryPlaceFurniture(1, 3, 4, highLvl.id) === false);
+
+  /* rimuovere/spostare: `removeFurnitureAt` senza strato preferisce il solido — toglie il
+     mobile e lascia il tappeto lì sotto, esattamente come ci si aspetta togliendo un mobile
+     da sopra un tappeto. */
+  check('rimuovere il pezzo piazzato riesce', house.removeFurnitureAt(0, cell.gx, cell.gy) === true);
+  check('torna nel vassoio dopo la rimozione', house.ownedUnplaced().includes(highLvl.id));
+  check('il tappeto resta dov\'era', house.furnAt(0, cell.gx, cell.gy) && house.furnAt(0, cell.gx, cell.gy).itemId === cheap.id);
+  check('la cella liberata dal mobile non è più solida', house.houseFurnSolid(0, cell.gx * TS + 8, cell.gy * TS + 8) === false);
+  /* e ora si toglie anche il tappeto (unico strato rimasto) */
+  check('rimuovere anche il decoro riesce', house.removeFurnitureAt(0, cell.gx, cell.gy) === true);
+  check('torna nel vassoio anche lui', house.ownedUnplaced().includes(cheap.id));
+  const cell2 = house.floorCellAt(0, 5 * TS + 8, 4 * TS + 8);
+  check('si ripiazza altrove (spostamento = rimuovi + piazza)', house.tryPlaceFurniture(0, cell2.gx, cell2.gy, cheap.id) === true);
+  check('rimuovere da una cella vuota non fa nulla', house.removeFurnitureAt(0, 9, 9) === false);
+
+  /* interazione in-scena: houseFloorHere() dal loop, camminando davvero dentro casa
+     (atrio) e poi ENTRANDO nella Sala (varco della stanza 0, sempre sbloccata) */
+  if (S.home) {
+    inter.INT.active = false; inter.INT.justLeft = false;
+    P.x = S.home.x * TS + 8; P.y = S.home.y * TS + 2; P.dir = 'up'; P.moving = true;
+    inter.checkDoorEnter();
+    if (inter.INT.active && inter.INT.b && inter.INT.b.type === 'house') {
+      /* la SCENA DELL'ATRIO va disegnata davvero: una funzione mai chiamata da nessun
+         test è un crash che aspetta (REGOLA #9) */
+      const { render } = await import('../src/render.js');
+      const { cam } = state;
+      cam.x = P.x; cam.y = P.y;
+      let drewOk = true;
+      try { render(4000); } catch (e) { drewOk = false; }
+      check('l\'atrio della casa si disegna senza errori', drewOk);
+
+      inter.enterHouseRoom(0); // varco 0 (Sala) sempre sbloccato: si entra dritti nella sua scena
+      check('si è entrati nella scena della Sala', inter.INT.houseRoom === 0);
+      drewOk = true;
+      try { render(4050); } catch (e) { drewOk = false; }
+      check('la Sala con l\'arredo piazzato si disegna senza errori', drewOk);
+
+      /* piazzare sotto i PROPRI piedi (come act() fa via houseFloorHere) rende la cella
+         solida all'istante: senza nudgeOffFurniture() il giocatore restava incastrato dentro
+         il mobile appena piazzato (segnalato: "mi blocco sulla poltrona"). */
+      const selfCell = house.floorCellAt(0, 6 * TS + 8, 4 * TS + 8);
+      inter.INT.x = selfCell.gx * TS + 8; inter.INT.y = selfCell.gy * TS + 8;
+      check('piazzare sulla propria cella riesce', house.tryPlaceFurniture(0, selfCell.gx, selfCell.gy, highLvl.id) === true);
+      const stuckBefore = inter.interiorSolid(inter.INT.x, inter.INT.y);
+      inter.nudgeOffFurniture();
+      check('il mobile appena piazzato sotto i piedi diventa solido', stuckBefore === true);
+      check('nudgeOffFurniture sposta via dal mobile: non più incastrati', inter.interiorSolid(inter.INT.x, inter.INT.y) === false);
+
+      /* piazzare DAVANTI ALLA PORTA: quella casella è dove si ricompare rientrando nella
+         stanza. Un mobile lì bloccava il rientro (segnalato: "se lo metto davanti alla
+         porta quando entro sono bloccato") — ora la cella d'ingresso non è piazzabile. */
+      const entry = house.roomEntryPoint();
+      const entryCell = house.floorCellAt(0, entry.x, entry.y);
+      check('la cella davanti alla porta NON è pavimento piazzabile', entryCell === null);
+      check('piazzare sulla cella d\'ingresso è rifiutato', house.tryPlaceFurniture(0, Math.floor(entry.x / TS), Math.floor(entry.y / TS), highLvl.id) === false);
+      house.removeFurnitureAt(0, selfCell.gx, selfCell.gy); // ripristina per il resto del blocco
+
+      /* SALVATAGGIO VECCHIO con un mobile già lì (da prima del fix sopra): bloccava il
+         rientro nella stanza, con l'atrio che rimbalzava avanti e indietro senza mai entrare
+         (segnalato: "adesso non entra neanche nella stanza dal corridoio"). La pulizia una
+         tantum in ensureHouseState() lo toglie e lo rimette nel vassoio. */
+      const egx = Math.floor(entry.x / TS), egy = Math.floor(entry.y / TS);
+      S.house.rooms[0].furn.push({ itemId: highLvl.id, gx: egx, gy: egy }); // bypassa tryPlaceFurniture apposta
+      house.ensureHouseState();
+      check('un mobile vecchio sulla cella d\'ingresso viene tolto dalla pulizia una tantum',
+        house.furnAt(0, egx, egy) === null && house.ownedUnplaced().includes(highLvl.id));
+
+      inter.INT.x = cell2.gx * TS + 8; inter.INT.y = cell2.gy * TS + 8;
+      const here = inter.houseFloorHere();
+      check('houseFloorHere trova il pezzo piazzato sotto i piedi', !!here && here.itemId === cheap.id);
+      /* act() lo raccoglie: torna nel vassoio */
+      gameplay.act();
+      check('act() lo raccoglie: non è più piazzato in nessuna stanza', house.ownedUnplaced().includes(cheap.id));
+
+      /* TOCCO DIRETTO sul mobile (M4-bis): si raccoglie/piazza toccando la cella giusta, non
+         serve più camminarci sopra come per {act} — richiesto esplicitamente ("devo poterli
+         spostare come mi pare"). `tapFurnitureAt` è la funzione dietro al tocco sulla canvas
+         (input.js): qui si chiama direttamente, senza simulare un evento di puntatore. */
+      /* `act()` sopra ha RACCOLTO il tappeto (nuovo comportamento M4-bis: non lo rimuove più
+         subito, resta "in mano" finché non lo si ripiazza) — si annulla per partire puliti. */
+      house.cancelHold();
+      const cell3 = house.floorCellAt(0, 4 * TS + 8, 5 * TS + 8);
+      check('tap su una cella vuota (non in mano) non è gestito: resta un comando per camminare',
+        gameplay.tapFurnitureAt(cell3.gx, cell3.gy) === false);
+      house.tryPlaceFurniture(0, cell3.gx, cell3.gy, highLvl.id);
+      check('tap su un mobile piazzato lo raccoglie (senza doverci stare sopra)', gameplay.tapFurnitureAt(cell3.gx, cell3.gy) === true);
+      check('ora è "in mano"', house.isHolding() === true);
+      const cell4 = house.floorCellAt(0, 4 * TS + 8, 4 * TS + 8);
+      check('tap su una cella vuota, tenendolo in mano, lo piazza lì', gameplay.tapFurnitureAt(cell4.gx, cell4.gy) === true);
+      check('non è più "in mano" dopo il piazzamento', house.isHolding() === false);
+      check('il mobile è ora sulla nuova cella toccata', house.furnAt(0, cell4.gx, cell4.gy) && house.furnAt(0, cell4.gx, cell4.gy).itemId === highLvl.id);
+      house.removeFurnitureAt(0, cell4.gx, cell4.gy); // ripulisce: non deve sporcare i test dopo
+
+      inter.leaveHouseRoom();
+      check('leaveHouseRoom torna nell\'atrio', inter.INT.houseRoom === null);
+      inter.exitInterior();
+    }
+  }
+
+  /* save/load: arredo posseduto e piazzato sopravvivono */
+  {
+    S.furnOwned = [cheap.id, highLvl.id];
+    S.house.rooms[0].furn = [{ itemId: highLvl.id, gx: 3, gy: 4 }];
+    state.save();
+    /* round-trip: state.load() rilegge dal disco SENZA toccare l'oggetto S vivo (a differenza
+       di initState(), che lo RIASSEGNA e renderebbe stale la `S` catturata a inizio file — lo
+       fa solo il blocco delle migrazioni, molto più avanti nel file, per questo). */
+    const raw = state.load();
+    check('il salvataggio include S.furnOwned', Array.isArray(raw.furnOwned) && raw.furnOwned.length === 2 &&
+      raw.furnOwned.includes(cheap.id) && raw.furnOwned.includes(highLvl.id));
+    check('il salvataggio include l\'arredo piazzato', raw.house.rooms[0].furn.length === 1 &&
+      raw.house.rooms[0].furn[0].itemId === highLvl.id && raw.house.rooms[0].furn[0].gx === 3 && raw.house.rooms[0].furn[0].gy === 4);
+  }
+
+  /* NEGOZIO — scheda Arredamento: mostra SOLO il set della zona corrente, coi badge giusti */
+  {
+    S.furnOwned = []; S.level = 1; S.coins = 0;
+    const z = regionsM.zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
+    ui.openBuilding({ type: 'store', name: 'Negozio' });
+    let html = document.getElementById('m-body').innerHTML;
+    check('la scheda Negozio parte sul tab principale (niente arredo mostrato)',
+      FURN_SETS[z.id].every(f => !html.includes(i18n.furnLabel(f.id))));
+    check('il tab Arredamento compare nel markup', /data-stab="furn"/.test(html));
+    /* passa al tab Arredamento (stesso schema di openBag(tab): lo stub DOM non clicca) */
+    ui.renderStore('furn');
+    html = document.getElementById('m-body').innerHTML;
+    check('il tab Arredamento mostra il set della zona corrente (' + z.id + ')',
+      FURN_SETS[z.id].every(f => html.includes(i18n.furnLabel(f.id))));
+    const altriZone = dataM.ZONES.filter(zz => zz.id !== z.id);
+    const fuoriPosto = altriZone.some(zz => FURN_SETS[zz.id].some(f => html.includes(i18n.furnLabel(f.id))));
+    check('non mostra il set di ALTRE zone', !fuoriPosto);
+    /* badge: livello 1 → il primo pezzo (lvl 1) è comprabile, quelli di livello alto sono 🔒 */
+    const lvl1 = FURN_SETS[z.id].find(f => f.lvl <= 1), lvlHigh = FURN_SETS[z.id].find(f => f.lvl > 1);
+    if (lvl1) check('un pezzo di livello 1 mostra il prezzo (comprabile)', html.includes('🪙 ' + lvl1.cost) || html.includes(String(lvl1.cost)));
+    if (lvlHigh) check('un pezzo di livello alto mostra il lucchetto', html.includes('Lv' + lvlHigh.lvl));
+    ui.closeModal(true);
+  }
+}
+
+/* ---------- CASA del giocatore (M4: piedistallo + mobili voxel + vista 3D) ---------- */
+{
+  const house = await import('../src/house.js');
+  const inter = await import('../src/interior.js');
+  const dataM = await import('../src/data.js');
+  const i18n = await import('../src/i18n.js');
+  const furnVox = await import('../src/furnVox.js');
+  const bookui = await import('../src/bookui.js');
+  const { ctx } = await import('../src/screen.js');
+  const { FURN_BY_ID, PEDESTAL_ID } = dataM;
+
+  /* ---- furnVoxels: una forma valida per OGNI pezzo di arredo + il piedistallo ---- */
+  const allIds = Object.keys(FURN_BY_ID);
+  check('c\'è il piedistallo fra i pezzi', allIds.includes(PEDESTAL_ID));
+  check('furnVoxels torna una forma non vuota per ogni pezzo (' + allIds.length + ')',
+    allIds.every(id => Array.isArray(furnVox.furnVoxels(id)) && furnVox.furnVoxels(id).length > 0));
+  check('ogni voxel ha coordinate finite e un colore', allIds.every(id =>
+    furnVox.furnVoxels(id).every(v => Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z) && typeof v.col === 'string')));
+  /* forme distinguibili fra slot diversi (sagoma, non solo colore): un tappeto è basso e
+     largo, un letto ha più volume, un tavolo ha gambe più alte del tappeto */
+  const rug = furnVox.furnVoxels('prati_rug'), bed = furnVox.furnVoxels('prati_bed'), ped = furnVox.furnVoxels(PEDESTAL_ID);
+  check('tappeto e letto NON hanno la stessa identica sagoma', rug.length !== bed.length);
+  check('il piedistallo ha una sagoma sua', ped.length !== rug.length && ped.length !== bed.length);
+  check('furnVoxels di un id sconosciuto non esplode (torna [])', Array.isArray(furnVox.furnVoxels('non-esiste')) && furnVox.furnVoxels('non-esiste').length === 0);
+
+  /* ---- miniatura 2D: projectVox su furnVoxels non esplode e dipinge davvero ---- */
+  {
+    const voxview = await import('../src/voxview.js');
+    const cv = document.createElement('canvas'); cv.width = 36; cv.height = 30;
+    const painted = new Set();
+    ctx.fillRect = () => painted.add(String(ctx.fillStyle));
+    let crash = null;
+    try { voxview.projectVox(cv, furnVox.furnVoxels('prati_table'), false, null, false); } catch (e) { crash = e.message; }
+    delete ctx.fillRect;
+    check('la miniatura di un mobile si disegna senza crash', crash === null, crash || '');
+    check('e dipinge dei pixel (non resta bianca)', painted.size > 0);
+  }
+
+  /* ---- vista 3D del mobile: senza WebGL ripiega su projectVox, niente crash ---- */
+  {
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 140;
+    const painted = new Set();
+    ctx.fillRect = () => painted.add(String(ctx.fillStyle));
+    let crash = null;
+    try { bookui.mountFurniture3D(cv, 'prati_table'); } catch (e) { crash = e.message; }
+    for (let i = 0; i < 200 && !painted.size; i++) await new Promise(r => setTimeout(r, 10));
+    delete ctx.fillRect;
+    bookui.disposeViews();
+    check('mountFurniture3D non esplode (async, ripiega su projectVox)', crash === null, crash || '');
+    check('e senza WebGL disegna comunque qualcosa', painted.size > 0);
+  }
+
+  /* ---- piazzamento del piedistallo + assegnazione di una specie (M4) ---- */
+  {
+    S.furnOwned = [PEDESTAL_ID];
+    S.house = { rooms: [{ id: 0, unlocked: true, furn: [] }, { id: 1, unlocked: false, furn: [] }, { id: 2, unlocked: false, furn: [] }, { id: 3, unlocked: false, furn: [] }] };
+    const cell = house.floorCellAt(0, 3 * TS + 8, 4 * TS + 8);
+    check('il piedistallo si piazza come un mobile qualsiasi', house.tryPlaceFurniture(0, cell.gx, cell.gy, PEDESTAL_ID) === true);
+
+    const sp = SPECIES[0];
+    const museumBefore = S.museum[sp.id];
+    /* specie SENZA nessun pezzo consegnato: l'assegnazione è rifiutata */
+    delete S.museum[sp.id];
+    check('una specie senza pezzi consegnati non è candidabile', !house.pedestalCandidates().includes(sp.id));
+    check('assegnarla comunque viene rifiutato', house.assignPedestal(0, cell.gx, cell.gy, sp.id) === false);
+    check('il piedistallo resta senza specie', house.furnAt(0, cell.gx, cell.gy).spId == null);
+
+    /* con almeno un pezzo consegnato: candidabile e assegnabile */
+    S.museum[sp.id] = ['cranio', 'torace'];
+    check('ora la specie è candidabile', house.pedestalCandidates().includes(sp.id));
+    check('assegnazione riuscita', house.assignPedestal(0, cell.gx, cell.gy, sp.id) === true);
+    check('il piedistallo porta la specie assegnata', house.furnAt(0, cell.gx, cell.gy).spId === sp.id);
+
+    /* la scheda del piedistallo (E su una cella con itemId=pedestal) si apre senza crash,
+       sia da assegnata (mostra l'esposizione) sia da vuota (mostra la scelta) */
+    let crash = null;
+    try { ui.openPedestal(0, cell.gx, cell.gy); } catch (e) { crash = e.message; }
+    check('la scheda del piedistallo assegnato si apre senza crash', crash === null, crash || '');
+    check('e mostra quanti pezzi sono esposti', /2\/5|2 \/ 5/.test(document.getElementById('m-body').innerHTML));
+    ui.closeModal(true);
+
+    /* reimposta a vuoto (cambia specie) e riprova l'apertura sul ramo "scegli" */
+    check('si può rimettere a vuoto (cambia specie)', house.assignPedestal(0, cell.gx, cell.gy, null) === true);
+    check('il piedistallo torna senza specie', house.furnAt(0, cell.gx, cell.gy).spId == null);
+    crash = null;
+    try { ui.openPedestal(0, cell.gx, cell.gy); } catch (e) { crash = e.message; }
+    check('la scheda del piedistallo vuoto si apre senza crash', crash === null, crash || '');
+    check('e propone la specie con pezzi consegnati', document.getElementById('m-body').innerHTML.includes(sp.name));
+    ui.closeModal(true);
+
+    if (museumBefore === undefined) delete S.museum[sp.id]; else S.museum[sp.id] = museumBefore;
+  }
+
+  /* ---- drawHouseRooms con mobili + piedistallo assegnato: la scena si disegna davvero ---- */
+  if (S.home) {
+    inter.INT.active = false; inter.INT.justLeft = false;
+    P.x = S.home.x * TS + 8; P.y = S.home.y * TS + 2; P.dir = 'up'; P.moving = true;
+    inter.checkDoorEnter();
+    if (inter.INT.active && inter.INT.b && inter.INT.b.type === 'house') {
+      const sp = SPECIES[1] || SPECIES[0];
+      const museumBefore = S.museum[sp.id];
+      S.museum[sp.id] = ['cranio'];
+      const cell = house.floorCellAt(0, 3 * TS + 8, 4 * TS + 8);
+      house.assignPedestal(0, cell.gx, cell.gy, sp.id);
+      inter.enterHouseRoom(0); // la scena della Sala (drawHouseRoomScene) va disegnata davvero
+      const { render } = await import('../src/render.js');
+      const { cam } = state;
+      cam.x = P.x; cam.y = P.y;
+      let drewOk = true;
+      try { render(4200); } catch (e) { drewOk = false; }
+      check('la Sala col piedistallo esposto si disegna senza errori', drewOk);
+      inter.leaveHouseRoom(); inter.exitInterior();
+      if (museumBefore === undefined) delete S.museum[sp.id]; else S.museum[sp.id] = museumBefore;
+    }
   }
 }
 
@@ -3257,24 +4122,23 @@ sprites.applyLook();
     S.drops = keepDrops;
     check('oggetti lasciati a terra: si vedono e si possono ritrovare', dropped.size > plain.size && !!dropped.size);
 
-    /* il parco è la vetrina del gioco: è lì che le chimere "tornano a vivere" */
-    let pen = null;
-    for (let cx = -8; cx <= 8 && !pen; cx++) for (let cy = -8; cy <= 8 && !pen; cy++) {
-      const t = world.townForCell(cx, cy); if (t && t.pen) pen = t;
-    }
-    /* nel recinto vivono chimere E specie risvegliate: per avere un recinto DAVVERO vuoto
-       come controllo vanno azzerate tutte e due (i test precedenti risvegliano parecchio) */
-    const keepCre = S.creatures, keepAwk = S.awakened;
-    const px0 = Math.floor((pen.pen.x0 + pen.pen.x1) / 2), py0 = Math.floor((pen.pen.y0 + pen.pen.y1) / 2);
-    S.creatures = []; S.awakened = []; park.parks.clear();
+    /* il cortile di casa è la vetrina del gioco: è lì che le chimere "tornano a vivere" */
+    const house = await import('../src/house.js');
+    house.ensureHouseState();
+    const pen = world.yardRect();
+    /* nel cortile vive SOLO chi hai scelto (`S.house.yard`): per avere un cortile DAVVERO
+       vuoto come controllo basta svuotare la scelta */
+    const keepCre = S.creatures, keepAwk = S.awakened, keepYard = S.house.yard;
+    const px0 = pen.cx, py0 = pen.y1 - 1; // prato aperto a sud della casa (il centro del rettangolo è la casa)
+    S.creatures = []; S.awakened = []; S.house.yard = []; park.yardAnimals.length = 0;
     at(px0, py0); park.refreshVisParks();
     const empty = spy(() => render(2000));
     S.creatures = [{ uid: 5, name: 'Parcosauro', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
-    park.parks.clear();
-    for (const t of park.visParks) park.parkList(t);
+    S.house.yard = ['chi5'];
+    park.yardAnimals.length = 0; park.yardList();
     const full = spy(() => render(2000));
-    S.creatures = keepCre; S.awakened = keepAwk; park.parks.clear();
-    check('parco: la chimera assemblata passeggia davvero nel recinto', full.size > empty.size);
+    S.creatures = keepCre; S.awakened = keepAwk; S.house.yard = keepYard; park.yardAnimals.length = 0;
+    check('cortile: la chimera assemblata passeggia davvero dentro', full.size > empty.size);
   }
 
   /* ---- MERAVIGLIA OLTRE IL BORDO: sono alte 9 caselle, se si disegnano solo "dentro"
@@ -3464,6 +4328,7 @@ sprites.applyLook();
     S.creatures = [{ uid: 77, name: 'Provolone', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
     const withComp = panel(() => ui.openCompanionPicker());
     check('Compagno: con una chimera la si può scegliere', withComp.includes('Provolone') && withComp.includes('data-comp'));
+    check('Compagno: si può anche mettere nel cortile', withComp.includes('data-yard'));
     S.creatures = keepCre;
 
     const exSp = SPECIES[0].id;
@@ -3616,20 +4481,18 @@ sprites.applyLook();
   check('parco: il centro resta libero per le creature (solo aiuole piatte, niente ostacoli)', centerFilled === 0 && centerTot > 0);
   check('parco: deterministico (stessa cella → stesso arredo)', JSON.stringify(at(1, 3)) === JSON.stringify(at(1, 3)));
 
-  /* su una CITTÀ vera: recinto grande, staccionate orientate, stagno = acqua vera ma non pescabile */
-  const { townForTile, townInfo, TCELL: TC } = await import('../src/world.js');
-  let city = null;
-  for (let cy = 0; cy < 80 && !city; cy++) for (let cx = 0; cx < 80; cx++) { const t = townForTile(cx * TC + 20, cy * TC + 20); if (t && t.pen) city = t; if (city) break; }
-  check('parco: trovata una città col recinto nel mondo di test', !!city);
-  if (city) {
-    const p = city.pen;
-    check('parco: recinto GRANDE (interno ≥ 100 caselle, prima erano 32)', (p.x1 - p.x0 - 1) * (p.y1 - p.y0 - 1) >= 100);
-    const midY = Math.floor((p.y0 + p.y1) / 2), midX = city.C.x + 3;   // colonna non-cancello
-    const side = townInfo(p.x0, midY), topbot = townInfo(midX, p.y1);
-    check('parco: staccionata VERTICALE sui lati (fv, non fh)', !!side && side.fence && side.fv === true && !side.fh);
-    check('parco: staccionata ORIZZONTALE sopra/sotto (fh, non fv)', !!topbot && topbot.fence && topbot.fh === true && !topbot.fv);
+  /* sul CORTILE vero (M5): staccionate orientate, stagno = acqua vera ma non pescabile.
+     `S.home` è già stato fissato da un test precedente ("CASA del giocatore"). */
+  const { townForTile, yardInfo: yInfo, yardRect: yRect, TCELL: TC } = await import('../src/world.js');
+  const p = yRect();
+  check('cortile: S.home trovato per fissare il recinto', !!p);
+  if (p) {
+    const midY = Math.floor((p.y0 + p.y1) / 2), midX = p.cx + 3;   // colonna non-cancello
+    const side = yInfo(p.x0, midY), topbot = yInfo(midX, p.y1);
+    check('cortile: staccionata VERTICALE sui lati (fv, non fh)', !!side && side.fence && side.fv === true && !side.fh);
+    check('cortile: staccionata ORIZZONTALE sopra/sotto (fh, non fv)', !!topbot && topbot.fence && topbot.fh === true && !topbot.fv);
     const wx = p.x0 + 2, wy = p.y0 + 2;                                 // dentro lo stagno
-    check('parco: lo stagno è acqua DECORATIVA (tile di parco) → NON pescabile', townInfo(wx, wy).park === true && gameplay.waterTile(wx, wy) === false);
+    check('cortile: lo stagno è acqua DECORATIVA → NON pescabile', yInfo(wx, wy).floor === true && gameplay.waterTile(wx, wy) === false);
   }
 
   /* BACHECA (cartello missioni) LONTANA dalla fontana: stavano appiccicate. Scandisce le città. */
@@ -4064,13 +4927,22 @@ sprites.applyLook();
   P.x = gx * TS + 8; P.y = gy * TS + 8 - 13; COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; COMP.playCool = 0;
   check('su terra scavabile: vince lo scavo, non si gioca', gp.companionPlayable() === false);
 
-  /* nel parco (townInfo blocca lo scavo): si gioca — è la casa naturale del minigioco */
-  let pen = null;
-  for (let cx = -8; cx <= 8 && !pen; cx++) for (let cy = -8; cy <= 8 && !pen; cy++) { const t = world.townForCell(cx, cy); if (t && t.pen) pen = t; }
-  check('trovato un parco per il test', !!pen);
-  const px0 = Math.floor((pen.pen.x0 + pen.pen.x1) / 2), py0 = Math.floor((pen.pen.y0 + pen.pen.y1) / 2);
+  /* nel cortile di casa (tryDig lo blocca): si gioca — è la casa naturale del minigioco.
+     `S.home` era stato fissato da un test precedente, ma il blocco `vanilla` qui sopra
+     ripristina lo snapshot pre-cheat (preso PRIMA che la casa esistesse) e se lo porta via:
+     va rifissato. */
+  if (!S.home) {
+    let hTown = null;
+    for (let cx = -14; cx < 14 && !hTown; cx++) for (let cy = -14; cy < 14 && !hTown; cy++) {
+      const t = world.townForCell(cx, cy); if (t && t.size === 'città') hTown = t;
+    }
+    S.home = hTown && world.findHomeSpot(hTown);
+  }
+  const pen = world.yardRect();
+  check('trovato il cortile per il test', !!pen);
+  const px0 = pen.cx, py0 = pen.y1 - 1; // prato aperto a sud della casa (il centro del rettangolo è la casa)
   P.x = px0 * TS + 8; P.y = py0 * TS + 8 - 13; P.dir = 'down'; COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  check('nel parco: compagno giocabile', gp.companionPlayable() === true);
+  check('nel cortile: compagno giocabile', gp.companionPlayable() === true);
   COMP.job = { phase: 'go' }; check('compagno al lavoro: non giocabile', gp.companionPlayable() === false); COMP.job = null;
   COMP.playCool = 1; check('appena finito un round: pausa, non giocabile', gp.companionPlayable() === false); COMP.playCool = 0;
 
@@ -4083,12 +4955,12 @@ sprites.applyLook();
   /* il round intero: lancio → insegue → cattura → torna */
   const started = gp.playWithCompanion();
   check('E avvia il lancio', started === true && !!COMP.play && COMP.play.phase === 'throw');
-  for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-  check('dopo il lancio il compagno insegue', COMP.play.phase === 'chase');
+  for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+  check('dopo il lancio il compagno insegue', COMP.play && COMP.play.phase === 'chase');
   ui.updatePrompt();
   check('in inseguimento: niente prompt (E non fa nulla adesso, meglio tacere)', document.getElementById('prompt').style.display === 'none');
-  for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
-  check('raggiunto il bersaglio: finestra di cattura aperta', COMP.play.phase === 'catch');
+  for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  check('raggiunto il bersaglio: finestra di cattura aperta', COMP.play && COMP.play.phase === 'catch');
   ui.updatePrompt();
   const prCatch = document.getElementById('prompt').innerHTML || '';
   check('finestra aperta: il prompt dice di prenderlo AL VOLO', /AL VOLO|NOW/.test(prCatch), prCatch.slice(0, 40));
@@ -4103,9 +4975,10 @@ sprites.applyLook();
     const okReflex = gp.tryCatchCompanion();
     check('un riflesso pronto (~220ms) prende al volo, non solo l\'attesa a metà barra', okReflex === true && wo.buffLeft('digX2') === bR + 3);
     for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
-    COMP.playCool = 0; gp.playWithCompanion();
-    for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-    for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+    COMP.playCool = 0;
+    check('secondo round: nuovo lancio riuscito', gp.playWithCompanion() === true && !!COMP.play);
+    for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+    for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
   }
 
   /* presa PERFETTA (dentro la finestra d'oro) → 3 cariche */
@@ -4117,18 +4990,20 @@ sprites.applyLook();
   check('tornato dal player: round chiuso, in pausa', COMP.play === null && COMP.playCool > 0);
 
   /* mai un fallimento vero: se il tempo scade da solo, torna comunque (1 carica, non zero) */
-  COMP.playCool = 0; gp.playWithCompanion();
-  for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-  for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  COMP.playCool = 0;
+  check('terzo round: nuovo lancio riuscito', gp.playWithCompanion() === true && !!COMP.play);
+  for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+  for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
   const b2 = wo.buffLeft('digX2');
   for (let i = 0; i < 200 && COMP.play && COMP.play.phase === 'catch'; i++) gp.companionPlayTick(1 / 60);
   check('tempo scaduto: comunque riportato, 1 carica (mai un fallimento vero)', wo.buffLeft('digX2') === b2 + 1 && !!COMP.play && COMP.play.phase === 'return');
   for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
 
   /* E durante la finestra di cattura ha SEMPRE priorità in act(), prima di ogni altra cosa */
-  COMP.playCool = 0; gp.playWithCompanion();
-  for (let i = 0; i < 60 && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-  for (let i = 0; i < 600 && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
+  COMP.playCool = 0;
+  check('quarto round: nuovo lancio riuscito', gp.playWithCompanion() === true && !!COMP.play);
+  for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
+  for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
   check('finestra aperta: act() la risolve subito', gp.companionPlayable() === false); // il round è già in corso: niente doppio lancio
   gp.act();
   check('act() durante la cattura risolve il gioco (E = prendilo)', COMP.play && COMP.play.phase === 'return');
@@ -4803,6 +5678,12 @@ sprites.applyLook();
   check('legacy: vials → dna in fialette', S2.vials === undefined && S2.dna.lepre === 1);
   check('legacy: la barca non è più un gear attivabile', S2.gear === null && S2.tools.boat === true);
   check('legacy: campi nuovi popolati', Array.isArray(S2.maps) && typeof S2.fountains === 'object' && S2.museumJob === null);
+  /* M6: la poltrona di partenza arriva anche a chi ha un save vecchio, come il piedistallo */
+  {
+    const dataMig = await import('../src/data.js');
+    check('legacy: poltrona di partenza regalata una volta sola',
+      S2.starterFurnGiven === true && S2.furnOwned.includes(dataMig.STARTER_FURN_ID));
+  }
   /* PARCO CHE RENDE: un save legacy senza `idleAt` non deve inventarsi un arretrato di ore —
      si migra ad ADESSO, non a zero (che darebbe subito il tetto massimo) né a niente
      (che farebbe esplodere idle.js al prossimo boot). */
@@ -4817,6 +5698,14 @@ sprites.applyLook();
   localStorage.setItem(SKk, JSON.stringify({ ...legacy, v: 99 }));
   state.initState();
   check('save dal futuro: versione conservata', state.S.v === 99);
+  /* 8) partita NUOVA (nessun save salvato): la poltrona di partenza c'è già, senza fare niente */
+  localStorage.removeItem(SKk);
+  state.initState();
+  {
+    const dataMig2 = await import('../src/data.js');
+    check('partita nuova: la poltrona di partenza è già nel vassoio',
+      state.S.furnOwned.includes(dataMig2.STARTER_FURN_ID));
+  }
   /* ripristino lo stato della suite */
   localStorage.setItem(SKk, snap); state.initState();
   Object.assign(state.S, JSON.parse(snap));
@@ -5938,6 +6827,8 @@ sprites.applyLook();
      identificare, e si identifica SOLO al Museo. Se domani il Museo comparisse anche altrove
      (o sparisse dalle città grandi) i controlli qui sotto cadono, ed è quello che devono fare. */
   check('il tutorial manda al Museo a far identificare il grezzo', /Museo|Museum/.test(tsrc));
+  check('il tutorial insegna a piazzare un mobile prima di scavare',
+    /armchair/.test(tsrc));
   {
     /* la promessa del nonno regge sul mondo vero? */
     let cities = 0, withMus = 0, smallWithMus = 0;
@@ -5952,37 +6843,88 @@ sprites.applyLook();
   }
 }
 
-/* ---------- TUTORIAL: i quattro passi sono il ciclo d'apertura, e sono ESEGUIBILI ----------
+/* ---------- TUTORIAL: i cinque passi sono il ciclo d'apertura, e sono ESEGUIBILI ----------
    Il primo ordine che avevo scritto (esci → scava → raccogli) non stava in piedi: si nasce
    SENZA pala e con zero monete, e senza pala `tryDig` rifiuta. Un tutorial che chiede una cosa
    che il gioco vieta è peggio di nessun tutorial. Questi controlli tengono l'ordine ancorato
-   alle regole vere: la pala prima dello scavo, e il Museo raggiungibile da dove si parte. */
+   alle regole vere: la pala prima dello scavo, e il Museo raggiungibile da dove si parte.
+   La partita ORA comincia dentro la Sala di casa propria (main.js entra da solo dopo
+   editor/intro): `armchair` è quindi il PRIMISSIMO passo, prima ancora di uscire in strada —
+   piazzare la poltrona di partenza (già nel vassoio, regalata in state.js) è il primo gesto
+   possibile da dove ci si trova. */
 {
   const tut = await import('../src/tutorial.js');
   const gp5 = await import('../src/gameplay.js');
+  const dataT = await import('../src/data.js');
+  const house = await import('../src/house.js');
   const S = state.S, P5 = state.P;
-  check('i passi sono quattro, nell\'ordine del ciclo d\'apertura',
-    tut.STEP_IDS.join('>') === 'pick>shop>dig>museum');
+  check('i passi sono cinque, nell\'ordine del ciclo d\'apertura',
+    tut.STEP_IDS.join('>') === 'armchair>pick>shop>dig>museum');
   /* si nasce senza pala: il passo dello scavo NON può venire prima di quello del Negozio */
   check('lo scavo viene DOPO aver comprato la pala',
     tut.STEP_IDS.indexOf('shop') < tut.STEP_IDS.indexOf('dig'));
+  /* la poltrona è il primissimo gesto: si è già in Sala, prima ancora di uscire in strada */
+  check('la poltrona è il primissimo passo',
+    tut.STEP_IDS.indexOf('armchair') === 0 && tut.STEP_IDS.indexOf('armchair') < tut.STEP_IDS.indexOf('pick'));
 
-  S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = [];
-  check('si parte dal passo della raccolta', tut.tutStepId() === 'pick' && tut.tutActive());
+  /* piazza/rimuove la poltrona di partenza nella stanza 0 (Sala), per pilotare l'auto() del
+     passo senza passare dal vero overlay della casa */
+  const armchairSet = (on) => {
+    house.ensureHouseState();
+    S.house.rooms[0].furn = on ? [{ itemId: dataT.STARTER_FURN_ID, gx: 2, gy: 2 }] : [];
+  };
+
+  S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = []; armchairSet(false);
+  check('si parte dal passo della poltrona', tut.tutStepId() === 'armchair' && tut.tutActive());
+  check('scavare durante la poltrona non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'armchair');
+  check('senza piazzarla il passo non avanza', tut.tutTick() === false && tut.tutStepId() === 'armchair');
+  /* piazzarla in un'ALTRA stanza (Cucina, id 1) non basta: il passo guarda la Sala (stanza 0) */
+  house.ensureHouseState(); S.house.rooms[1].unlocked = true;
+  S.house.rooms[1].furn = [{ itemId: dataT.STARTER_FURN_ID, gx: 2, gy: 2 }];
+  check('piazzata in un\'altra stanza non conta', tut.tutTick() === false && tut.tutStepId() === 'armchair');
+  S.house.rooms[1].furn = []; S.house.rooms[1].unlocked = false;
+  armchairSet(true);
+  check('piazzata in Sala → si passa alla raccolta', tut.tutTick() === 'step' && tut.tutStepId() === 'pick');
   check('la soglia della raccolta è il prezzo della pala', tut.tutProgress().need === gp5.TOOL_COST.spade);
-  check('scavare durante la raccolta non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'pick');
   /* raccolta: conta il VALORE (monete + merce), non il numero di oggetti — con valori da 1 a 5
      a seconda del bioma "otto oggetti" qualche volta non bastava per la pala e il tutorial
      restava fermo senza dire perché */
   S.goods = [{ id: 'spiga', val: gp5.TOOL_COST.spade, n: 1, good: true }];
   check('raccolto abbastanza → si passa al Negozio', tut.tutTick() === 'step' && tut.tutStepId() === 'shop');
+
+  /* PASSO "shop": la pala LAMPEGGIA, ogni altro acquisto è disabilitato (a richiesta: "nel
+     tutorial la pala deve lampeggiare e deve essere disabilitato ogni altro acquisto") —
+     altrimenti le prime monete raccolte finiscono in ristori/mappe prima di scavare una volta. */
+  {
+    // lo stub del DOM non implementa querySelectorAll (torna sempre []): si controlla
+    // la stringa HTML generata direttamente, come già fa il resto di questo file
+    ui.openBuilding({ type: 'store', name: 'Negozio' }); ui.renderStore('goods'); // storeTab può essere rimasto su 'furn' da un test precedente
+    const body = document.getElementById('m-body').innerHTML;
+    const spadeTag = (body.match(/<button[^>]*data-tool="spade"[^>]*>/) || [''])[0];
+    check('la pala ha la classe che lampeggia', spadeTag.includes('tut-target'), spadeTag);
+    check('la pala NON è disabilitata', spadeTag.length > 0 && !spadeTag.includes('disabled'), spadeTag);
+    const otherBtnTags = [...body.matchAll(/<button[^>]*(?:data-tool="(?!spade")[^"]*"|data-map="[^"]*"|id="buy(?:En|Tp|Bag)")[^>]*>/g)].map(m => m[0]);
+    check('ci sono altri acquisti da controllare nel Negozio', otherBtnTags.length > 0);
+    check('ogni altro acquisto è disabilitato', otherBtnTags.every(t => t.includes('disabled')), otherBtnTags.filter(t => !t.includes('disabled')));
+    ui.closeModal(true);
+  }
+
   S.tools = { spade: true };
+  /* la pala presa: il Negozio torna normale, niente più lampeggio né blocchi */
+  {
+    ui.openBuilding({ type: 'store', name: 'Negozio' }); ui.renderStore('goods');
+    const body2 = document.getElementById('m-body').innerHTML;
+    const otherBtnTags2 = [...body2.matchAll(/<button[^>]*(?:data-tool="[^"]*"|data-map="[^"]*"|id="buy(?:En|Tp|Bag)")[^>]*>/g)].map(m => m[0]);
+    check('pala comprata: gli altri acquisti tornano attivi', otherBtnTags2.length > 0 && otherBtnTags2.every(t => !t.includes('disabled')), otherBtnTags2.filter(t => t.includes('disabled')));
+    ui.closeModal(true);
+  }
   check('comprata la pala → si passa allo scavo', tut.tutTick() === 'step' && tut.tutStepId() === 'dig');
   check('scavato → si passa al Museo', tut.tutBump('dig') === 'step' && tut.tutStepId() === 'museum');
   check('le targhe sulle case si accendono solo quando serve entrare',
     tut.tutShowLabels() === true);
   check('consegnato al Museo → tutorial finito', tut.tutBump('museum') === 'step' && tut.tutDone() && !tut.tutActive());
   check('finito, le targhe si spengono', tut.tutShowLabels() === false);
+  armchairSet(false);
 
   /* SI PARTE IN UNA CITTÀ COL MUSEO: è quello che rende l'ultimo passo un trenta passi invece
      di una traversata. Se `findStart` cambiasse, il tutorial diventerebbe una caccia. */
@@ -5991,7 +6933,10 @@ sprites.applyLook();
     const stx = Math.floor(start.x / TS), sty = Math.floor(start.y / TS);
     const home = world.townForTile(stx, sty);
     check('si parte dentro una città che ha il Museo', !!home && world.hasMuseum(home));
-    S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; // torna al passo 'pick'
+    S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; armchairSet(false); // torna al passo 'armchair'
+    check('il passo della poltrona indica la porta di casa',
+      tut.tutStepId() === 'armchair' && tut.tutTarget(start.x, start.y) === S.home);
+    armchairSet(true); tut.tutTick();                 // poltrona piazzata → passo 'pick'
     const gPick = tut.tutTarget(start.x, start.y);
     check('il passo della raccolta indica DOVE andare', !!gPick && Number.isFinite(gPick.x));
     S.goods = [{ id: 'spiga', val: gp5.TOOL_COST.spade, n: 1, good: true }]; tut.tutTick();
@@ -6002,6 +6947,7 @@ sprites.applyLook();
     const gMus = tut.tutTarget(start.x, start.y);
     check('il passo del Museo indica la porta del Museo',
       !!gMus && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gMus.x && b.doory === gMus.y));
+    armchairSet(false);
   }
   /* IL PRIMO SCAVO DEL TUTORIAL NON VA MAI A VUOTO. Una casella d'erba rende .30: senza
      garanzia, sette giocatori su dieci vedrebbero "…solo terra" al primissimo colpo della loro
@@ -6011,10 +6957,12 @@ sprites.applyLook();
   {
     const w5 = await import('../src/world.js');
     const orig = Math.random;
-    S.tut = null; S.tools = { spade: true }; S.coins = 999; S.goods = [];
+    S.tut = null; S.tools = { spade: true }; S.coins = 999; S.goods = []; armchairSet(true);
+    tut.tutTick();                                  // poltrona già piazzata → passo 'pick'
     tut.tutTick();                                  // la borsa paga la pala → passo 'shop'
     tut.tutTick();                                  // pala comprata → passo 'dig'
     check('si parte dal passo dello scavo', tut.tutStepId() === 'dig');
+    armchairSet(false);
     /* terreno scavabile fuori città, e la sfortuna al massimo: senza garanzia non uscirebbe
        niente */
     let tx5 = 0, ty5 = 0;
@@ -6079,11 +7027,12 @@ sprites.applyLook();
      Ma chiuso NON vuol dire murato: saltando il tutorial il gioco deve tornare intero. */
   {
     S.tut = null; S.tools = {}; S.coins = 0; S.goods = [];
-    check('al primo passo il Museo è chiuso', tut.tutStepId() === 'pick' && tut.museumOpen() === false);
+    check('al primo passo il Museo è chiuso', tut.tutStepId() === 'armchair' && tut.museumOpen() === false);
     check('e la porta lo dice invece di non fare niente', tut.museumClosedText().length > 20);
-    S.tools = { spade: true }; S.coins = 999;
-    tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
+    S.tools = { spade: true }; S.coins = 999; armchairSet(true);
+    tut.tutTick(); tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
     check('arrivati al suo passo, il Museo apre', tut.tutStepId() === 'museum' && tut.museumOpen() === true);
+    armchairSet(false);
     /* SALTARE RESTITUISCE IL GIOCO INTERO: nessuna porta resta chiusa dietro di sé */
     S.tut = null; S.tools = {}; S.coins = 0;
     check('a tutorial in corso resta chiuso', tut.museumOpen() === false);
@@ -6092,8 +7041,10 @@ sprites.applyLook();
     tut.tutRestart();
     check('rifacendolo torna chiuso finché non serve', tut.museumOpen() === false);
     /* e finito per bene, resta aperto */
-    S.tools = { spade: true }; S.coins = 999; tut.tutTick(); tut.tutTick(); tut.tutBump('dig'); tut.tutBump('museum');
+    S.tools = { spade: true }; S.coins = 999; armchairSet(true);
+    tut.tutTick(); tut.tutTick(); tut.tutTick(); tut.tutBump('dig'); tut.tutBump('museum');
     check('finito: il Museo resta aperto', tut.tutDone() && tut.museumOpen() === true);
+    armchairSet(false);
     /* la porta del Museo passa DAVVERO da museumOpen, non è solo una funzione che nessuno usa */
     {
       const fs11 = await import('node:fs');
@@ -6107,7 +7058,7 @@ sprites.applyLook();
   tut.tutSkip();
   check('saltato: sparisce e non spunta niente', !tut.tutActive() && tut.tutSkipped() && tut.tutChecked(0) === false);
   tut.tutRestart();
-  check('rifatto dalla Guida: riparte dal primo passo', tut.tutActive() && tut.tutStepId() === 'pick' && !tut.tutSkipped());
+  check('rifatto dalla Guida: riparte dal primo passo', tut.tutActive() && tut.tutStepId() === 'armchair' && !tut.tutSkipped());
   {
     const fs5 = await import('node:fs');
     const usrc = fs5.readFileSync('src/ui.js', 'utf8');

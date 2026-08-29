@@ -100,6 +100,30 @@ async function main() {
       }).then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'casa' = la Sala arredata (M4-bis): una sedia piazzata E RUOTATA (scala giusta, gambe
+       visibili), un TAPPETO SOTTO di lei (due strati sulla stessa cella: "vaso su tavolino,
+       tappeto sotto" richiesto esplicitamente), una pianta in vaso su una cella per conto suo
+       (decoro piatto, NON blocca il passo), il piedistallo, e un secondo pezzo "in mano"
+       (anteprima nella barra + Ruota/Annulla). */
+    else if (${JSON.stringify(vista)} === 'casa') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var hm2;
+      if(G.enterRoom) G.enterRoom('house').then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.house(); }).then(function(hm){
+        hm2 = hm;
+        var S = G.state();
+        ['boschi_chair', 'boschi_rug', 'palude_vase', 'terre_throne', 'pedestal'].forEach(function (id) {
+          if (S.furnOwned.indexOf(id) < 0) S.furnOwned.push(id);
+        });
+        S.house.rooms[0].furn = [];
+        hm.cancelHold();
+        hm.tryPlaceFurniture(0, 6, 3, 'boschi_rug', 0);     // tappeto SOTTO...
+        hm.tryPlaceFurniture(0, 6, 3, 'boschi_chair', 1);   // ...la sedia, stessa cella
+        hm.tryPlaceFurniture(0, 8, 5, 'palude_vase', 0);    // pianta per conto suo: non blocca il passo
+        hm.tryPlaceFurniture(0, 8, 4, 'pedestal', 0);       // piedistallo: deve restare leggibile, non sparire
+        hm.tryPlaceFurniture(0, 3, 3, 'terre_throne', 0);   // secondo pezzo: appena posato...
+        hm.pickUpFurniture(0, 3, 3);                        // ...e subito ripreso in mano (anteprima + bottoni)
+        return G.intPos(3, 4);                              // il giocatore ci sta sopra
+      }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
+        .then(function(){ if(G.frame) G.frame(1000); }); }
     /* l'altro caso: fialette in mano, requisiti soddisfatti, bottone acceso */
     else if (${JSON.stringify(vista)} === 'lab-dna') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goddna'); }).then(function(){

@@ -4,7 +4,7 @@ import { vhash, fbm } from './noise.js';
 import { zoneIdxAt } from './regions.js';
 import { wonderWidth } from './wonders.js';
 import { wonderSolidTile } from './wonderart.js';
-import { choppedSet, minedSet, pickedSet } from './state.js';
+import { choppedSet, minedSet, pickedSet, S } from './state.js';
 
 /* ---------- terreni ---------- */
 export const DEEP = 0, WATER = 1, SAND = 2, GRASS = 3, FOREST = 4, DIRT = 5, MTN = 6, FLOOR = 7, PARK = 8, ROAD = 9;
@@ -36,6 +36,43 @@ const decoCache = new Map();
    non è un ciclo infinito ma una catena che si allunga: con la cache fredda (arrivo in una
    zona mai vista, per esempio dopo un teletrasporto) arrivava a esaurire lo stack.
    Chi genera il mondo usa questa; chi disegna usa decoAt. */
+/* zona esclusa attorno a casa+cortile+vialetto, con un MARGINE (non solo il recinto stesso):
+   un cristallo/masso da raccogliere appena fuori dalla staccionata era comunque troppo vicino
+   — ci si azzuffava col recinto per raggiungerlo (segnalato con foto). `margin` in caselle
+   oltre il bordo del recinto (il vialetto ha già la sua area, il margine si aggiunge anche lì). */
+export const HOUSE_DECO_MARGIN = 2;
+export function nearHouseZone(tx, ty, margin) {
+  const hf = houseFootprint(), yr = yardRect(); if (!hf && !yr) return false;
+  if (hf && tx >= hf.x0 - margin && tx <= hf.x1 + margin && ty >= hf.y0 - margin && ty <= hf.y1 + margin) return true;
+  if (yr && tx >= yr.x0 - margin && tx <= yr.x1 + margin && ty >= yr.y0 - margin && ty <= yr.y1 + HOME_PATH_LEN + margin) return true;
+  /* il vialetto lungo (fino alla città) è comunque un percorso: niente da raccogliere appena
+     a fianco, come per il breve tratto dentro il cortile. `homeRoadGeom` è già memoizzata. */
+  const g = homeRoadGeom();
+  if (g && (
+    (ty >= g.ey - margin && ty <= g.ey + margin && tx >= g.x0 - margin && tx <= g.x1 + margin) ||
+    (tx >= g.tx - margin && tx <= g.tx + margin && ty >= g.y0 - margin && ty <= g.y1 + margin)
+  )) return true;
+  return false;
+}
+/* invalida le cache di decorazioni/siti/scheletri sepolti sull'area casa+cortile+vialetto
+   (+ margine): va chiamata la PRIMA volta che S.home viene fissato. Prima di allora quei tile
+   sono terreno selvatico come ogni altro, e se il mondo li aveva già disegnati/esplorati
+   (bussola, mappa, un salvataggio vecchio che riceve la casa via migrazione) le cache ci
+   avevano già messo un albero, un fungo o un sito d'ossa — che poi restava PER SEMPRE, perché
+   nessuna cache scade da sola (segnalato: "parte con una X sotto casa", "gli oggetti qua
+   vicini mi triggerano il recinto"). La ricomputazione è deterministica (stesso seme, stesso
+   risultato), quindi non cambia nulla per chi aveva già scavato altrove. */
+export function invalidateHouseDecoCache() {
+  const hf = houseFootprint(), yr = yardRect(); if (!hf || !yr) return;
+  const M = HOUSE_DECO_MARGIN;
+  const x0 = Math.min(hf.x0, yr.x0) - M, x1 = Math.max(hf.x1, yr.x1) + M;
+  const y0 = Math.min(hf.y0, yr.y0) - M, y1 = Math.max(hf.y1, yr.y1) + HOME_PATH_LEN + M;
+  for (let tx = x0; tx <= x1; tx++) for (let ty = y0; ty <= y1; ty++) decoCache.delete(tx + ',' + ty);
+  const scx0 = Math.floor(x0 / SCELL), scx1 = Math.floor(x1 / SCELL), scy0 = Math.floor(y0 / SCELL), scy1 = Math.floor(y1 / SCELL);
+  for (let cx = scx0; cx <= scx1; cx++) for (let cy = scy0; cy <= scy1; cy++) siteCache.delete(cx + ',' + cy);
+  const bcx0 = Math.floor(x0 / BCELL), bcx1 = Math.floor(x1 / BCELL), bcy0 = Math.floor(y0 / BCELL), bcy1 = Math.floor(y1 / BCELL);
+  for (let cx = bcx0; cx <= bcx1; cx++) for (let cy = bcy0; cy <= bcy1; cy++) boneSiteCache.delete(cx + ',' + cy);
+}
 export function decoNatural(tx, ty) {
   const key = tx + ',' + ty;
   if (choppedSet.has(key) || minedSet.has(key)) return null;
@@ -53,6 +90,7 @@ export function decoAt(tx, ty) {
 function decoCompute(tx, ty) {
   const t = baseTerrain(tx, ty);
   if (townInfo(tx, ty)) return null; // niente decorazioni selvatiche in città
+  if (nearHouseZone(tx, ty, HOUSE_DECO_MARGIN)) return null; // né a casa (dentro E nei 2 tile attorno al recinto)
   const zi = zoneIdxAt(tx, ty);
   if (zi === 1) { // DUNE OSSEE: cactus, costole che affiorano, conchiglie
     if (t === SAND || t === GRASS || t === DIRT) {
@@ -156,6 +194,7 @@ export function pickupAt(tx, ty) {
   const t = baseTerrain(tx, ty);
   if (t === FLOOR || !walkableGround(t)) return null; // niente su pavimenti città/parco né acqua
   if (townInfo(tx, ty)) return null;
+  if (nearHouseZone(tx, ty, HOUSE_DECO_MARGIN)) return null; // né a casa: STESSA falla di decoAt/siteForCell, sistema diverso (segnalato: "segna ancora delle cose da raccogliere sotto casa")
   const d = decoAt(tx, ty); if (d) return null;        // libero: mai sopra decorazioni/ostacoli
   /* DENSITÀ: la raccolta è il BOOTSTRAP (i primi 15🪙 per la pala), non una rendita che
      compete con lo scavo — quello costa energia e deve restare la fonte principale.
@@ -187,8 +226,8 @@ export const TOWN_SIZES = [
       ['inn', 'Locanda', -7, 1], ['barber', 'Barbiere', 3, 1]]
   },
   {
-    /* h[1]=6 come il paese: 3 tile di piazza davanti alla fila bassa PRIMA del recinto del
-       parco (che ora inizia più in basso, vedi town.pen). */
+    /* h[1]=6 come il paese: 3 tile di piazza davanti alla fila bassa. Niente più recinto
+       cittadino (il parco è sparito: le chimere vivono nel cortile di casa, vedi yardRect). */
     id: 'città', w: [-11, 13], h: [-7, 6], defs: [
       ['store', 'Negozio', -10, -6], ['lab', 'Laboratorio', -1, -6], ['museum', 'Museo', 8, -6],
       /* fila bassa sfalsata: il viale centrale (x=C.x) resta sempre libero */
@@ -238,14 +277,10 @@ export function townForCell(cx, cy) {
         C, buildings: B, name: townName(cx, cy), size: size.id, key,
         x0: C.x + size.w[0], y0: C.y + size.h[0], x1: C.x + size.w[1], y1: C.y + size.h[1],
       };
-      /* le città grandi hanno un parco recintato sotto la piazza (chimere risvegliate).
-         y0=C.y+7 (non +5): il recinto inizia DUE tile più in basso, così la fila bassa (porta a
-         C.y+2/+3) ha 3 tile di piazza libere davanti prima della staccionata — prima si usciva
-         dall'edificio dritti contro il recinto e si restava bloccati (segnalato con foto). */
-      if (size.id === 'città') town.pen = { x0: C.x - 8, y0: C.y + 7, x1: C.x + 7, y1: C.y + 16 }; // 16×10 (parco grande)
       /* PIAZZA a FONTANA CENTRALE (paese/città): la fontana al centro, un ANELLO di strada che le
-         gira attorno, e da lì le strade raggiungono le porte (fila alta e bassa). Nelle città il
-         viale scende dall'anello al cancello del parco. Il BORGO (2 case) resta semplice. */
+         gira attorno, e da lì le strade raggiungono le porte (fila alta e bassa). Il BORGO
+         (2 case) resta semplice. Niente più recinto del parco: le chimere vivono nel cortile
+         di casa (yardRect), non più in un recinto per città. */
       const roads = new Set();
       const rd = (x, y) => roads.add(x + ',' + y);
       const topB = B.filter(b => b.y0 < C.y), botB = B.filter(b => b.y0 >= C.y);
@@ -262,15 +297,13 @@ export function townForCell(cx, cy) {
         if (topB.length) { const xs = topB.map(b => b.doorx); for (let x = Math.min(rL, ...xs); x <= Math.max(rR, ...xs); x++) rd(x, rT); for (const b of topB) for (let y = b.doory + 1; y < rT; y++) rd(b.doorx, y); }
         const botRoad = C.y + 4;                                       // sotto la fila bassa (che ora può scendere a C.y+3)
         if (botB.length) { const xs = botB.map(b => b.doorx); for (let x = Math.min(...xs); x <= Math.max(...xs); x++) rd(x, botRoad); for (const b of botB) for (let y = b.doory + 1; y <= botRoad; y++) rd(b.doorx, y); }
-        const vialeEnd = town.pen ? town.pen.y0 : botRoad;           // nelle città il viale scende fino al cancello (pen più in basso)
-        for (let y = rB; y <= vialeEnd; y++) rd(C.x, y);             // viale dall'anello a sud (verso il parco nelle città)
+        for (let y = rB; y <= botRoad; y++) rd(C.x, y);              // viale dall'anello a sud, fino a sotto la fila bassa
       }
       town.roads = roads;
-      /* arredo urbano: mai su edifici, davanti alle porte, sulle strade, sul corridoio del cancello o fuori piazza */
+      /* arredo urbano: mai su edifici, davanti alle porte, sulle strade o fuori piazza */
       const forb = (x, y) => {
         for (const b of B) { if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) return true; if (x === b.doorx && y >= b.doory + 1 && y <= b.doory + 3) return true; }
         if (roads.has(x + ',' + y)) return true;
-        if (town.pen && y === town.y1 && (x === C.x - 1 || x === C.x)) return true;
         return x < town.x0 || x > town.x1 || y < town.y0 || y > town.y1;
       };
       const decos = [];
@@ -366,17 +399,6 @@ function townInfoCompute(tx, ty) {
   }
   /* strade sterrate: camminabili, disegnate come tile dedicata */
   if (t.roads && t.roads.has(tx + ',' + ty)) return { floor: true, road: true };
-  /* parco recintato: staccionata solida, cancello in alto, prato interno */
-  if (t.pen) {
-    const p = t.pen;
-    if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) {
-      const gate = ty === p.y0 && (tx === t.C.x - 1 || tx === t.C.x);
-      const fv = tx === p.x0 || tx === p.x1;                          // lati: staccionata VERTICALE
-      const fh = ty === p.y0 || ty === p.y1;                          // sopra/sotto: ORIZZONTALE
-      if ((fv || fh) && !gate) return { solid: true, fence: true, park: true, fv, fh };
-      return { floor: true, park: true };
-    }
-  }
   if (tx >= t.x0 && tx <= t.x1 && ty >= t.y0 && ty <= t.y1) return { floor: true }; // piazza
   return null;
 }
@@ -456,6 +478,13 @@ export function isSolidTile(tx, ty) {
      sotto gli archi invece ci si passa: la maschera è in wonderart.js */
   { const lm = landmarkNear(tx, ty, 2); if (lm && wonderSolidTile(lm.type, lm.x, lm.y, tx, ty)) return true; }
   if (caveEntranceAt(tx, ty)) return false; // imbocco grotta: si cammina
+  /* CASA del giocatore: fuori dal sistema città, solida tranne la porta */
+  if (houseFootprint()) {
+    const hf = houseFootprint();
+    if (tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) return !(tx === hf.doorx && ty === hf.doory);
+  }
+  /* CORTILE della casa: staccionata solida, cancello e prato interno camminabili */
+  { const yd = yardInfo(tx, ty); if (yd) { if (yd.solid) return true; if (yd.floor) return false; } }
   const t = baseTerrain(tx, ty);
   if (t === DEEP || t === WATER || t === MTN) return true;
   const d = decoAt(tx, ty); if (d && decoSolid(d)) return true;
@@ -464,6 +493,200 @@ export function isSolidTile(tx, ty) {
   return false;
 }
 export function solidPx(px, py) { return isSolidTile(Math.floor(px / TS), Math.floor(py / TS)); }
+
+/* ---------- CASA del giocatore: un solo edificio, fuori dal sistema città ----------
+   S.home = {x,y} è la PORTA (tile), calcolata una volta vicino allo spawn (findHomeSpot).
+   Il resto della casa (3×2, porta al centro della fila bassa) si deriva da lì, come per gli
+   edifici delle città (footprint fisso, solido tranne la porta): non è nella cache di
+   townForCell perché non appartiene a nessuna città e cambia solo con S.home. */
+export function houseFootprint() {
+  const h = S && S.home; if (!h) return null;
+  return { x0: h.x - 1, y0: h.y - 1, x1: h.x + 1, y1: h.y, doorx: h.x, doory: h.y };
+}
+export function houseDoorAt(tx, ty) {
+  const h = S && S.home; return !!h && tx === h.x && ty === h.y;
+}
+/* ---------- CORTILE della casa (M5, riprogettato): sostituisce il parco recintato per-città ----------
+   Un solo rettangolo recintato, fisso rispetto alla porta di casa: la staccionata GIRA
+   TUTTO ATTORNO alla casa (prato su tutti e 4 i lati, non più solo a sud), con un cancello
+   sul lato lontano dalla porta (a sud, dove il prato è più largo) e un breve VIALETTO che
+   esce dal cancello verso il mondo aperto — così il recinto non finisce a metà di un campo. */
+export function yardRectFor(hx, hy) {
+  // casa: colonne hx-1..hx+1, righe hy-1..hy (porta a hy). Margine 3 su nord/ovest/est,
+  // 4 a sud (spazio per camminare fra porta e cancello + il vialetto che segue).
+  return { x0: hx - 4, y0: hy - 4, x1: hx + 4, y1: hy + 4, cx: hx };
+}
+export function yardRect() {
+  const h = S && S.home; return h ? yardRectFor(h.x, h.y) : null;
+}
+export const HOME_PATH_LEN = 3; // tile di vialetto oltre il cancello, verso il mondo aperto
+/* {solid,fence,fv,fh} sulla staccionata, {floor:true} dentro (buca fuori la casa: quella
+   la disegna il suo footprint), {floor:true,gate:true,gateSide,gateOpen} sul varco a sud,
+   {floor:true,path:true} sul vialetto oltre il cancello, null fuori — stessa forma del vecchio
+   blocco `t.pen`, agganciata alla casa.
+   `gateOpen` è SEMPRE true per ora (nessuna meccanica di chiusura): si porta comunque il campo
+   per non doverlo reinventare quando arriverà — è il render (drawGate) a doversi accorgere
+   della differenza, non lo schema dati. */
+export function yardInfo(tx, ty) {
+  const p = yardRect(); if (!p) return null;
+  if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) {
+    const hf = houseFootprint();
+    if (hf && tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) return null; // qui c'è la casa
+    const gate = ty === p.y1 && (tx === p.cx - 1 || tx === p.cx); // cancello a SUD, lontano dalla porta
+    if (gate) {
+      const locked = !!(S && S.gateLocked); // teletrasportarsi lo chiude a chiave DAVVERO (non solo l'aspetto)
+      /* VOLUTO: si blocca in ENTRAMBI i versi, anche da dentro (vedi tests/run.mjs, "il
+         cancello bloccato è SOLIDO"). Se si potesse uscire a piedi appena teletrasportati,
+         il cancello "chiuso dall'esterno" non costerebbe nulla — si resta dentro finché non
+         si usa il portale di ritorno o lo si sblocca da fuori più tardi. */
+      return { floor: !locked, solid: locked, gate: true, gateSide: tx === p.cx - 1 ? 'l' : 'r', gateOpen: !locked };
+    }
+    const fv = tx === p.x0 || tx === p.x1;
+    const fh = ty === p.y0 || ty === p.y1;
+    if (fv || fh) return { solid: true, fence: true, fv, fh };
+    return { floor: true };
+  }
+  // vialetto: poche tile a sud del cancello, fuori dal recinto, verso terreno qualunque
+  if ((tx === p.cx - 1 || tx === p.cx) && ty > p.y1 && ty <= p.y1 + HOME_PATH_LEN) return { floor: true, path: true };
+  // prosecuzione: dal fondo del vialetto fino alla città vicina (vedi homeRoadAt)
+  if (homeRoadAt(tx, ty)) return { floor: true, path: true };
+  return null;
+}
+/* Cerca un posto per la porta di casa vicino a una città: fuori dal suo ingombro (con un
+   margine, non appena fuori il muro — "un pelo più lontana"), su terreno camminabile, con
+   spazio aperto davanti e col futuro recinto+vialetto (yardRectFor) tutto su terreno
+   camminabile e fuori città — la stessa area serve a costruirci sopra casa e cortile senza
+   sovrapposizioni. */
+export const HOME_TOWN_GAP = 6; // tile di distacco dal bordo della città: "un pelo più lontano", non attaccata
+export function findHomeSpot(town) {
+  if (!town) return null;
+  const cx = town.C.x, cy = town.C.y;
+  const clearOfTown = (x, y) => {
+    if (x >= town.x0 - HOME_TOWN_GAP && x <= town.x1 + HOME_TOWN_GAP && y >= town.y0 - HOME_TOWN_GAP && y <= town.y1 + HOME_TOWN_GAP) return false;
+    return true;
+  };
+  const okDoor = (x, y) => {
+    if (!clearOfTown(x, y) || townInfo(x, y)) return false;
+    if (!walkableGround(baseTerrain(x, y)) || baseTerrain(x, y) === FLOOR) return false;
+    for (let fy = -1; fy <= 0; fy++) for (let fx = -1; fx <= 1; fx++) { // footprint 3×2 sopra la porta
+      const hx = x + fx, hy = y + fy;
+      if (!clearOfTown(hx, hy) || townInfo(hx, hy)) return false;
+      if (!walkableGround(baseTerrain(hx, hy))) return false;
+    }
+    if (!walkableGround(baseTerrain(x, y + 1)) || townInfo(x, y + 1)) return false; // spazio davanti alla porta
+    if (!openArea(x, y + 1)) return false;
+    const yr = yardRectFor(x, y);
+    for (let yy = yr.y0; yy <= yr.y1; yy++) for (let xx = yr.x0; xx <= yr.x1; xx++) {
+      if (!clearOfTown(xx, yy) || townInfo(xx, yy)) return false;
+      if (!walkableGround(baseTerrain(xx, yy))) return false;
+    }
+    for (let py = yr.y1 + 1; py <= yr.y1 + HOME_PATH_LEN; py++) for (const px of [yr.cx - 1, yr.cx]) { // vialetto
+      if (!clearOfTown(px, py) || townInfo(px, py)) return false;
+      if (!walkableGround(baseTerrain(px, py))) return false;
+    }
+    return true;
+  };
+  /* il cancello del cortile sta SEMPRE a sud (yardInfo): una casa a NORD della città lo fa
+     guardare dritto verso di lei, e il vialetto lungo (homeRoadAt) può proseguire quasi
+     dritto invece di dover girare subito attorno alla staccionata per tornare indietro.
+     Prima passata: SOLO a nord (dy<0); solo se non si trova nessun posto valido lì (mondo
+     stretto, acqua, un'altra città in mezzo) si ripiega su qualunque direzione. */
+  for (let r = 6; r < 50; r++) {
+    for (let dy = -r; dy < 0; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const x = cx + dx, y = cy + dy;
+      if (okDoor(x, y)) return { x, y };
+    }
+  }
+  for (let r = 6; r < 50; r++) {
+    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const x = cx + dx, y = cy + dy;
+      if (okDoor(x, y)) return { x, y };
+    }
+  }
+  return null;
+}
+/* la città vicino a cui S.home è stato piazzato: NON si salva (S.home è solo {x,y}), si
+   ritrova con un ring-scan di celle come `nearestTown` in compass.js — casa e città sono
+   sempre vicine (findHomeSpot cerca entro 50 tile dal centro città), quindi bastano poche
+   celle. MEMOIZZATA per valore di S.home: yardInfo/isSolidTile la interrogano ad ogni tile,
+   ad ogni frame — un ring-scan lì dentro sarebbe una tempesta di townForCell. */
+let homeTownKey = null, homeTownCache = null;
+export function homeTown() {
+  const h = S && S.home;
+  if (!h) { homeTownKey = null; homeTownCache = null; return null; }
+  const key = h.x + ',' + h.y;
+  if (key === homeTownKey) return homeTownCache;
+  const ccx = Math.floor(h.x / TCELL), ccy = Math.floor(h.y / TCELL);
+  let best = null, bd = Infinity, extra = 0;
+  for (let r = 0; r <= 4; r++) {
+    for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
+      if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
+      const t = townForCell(cx, cy); if (!t || t.size !== 'città') continue;
+      const d = Math.hypot(t.C.x - h.x, t.C.y - h.y);
+      if (d < bd) { bd = d; best = t; }
+    }
+    if (best && ++extra >= 2) break; // un anello extra come nearestTown: il jitter può nascondere la vera più vicina
+  }
+  homeTownKey = key; homeTownCache = best;
+  return best;
+}
+/* geometria del VIALETTO LUNGO che prosegue oltre i 3 tile del cortile fino a toccare il
+   territorio della città vicina: memoizzata come homeTown perché interrogata tile per
+   tile. Si ferma al bordo del rettangolo della città (t.x0..t.x1/t.y0..t.y1): non deve
+   incastrarsi fra gli edifici, basta che si veda arrivare.
+   Il cancello sta SEMPRE a sud del recinto (yardInfo). findHomeSpot preferisce case a NORD
+   della città apposta (il cancello guarda già verso di lei): in quel caso — il più comune —
+   ty è a sud di ey, e la colonna del cortile (ex) resta libera per tutta la discesa (il
+   recinto sta tutto a NORD di ey), quindi basta una L pulita: giù dritti dal cancello, poi
+   di lato. Quando invece la città finisce comunque a nord (ripiego di findHomeSpot su un
+   mondo stretto), una L diritta taglierebbe in verticale proprio in mezzo al recinto — la
+   staccionata la blocca a metà, perché lì non c'è nessun cancello (bug osservato: il
+   vialetto "finiva" al bordo del recinto). Lì servono fino a 3 tratti a U: uno in riga
+   (sempre appena a sud del recinto, quindi sempre libero), uno in colonna SPINTO fuori dalla
+   fascia di colonne del recinto, poi l'ultimo in riga fino alla città. */
+let homeRoadKey = null, homeRoadGeomC = null;
+function homeRoadGeom() {
+  const h = S && S.home; if (!h) return null;
+  const key = h.x + ',' + h.y;
+  if (key === homeRoadKey) return homeRoadGeomC;
+  const t = homeTown();
+  let g = null;
+  if (t) {
+    const yr = yardRectFor(h.x, h.y);
+    const ex = yr.cx, ey = yr.y1 + HOME_PATH_LEN;        // dove finisce il breve vialetto del cortile
+    const tx = ex < t.x0 ? t.x0 : ex > t.x1 ? t.x1 : ex;  // colonna di arrivo (bordo città più vicino)
+    const ty = ey < t.y0 ? t.y0 : ey > t.y1 ? t.y1 : ey;  // riga di arrivo
+    if (ty >= ey) {
+      // caso comune: si scende SOLO ad allontanarsi dal recinto, mai a riattraversarlo — L pulita, verticale prima
+      g = {
+        a: { y: ty, x0: ex, x1: ex },                                    // collassa: nessuna riga iniziale
+        b: { x: ex, y0: ey, y1: ty },                                    // dritti fuori dal cancello
+        c: { y: ty, x0: Math.min(ex, tx), x1: Math.max(ex, tx) },        // di lato, fino alla città
+      };
+    } else {
+      // ripiego: la città è comunque a nord del cancello, la verticale dovrebbe riattraversare il recinto
+      const crossesYard = Math.min(ey, ty) <= yr.y1 && Math.max(ey, ty) >= yr.y0;
+      const ecx = (crossesYard && tx >= yr.x0 && tx <= yr.x1) ? (tx <= yr.cx ? yr.x0 - 1 : yr.x1 + 1) : tx;
+      g = {
+        a: { y: ey, x0: Math.min(ex, ecx), x1: Math.max(ex, ecx) },     // riga, appena a sud del recinto
+        b: { x: ecx, y0: Math.min(ey, ty), y1: Math.max(ey, ty) },      // colonna, fuori dal recinto
+        c: { y: ty, x0: Math.min(ecx, tx), x1: Math.max(ecx, tx) },     // riga, fino alla città
+      };
+    }
+  }
+  homeRoadKey = key; homeRoadGeomC = g;
+  return g;
+}
+/* test O(1): un punto sta sulla spezzata se cade su uno dei tre tratti — niente ricerca. */
+export function homeRoadAt(tx, ty) {
+  const g = homeRoadGeom(); if (!g) return false;
+  if (ty === g.a.y && tx >= g.a.x0 && tx <= g.a.x1) return true;
+  if (tx === g.b.x && ty >= g.b.y0 && ty <= g.b.y1) return true;
+  if (ty === g.c.y && tx >= g.c.x0 && tx <= g.c.x1) return true;
+  return false;
+}
 
 /* ---------- siti di scavo speciali: affioramenti d'ossa rari, 3-5 scavi pregiati ---------- */
 export const SCELL = 30;
@@ -474,7 +697,7 @@ export function siteForCell(cx, cy) {
   if (vhash(cx, cy, 171) < 0.22) {
     const x = cx * SCELL + 4 + Math.floor(vhash(cx, cy, 172) * (SCELL - 8));
     const y = cy * SCELL + 4 + Math.floor(vhash(cx, cy, 173) * (SCELL - 8));
-    if (diggable(baseTerrain(x, y)) && !townInfo(x, y) && !decoNatural(x, y)) {
+    if (diggable(baseTerrain(x, y)) && !townInfo(x, y) && !nearHouseZone(x, y, HOUSE_DECO_MARGIN) && !decoNatural(x, y)) {
       site = { x, y, charges: 3 + Math.floor(vhash(cx, cy, 174) * 3), key }; // 3-5 scavi
     }
   }
@@ -502,7 +725,7 @@ export function boneSiteForCell(cx, cy) {
   if (vhash(cx, cy, 231) < 0.16) {
     const x0 = cx * BCELL + 8 + Math.floor(vhash(cx, cy, 232) * (BCELL - 16));
     const y0 = cy * BCELL + 8 + Math.floor(vhash(cx, cy, 233) * (BCELL - 16));
-    const okSpot = (x, y) => diggable(baseTerrain(x, y)) && !townInfo(x, y) && !decoNatural(x, y) && !siteAt(x, y);
+    const okSpot = (x, y) => diggable(baseTerrain(x, y)) && !townInfo(x, y) && !nearHouseZone(x, y, HOUSE_DECO_MARGIN) && !decoNatural(x, y) && !siteAt(x, y);
     let allOk = okSpot(x0, y0);
     const parts = {};
     for (const id in BONE_OFFS) {
@@ -665,15 +888,17 @@ export function openArea(tx, ty, need = 8) {
   return n >= need;
 }
 export function findStart() {
-  /* si parte SEMPRE in una città GRANDE (quella col parco): piazza prima, parco come ripiego */
+  /* si parte SEMPRE in una città GRANDE (taglia "città", quella col Museo): piazza prima,
+     l'area sotto (dove un tempo c'era il parco) come ripiego. NON dipende più da `t.pen`
+     (rimosso col parco cittadino) — solo dalla taglia della città. */
   for (let r = 0; r < 16; r++) {
     for (let cy = -r; cy <= r; cy++) for (let cx = -r; cx <= r; cx++) {
       if (Math.max(Math.abs(cx), Math.abs(cy)) !== r) continue;
       const t = townForCell(cx, cy);
-      if (t && t.pen) {
+      if (t && t.size === 'città') {
         const sx = t.C.x;
-        for (let yy = t.C.y + 3; yy >= t.C.y; yy--) { const ti = townInfo(sx, yy); if (ti && ti.floor && openArea(sx, yy)) return { x: sx * TS + 8, y: yy * TS + 2 }; }
-        for (let yy = t.C.y + 5; yy < t.C.y + 10; yy++) { if (openArea(sx, yy)) return { x: sx * TS + 8, y: yy * TS + 2 }; }
+        for (let yy = t.C.y + 3; yy >= t.C.y; yy--) { const ti = townInfo(sx, yy); if (ti && ti.floor && openArea(sx, yy)) return { x: sx * TS + 8, y: yy * TS + 2, town: t }; }
+        for (let yy = t.C.y + 5; yy < t.C.y + 10; yy++) { if (openArea(sx, yy)) return { x: sx * TS + 8, y: yy * TS + 2, town: t }; }
       }
     }
   }

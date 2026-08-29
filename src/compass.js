@@ -41,8 +41,7 @@ export const DIRCHARS = ['→', '↘', '↓', '↙', '←', '↖', '↑', '↗']
 export function octant(dx, dy) { return ((Math.round(Math.atan2(dy, dx) / (Math.PI / 4)) % 8) + 8) % 8; }
 export function playerInTown(t) {
   const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
-  if (ptx >= t.x0 && ptx <= t.x1 && pty >= t.y0 && pty <= t.y1) return true;
-  const p = t.pen; return !!p && ptx >= p.x0 && ptx <= p.x1 && pty >= p.y0 && pty <= p.y1;
+  return ptx >= t.x0 && ptx <= t.x1 && pty >= t.y0 && pty <= t.y1;
 }
 export function updateCompass(ts) {
   if (ts < compass.next) return; compass.next = ts + 300;

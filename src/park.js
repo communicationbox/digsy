@@ -1,12 +1,31 @@
-/* Parco: sim di wander dentro i recinti delle città grandi (solo runtime, non salvato) */
+/* Cortile: sim di wander dentro il recinto UNICO della casa (solo runtime, non salvato).
+   M5: sostituisce il vecchio parco per-città (`town.pen`, una Map per città) — ora c'è UN
+   solo rettangolo (yardRect, in world.js) e chi ci vive è una scelta esplicita del giocatore
+   (`S.house.yard`, elenco di `key`), non più "tutte le creature, in ogni città". */
 import { TS, spById } from './data.js';
 import { S, P } from './state.js';
-import { TCELL, townForCell } from './world.js';
+import { FOOT_DY } from './body.js';
+import { yardRect, houseFootprint } from './world.js';
 
-export const parks = new Map(); // townKey → [{c,x,y,tx,ty,pause,dir,anim}]
-export const visParks = [];
+/* la casa ora sta DENTRO il recinto (M6: cortile tutto attorno): le creature non devono
+   scegliere un bersaglio sopra il suo footprint, o ci camminerebbero sopra. Margine di 1
+   tile tutto attorno alla casa, così non le sfiorano nemmeno. */
+function pickSpot(yr) {
+  const hf = houseFootprint();
+  for (let i = 0; i < 20; i++) {
+    const x = (yr.x0 + 1) * TS + 4 + Math.random() * ((yr.x1 - yr.x0 - 1) * TS - 8);
+    const y = (yr.y0 + 1) * TS + 4 + Math.random() * ((yr.y1 - yr.y0 - 1) * TS - 8);
+    if (!hf) return { x, y };
+    const tx = x / TS, ty = y / TS;
+    if (tx < hf.x0 - 1 || tx > hf.x1 + 1 || ty < hf.y0 - 1 || ty > hf.y1 + 1) return { x, y };
+  }
+  return { x: (yr.x0 + 1) * TS + 4, y: (yr.y0 + 1) * TS + 4 };
+}
 
-/* CHI VIVE NEL PARCO: le chimere assemblate E le specie risvegliate al Laboratorio.
+export const yardAnimals = []; // lista persistente di {c,x,y,tx,ty,pause,dir,anim}
+export let yardNear = false;   // il player è abbastanza vicino da simulare/disegnare il cortile
+
+/* CHI PUÒ vivere nel cortile: le chimere assemblate E le specie risvegliate al Laboratorio.
  *
  * Per molto tempo qui c'erano solo le chimere, e chi risvegliava una specie — cinque pezzi
  * più una fialetta intera di DNA, la cosa più cara del gioco — trovava il recinto vuoto:
@@ -14,13 +33,16 @@ export const visParks = [];
  * "tornano a vivere" non ci metteva piede. Segnalato da un giocatore che ne aveva risvegliate
  * dieci e le credeva perse.
  *
- * Questa è l'UNICA lista: la usa il parco e la usa il selettore dei compagni (companion.js),
- * così le due non possono più divergere. Una specie risvegliata ha cranio/torace/zampa della
- * stessa specie: lo sprite viene fuori identico all'animale del Libro. */
+ * Questa è l'UNICA lista: la usa il selettore del cortile/compagno (companion.js) e il filtro
+ * di `penPopulation`, così non possono più divergere. Una specie risvegliata ha cranio/torso/
+ * zampa della stessa specie: lo sprite viene fuori identico all'animale del Libro. */
 let popCache = null, popKey = '';
 export function parkPopulation() {
   const chi = S.creatures || [], awk = S.awakened || [];
-  const k = chi.length + '/' + awk.length;
+  /* la chiave deve dipendere dal CONTENUTO, non solo dalla lunghezza: due popolazioni diverse
+     con lo stesso numero di chimere e risvegli (es. nei test, che sostituiscono S.creatures
+     spesso) restituivano la lista VECCHIA dalla cache. */
+  const k = chi.map(c => c.uid).join(',') + '|' + awk.join(',');
   if (popCache && popKey === k) return popCache;
   const out = [];
   for (const c of chi) {
@@ -37,43 +59,70 @@ export function parkPopulation() {
 }
 
 export function refreshVisParks() {
-  visParks.length = 0;
-  const ccx = Math.floor(P.x / (TS * TCELL)), ccy = Math.floor(P.y / (TS * TCELL));
-  for (let cy = ccy - 1; cy <= ccy + 1; cy++) for (let cx = ccx - 1; cx <= ccx + 1; cx++) {
-    const t = townForCell(cx, cy); if (t && t.pen) visParks.push(t);
-  }
+  const yr = yardRect();
+  if (!yr) { yardNear = false; return; }
+  const cx = (yr.x0 + yr.x1) / 2 * TS, cy = (yr.y0 + yr.y1) / 2 * TS;
+  yardNear = Math.abs(P.x - cx) < 500 && Math.abs(P.y - cy) < 400; // ben oltre lo schermo
+  checkGateClose(yr);
 }
-/* chi vive DAVVERO nel recinto ORA: come parkPopulation ma SENZA il compagno che è "con te"
-   (altrimenti la stessa creatura si vede due volte — nel recinto e al tuo fianco). Il selettore
-   dei compagni usa invece parkPopulation intera, così il compagno attivo resta scegliibile. */
+/* Il cancello (render.js) si chiude appena visto da FUORI: qui si accorge del passaggio
+   dentro→fuori e fa partire l'ANIMAZIONE di chiusura (non un tono di testo — si guarda,
+   non si legge: "quando esce deve fare l'animazione della chiusura"). `gateCloseStart` è il
+   momento della transizione; `gateClosingProgress()` lo confronta con `Date.now()` e dà a
+   render.js quanto è chiuso il battente ORA (0 = appena iniziato, 1 = del tutto chiuso). */
+let wasInsideYard = null;
+let gateCloseStart = 0;
+const GATE_CLOSE_MS = 450;
+export function gateClosingProgress() {
+  if (!gateCloseStart) return 1;
+  const t = (Date.now() - gateCloseStart) / GATE_CLOSE_MS;
+  return t >= 1 ? 1 : t;
+}
+function checkGateClose(yr) {
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
+  const inside = ptx >= yr.x0 && ptx <= yr.x1 && pty >= yr.y0 && pty <= yr.y1;
+  if (wasInsideYard === true && inside === false) {
+    /* un P.dir='up' da solo durava un fotogramma: chi teneva ancora premuto un tasto lo
+       sovrascriveva subito col verso di marcia, e la svolta non si vedeva mai (segnalato:
+       "quando esce si deve girare per far capire che sta chiudendo il cancello"). Si blocca
+       il movimento per la durata dell'animazione, come fa P.digging per lo scavo — ci si
+       ferma, ci si gira, si vede il cancello chiudersi, poi si riparte. */
+    P.dir = 'up'; P.moving = false;
+    gateCloseStart = Date.now();
+    P.gateTurnUntil = gateCloseStart + GATE_CLOSE_MS;
+  }
+  wasInsideYard = inside;
+}
+/* chi vive DAVVERO nel cortile ORA: SOLO chi ci hai scelto (`S.house.yard`), e SENZA il
+   compagno che è "con te" (altrimenti la stessa creatura si vede due volte — nel cortile e al
+   tuo fianco). Il selettore usa invece parkPopulation intera, così ogni creatura resta
+   scegliibile sia come compagno sia per il cortile. */
 export function penPopulation() {
   const ck = S.companion && S.companion.key;
-  const all = parkPopulation();
-  return ck ? all.filter(c => c.key !== ck) : all;
+  const yard = new Set((S.house && S.house.yard) || []);
+  return parkPopulation().filter(c => yard.has(c.key) && c.key !== ck);
 }
-export function parkList(t) {
-  let list = parks.get(t.key);
-  if (!list) { list = []; parks.set(t.key, list); }
-  const p = t.pen, pop = penPopulation(), want = new Set(pop.map(c => c.key));
-  /* esce chi non c'è più nel recinto (es. il compagno uscito con te); gli altri tengono la
-     loro posizione di gironzolo, così scegliere un compagno non fa saltare tutti gli altri */
-  for (let i = list.length - 1; i >= 0; i--) if (!want.has(list[i].c.key)) list.splice(i, 1);
-  const have = new Set(list.map(e => e.c.key));
+export function yardList() {
+  const yr = yardRect(); if (!yr) return yardAnimals;
+  const pop = penPopulation(), want = new Set(pop.map(c => c.key));
+  /* esce chi non c'è più nel cortile (rimosso, o è il compagno uscito con te); gli altri
+     tengono la loro posizione di gironzolo, così scegliere non fa saltare tutti gli altri */
+  for (let i = yardAnimals.length - 1; i >= 0; i--) if (!want.has(yardAnimals[i].c.key)) yardAnimals.splice(i, 1);
+  const have = new Set(yardAnimals.map(e => e.c.key));
   for (const c of pop) if (!have.has(c.key)) {         // entra chi è nuovo (o è tornato a casa)
-    const x = (p.x0 + 1 + (c.uid * 7) % (p.x1 - p.x0 - 1)) * TS + 8;
-    const y = (p.y0 + 1 + (c.uid * 13) % (p.y1 - p.y0 - 1)) * TS + 8;
-    list.push({ c, x, y, tx: x, ty: y, pause: 0.5, dir: 1, anim: 0 });
+    const { x, y } = pickSpot(yr);
+    yardAnimals.push({ c, x, y, tx: x, ty: y, pause: 0.5, dir: 1, anim: 0 });
   }
-  return list;
+  return yardAnimals;
 }
-export function updatePark(t, dt) {
-  const p = t.pen;
-  for (const a of parkList(t)) {
+export function updatePark(dt) {
+  const yr = yardRect(); if (!yr) return;
+  for (const a of yardList()) {
     if (a.pause > 0) { a.pause -= dt; continue; }
     const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
-    if (d < 1.5) { // nuovo bersaglio dentro il recinto (interno, margine 4px)
-      a.tx = (p.x0 + 1) * TS + 4 + Math.random() * ((p.x1 - p.x0 - 1) * TS - 8);
-      a.ty = (p.y0 + 1) * TS + 4 + Math.random() * ((p.y1 - p.y0 - 1) * TS - 8);
+    if (d < 1.5) { // nuovo bersaglio dentro il recinto (interno, margine 4px, mai sopra la casa)
+      const spot = pickSpot(yr);
+      a.tx = spot.x; a.ty = spot.y;
       a.pause = 0.6 + Math.random() * 2.2;
     } else {
       a.x += dx / d * 14 * dt; a.y += dy / d * 14 * dt;

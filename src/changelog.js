@@ -1,6 +1,233 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.95.25', it: [
+      'ARREDO: raccogli e ripiazza un mobile toccandolo DIRETTAMENTE (o con {act} sotto i piedi) — non serve più camminarci sopra apposta; due bottoni a schermo (Ruota/Annulla) e un\'anteprima di cosa hai in mano',
+      'ARREDO: tappeto e piante piccole sono DECORO — non bloccano più il passo e possono stare sulla STESSA casella di un mobile solido (tappeto sotto la sedia, ecc.); disegnati piatti dall\'alto invece che come mobili voxel in miniatura',
+      'ARREDO: la scala di ogni mobile è curata per famiglia (sedia/letto/tavolo/piedistallo…), non più una formula unica — un piedistallo piccolo non sparisce e una sedia comune non diventa gigante',
+      'CAPPELLI: bandana, coroncina di fiori, berretto di Babbo Natale, piuma dorata e cappello da festa ritoccati — sagome più leggibili, meno "rumore" di pixel sparsi',
+    ], en: [
+      "FURNITURE: pick up and re-place a piece by touching it DIRECTLY (or with {act} under your feet) — no need to walk onto it anymore; two on-screen buttons (Rotate/Cancel) plus a preview of what's in your hand",
+      'FURNITURE: rugs and small plants are DECOR now — they no longer block movement and can share the SAME tile as a solid piece (a rug under a chair, etc.); drawn as flat top-down icons instead of miniature voxel furniture',
+      "FURNITURE: each piece's scale is hand-tuned per family (chair/bed/table/pedestal…) instead of one shared formula — a small pedestal no longer vanishes and a common chair no longer turns huge",
+      'HATS: bandana, flower crown, Santa hat, gold feather and party hat touched up — clearer silhouettes, less scattered-pixel "noise"',
+    ],
+  },
+  {
+    v: 'v0.95.9', it: [
+      'TUTORIAL: allo step del Negozio la pala ora lampeggia da sola e ogni altro acquisto (ristori, mappe, zaino, altri attrezzi/mezzi) resta disabilitato finché non la compri — vendere resta permesso, serve a pagarla',
+    ], en: [
+      "TUTORIAL: at the Shop step the spade now blinks on its own and every other purchase (snacks, maps, bag, other tools/vehicles) stays disabled until you buy it — selling still works, you need it to afford the spade",
+    ],
+  },
+  {
+    v: 'v0.95.8', it: [
+      'CASA: un TERZO sistema (pickupAt, le scintille da raccogliere) generava sotto casa/cortile con una sua logica tutta indipendente — escludere alberi e siti non bastava (segnalato di nuovo: "segna ancora delle cose da raccogliere sotto casa")',
+    ], en: [
+      "HOUSE: a THIRD independent system (pickupAt, the ground sparkles) still spawned under the house/yard with its own separate logic — excluding trees and sites wasn't enough (reported again)",
+    ],
+  },
+  {
+    v: 'v0.95.7', it: [
+      'PORTALE: mancava il prompt con "E" avvicinandosi — updatePrompt() ha un elenco di vicinanze separato da act(), aggiornare uno non bastava',
+    ], en: [
+      "PORTAL: the \"E\" prompt was missing when getting close — updatePrompt() keeps its own nearby-checks list separate from act(), updating one wasn't enough",
+    ],
+  },
+  {
+    v: 'v0.95.6', it: [
+      'PORTALE: stava nel cortile, fuori — ora è in mezzo all\'atrio della casa, dove si arriva col teletrasporto, e compare E per usarlo lì dentro',
+    ], en: [
+      "PORTAL: it used to sit outside in the yard — now it's in the middle of the house's hallway, right where you land, and E shows up to use it there",
+    ],
+  },
+  {
+    v: 'v0.95.5', it: [
+      'CASA: il teletrasporto ora porta DENTRO il corridoio (non nel cortile) — si arriva in casa davvero, non solo nel suo giardino. Il cancello bloccato vale anche da dentro: si resta finché non si usa il portale di ritorno o lo si sblocca da fuori, altrimenti il blocco non costerebbe nulla',
+    ], en: [
+      "HOUSE: teleporting now takes you INSIDE the hallway (not the yard) — you actually arrive home, not just its garden. The locked gate applies from inside too: you stay put until you use the return portal or unlock it from outside, otherwise the lock would cost nothing",
+    ],
+  },
+  {
+    v: 'v0.95.4', it: [
+      'CANCELLO: bloccato non vuol dire vicolo cieco — dall\'esterno E lo riapre sempre, come una porta qualunque',
+    ], en: [
+      "GATE: locked doesn't mean stuck outside — E always reopens it from the outside, same as any door",
+    ],
+  },
+  {
+    v: 'v0.95.3', it: [
+      'CANCELLO: teletrasportarsi a casa lo salta a piedi, quindi ora lo lascia chiuso a chiave DAVVERO da fuori (non solo l\'aspetto — si blocca il passaggio). Solo in questo caso compare il tono "Caspita! È chiuso dall\'esterno!!", mai uscendo a piedi',
+    ], en: [
+      "GATE: teleporting home skips walking through it, so it now leaves it REALLY locked from outside (blocks passage, not just the look). Only in this case a toast says \"Whoa! It's locked from outside!!\" — never when leaving on foot",
+    ],
+  },
+  {
+    v: 'v0.95.2', it: [
+      'CANCELLO: la svolta a guardarlo durava un fotogramma e chi camminava la sovrascriveva subito. Ora il movimento resta bloccato per tutta la chiusura (come lo scavo), con barre nere sopra/sotto che segnalano il momento fuori controllo',
+    ], en: [
+      "GATE: turning to watch it close lasted one frame and got overwritten instantly if you kept walking. Movement now stays locked for the whole close (like digging does), with black bars top/bottom marking the scripted moment",
+    ],
+  },
+  {
+    v: 'v0.95.1', it: [
+      'CANCELLO: era una serranda che scendeva dall\'alto — sono invece due ANTE a battuta, incernierate ai montanti, che si chiudono ruotando verso il centro. A chiusura avvenuta compare un lucchetto dove si toccano',
+    ], en: [
+      "GATE: it was a shutter sliding down — it's actually two HINGED leaves swinging shut toward the middle from their posts. Once fully closed, a padlock appears where they meet",
+    ],
+  },
+  {
+    v: 'v0.95.0', it: [
+      'CANCELLO: tolto il tono di testo ("caspita! l\'ho chiuso...") — non si legge, si guarda. Il battente ora scende con un\'animazione vera in mezzo secondo, invece di comparire di scatto',
+    ], en: [
+      "GATE: removed the toast text (\"whoa, I closed it...\") — you watch it, you don't read it. The panel now swings shut with a real half-second animation instead of popping into place",
+    ],
+  },
+  {
+    v: 'v0.94.9', it: [
+      'CANCELLO: si chiude visto da fuori appena si esce dal cortile (solo l\'aspetto, il passaggio resta libero), ci si gira a guardarlo mentre chiude, e un tono lo dice la prima volta ("Caspita! Ho chiuso il cancello dall\'esterno!!")',
+    ], en: [
+      "GATE: it closes when seen from outside right after leaving the yard (looks only, still walkable), you turn to watch it shut, and a toast calls it out the first time (\"Whoa! I closed the gate from outside!!\")",
+    ],
+  },
+  {
+    v: 'v0.94.8', it: [
+      'VIALETTO: prima finiva a metà di un campo dopo pochi passi. Ora prosegue con una spezzata (niente diagonali, come ogni altra strada) fino a toccare davvero il territorio della città vicina',
+    ], en: [
+      "PATH: it used to stop halfway through a field after a few steps. Now it continues (no diagonals, same as every other road) until it actually reaches the nearby town",
+    ],
+  },
+  {
+    v: 'v0.94.7', it: [
+      'CORTILE: tolto il cartello "TORNATE IN VITA" al cancello (a richiesta)',
+    ], en: [
+      "YARD: removed the \"BROUGHT BACK\" sign at the gate (on request)",
+    ],
+  },
+  {
+    v: 'v0.94.6', it: [
+      'CORTILE: un cristallo o un masso da raccogliere appena fuori dalla staccionata era comunque troppo vicino — ci si azzuffava col recinto per raggiungerlo (segnalato con foto). Ora niente da raccogliere nei 2 tile subito fuori dal recinto, in ogni direzione',
+    ], en: [
+      "YARD: a crystal or boulder to collect right outside the fence was still too close — you'd fight the fence to reach it. Now nothing collectible spawns within 2 tiles of the fence, in any direction",
+    ],
+  },
+  {
+    v: 'v0.94.5', it: [
+      'CASA: stesso guaio della cache delle decorazioni, ma sui SITI DI SCAVO e sugli SCHELETRI SEPOLTI — un sito calcolato prima che la casa esistesse ci restava per sempre, ossa affioranti comprese, magari proprio sotto casa (segnalato: "parte con una X sotto casa"). Ora si puliscono anche quelle',
+    ], en: [
+      "HOUSE: same trouble as the decoration cache, but for DIG SITES and BURIED SKELETONS — a site computed before the house existed stayed forever, surfacing bones included, sometimes right under the house. Now those get cleared too",
+    ],
+  },
+  {
+    v: 'v0.94.4', it: [
+      'CASA E CORTILE: potevano restare alberi/funghi selvatici sotto la casa o dentro il recinto (segnalato). La cache delle decorazioni non si accorgeva mai che lì, nel frattempo, era nata una casa — ora si pulisce nel momento in cui S.home viene fissato',
+    ], en: [
+      "HOUSE AND YARD: wild trees/mushrooms could linger under the house or inside the fence. The decoration cache never noticed a house had since been built there — now it's cleared the moment S.home is set",
+    ],
+  },
+  {
+    v: 'v0.94.3', it: [
+      'ARREDO: un mobile piazzato era un blob di colore uniforme — projectVox è una vista dall\'alto pura, e uno schienale sopra la seduta finisce sullo stesso pixel della seduta. Nuova proiezione a scorcio SOLO per l\'arredo (l\'altezza ora si vede, non solo si tinge)',
+    ], en: [
+      "FURNITURE: a placed piece looked like a flat colour blob — projectVox is a pure top-down view, so a chair's backrest lands on the exact same pixel as its seat. New oblique projection JUST for furniture (height is now visible, not just tinted)",
+    ],
+  },
+  {
+    v: 'v0.94.2', it: [
+      'CASA: il fix della cella d\'ingresso non toglieva un mobile già piazzato lì PRIMA del fix — restava nel salvataggio e faceva rimbalzare la stanza sull\'atrio senza mai entrarci (segnalato: "adesso non entra neanche nella stanza dal corridoio"). Pulizia automatica una tantum + ordine di spostamento più sicuro (mai verso la porta)',
+    ], en: [
+      "HOUSE: the entry-tile fix didn't remove furniture already placed there BEFORE the fix — it stayed in the save and bounced the room/atrium transition back and forth without ever entering. One-time automatic cleanup, plus a safer nudge order (never toward the door)",
+    ],
+  },
+  {
+    v: 'v0.94.1', it: [
+      'CASA: la casella davanti alla porta di una stanza è dove si ricompare rientrandoci — un mobile piazzato lì bloccava il rientro (segnalato: "se lo metto davanti alla porta quando entro sono bloccato"). Ora quella casella non è più piazzabile',
+    ], en: [
+      "HOUSE: the tile right in front of a room's door is where you reappear when you walk back in — furniture placed there blocked re-entry. That tile is no longer placeable",
+    ],
+  },
+  {
+    v: 'v0.94.0', it: [
+      'CASA: piazzare un mobile sotto i propri piedi lo rendeva SOLIDO all\'istante e ci si restava incastrati dentro (segnalato: "mi blocco sulla poltrona"). Ora, appena piazzato, ci si sposta di una casella verso il primo lato libero',
+    ], en: [
+      "HOUSE: placing a piece of furniture on your own tile made it SOLID instantly and trapped you inside it. Now, right after placing it, you step off to the nearest open side",
+    ],
+  },
+  {
+    v: 'v0.93.9', it: [
+      'PARTITA NUOVA: la prima cosa che si vede ora è casa propria — si comincia dritti nella Sala, non nel mondo aperto. Di conseguenza il tutorial parte dalla poltrona (piazzala prima ancora di uscire in strada), spostata da terzo a primo passo',
+      'CANCELLO del cortile: era un semplice buco nella staccionata, indistinguibile da un pezzo di recinto mancante. Ora ha due montanti e un architrave che lo segnano come un varco vero',
+    ], en: [
+      "NEW GAME: the first thing you see is now your own home — you start right in the Living room, not the open world. The tutorial follows suit: the armchair step moved from third to first, since you're already standing there",
+      "YARD GATE: used to be a plain gap in the fence, indistinguishable from a missing piece. Now it has two posts and a lintel marking it as a real opening",
+    ],
+  },
+  {
+    v: 'v0.93.8', it: [
+      'CASA E CORTILE: la casa aveva un cortile solo a sud, buttato lì appena fuori dalla città. Ora il recinto la CIRCONDA su tutti e 4 i lati (uno spazio suo, non un pezzo di prato qualunque), il cancello (a sud, sempre aperto) ha un breve vialetto che esce nel mondo, e la casa nasce un po\' più distante dalla città',
+    ], en: [
+      'HOME AND YARD: the house used to have a yard only to the south, plopped right outside town. Now the fence WRAPS AROUND it on all 4 sides (a proper little property, not just leftover lawn), the gate (south, always open) has a short path leading out into the world, and the house now spawns a bit farther from town',
+    ],
+  },
+  {
+    v: 'v0.93.7', it: [
+      'TUTORIAL: nuovo passo prima dello scavo — piazza in Sala la poltrona che trovi già nel vassoio. Insegna ad arredare casa col gesto più leggero del gioco, prima ancora del primo colpo di pala. Con questo la CASA del giocatore è completa (stanze, arredo, piedistallo, cortile, tutorial)',
+    ], en: [
+      "TUTORIAL: new step before your first dig — place the armchair already sitting in your tray in the Living room. Teaches home furnishing with the lightest gesture in the game, before the first spade swing. This completes the player's HOME feature (rooms, furniture, pedestal, yard, tutorial)",
+    ],
+  },
+  {
+    v: 'v0.93.6', it: [
+      'CASA: rifatta ancora — niente più un corridoio con le stanze ai lati (si vedevano dalle porte), ora un piccolo ingresso e ogni stanza (Sala/Cucina/Bagno/Camera) è un ambiente a sé: non si vede finché non ci entri, come nei 6 negozi. Ogni stanza si riconosce anche vuota (mattonelle nel bagno, credenza in cucina, legno più caldo in camera)',
+      'Corretto un raro blocco del minigioco "gioca col compagno" nel cortile piccolo: un lancio verso il recinto ora ripiega su un tiro più corto invece di restare fermo',
+    ], en: [
+      'HOME: redone again — no more one corridor with rooms along the sides (visible through the doors); now a small entryway, and each room (Living room/Kitchen/Bathroom/Bedroom) is its own place: unseen until you walk in, just like the 6 shops. Every room reads its type even empty (tiles in the bathroom, a counter in the kitchen, warmer wood in the bedroom)',
+      'Fixed a rare freeze in the "play with your companion" minigame inside a small yard: a throw toward the fence now falls back to a shorter one instead of getting stuck',
+    ],
+  },
+  {
+    v: 'v0.93.5', it: [
+      'CASA: dentro non è più una fila di stanze una dopo l\'altra, ma un vero corridoio con le porte a lucchetto ai lati — Sala in fondo (gratis), poi Cucina, Bagno e Camera',
+    ], en: [
+      'HOME: the inside is no longer a row of rooms one after another, but a real corridor with locked doors along the sides — the Living room at the end (free), then Kitchen, Bathroom and Bedroom',
+    ],
+  },
+  {
+    v: 'v0.93.4', it: [
+      'CORTILE: il parco recintato non è più per città (identico ovunque), ma UN cortile solo, a casa tua. Nel pannello del compagno scegli anche chi ci vive: illimitato, solo chi vuoi tu',
+    ], en: [
+      'YARD: the fenced park is no longer per-town (identical everywhere) — there is now ONE yard, at your house. The companion panel also lets you pick who lives there: no limit, only who you choose',
+    ],
+  },
+  {
+    v: 'v0.93.3', it: [
+      'ARREDO: i mobili piazzati in casa ora hanno una vera sagoma voxel (non più un rettangolo colorato), con un bottone 🌀 3D nel vassoio e al Negozio per farli girare. Un PIEDISTALLO gratis nel vassoio: piazzalo e scegli quale scheletro consegnato al Museo esporre in casa',
+    ], en: [
+      'FURNITURE: pieces placed at home now have a real voxel shape (no more flat colored rectangle), with a 🌀 3D button in the tray and at the Shop to spin them. A free PEDESTAL sits in your tray: place it and pick which skeleton delivered to the Museum to display at home',
+    ],
+  },
+  {
+    v: 'v0.93.2', it: [
+      'ARREDO DELLA CASA: il Negozio di ogni zona vende, in una scheda "Arredamento", il set di mobili di quella zona (sbloccati per livello). Comprato è tuo per sempre: in casa, premi il tasto azione su una casella libera per piazzarlo dal vassoio, sulla stessa casella per rimuoverlo',
+    ], en: [
+      'HOME FURNITURE: each zone\'s Shop now sells, under a "Furniture" tab, that zone\'s furniture set (unlocked by level). Once bought it\'s yours forever: at home, press the action key on a free floor tile to place it from your tray, on the same tile to remove it',
+    ],
+  },
+  {
+    v: 'v0.93.1', it: [
+      'CASA DEL GIOCATORE: altre stanze dietro una porta a lucchetto, comprabili coi tuoi 🪙 (prezzi crescenti). Avvicinati e premi il tasto azione: si apre una scheda col prezzo, conferma per sbloccarla per sempre',
+    ], en: [
+      'PLAYER HOUSE: more rooms behind a locked door, buyable with your 🪙 (rising prices). Get close and press the action key: a panel shows the price, confirm to unlock it for good',
+    ],
+  },
+  {
+    v: 'v0.93', it: [
+      'CASA DEL GIOCATORE (guscio): una casetta tua, vicino alla città grande di partenza — entraci camminando sulla porta, come negli altri edifici. Pin 🏠 GRATUITO sulla mappa: teletrasporto istantaneo a casa da qualsiasi distanza, e un portale viola appare vicino alla porta per tornare dove eri (uso singolo)',
+    ], en: [
+      'PLAYER HOUSE (shell): a little house of your own, near your starting big city — walk onto the door to enter, like the other buildings. FREE 🏠 pin on the map: instant teleport home from anywhere, and a purple portal appears near the door to take you back where you were (single use)',
+    ],
+  },
+  {
     v: 'v0.92.5', it: [
       'FIX Sartoria: cliccando ✕ per togliere il cappello, Conferma restava spento e non si poteva salvare — togliere il cappello è gratis, ma il bottone contava solo le modifiche a pagamento',
     ], en: [

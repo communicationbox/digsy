@@ -1,5 +1,5 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
-import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName } from './data.js';
+import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
@@ -12,11 +12,13 @@ import { weatherAt, weatherLabel } from './weather.js';
 import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
-import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyPark, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
-import { INT, nearNpc, nearCase, nearMentorInt, nearExit, exitInterior, npcName, sayNpc } from './interior.js';
+import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
+import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold } from './house.js';
+import { furnVoxels, rotateFurnVoxels } from './furnVox.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
@@ -33,7 +35,7 @@ import { fusibleGroups, nextRarity } from './fuse.js';
 import { projectVox } from './voxview.js';
 import { openMap, closeMap, isMapOpen, revealMap, mapZoomBy, mapReset } from './mapui.js';
 export { openMap, closeMap, isMapOpen, revealMap };
-import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawVoxel2D, mountSpecies3D, litForSpecies } from './bookui.js';
+import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawVoxel2D, mountSpecies3D, litForSpecies, mountFurniture3D } from './bookui.js';
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
@@ -43,7 +45,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { groundPalette } from './tiles.js';
-import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel } from './i18n.js';
+import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel, furnLabel, roomName } from './i18n.js';
 
 /* ---------- toast / HUD / prompt ---------- */
 export function toast(m) {
@@ -201,7 +203,7 @@ function setPrompt(html) {
 const exitBtn = document.getElementById('exitbtn');
 if (exitBtn) exitBtn.onclick = () => {
   playSfx('ui');
-  if (CAVE.active) exitCave(); else if (INT.active) exitInterior();
+  if (CAVE.active) exitCave(); else if (INT.active) interiorLeave();
   syncExitBtn();
 };
 export function syncExitBtn() {
@@ -210,20 +212,66 @@ export function syncExitBtn() {
   exitBtn.classList.toggle('on', !!show);
   if (show) exitBtn.innerHTML = withIcons('🚪 ' + tr('Esci', 'Leave'));
 }
+/* ARREDO IN MANO: Ruota/Annulla — un mobile appena raccolto non ha un tasto dedicato (su
+   mobile non c'è nemmeno la tastiera), quindi due bottoni a schermo come per l'uscita. */
+const furnHold = document.getElementById('furnhold');
+const furnRotBtn = document.getElementById('furnrotbtn');
+const furnCancelBtn = document.getElementById('furncancelbtn');
+const furnHoldPv = document.getElementById('furnholdpv');
+/* niente ghost nel mondo: si piazza SEMPRE sulla casella dei propri piedi, e un'anteprima lì
+   finiva dietro al personaggio (quasi invisibile) o, prima della scala giusta, spuntava sopra
+   la testa — segnalato con Playwright ("disassamento verticale"). L'anteprima vera vive qui,
+   ridisegnata a ogni rotazione. */
+function syncFurnHoldPreview() {
+  if (!furnHoldPv || !furnHoldPv.getContext) return;
+  const c2 = furnHoldPv.getContext('2d'); if (!c2) return;
+  c2.clearRect(0, 0, furnHoldPv.width, furnHoldPv.height);
+  const hv = isHolding() && holdItem(); if (!hv) return;
+  /* `projectVox` (già usata per le miniature del vassoio) CENTRA e RIEMPIE la canvas da sola:
+     la sprite del mondo (furnSprite) invece ancora tutto in basso su una tela grande quanto
+     il pezzo più alto del negozio, e qui dentro sembrava quasi vuota. */
+  try { projectVox(furnHoldPv, rotateFurnVoxels(furnVoxels(hv.itemId), hv.rot || 0), false, null, false); } catch (e) { /* stub nei test */ }
+}
+if (furnRotBtn) furnRotBtn.onclick = () => { playSfx('ui'); rotateHold(); syncFurnHoldPreview(); };
+if (furnCancelBtn) furnCancelBtn.onclick = () => {
+  playSfx('ui'); cancelHold();
+  toast('🎨 ' + tr('Torna nel vassoio', 'Back in your tray'));
+};
+function syncFurnHold() {
+  if (!furnHold || !furnHold.classList) return;
+  const on = INT.active && isHolding();
+  if (on && !furnHold.classList.contains('on')) syncFurnHoldPreview(); // appena raccolto: disegna subito
+  furnHold.classList.toggle('on', on);
+}
 export function updatePrompt() {
   syncExitBtn();
+  syncFurnHold();
   if (isModalOpen()) { setPrompt(null); return; }
   if (CAVE.active) {
     setPrompt(caveNodeReach() ? withIcons(actKey() + ' ' + tr('Scava il giacimento ⛏️', 'Dig the deposit ⛏️')) : null);
     return;
   }
   if (INT.active) {
+    if (nearbyReturnPortal()) { setPrompt(withIcons(actKey() + ' ' + tr('Torna indietro 🌀', 'Teleport back 🌀'))); return; }
     if (nearMentorInt()) { setPrompt(withIcons(actKey() + ' ' + tr('Parla col Maestro Scavatore 🎓', 'Talk to the Master Digger 🎓'))); return; }
     const nc = nearCase();
     if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/' + PARTS.length + (nc.n === PARTS.length ? ' 💫' : ''))); return; }
     if (nearNpc()) {
       if (!INT.greeted && INT.b) { sayGreet(INT.b.type); INT.greeted = true; } // saluto (una frase a caso) avvicinandosi
       setPrompt(withIcons(actKey() + ' ' + tr('Parla con ', 'Talk to ') + npcName(INT.b.type))); return;
+    }
+    { const gate = nearLockedGate(); if (gate != null) { setPrompt(withIcons(actKey() + ' ' + roomName(gate) + ' 🔒 (🪙 ' + roomPrice(gate) + ')')); return; } }
+    { // casa: arreda/raccogli/piazza la cella sotto i piedi (M3-M4)
+      const cell = houseFloorHere();
+      if (cell) {
+        if (isHolding()) {
+          setPrompt(withIcons(cell.itemId ? tr('Cella occupata', 'Cell is occupied') : actKey() + ' ' + tr('Piazza qui 🎨', 'Place here 🎨')));
+          return;
+        }
+        if (cell.itemId === PEDESTAL_ID) { setPrompt(withIcons(actKey() + ' ' + tr('Piedistallo 🏛️', 'Pedestal 🏛️'))); return; }
+        if (cell.itemId) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli ', 'Pick up ') + furnLabel(cell.itemId) + ' 🎨')); return; }
+        if (cell.unlocked) { setPrompt(withIcons(actKey() + ' ' + tr('Arreda 🎨', 'Furnish 🎨'))); return; }
+      }
     }
     setPrompt(null); return;
   }
@@ -259,10 +307,10 @@ export function updatePrompt() {
     return;
   }
   if (nearbyBoard()) { setPrompt(withIcons(actKey() + ' ' + tr('Bacheca delle missioni 📋', 'Mission board 📋'))); return; }
-  /* già ne hai uno pronto? nel parco si GIOCA invece di riaprire il selettore (stessa
-     priorità di act(): companionPlayable() prima di nearbyPark()) */
+  /* già ne hai uno pronto? nel cortile si GIOCA invece di riaprire il selettore (stessa
+     priorità di act(): companionPlayable() prima di nearbyYard()) */
   if (companionPlayable()) { setPrompt(withIcons(actKey() + ' ' + tr('Gioca col compagno 🐾', 'Play with your companion 🐾'))); return; }
-  if (nearbyPark()) { setPrompt(withIcons(actKey() + ' ' + tr('Scegli il compagno 🐾', 'Choose your companion 🐾'))); return; }
+  if (nearbyYard()) { setPrompt(withIcons(actKey() + ' ' + tr('Compagno e cortile 🐾', 'Companion & yard 🐾'))); return; }
   if (nearbyDrop()) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli da terra ✨', 'Pick up from the ground ✨'))); return; } // il fossile caduto viene prima della fontana
   if (nearbyFountain()) { setPrompt(withIcons(actKey() + ' ' + tr('Lancia 1 🪙 nella fontana', 'Toss 1 🪙 into the fountain'))); return; }
   if (onBoat() && nearbyWreck()) { const rem = wreckRemaining(nearbyWreck()); setPrompt(withIcons(rem > 0 ? actKey() + ' ' + tr('Fruga nel relitto 🚢 (', 'Search the wreck 🚢 (') + rem + tr(' rimasti)', ' left)') : tr('Relitto ripulito', 'Wreck picked clean'))); return; }
@@ -391,6 +439,61 @@ export function openMailbox() {
   mTitle.innerHTML = withIcons('📮 ' + tr('Cassetta della posta', 'Mailbox'));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-ship]').forEach(b => b.onclick = () => { if (shipToMuseum()) closeModal(); else openMailbox(); });
+}
+/* CASA — porta a lucchetto: modale di conferma prima di spendere (M2). Stesso schema della
+   cassetta della posta: prezzo, bottone disabilitato se mancano i fondi. */
+export function openRoomLock(roomId) {
+  const price = roomPrice(roomId), can = S.coins >= price || isDebug();
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Sblocca questa stanza per sempre: potrai arredarla come vuoi.', 'Unlock this room for good: you will be able to furnish it however you like.')}</div>`;
+  h += `<div class="row"><span class="em">🔒</span><div><div class="nm">${roomName(roomId)}</div><div class="sub">${tr('costo', 'cost')} 🪙 ${price}</div></div><div class="rt"><button class="btn ${can ? 'amber' : 'ghost'}" ${can ? '' : 'disabled'} data-unlock="1">${tr('Sblocca', 'Unlock')} 🪙 ${price}</button></div></div>`;
+  if (!can) h += `<div class="muted center" style="margin-top:6px">${tr('Servono 🪙 ', 'You need 🪙 ') + price}</div>`;
+  mTitle.innerHTML = withIcons('🔒 ' + roomName(roomId));
+  mBody.innerHTML = withIcons(h); openModal();
+  mBody.querySelectorAll('[data-unlock]').forEach(el => el.onclick = () => { if (tryUnlockRoom(roomId)) closeModal(); else openRoomLock(roomId); });
+}
+/* CASA — vassoio dell'arredo (M3): pezzi comprati ma non ancora piazzati. Si apre premendo
+   il tasto azione su una cella di pavimento libera (act() → houseFloorHere), un pezzo alla
+   volta, niente trascinamento. */
+export function openFurnitureTray(room, gx, gy) {
+  const items = ownedUnplaced();
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli un pezzo dal vassoio da piazzare qui.', 'Pick a piece from your tray to place here.')}</div>`;
+  if (!items.length) h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
+  else h += items.map(id => `<div class="row"><canvas class="pv" width="36" height="30" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div></div><div class="rt"><button class="btn ghost" data-furn3d="${id}">🌀 3D</button><button class="btn amber" data-place="${id}">${tr('Piazza qui', 'Place here')}</button></div></div>`).join('');
+  mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
+  mBody.innerHTML = withIcons(h); openModal(); hydratePv();
+  mBody.querySelectorAll('[data-place]').forEach(el => el.onclick = () => { if (tryPlaceFurniture(room, gx, gy, el.dataset.place)) { nudgeOffFurniture(); closeModal(); } });
+  mBody.querySelectorAll('[data-furn3d]').forEach(el => el.onclick = () => openFurniture3D(el.dataset.furn3d, () => openFurnitureTray(room, gx, gy)));
+}
+/* CASA — piedistallo (M4): espone in casa uno scheletro già consegnato al Museo (stessa
+   fonte dei piedistalli della galleria, `S.museum[spId]`). Vuoto → scegli la specie;
+   assegnato → sprite dell'esposizione (SOLI pezzi consegnati, `exhibitSprite`-style) + cambia/
+   togli. Stesso schema di openCompanionPicker: elenco a righe, un bottone "Scegli"/"Esponi". */
+export function openPedestal(room, gx, gy) {
+  const f = furnAt(room, gx, gy);
+  if (!f || f.itemId !== PEDESTAL_ID) return;
+  if (f.spId) {
+    const sp = spById[f.spId]; const parts = S.museum[f.spId] || [];
+    mTitle.innerHTML = withIcons('🏛️ ' + tr('Piedistallo', 'Pedestal') + ' · ' + sp.name + ' ' + sp.emoji);
+    let h = `<div class="center" style="padding:4px"><canvas id="pedCv" width="144" height="128" style="width:100%;max-width:220px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px"></canvas></div>`;
+    h += `<div class="row"><div class="sub">${tr('Pezzi esposti', 'Pieces on display')}: ${parts.length}/${PARTS.length}</div></div>`;
+    h += `<div class="row" style="justify-content:center;gap:8px"><button class="btn ghost" data-ped-change="1">${tr('Cambia specie', 'Change species')}</button><button class="btn ghost" data-ped-remove="1">${tr('Togli piedistallo', 'Remove pedestal')}</button></div>`;
+    mBody.innerHTML = withIcons(h); openModal();
+    const cv = document.getElementById('pedCv');
+    if (cv) try { projectVox(cv, composedPartsVox(f.spId, parts)); } catch (e) { /* stub nei test */ }
+    mBody.querySelectorAll('[data-ped-change]').forEach(b => b.onclick = () => { assignPedestal(room, gx, gy, null); openPedestal(room, gx, gy); });
+    mBody.querySelectorAll('[data-ped-remove]').forEach(b => b.onclick = () => { removeFurnitureAt(room, gx, gy); closeModal(); });
+  } else {
+    const cands = pedestalCandidates();
+    let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli quale scheletro esporre (serve almeno un pezzo consegnato al Museo).', "Pick which skeleton to display (needs at least one piece delivered to the Museum).")}</div>`;
+    if (!cands.length) h += `<div class="center muted">${tr('Non hai ancora consegnato nulla al Museo.', "You haven't delivered anything to the Museum yet.")}</div>`;
+    else h += cands.map(id => {
+      const sp = spById[id], parts = S.museum[id] || [];
+      return `<div class="row"><span class="em">${sp.emoji}</span><div><div class="nm">${sp.name}</div><div class="sub">${parts.length}/${PARTS.length}</div></div><div class="rt"><button class="btn amber" data-ped-pick="${id}">${tr('Esponi', 'Display')}</button></div></div>`;
+    }).join('');
+    mTitle.innerHTML = withIcons('🏛️ ' + tr('Piedistallo vuoto', 'Empty pedestal'));
+    mBody.innerHTML = withIcons(h); openModal();
+    mBody.querySelectorAll('[data-ped-pick]').forEach(b => b.onclick = () => { assignPedestal(room, gx, gy, b.dataset.pedPick); openPedestal(room, gx, gy); });
+  }
 }
 export function openAchievements() {
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Gradini sbloccati', 'Tiers unlocked')}: ${trophyCount()}/${TIER_TOTAL} · ${tr('Bronzo · Argento · Oro · Platino', 'Bronze · Silver · Gold · Platinum')}</div>`;
@@ -696,27 +799,42 @@ function abilLabel(spec) {
     : ' · 🐾 ' + tr('raccoglie da solo: lento, spesso a vuoto, niente XP', 'gathers on its own: slow, often nothing, no XP');
   return base;
 }
+/* Nel cortile si scelgono DUE cose per ogni creatura: chi ti segue nel mondo (compagno, come
+   prima) e chi vive nel cortile (M5, sostituisce il vecchio parco cittadino — illimitato,
+   scelta esplicita, `S.house.yard` = elenco di `key`). Un solo pannello: qui è dove le tue
+   creature vivono, ha senso decidere entrambe le cose da qui. */
 export function openCompanionPicker() {
+  ensureHouseState();
   const cands = companionCandidates(), cur = companionSpec();
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli chi ti segue nel mondo. Il potere dipende dal TIPO (fonte) e cresce con la RARITÀ; ogni compagno dà anche fiuto e bussola.', 'Choose who follows you in the world. The power depends on its TYPE (source) and grows with RARITY; every companion also gives sniff and compass.')}</div>`;
+  const yard = new Set(S.house.yard || []);
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli chi ti segue nel mondo (il potere dipende dal TIPO e cresce con la RARITÀ) e chi vive nel tuo cortile (nessun limite).', 'Choose who follows you in the world (power depends on TYPE and grows with RARITY) and who lives in your yard (no limit).')}</div>`;
   if (!cands.length) h += `<div class="center muted">${tr('Nessuna chimera o fossile risvegliato. Risveglia una specie al Laboratorio (poi potrai anche allevare chimere)!', 'No chimera or awakened fossil yet. Awaken a species at the Lab (then you can breed chimeras too)!')}</div>`;
   else {
     h += `<div class="row"${cur ? '' : ' style="background:#f1e6cc"'}><span class="em">🚫</span><div><div class="nm">${tr('Nessun compagno', 'No companion')}</div><div class="sub">${tr('vai da solo', 'go on your own')}</div></div><div class="rt">${cur ? `<button class="btn amber" data-comp="">${tr('Scegli', 'Choose')}</button>` : '<b>✓ ' + tr('da solo', 'on your own') + '</b>'}</div></div>`;
     h += cands.map(c => {
       const on = isCurrentCompanion(c.key);
+      const inYard = yard.has(c.key);
       const chimera = !!(c.key && c.key.startsWith('chi'));   // parkPopulation: chimere 'chi'+uid, risvegli 'sp'+id
       const em = chimera ? '🧬' : '🐾';                        // icona diversa: DNA per le chimere
       const kind = chimera ? tr('Chimera', 'Chimera') : tr('Risveglio', 'Awakened');
-      return `<div class="row${chimera ? ' chimera' : ''}"><span class="em">${em}</span><div><div class="nm">${c.name} · ${kind} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(c)}</div></div><div class="rt">${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
+      return `<div class="row${chimera ? ' chimera' : ''}"><span class="em">${em}</span><div><div class="nm">${c.name} · ${kind} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(c)}</div></div><div class="rt"><button class="btn ${inYard ? '' : 'amber'}" data-yard="${c.key}">🏠 ${inYard ? tr('nel cortile', 'in the yard') : tr('metti nel cortile', 'add to yard')}</button>${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
     }).join('');
   }
-  mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno', 'Companion'));
+  mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno e cortile', 'Companion & yard'));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => {
     const key = b.dataset.comp;
     if (!key) { clearCompanion(); toast('🚫 ' + tr('Compagno a casa', 'Companion sent home')); }
     else { const spec = cands.find(c => c.key === key); if (spec) { setCompanion(spec); toast('🐾 ' + spec.name + tr(' ti segue!', ' is with you!')); } }
     updateHUD(); openCompanionPicker();
+  });
+  mBody.querySelectorAll('[data-yard]').forEach(b => b.onclick = () => {
+    ensureHouseState();
+    const key = b.dataset.yard;
+    const i = S.house.yard.indexOf(key);
+    if (i >= 0) { S.house.yard.splice(i, 1); toast('🏠 ' + tr('Tornata nel Libro', 'Back to the Book')); }
+    else { S.house.yard.push(key); toast('🏠 ' + tr('Ora vive nel cortile!', 'Now lives in your yard!')); }
+    save(); updateHUD(); openCompanionPicker();
   });
 }
 
@@ -981,6 +1099,21 @@ function hydratePv(root) {
     const [s, t] = cv.dataset.pv.split('|');
     try { projectVox(cv, partVoxels(s, t)); } catch (e) { /* stub nei test */ }
   });
+  /* mobili (M4): stessa idea, voxel a mano di furnVox.js invece dei pezzi di fossile */
+  r.querySelectorAll('canvas[data-fpv]').forEach(cv => {
+    try { projectVox(cv, furnVoxels(cv.dataset.fpv)); } catch (e) { /* stub nei test */ }
+  });
+}
+/* vista 3D di un mobile (voxel a mano, stesso motore dello scheletro): usata dal vassoio e
+   dalla scheda Arredamento del Negozio. `back` riapre chi ha chiamato questa vista. */
+function openFurniture3D(id, back) {
+  mTitle.innerHTML = withIcons('🌀 ' + furnLabel(id));
+  let h = `<div class="center" style="padding:4px"><canvas id="furn3dCv" width="160" height="140" style="width:100%;max-width:220px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px;touch-action:none;cursor:grab" title="${tr('Trascina per ruotare', 'Drag to rotate')}"></canvas></div>`;
+  h += `<div class="row" style="justify-content:center"><button class="btn ghost" data-furn3d-back="1">${tr('← Indietro', '← Back')}</button></div>`;
+  mBody.innerHTML = withIcons(h); openModal();
+  const cv = document.getElementById('furn3dCv');
+  if (cv) try { mountFurniture3D(cv, id); } catch (e) { /* stub */ }
+  mBody.querySelectorAll('[data-furn3d-back]').forEach(b => b.onclick = back);
 }
 
 /* ---------- edifici ---------- */
@@ -1251,7 +1384,47 @@ function renderLab() {
     }
   }
 }
-function renderStore() {
+let storeTab = 'goods';
+/* `tab` esplicito = stesso schema di `openBag(tab)`: serve ai test (la scheda non si clicca
+   nello stub DOM) e a chi in futuro voglia aprire il Negozio già sull'Arredamento */
+export function renderStore(tab) {
+  if (tab) storeTab = tab;
+  const TABS = [['goods', tr('Negozio', 'Shop')], ['furn', tr('Arredamento', 'Furniture')]];
+  if (!TABS.some(t => t[0] === storeTab)) storeTab = 'goods';
+  let h = '<div class="pn-tabs">' + TABS.map(([id, lab]) =>
+    `<button class="pn-tab${storeTab === id ? ' on' : ''}" data-stab="${id}">${lab}</button>`).join('') + '</div>';
+  h += storeTab === 'furn' ? renderFurnTab() : renderStoreGoods();
+  mBody.innerHTML = withIcons(h); hydratePv();
+  mBody.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { storeTab = b.dataset.stab; renderStore(); });
+  wireStoreGoods(); wireFurnTab();
+}
+/* ARREDAMENTO: solo il set della ZONA in cui si trova questo negozio (M3) — un pezzo
+   comprato una volta per tutte, si piazza in casa (vassoio, act() sotto i piedi). */
+function renderFurnTab() {
+  const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
+  const items = FURN_SETS[z.id] || [];
+  let h = `<div class="muted" style="margin-bottom:10px">${tr('Il set di arredo di questa zona. Comprato è tuo per sempre: lo piazzi in casa dal vassoio.', "This zone's furniture set. Once bought it's yours forever: place it at home from your tray.")}</div>`;
+  h += items.map(it => {
+    const owned = (S.furnOwned || []).includes(it.id);
+    const needLvl = furnLevelLock(it.id);
+    const badge = owned ? ` <span class="lockp">✓</span>` : needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>` : '';
+    const btn = owned ? '' : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>` : `<button class="btn amber" data-furn="${it.id}">🪙 ${it.cost}</button>`;
+    return `<div class="row"><canvas class="pv" width="36" height="30" data-fpv="${it.id}"></canvas><div><div class="nm">${furnLabel(it.id)}${badge}</div></div><div class="rt"><button class="btn ghost" data-furn3d="${it.id}">🌀 3D</button>${btn}</div></div>`;
+  }).join('');
+  return h;
+}
+function wireFurnTab() {
+  mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderStore(); });
+  mBody.querySelectorAll('[data-furn3d]').forEach(btn => btn.onclick = () => openFurniture3D(btn.dataset.furn3d, () => renderStore('furn')));
+}
+function renderStoreGoods() {
+  /* PASSO "shop" DEL TUTORIAL: comprare la pala è l'UNICA cosa che conta (senza, l'unico
+     verbo del gioco resta muto) — a richiesta: "la pala deve lampeggiare e deve essere
+     disabilitato ogni altro acquisto", altrimenti le prime monete raccolte finiscono in
+     ristori/mappe/mezzi prima ancora di scavare una volta. Vendere resta permesso (serve
+     PER pagarla), solo i NUOVI acquisti si bloccano. */
+  const tutBuy = tutActive() && tutStepId() === 'shop' && !S.tools.spade;
+  const lockOther = tutBuy ? ' disabled' : '';
   let h = `<div class="muted" style="margin-bottom:10px">${tr('Il negozio compra i reperti <b>identificati</b>. Quelli grezzi vanno prima al Laboratorio.', 'The shop buys <b>identified</b> finds. Raw ones must go to the Laboratory first.')}</div>`;
   if (!S.items.length) h += `<div class="center muted">${tr('Non hai reperti identificati da vendere.', 'No identified finds to sell.')}</div>`;
   else {
@@ -1276,20 +1449,20 @@ function renderStore() {
     const sub = left > 0
       ? tr('Ne restano ', 'Left today: ') + left + tr(' oggi · il prezzo sale a ogni ristoro', ' · the price rises with each one')
       : tr('Esauriti per oggi: il fornaio ne rifà domani', 'Sold out for today: the baker bakes more tomorrow');
-    const btn = left > 0 ? `<button class="btn amber" id="buyEn">🪙 ${cost}</button>` : `<button class="btn" disabled>${tr('Esauriti', 'Sold out')}</button>`;
+    const btn = left > 0 ? `<button class="btn amber" id="buyEn"${lockOther}>🪙 ${cost}</button>` : `<button class="btn" disabled>${tr('Esauriti', 'Sold out')}</button>`;
     /* non è energia istantanea: finisce nello zaino e la mangi tu quando serve */
     const keep = tr('Va nello zaino: +15 ⚡ quando lo mangi', 'Goes in your bag: +15 ⚡ when you eat it');
     h += `<hr class="hr"><div class="row"><span class="em">🍞</span><div><div class="nm">${tr('Ristoro', 'Snack')}</div><div class="sub">${keep}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
   }
-  h += `<div class="row"><span class="em">📜</span><div><div class="nm">${tr('Pergamena di ritorno', 'Return scroll')}${S.teleports > 0 ? ` ×${S.teleports}` : ''}</div><div class="sub">${tr('Dallo zaino: teletrasporto alla città più vicina', 'From your bag: teleport to the nearest city')}</div></div><div class="rt"><button class="btn amber" id="buyTp">🪙 ${TELEPORT_COST}</button></div></div>`;
+  h += `<div class="row"><span class="em">📜</span><div><div class="nm">${tr('Pergamena di ritorno', 'Return scroll')}${S.teleports > 0 ? ` ×${S.teleports}` : ''}</div><div class="sub">${tr('Dallo zaino: teletrasporto alla città più vicina', 'From your bag: teleport to the nearest city')}</div></div><div class="rt"><button class="btn amber" id="buyTp"${lockOther}>🪙 ${TELEPORT_COST}</button></div></div>`;
   { const nb = nextBagCost(), nextCap = BAG_CAPS[bagLevel() + 1];
-    h += `<div class="row"><span class="em">🎒</span><div><div class="nm">${tr('Zaino più grande', 'Bigger bag')}</div><div class="sub">${tr('Capienza fossili', 'Fossil capacity')}: ${fossilCount()}/${bagCap()}${nb != null ? ' → ' + nextCap : ' · ' + tr('al massimo', 'maxed')}</div></div><div class="rt">${nb != null ? `<button class="btn amber" id="buyBag">🪙 ${nb}</button>` : ''}</div></div>`; }
+    h += `<div class="row"><span class="em">🎒</span><div><div class="nm">${tr('Zaino più grande', 'Bigger bag')}</div><div class="sub">${tr('Capienza fossili', 'Fossil capacity')}: ${fossilCount()}/${bagCap()}${nb != null ? ' → ' + nextCap : ' · ' + tr('al massimo', 'maxed')}</div></div><div class="rt">${nb != null ? `<button class="btn amber" id="buyBag"${lockOther}>🪙 ${nb}</button>` : ''}</div></div>`; }
   /* mappe del tesoro: X lontana → scavo garantito della rarità comprata */
   h += `<div class="bighead">🗺️ ${tr('Mappe del tesoro', 'Treasure maps')}</div><div class="muted" style="margin-bottom:6px">${tr('Una X lontana, un reperto garantito. Più raro = più lontano.', 'A distant X, a guaranteed find. Rarer = farther.')}</div>`;
   for (const r of ['raro', 'eccezionale', 'leggendario']) {
-    h += `<div class="row"><span class="em">🗺️</span><div><div class="nm">${tr('Mappa', 'Map')} — ${rarLabel(r)}</div><div class="sub">${MAP_DIST[r][0]}–${MAP_DIST[r][1]} ${tr('passi', 'steps')}</div></div><div class="rt"><button class="btn amber" data-map="${r}">🪙 ${MAP_COST[r]}</button></div></div>`;
+    h += `<div class="row"><span class="em">🗺️</span><div><div class="nm">${tr('Mappa', 'Map')} — ${rarLabel(r)}</div><div class="sub">${MAP_DIST[r][0]}–${MAP_DIST[r][1]} ${tr('passi', 'steps')}</div></div><div class="rt"><button class="btn amber" data-map="${r}"${lockOther}>🪙 ${MAP_COST[r]}</button></div></div>`;
   }
-  /* attrezzi del mestiere */
+  /* attrezzi del mestiere: la pala LAMPEGGIA durante il passo "shop", tutto il resto è spento */
   h += `<div class="bighead">🧰 ${tr('Attrezzi', 'Tools')}</div>`;
   const TOOLS_UI = [
     ['spade', '🪏', tr('Pala', 'Spade'), tr('Indispensabile per scavare la terra', 'Essential to dig the ground')],
@@ -1300,7 +1473,8 @@ function renderStore() {
   ];
   for (const [id, em, nm, sub] of TOOLS_UI) {
     const owned = id !== 'shovel' && S.tools[id];
-    h += `<div class="row"><span class="em">${em}</span><div><div class="nm">${nm}${owned ? ' ✓' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${owned ? '' : `<button class="btn amber" data-tool="${id}">🪙 ${TOOL_COST[id]}</button>`}</div></div>`;
+    const isTarget = tutBuy && id === 'spade';
+    h += `<div class="row"><span class="em">${em}</span><div><div class="nm">${nm}${owned ? ' ✓' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${owned ? '' : `<button class="btn amber${isTarget ? ' tut-target' : ''}" data-tool="${id}"${isTarget ? '' : lockOther}>🪙 ${TOOL_COST[id]}</button>`}</div></div>`;
   }
   /* mezzi di trasporto + torcia */
   h += `<div class="bighead">🛼 ${tr('Mezzi & luce', 'Vehicles & light')}</div>`;
@@ -1313,9 +1487,11 @@ function renderStore() {
   ];
   for (const [id, em, nm, sub] of GEAR_UI) {
     const owned = !!S.tools[id];
-    h += `<div class="row"><span class="em">${em}</span><div><div class="nm">${nm}${owned ? ' ✓' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${owned ? '' : `<button class="btn amber" data-tool="${id}">🪙 ${TOOL_COST[id]}</button>`}</div></div>`;
+    h += `<div class="row"><span class="em">${em}</span><div><div class="nm">${nm}${owned ? ' ✓' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${owned ? '' : `<button class="btn amber" data-tool="${id}"${lockOther}>🪙 ${TOOL_COST[id]}</button>`}</div></div>`;
   }
-  mBody.innerHTML = withIcons(h); hydratePv();
+  return h;
+}
+function wireStoreGoods() {
   const sa = document.getElementById('sellAll'); if (sa) sa.onclick = () => { const { g, n } = sellAll(); toast(tr('Venduti ', 'Sold ') + n + tr(' reperti per 🪙', ' finds for 🪙') + g); renderStore(); };
   mBody.querySelectorAll('[data-sell]').forEach(btn => btn.onclick = () => { sellItem(parseInt(btn.dataset.sell, 10)); renderStore(); });
   const sag = document.getElementById('sellAllGoods'); if (sag) sag.onclick = () => { const { g, n } = sellAllGoods(); toast(tr('Venduti ', 'Sold ') + n + tr(' oggetti per 🪙', ' objects for 🪙') + g); renderStore(); };

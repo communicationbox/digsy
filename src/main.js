@@ -2,7 +2,7 @@
 import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearCheatSnapshot } from './state.js';
 import { FOOT_DY } from './body.js';
 import { fit } from './screen.js';
-import { findStart, openArea } from './world.js';
+import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, companionPlayTick, isMounted } from './gameplay.js';
@@ -12,9 +12,9 @@ import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen,
 import { idleHours, idleCoins, idleEligible, IDLE_DNA_CHANCE } from './idle.js';
 import { updateCompass } from './compass.js';
 import { trackPlayer } from './map.js';
-import { checkWonderDiscovery } from './gameplay.js';
+import { checkWonderDiscovery, checkGateNotice } from './gameplay.js';
 import { wonderName } from './wonders.js';
-import { refreshVisParks, visParks, updatePark } from './park.js';
+import { refreshVisParks, yardNear, updatePark } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled } from './splash.js';
 import { keys, steerFollow } from './input.js';
@@ -22,7 +22,7 @@ import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
 import { armAudioResume } from './audio.js';
-import { INT, updateInterior, checkDoorEnter } from './interior.js';
+import { INT, updateInterior, checkDoorEnter, enterInterior, enterHouseRoom } from './interior.js';
 import { CAVE, updateCave, checkCaveEnter } from './cave.js';
 import { caveEntranceAt } from './world.js';
 import { showTip } from './ui.js';
@@ -111,6 +111,7 @@ if (typeof addEventListener === 'function') {
 function walk(dt) {
   let dx = 0, dy = 0, walkedToGoal = false;
   if (P.digging) { P.moving = false; stepDig(dt); clearGoal(); } // scavando non ci si muove
+  else if (P.gateTurnUntil && Date.now() < P.gateTurnUntil) { P.moving = false; P.dir = 'up'; clearGoal(); } // ci si ferma a guardare il cancello chiudersi
   else if (keys.up || keys.down || keys.left || keys.right) {
     if (keys.up) dy--; if (keys.down) dy++; if (keys.left) dx--; if (keys.right) dx++;
     clearGoal();                                    // il comando diretto batte la meta
@@ -211,8 +212,9 @@ function loop(ts) {
      (le animazioni sono comunque in pausa). La modale edifici è semitrasparente: si continua. */
   if (isBagOpen() || isBookOpen() || isPrepOpen() || isTossOpen()) { requestAnimationFrame(loop); return; }
   updateCompass(ts);
+  checkGateNotice();
   refreshVisParks();
-  for (const t of visParks) updatePark(t, dt);
+  if (yardNear) updatePark(dt);
   render(ts);
   requestAnimationFrame(loop);
 }
@@ -254,16 +256,30 @@ function boot() {
      basta; `vanilla` annulla solo i comandi dati IN questa sessione. */
   clearCheatSnapshot();
   applyLook();
+  let startTown = null;
+  /* PARTITA NUOVA DI ZECCA: la prima cosa che si vede è casa propria, non il mondo aperto.
+     `freshGame` resta vero solo per QUESTO avvio — un salvataggio già iniziato (anche se il
+     soccorso qui sotto lo riposiziona) ha già superato l'introduzione e non va rispinto dentro
+     casa: sarebbe sorprendente per una partita già avanti. */
+  let freshGame = false;
   if (S.started) {
     P.x = S.px; P.y = S.py;
     /* soccorso SOLO se la posizione salvata è davvero INVALIDA (dentro un solido, o del tutto murata
        senza una casella libera adiacente). NON riposizionare una posizione valida solo perché è in
        un punto chiuso: in un BOSCO ci si salva benissimo (need=2 = basta 1 casella libera vicina). */
     if (collide(P.x, P.y) || !openArea(Math.floor(P.x / TS), Math.floor(P.y / TS), 2)) {
-      const st = findStart(); P.x = st.x; P.y = st.y; save();
+      const st = findStart(); P.x = st.x; P.y = st.y; startTown = st.town; save();
     }
   } else {
-    const st = findStart(); P.x = st.x; P.y = st.y; S.started = true; save();
+    const st = findStart(); P.x = st.x; P.y = st.y; startTown = st.town; S.started = true; freshGame = true; save();
+  }
+  /* CASA del giocatore: fissata UNA VOLTA, vicino alla città grande di partenza (o, per un save
+     già avviato che non l'aveva ancora, vicino a quella più vicina alla posizione salvata). */
+  if (S.home === undefined) {
+    const town = startTown || findStart().town || null;
+    S.home = town ? findHomeSpot(town) : null;
+    if (S.home) invalidateHouseDecoCache(); // il mondo lì poteva già avere alberi/funghi in cache
+    save();
   }
   cam.x = P.x; cam.y = P.y;
   fit(); addEventListener('resize', fit);
@@ -287,9 +303,22 @@ function boot() {
   /* splash → (prima volta) editor personaggio → INTRO (lore) → gioco */
   initSplash(() => {
     const startGame = () => { if (!loaded) welcomeToasts(); else if (idleResult) showIdleWelcome(idleResult); };
+    /* "la prima cosa che vede è la sua casa": per una partita NUOVA si entra dritti nella Sala
+       (stessa strada di `checkDoorEnter`/`enterHouseRoom`, mai un mondo a parte), DOPO editor e
+       intro — mai prima, o si sovrapporrebbe alle loro scene. La posizione FUORI (P.x/P.y) va
+       comunque sistemata subito accanto alla porta: è quella che conta per bussola/salvataggio
+       finché non si esce davvero, ed è la stessa che `exitInterior()` sceglierebbe. */
+    const enterHome = () => {
+      if (freshGame && S.home) {
+        enterInterior({ type: 'house', doorx: S.home.x, doory: S.home.y }, null);
+        enterHouseRoom(0);
+        P.x = S.home.x * TS + 8; P.y = (S.home.y + 1) * TS + 10;
+        save();
+      }
+    };
     const runIntro = (cb) => { if (!S.introSeen) playIntro(() => { S.introSeen = true; grantStarterGift(); save(); cb(); }); else cb(); };
-    if (!S.lookDone) openEditor(() => runIntro(startGame));
-    else runIntro(startGame);
+    if (!S.lookDone) openEditor(() => runIntro(() => { enterHome(); startGame(); }));
+    else runIntro(() => { enterHome(); startGame(); });
   });
   if (!devView) setInterval(() => { if (!lookPreviewPending()) save(); }, 5000);   // niente autosave in dev-view, NÉ mentre provi un look (cappello/vestiti): l'anteprima non deve persistere al refresh senza pagare
   /* il battito: quanto si gioca e fin dove si arriva. Serve a chi fa provare il gioco, non
@@ -325,6 +354,17 @@ if (typeof window !== 'undefined') {
          negli interni era passata inosservata perché nessun test ci entrava mai. */
       enterRoom: (t) => import('./interior.js').then(m => { m.enterInterior({ type: t, name: t, x: Math.floor(P.x / 16), y: Math.floor(P.y / 16) }); return true; }),
       leaveRoom: () => import('./interior.js').then(m => { try { m.exitInterior(); } catch (e) { /* la tile d'uscita dipende dalla città */ } }),
+      /* la casa ha una stanza per volta (atrio + Sala/Cucina/Bagno/Camera): senza questo,
+         fotografare o testare una stanza specifica significava camminare la transizione a mano */
+      enterHouseRoom: (id) => import('./interior.js').then(m => { m.enterHouseRoom(id); return true; }),
+      /* modulo intero della CASA: raccogli/ruota/ripiazza un mobile (M4) muove uno stato "in
+         mano" che vive DENTRO house.js (non nel salvataggio), quindi fotografarlo o testarlo
+         richiede le sue funzioni vere, non solo `state()`. */
+      house: () => import('./house.js'),
+      /* il prompt/i bottoni a schermo (Esci, Ruota/Annulla) si aggiornano dentro il game
+         loop vero: `frame()` disegna la canvas ma non li tocca, quindi senza questo le foto
+         "in mano" mostravano il ghost ma non i due bottoni sotto. */
+      updatePrompt: () => import('./ui.js').then(u => { u.updatePrompt(); return true; }),
       /* dove si sta DENTRO la stanza. La galleria del museo è 60×62 tile e si entra sempre dalla
          porta in fondo: senza questo, ogni foto e ogni test la ritraggono dall'atrio e le sale
          con i piedistalli — cioè quasi tutta la scena — non vengono mai disegnate. */
@@ -342,10 +382,10 @@ if (typeof window !== 'undefined') {
       /* un passo del mondo su richiesta: in headless il rAF è fermo, quindi senza questo
          gli e2e non potrebbero verificare NIENTE di ciò che accade camminando */
       stepWorld: (dt) => { steerFollow(); walk(dt || 1 / 60); return { moving: P.moving, anim: P.anim, x: P.x, y: P.y }; },
-      /* un passo del PARCO: le chimere partono tutte da una posizione derivata dall'uid e si
+      /* un passo del CORTILE: le chimere partono tutte da una posizione derivata dall'uid e si
          sparpagliano solo camminando. Senza questo, in headless (rAF fermo) ogni foto del
-         recinto le ritrae schierate sulla stessa griglia, che non è come si vede giocando. */
-      stepPark: (dt) => { refreshVisParks(); for (const t of visParks) updatePark(t, dt || 1 / 60); return visParks.length; },
+         cortile le ritrae schierate sulla stessa griglia, che non è come si vede giocando. */
+      stepPark: (dt) => { refreshVisParks(); if (yardNear) updatePark(dt || 1 / 60); return yardNear ? 1 : 0; },
       /* la console dei comandi, senza doverla aprire e digitare: serve a portare una partita
          in uno stato preciso (godmode, goto=..., chimera) prima di fotografarla o misurarla. */
       cmd: (s) => import('./commands.js').then(m => m.runCommand(s)),

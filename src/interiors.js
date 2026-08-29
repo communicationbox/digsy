@@ -2,14 +2,17 @@
    Erano quasi 500 righe dentro render.js: qui stanno insieme perché condividono la stessa
    idea (una stanza a tile con arredi solidi e un NPC che pattuglia dietro il bancone) e
    nessuna di loro serve al mondo aperto. */
-import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools } from './data.js';
+import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools, FURN_BY_ID, PEDESTAL_ID } from './data.js';
+import { furnVoxels, rotateFurnVoxels, furnPxScale, furnIsSolid, furnCategory } from './furnVox.js';
+import { drawReturnPortal } from './render.js'; // ciclo sicuro: chiamata solo a runtime, come drawInteriorScene(render.js→interiors.js)
 import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8 } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
+import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
-import { composedPartsVox } from './bones.js';
-import { zoneName } from './i18n.js';
+import { composedPartsVox, shadeHex } from './bones.js';
+import { zoneName, roomName } from './i18n.js';
 import { zoneIdxAt } from './regions.js';
 import { INT_WOOD, night } from './tiles.js';
 import { drawSayBalloon } from './props.js';
@@ -97,8 +100,133 @@ export function exhibitSprite(spId, parts) {
       c2.fillStyle = v.k === 'eye' ? '#201a14' : zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
       c2.fillRect(ox + (v.x - mnx), oy + (mxy - v.y), 1, 1);
     }
+    outlineSprite(cv, '#1c160f');
   } catch (e) { cv = null; /* stub nei test */ }
   exCache.set(key, cv); return cv;
+}
+/* contorno scuro AGGRAPPATO ALLA SAGOMA (non un rettangolo pieno dietro l'intera canvas):
+   un mobile piccolo o sottile (lampada, vaso) in una canvas 30×30 quasi trasparente si
+   ritrovava un enorme riquadro nero attorno — l'INGOMBRO della canvas, non la sua forma
+   (segnalato: "bordo nero enorme"). Qui si legge il canale alpha vero e si accende solo il
+   pixel VUOTO adiacente a uno pieno, come già fa creatureSprite per gli animali. */
+function outlineSprite(cv, color) {
+  const c2 = cv.getContext && cv.getContext('2d'); if (!c2) return;
+  const w = cv.width, h = cv.height;
+  const img = c2.getImageData(0, 0, w, h), a = img.data;
+  const opaque = (x, y) => x >= 0 && x < w && y >= 0 && y < h && a[(y * w + x) * 4 + 3] > 0;
+  const add = [];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (opaque(x, y)) continue;
+    if (opaque(x + 1, y) || opaque(x - 1, y) || opaque(x, y + 1) || opaque(x, y - 1)) add.push([x, y]);
+  }
+  c2.fillStyle = color;
+  for (const [x, y] of add) c2.fillRect(x, y, 1, 1);
+}
+/* proiezione ISOMETRICA VERA (2 assi orizzontali distinti, non solo x/z appiattiti su un
+   asse solo): ogni voxel è un cubetto con 3 facce (alto/sinistra/destra, ombreggiate
+   diverse) — la stessa tecnica di qualunque renderer voxel isometrico. Serviva per i mobili
+   VERI importati (MariaIsMe, furnPack.js, fino a 16×16×16, centinaia di voxel): la vecchia
+   proiezione "a scorcio" (x dritto, y+z schiacciati sullo stesso asse verticale) andava bene
+   per i 2-3 blocchi disegnati a mano ma su un modello vero appiattiva tutto in un rettangolo
+   scuro indistinguibile (segnalato con foto: "questa è una poltrona... non sembra").
+   `tw` (larghezza della losanga per voxel, in PIXEL) NON si deriva più dal volume del
+   modello né dalla casella: due tentativi in quella direzione sono già falliti — un passo
+   unico per tutti (la sedia comune diventava enorme rispetto al letto, poi tenuta a bada
+   restava troppo grande lo stesso) e un bersaglio min/max legato a TS (il piedistallo, 4×4
+   voxel, collassava sotto la soglia — "quasi invisibile"). Qualunque FORMULA legata ai voxel
+   accontenta una famiglia e ne rovina un'altra: un piedistallo e una sedia non sono la stessa
+   cosa rimpicciolita, sono oggetti diversi con la LORO scala giusta. `furnPxScale` (furnVox.js)
+   la assegna per CATEGORIA, a mano, guardando il risultato — come i blueprint delle specie in
+   bones.js: scalabile una famiglia alla volta, senza spostare le altre. */
+function projectFurnIso(cv, vox, tw) {
+  const c2 = cv.getContext && cv.getContext('2d'); if (!c2) return;
+  c2.imageSmoothingEnabled = false; c2.clearRect(0, 0, cv.width, cv.height);
+  if (!vox.length) return;
+  let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
+  for (const v of vox) {
+    mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x);
+    mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y);
+    mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z);
+  }
+  const spanX = mxx - mnx + 1, spanY = mxy - mny + 1, spanZ = mxz - mnz + 1;
+  const diag = spanX + spanY;
+  // ripiego di sicurezza SOLO se un pezzo futuro sforasse la canvas alla sua scala curata
+  while (tw > 0.2 && (diag * tw / 2 + tw > cv.width || diag * (tw / 4) + spanZ * (tw * 0.6) + tw > cv.height)) tw -= 0.05;
+  const th = tw / 2, hz = tw * 0.6;
+  const h = diag * th / 2 + spanZ * hz;
+  /* ANCORATO AL FONDO, non centrato: interiors.js disegna la canvas assumendo che il suo
+     bordo BASSO coincida col fondo della tile (`foy = py0 - (cv.height - TS)`). Centrando il
+     modello nella canvas restava un vuoto sotto e l'oggetto galleggiava sopra la tile
+     (segnalato: "disassato rispetto al punto di ancoraggio"). */
+  const ox = Math.round(cv.width / 2), oy = Math.round(cv.height - 1 - h + diag * th / 4);
+  const shade = (hex, k) => shadeHex(hex, k);
+  /* pittore: dal fondo (x+y piccola) verso l'osservatore, poi dal basso (z) verso l'alto.
+     Y SPECCHIATA (mxy - v.y, non v.y - mny): nei modelli del pacchetto lo schienale/retro
+     sta dalla parte alta di y — senza lo specchio finiva rivolto verso chi guarda invece che
+     sul fondo (segnalato: "la poltrona è girata al contrario"). */
+  for (const v of vox.slice().sort((a, b) => ((a.x - mnx) + (mxy - a.y) - (b.x - mnx) - (mxy - b.y)) || (a.z - b.z))) {
+    const gx = v.x - mnx, gy = mxy - v.y, gz = v.z - mnz;
+    const sx = ox + (gx - gy) * tw / 2;
+    const sy = oy + (gx + gy) * th / 2 - gz * hz;
+    const col = v.col || '#c8b078';
+    c2.fillStyle = shade(col, 1.15);                              // faccia in alto: la più chiara
+    c2.beginPath(); c2.moveTo(sx, sy); c2.lineTo(sx + tw / 2, sy + th / 2); c2.lineTo(sx, sy + th); c2.lineTo(sx - tw / 2, sy + th / 2); c2.closePath(); c2.fill();
+    c2.fillStyle = shade(col, 0.8);                               // faccia sinistra: media
+    c2.beginPath(); c2.moveTo(sx - tw / 2, sy + th / 2); c2.lineTo(sx, sy + th); c2.lineTo(sx, sy + th + hz); c2.lineTo(sx - tw / 2, sy + th / 2 + hz); c2.closePath(); c2.fill();
+    c2.fillStyle = shade(col, 0.6);                               // faccia destra: la più scura
+    c2.beginPath(); c2.moveTo(sx + tw / 2, sy + th / 2); c2.lineTo(sx, sy + th); c2.lineTo(sx, sy + th + hz); c2.lineTo(sx + tw / 2, sy + th / 2 + hz); c2.closePath(); c2.fill();
+  }
+}
+/* sprite di un mobile piazzato in casa (M4): a scorcio (projectFurnIso), in cache per id (la
+   forma non cambia mai). Sfondo trasparente: sotto si vede il pavimento. */
+const furnCache = new Map();
+/* `rot` (0-3, quarti di giro) sceglie il verso in cui il mobile guarda una volta piazzato —
+   in cache per id+rot, la forma non cambia mai. Sfondo trasparente: sotto si vede il
+   pavimento. NIENTE contorno scuro: su un pezzo colorato come il pavimento faceva a pugni
+   con l'illustrazione (segnalato: "non voglio il bordo nero"). */
+export function furnSprite(itemId, rot = 0) {
+  const key = itemId + ':' + (rot || 0);
+  let cv = furnCache.get(key); if (cv !== undefined) return cv;
+  cv = null;
+  try {
+    /* più grande di una tile sola (TS=16 non basta a un mobile con altezza, e i pezzi VERI
+       importati arrivano fino a 16×16×16 voxel): ancorata in basso-centro sulla cella */
+    cv = document.createElement('canvas'); cv.width = 56; cv.height = 64;
+    projectFurnIso(cv, rotateFurnVoxels(furnVoxels(itemId), rot), furnPxScale(itemId));
+  } catch (e) { cv = null; /* stub nei test */ }
+  furnCache.set(key, cv); return cv;
+}
+/* DECORO A TERRA (tappeto/pianta piccola, M4-bis): icona PIATTA disegnata a mano, dall'alto —
+   stesso spirito delle decorazioni di bioma in props.js (fiori/funghi), non lo scorcio
+   isometrico dei mobili veri. Un tappeto/vaso non ha un volume da mostrare: è un segno sul
+   pavimento, e provare a fargli fare le tre facce di un cubo lo faceva sembrare una macchia
+   a caso (segnalato con foto). Nessuna cache: quattro rect e qualche pixel, costa meno del
+   lookup stesso. `rot` non cambia il disegno (sono simmetrici): il piazzamento resta libero
+   di ruotarli comunque, per coerenza col resto dell'arredo, ma qui non si vede la differenza. */
+function drawDecorIcon(px0, py0, itemId) {
+  const it = FURN_BY_ID[itemId]; if (!it) return;
+  const col = it.col || '#c8b078';
+  if (furnCategory(itemId) === 'rug') {
+    const pad = 2;
+    rect(px0 + pad, py0 + pad, TS - pad * 2, TS - pad * 2, col);
+    rect(px0 + pad, py0 + pad, TS - pad * 2, 1, shadeHex(col, 1.3));            // bordo chiaro in alto
+    rect(px0 + pad, py0 + TS - pad - 1, TS - pad * 2, 1, shadeHex(col, 0.7));   // bordo scuro in basso
+    rect(px0 + pad, py0 + pad, 1, TS - pad * 2, shadeHex(col, 0.85));
+    rect(px0 + TS - pad - 1, py0 + pad, 1, TS - pad * 2, shadeHex(col, 0.85));
+    for (const [dx, dy] of [[3, 3], [-4, 3], [3, -4], [-4, -4]]) px(px0 + TS / 2 + dx, py0 + TS / 2 + dy, shadeHex(col, 1.35));
+    return;
+  }
+  // pianta/vaso: vaso+fiore per i "vase", cactus a bracci per il resto (stessa lettura di vaseVox/cactusVox, ma piatta)
+  const cx = px0 + TS / 2;
+  if (itemId.includes('vase')) {
+    rect(cx - 3, py0 + 10, 6, 4, shadeHex(col, 0.75)); rect(cx - 3, py0 + 10, 6, 1, shadeHex(col, 1.25)); // vaso
+    px(cx - 2, py0 + 7, '#e0748a'); px(cx, py0 + 6, '#f2a3b4'); px(cx + 2, py0 + 7, '#e0748a');           // fiore
+    px(cx - 1, py0 + 9, '#3f6b34'); px(cx + 1, py0 + 9, '#3f6b34');                                        // foglie
+  } else {
+    rect(cx - 2, py0 + 4, 4, 9, '#4e7a3d'); rect(cx - 2, py0 + 4, 1, 9, '#619a4c');                        // tronco
+    px(cx - 4, py0 + 7, '#4e7a3d'); px(cx - 5, py0 + 6, '#4e7a3d');                                         // braccio sx
+    px(cx + 3, py0 + 8, '#4e7a3d'); px(cx + 4, py0 + 7, '#4e7a3d');                                         // braccio dx
+  }
 }
 /* MUSEO — GALLERIA unica camminabile ed ELEGANTE: teche scure con cornice dorata
    (le ossa bianche risaltano), tappeto bordeaux, colonne, lampadari, piante.
@@ -567,13 +695,148 @@ export function interiorCam() {
       y: snap(galleryCamY(H, rh)),
     };
   }
+  /* la casa (atrio o una sua stanza, house.js) è una scena PICCOLA come i 6 interni a
+     mestiere: nessuna camera che scorre, sta tutta centrata sullo schermo. */
   return { x: -Math.floor((W - rw) / 2), y: -Math.floor((H - rh) / 2) };
+}
+/* lucchetto disegnato a mano (arco + corpo): stesso oro dell'icona 🔒 (icons.js), stacca
+   dal muro scuro del varco */
+function drawPadlock(cx, cy) {
+  rect(cx - 3, cy - 9, 2, 5, '#c9a227'); rect(cx + 1, cy - 9, 2, 5, '#c9a227'); rect(cx - 3, cy - 10, 6, 2, '#c9a227');
+  rect(cx - 5, cy - 4, 10, 9, '#8a6a1e'); rect(cx - 5, cy - 4, 10, 2, '#c9a227');
+  px(cx, cy, '#3a2e10');
+}
+/* etichetta sopra un punto (px SCENA): nome stanza, per riconoscerla dall'atrio senza
+   doverci entrare (guardia lo stub dei test: niente ctx.fillText → niente crash, niente testo) */
+function drawDoorLabel(cx, y, text) {
+  if (!ctx.fillText) return;
+  ctx.font = '600 6px ui-monospace, Menlo, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+  ctx.fillStyle = '#f3ecda'; ctx.fillText(text, cx, y);
+  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+}
+/* una porta di casa, disegnata come le porte degli edifici del mondo (stipite scuro +
+   battente chiaro): stessa identità visiva, si riconosce a colpo d'occhio come "una porta". */
+function drawHouseDoorSlab(x0, y0, w, h) {
+  rect(x0, y0, w, h, '#3a2e20'); rect(x0 + 2, y0 + 2, w - 4, h - 4, '#c49a63');
+}
+/* ATRIO: un piccolo ingresso, non un corridoio — quanto basta per la porta di casa in basso
+   e le porte delle 4 stanze sulle altre pareti (house.js: houseGates). Toni caldi come gli
+   altri interni (wood di INT_WOOD), non un grigio istituzionale. */
+export function drawHouseCorridor(time) {
+  const rw = CORR_W * TS, rh = CORR_H * TS;
+  const ox = Math.floor((view.W - rw) / 2), oy = Math.floor((view.H - rh) / 2);
+  ctx.save(); ctx.translate(ox, oy);
+  const wood = INT_WOOD[0];
+  rect(0, 0, rw, rh, '#6e5138');                              // muro
+  for (let ty = 0; ty < CORR_H; ty++) for (let tx = 0; tx < CORR_W; tx++) {
+    if (tx === 0 || ty === 0 || tx === CORR_W - 1 || ty === CORR_H - 1) continue; // resta muro
+    const sx = tx * TS, sy = ty * TS;
+    rect(sx, sy, TS, TS, (tx + ty) % 2 ? wood[0] : wood[1]);
+  }
+  for (const g of houseGates()) {
+    const onTop = g.wall === 'top', onLeft = g.wall === 'left';
+    const w = onTop ? (g.x1 - g.x0) : TS + 4, h = onTop ? TS + 4 : (g.y1 - g.y0);
+    const x0 = onTop ? g.x0 : (onLeft ? -2 : rw - w + 2);
+    const y0 = onTop ? -2 : g.y0;
+    drawHouseDoorSlab(x0, y0, w, h);
+    /* punto "dentro l'atrio" davanti al varco: lucchetto + etichetta stanno lì, mai a
+       cavallo della parete (fuori canvas per i varchi laterali) */
+    const px2 = onTop ? g.cx : (onLeft ? 15 : rw - 15), py2 = onTop ? 16 : g.cy;
+    if (!g.unlocked) drawPadlock(px2, py2 + 6);
+    drawDoorLabel(px2, onTop ? 28 : py2 - (h / 2) - 3, roomName(g.id));
+  }
+  const dx = (CORR_W / 2) * TS;                               // porta d'ingresso, verso il mondo
+  drawHouseDoorSlab(dx - 10, rh - 6, 20, 6);
+  /* PORTALE DI RITORNO (goHome): in mezzo all'atrio, non fuori nel cortile — a richiesta
+     esplicita: "il portale deve essere in mezzo al corridoio NON FUORI". */
+  if (S.returnPortal) drawReturnPortal(ATRIO_PORTAL.x - 8, ATRIO_PORTAL.y - 8, time);
+  const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
+  shadow(Math.round(INT.x), Math.round(INT.y) + 6, 6);
+  drawHero(null, Math.round(INT.x) - 8, Math.round(INT.y) - 10, INT.dir, fr);
+  if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
+  ctx.restore();
+}
+/* ogni stanza si riconosce anche VUOTA, PRIMA di piazzarci l'arredo (che resta la vera
+   decorazione): un tocco fisso per tipo, come i pavimenti a tema dei 6 interni a mestiere.
+   Sala = neutra (prima stanza, gratis, legno normale); Cucina = legno normale + credenza sulla
+   parete di fondo; Bagno = mattonelle al posto delle assi; Camera = legno più caldo/scuro. */
+function roomFloorTone(id, tx, ty) {
+  if (id === 2) return (tx + ty) % 2 ? '#e8f2f5' : '#c8e2ea';                       // Bagno: mattonelle
+  const wood = INT_WOOD[0];
+  if (id === 3) return (tx + ty) % 2 ? '#6e4a2e' : '#7a5636';                       // Camera: legno scuro
+  return (tx + ty) % 2 ? wood[0] : wood[1];                                         // Sala/Cucina: legno normale
+}
+function drawRoomFixtures(id, rw) {
+  if (id === 1) { // Cucina: piano cottura/credenza sagomati sulla parete di fondo
+    rect(rw / 2 - 16, 1.3 * TS, 32, 10, '#8a5f38'); rect(rw / 2 - 16, 1.3 * TS, 32, 3, '#c98a2e');
+    for (const fx of [-9, 0, 9]) rect(rw / 2 + fx - 2, 1.3 * TS + 4, 4, 4, '#3a2e20');
+  } else if (id === 2) { // Bagno: vasca/lavabo sulla parete di fondo
+    rect(rw / 2 - 10, 1.3 * TS, 20, 10, '#dff0f7'); rect(rw / 2 - 10, 1.3 * TS, 20, 3, '#9fc4d0');
+  } else if (id === 3) { // Camera: alcova del letto sulla parete di fondo
+    rect(rw / 2 - 14, 1.3 * TS, 28, 8, '#5c4229');
+  }
+}
+/* una STANZA della casa (Sala/Cucina/Bagno/Camera): scena PROPRIA, piccola come i 6 interni
+   a mestiere — nessun NPC, un solo varco (in basso, verso l'atrio). L'arredo piazzato (M3/M4)
+   si disegna in coordinate LOCALI dirette (gx,gy), niente più offset di una griglia condivisa. */
+export function drawHouseRoomScene(time, id) {
+  const rw = ROOM_TILE_W * TS, rh = ROOM_TILE_H * TS;
+  const ox = Math.floor((view.W - rw) / 2), oy = Math.floor((view.H - rh) / 2);
+  ctx.save(); ctx.translate(ox, oy);
+  for (let ty = 0; ty < ROOM_TILE_H; ty++) for (let tx = 0; tx < ROOM_TILE_W; tx++)
+    rect(tx * TS, ty * TS, TS, TS, roomFloorTone(id, tx, ty));
+  rect(0, 0, rw, 1.3 * TS, '#8a6a4a'); rect(0, 1.3 * TS - 3, rw, 3, '#6e5138'); // parete di fondo
+  rect(0, 0, 6, rh, '#6e5138'); rect(rw - 6, 0, 6, rh, '#6e5138'); rect(0, rh - 4, rw, 4, '#6e5138'); // laterali+bassa
+  drawRoomFixtures(id, rw);
+  /* finestra: un solo squarcio sulla parete di fondo, come negli altri interni */
+  const wx = rw / 2 + (id % 2 ? -1 : 1) * 3 * TS;
+  rect(wx, 6, TS, 12, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 6, TS, 2, '#5c4229'); rect(wx, 16, TS, 2, '#5c4229'); rect(wx + 7, 6, 2, 12, '#5c4229');
+  /* ARREDO PIAZZATO (M4): DUE STRATI per casella, decoro sotto e mobile solido sopra
+     (`furnAt`/`decorAt`/`solidAt` in house.js) — "tappeto sotto la sedia" è questo: un
+     tappeto e una sedia sulla STESSA cella, disegnati in ordine. Il decoro è un'ICONA PIATTA
+     dall'alto (`drawDecorIcon`), non un blob voxel isometrico: un tappeto/una pianta piccola
+     sembravano macchie a caso alla scala di un mobile vero (segnalato con foto). Il mobile
+     solido resta lo sprite voxel vero; il piedistallo con una specie assegnata mostra invece
+     l'esposizione (`exhibitSprite`, STESSA sorgente del Museo). */
+  const room = (S.house.rooms || [])[id];
+  const placed = ((room && room.furn) || []).slice().sort((a, b) => (furnIsSolid(a.itemId) ? 1 : 0) - (furnIsSolid(b.itemId) ? 1 : 0));
+  for (const f of placed) {
+    const it = FURN_BY_ID[f.itemId]; if (!it) continue;
+    const px0 = f.gx * TS, py0 = f.gy * TS;
+    if (!furnIsSolid(f.itemId)) { drawDecorIcon(px0, py0, f.itemId); continue; }
+    const cv = f.itemId === PEDESTAL_ID && f.spId ? exhibitSprite(f.spId, S.museum[f.spId] || []) : furnSprite(f.itemId, f.rot || 0);
+    if (cv) {
+      try {
+        const fox = px0 - Math.floor((cv.width - TS) / 2), foy = py0 - (cv.height - TS);
+        ctx.drawImage(cv, fox, foy);
+        continue;
+      } catch (e) { /* stub */ }
+    }
+    rect(px0 + 1, py0 + 3, TS - 2, TS - 5, '#241d14');           // contorno scuro (ripiego)
+    rect(px0 + 2, py0 + 4, TS - 4, TS - 7, it.col);
+  }
+  /* pezzo "in mano" (raccogli e ripiazza, M4): NIENTE anteprima nel mondo — si piazza
+     esattamente sulla casella sotto i piedi, cioè dove sta già il personaggio: un ghost lì
+     finiva SEMPRE dietro allo sprite del giocatore, quasi invisibile o, prima che il mobile
+     avesse la scala giusta, spuntava sopra la testa (segnalato con Playwright: "disassamento
+     verticale"). L'anteprima vera sta nella barra Ruota/Annulla (`furnholdpv` in ui.js), dove
+     si vede sempre per intero. */
+  drawHouseDoorSlab(rw / 2 - 10, rh - 6, 20, 6);                 // varco in basso, verso l'atrio
+  const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
+  shadow(Math.round(INT.x), Math.round(INT.y) + 6, 6);
+  drawHero(null, Math.round(INT.x) - 8, Math.round(INT.y) - 10, INT.dir, fr);
+  if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
+  ctx.restore();
+}
+export function drawHouseRooms(time) {
+  if (INT.houseRoom == null) drawHouseCorridor(time); else drawHouseRoomScene(time, INT.houseRoom);
 }
 export function drawInteriorScene(time) {
   const W = view.W, H = view.H;
   ctx.setTransform(view.K, 0, 0, view.K, 0, 0);
   ctx.fillStyle = '#12100c'; ctx.fillRect(0, 0, W, H); // fuori: buio
   if (INT.b && INT.b.type === 'museum') { drawMuseumGallery(time); return; } // galleria con camera
+  if (INT.b && INT.b.type === 'house') { drawHouseRooms(time); return; }     // atrio o una stanza (scene separate)
   const rw = INT.w * TS, rh = INT.h * TS;
   const ox = Math.floor((W - rw) / 2), oy = Math.floor((H - rh) / 2);
   ctx.save(); ctx.translate(ox, oy);
@@ -603,30 +866,34 @@ export function drawInteriorScene(time) {
   rect(0, 0, 6, rh, '#6e5138'); rect(rw - 6, 0, 6, rh, '#6e5138');
   rect(0, rh - 4, rw, 4, '#6e5138');
   if (type !== 'museum') {
+    /* la CASA ha la sua scena dedicata (drawHouseRooms, N stanze affiancate): qui sotto restano
+       solo i mestieri a stanza singola (lab/negozio/museo è già uscito sopra/locanda/barbiere/sartoria) */
     /* finestre sulla parete */
     for (const wx of [1.5 * TS, rw - 2.5 * TS]) {
       rect(wx, 6, TS, 12, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 6, TS, 2, '#5c4229'); rect(wx, 16, TS, 2, '#5c4229'); rect(wx + 7, 6, 2, 12, '#5c4229');
     }
-    /* bancone davanti all'NPC */
-    rect(TS, 2.2 * TS, rw - 2 * TS, 10, '#8a5f38'); rect(TS, 2.2 * TS, rw - 2 * TS, 3, '#a97a4c');
-    /* NPC disegnato QUI (dopo il bancone, PRIMA dell'arredo): gli oggetti appoggiati
-       sul bancone restano in primo piano → l'NPC non ci cammina davanti.
-       La sartoria ha invece arredo sulla parete di FONDO (rastrelliera stoffe): là
-       l'NPC va disegnato DOPO l'arredo, sennò le stoffe gli finiscono davanti. */
-    /* Arredo in DUE passate con clip → profondità giusta dell'NPC:
-       PARETE di fondo (fascia alta y<2·TS) prima → dietro l'NPC;
-       BANCONE + PAVIMENTO (sotto) dopo → davanti (l'NPC non cammina davanti alla merce). */
-    const drawRoom = () => {
-      if (type === 'lab') drawLabRoom(rw, rh, time);
-      else if (type === 'store') drawStoreRoom(rw, rh, time);
-      else if (type === 'inn') drawInnRoom(rw, rh, time);
-      else if (type === 'barber') drawBarberRoom(rw, rh, time);
-      else if (type === 'tailor') drawTailorRoom(rw, rh, time);
-    };
-    const band = 2 * TS;
-    ctx.save(); ctx.beginPath(); ctx.rect(0, 0, rw, band); ctx.clip(); drawRoom(); ctx.restore();
-    drawNpc(rw / 2, 1.9 * TS, type, time);
-    ctx.save(); ctx.beginPath(); ctx.rect(0, band, rw, rh - band); ctx.clip(); drawRoom(); ctx.restore();
+    {
+      /* bancone davanti all'NPC */
+      rect(TS, 2.2 * TS, rw - 2 * TS, 10, '#8a5f38'); rect(TS, 2.2 * TS, rw - 2 * TS, 3, '#a97a4c');
+      /* NPC disegnato QUI (dopo il bancone, PRIMA dell'arredo): gli oggetti appoggiati
+         sul bancone restano in primo piano → l'NPC non ci cammina davanti.
+         La sartoria ha invece arredo sulla parete di FONDO (rastrelliera stoffe): là
+         l'NPC va disegnato DOPO l'arredo, sennò le stoffe gli finiscono davanti. */
+      /* Arredo in DUE passate con clip → profondità giusta dell'NPC:
+         PARETE di fondo (fascia alta y<2·TS) prima → dietro l'NPC;
+         BANCONE + PAVIMENTO (sotto) dopo → davanti (l'NPC non cammina davanti alla merce). */
+      const drawRoom = () => {
+        if (type === 'lab') drawLabRoom(rw, rh, time);
+        else if (type === 'store') drawStoreRoom(rw, rh, time);
+        else if (type === 'inn') drawInnRoom(rw, rh, time);
+        else if (type === 'barber') drawBarberRoom(rw, rh, time);
+        else if (type === 'tailor') drawTailorRoom(rw, rh, time);
+      };
+      const band = 2 * TS;
+      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, rw, band); ctx.clip(); drawRoom(); ctx.restore();
+      drawNpc(rw / 2, 1.9 * TS, type, time);
+      ctx.save(); ctx.beginPath(); ctx.rect(0, band, rw, rh - band); ctx.clip(); drawRoom(); ctx.restore();
+    }
   }
   /* varco della porta in basso */
   rect(rw / 2 - 10, rh - 6, 20, 6, '#3a2e20'); rect(rw / 2 - 8, rh - 4, 16, 4, '#c49a63');

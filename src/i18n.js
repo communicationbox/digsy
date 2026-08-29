@@ -101,6 +101,31 @@ const PANTSL = { long: ['Pantaloni', 'Trousers'], shorts: ['Pantaloncini', 'Shor
 export function shirtLabel(id) { const e = SHIRTL[id]; return e ? lab(e) : id; }
 export function pantsLabel(id) { const e = PANTSL[id]; return e ? lab(e) : id; }
 
+/* ARREDO della casa (M3): un nome per pezzo, stesso schema degli altri cosmetici */
+const FURNL = {
+  prati_rug: ['Tappeto di margherite', 'Daisy rug'], prati_bed: ['Letto di fiori', 'Flower bed'],
+  prati_table: ['Tavolo di paglia', 'Straw table'], prati_lamp: ['Lanterna di grano', 'Wheat lantern'],
+  dune_rug: ['Tappeto di sabbia', 'Sand rug'], dune_bed: ['Giaciglio beduino', 'Bedouin bedroll'],
+  dune_chest: ['Scrigno d\'osso', 'Bone chest'], dune_cactus: ['Cactus in vaso', 'Potted cactus'],
+  boschi_rug: ['Tappeto di muschio', 'Moss rug'], boschi_bed: ['Letto di tronco', 'Log bed'],
+  boschi_chair: ['Poltrona di corteccia', 'Bark armchair'], boschi_lamp: ['Lampada a fungo', 'Mushroom lamp'],
+  terre_rug: ['Tappeto d\'argilla', 'Clay rug'], terre_bed: ['Letto di roccia rossa', 'Red rock bed'],
+  terre_throne: ['Trono di pietra', 'Stone throne'], terre_crystal: ['Cristallo ornamentale', 'Ornamental crystal'],
+  palude_rug: ['Tappeto di alghe', 'Algae rug'], palude_bed: ['Amaca di canne', 'Reed hammock'],
+  palude_vase: ['Vaso di ninfee', 'Water lily vase'], palude_lamp: ['Lanterna a fuoco fatuo', 'Will-o\'-wisp lantern'],
+  ghiacci_rug: ['Tappeto di pelliccia', 'Fur rug'], ghiacci_bed: ['Letto di pelliccia', 'Fur bed'],
+  ghiacci_hearth: ['Focolare glaciale', 'Glacial hearth'], ghiacci_lamp: ['Lanterna di ghiaccio', 'Ice lantern'],
+  pedestal: ['Piedistallo', 'Pedestal'],
+};
+export function furnLabel(id) { const e = FURNL[id]; return e ? lab(e) : id; }
+
+/* CASA — nomi delle stanze (pianta a corridoio, M2 ripianificato): la 0 è la Sala (gratis,
+   in fondo al corridoio), le altre hanno un'identità vera di casa (Cucina/Bagno/Camera) —
+   l'arredo che ci metti resta a tema di ZONA (FURN_SETS), il nome è solo l'identità della
+   stanza. Fuori da queste 4 (se `ROOM_PRICES` crescesse) si ripiega su "Stanza N". */
+const ROOML = { 0: ['Sala', 'Living room'], 1: ['Cucina', 'Kitchen'], 2: ['Bagno', 'Bathroom'], 3: ['Camera', 'Bedroom'] };
+export function roomName(id) { const e = ROOML[id]; return e ? lab(e) : tr('Stanza', 'Room') + ' ' + (id + 1); }
+
 /* testi statici dell'index.html (HUD, splash, boot) applicati al boot */
 export function applyStaticTexts() {
   const set = (sel, txt) => { const el = document.querySelector(sel); if (el) el.textContent = txt; };
@@ -127,6 +152,8 @@ export function applyStaticTexts() {
   set('#sk-title', tr('SCHELETRO', 'SKELETON'));
   set('#sk-skip', tr('Salta', 'Skip'));
   set('#exitbtn', '🚪 ' + tr('Esci', 'Exit'));
+  set('#furnrotbtn', tr('Ruota', 'Rotate'));
+  set('#furncancelbtn', tr('Annulla', 'Cancel'));
   set('#debugtag', '🐞 ' + tr('CHEAT · NIENTE SALVATAGGIO', 'CHEAT · NO SAVE'));
 }
 

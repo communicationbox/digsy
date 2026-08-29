@@ -44,14 +44,14 @@ function exitCheat() {
 import { updateHUD, toast } from './ui.js';
 import { tr, seasonName, partName, rarLabel } from './i18n.js';
 import { seasonOf, SEASON_LEN, SEASONS } from './daynight.js';
-import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED_HAIR, THEMED_HAT, PREMIUM_HATS, spById, ptById, RAR, CAVE_POOL } from './data.js';
+import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED_HAIR, THEMED_HAT, PREMIUM_HATS, spById, ptById, RAR, CAVE_POOL, FURN_BY_ID } from './data.js';
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
 import { TRACKS, TROPHY_HATS } from './achievements.js';
 import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers, playWithCompanion } from './gameplay.js';
 import { setCompanion, COMP } from './companion.js';
 import { zoneAt } from './regions.js';
-import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL, boneSiteForCell, BCELL, isSolidTile } from './world.js';
+import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL, boneSiteForCell, BCELL, isSolidTile, yardRect, hasMuseum } from './world.js';
 import { enterCave } from './cave.js';
 import { WEATHER_TYPES } from './weather.js';
 import { playIntro } from './intro.js';
@@ -138,39 +138,32 @@ function findCaveEntrance() {
   }
   return null;
 }
-/* città GRANDE (col parco) più vicina al player */
+/* città GRANDE (col Museo) più vicina al player */
 function teleportToCity() {
   const ccx = Math.floor(P.x / (TS * TCELL)), ccy = Math.floor(P.y / (TS * TCELL));
   for (let r = 0; r <= 24; r++) {
     for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
       if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
       const t = townForCell(cx, cy);
-      if (t && t.pen) {
+      if (t && hasMuseum(t)) {
         const sx = t.C.x;
-        for (let yy = t.C.y + 4; yy < t.C.y + 10; yy++) if (openArea(sx, yy)) { P.x = sx * TS + 8; P.y = yy * TS + 2; return t.name; }
+        for (let yy = t.C.y + 4; yy <= t.y1; yy++) if (openArea(sx, yy)) { P.x = sx * TS + 8; P.y = yy * TS + 2; return t.name; }
       }
     }
   }
   return null;
 }
 
-/* teletrasporto DENTRO il recinto del parco della città grande più vicina.
-   `goto=city` lascia sul viale, e il recinto resta mezzo fuori dall'inquadratura: il posto che
-   il gioco promette ("tornano a vivere") era l'unico che non si poteva raggiungere di proposito,
-   né per provarlo né per fotografarlo. */
+/* teletrasporto DENTRO il cortile recintato di casa (M5: non più il parco per città — ce
+   n'è uno solo, a casa). `goto=city` lascia sulla piazza, e il posto dove il gioco promette
+   che "tornano a vivere" era irraggiungibile di proposito, né per provarlo né per fotografarlo. */
 function teleportToPark() {
-  const ccx = Math.floor(P.x / (TS * TCELL)), ccy = Math.floor(P.y / (TS * TCELL));
-  for (let r = 0; r <= 24; r++) {
-    for (let cy = ccy - r; cy <= ccy + r; cy++) for (let cx = ccx - r; cx <= ccx + r; cx++) {
-      if (Math.max(Math.abs(cx - ccx), Math.abs(cy - ccy)) !== r) continue;
-      const t = townForCell(cx, cy);
-      if (!t || !t.pen) continue;
-      const p = t.pen, mx = Math.floor((p.x0 + p.x1) / 2), my = Math.floor((p.y0 + p.y1) / 2);
-      P.x = mx * TS + 8; P.y = my * TS + 2;               // in mezzo al recinto: si vede tutto attorno
-      return t.name;
-    }
-  }
-  return null;
+  const p = yardRect(); if (!p) return null;
+  // il centro del rettangolo ora è la CASA (M6, il cortile la circonda): si finisce sul
+  // prato aperto a sud, fra la porta e il cancello, dove si vede il cortile intero
+  const mx = p.cx, my = p.y1 - 1;
+  P.x = mx * TS + 8; P.y = my * TS + 2;
+  return 'home';
 }
 
 /* teletrasporto al SITO di scavo più vicino (ci si mette adiacente, tile libera) */
@@ -288,6 +281,14 @@ export const COMMANDS = {
     run: () => { giveAllDna(); return '🧬 ' + tr('DNA infinito per tutte le specie', 'Infinite DNA for all species'); } },
   goditem: { type: 'action', cheat: true, help: 'goditem — ogni pezzo di ogni specie, identificato',
     run: () => { giveAllItems(); return '🦴 ' + tr('Tutti i fossili nello zaino', 'All fossils in your bag'); } },
+  godfurn: { aliases: ['furniture', 'arredo'], type: 'action', cheat: true,
+    help: 'godfurn — ogni mobile di ogni zona nel vassoio, gratis',
+    run: () => {
+      if (!S.furnOwned) S.furnOwned = [];
+      let n = 0;
+      for (const id in FURN_BY_ID) if (!S.furnOwned.includes(id)) { S.furnOwned.push(id); n++; }
+      return '🎨 ' + n + ' ' + tr('mobili aggiunti al vassoio: piazzali in casa', 'furniture pieces added to your tray: place them at home');
+    } },
   /* STRESS: carica il gioco per DAVVERO, sul dispositivo che si ha in mano. Serve a vedere
      i cali di frame veri, non quelli stimati su una macchina da sviluppo.
      `stress` = livello medio · `stress=3` = livello scelto (1-5). */
@@ -509,8 +510,8 @@ export const COMMANDS = {
       if (!z) return tr('Mete: ', 'Targets: ') + ['grotta', 'city', ...ZONES.map(z => z.id)].join(', ');
       return teleportToZone(z.id) ? '🌍 ' + z.name : tr('Bioma non trovato vicino', 'Biome not found nearby');
     } },
-  gotopark: { aliases: ['parco', 'park'], type: 'action', help: 'gotopark — vai DENTRO il recinto del parco (dove vivono chimere e risvegliate)',
-    run: () => { const n = teleportToPark(); return n ? '🌳 ' + n : tr('Nessun parco trovato vicino', 'No park found nearby'); } },
+  gotopark: { aliases: ['parco', 'park', 'cortile'], type: 'action', help: 'gotopark — vai DENTRO il cortile di casa (dove vivono chimere e risvegliate)',
+    run: () => { const n = teleportToPark(); return n ? '🌳 ' + tr('Cortile', 'Yard') : tr('Casa non ancora trovata', 'Home not found yet'); } },
   gotosite: { type: 'action', help: 'gotosite — vai al sito di scavo più vicino',
     run: () => teleportToSite() ? '⛏️ ' + tr('Sito di scavo', 'Dig site') : tr('Nessun sito trovato vicino', 'No site found nearby') },
   gotowreck: { type: 'action', help: 'gotowreck — vai al relitto in mare più vicino (attiva la barca)',

@@ -91,40 +91,46 @@ head('3. SALVATAGGIO — scrittura, rilettura e limite del browser');
   state.save();
 }
 
-/* ---------- 4. CREATURE NEL PARCO ---------- */
+/* ---------- 4. CREATURE NEL CORTILE ---------- */
 head('4. CREATURE — quante ne reggono simulazione e disegno');
 {
   const park = await import('../src/park.js');
+  const house = await import('../src/house.js');
   const render = (await import('../src/render.js')).render;
   const { fit } = await import('../src/screen.js');
   fit();
   const { cam } = state;
-  /* il player va messo DENTRO un parco, altrimenti non c'è nulla da simulare né da disegnare
-     e il test misura il vuoto (prima diceva "1000 creature a 0,9 ms": non ne disegnava una) */
+  /* il player va messo DENTRO il cortile di casa, altrimenti non c'è nulla da simulare né da
+     disegnare e il test misura il vuoto (prima diceva "1000 creature a 0,9 ms": non ne
+     disegnava una) */
   const world = await import('../src/world.js');
   let town = null;
   for (let cx = -14; cx < 14 && !town; cx++) for (let cy = -14; cy < 14 && !town; cy++) {
-    const t = world.townForCell(cx, cy); if (t && t.pen) town = t;
+    const t = world.townForCell(cx, cy); if (t && t.size === 'città') town = t;
   }
-  if (!town) { console.log('  (nessuna città col parco trovata)'); }
-  else { P.x = (town.pen.x0 + 2) * TS; P.y = (town.pen.y0 + 2) * TS; }
+  S.home = town && world.findHomeSpot(town);
+  const pen = world.yardRect();
+  if (!pen) { console.log('  (nessuna casa trovata)'); }
+  else { P.x = (pen.x0 + 2) * TS; P.y = (pen.y0 + 2) * TS; }
+  house.ensureHouseState();
   const mk = (i) => ({ uid: i, name: 'Test' + i, skull: 'lepre', torso: 'lepre', leg: 'lepre', q: 'comune' });
   for (const n of [10, 50, 200, 1000]) {
     S.creatures = Array.from({ length: n }, (_, i) => mk(i));
-    park.parks.clear();
+    S.house.yard = S.creatures.map(c => 'chi' + c.uid); // tutte scelte per il cortile
+    park.yardAnimals.length = 0;
     park.refreshVisParks();
     const t0 = performance.now();
-    for (const t of park.visParks) for (let f = 0; f < 60; f++) park.updatePark(t, 1 / 60);
+    for (let f = 0; f < 60; f++) park.updatePark(1 / 60);
     const tSim = ms(t0);
     cam.x = P.x; cam.y = P.y;
     const t1 = performance.now();
     for (let f = 0; f < 10; f++) render(1000 + f * 16);
     const tDraw = ms(t1) / 10;
-    const drawn = park.visParks.length ? park.parkList(park.visParks[0]).length : 0;
-    row(n.toLocaleString('it') + ' creature (' + drawn + ' nel parco)', tDraw.toFixed(1) + ' ms/frame',
+    const drawn = park.yardNear ? park.yardList().length : 0;
+    row(n.toLocaleString('it') + ' creature (' + drawn + ' nel cortile)', tDraw.toFixed(1) + ' ms/frame',
       'simulazione 60 passi ' + tSim.toFixed(0) + 'ms · ' + (tDraw < 16.7 ? '60 fps ok' : tDraw < 33 ? '30 fps' : 'SOTTO i 30 fps'));
   }
-  S.creatures = [];
+  S.creatures = []; S.house.yard = [];
 }
 
 /* ---------- 5. MONDO LONTANISSIMO (numeri grandi) ---------- */

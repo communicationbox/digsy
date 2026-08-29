@@ -5,7 +5,7 @@ import { TS } from './data.js';
 import { BODY_HW, FOOT_DY, feetTile } from './body.js';
 import { P } from './state.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
-import { townInfo, townForTile, isSolidTile, openArea } from './world.js';
+import { townInfo, townForTile, isSolidTile, openArea, houseDoorAt } from './world.js';
 import { MUSEUM_ZONES, zonePools } from './data.js';
 import { S, save } from './state.js';
 import { tr, zoneName } from './i18n.js';
@@ -13,6 +13,11 @@ import { zoneAt } from './regions.js';
 import { playSfx } from './audio.js';
 import { pendingLetter, giveLetter, letterTitle } from './letters.js';
 import { museumOpen, museumClosedText } from './tutorial.js';
+import {
+  CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, corridorSolid, corridorExitAt, corridorEntryFor,
+  roomPerimeterSolid, roomEntryPoint, houseFurnSolid, floorCellAt, furnAt,
+  roomUnlocked, nearbyGate,
+} from './house.js';
 
 export const INT = {
   active: false, b: null, town: null,
@@ -22,6 +27,10 @@ export const INT = {
   justLeft: false,        // anti-rientro immediato
   room: 'main',           // 'main' | 'gallery' (museo)
   say: null,              // fumetto dell'NPC { text, t }
+  /* CASA: `null` = si è nell'ATRIO (piccolo ingresso), altrimenti l'id della stanza
+     (0 Sala/1 Cucina/2 Bagno/3 Camera) la cui SCENA è quella attiva ora — atrio e stanze
+     sono scene separate (interiors.js ne disegna una sola alla volta), mai la stessa griglia. */
+  houseRoom: null,
 };
 /* fumetto sopra l'NPC (ringraziamenti/spiegazioni). Dura qualche secondo, poi sparisce. */
 export function sayNpc(text, sec = 3.4) { if (text) INT.say = { text, t: sec }; }
@@ -143,6 +152,7 @@ const FURN = {
     { x0: 16, y0: 48, x1: 42, y1: 66 },    // manichino
     { x0: 110, y0: 46, x1: 148, y1: 68 },  // tavolo da cucito
   ],
+  house: [], // casa del giocatore: stanza vuota (arredo in una milestone successiva)
 };
 /* cutscene: al primo museo di un bioma NUOVO il Curatore ti viene incontro
    e ti consegna le pagine aggiornate del Libro. Player bloccato finché non finisce.
@@ -181,9 +191,12 @@ export function enterInterior(b, town) {
   INT.fromX = P.x; INT.fromY = P.y;      // da dove si è entrati: via di ritorno sicura
   clearGoal();                            // dentro non si cammina più verso la meta di fuori
   INT.active = true; INT.b = b; INT.town = town;
-  const mus = b.type === 'museum';
-  INT.w = mus ? GAL_W : 10; INT.h = mus ? GAL_H : 7; // il museo è una galleria GRANDE
-  INT.x = (INT.w / 2) * TS; INT.y = (INT.h - 1.3) * TS;
+  const mus = b.type === 'museum', house = b.type === 'house';
+  /* il museo è una galleria GRANDE; la casa è tante SCENE separate (house.js): si entra
+     sempre nel piccolo ATRIO, mai direttamente in una stanza */
+  if (house) INT.houseRoom = null;
+  INT.w = mus ? GAL_W : house ? CORR_W : 10; INT.h = mus ? GAL_H : house ? CORR_H : 7;
+  INT.x = (house ? CORR_W / 2 : INT.w / 2) * TS; INT.y = (INT.h - 1.3) * TS;
   INT.dir = 'up'; INT.moving = false; INT.say = null; INT.greeted = false;
   INT.room = mus ? 'gallery' : 'main';
   if (mus) resetMentor();                            // il Maestro riparte dall'atrio
@@ -294,8 +307,20 @@ export function exitInterior() {
   }
   P.x = INT.b.doorx * TS + 8; P.y = (INT.b.doory + 1) * TS + 10; // ripiego (non dovrebbe servire)
 }
-/* pareti + bancone: il player vive tra y=2.4 tile e la parete bassa */
+/* tile-x del centro della porta "verso il basso" della scena attiva: nell'atrio è la porta
+   d'ingresso di casa (CORR_W/2), in una stanza è il suo varco verso l'atrio (ROOM_TILE_W/2) —
+   STESSA idea dei 6 interni a mestiere (INT.w/2), solo che la casa ha più di una scena. */
+export function doorTileX() {
+  if (INT.b && INT.b.type === 'house') return (INT.houseRoom == null ? CORR_W : ROOM_TILE_W) / 2;
+  return INT.w / 2;
+}
+/* pareti: ogni scena della casa (atrio o una stanza) è per conto suo, mai lo stesso muro
+   grande di prima — houseFurnSolid vale SOLO dentro una stanza (nell'atrio non si arreda). */
 export function interiorSolid(x, y) {
+  if (INT.b && INT.b.type === 'house') {
+    if (INT.houseRoom == null) return corridorSolid(x, y);
+    return roomPerimeterSolid(x, y) || houseFurnSolid(INT.houseRoom, x, y);
+  }
   const w = INT.w * TS, h = INT.h * TS;
   if (x < 8 || x > w - 8) return true;
   if (INT.room === 'main') { if (y < 2.9 * TS) return true; }            // parete + bancone
@@ -306,10 +331,74 @@ export function interiorSolid(x, y) {
 }
 export function nearNpc() {
   if (!INT.active) return false;
+  if (INT.b && INT.b.type === 'house') return false;      // niente NPC in casa
   if (INT.b && INT.b.type === 'museum') { // Curatore al banco, DAVANTI all'ingresso
     return INT.x >= GAL_DESK.x0 - 10 && INT.x <= GAL_DESK.x1 + 10 && INT.y > GAL_DESK.y1 && INT.y < GAL_DESK.y1 + 48;
   }
   return Math.abs(INT.x - (INT.w / 2) * TS) < 30 && INT.y < 3.6 * TS;
+}
+/* varco a lucchetto più vicino: {i, price} o null. Vale SOLO nell'atrio (le porte delle
+   stanze stanno lì); dentro una stanza (già sbloccata, altrimenti non ci si potrebbe essere)
+   non c'è nessun lucchetto da mostrare. Usata da act() per il prompt/acquisto. */
+export function nearLockedGate() {
+  if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom != null) return null;
+  return nearbyGate(INT.x, INT.y);
+}
+/* cella di pavimento (dentro una stanza della casa) SOTTO AI PIEDI del giocatore:
+   {room,gx,gy,furn} o null se non si è dentro una stanza / si è fuori dal pavimento
+   calpestabile. `furn` = itemId già piazzato lì, o null. Stesso criterio di digTarget()
+   (gameplay.js): si agisce sulla propria casella, non su quella verso cui si guarda. */
+export function houseFloorHere() {
+  if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return null;
+  const c = floorCellAt(INT.houseRoom, INT.x, INT.y); if (!c) return null;
+  const f = furnAt(c.room, c.gx, c.gy);
+  return { ...c, unlocked: roomUnlocked(c.room), itemId: f ? f.itemId : null, spId: f ? f.spId || null : null };
+}
+/* piazzare un pezzo sotto i propri piedi lo rende SOLIDO all'istante: senza questo il
+   giocatore restava incastrato dentro il proprio mobile appena piazzato (segnalato). Si
+   sposta di una casella verso il primo lato libero — mai in un muro, mai fuori stanza. */
+export function nudgeOffFurniture() {
+  if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return;
+  const gx = Math.floor(INT.x / TS), gy = Math.floor(INT.y / TS);
+  if (!houseFurnSolid(INT.houseRoom, INT.x, INT.y)) return;
+  /* laterale/su PRIMA di giù: verso il basso, dalla cella d'ingresso, si scivola dritti nella
+     zona che fa tornare all'atrio (stepHouseNav/onDoor) — un rimbalzo continuo, non uno
+     spostamento (segnalato: "non entra neanche nella stanza dal corridoio"). */
+  for (const [dx, dy] of [[1, 0], [-1, 0], [0, -1], [0, 1]]) {
+    const nx = (gx + dx) * TS + 8, ny = (gy + dy) * TS + 8;
+    if (!interiorSolid(nx, ny)) { INT.x = nx; INT.y = ny; return; }
+  }
+}
+/* NAVIGAZIONE fra le scene della casa: si entra in una stanza uscendo dall'atrio da un suo
+   varco (già sbloccato), si torna nell'atrio uscendo dalla stanza dal suo varco in basso —
+   ESATTAMENTE come entrare/uscire da un edificio, solo che il "fuori" qui è un'altra scena
+   della stessa casa invece del mondo aperto. */
+export function enterHouseRoom(id) {
+  INT.houseRoom = id; INT.w = ROOM_TILE_W; INT.h = ROOM_TILE_H;
+  const p = roomEntryPoint(); INT.x = p.x; INT.y = p.y; INT.dir = 'up'; clearGoal();
+  nudgeOffFurniture(); // rete di sicurezza per partite salvate PRIMA che isFloorCell escludesse l'ingresso
+}
+export function leaveHouseRoom() {
+  const id = INT.houseRoom;
+  INT.houseRoom = null; INT.w = CORR_W; INT.h = CORR_H;
+  const p = corridorEntryFor(id); INT.x = p.x; INT.y = p.y; INT.dir = 'down'; clearGoal();
+}
+/* fuori da una stanza (verso l'atrio) o fuori dall'atrio (verso il mondo): l'una o l'altra,
+   a seconda di dove si è — un solo punto per non sbagliare la scelta nei 3 punti che devono
+   "uscire" (ESC, bottone Esci, varco raggiunto camminando/toccando). */
+export function interiorLeave() {
+  if (INT.b && INT.b.type === 'house' && INT.houseRoom != null) leaveHouseRoom();
+  else exitInterior();
+}
+/* chiamata ogni fotogramma mentre si è nell'ATRIO: la stanza raggiunta uscendo da un suo
+   varco laterale/alto (varchi VERI, senza trucchi — basta che non siano più solidi). Il
+   ritorno stanza→atrio e atrio→mondo usano invece lo STESSO meccanismo dei 6 interni a
+   mestiere (onDoor()+bypass sulla porta in basso, più giù in questo file), reindirizzato da
+   `interiorLeave()`: un varco in meno da inventare, uno in meno da testare a parte. */
+function stepHouseNav() {
+  if (!INT.b || INT.b.type !== 'house' || INT.houseRoom != null) return;
+  const id = corridorExitAt(INT.x, INT.y);
+  if (id != null) enterHouseRoom(id);
 }
 /* piedistallo più vicino nella galleria: {sp, n} per etichetta/prompt */
 export function nearCase() {
@@ -324,7 +413,7 @@ export function nearCase() {
   return null;
 }
 export function onDoor() {
-  return INT.y > (INT.h - 1.15) * TS && Math.abs(INT.x - (INT.w / 2) * TS) < 14;
+  return INT.y > (INT.h - 1.15) * TS && Math.abs(INT.x - doorTileX() * TS) < 14;
 }
 /* La meta toccata è l'USCIO? Zona generosa di proposito: nella galleria del museo (60×62
    caselle) la camera si ferma al bordo, quindi la porta finisce sull'ultima riga di pixel
@@ -335,13 +424,13 @@ export function goalIsExit() {
   const g = goalTile();
   /* vale anche la STRADA disegnata oltre la porta (ty >= INT.h): è lì che si clicca per
      uscire, ed è l'unico punto in cui il gesto è naturale */
-  return g.ty >= INT.h - 2 && Math.abs(g.tx - (INT.w >> 1)) <= 3;
+  return g.ty >= INT.h - 2 && Math.abs(g.tx - doorTileX()) <= 3;
 }
 /* si è vicini all'uscita? (per il suggerimento a schermo) */
 export function nearExit() {
   if (!INT.active) return false;
   const tx = Math.floor(INT.x / TS), ty = Math.floor((INT.y + FOOT_DY) / TS);
-  return ty >= INT.h - 5 && Math.abs(tx - (INT.w >> 1)) <= 2;
+  return ty >= INT.h - 5 && Math.abs(tx - doorTileX()) <= 2;
 }
 /* hitbox dei piedi (4 punti): lo sprite non compenetra i mobili */
 export function intCollide(x, y) {
@@ -382,9 +471,10 @@ export function updateInterior(dt, keys, speed) {
     /* Toccando l'USCIO si deve uscire. Il punto da raggiungere sta OLTRE l'ultima casella
        camminabile, quindi il percorso non potrebbe mai arrivarci: quando si è sulla soglia
        (o il cammino è finito lì) si esce, invece di restare fermi contro la porta. */
-    if (toExit && !hasGoal() && Math.abs(INT.x - (INT.w / 2) * TS) < 18) { clearGoal(); exitInterior(); return; }
+    if (toExit && !hasGoal() && Math.abs(INT.x - doorTileX() * TS) < 18) { clearGoal(); interiorLeave(); return; }
   } else INT.moving = false;
-  if (onDoor() && INT.y > (INT.h - 0.9) * TS) { clearGoal(); exitInterior(); } // vale anche per la galleria
+  if (onDoor() && INT.y > (INT.h - 0.9) * TS) { clearGoal(); interiorLeave(); return; } // vale anche per la galleria
+  stepHouseNav(); // casa: varco laterale/alto dell'atrio raggiunto → si entra nella stanza
 }
 /* chiamato dal loop: si entra solo CAMMINANDO DENTRO la porta (verso l'alto),
    non passandoci davanti in orizzontale */
@@ -394,18 +484,21 @@ export function checkDoorEnter() {
      non un blocco prima */
   const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
   const ti = townInfo(tx, ty);
-  if (ti && ti.door) {
+  /* la CASA del giocatore è fuori dal sistema città (un solo edificio, in mezzo al mondo):
+     stessa porta-camminata, nessun edificio/town vero dietro */
+  const door = (ti && ti.door) ? ti.door : (houseDoorAt(tx, ty) ? { type: 'house', doorx: S.home.x, doory: S.home.y } : null);
+  if (door) {
     if (INT.justLeft) return;                        // appena usciti: serve allontanarsi
     /* a piedi si entra salendo (così non si entra passando davanti alle porte);
        col "tocca dove andare" si arriva da qualsiasi lato, e allora vale l'intenzione:
        si entra se la porta è proprio dove si è toccato */
     if (!(P.moving && P.dir === 'up') && !goalIsTile(tx, ty)) return;
     /* porta chiusa: il Museo si apre solo quando il tutorial ci manda (tutorial.js) */
-    if (ti.door.type === 'museum' && !museumOpen()) {
+    if (door.type === 'museum' && !museumOpen()) {
       INT.justLeft = true;                            // niente ritentativi a ogni fotogramma
       import('./ui.js').then(u => u.toast('🏛️ ' + museumClosedText()));
       return;
     }
-    enterInterior(ti.door, townForTile(tx, ty));
+    enterInterior(door, door.type === 'house' ? null : townForTile(tx, ty));
   } else INT.justLeft = false;
 }

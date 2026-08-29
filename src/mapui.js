@@ -13,7 +13,7 @@ import { zoneIdxAt } from './regions.js';
 import { tr } from './i18n.js';
 import { playSfx } from './audio.js';
 import { toast, setPromptFromMap as setPrompt, showBanner, openWonderBook } from './ui.js';
-import { dirTo } from './gameplay.js';
+import { dirTo, goHome } from './gameplay.js';
 import { rarLabel, townSizeLabel } from './i18n.js';
 
 let mapOpenFlag = false;
@@ -190,6 +190,16 @@ function drawMapCanvas() {
     c.fillRect(Math.round(x - r + 1), y - r + 1, 1, w - 2);
     c.fillRect(Math.round(x + r - 1), y - r + 1, 1, w - 2);
   };
+  /* CASA: tettuccio a due falde sopra il pin, per riconoscerla senza leggere niente */
+  const homePin = (tx, ty) => {
+    const x = (tx - x0) * SC, y = (ty - y0) * SC, r = Math.max(2, SC + 2);
+    if (x < -8 || y < -8 || x > cv.width + 8 || y > cv.height + 8) return;
+    const hh = Math.max(2, Math.round(r * 0.8)), hw = r + 2;
+    c.fillStyle = '#241a10';
+    c.beginPath(); c.moveTo(x - hw - 1, y - r - 1); c.lineTo(x, y - r - hh - 1); c.lineTo(x + hw + 1, y - r - 1); c.closePath(); c.fill();
+    c.fillStyle = '#c98a5a';
+    c.beginPath(); c.moveTo(x - hw, y - r - 1); c.lineTo(x, y - r - hh); c.lineTo(x + hw, y - r - 1); c.closePath(); c.fill();
+  };
   { const seen = new Set(), cstep = Math.max(1, Math.round(6 / step));   // campiona ~ogni 6 tile a ogni zoom
     for (let cyi = 0; cyi < cellsH; cyi += cstep) for (let cxi = 0; cxi < cellsW; cxi += cstep) {
       const tx = x0 + cxi * step, ty = y0 + cyi * step;
@@ -201,6 +211,11 @@ function drawMapCanvas() {
         { kind: 'town', name: tw.name, size: tw.size, museum, tx: tw.C.x, ty: tw.C.y });
       if (museum) museumPin(tw.C.x, tw.C.y);
     } }
+  /* CASA: pin gratuito e sempre cliccabile (teletrasporto istantaneo, vedi goHome) */
+  if (S.home && isExplored(S.home.x, S.home.y)) {
+    mark(S.home.x, S.home.y, '#8fd0a0', true, { kind: 'home', tx: S.home.x, ty: S.home.y });
+    homePin(S.home.x, S.home.y);
+  }
   meStar(c, Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), x0, y0, SC, cv);  // dove sei
   const sub = document.getElementById('mp-sub');
   if (sub) sub.textContent = 'zoom ×' + mapZoom + ' · ' + tr('esplorato ', 'explored ') + exploredTiles().toLocaleString() +
@@ -219,7 +234,7 @@ export function openMap() {
        spesa a dire che il verde è prato: una cosa che si impara camminando, e che il tag della
        zona nell'HUD dice già mentre ci sei dentro. Restano i SIMBOLI, che invece non si possono
        indovinare: chi ha il Museo, dov'è una meraviglia, quale X è la tua. */
-    lg.innerHTML = withIcons(`<span><i style="background:#2f6b8f"></i>${tr('acqua', 'water')}</span><span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#f03b2e;clip-path:polygon(50% 100%,14% 44%,22% 20%,50% 8%,78% 20%,86% 44%)"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
+    lg.innerHTML = withIcons(`<span><i style="background:#2f6b8f"></i>${tr('acqua', 'water')}</span><span><i style="background:#e8c34a"></i>${tr('paese', 'town')}</span><span><i style="background:#efe8d6;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('museo', 'museum')}</span><span><i style="background:#8fd0a0;clip-path:polygon(50% 0,100% 45%,100% 100%,0 100%,0 45%)"></i>${tr('casa tua', 'your home')}</span><span><i style="background:#c79bff"></i>${tr('meraviglia', 'wonder')}</span><span><i style="background:#57e0d0"></i>${tr('arco (viaggio)', 'arch (travel)')}</span><span><i style="background:#e4573d"></i>${tr('X del tesoro', 'treasure X')}</span><span><i style="background:#f03b2e;clip-path:polygon(50% 100%,14% 44%,22% 20%,50% 8%,78% 20%,86% 44%)"></i>${tr('sei qui', 'you are here')}</span><span><i style="background:#c9b184"></i>${tr('da esplorare', 'unexplored')}</span>`);
   }
   ov.classList.add('on'); mapOpenFlag = true; setPrompt(null);
   const x = document.getElementById('mp-close'); if (x) x.onclick = () => closeMap();
@@ -257,6 +272,7 @@ export function openMap() {
         toast('🏘️ ' + best.name + ' · ' + townSizeLabel(best.size) + mus + ' · ' + dirTo(best.tx, best.ty)); return;
       }
       if (best.kind === 'map') { toast('🗺️ ' + tr('X del tesoro ', 'Treasure X ') + rarLabel(best.rar) + ' · ' + dirTo(best.tx, best.ty)); return; }
+      if (best.kind === 'home') { closeMap(); goHome(); return; }
       if (best.kind === 'wonder') { closeMap(); openWonderBook(best.type); }
     });
     /* PINCH su mobile: due dita che si allontanano = zoom avanti */
