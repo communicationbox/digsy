@@ -19,8 +19,15 @@ export function drawTree(sx, sy, time, tx, ty) {
   const k = cx + sw;
   rect(k - 7, base - 16, 14, 9, T[0]); rect(k - 8, base - 14, 16, 6, T[1]); rect(k - 6, base - 19, 12, 6, T[2]); rect(k - 4, base - 21, 8, 5, T[3]);
   rect(k - 3, base - 19, 3, 2, T[4]); px(k + 2, base - 17, T[4]); px(k - 8, base - 9, T[5]); px(k + 7, base - 9, T[5]);
+  px(k - 2, base - 21, shade8(T[3], 1.2)); px(k - 1, base - 21, shade8(T[3], 1.2)); // luce in cima alla chioma
+  rect(k - 7, base - 9, 14, 1, shade8(T[0], 0.72)); // terzo tono: ombra interna sotto la chioma
 }
-export function drawBoulder(sx, sy) { const cx = sx + 8, base = sy + 13; shadow(cx, base, 6); rect(cx - 6, base - 7, 12, 7, '#9a9285'); rect(cx - 5, base - 9, 10, 3, '#aaa294'); px(cx - 2, base - 7, '#b8b0a2'); rect(cx - 4, base - 4, 4, 2, '#b8b0a2'); rect(cx - 6, base - 1, 12, 1, '#75695c'); }
+export function drawBoulder(sx, sy) {
+  const cx = sx + 8, base = sy + 13; shadow(cx, base, 6);
+  rect(cx - 6, base - 7, 12, 7, '#9a9285'); rect(cx - 5, base - 9, 10, 3, '#aaa294'); px(cx - 2, base - 7, '#b8b0a2'); rect(cx - 4, base - 4, 4, 2, '#b8b0a2'); rect(cx - 6, base - 1, 12, 1, '#75695c');
+  px(cx - 4, base - 8, '#d0c8ba'); px(cx - 3, base - 8, '#d0c8ba'); // sprazzo di luce alto-sx (16bit HD: rifinitura)
+  rect(cx + 2, base - 2, 4, 1, '#5f574c'); // ombra propria bassa-dx
+}
 /* FIORE — versione scenografica (piatta, a terra) e versione MATURA (alta, azzurra, col
    gambo: la stessa forma dell'oggetto 'fiordaliso' che finisce nello zaino). Le due non si
    confondono: se è raccoglibile lo si vede dalla forma, non solo dalla stellina. */
@@ -124,13 +131,16 @@ export function drawCactus(sx, sy) {
   rect(cx - 6, base - 9, 4, 2, '#4a9a55'); rect(cx - 6, base - 9, 2, 5, '#4a9a55');
   rect(cx + 2, base - 7, 4, 2, '#4a9a55'); rect(cx + 4, base - 11, 2, 6, '#4a9a55');
   px(cx - 3, base - 10, '#2f6b3b'); px(cx + 1, base - 5, '#2f6b3b'); px(cx, base - 13, '#e08aa8');
+  px(cx - 1, base - 12, '#7fd489'); px(cx - 1, base - 11, '#7fd489'); // luce in cima al fusto principale
+  rect(cx - 2, base - 1, 4, 1, '#2f6b3b'); // ombra propria alla base
 }
 export function drawBonespire(sx, sy) {
   const cx = sx + 8, base = sy + 14; shadow(cx, base, 6);
   for (const [ox, h] of [[-5, 7], [0, 10], [5, 6]]) {
     rect(cx + ox - 1, base - h, 2, h, '#ece5d2'); px(cx + ox - 2, base - h, '#ece5d2'); px(cx + ox + 1, base - h + 1, '#cbbfa4');
+    px(cx + ox - 1, base - h, '#fbf6e8'); // punta più chiara: luce dall'alto
   }
-  rect(cx - 6, base - 2, 12, 2, '#cbbfa4');
+  rect(cx - 6, base - 2, 12, 2, '#cbbfa4'); rect(cx - 6, base - 1, 12, 1, '#9a927f'); // ombra propria alla base
 }
 export function drawDeadtree(sx, sy) {
   const cx = sx + 8, base = sy + 15; shadow(cx, base, 5);
@@ -138,6 +148,8 @@ export function drawDeadtree(sx, sy) {
   rect(cx - 6, base - 11, 5, 2, '#6e5138'); px(cx - 6, base - 13, '#6e5138');
   rect(cx + 2, base - 9, 6, 2, '#6e5138'); px(cx + 7, base - 11, '#6e5138');
   px(cx + 1, base - 15, '#6e5138'); px(cx - 3, base - 6, '#6e5138');
+  px(cx, base - 13, '#9a7550'); px(cx, base - 8, '#9a7550'); // striscia di luce sul tronco (lato sx)
+  rect(cx - 1, base - 1, 3, 1, '#4a3620'); // ombra propria alla base
 }
 /* FUNGO — la scenografia è un fungo bruno piccolo e spento (non si raccoglie mai); quello
    maturo è grosso, rosso acceso, a pois bianchi, su gambo chiaro. Differenza leggibile a
@@ -153,22 +165,25 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   }
   rect(bx, by - 2, 2, 3, '#b8ab8e');
   rect(bx - 2, by - 4, 6, 2, '#8f7350'); px(bx - 1, by - 5, '#8f7350'); px(bx + 2, by - 5, '#8f7350');
-  px(bx - 2, by - 3, '#6f5a3e');
+  px(bx - 2, by - 3, '#6f5a3e'); px(bx - 1, by - 4, '#ab8c62'); // luce sul cappello, lato sx
 }
 export function drawStump(sx, sy) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 5);
   rect(cx - 4, base - 5, 8, 5, '#8a5f38'); rect(cx - 4, base - 6, 8, 2, '#c9a06a');
   px(cx - 1, base - 6, '#a97a4c'); px(cx + 1, base - 5, '#a97a4c'); px(cx - 5, base - 3, '#6e5138');
+  px(cx - 3, base - 6, '#e0be8c'); rect(cx + 2, base - 2, 2, 1, '#5c4229'); // luce sull'anello + ombra propria
 }
 export function drawRedspire(sx, sy) {
   const cx = sx + 8, base = sy + 15; shadow(cx, base, 6);
   rect(cx - 3, base - 14, 6, 14, '#b05e3e'); rect(cx - 4, base - 8, 8, 8, '#c06a48');
   rect(cx - 2, base - 14, 2, 14, '#cc7854'); px(cx - 1, base - 16, '#b05e3e'); px(cx + 3, base - 6, '#8a3f2e');
+  px(cx - 2, base - 14, '#e0a37e'); rect(cx + 1, base - 2, 2, 1, '#7a3324'); // luce in punta + ombra propria
 }
 export function drawOrecrystal(sx, sy) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 5);
   for (const [ox, h, c] of [[-4, 6, '#8d7ba0'], [0, 9, '#9ad0c8'], [4, 5, '#8d7ba0']]) {
     rect(cx + ox - 1, base - h, 3, h, c); px(cx + ox, base - h - 1, c); px(cx + ox - 1, base - h + 1, '#e8f6fb');
+    rect(cx + ox, base - 2, 1, 1, shade8(c, 0.55)); // ombra propria alla base del cristallo
   }
 }
 /* CANNE — quelle di scenario sono steli verdi nudi; il giunco maturo ha il pennacchio bruno
@@ -189,12 +204,14 @@ export function drawIcecrystal(sx, sy) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 5);
   for (const [ox, h] of [[-4, 6], [0, 10], [4, 7]]) {
     rect(cx + ox - 1, base - h, 3, h, '#bfe9f4'); px(cx + ox, base - h - 1, '#e8f6fb'); px(cx + ox - 1, base - h + 2, '#8fd0e6');
+    px(cx + ox, base - 2, '#5fa8bc'); // ombra propria alla base
   }
 }
 export function drawHay(sx, sy) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 6);
   rect(cx - 6, base - 8, 12, 8, '#d4b13c'); rect(cx - 6, base - 8, 12, 2, '#e0c25c');
   rect(cx - 6, base - 5, 12, 1, '#b99b2e'); px(cx - 4, base - 3, '#b99b2e'); px(cx + 3, base - 6, '#e0c25c');
+  px(cx - 5, base - 7, '#f0d888'); rect(cx - 6, base - 1, 12, 1, '#8f7724'); // luce in cima + ombra propria alla base
 }
 
 /* fumetto di dialogo. sx,sy = coordinate SCHERMO (game-px) di chi parla (testa).
