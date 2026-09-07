@@ -88,9 +88,15 @@ export function drawBuilding(b, sx, sy) {
     }
   };
   const dcx = sx + w / 2;
-  const door = (col1, col2) => { rect(dcx - 5, sy + h - 12, 10, 12, col1 || '#7a5a3a'); rect(dcx - 3, sy + h - 10, 6, 10, col2 || '#5c4229'); px(dcx + 1, sy + h - 6, '#d9b98a'); };
+  const door = (col1, col2) => {
+    const c1 = col1 || '#7a5a3a', c2 = col2 || '#5c4229';
+    rect(dcx - 5, sy + h - 12, 10, 12, c1); rect(dcx - 3, sy + h - 10, 6, 10, c2); px(dcx + 1, sy + h - 6, '#d9b98a');
+    px(dcx - 4, sy + h - 11, shade8(c1, 1.3)); rect(dcx + 3, sy + h - 3, 1, 2, shade8(c2, 0.65)); // spigolo chiaro sx / ombra bassa dx: il battente ha volume
+  };
   /* 16bit HD: la parete non è un blocco piatto — luce da sx, ombra propria a dx (dà volume) */
   const wallDepth = (wx, wy, ww, wh, base) => { rect(wx, wy, 3, wh, shade8(base, 1.45)); rect(wx + ww - 3, wy, 3, wh, shade8(base, 0.6)); };
+  /* riflesso sul vetro: un tocco vero in alto-sx, non un blocco piatto */
+  const winGlint = (wx, wy) => { px(wx, wy, '#ffffff'); };
 
   if (b.type === 'museum') { /* TEMPIO: frontone triangolare + colonne elleniche */
     rect(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0'); rect(sx + 1, sy + h - 2, w - 2, 2, '#c4baa2'); wallDepth(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0');
@@ -111,7 +117,7 @@ export function drawBuilding(b, sx, sy) {
     rect(sx + 2, sy + 8, w - 4, h - 6, '#7fa06a'); rect(sx + 2, sy + 8, w - 4, 2, '#93b47c'); rect(sx + 2, sy + h - 2, w - 4, 2, '#5f7d4c'); wallDepth(sx + 2, sy + 8, w - 4, h - 6, '#7fa06a');
     rect(sx, sy + 2, w, 7, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); roofMat(sy + 2, 7);
     for (let i = 0; i < w; i += 8) { rect(sx + i, sy + 9, 4, 6, '#c65a54'); rect(sx + i + 4, sy + 9, 4, 6, '#f1e6cc'); px(sx + i + 1, sy + 15, '#a3494e'); px(sx + i + 5, sy + 15, '#cdbd97'); } // tenda
-    rect(sx + 5, sy + 18, 9, 8, glass); rect(sx + 5, sy + 18, 9, 1, '#efe6cf'); rect(sx + 5, sy + 25, 9, 1, '#cdbd97'); // vetrina
+    rect(sx + 5, sy + 18, 9, 8, glass); rect(sx + 5, sy + 18, 9, 1, '#efe6cf'); rect(sx + 5, sy + 25, 9, 1, '#cdbd97'); winGlint(sx + 6, sy + 19); // vetrina
     rect(sx + 6, sy + 22, 3, 3, '#b98d59'); rect(sx + 10, sy + 21, 3, 4, '#8a5f38'); // merci esposte
     rect(sx + w - 12, sy + h - 7, 7, 7, '#b98d59'); rect(sx + w - 12, sy + h - 7, 7, 2, '#d9b98a'); px(sx + w - 10, sy + h - 4, '#6e4a2e'); // cassa fuori
     snowCap(); door();
@@ -120,15 +126,15 @@ export function drawBuilding(b, sx, sy) {
     rect(sx, sy - 8, w, 8, BB.roof); rect(sx, sy - 8, w, 2, BB.roof2); rect(sx - 1, sy - 1, w + 2, 2, shade8(BB.roof, 0.75)); roofMat(sy - 8, 8); snowCap(sy - 7); // tetto alto
     rect(sx + 6, sy - 6, 4, 9, '#9a8874'); rect(sx + 6, sy - 6, 4, 2, '#7f6f5e'); // camino
     px(sx + 7, sy - 8 - (Math.floor(bv * 2)), '#cfcabf'); px(sx + 8, sy - 10, '#dcd8cf');
-    for (const wx of [sx + 6, sx + w / 2 - 2, sx + w - 11]) { rect(wx, sy + 2, 5, 5, glass); rect(wx, sy + 6, 5, 1, '#cdbd97'); } // finestre piano alto
-    rect(sx + 6, sy + 16, 5, 5, glass); rect(sx + w - 11, sy + 16, 5, 5, glass);
+    for (const wx of [sx + 6, sx + w / 2 - 2, sx + w - 11]) { rect(wx, sy + 2, 5, 5, glass); rect(wx, sy + 6, 5, 1, '#cdbd97'); winGlint(wx + 1, sy + 3); } // finestre piano alto
+    rect(sx + 6, sy + 16, 5, 5, glass); winGlint(sx + 7, sy + 17); rect(sx + w - 11, sy + 16, 5, 5, glass); winGlint(sx + w - 10, sy + 17);
     rect(sx + w - 7, sy + 13, 2, 2, '#e8c34a'); px(sx + w - 6, sy + 12, '#8a5f38'); // lanterna
     door('#6e4a2e', '#4c3018');
   } else if (b.type === 'barber') { /* BARBIERE: palo a spirale + tenda blu */
     rect(sx + 2, sy + 8, w - 4, h - 6, '#eef4f6'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b7c8cf'); wallDepth(sx + 2, sy + 8, w - 4, h - 6, '#eef4f6');
     rect(sx, sy + 2, w, 8, '#5a86c8'); rect(sx, sy + 2, w, 2, '#7aa2dc'); rect(sx - 1, sy + 9, w + 2, 2, '#41639a');
     for (let i = 2; i < w - 2; i += 6) rect(sx + i, sy + 10, 3, 4, '#e8f2f5'); // frangia tenda
-    rect(sx + 5, sy + 16, 7, 7, glass); rect(sx + 5, sy + 19, 7, 1, '#b7c8cf');
+    rect(sx + 5, sy + 16, 7, 7, glass); rect(sx + 5, sy + 19, 7, 1, '#b7c8cf'); winGlint(sx + 6, sy + 17);
     /* palo del barbiere accanto alla porta */
     rect(dcx + 8, sy + h - 14, 3, 14, '#d9d0bb'); rect(dcx + 7, sy + h - 15, 5, 2, '#8fb0bd');
     for (let i = 0; i < 5; i++) { const yy = sy + h - 13 + i * 2; rect(dcx + 8, yy, 3, 1, i % 2 ? '#c65a54' : '#5a86c8'); }
@@ -136,7 +142,7 @@ export function drawBuilding(b, sx, sy) {
   } else if (b.type === 'tailor') { /* SARTORIA: vetrina col manichino + rullo di stoffa */
     rect(sx + 2, sy + 8, w - 4, h - 6, '#f2e4ea'); rect(sx + 2, sy + h - 2, w - 4, 2, '#cfb4c0'); wallDepth(sx + 2, sy + 8, w - 4, h - 6, '#f2e4ea');
     rect(sx, sy + 2, w, 8, '#b06a8c'); rect(sx, sy + 2, w, 2, '#c887a4'); rect(sx - 1, sy + 9, w + 2, 2, '#8c4e6c');
-    rect(sx + 4, sy + 14, 11, 12, glass); rect(sx + 4, sy + 14, 11, 1, '#efe6cf'); rect(sx + 4, sy + 25, 11, 1, '#cfb4c0'); // vetrina grande
+    rect(sx + 4, sy + 14, 11, 12, glass); rect(sx + 4, sy + 14, 11, 1, '#efe6cf'); rect(sx + 4, sy + 25, 11, 1, '#cfb4c0'); winGlint(sx + 5, sy + 15); // vetrina grande
     rect(sx + 8, sy + 17, 3, 5, '#e08aa8'); px(sx + 9, sy + 16, '#f3cfa0'); rect(sx + 7, sy + 22, 5, 2, '#8a5f38'); // manichino vestito
     rect(sx + w - 10, sy + h - 8, 4, 8, '#8fd0a0'); rect(sx + w - 9, sy + h - 8, 1, 8, '#6faa80'); // rullo di stoffa
     door('#8c5a74', '#6a4056'); snowCap(sy + 1);
@@ -144,9 +150,9 @@ export function drawBuilding(b, sx, sy) {
     rect(sx + 2, sy + 10, w - 4, h - 8, '#e0e4d4'); rect(sx + 2, sy + h - 2, w - 4, 2, '#b9c0a8'); wallDepth(sx + 2, sy + 10, w - 4, h - 8, '#e0e4d4');
     rect(sx, sy + 4, w, 8, '#5f7a52'); rect(sx, sy + 4, w, 2, '#78966a'); rect(sx - 1, sy + 11, w + 2, 2, '#485e3e');
     rect(sx + w - 14, sy - 6, 9, 12, '#9a9285'); rect(sx + w - 14, sy - 6, 9, 2, '#aaa294'); // torretta
-    rect(sx + w - 12, sy - 3, 5, 5, glass); px(sx + w - 10, sy - 9, '#8fd0a0'); px(sx + w - 9, sy - 11, '#b2e4be'); // oblò + fumo verde
-    rect(sx + 6, sy + 16, 5, 5, glass); rect(sx + 6, sy + 19, 5, 1, '#b9c0a8');
-    rect(sx + w - 11, sy + 16, 5, 5, glass);
+    rect(sx + w - 12, sy - 3, 5, 5, glass); winGlint(sx + w - 11, sy - 2); px(sx + w - 10, sy - 9, '#8fd0a0'); px(sx + w - 9, sy - 11, '#b2e4be'); // oblò + fumo verde
+    rect(sx + 6, sy + 16, 5, 5, glass); rect(sx + 6, sy + 19, 5, 1, '#b9c0a8'); winGlint(sx + 7, sy + 17);
+    rect(sx + w - 11, sy + 16, 5, 5, glass); winGlint(sx + w - 10, sy + 17);
     door('#5f7a52', '#3f5434'); snowCap(sy + 3);
   }
   // insegna appesa sopra la porta (comunque utile da lontano)
@@ -165,8 +171,9 @@ export function drawHouse(hf, sx, sy) {
   rect(sx, sy + 2, w, 8, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); rect(sx - 1, sy + 9, w + 2, 2, shade8(BB.roof, 0.75));
   { const d = shade8(BB.roof, 0.72); for (let i = 0; i < w; i += 4) px(sx + i, sy + 9, d); } // dettaglio tetto (coppi)
   if (BB.snow) rect(sx - 2, sy + 1, w + 4, 2, '#eef7fa');
-  rect(sx + w - 12, sy + 12, 5, 5, glass); rect(sx + w - 12, sy + 12, 5, 1, '#efe6cf'); rect(sx + w - 12, sy + 16, 5, 1, '#a97a4c'); // finestrella
+  rect(sx + w - 12, sy + 12, 5, 5, glass); rect(sx + w - 12, sy + 12, 5, 1, '#efe6cf'); rect(sx + w - 12, sy + 16, 5, 1, '#a97a4c'); px(sx + w - 11, sy + 13, '#ffffff'); // finestrella
   rect(dcx - 5, sy + h - 12, 10, 12, '#8a5f38'); rect(dcx - 3, sy + h - 10, 6, 10, '#6e4a2e'); px(dcx + 1, sy + h - 6, '#d9b98a'); // porta di casa (mai chiusa a nessuno)
+  px(dcx - 4, sy + h - 11, shade8('#8a5f38', 1.3)); rect(dcx + 3, sy + h - 3, 1, 2, shade8('#6e4a2e', 0.65)); // battente con volume
   drawSign('house', dcx, sy + 12);
 }
 /* ---------- arredo urbano ---------- */
