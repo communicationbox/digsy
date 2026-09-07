@@ -213,16 +213,28 @@ export function groundTile(t, tx, ty, sx, sy, time, zi) {
       soilDetail(tx, ty, sx, sy, 'grass', [SP.gd, '#a8ad92', SP.gh]);
       break;
     }
-    case FOREST: { const SP = ZP || SEA_TILE; rect(sx, sy, TS, TS, ((tx + ty) & 1) ? SP.f[0] : SP.f[1]); px(sx + 5, sy + 6, SP.fd); px(sx + 10, sy + 11, SP.fd);
+    case FOREST: { const SP = ZP || SEA_TILE; rect(sx, sy, TS, TS, ((tx + ty) & 1) ? SP.f[0] : SP.f[1]);
+      const fx1 = sx + 2 + Math.floor(vhash(tx, ty, 65) * 5), fy1 = sy + 2 + Math.floor(vhash(tx, ty, 66) * 5);
+      const fx2 = sx + 8 + Math.floor(vhash(tx, ty, 67) * 6), fy2 = sy + 8 + Math.floor(vhash(tx, ty, 68) * 6);
+      px(fx1, fy1, SP.fd); px(fx2, fy2, SP.fd);
+      if (vhash(tx, ty, 69) < 0.4) px(fx2 - 1, fy2 - 1, SP.fh || SP.f[1]); // sprazzo di luce accanto all'ombra, non ripetuto ovunque
       soilDetail(tx, ty, sx, sy, 'forest', [SP.fd, SP.f[0], SP.fh || SP.f[1]]); break; }
     case DIRT: {
       const d0 = ZP ? ZP.dirt[0] : '#c9a06a', d1 = ZP ? ZP.dirt[1] : '#b98d59';
-      rect(sx, sy, TS, TS, d0); px(sx + 4, sy + 4, d1); px(sx + 10, sy + 8, d1); px(sx + 7, sy + 12, d1);
+      rect(sx, sy, TS, TS, d0);
+      const dx1 = sx + 2 + Math.floor(vhash(tx, ty, 70) * 5), dy1 = sy + 2 + Math.floor(vhash(tx, ty, 71) * 5);
+      const dx2 = sx + 7 + Math.floor(vhash(tx, ty, 72) * 5), dy2 = sy + 6 + Math.floor(vhash(tx, ty, 73) * 5);
+      const dx3 = sx + 5 + Math.floor(vhash(tx, ty, 74) * 6), dy3 = sy + 10 + Math.floor(vhash(tx, ty, 75) * 4);
+      px(dx1, dy1, d1); px(dx2, dy2, d1); px(dx3, dy3, d1);
       if (zi === 3 && vhash(tx, ty, 53) < 0.15) { px(sx + 6, sy + 6, '#8a3f2e'); px(sx + 7, sy + 6, '#8a3f2e'); px(sx + 8, sy + 7, '#8a3f2e'); } // crepe
       soilDetail(tx, ty, sx, sy, 'dirt', [shade8(d1, 0.82), d1, shade8(d0, 1.12)]);
       break;
     }
-    case MTN: { rect(sx, sy, TS, TS, '#9a9285'); rect(sx, sy, TS, 3, '#aaa294'); px(sx + 5, sy + 8, '#7f776a'); px(sx + 11, sy + 11, '#7f776a');
+    case MTN: { rect(sx, sy, TS, TS, '#9a9285'); rect(sx, sy, TS, 3, '#aaa294');
+      const mx1 = sx + 2 + Math.floor(vhash(tx, ty, 76) * 6), my1 = sy + 4 + Math.floor(vhash(tx, ty, 77) * 6);
+      const mx2 = sx + 8 + Math.floor(vhash(tx, ty, 78) * 6), my2 = sy + 8 + Math.floor(vhash(tx, ty, 79) * 6);
+      px(mx1, my1, '#7f776a'); px(mx2, my2, '#7f776a');
+      if (vhash(tx, ty, 80) < 0.35) px(mx1 + 1, my1 - 1, '#c9c2b2'); // scaglia di roccia che coglie la luce
       soilDetail(tx, ty, sx, sy, 'dirt', ['#7f776a', '#8f887c', '#b5ada0']); break; }
     case FLOOR: { // lastricato: toni variabili, fughe a mattoni sfalsati, crepe rare
       const v = vhash(tx, ty, 25), FB = biomeBuild(tx, ty).floor;
