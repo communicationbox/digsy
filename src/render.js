@@ -216,6 +216,7 @@ export function drawSite(sx, sy, remaining, time, tx, ty) {
   const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx: scatterebbe con la camera)
   shadow(sx + 8, sy + 14, 7);
   rect(sx + 2, sy + 9, 12, 5, '#c9a06a'); rect(sx + 3, sy + 8, 10, 2, '#d8b581'); // montarolo di terra
+  rect(sx + 2, sy + 12, 12, 2, shade8('#c9a06a', 0.8)); // ombra propria alla base del montarolo
   const boneC = remaining > 0 ? '#ece5d2' : '#b8b0a2', boneD = remaining > 0 ? '#cbbfa4' : '#9a927f';
   for (let i = 0; i < 3; i++) { // costole ad arco
     const bx = sx + 4 + i * 3;
@@ -1257,7 +1258,7 @@ export function render(time) {
     /* terreno */
     let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : baseTerrain(tx, ty);
     groundTile(t, tx, ty, sx, sy, time, (ti || yd) ? 0 : zoneIdxAt(tx, ty));
-    if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy);
+    if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
     if (!ti && !yd) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */
     if (!ti && !yd && hf && tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) {
@@ -1295,7 +1296,7 @@ export function render(time) {
     const bs = boneSiteAt(tx, ty);
     if (bs) {
       const dug = boneSiteDug(bs.site, bs.part);
-      ents.push({ y: sy + 14, f: () => dug ? drawHole(sx, sy) : drawBonePart(sx, sy, bs.part, time, tx, ty) });
+      ents.push({ y: sy + 14, f: () => dug ? drawHole(sx, sy, tx, ty) : drawBonePart(sx, sy, bs.part, time, tx, ty) });
       continue;
     }
     const wk = wreckAt(tx, ty);

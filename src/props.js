@@ -71,7 +71,13 @@ export function drawShell(sx, sy, ripe) {
   }
   rect(bx - 2, by - 2, 4, 4, '#e7c6a0'); px(bx - 1, by - 1, '#f5e4cf'); px(bx, by - 3, '#d3a97f');
 }
-export function drawHole(sx, sy) { const cx = sx + 8, cy = sy + 10; ctx.fillStyle = '#6d4f30'; ctx.fillRect(cx - 5, cy - 3, 10, 6); ctx.fillStyle = '#4d371f'; px(cx - 4, cy - 2, '#4d371f'); px(cx + 4, cy - 2, '#4d371f'); px(cx, cy + 1, '#4d371f'); }
+export function drawHole(sx, sy, tx = 0, ty = 0) {
+  const cx = sx + 8, cy = sy + 10;
+  ctx.fillStyle = '#6d4f30'; ctx.fillRect(cx - 5, cy - 3, 10, 6);
+  ctx.fillStyle = '#4d371f'; px(cx - 4, cy - 2, '#4d371f'); px(cx + 4, cy - 2, '#4d371f'); px(cx, cy + 1, '#4d371f');
+  px(cx - 5 + Math.floor(vhash(tx, ty, 104) * 3), cy - 3, '#8a6448'); // orlo chiaro: dove la terra è stata smossa da poco
+  px(cx + 3 - Math.floor(vhash(tx, ty, 105) * 3), cy + 2, '#3a291a'); // fondo più scuro, non piatto
+}
 /* OGGETTI di superficie: sprite VERI riconoscibili (non quadrati), FERMI (niente rimbalzo).
    Ogni tanto una stellina appare sopra per attirare l'occhio (fase stabile per tile). */
 export function drawPickup(id, sx, sy, time, tx, ty) {
