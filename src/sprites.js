@@ -301,11 +301,17 @@ export function styleLook(rows, shirtStyle, pantsStyle) {
       r = setAt(r, f, 'F'); r = setAt(r, l, 'F');
       if (l - f >= 6) { r = setAt(r, f + 1, 'F'); r = setAt(r, l - 1, 'F'); }
       rows[y] = r; }
+    const topT = torso[0], ft = rows[topT].indexOf('S'), lt = rows[topT].lastIndexOf('S');
+    if (ft >= 0) rows[topT] = setAt(rows[topT], ft, 'T');           // orlo bretellina: filo di luce
+    if (lt >= 0) rows[topT] = setAt(rows[topT], lt, 'T');
   } else if (shirtStyle === 'shirt' && torso.length) {   // camicia: colletto aperto (2 pixel chiari al collo) + abbottonatura scura al centro — SOLO sul davanti (non sullo zaino)
     const top = torso[0], c0 = Math.round((rows[top].indexOf('S') + rows[top].lastIndexOf('S')) / 2);
     if (rows[top][c0] === 'S') rows[top] = setAt(rows[top], c0, 'W');
     if (rows[top][c0 - 1] === 'S') rows[top] = setAt(rows[top], c0 - 1, 'W');
     for (let i = 1; i < torso.length; i++) { const y = torso[i], c = Math.round((rows[y].indexOf('S') + rows[y].lastIndexOf('S')) / 2); if (rows[y][c] === 'S') rows[y] = setAt(rows[y], c, 'K'); }
+    const hem = torso[torso.length - 1], hf = rows[hem].indexOf('S'), hl = rows[hem].lastIndexOf('S');
+    if (hf >= 0) rows[hem] = setAt(rows[hem], hf, 's');             // orlo: ombra dove la camicia finisce
+    if (hl >= 0) rows[hem] = setAt(rows[hem], hl, 's');
   } else if (shirtStyle === 'hoodie' && torso.length) {  // felpa: cappuccio (drappo che avvolge il collo) + cordini; tasca a marsupio SOLO sul davanti
     const top = torso[0], f = rows[top].indexOf('S'), l = rows[top].lastIndexOf('S');
     if (top > 0 && rows[top - 1]) { let h = rows[top - 1].split(''); for (let x = f; x <= l; x++) if (h[x] === '.' || h[x] === 'F' || h[x] === 'f' || h[x] === 'K') h[x] = (x === f || x === l) ? 'K' : 's'; rows[top - 1] = h.join(''); }
@@ -313,13 +319,18 @@ export function styleLook(rows, shirtStyle, pantsStyle) {
     if (rows[top][c] === 'S') { rows[top] = setAt(rows[top], c, 'K'); rows[top] = setAt(rows[top], c + 1, 'K'); } // cordini
     const bot = torso[torso.length - 1], cb = Math.round((rows[bot].indexOf('S') + rows[bot].lastIndexOf('S')) / 2);
     if (rows[bot][cb] === 'S') { rows[bot] = setAt(rows[bot], cb - 1, 'K'); rows[bot] = setAt(rows[bot], cb, 's'); rows[bot] = setAt(rows[bot], cb + 1, 'K'); } // tasca
+    if (torso.length >= 2) { const pt = torso[torso.length - 2], pf = rows[pt].indexOf('S'); if (pf >= 0) rows[pt] = setAt(rows[pt], pf, 's'); } // cucitura sopra la tasca
   }
   /* ---- PANTALONI ---- */
   if (pantsStyle === 'shorts' && legs.length >= 2) {     // pantaloncini: stinco scoperto (ultima riga di pantalone → pelle)
     const shin = legs[legs.length - 1]; rows[shin] = rows[shin].replace(/[Pp]/g, 'F');
+    if (legs.length >= 3) { const cuff = legs[legs.length - 2], cf = rows[cuff].indexOf('P'), cl = rows[cuff].lastIndexOf('P');
+      if (cf >= 0) rows[cuff] = setAt(rows[cuff], cf, 'p'); if (cl >= 0) rows[cuff] = setAt(rows[cuff], cl, 'p'); } // orlo: ombra dove il tessuto finisce
   } else if (pantsStyle === 'skirt' && legs.length) {    // gonna: svasata sulla prima riga, gambe scoperte sotto
     const top = legs[0]; const f = rows[top].indexOf('P'), l = rows[top].lastIndexOf('P');
-    let s = rows[top].split(''); for (let x = Math.max(0, f - 1); x <= Math.min(15, l + 1); x++) s[x] = 'P'; s[Math.max(0, f - 1)] = 'p'; s[Math.min(15, l + 1)] = 'p'; rows[top] = s.join('');
+    let s = rows[top].split(''); for (let x = Math.max(0, f - 1); x <= Math.min(15, l + 1); x++) s[x] = 'P'; s[Math.max(0, f - 1)] = 'p'; s[Math.min(15, l + 1)] = 'p';
+    for (let x = f; x <= l; x += 2) if (s[x] === 'P') s[x] = 'p';   // pieghe: scacchiera verticale, non un blocco piatto
+    rows[top] = s.join('');
     for (let i = 1; i < legs.length; i++) rows[legs[i]] = rows[legs[i]].replace(/P/g, 'F');
   } else if (pantsStyle === 'overall' && torso.length && legs.length) { // salopette: bretelle di pantalone sul torso
     for (const y of torso) {
@@ -327,6 +338,8 @@ export function styleLook(rows, shirtStyle, pantsStyle) {
       if (a > b) continue;                       // torso troppo stretto: non ci sta una bretella
       rows[y] = setAt(setAt(rows[y], a, 'P'), b, 'P');
     }
+    const topO = torso[0], [fo, lo] = span[topO] || [-1, -1];
+    if (fo >= 0 && fo + 1 <= lo - 1) { rows[topO] = setAt(rows[topO], fo + 1, 'U'); rows[topO] = setAt(rows[topO], lo - 1, 'U'); } // fibbia: luce sulla bretella
   }
   return rows;
 }
