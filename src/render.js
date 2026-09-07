@@ -355,6 +355,7 @@ export function drawMailbox(sx, sy) {
   shadow(sx + 8, sy + 15, 5);
   rect(sx + 7, sy + 9, 2, 7, '#6e4a2a'); px(sx + 7, sy + 9, '#8a5f38');            // palo
   rect(sx + 3, sy + 3, 10, 7, '#3a8c85'); rect(sx + 3, sy + 2, 10, 2, '#57c0b6'); // corpo + cima chiara
+  rect(sx + 3, sy + 3, 2, 7, shade8('#3a8c85', 1.2)); rect(sx + 9, sy + 3, 4, 7, shade8('#3a8c85', 0.75)); // volume: curva del portello
   rect(sx + 3, sy + 9, 10, 1, '#2a6b64');                                          // base scura
   px(sx + 2, sy + 4, '#2a6b64'); px(sx + 13, sy + 4, '#2a6b64');                   // spigoli (contorno)
   rect(sx + 5, sy + 4, 6, 1, '#173e39');                                           // fessura per le lettere
@@ -512,11 +513,13 @@ export function drawFence(sx, sy, fv, fh) {
   if (fh === undefined) fh = true;                                    // compat: default orizzontale
   if (fh) {                                                           // assi orizzontali + montanti verticali
     rect(sx, sy + 7, TS, 2, '#a97a4c'); rect(sx, sy + 11, TS, 2, '#8a5f38');
+    px(sx + 4, sy + 7, '#8a5f38'); px(sx + 10, sy + 12, '#6e4a2a'); // venatura del legno
     rect(sx + 2, sy + 3, 2, 11, '#8a5f38'); px(sx + 2, sy + 3, '#c79a66'); px(sx + 3, sy + 3, '#c79a66');
     rect(sx + 11, sy + 3, 2, 11, '#8a5f38'); px(sx + 11, sy + 3, '#c79a66'); px(sx + 12, sy + 3, '#c79a66');
   }
   if (fv) {                                                           // assi VERTICALI + traverse orizzontali
     rect(sx + 7, sy, 2, TS, '#a97a4c'); rect(sx + 11, sy, 2, TS, '#8a5f38');
+    px(sx + 7, sy + 5, '#8a5f38'); px(sx + 12, sy + 10, '#6e4a2a'); // venatura del legno
     rect(sx + 3, sy + 2, 11, 2, '#8a5f38'); px(sx + 3, sy + 2, '#c79a66'); px(sx + 3, sy + 3, '#c79a66');
     rect(sx + 3, sy + 11, 11, 2, '#8a5f38'); px(sx + 3, sy + 11, '#c79a66'); px(sx + 3, sy + 12, '#c79a66');
   }
@@ -687,8 +690,10 @@ function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
 export function drawCaveEntrance(sx, sy, time) {
   shadow(sx + 8, sy + 15, 8);
   rect(sx + 1, sy + 2, 14, 14, '#6b6560'); rect(sx + 1, sy + 2, 14, 2, '#837c74');   // roccia
+  rect(sx + 1, sy + 2, 2, 14, shade8('#6b6560', 1.3)); rect(sx + 13, sy + 2, 2, 14, shade8('#6b6560', 0.65)); // volume: luce sx / ombra dx
   rect(sx + 3, sy + 5, 10, 11, '#15131a'); rect(sx + 4, sy + 4, 8, 2, '#242030');    // arco buio
   px(sx + 3, sy + 3, '#7f776a'); px(sx + 12, sy + 3, '#7f776a');
+  px(sx + 3, sy + 6, '#2a2530'); px(sx + 12, sy + 6, '#1a1620'); // alone dell'arco: sinistra un filo di luce riflessa, destra buio pieno
   if (Math.floor(time / 500) % 2) { px(sx + 6, sy + 9, '#6fd6e0'); px(sx + 9, sy + 11, '#6fd6e0'); } // cristalli dentro
 }
 /* X della mappa del tesoro: dipinta sul terreno, scintilla che lampeggia */
@@ -984,6 +989,7 @@ export function drawBoat(sx, sy, noHero) {
     else {
       /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
       rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
+      rect(sx - 10, y0 + 10, 3, 4, shade8('#8a5f38', 1.15)); rect(sx + 7, y0 + 10, 3, 4, shade8('#8a5f38', 0.7)); // fiancata: luce a prua / ombra a poppa
       px(sx - 11, y0 + 9, '#8a5f38'); px(sx + 10, y0 + 9, '#8a5f38');
       rect(sx - 8, y0 + 14, 16, 1, '#5c4229');
       px(sx - 6, y0 + 16, '#bfe9f4'); px(sx + 5, y0 + 16, '#bfe9f4'); // riflesso sull'acqua
