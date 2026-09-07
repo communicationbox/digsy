@@ -21,12 +21,23 @@ export function drawTree(sx, sy, time, tx, ty) {
   rect(k - 3, base - 19, 3, 2, T[4]); px(k + 2, base - 17, T[4]); px(k - 8, base - 9, T[5]); px(k + 7, base - 9, T[5]);
   px(k - 2, base - 21, shade8(T[3], 1.45)); px(k - 1, base - 21, shade8(T[3], 1.45)); // luce in cima alla chioma
   rect(k - 7, base - 9, 14, 1, shade8(T[0], 0.55)); // terzo tono: ombra interna sotto la chioma
+  /* fogliame moteggiato: 2 grumi di tono chiaro/scuro sparsi sulla chioma, posizione per
+     albero — così una fila di alberi identici non sembra la stessa chioma ripetuta */
+  const lx1 = k - 6 + Math.floor(vhash(tx, ty, 42) * 12), ly1 = base - 17 + Math.floor(vhash(tx, ty, 43) * 6);
+  px(lx1, ly1, shade8(T[1], 1.15));
+  const lx2 = k - 5 + Math.floor(vhash(tx, ty, 44) * 10), ly2 = base - 13 + Math.floor(vhash(tx, ty, 45) * 5);
+  if (vhash(tx, ty, 46) < 0.6) px(lx2, ly2, shade8(T[0], 0.8));
 }
-export function drawBoulder(sx, sy) {
+export function drawBoulder(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 6);
   rect(cx - 6, base - 7, 12, 7, '#9a9285'); rect(cx - 5, base - 9, 10, 3, '#aaa294'); px(cx - 2, base - 7, '#b8b0a2'); rect(cx - 4, base - 4, 4, 2, '#b8b0a2'); rect(cx - 6, base - 1, 12, 1, '#75695c');
   px(cx - 4, base - 8, '#d0c8ba'); px(cx - 3, base - 8, '#d0c8ba'); // sprazzo di luce alto-sx (16bit HD: rifinitura)
   rect(cx + 2, base - 2, 4, 1, '#5f574c'); // ombra propria bassa-dx
+  /* screpolature: 2-3 macchie di muschio/lichene, posizione diversa per masso così due
+     copie vicine non sembrano lo stesso identico sasso timbrato */
+  const mx = cx - 4 + Math.floor(vhash(tx, ty, 81) * 9), my = base - 6 + Math.floor(vhash(tx, ty, 82) * 4);
+  px(mx, my, '#7f776a');
+  if (vhash(tx, ty, 83) < 0.5) px(mx + 1, my, '#8f947c');
 }
 /* FIORE — versione scenografica (piatta, a terra) e versione MATURA (alta, azzurra, col
    gambo: la stessa forma dell'oggetto 'fiordaliso' che finisce nello zaino). Le due non si
@@ -125,7 +136,7 @@ export function glint(sx2, sy2, time, tx, ty) {
 
 
 /* ---------- decorazioni di zona ---------- */
-export function drawCactus(sx, sy) {
+export function drawCactus(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 15; shadow(cx, base, 5);
   rect(cx - 2, base - 12, 4, 12, '#4a9a55'); rect(cx - 1, base - 12, 1, 12, '#5fb768');
   rect(cx - 6, base - 9, 4, 2, '#4a9a55'); rect(cx - 6, base - 9, 2, 5, '#4a9a55');
@@ -133,16 +144,22 @@ export function drawCactus(sx, sy) {
   px(cx - 3, base - 10, '#2f6b3b'); px(cx + 1, base - 5, '#2f6b3b'); px(cx, base - 13, '#e08aa8');
   px(cx - 1, base - 12, '#7fd489'); px(cx - 1, base - 11, '#7fd489'); // luce in cima al fusto principale
   rect(cx - 2, base - 1, 4, 1, '#2f6b3b'); // ombra propria alla base
+  /* spine: 2 punti chiari sparsi sul fusto, posizione per esemplare (non un timbro identico) */
+  px(cx - 2 + Math.floor(vhash(tx, ty, 84) * 3), base - 4 - Math.floor(vhash(tx, ty, 85) * 6), '#e0f0d8');
+  px(cx + Math.floor(vhash(tx, ty, 86) * 2), base - 9 - Math.floor(vhash(tx, ty, 87) * 3), '#e0f0d8');
 }
-export function drawBonespire(sx, sy) {
+export function drawBonespire(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 14; shadow(cx, base, 6);
+  let i = 0;
   for (const [ox, h] of [[-5, 7], [0, 10], [5, 6]]) {
     rect(cx + ox - 1, base - h, 2, h, '#ece5d2'); px(cx + ox - 2, base - h, '#ece5d2'); px(cx + ox + 1, base - h + 1, '#cbbfa4');
     px(cx + ox - 1, base - h, '#fbf6e8'); // punta più chiara: luce dall'alto
+    if (vhash(tx, ty, 88 + i) < 0.5) px(cx + ox, base - Math.floor(h / 2), '#d6cdb4'); // vena/crepa, non su ogni guglia
+    i++;
   }
   rect(cx - 6, base - 2, 12, 2, '#cbbfa4'); rect(cx - 6, base - 1, 12, 1, '#9a927f'); // ombra propria alla base
 }
-export function drawDeadtree(sx, sy) {
+export function drawDeadtree(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 15; shadow(cx, base, 5);
   rect(cx - 1, base - 13, 3, 13, '#6e5138'); px(cx - 1, base - 13, '#5c4229');
   rect(cx - 6, base - 11, 5, 2, '#6e5138'); px(cx - 6, base - 13, '#6e5138');
@@ -150,6 +167,7 @@ export function drawDeadtree(sx, sy) {
   px(cx + 1, base - 15, '#6e5138'); px(cx - 3, base - 6, '#6e5138');
   px(cx, base - 13, '#9a7550'); px(cx, base - 8, '#9a7550'); // striscia di luce sul tronco (lato sx)
   rect(cx - 1, base - 1, 3, 1, '#4a3620'); // ombra propria alla base
+  if (vhash(tx, ty, 89) < 0.45) px(cx, base - 10 - Math.floor(vhash(tx, ty, 90) * 3), '#3f2c1a'); // nodo del legno, non su ogni esemplare
 }
 /* FUNGO — la scenografia è un fungo bruno piccolo e spento (non si raccoglie mai); quello
    maturo è grosso, rosso acceso, a pois bianchi, su gambo chiaro. Differenza leggibile a
@@ -167,23 +185,28 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   rect(bx - 2, by - 4, 6, 2, '#8f7350'); px(bx - 1, by - 5, '#8f7350'); px(bx + 2, by - 5, '#8f7350');
   px(bx - 2, by - 3, '#6f5a3e'); px(bx - 1, by - 4, '#ab8c62'); // luce sul cappello, lato sx
 }
-export function drawStump(sx, sy) {
+export function drawStump(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 5);
   rect(cx - 4, base - 5, 8, 5, '#8a5f38'); rect(cx - 4, base - 6, 8, 2, '#c9a06a');
   px(cx - 1, base - 6, '#a97a4c'); px(cx + 1, base - 5, '#a97a4c'); px(cx - 5, base - 3, '#6e5138');
   px(cx - 3, base - 6, '#e0be8c'); rect(cx + 2, base - 2, 2, 1, '#5c4229'); // luce sull'anello + ombra propria
+  if (vhash(tx, ty, 91) < 0.5) px(cx, base - 5, '#a97a4c'); // secondo anello, non su ogni ceppo
 }
-export function drawRedspire(sx, sy) {
+export function drawRedspire(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 15; shadow(cx, base, 6);
   rect(cx - 3, base - 14, 6, 14, '#b05e3e'); rect(cx - 4, base - 8, 8, 8, '#c06a48');
   rect(cx - 2, base - 14, 2, 14, '#cc7854'); px(cx - 1, base - 16, '#b05e3e'); px(cx + 3, base - 6, '#8a3f2e');
   px(cx - 2, base - 14, '#e0a37e'); rect(cx + 1, base - 2, 2, 1, '#7a3324'); // luce in punta + ombra propria
+  px(cx - 3 + Math.floor(vhash(tx, ty, 92) * 5), base - 10 - Math.floor(vhash(tx, ty, 93) * 4), '#8a3f2e'); // venatura scura sparsa
 }
-export function drawOrecrystal(sx, sy) {
+export function drawOrecrystal(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 5);
+  let i = 0;
   for (const [ox, h, c] of [[-4, 6, '#8d7ba0'], [0, 9, '#9ad0c8'], [4, 5, '#8d7ba0']]) {
     rect(cx + ox - 1, base - h, 3, h, c); px(cx + ox, base - h - 1, c); px(cx + ox - 1, base - h + 1, '#e8f6fb');
     rect(cx + ox, base - 2, 1, 1, shade8(c, 0.55)); // ombra propria alla base del cristallo
+    if (vhash(tx, ty, 94 + i) < 0.5) px(cx + ox, base - Math.floor(h / 2), shade8(c, 1.25)); // faccetta interna, non su ogni cristallo
+    i++;
   }
 }
 /* CANNE — quelle di scenario sono steli verdi nudi; il giunco maturo ha il pennacchio bruno
@@ -200,18 +223,22 @@ export function drawReed(sx, sy, time, tx, ty, ripe) {
     px(cx - 1 + sw2, base - 14, '#a97a4c'); px(cx + 1 + sw2, base - 12, '#6e4a2c');
   }
 }
-export function drawIcecrystal(sx, sy) {
+export function drawIcecrystal(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 5);
+  let i = 0;
   for (const [ox, h] of [[-4, 6], [0, 10], [4, 7]]) {
     rect(cx + ox - 1, base - h, 3, h, '#bfe9f4'); px(cx + ox, base - h - 1, '#e8f6fb'); px(cx + ox - 1, base - h + 2, '#8fd0e6');
     px(cx + ox, base - 2, '#5fa8bc'); // ombra propria alla base
+    if (vhash(tx, ty, 98 + i) < 0.5) px(cx + ox, base - Math.floor(h / 2), '#e8f6fb'); // riflesso interno, non su ogni cristallo
+    i++;
   }
 }
-export function drawHay(sx, sy) {
+export function drawHay(sx, sy, tx = 0, ty = 0) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 6);
   rect(cx - 6, base - 8, 12, 8, '#d4b13c'); rect(cx - 6, base - 8, 12, 2, '#e0c25c');
   rect(cx - 6, base - 5, 12, 1, '#b99b2e'); px(cx - 4, base - 3, '#b99b2e'); px(cx + 3, base - 6, '#e0c25c');
   px(cx - 5, base - 7, '#f0d888'); rect(cx - 6, base - 1, 12, 1, '#8f7724'); // luce in cima + ombra propria alla base
+  px(cx - 5 + Math.floor(vhash(tx, ty, 102) * 10), base - 4 - Math.floor(vhash(tx, ty, 103) * 3), '#b99b2e'); // filo spaiato, posizione per covone
 }
 
 /* fumetto di dialogo. sx,sy = coordinate SCHERMO (game-px) di chi parla (testa).

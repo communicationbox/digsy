@@ -1285,7 +1285,7 @@ export function render(time) {
           else if (pd.kind === 'flowerbed') drawFlowerbed(sx, sy, tx, ty);
           else if (pd.kind === 'tree') ents.push({ y: sy + 15, f: () => drawTree(sx, sy, time, tx, ty) });
           else if (pd.kind === 'bush') ents.push({ y: sy + 13, f: () => drawBushDeco(sx, sy) });
-          else if (pd.kind === 'rock') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy) });
+          else if (pd.kind === 'rock') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy, tx, ty) });
         }
       } else if (yd.fence) { const fv = yd.fv, fh = yd.fh; ents.push({ y: sy + 12, f: () => drawFence(sx, sy, fv, fh) }); }
       continue;
@@ -1306,19 +1306,19 @@ export function render(time) {
     const d = decoAt(tx, ty);
     if (!d) { const pk = pickupAt(tx, ty); if (pk) ents.push({ y: sy + 12, f: () => drawPickup(pk, sx, sy, time, tx, ty) }); continue; }
     if (d === 'tree') ents.push({ y: sy + 15, f: () => drawTree(sx, sy, time, tx, ty) });
-    else if (d === 'boulder') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy) });
+    else if (d === 'boulder') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy, tx, ty) });
     else if (d === 'flower') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 3); drawFlower(sx, sy, tx, ty, rip); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
     else if (d === 'shell') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 4); drawShell(sx, sy, rip); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
-    else if (d === 'cactus') ents.push({ y: sy + 15, f: () => drawCactus(sx, sy) });
-    else if (d === 'bonespire') ents.push({ y: sy + 14, f: () => drawBonespire(sx, sy) });
-    else if (d === 'deadtree') ents.push({ y: sy + 15, f: () => drawDeadtree(sx, sy) });
+    else if (d === 'cactus') ents.push({ y: sy + 15, f: () => drawCactus(sx, sy, tx, ty) });
+    else if (d === 'bonespire') ents.push({ y: sy + 14, f: () => drawBonespire(sx, sy, tx, ty) });
+    else if (d === 'deadtree') ents.push({ y: sy + 15, f: () => drawDeadtree(sx, sy, tx, ty) });
     else if (d === 'mushroom') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 8, f: () => { if (rip) shadow(sx + 8, sy + 12, 4); drawMushroom(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 2, time, tx, ty); } }); }
-    else if (d === 'stump') ents.push({ y: sy + 13, f: () => drawStump(sx, sy) });
-    else if (d === 'redspire') ents.push({ y: sy + 15, f: () => drawRedspire(sx, sy) });
-    else if (d === 'orecrystal') ents.push({ y: sy + 13, f: () => drawOrecrystal(sx, sy) });
+    else if (d === 'stump') ents.push({ y: sy + 13, f: () => drawStump(sx, sy, tx, ty) });
+    else if (d === 'redspire') ents.push({ y: sy + 15, f: () => drawRedspire(sx, sy, tx, ty) });
+    else if (d === 'orecrystal') ents.push({ y: sy + 13, f: () => drawOrecrystal(sx, sy, tx, ty) });
     else if (d === 'reed') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 14, f: () => { if (rip) shadow(sx + 8, sy + 14, 4); drawReed(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 1, time, tx, ty); } }); }
-    else if (d === 'icecrystal') ents.push({ y: sy + 13, f: () => drawIcecrystal(sx, sy) });
-    else if (d === 'hay') ents.push({ y: sy + 13, f: () => drawHay(sx, sy) });
+    else if (d === 'icecrystal') ents.push({ y: sy + 13, f: () => drawIcecrystal(sx, sy, tx, ty) });
+    else if (d === 'hay') ents.push({ y: sy + 13, f: () => drawHay(sx, sy, tx, ty) });
   }
   // X delle mappe del tesoro in vista
   for (const m of (S.maps || [])) {
