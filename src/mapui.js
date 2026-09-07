@@ -158,6 +158,7 @@ function drawMapCanvas() {
     if (x < -8 || y < -8 || x > cv.width + 8 || y > cv.height + 8) return;
     c.fillStyle = '#241a10'; c.fillRect(x - r - 1, y - r - 1, r * 2 + 3, r * 2 + 3);
     c.fillStyle = col; c.fillRect(x - r, y - r, r * 2 + 1, r * 2 + 1);
+    c.fillStyle = 'rgba(255,255,255,.45)'; c.fillRect(x - r, y - r, 1, 1); // punta di luce in alto-sx: non un quadrato piatto
     if (info) mapPins.push({ x, y, r: r + 4, ...info });
   };
   const cellR = Math.ceil(Math.max(VWt, VHt) / LCELL) + 1;
