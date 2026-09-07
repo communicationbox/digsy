@@ -55,7 +55,9 @@ export function drawStoreRoom(rw, rh, time) {
   rect(14, 4, 2, 6, '#5c4229'); rect(11, 10, 8, 9, '#5a5248'); rect(13, 12, 4, 5, lf ? '#f2c53d' : '#e8862e');
   /* casse, sacco di grano e GATTO che dorme (coda che si muove) */
   rect(14, 46, 16, 16, '#a97a4c'); rect(14, 46, 16, 3, '#c49a63'); rect(20, 52, 4, 4, '#6e5138');
+  rect(14, 46, 2, 16, shade8('#a97a4c', 1.18)); rect(28, 46, 2, 16, shade8('#a97a4c', 0.75));
   rect(30, 50, 14, 14, '#8a5f38'); rect(32, 48, 10, 4, '#8a5f38');
+  rect(30, 50, 2, 14, shade8('#8a5f38', 1.2)); rect(42, 50, 2, 14, shade8('#8a5f38', 0.75));
   rect(16, 62, 12, 8, '#d4b13c'); rect(18, 60, 8, 4, '#c9a06a'); px(21, 60, '#8a5f38');
   /* GATTO arancione a strisce che dorme (contorno scuro → stacca dal legno) */
   const cat = Math.floor(time / 800) % 2;
@@ -69,6 +71,7 @@ export function drawStoreRoom(rw, rh, time) {
   for (const ox of [116, 134]) {
     rect(ox, 48, 14, 18, '#8a5f38'); rect(ox, 52, 14, 2, '#5c4229'); rect(ox, 60, 14, 2, '#5c4229');
     rect(ox + 4, 46, 6, 2, '#a97a4c');
+    rect(ox, 48, 2, 18, shade8('#8a5f38', 1.2)); rect(ox + 12, 48, 2, 18, shade8('#8a5f38', 0.75));
   }
   rect(118, 44, 10, 4, '#c65a54'); px(120, 42, '#5fa04e');
   /* paglia sparsa sul pavimento */
@@ -769,11 +772,14 @@ function roomFloorTone(id, tx, ty) {
 function drawRoomFixtures(id, rw) {
   if (id === 1) { // Cucina: piano cottura/credenza sagomati sulla parete di fondo
     rect(rw / 2 - 16, 1.3 * TS, 32, 10, '#8a5f38'); rect(rw / 2 - 16, 1.3 * TS, 32, 3, '#c98a2e');
+    rect(rw / 2 - 16, 1.3 * TS, 2, 10, shade8('#8a5f38', 1.18)); rect(rw / 2 + 14, 1.3 * TS, 2, 10, shade8('#8a5f38', 0.75));
     for (const fx of [-9, 0, 9]) rect(rw / 2 + fx - 2, 1.3 * TS + 4, 4, 4, '#3a2e20');
   } else if (id === 2) { // Bagno: vasca/lavabo sulla parete di fondo
     rect(rw / 2 - 10, 1.3 * TS, 20, 10, '#dff0f7'); rect(rw / 2 - 10, 1.3 * TS, 20, 3, '#9fc4d0');
+    rect(rw / 2 - 10, 1.3 * TS + 3, 2, 7, '#c3e4ee'); rect(rw / 2 + 8, 1.3 * TS + 3, 2, 7, shade8('#dff0f7', 0.85));
   } else if (id === 3) { // Camera: alcova del letto sulla parete di fondo
     rect(rw / 2 - 14, 1.3 * TS, 28, 8, '#5c4229');
+    rect(rw / 2 - 14, 1.3 * TS, 2, 8, shade8('#5c4229', 1.25)); rect(rw / 2 + 12, 1.3 * TS, 2, 8, shade8('#5c4229', 0.75));
   }
 }
 /* una STANZA della casa (Sala/Cucina/Bagno/Camera): scena PROPRIA, piccola come i 6 interni
@@ -875,6 +881,7 @@ export function drawInteriorScene(time) {
     {
       /* bancone davanti all'NPC */
       rect(TS, 2.2 * TS, rw - 2 * TS, 10, '#8a5f38'); rect(TS, 2.2 * TS, rw - 2 * TS, 3, '#a97a4c');
+      rect(TS, 2.2 * TS, 2, 10, shade8('#8a5f38', 1.18)); rect(rw - TS - 2, 2.2 * TS, 2, 10, shade8('#8a5f38', 0.75));
       /* NPC disegnato QUI (dopo il bancone, PRIMA dell'arredo): gli oggetti appoggiati
          sul bancone restano in primo piano → l'NPC non ci cammina davanti.
          La sartoria ha invece arredo sulla parete di FONDO (rastrelliera stoffe): là
