@@ -19,8 +19,8 @@ export function drawTree(sx, sy, time, tx, ty) {
   const k = cx + sw;
   rect(k - 7, base - 16, 14, 9, T[0]); rect(k - 8, base - 14, 16, 6, T[1]); rect(k - 6, base - 19, 12, 6, T[2]); rect(k - 4, base - 21, 8, 5, T[3]);
   rect(k - 3, base - 19, 3, 2, T[4]); px(k + 2, base - 17, T[4]); px(k - 8, base - 9, T[5]); px(k + 7, base - 9, T[5]);
-  px(k - 2, base - 21, shade8(T[3], 1.2)); px(k - 1, base - 21, shade8(T[3], 1.2)); // luce in cima alla chioma
-  rect(k - 7, base - 9, 14, 1, shade8(T[0], 0.72)); // terzo tono: ombra interna sotto la chioma
+  px(k - 2, base - 21, shade8(T[3], 1.45)); px(k - 1, base - 21, shade8(T[3], 1.45)); // luce in cima alla chioma
+  rect(k - 7, base - 9, 14, 1, shade8(T[0], 0.55)); // terzo tono: ombra interna sotto la chioma
 }
 export function drawBoulder(sx, sy) {
   const cx = sx + 8, base = sy + 13; shadow(cx, base, 6);

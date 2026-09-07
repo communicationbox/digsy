@@ -90,7 +90,7 @@ export function drawBuilding(b, sx, sy) {
   const dcx = sx + w / 2;
   const door = (col1, col2) => { rect(dcx - 5, sy + h - 12, 10, 12, col1 || '#7a5a3a'); rect(dcx - 3, sy + h - 10, 6, 10, col2 || '#5c4229'); px(dcx + 1, sy + h - 6, '#d9b98a'); };
   /* 16bit HD: la parete non è un blocco piatto — luce da sx, ombra propria a dx (dà volume) */
-  const wallDepth = (wx, wy, ww, wh, base) => { rect(wx, wy, 2, wh, shade8(base, 1.14)); rect(wx + ww - 2, wy, 2, wh, shade8(base, 0.8)); };
+  const wallDepth = (wx, wy, ww, wh, base) => { rect(wx, wy, 3, wh, shade8(base, 1.45)); rect(wx + ww - 3, wy, 3, wh, shade8(base, 0.6)); };
 
   if (b.type === 'museum') { /* TEMPIO: frontone triangolare + colonne elleniche */
     rect(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0'); rect(sx + 1, sy + h - 2, w - 2, 2, '#c4baa2'); wallDepth(sx + 1, sy + 12, w - 2, h - 10, '#e8e2d0');
@@ -161,7 +161,7 @@ export function drawHouse(hf, sx, sy) {
   const dcx = sx + w / 2;
   shadow(dcx, sy + h + 2, Math.floor(w / 2) - 2);
   rect(sx + 2, sy + 8, w - 4, h - 6, '#d8a878'); rect(sx + 2, sy + 8, w - 4, 2, '#e6bb8e'); rect(sx + 2, sy + h - 2, w - 4, 2, '#a97a4c');
-  rect(sx + 2, sy + 8, 2, h - 6, shade8('#d8a878', 1.14)); rect(sx + w - 4, sy + 8, 2, h - 6, shade8('#d8a878', 0.8)); // luce sx / ombra dx: la parete ha volume
+  rect(sx + 2, sy + 8, 3, h - 6, shade8('#d8a878', 1.45)); rect(sx + w - 5, sy + 8, 3, h - 6, shade8('#d8a878', 0.6)); // luce sx / ombra dx: la parete ha volume
   rect(sx, sy + 2, w, 8, BB.roof); rect(sx, sy + 2, w, 2, BB.roof2); rect(sx - 1, sy + 9, w + 2, 2, shade8(BB.roof, 0.75));
   { const d = shade8(BB.roof, 0.72); for (let i = 0; i < w; i += 4) px(sx + i, sy + 9, d); } // dettaglio tetto (coppi)
   if (BB.snow) rect(sx - 2, sy + 1, w + 4, 2, '#eef7fa');

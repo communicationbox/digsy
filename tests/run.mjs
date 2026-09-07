@@ -1652,7 +1652,7 @@ sprites.applyLook();
   check('forme cappello coerenti coi dati', HAT_STYLES.length === 3 && HAT_STYLES.every(s => s.id in sprites.HATS));
   check('shade #ffffff 0.5 = #808080', sprites.shade('#ffffff', 0.5) === '#808080');
   S.look.hat = '#5a86c8'; sprites.applyLook();
-  check('applyLook aggiorna palette + ombra', sprites.PAL.H === '#5a86c8' && sprites.PAL.h === sprites.shade('#5a86c8', 0.72));
+  check('applyLook aggiorna palette + ombra', sprites.PAL.H === '#5a86c8' && sprites.PAL.h === sprites.shade('#5a86c8', 0.65));
   S.look.hairColor = '#caa25a'; sprites.applyLook();
   check('applyLook aggiorna capelli', sprites.PAL.A === '#caa25a');
   check('hatStyle di default explorer', state.fresh().look.hatStyle === 'explorer');

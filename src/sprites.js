@@ -24,11 +24,11 @@ export function shade(hex, k) {
 }
 export function applyLook() {
   const L = S.look;
-  PAL.H = L.hat; PAL.h = shade(L.hat, 0.72); PAL.L = shade(L.hat, 1.32);
-  PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.72); PAL.T = shade(L.shirt, 1.3);
-  PAL.P = L.pants; PAL.p = shade(L.pants, 0.74); PAL.U = shade(L.pants, 1.28);
-  PAL.F = L.skin; PAL.f = shade(L.skin, 0.85); PAL.N = shade(L.skin, 1.16);
-  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.75); PAL.M = shade(L.hairColor, 1.35);
+  PAL.H = L.hat; PAL.h = shade(L.hat, 0.65); PAL.L = shade(L.hat, 1.45);
+  PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.65); PAL.T = shade(L.shirt, 1.42);
+  PAL.P = L.pants; PAL.p = shade(L.pants, 0.68); PAL.U = shade(L.pants, 1.4);
+  PAL.F = L.skin; PAL.f = shade(L.skin, 0.78); PAL.N = shade(L.skin, 1.3);
+  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48);
   PAL.E = L.eyeColor || '#33291f';
 }
 
@@ -64,7 +64,7 @@ function litOverlay(ov, mapChar, hiChar) {
     const idxs = []; for (let i = 0; i < s.length; i++) if (s[i] === mapChar) idxs.push(i);
     if (!idxs.length) return [row, s];
     const lo = idxs[0], hi = idxs[idxs.length - 1], span = hi - lo;
-    const a = lo + Math.floor(span / 3), b = hi - Math.floor(span / 3);
+    const a = lo + Math.floor(span / 4), b = hi - Math.floor(span / 4);
     let arr = s.split('');
     for (let i = a; i <= b; i++) if (arr[i] === mapChar) arr[i] = hiChar;
     return [row, arr.join('')];
