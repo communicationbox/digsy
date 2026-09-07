@@ -35,17 +35,17 @@ export function applyLook() {
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
 /* fronte: N=luce sulla fronte (alto-sx), T=luce sul petto, U=luce sulla coscia sx —
    TERZO tono oltre a base F/S/P e ombra f/s/p già esistenti (non solo un blocco piatto) */
-const bDown = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFEFFFFEFF...", "...FFFFFFFFFF...", "....FfFFFFfF....", "....KFFFFFFK....", "....STSSSSSS....", "...SSTSSSSSSS...", "...SSsSSSSsSS...", "...SSSSSSSSSS..."];
+const bDown = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFEFFFFEFF...", "...FFFFFFFFFF...", "....FfFFFFfF....", "....KFFFFFFK....", "....STSSSSSs....", "...SSTSSSSSss...", "...SSsSSSSsSS...", "...SSSSSSSSSS..."];
 /* retro: nuca + zaino */
 const bUp = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FfFFFFFFfF...", "....KFFFFFFK....", "....SBBBBBBS....", "...SSBBBBBBSS...", "...SSBbbbbBSS...", "...SSBBBBBBSS..."];
 /* profilo (guarda a destra; flip per sinistra): occhio singolo, naso */
 const bSide = [".....FFFFFF.....", "....NFFFFFFF....", "....NFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFEFf..", "....FFFFFFFFF...", "....FfFFFFFFf...", ".....KFFFFFK....", ".....STSSSSSS...", "....SSTSSSSSSS..", "....SsSSSSSSSS..", "....SSSSSSSSSS.."];
 /* gambe fronte/retro (aperte/chiuse): U = luce sul davanti della coscia sinistra */
-const lA = ["....UPP..PPP....", "....PPP..PPP....", "....WW....WW...."];
-const lB = ["....UPP..PPP....", "...PPP....PPP...", "...WW......WW..."];
+const lA = ["....UPP..PpP....", "....PPP..PpP....", "....WW....WW...."];
+const lB = ["....UPP..PpP....", "...PPP....PpP...", "...WW......WW..."];
 /* gambe profilo: falcata (avanti/dietro) e passaggio (unite) */
-const lsA = [".....UPP..PPP...", "....PPP....PPP..", "....WW......WW.."];
-const lsB = ["......UPPPPP....", "......PPPPPP....", "......WWWW......"];
+const lsA = [".....UPP..PpP...", "....PPP....PpP..", "....WW......WW.."];
+const lsB = ["......UPPPpP....", "......PPPPpP....", "......WWWW......"];
 
 export const SPR = {
   down: [bDown.concat(lA), bDown.concat(lB)],
