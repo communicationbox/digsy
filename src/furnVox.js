@@ -11,22 +11,29 @@ function box(out, x0, y0, z0, w, d, h, col) {
   for (let x = 0; x < w; x++) for (let y = 0; y < d; y++) for (let z = 0; z < h; z++) out.push({ x: x0 + x, y: y0 + y, z: z0 + z, col });
 }
 
-/* tappeto: lastra larga e sottile */
-function rugVox(col) { const out = []; box(out, 0, 0, 0, 7, 5, 1, col); return out; }
-/* letto: base + testiera + cuscino */
+/* tappeto: lastra larga e sottile, con bordo + trama (non un rettangolo di colore piatto) */
+function rugVox(col) {
+  const out = []; box(out, 0, 0, 0, 7, 5, 1, shadeHex(col, 0.85));
+  box(out, 1, 1, 1, 5, 3, 1, col);
+  box(out, 2, 2, 1, 1, 1, 1, shadeHex(col, 1.3));                  // fiocco centrale
+  return out;
+}
+/* letto: base + testiera + cuscino + risvolto della coperta */
 function bedVox(col) {
   const out = [];
   box(out, 0, 0, 0, 6, 4, 1, col);
+  box(out, 0, 0, 1, 6, 1, 1, shadeHex(col, 0.8));                  // risvolto in fondo, tono più scuro
   box(out, 0, 3, 1, 6, 1, 2, shadeHex(col, 0.75));                 // testiera
   box(out, 1, 0, 1, 2, 2, 1, shadeHex(col, 1.3));                  // cuscino
   return out;
 }
-/* tavolo: 4 gambe + piano */
+/* tavolo: 4 gambe + piano, con bordo del piano rifinito */
 function tableVox(col) {
   const out = [], leg = shadeHex(col, 0.65);
   box(out, 0, 0, 0, 1, 1, 2, leg); box(out, 4, 0, 0, 1, 1, 2, leg);
   box(out, 0, 3, 0, 1, 1, 2, leg); box(out, 4, 3, 0, 1, 1, 2, leg);
   box(out, 0, 0, 2, 5, 4, 1, col);
+  box(out, 0, 0, 3, 5, 4, 1, shadeHex(col, 1.2));                  // filo di luce sul bordo del piano
   return out;
 }
 /* baule/scrigno */
@@ -70,7 +77,7 @@ function pedestalVox(col) {
   box(out, 0, 0, 4, 4, 4, 1, shadeHex(col, 1.3));
   return out;
 }
-function boxVox(col) { const out = []; box(out, 0, 0, 0, 4, 4, 2, col); return out; }
+function boxVox(col) { const out = []; box(out, 0, 0, 0, 4, 4, 2, col); box(out, 0, 0, 2, 4, 4, 1, shadeHex(col, 1.2)); return out; }
 
 /* forma per SLOT/parola chiave nell'id: coprono tutti e 24 i pezzi + il piedistallo.
    Dove esiste un pezzo VERO nel pacchetto importato (MariaIsMe, furnPack.js) si usa quello —
