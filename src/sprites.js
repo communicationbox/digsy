@@ -70,8 +70,31 @@ function litOverlay(ov, mapChar, hiChar) {
     return [row, arr.join('')];
   });
 }
-function litHat(v) { return { down: litOverlay(v.down, 'H', 'L'), side: litOverlay(v.side, 'H', 'L'), up: litOverlay(v.up, 'H', 'L') }; }
-function litHair(v) { return { down: litOverlay(v.down, 'A', 'M'), side: litOverlay(v.side, 'A', 'M'), up: litOverlay(v.up, 'A', 'M') }; }
+/* dither al bordo BASSO della sagoma (scacchiera base/ombra): dà volume rotondo senza
+   ridisegnare i 15 stili a mano — un pixel sì e uno no verso l'ombra, non una riga piatta */
+function ditherBase(ov, mapChar, loChar) {
+  if (!ov || !ov.length) return ov;
+  const maxRow = Math.max(...ov.map(p => p[0]));
+  return ov.map(([row, s]) => {
+    if (row !== maxRow) return [row, s];
+    const idxs = []; for (let i = 0; i < s.length; i++) if (s[i] === mapChar) idxs.push(i);
+    if (!idxs.length) return [row, s];
+    const lo = idxs[0], hi = idxs[idxs.length - 1], mid = (lo + hi) / 2;
+    let arr = s.split('');
+    /* scacchiera SIMMETRICA rispetto al centro della sagoma (non alla colonna assoluta):
+       la distanza dal centro determina la fase, così specchiando fronte/retro resta simmetrico */
+    for (const i of idxs) if (Math.floor(Math.abs(i - mid)) % 2 === 1) arr[i] = loChar;
+    return [row, arr.join('')];
+  });
+}
+function litHat(v) {
+  const d = ov => ditherBase(litOverlay(ov, 'H', 'L'), 'H', 'h');
+  return { down: d(v.down), side: d(v.side), up: d(v.up) };
+}
+function litHair(v) {
+  const d = ov => ditherBase(litOverlay(ov, 'A', 'M'), 'A', 'a');
+  return { down: d(v.down), side: d(v.side), up: d(v.up) };
+}
 
 /* ---------- cappelli: overlay [riga, mappa] sopra corpo e capelli, per forma ---------- */
 const HATS_RAW = {
