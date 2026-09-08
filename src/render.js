@@ -860,25 +860,23 @@ function drawPlayer() {
    destro cols>=ox); i due pattini si ALTERNANO su/giù col frame di camminata (fr), sincronizzati
    coi piedi dell'eroe. Fermi quando non ci si muove. `y0` porta già il bob dell'eroe. */
 export function drawBankSkates(sx, y0, fr) {
-  ctx.save(); ctx.translate(sx, y0); ctx.scale(2, 2); sx = 0; y0 = 0;
+  /* FASE 2: nativo — lo sprite di banca (spriteDef) resta alla sua griglia propria (un
+     formato dati a parte, non un disegno a numeri qui dentro), quindi qui basta raddoppiare
+     lo SPAZIO in cui viene proiettato: un pixel del disegno diventa un blocco 2×2 nativo. */
+  ctx.save(); ctx.translate(sx, y0); sx = 0; y0 = 0;
   const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
   const d = spriteDef('vehicle:skates:' + view);
   if (!d) { ctx.restore(); return false; }
   const ox = VEH_FRAME.ox, oy = VEH_FRAME.oy;
-  /* ogni metà segue il PIEDE corrispondente: `y0` porta già il bob → i pattini salgono/scendono
-     col corpo (attaccati, niente distacco verticale). Orizzontalmente si spostano per stare sotto
-     i PIEDI VERI dell'eroe: si misura il centro di ogni metà del disegno e lo si porta sul centro
-     del piede in quel frame (dai frame delle gambe: fronte/spalle si allargano, profilo = falcata). */
   let sL = 0, nL = 0, sR = 0, nR = 0;
   for (let r = 0; r < d.rows.length; r++) for (let c = 0; c < d.rows[r].length; c++) {
     if (d.rows[r][c] === '.') continue; const rel = c - ox;
     if (c < ox) { sL += rel; nL++; } else { sR += rel; nR++; }
   }
   const restL = nL ? sL / nL : -3.5, restR = nR ? sR / nR : 3.5;
-  /* centro dei due piedi (in px rispetto a sx) per vista e frame di camminata (0/1) */
   const FEET = { down: [[-3.5, 2.5], [-4.5, 3.5]], up: [[-3.5, 2.5], [-4.5, 3.5]], side: [[-3.5, 4.5], [-1, 0]] };
   const foot = P.moving ? FEET[view][fr] : [restL, restR];
-  const dxL = Math.round(foot[0] - restL), dxR = Math.round(foot[1] - restR);
+  const dxL = Math.round(foot[0] - restL) * 2, dxR = Math.round(foot[1] - restR) * 2;
   const flip = P.dir === 'left';
   if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
   for (let r = 0; r < d.rows.length; r++) {
@@ -886,7 +884,7 @@ export function drawBankSkates(sx, y0, fr) {
     for (let c = 0; c < row.length; c++) {
       const ch = row[c]; if (ch === '.') continue;
       const col = d.pal[ch]; if (!col) continue;
-      px(sx - ox + c + (c < ox ? dxL : dxR), y0 - oy + r, col);
+      rect(sx - ox * 2 + c * 2 + (c < ox ? dxL : dxR), y0 - oy * 2 + r * 2, 2, 2, col);
     }
   }
   if (flip) ctx.restore();
@@ -926,9 +924,12 @@ export function drawVehicleBody(kind, sx, sy, dir) {
 }
 /* rotelle da pattino sotto i piedi (4 ruote) */
 export function drawSkates(sx, sy, fr) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  const wy = sy + 16 + (fr === 1 ? -1 : 0);
-  for (const fx of [sx - 5, sx - 2, sx + 2, sx + 5]) { px(fx, wy, '#33291f'); px(fx, wy + 1, '#e0b040'); }
+  /* FASE 2: nativo — ruote più grandi con un cerchio vero (non un puntino), asse distinto. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  const wy = sy + 32 + (fr === 1 ? -2 : 0);
+  for (const fx of [sx - 10, sx - 4, sx + 4, sx + 10]) {
+    rect(fx - 1, wy, 2, 2, '#33291f'); rect(fx - 1, wy + 2, 2, 2, '#e0b040'); px(fx - 1, wy, shade8('#33291f', 1.5)); // asse con un filo di luce
+  }
   ctx.restore();
 }
 /* rotella di una bici (anello + mozzo + 2 raggi che girano se in movimento) */
@@ -941,30 +942,34 @@ function bikeWheel(wx, wy, rx, ry, moving) {
 }
 /* bicicletta di PROFILO (sinistra/destra): due ruote, telaio rosso, sella e manubrio. Centrata sotto l'eroe. */
 export function drawBike(sx, sy, moving) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  const cx = sx - 1, wy = sy + 15;                                             // centro sotto il corpo
-  bikeWheel(cx - 6, wy, 3.2, 3.2, moving); bikeWheel(cx + 6, wy, 3.2, 3.2, moving);
-  rect(cx - 5, wy, 11, 1, '#c94f4a');                                          // barra inferiore
-  for (let i = 0; i < 5; i++) { px(cx - 5 + i, wy - i, '#d1655f'); px(cx + 5 - i, wy - i, '#d1655f'); } // telaio a V
-  rect(cx - 1, wy - 6, 2, 6, '#c94f4a');                                       // reggisella
-  rect(cx - 4, wy - 7, 5, 1, '#33291f');                                       // sella
-  rect(cx + 5, wy - 7, 1, 6, '#7a6a58'); rect(cx + 4, wy - 7, 3, 1, '#33291f'); // sterzo + manubrio
+  /* FASE 2: nativo — telaio a doppio spessore (non 1px), sella con imbottitura, manubrio
+     con manopola distinta. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  const cx = sx - 2, wy = sy + 30;                                             // centro sotto il corpo
+  bikeWheel(cx - 12, wy, 6.4, 6.4, moving); bikeWheel(cx + 12, wy, 6.4, 6.4, moving);
+  rect(cx - 10, wy, 22, 2, '#c94f4a'); rect(cx - 10, wy, 22, 1, shade8('#c94f4a', 1.2)); // barra inferiore, con filo di luce sopra
+  for (let i = 0; i < 10; i++) { px(cx - 10 + i, wy - i, '#d1655f'); px(cx + 10 - i, wy - i, '#d1655f'); } // telaio a V
+  rect(cx - 1, wy - 12, 2, 12, '#c94f4a'); rect(cx - 1, wy - 12, 1, 12, shade8('#c94f4a', 1.2)); // reggisella
+  rect(cx - 8, wy - 14, 10, 2, '#33291f'); rect(cx - 8, wy - 14, 10, 1, shade8('#33291f', 1.6)); // sella con imbottitura
+  rect(cx + 10, wy - 14, 2, 12, '#7a6a58'); rect(cx + 8, wy - 14, 6, 2, '#33291f'); px(cx + 8, wy - 14, shade8('#33291f', 1.6)); // sterzo + manubrio con manopola
   ctx.restore();
 }
 /* bici di FRONTE (giù) / RETRO (su): disegnata DAVANTI all'eroe così si vede.
    Fronte: manubrio largo + ruota di taglio tra i piedi. Retro: sella/catarifrangente + ruota. */
 export function drawBikeFB(sx, sy, moving, dir) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  const cx = sx - 1, wy = sy + 16;
-  bikeWheel(cx, wy, 1.6, 3.6, moving);                                         // ruota di taglio (ovale stretto)
-  rect(cx, wy - 5, 1, 4, '#c94f4a');                                           // forcella/telaio verticale
+  /* FASE 2: nativo — manopole distinte, portapacchi con due assi visibili. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  const cx = sx - 2, wy = sy + 32;
+  bikeWheel(cx, wy, 3.2, 7.2, moving);                                         // ruota di taglio (ovale stretto)
+  rect(cx, wy - 10, 2, 8, '#c94f4a');                                           // forcella/telaio verticale
   if (dir === 'down') { // FRONTE: manubrio a T con le due manopole
-    rect(cx - 5, sy + 9, 11, 1, '#33291f'); px(cx - 5, sy + 8, '#33291f'); px(cx + 5, sy + 8, '#33291f');
-    px(cx, sy + 10, '#7a6a58');                                               // piantone
-    px(cx - 3, wy - 1, '#33291f'); px(cx + 3, wy - 1, '#33291f');             // pedali
+    rect(cx - 10, sy + 18, 22, 2, '#33291f'); rect(cx - 10, sy + 16, 2, 2, '#33291f'); rect(cx + 8, sy + 16, 2, 2, '#33291f');
+    px(cx, sy + 20, '#7a6a58');                                               // piantone
+    rect(cx - 6, wy - 2, 2, 2, '#33291f'); rect(cx + 4, wy - 2, 2, 2, '#33291f');             // pedali
   } else {              // RETRO: sella + catarifrangente rosso, portapacchi
-    rect(cx - 2, sy + 8, 5, 1, '#5c4229'); rect(cx - 1, sy + 9, 3, 1, '#3a2a18');
-    px(cx, wy - 5, '#c94f4a'); px(cx, wy - 4, '#f2c53d');                     // catarifrangente
+    rect(cx - 4, sy + 16, 10, 2, '#5c4229'); rect(cx - 2, sy + 18, 6, 2, '#3a2a18');
+    rect(cx - 6, sy + 16, 1, 8, '#7a6a58'); rect(cx + 5, sy + 16, 1, 8, '#7a6a58'); // portapacchi: due assi
+    rect(cx - 1, wy - 10, 2, 2, '#c94f4a'); rect(cx - 1, wy - 8, 2, 2, '#f2c53d');                     // catarifrangente
   }
   ctx.restore();
 }
@@ -979,24 +984,24 @@ export function drawBikeFB(sx, sy, moving, dir) {
    SEDUTO in groppa (busto, gambe in sella). Colore dalla creatura + contorno scuro. 4 direzioni. */
 /* eroe SEDUTO in groppa: busto+testa (gambe tagliate dal clip = in sella), all'altezza `topY` */
 function seatHero(sx, topY, dir) {
-  ctx.save(); ctx.beginPath(); ctx.rect(sx - 18, topY - 8, 36, 32); ctx.clip();
-  /* drawHero ora disegna nativamente a 32×26 (non raddoppia più da sola): qui siamo
-     dentro il 2x di drawFlyingMount, quindi si annulla quel raddoppio (0.5) e si passa
-     l'ancora diretta (metà della nuova larghezza, 16), altrimenti il personaggio in
-     sella uscirebbe 2x invece che alla taglia giusta. */
-  ctx.scale(0.5, 0.5); drawHero(null, sx - 16, topY, dir, 0);
+  /* FASE 2: drawFlyingMount è ora nativa anche lei (niente più 2x ambiente da annullare):
+     chiamata diretta, stessa unità di misura di tutto il resto. */
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 20, topY - 16, 40, 40); ctx.clip();
+  drawHero(null, sx - 16, topY, dir, 0);
   ctx.restore();
 }
 /* ALA in stile VOXEL: colonne PIENE a ventaglio (niente membrana liscia coi buchi), 3 toni +
    contorno scuro come la creatura, così è coerente e ATTACCATA al dorso. `out`=+1/-1 il verso in
    cui si apre; `flap` -1..1 il battito (fase dal TEMPO). */
 function voxWing(rx, ry, out, flap, base) {
+  /* FASE 2: nativa (drawFlyingMount è nativa, questa cella cresce di conseguenza: raggio
+     raddoppiato, 14 colonne invece di 7, così l'ala copre lo stesso spazio reale di prima). */
   const M = base, L = shade8(base, 1.22), Dk = shade8(base, 0.66), LN = '#20160f';
-  const n = 7, cells = [];
+  const n = 14, cells = [];
   for (let i = 0; i <= n; i++) {
     const cx = rx + out * i;
-    const rise = Math.round(i * 1.35) + Math.round(flap * 2 * (i / n));   // il bordo d'attacco sale/scende
-    const top = ry - rise, bot = ry + 2 - Math.round(i * 0.4);
+    const rise = Math.round(i * 1.35) + Math.round(flap * 4 * (i / n));   // il bordo d'attacco sale/scende
+    const top = ry - rise, bot = ry + 4 - Math.round(i * 0.4);
     for (let y = top; y <= bot; y++) cells.push([cx, y, y === top ? L : (y === bot ? Dk : M)]);
   }
   const set = new Set(cells.map(c => c[0] + ',' + c[1]));                 // contorno scuro attorno alla sagoma
@@ -1004,12 +1009,13 @@ function voxWing(rx, ry, out, flap, base) {
   for (const [cx, cy, col] of cells) px(cx, cy, col);
 }
 export function drawFlyingMount(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  /* la cavalcatura è la creatura VIVA (voxel, cambia col compagno): la banca, se disegnata,
-     la SOSTITUISCE per intero (statica) — eroe+creatura+ali insieme, ombra staccata (in volo) */
+  /* FASE 2: nativa, niente più wrapper 2x. drawCreature resta FUORI ambito (non ridisegnata):
+     riceve un'ancora in pixel nativi e si scala già da sola internamente, quindi va chiamata
+     diretta (né controscala né raddoppio) — esattamente come seatHero chiama drawHero. */
+  ctx.save();
   const mview = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
   if (hasSprite('vehicle:mount:' + mview)) {
-    shadow(sx, sy + 17, 6);
+    shadow(sx, sy + 34, 12);
     const flip = P.dir === 'left';
     if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
     drawSprite({ rect }, 'vehicle:mount:' + mview, sx, sy);
@@ -1027,129 +1033,135 @@ export function drawFlyingMount(sx, sy) {
      voxel dietro il corpo (attaccate al dorso), così restano coerenti e visibili in ogni vista. */
   const mopts = { noLegs: true };
   const cv = creatureSprite(obj, view, mopts);
-  const cvH = cv ? cv.height : 16;
-  const bob = Math.round(Math.sin(frameTime / 300) * 2);
-  const creatureY = sy - 6 - bob;                            // in volo, staccata da terra (fondo = creatureY+14)
-  const backTop = Math.round(creatureY + 14 - cvH);          // cima della schiena su schermo
-  const bellyY = creatureY + 12;                             // sotto la pancia (dove si raccolgono le zampe)
+  const cvH = cv ? cv.height : 32;                            // creatureSprite è già in pixel nativi (fuori ambito)
+  const bob = Math.round(Math.sin(frameTime / 300) * 4);
+  const creatureY = sy - 12 - bob;                           // in volo, staccata da terra (fondo = creatureY+28)
+  const backTop = Math.round(creatureY + 28 - cvH);          // cima della schiena su schermo
+  const bellyY = creatureY + 24;                             // sotto la pancia (dove si raccolgono le zampe)
   const flap = Math.sin(frameTime / 130);                    // battito (fase dal TEMPO)
-  shadow(sx, sy + 17, 6);                                    // ombra a terra: dà l'altezza
+  shadow(sx, sy + 34, 12);                                   // ombra a terra: dà l'altezza
   /* ALI (stile voxel) DIETRO il corpo → sembrano attaccate al dorso, spuntano da sotto l'eroe */
-  const wingRootY = backTop + 6;
-  if (view === 'side') voxWing(sx - dir * 3, wingRootY, -dir, flap, base);          // una grande ala, si apre verso la coda
-  else { voxWing(sx - 5, wingRootY, -1, flap, base); voxWing(sx + 5, wingRootY, 1, flap, base); } // due ali ai lati
-  /* GAMBE PIEGATE sotto la pancia (raccolte in volo): coscia + piede rivolto in dentro */
-  const leg = (hx, s) => { rect(hx, bellyY - 2, 2, 3, LEG); px(hx + (s > 0 ? 1 : 0), bellyY - 3, LEGD); rect(hx + (s > 0 ? -1 : 1), bellyY, 2, 2, LEG); px(hx + (s > 0 ? -1 : 2), bellyY + 1, LEGD); };
-  if (view === 'side') { leg(sx - 4, -1); leg(sx + 2, 1); }
-  else { leg(sx - 5, -1); leg(sx + 3, 1); }
+  const wingRootY = backTop + 12;
+  if (view === 'side') voxWing(sx - dir * 6, wingRootY, -dir, flap, base);          // una grande ala, si apre verso la coda
+  else { voxWing(sx - 10, wingRootY, -1, flap, base); voxWing(sx + 10, wingRootY, 1, flap, base); } // due ali ai lati
+  /* GAMBE PIEGATE sotto la pancia (raccolte in volo): coscia + piede rivolto in dentro, con volume */
+  const leg = (hx, s) => {
+    rect(hx, bellyY - 4, 4, 6, LEG); px(hx + (s > 0 ? 2 : 0), bellyY - 6, LEGD);
+    rect(hx + (s > 0 ? -2 : 2), bellyY, 4, 4, LEG); px(hx + (s > 0 ? -2 : 4), bellyY + 2, LEGD);
+    px(hx + (s > 0 ? 0 : 3), bellyY - 3, shade8(LEG, 1.2));
+  };
+  if (view === 'side') { leg(sx - 8, -1); leg(sx + 4, 1); }
+  else { leg(sx - 10, -1); leg(sx + 6, 1); }
   /* la CREATURA VERA senza zampe (uguale all'animale base), SOPRA le radici delle ali (attaccate) */
-  /* drawCreature raddoppia già da sola: qui siamo dentro il 2x della cavalcatura, si annulla
-     (0.5) e si compensa la posizione ×2 per non finire a 4x. */
-  if (obj) { ctx.save(); ctx.scale(0.5, 0.5); drawCreature(obj, (sx - 8) * 2, creatureY * 2, false, true, mopts); ctx.restore(); }
+  if (obj) drawCreature(obj, sx - 16, creatureY, false, true, mopts);
   /* SELLA: prolunga il dorso (stesso colore) sotto l'eroe → nessun pixel vuoto fra busto e creatura */
-  rect(sx - 6, backTop - 1, 12, 5, base); rect(sx - 6, backTop - 1, 12, 1, shade8(base, 1.2));
-  px(sx - 7, backTop, '#20160f'); px(sx - 7, backTop + 1, '#20160f'); px(sx + 6, backTop, '#20160f'); px(sx + 6, backTop + 1, '#20160f');
+  rect(sx - 12, backTop - 2, 24, 10, base); rect(sx - 12, backTop - 2, 24, 2, shade8(base, 1.2));
+  rect(sx - 12, backTop + 6, 24, 2, shade8(base, 0.7));
+  px(sx - 14, backTop, '#20160f'); px(sx - 14, backTop + 2, '#20160f'); px(sx + 12, backTop, '#20160f'); px(sx + 12, backTop + 2, '#20160f');
   /* EROE ben SEDUTO sulla schiena: busto+testa, gambe in sella (tagliate dal clip) */
-  seatHero(sx, backTop - 6, P.dir);
-  if (P.moving) { const tx = sx - dir * 11, ty = backTop + 8, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2, ty, 'rgba(224,206,255,.6)'); px(tx - w2, ty + 2, 'rgba(198,178,236,.4)'); }
+  seatHero(sx, backTop - 12, P.dir);
+  if (P.moving) { const tx = sx - dir * 22, ty = backTop + 16, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2 * 2, ty, 'rgba(224,206,255,.6)'); px(tx - w2 * 2, ty + 4, 'rgba(198,178,236,.4)'); }
   ctx.restore();
 }
 /* barca vista di PRUA/POPPA (su/giù): scafo compatto e più stretto del profilo. `up`=si allontana. */
 export function drawBoatFB(sx, y0, up) {
-  rect(sx - 5, y0 + 8, 11, 6, '#8a5f38'); rect(sx - 5, y0 + 8, 11, 2, '#a97a4c'); // scafo
-  px(sx - 6, y0 + 9, '#8a5f38'); px(sx + 5, y0 + 9, '#8a5f38');
-  rect(sx - 4, y0 + 14, 9, 1, '#5c4229');
-  if (up) { rect(sx - 2, y0 + 7, 5, 1, '#a97a4c'); px(sx, y0 + 6, '#a97a4c'); }   // prua a punta in alto (si allontana)
-  else { rect(sx - 3, y0 + 14, 7, 1, '#8a5f38'); rect(sx - 2, y0 + 15, 5, 1, '#5c4229'); px(sx, y0 + 16, '#5c4229'); } // poppa verso di noi
-  px(sx - 4, y0 + 17, '#bfe9f4'); px(sx + 3, y0 + 17, '#bfe9f4');                  // riflesso
+  /* FASE 2: nativo (chiamata da drawBoat, ora anche lei nativa) — bordo con filo di luce
+     vero oltre allo scafo, non solo due tinte piatte. */
+  rect(sx - 10, y0 + 16, 22, 12, '#8a5f38'); rect(sx - 10, y0 + 16, 22, 4, '#a97a4c'); // scafo
+  rect(sx - 10, y0 + 20, 3, 6, shade8('#8a5f38', 1.15)); rect(sx + 7, y0 + 20, 3, 6, shade8('#8a5f38', 0.75)); // fiancata con volume
+  px(sx - 12, y0 + 18, '#8a5f38'); px(sx + 10, y0 + 18, '#8a5f38');
+  rect(sx - 8, y0 + 28, 18, 2, '#5c4229');
+  if (up) { rect(sx - 4, y0 + 14, 10, 2, '#a97a4c'); px(sx, y0 + 12, '#a97a4c'); }   // prua a punta in alto (si allontana)
+  else { rect(sx - 6, y0 + 28, 14, 2, '#8a5f38'); rect(sx - 4, y0 + 30, 10, 2, '#5c4229'); px(sx, y0 + 32, '#5c4229'); } // poppa verso di noi
+  px(sx - 8, y0 + 34, '#bfe9f4'); px(sx + 6, y0 + 34, '#bfe9f4');                  // riflesso
 }
 export function drawBoat(sx, sy, noHero) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  const bob = Math.round(Math.sin(frameTime / 320) * 1.5);
+  /* FASE 2: nativo — niente più contro-scala per l'eroe (drawHero è già nativa, qui non
+     c'è più nessun 2x ambiente da annullare: si chiama diretta). */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  const bob = Math.round(Math.sin(frameTime / 320) * 3);
   const y0 = sy + bob;
   /* scia dietro la barca */
   if (P.moving) {
-    const bx = P.dir === 'left' ? 12 : P.dir === 'right' ? -12 : 0;
-    const by = P.dir === 'up' ? 12 : P.dir === 'down' ? -12 : 0;
+    const bx = P.dir === 'left' ? 24 : P.dir === 'right' ? -24 : 0;
+    const by = P.dir === 'up' ? 24 : P.dir === 'down' ? -24 : 0;
     const w2 = Math.floor(frameTime / 140) % 3;
-    px(sx + bx - 2 + w2, y0 + 14 + by, '#bfe9f4'); px(sx + bx + 2 - w2, y0 + 15 + by, '#e8f6fb');
-    px(sx + bx, y0 + 13 + by, '#bfe9f4');
+    rect(sx + bx - 4 + w2 * 2, y0 + 28 + by, 2, 2, '#bfe9f4'); rect(sx + bx + 4 - w2 * 2, y0 + 30 + by, 2, 2, '#e8f6fb');
+    rect(sx + bx, y0 + 26 + by, 2, 2, '#bfe9f4');
   }
   /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
-  /* drawHero ora disegna nativamente a 32×26 (non raddoppia più da sola): qui siamo dentro
-     il 2x della barca, si annulla (0.5) e si passa l'ancora diretta, altrimenti il
-     personaggio a bordo uscirebbe 2x invece che alla taglia giusta. */
-  if (!noHero) { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, y0 - 5, P.dir, 0); ctx.restore(); }
+  if (!noHero) drawHero(null, sx - 16, y0 - 10, P.dir, 0);
   if (!bankVeh('boat', sx, y0)) {                                     // scafo: disegno a mano se c'è, altrimenti procedurale
     if (P.dir === 'up' || P.dir === 'down') drawBoatFB(sx, y0, P.dir === 'up'); // fronte/retro: scafo di prua/poppa
     else {
       /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
-      rect(sx - 10, y0 + 8, 20, 6, '#8a5f38'); rect(sx - 10, y0 + 8, 20, 2, '#a97a4c');
-      rect(sx - 10, y0 + 10, 3, 4, shade8('#8a5f38', 1.15)); rect(sx + 7, y0 + 10, 3, 4, shade8('#8a5f38', 0.7)); // fiancata: luce a prua / ombra a poppa
-      rect(sx - 3, y0 + 12, 6, 1, shade8('#8a5f38', 0.85)); // linea di galleggiamento: quarto tono sotto il bordo chiaro
-      px(sx - 11, y0 + 9, '#8a5f38'); px(sx + 10, y0 + 9, '#8a5f38');
-      rect(sx - 8, y0 + 14, 16, 1, '#5c4229');
-      px(sx - 6, y0 + 16, '#bfe9f4'); px(sx + 5, y0 + 16, '#bfe9f4'); // riflesso sull'acqua
+      rect(sx - 20, y0 + 16, 40, 12, '#8a5f38'); rect(sx - 20, y0 + 16, 40, 4, '#a97a4c');
+      rect(sx - 20, y0 + 20, 6, 8, shade8('#8a5f38', 1.15)); rect(sx + 14, y0 + 20, 6, 8, shade8('#8a5f38', 0.7)); // fiancata: luce a prua / ombra a poppa
+      rect(sx - 6, y0 + 24, 12, 2, shade8('#8a5f38', 0.85)); // linea di galleggiamento
+      px(sx - 22, y0 + 18, '#8a5f38'); px(sx + 20, y0 + 18, '#8a5f38');
+      rect(sx - 16, y0 + 28, 32, 2, '#5c4229'); rect(sx - 16, y0 + 28, 32, 1, shade8('#5c4229', 1.3)); // bordo di poppa con un filo di luce
+      px(sx - 12, y0 + 32, '#bfe9f4'); px(sx + 10, y0 + 32, '#bfe9f4'); // riflesso sull'acqua
     }
   }
   if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') { // lenza + galleggiante con cerchi
     const d2 = P.dir === 'left' ? -1 : 1;
-    rect(sx + d2 * 7, y0 - 6, 1, 2, '#8a5f38'); px(sx + d2 * 8, y0 - 7, '#8a5f38'); // canna
-    for (let i = 1; i < 5; i++) px(sx + d2 * (8 + i), y0 - 7 + i * 2, '#e8e2d0');   // filo
-    const bx2 = sx + d2 * 13, by2 = y0 + 3 + Math.round(Math.sin(frameTime / 260));
-    px(bx2, by2, '#c65a54'); px(bx2, by2 - 1, '#f6efdd');                            // galleggiante
+    rect(sx + d2 * 14, y0 - 12, 2, 4, '#8a5f38'); px(sx + d2 * 16, y0 - 14, '#8a5f38'); // canna
+    for (let i = 1; i < 5; i++) px(sx + d2 * (16 + i * 2), y0 - 14 + i * 4, '#e8e2d0');   // filo
+    const bx2 = sx + d2 * 26, by2 = y0 + 6 + Math.round(Math.sin(frameTime / 260) * 2);
+    px(bx2, by2, '#c65a54'); px(bx2, by2 - 2, '#f6efdd');                            // galleggiante
     const r2 = Math.floor((P.digging.t / P.digging.dur) * 3) + 1;                    // cerchi nell'acqua
-    px(bx2 - r2, by2 + 1, '#bfe9f4'); px(bx2 + r2, by2 + 1, '#bfe9f4');
+    px(bx2 - r2 * 2, by2 + 2, '#bfe9f4'); px(bx2 + r2 * 2, by2 + 2, '#bfe9f4');
   }
   ctx.restore();
 }
 /* motoscafo di PRUA/POPPA (su/giù): scafo bianco compatto + parabrezza/motore secondo il verso. */
 export function drawMotorboatFB(sx, y0, up) {
-  rect(sx - 5, y0 + 8, 11, 5, '#eef2f4'); rect(sx - 5, y0 + 11, 11, 2, '#3d8ba0'); // scafo + banda
-  px(sx - 6, y0 + 9, '#eef2f4'); px(sx + 5, y0 + 9, '#eef2f4');
-  rect(sx - 4, y0 + 13, 9, 1, '#2b6274');
+  /* FASE 2: nativo — scafo con volume laterale, non solo scafo+banda piatti. */
+  rect(sx - 10, y0 + 16, 22, 10, '#eef2f4'); rect(sx - 10, y0 + 22, 22, 4, '#3d8ba0'); // scafo + banda
+  rect(sx - 10, y0 + 18, 3, 6, shade8('#eef2f4', 0.92)); rect(sx + 7, y0 + 18, 3, 6, shade8('#eef2f4', 0.85)); // fiancata con volume
+  px(sx - 12, y0 + 18, '#eef2f4'); px(sx + 10, y0 + 18, '#eef2f4');
+  rect(sx - 8, y0 + 26, 18, 2, '#2b6274');
   /* il MOTORE è a POPPA: si vede quando ti ALLONTANI (di spalle), non quando vieni verso l'utente */
-  if (up) { rect(sx - 2, y0 + 13, 5, 3, '#33291f'); px(sx, y0 + 16, '#20323f'); }  // di spalle: motore fuoribordo verso di noi
-  else { rect(sx - 2, y0 + 12, 5, 2, '#bfe9f4'); rect(sx - 2, y0 + 12, 5, 1, '#8fd0e6'); rect(sx - 2, y0 + 14, 5, 1, '#eef2f4'); px(sx, y0 + 15, '#eef2f4'); } // di fronte: parabrezza + prua verso di noi
-  px(sx - 4, y0 + 16, '#bfe9f4'); px(sx + 3, y0 + 16, '#bfe9f4');
+  if (up) { rect(sx - 4, y0 + 26, 10, 6, '#33291f'); px(sx, y0 + 32, '#20323f'); }  // di spalle: motore fuoribordo verso di noi
+  else { rect(sx - 4, y0 + 24, 10, 4, '#bfe9f4'); rect(sx - 4, y0 + 24, 10, 2, '#8fd0e6'); rect(sx - 4, y0 + 28, 10, 2, '#eef2f4'); px(sx, y0 + 30, '#eef2f4'); } // di fronte: parabrezza + prua verso di noi
+  px(sx - 8, y0 + 32, '#bfe9f4'); px(sx + 6, y0 + 32, '#bfe9f4');
 }
 /* MOTOSCAFO: scafo bianco/azzurro affusolato, parabrezza, motore fuoribordo, SCIA di spruzzi */
 export function drawMotorboat(sx, sy, noHero) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  const bob = Math.round(Math.sin(frameTime / 300) * 1.2);
+  /* FASE 2: nativo — niente più contro-scala per l'eroe. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  const bob = Math.round(Math.sin(frameTime / 300) * 2.4);
   const y0 = sy + bob;
   /* scia di spruzzi più marcata dietro (in movimento) */
   if (P.moving) {
-    const bx = P.dir === 'left' ? 12 : P.dir === 'right' ? -12 : 0;
-    const by = P.dir === 'up' ? 12 : P.dir === 'down' ? -12 : 0;
+    const bx = P.dir === 'left' ? 24 : P.dir === 'right' ? -24 : 0;
+    const by = P.dir === 'up' ? 24 : P.dir === 'down' ? -24 : 0;
     const w2 = Math.floor(frameTime / 90) % 3;
-    for (let i = 0; i < 3; i++) { px(sx + bx - 3 + i * 3 - w2, y0 + 14 + by, '#e8f6fb'); px(sx + bx - 2 + i * 3 + w2, y0 + 16 + by, '#bfe9f4'); }
+    for (let i = 0; i < 3; i++) { rect(sx + bx - 6 + i * 6 - w2 * 2, y0 + 28 + by, 2, 2, '#e8f6fb'); rect(sx + bx - 4 + i * 6 + w2 * 2, y0 + 32 + by, 2, 2, '#bfe9f4'); }
   }
   /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
-  /* drawHero ora disegna nativamente a 32×26: si annulla il 2x del motoscafo (0.5) e si
-     passa l'ancora diretta. */
-  if (!noHero) { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, y0 - 4, P.dir, 0); ctx.restore(); }
+  if (!noHero) drawHero(null, sx - 16, y0 - 8, P.dir, 0);
   if (!bankVeh('motorboat', sx, y0)) {                                // scafo: disegno a mano se c'è, altrimenti procedurale
     if (P.dir === 'up' || P.dir === 'down') drawMotorboatFB(sx, y0, P.dir === 'up'); // fronte/retro
     else {
       /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
-      rect(sx - 10, y0 + 8, 20, 5, '#eef2f4'); rect(sx - 10, y0 + 11, 20, 2, '#3d8ba0'); // banda
-      px(sx - 12, y0 + 10, '#eef2f4'); px(sx - 11, y0 + 9, '#eef2f4');                    // prua sinistra
-      px(sx + 11, y0 + 10, '#eef2f4'); px(sx + 10, y0 + 9, '#eef2f4');                    // poppa
-      rect(sx - 9, y0 + 13, 18, 1, '#2b6274');
-      rect(sx - 2, y0 + 4, 5, 4, '#bfe9f4'); rect(sx - 2, y0 + 4, 5, 1, '#8fd0e6');       // parabrezza + console
-      rect(sx - 3, y0 + 7, 7, 1, '#9aa3a8');
+      rect(sx - 20, y0 + 16, 40, 10, '#eef2f4'); rect(sx - 20, y0 + 22, 40, 4, '#3d8ba0'); // banda
+      px(sx - 24, y0 + 20, '#eef2f4'); px(sx - 22, y0 + 18, '#eef2f4');                    // prua sinistra
+      px(sx + 22, y0 + 20, '#eef2f4'); px(sx + 20, y0 + 18, '#eef2f4');                    // poppa
+      rect(sx - 18, y0 + 26, 36, 2, '#2b6274');
+      rect(sx - 4, y0 + 8, 10, 8, '#bfe9f4'); rect(sx - 4, y0 + 8, 10, 2, '#8fd0e6');       // parabrezza + console
+      rect(sx - 6, y0 + 14, 14, 2, '#9aa3a8');
       const md = P.dir === 'left' ? 1 : -1;                                               // motore fuoribordo dietro
-      rect(sx + md * 9, y0 + 7, 2, 5, '#33291f'); px(sx + md * 9, y0 + 12, '#20323f');
-      px(sx - 6, y0 + 15, '#bfe9f4'); px(sx + 5, y0 + 15, '#bfe9f4');                     // riflesso
+      rect(sx + md * 18, y0 + 14, 4, 10, '#33291f'); px(sx + md * 18, y0 + 24, '#20323f');
+      px(sx - 12, y0 + 30, '#bfe9f4'); px(sx + 10, y0 + 30, '#bfe9f4');                     // riflesso
     }
   }
   if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') {
     const d2 = P.dir === 'left' ? -1 : 1;
-    rect(sx + d2 * 8, y0 - 5, 1, 2, '#8a5f38');
-    for (let i = 1; i < 5; i++) px(sx + d2 * (9 + i), y0 - 6 + i * 2, '#e8e2d0');
-    const bx2 = sx + d2 * 14, by2 = y0 + 4 + Math.round(Math.sin(frameTime / 260));
-    px(bx2, by2, '#c65a54'); px(bx2, by2 - 1, '#f6efdd');
+    rect(sx + d2 * 16, y0 - 10, 2, 4, '#8a5f38');
+    for (let i = 1; i < 5; i++) px(sx + d2 * (18 + i * 2), y0 - 12 + i * 4, '#e8e2d0');
+    const bx2 = sx + d2 * 28, by2 = y0 + 8 + Math.round(Math.sin(frameTime / 260) * 2);
+    px(bx2, by2, '#c65a54'); px(bx2, by2 - 2, '#f6efdd');
   }
   ctx.restore();
 }
