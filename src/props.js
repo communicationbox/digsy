@@ -16,12 +16,17 @@ export function drawTree(sx, sy, time, tx, ty) {
   const zi = zoneIdxAt(tx, ty);
   const T = zoneTree(zi);
   const sw = vhash(tx, ty, 41) < 0.35 ? Math.round(Math.sin(time / 850 + tx * 1.7 + ty * 2.3)) : 0;
-  const cx = sx + 8, base = sy + 15; shadow(cx, base, 7); rect(cx - 2, base - 6, 4, 6, '#7c4f2e'); px(cx - 2, base - 6, '#5f3c22');
+  const cx = sx + 8, base = sy + 15; shadow(cx, base, 7);
+  rect(cx - 2, base - 6, 4, 6, '#7c4f2e'); px(cx - 2, base - 6, '#5f3c22');
+  px(cx - 2, base - 5, shade8('#7c4f2e', 1.25)); px(cx + 1, base - 2, shade8('#7c4f2e', 0.7)); // tronco: luce sx / ombra dx, non più un blocco piatto
   const k = cx + sw;
   rect(k - 7, base - 16, 14, 9, T[0]); rect(k - 8, base - 14, 16, 6, T[1]); rect(k - 6, base - 19, 12, 6, T[2]); rect(k - 4, base - 21, 8, 5, T[3]);
   rect(k - 3, base - 19, 3, 2, T[4]); px(k + 2, base - 17, T[4]); px(k - 8, base - 9, T[5]); px(k + 7, base - 9, T[5]);
   px(k - 2, base - 21, shade8(T[3], 1.45)); px(k - 1, base - 21, shade8(T[3], 1.45)); // luce in cima alla chioma
   rect(k - 7, base - 9, 14, 1, shade8(T[0], 0.55)); // terzo tono: ombra interna sotto la chioma
+  /* contorno leggero sul bordo basso della chioma: la stacca dal fusto e dallo sfondo senza
+     un profilo scuro tutt'intorno (fuori stile per questo gioco) — solo dove serve di più */
+  rect(k - 8, base - 8, 3, 1, shade8(T[0], 0.68)); rect(k + 5, base - 8, 3, 1, shade8(T[0], 0.68));
   /* fogliame moteggiato: 2 grumi di tono chiaro/scuro sparsi sulla chioma, posizione per
      albero — così una fila di alberi identici non sembra la stessa chioma ripetuta */
   const lx1 = k - 6 + Math.floor(vhash(tx, ty, 42) * 12), ly1 = base - 17 + Math.floor(vhash(tx, ty, 43) * 6);
@@ -36,6 +41,7 @@ export function drawBoulder(sx, sy, tx = 0, ty = 0) {
   rect(cx - 6, base - 7, 12, 7, '#9a9285'); rect(cx - 5, base - 9, 10, 3, '#aaa294'); px(cx - 2, base - 7, '#b8b0a2'); rect(cx - 4, base - 4, 4, 2, '#b8b0a2'); rect(cx - 6, base - 1, 12, 1, '#75695c');
   px(cx - 4, base - 8, '#d0c8ba'); px(cx - 3, base - 8, '#d0c8ba'); // sprazzo di luce alto-sx (16bit HD: rifinitura)
   rect(cx + 2, base - 2, 4, 1, '#5f574c'); // ombra propria bassa-dx
+  rect(cx + 3, base - 6, 3, 2, shade8('#9a9285', 0.8)); // quarto tono: faccia in ombra sul fianco destro, non solo bordo
   /* screpolature: 2-3 macchie di muschio/lichene, posizione diversa per masso così due
      copie vicine non sembrano lo stesso identico sasso timbrato */
   const mx = cx - 4 + Math.floor(vhash(tx, ty, 81) * 9), my = base - 6 + Math.floor(vhash(tx, ty, 82) * 4);
@@ -163,6 +169,7 @@ export function drawCactus(sx, sy, tx = 0, ty = 0) {
   px(cx - 3, base - 10, '#2f6b3b'); px(cx + 1, base - 5, '#2f6b3b'); px(cx, base - 13, '#e08aa8');
   px(cx - 1, base - 12, '#7fd489'); px(cx - 1, base - 11, '#7fd489'); // luce in cima al fusto principale
   rect(cx - 2, base - 1, 4, 1, '#2f6b3b'); // ombra propria alla base
+  rect(cx, base - 11, 1, 10, shade8('#4a9a55', 0.75)); // ombra sul fianco destro del fusto: quarto tono, non più due bande piatte
   /* spine: 2 punti chiari sparsi sul fusto, posizione per esemplare (non un timbro identico) */
   px(cx - 2 + Math.floor(vhash(tx, ty, 84) * 3), base - 4 - Math.floor(vhash(tx, ty, 85) * 6), '#e0f0d8');
   px(cx + Math.floor(vhash(tx, ty, 86) * 2), base - 9 - Math.floor(vhash(tx, ty, 87) * 3), '#e0f0d8');
@@ -189,6 +196,7 @@ export function drawDeadtree(sx, sy, tx = 0, ty = 0) {
   rect(cx + 2, base - 9, 6, 2, '#6e5138'); px(cx + 7, base - 11, '#6e5138');
   px(cx + 1, base - 15, '#6e5138'); px(cx - 3, base - 6, '#6e5138');
   px(cx, base - 13, '#9a7550'); px(cx, base - 8, '#9a7550'); // striscia di luce sul tronco (lato sx)
+  px(cx + 1, base - 6, shade8('#6e5138', 0.7)); // ombra sul fianco destro: quarto tono
   rect(cx - 1, base - 1, 3, 1, '#4a3620'); // ombra propria alla base
   if (vhash(tx, ty, 89) < 0.45) px(cx, base - 10 - Math.floor(vhash(tx, ty, 90) * 3), '#3f2c1a'); // nodo del legno, non su ogni esemplare
   ctx.restore();
@@ -209,6 +217,7 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   rect(bx, by - 2, 2, 3, '#b8ab8e');
   rect(bx - 2, by - 4, 6, 2, '#8f7350'); px(bx - 1, by - 5, '#8f7350'); px(bx + 2, by - 5, '#8f7350');
   px(bx - 2, by - 3, '#6f5a3e'); px(bx - 1, by - 4, '#ab8c62'); // luce sul cappello, lato sx
+  px(bx + 3, by - 3, shade8('#8f7350', 0.7)); // ombra sul cappello, lato dx: quarto tono
   ctx.restore();
 }
 export function drawStump(sx, sy, tx = 0, ty = 0) {
@@ -217,6 +226,7 @@ export function drawStump(sx, sy, tx = 0, ty = 0) {
   rect(cx - 4, base - 5, 8, 5, '#8a5f38'); rect(cx - 4, base - 6, 8, 2, '#c9a06a');
   px(cx - 1, base - 6, '#a97a4c'); px(cx + 1, base - 5, '#a97a4c'); px(cx - 5, base - 3, '#6e5138');
   px(cx - 3, base - 6, '#e0be8c'); rect(cx + 2, base - 2, 2, 1, '#5c4229'); // luce sull'anello + ombra propria
+  rect(cx + 1, base - 5, 1, 3, shade8('#8a5f38', 0.75)); // fianco destro in ombra: quarto tono
   if (vhash(tx, ty, 91) < 0.5) px(cx, base - 5, '#a97a4c'); // secondo anello, non su ogni ceppo
   ctx.restore();
 }
@@ -250,6 +260,7 @@ export function drawReed(sx, sy, time, tx, ty, ripe) {
   for (const ox of [-4, 0, 4]) {
     rect(cx + ox, base - 9, 1, 9, '#4a6340');
     px(cx + ox + sw2, base - 10, '#4a6340');
+    px(cx + ox, base - 7, shade8('#4a6340', 1.3)); // filo di luce sullo stelo, non più un colore piatto
   }
   if (ripe) {                                        // pennacchio: solo sul giunco maturo
     rect(cx - 1 + sw2, base - 15, 3, 5, '#8a5f38'); px(cx + sw2, base - 16, '#a97a4c');
@@ -275,6 +286,7 @@ export function drawHay(sx, sy, tx = 0, ty = 0) {
   rect(cx - 6, base - 8, 12, 8, '#d4b13c'); rect(cx - 6, base - 8, 12, 2, '#e0c25c');
   rect(cx - 6, base - 5, 12, 1, '#b99b2e'); px(cx - 4, base - 3, '#b99b2e'); px(cx + 3, base - 6, '#e0c25c');
   px(cx - 5, base - 7, '#f0d888'); rect(cx - 6, base - 1, 12, 1, '#8f7724'); // luce in cima + ombra propria alla base
+  rect(cx + 3, base - 6, 3, 3, shade8('#d4b13c', 0.8)); // fianco destro in ombra: quarto tono, non due bande piatte
   px(cx - 5 + Math.floor(vhash(tx, ty, 102) * 10), base - 4 - Math.floor(vhash(tx, ty, 103) * 3), '#b99b2e'); // filo spaiato, posizione per covone
   ctx.restore();
 }
