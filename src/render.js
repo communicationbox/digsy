@@ -1196,54 +1196,56 @@ export function drawMotorboat(sx, sy, noHero) {
 }
 /* animazione di scavo/abbattimento/spacco: due colpi, schegge a tema */
 function drawDigging(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
+  /* FASE 2: nativa — drawHero è già nativo (niente più contro-scala 0.5), attrezzo/schegge
+     con posizioni e ampiezze raddoppiate. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const d = P.digging, kind = d.kind || 'dig';
   const ph = d.t / d.dur;
   const struck = Math.floor(ph * 4) % 2 === 1;              // due colpi per scavata
   if (kind === 'dig') {
-    ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, sy + (struck ? 1 : 0), 'down', 0); ctx.restore(); // chino sul colpo
+    drawHero(null, sx - 16, sy + (struck ? 2 : 0), 'down', 0); // chino sul colpo
     if (!struck) { // PALA alzata: manico + lama LARGA a cucchiaio (≠ piccone)
-      rect(sx + 5, sy - 5, 2, 8, '#8a5f38');                                   // manico
-      rect(sx + 2, sy - 9, 8, 4, '#b8b0a2'); rect(sx + 3, sy - 5, 6, 1, '#9a9285'); // lama larga
-      px(sx + 2, sy - 9, '#d7d0c2'); px(sx + 9, sy - 9, '#d7d0c2');            // bordi lucidi
+      rect(sx + 10, sy - 10, 4, 16, '#8a5f38');                                   // manico
+      rect(sx + 4, sy - 18, 16, 8, '#b8b0a2'); rect(sx + 6, sy - 10, 12, 2, '#9a9285'); // lama larga
+      px(sx + 4, sy - 18, '#d7d0c2'); px(sx + 18, sy - 18, '#d7d0c2');            // bordi lucidi
     } else {       // PALA piantata: lama larga a spatola tra i piedi
-      rect(sx + 3, sy + 3, 2, 7, '#8a5f38');                                   // manico
-      rect(sx, sy + 10, 8, 3, '#b8b0a2'); rect(sx + 1, sy + 13, 6, 1, '#9a9285'); px(sx + 3, sy + 14, '#7f776a');
+      rect(sx + 6, sy + 6, 4, 14, '#8a5f38');                                   // manico
+      rect(sx, sy + 20, 16, 6, '#b8b0a2'); rect(sx + 2, sy + 26, 12, 2, '#9a9285'); px(sx + 6, sy + 28, '#7f776a');
     }
     if (struck) {  // terra che schizza AI PIEDI
       const t2 = (ph * 4) % 1;
-      const OX = [-7, -4, -2, 2, 5, 8], H = [5, 7, 4, 6, 7, 4];
+      const OX = [-14, -8, -4, 4, 10, 16], H = [10, 14, 8, 12, 14, 8];
       const CC = ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42', '#c9a06a'];
-      for (let i = 0; i < 6; i++) px(Math.round(sx + OX[i] * (0.4 + t2)), Math.round(sy + 14 - Math.sin(Math.PI * t2) * H[i]), CC[i]);
+      for (let i = 0; i < 6; i++) px(Math.round(sx + OX[i] * (0.4 + t2)), Math.round(sy + 28 - Math.sin(Math.PI * t2) * H[i]), CC[i]);
     }
     ctx.restore(); return;
   }
   /* accetta/piccone: colpo LATERALE verso la tile che guardi, schegge a tema */
   const dx2 = P.dir === 'left' ? -1 : 1;
-  ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, sy + (struck ? 1 : 0), P.dir === 'up' ? 'down' : P.dir, 0); ctx.restore();
+  drawHero(null, sx - 16, sy + (struck ? 2 : 0), P.dir === 'up' ? 'down' : P.dir, 0);
   const headCol = kind === 'chop' ? '#b5622e' : '#9a9285';
   if (!struck) { // attrezzo alzato dietro la testa
-    rect(sx + dx2 * 5, sy - 4, 2, 7, '#8a5f38');
+    rect(sx + dx2 * 10, sy - 8, 4, 14, '#8a5f38');
     if (kind === 'chop') { // ACCETTA: testa a cuneo compatta
-      rect(sx + dx2 * 3, sy - 6, 5, 3, headCol); px(sx + dx2 * 3, sy - 6, '#d98a4a');
+      rect(sx + dx2 * 6, sy - 12, 10, 6, headCol); px(sx + dx2 * 6, sy - 12, '#d98a4a');
     } else {               // PICCONE: testa lunga a DOPPIA PUNTA (≠ pala/accetta)
-      rect(sx + dx2 * 2, sy - 6, 8, 1, headCol);
-      px(sx + dx2 * 2, sy - 5, headCol); px(sx + dx2 * 9, sy - 5, headCol);
-      px(sx + dx2 * 2, sy - 7, '#b8b0a2'); px(sx + dx2 * 9, sy - 7, '#b8b0a2');
+      rect(sx + dx2 * 4, sy - 12, 16, 2, headCol);
+      px(sx + dx2 * 4, sy - 10, headCol); px(sx + dx2 * 18, sy - 10, headCol);
+      px(sx + dx2 * 4, sy - 14, '#b8b0a2'); px(sx + dx2 * 18, sy - 14, '#b8b0a2');
     }
   } else {       // colpo in diagonale verso il bersaglio
-    for (let i = 0; i < 5; i++) px(sx + dx2 * (2 + i), sy + 2 + i, '#8a5f38');
-    if (kind === 'chop') rect(sx + dx2 * 7 - 1, sy + 7, 4, 3, headCol);
-    else { rect(sx + dx2 * 6, sy + 7, 6, 1, headCol); px(sx + dx2 * 6, sy + 8, headCol); px(sx + dx2 * 11, sy + 8, headCol); } // piccone a doppia punta
+    for (let i = 0; i < 5; i++) px(sx + dx2 * (4 + i * 2), sy + 4 + i * 2, '#8a5f38');
+    if (kind === 'chop') rect(sx + dx2 * 14 - 2, sy + 14, 8, 6, headCol);
+    else { rect(sx + dx2 * 12, sy + 14, 12, 2, headCol); px(sx + dx2 * 12, sy + 16, headCol); px(sx + dx2 * 22, sy + 16, headCol); } // piccone a doppia punta
   }
   if (struck) {  // schegge sulla tile davanti
-    const fx = P.dir === 'left' ? -14 : P.dir === 'right' ? 14 : 0;
-    const fy = P.dir === 'up' ? -12 : P.dir === 'down' ? 12 : 0;
+    const fx = P.dir === 'left' ? -28 : P.dir === 'right' ? 28 : 0;
+    const fy = P.dir === 'up' ? -24 : P.dir === 'down' ? 24 : 0;
     const t2 = (ph * 4) % 1;
-    const OX = [-5, -2, 1, 4, 6], H = [5, 7, 4, 6, 5];
+    const OX = [-10, -4, 2, 8, 12], H = [10, 14, 8, 12, 10];
     const CC = kind === 'chop' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
       : ['#9a9285', '#b8b0a2', '#7f776a', '#9a9285', '#b8b0a2'];
-    for (let i = 0; i < 5; i++) px(Math.round(sx + fx + OX[i] * (0.4 + t2)), Math.round(sy + 10 + fy - Math.sin(Math.PI * t2) * H[i]), CC[i]);
+    for (let i = 0; i < 5; i++) px(Math.round(sx + fx + OX[i] * (0.4 + t2)), Math.round(sy + 20 + fy - Math.sin(Math.PI * t2) * H[i]), CC[i]);
   }
   ctx.restore();
 }
