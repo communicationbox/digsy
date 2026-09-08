@@ -1661,11 +1661,11 @@ sprites.applyLook();
   {
     const dataMod = await import('../src/data.js');
     const base = sprites.SPR.down[0];
-    /* corpo ridisegnato a 32×26 (testa righe 0–15, collo 16, torso 17–25, gambe 26–31):
-       la prima riga di torso è 17, la prima riga di gambe 26 */
+    /* corpo raddoppiato meccanicamente dal disegno storico (testa righe 0–17, torso 18–25,
+       gambe 26–31): la prima riga di torso è 18, la prima riga di gambe 26 */
     const tank = sprites.styleLook(base, 'tank', 'long');
-    const bf = base[17].indexOf('S'), bl = base[17].lastIndexOf('S');
-    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', bf >= 0 && tank[17][bf] === 'F' && tank[17][bl] === 'F' && tank[17].includes('S'));
+    const bf = base[18].indexOf('S'), bl = base[18].lastIndexOf('S');
+    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', bf >= 0 && tank[18][bf] === 'F' && tank[18][bl] === 'F' && tank[18].includes('S'));
     const shorts = sprites.styleLook(base, 'tshirt', 'shorts');
     check('pantaloncini: stinco scoperto (una riga di pantalone → pelle)', !shorts[29].includes('P') && shorts[28].includes('P'));
     const skirt = sprites.styleLook(base, 'tshirt', 'skirt');
