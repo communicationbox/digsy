@@ -268,20 +268,22 @@ export function drawLamp(sx, sy) {
 }
 /* affioramento d'ossa: cranio semisepolto + costole; scintilla se ha ancora scavi */
 export function drawSite(sx, sy, remaining, time, tx, ty) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
+  /* FASE 2: nativa — montarolo con quarto tono, costole più leggibili, scintilla più ampia. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx: scatterebbe con la camera)
-  shadow(sx + 8, sy + 14, 7);
-  rect(sx + 2, sy + 9, 12, 5, '#c9a06a'); rect(sx + 3, sy + 8, 10, 2, '#d8b581'); // montarolo di terra
-  rect(sx + 2, sy + 12, 12, 2, shade8('#c9a06a', 0.8)); // ombra propria alla base del montarolo
+  shadow(sx + 16, sy + 28, 14);
+  rect(sx + 4, sy + 18, 24, 10, '#c9a06a'); rect(sx + 6, sy + 16, 20, 4, '#d8b581'); // montarolo di terra
+  rect(sx + 4, sy + 24, 24, 4, shade8('#c9a06a', 0.8)); // ombra propria alla base del montarolo
+  rect(sx + 6, sy + 16, 4, 2, shade8('#d8b581', 1.15)); // quarto tono: cresta di luce sul montarolo
   const boneC = remaining > 0 ? '#ece5d2' : '#b8b0a2', boneD = remaining > 0 ? '#cbbfa4' : '#9a927f';
   for (let i = 0; i < 3; i++) { // costole ad arco
-    const bx = sx + 4 + i * 3;
-    px(bx, sy + 4 + i, boneC); px(bx + 1, sy + 3 + i, boneC); px(bx + 2, sy + 4 + i, boneD); px(bx, sy + 6 + i, boneD);
+    const bx = sx + 8 + i * 6;
+    px(bx, sy + 8 + i * 2, boneC); px(bx + 2, sy + 6 + i * 2, boneC); px(bx + 4, sy + 8 + i * 2, boneD); px(bx, sy + 12 + i * 2, boneD);
   }
-  rect(sx + 10, sy + 7, 4, 3, boneC); px(sx + 11, sy + 8, '#3a3128'); px(sx + 13, sy + 8, '#3a3128'); // cranio
-  if (remaining > 0) { // scintilla pulsante
+  rect(sx + 20, sy + 14, 8, 6, boneC); px(sx + 22, sy + 16, '#3a3128'); px(sx + 26, sy + 16, '#3a3128'); // cranio
+  if (remaining > 0) { // scintilla pulsante, ampiezza raddoppiata
     const a = (Math.sin(time / 300 + ph) + 1) / 2;
-    if (a > 0.4) { px(sx + 2, sy + 2, '#fff6c8'); px(sx + 1, sy + 3, '#f6d95c'); px(sx + 3, sy + 3, '#f6d95c'); px(sx + 2, sy + 4, '#fff6c8'); }
+    if (a > 0.4) { px(sx + 4, sy + 4, '#fff6c8'); px(sx + 2, sy + 6, '#f6d95c'); px(sx + 6, sy + 6, '#f6d95c'); px(sx + 4, sy + 8, '#fff6c8'); }
   }
   ctx.restore();
 }
@@ -304,47 +306,53 @@ export function drawBonePit(sx, sy, rx, ry) {
 /* le 5 parti, SAGOME DIVERSE (non lo stesso mucchietto ripetuto): si legge quale osso è quale
    anche prima di scavarlo. Ferme (la scintilla sola basta a dire "qui c'è ancora da scavare"). */
 export function drawBonePart(sx, sy, part, time, tx, ty) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
+  /* FASE 2: nativa — ogni sagoma con un tocco di quarto tono in più (osso al centro schiarito). */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const ph = ((tx || 0) * 7 + (ty || 0) * 13);
-  const boneC = '#ece5d2', boneD = '#cbbfa4', dark = '#3a3128';
-  shadow(sx + 8, sy + 13, 6);
+  const boneC = '#ece5d2', boneD = '#cbbfa4', boneL = shade8('#ece5d2', 1.15), dark = '#3a3128';
+  shadow(sx + 16, sy + 26, 12);
   if (part === 'cranio') {
-    rect(sx + 4, sy + 6, 8, 6, boneC); rect(sx + 2, sy + 8, 3, 3, boneC);          // cranio ovale + muso
-    px(sx + 6, sy + 8, dark); px(sx + 9, sy + 8, dark);                            // occhi
-    rect(sx + 4, sy + 11, 8, 1, boneD);
+    rect(sx + 8, sy + 12, 16, 12, boneC); rect(sx + 4, sy + 16, 6, 6, boneC);       // cranio ovale + muso
+    rect(sx + 10, sy + 14, 6, 2, boneL);                                            // quarto tono: luce sulla fronte
+    px(sx + 12, sy + 16, dark); px(sx + 18, sy + 16, dark);                         // occhi
+    rect(sx + 8, sy + 22, 16, 2, boneD);
   } else if (part === 'torace') {
-    for (let i = 0; i < 3; i++) { const bx = sx + 3 + i * 3;                       // costole ad arco
-      px(bx, sy + 5 + i, boneC); px(bx + 1, sy + 4 + i, boneC); px(bx + 2, sy + 5 + i, boneD); px(bx, sy + 7 + i, boneD); }
-    rect(sx + 7, sy + 4, 1, 8, boneD);                                             // colonna
+    for (let i = 0; i < 3; i++) { const bx = sx + 6 + i * 6;                        // costole ad arco
+      px(bx, sy + 10 + i * 2, boneC); px(bx + 2, sy + 8 + i * 2, boneC); px(bx + 4, sy + 10 + i * 2, boneD); px(bx, sy + 14 + i * 2, boneD); }
+    rect(sx + 14, sy + 8, 2, 16, boneD); rect(sx + 14, sy + 8, 1, 16, boneL);        // colonna + filo di luce
   } else if (part === 'zampa') {
-    rect(sx + 2, sy + 3, 3, 3, boneC); rect(sx + 4, sy + 5, 2, 6, boneD);          // osso lungo in diagonale
-    rect(sx + 6, sy + 9, 2, 3, boneD); rect(sx + 8, sy + 11, 3, 3, boneC);
+    rect(sx + 4, sy + 6, 6, 6, boneC); rect(sx + 8, sy + 10, 4, 12, boneD);          // osso lungo in diagonale
+    rect(sx + 12, sy + 18, 4, 6, boneD); rect(sx + 16, sy + 22, 6, 6, boneC);
+    px(sx + 5, sy + 7, boneL);                                                       // quarto tono: nocca in luce
   } else if (part === 'coda') {
-    for (let i = 0; i < 5; i++) { const yy = sy + 3 + i * 2 - (i > 2 ? (i - 2) : 0); px(sx + 2 + i * 3, yy, boneC); px(sx + 3 + i * 3, yy, boneD); } // vertebre che si accorciano curvando
+    for (let i = 0; i < 5; i++) { const yy = sy + 6 + i * 4 - (i > 2 ? (i - 2) * 2 : 0); px(sx + 4 + i * 6, yy, boneC); px(sx + 6 + i * 6, yy, boneD); px(sx + 4 + i * 6, yy + 1, boneL); } // vertebre che si accorciano curvando
   } else { // corno
-    for (let i = 0; i < 7; i++) px(sx + 5 + Math.floor(i / 2), sy + 13 - i, i % 2 ? boneC : boneD);
+    for (let i = 0; i < 7; i++) px(sx + 10 + Math.floor(i / 2) * 2, sy + 26 - i * 2, i % 2 ? boneC : boneD);
+    px(sx + 10, sy + 26, boneL); // punta in luce
   }
-  const a = (Math.sin(time / 300 + ph) + 1) / 2;                                   // scintilla: c'è ancora da scavare
-  if (a > 0.4) { px(sx + 8, sy + 1, '#fff6c8'); px(sx + 7, sy + 2, '#f6d95c'); px(sx + 9, sy + 2, '#f6d95c'); }
+  const a = (Math.sin(time / 300 + ph) + 1) / 2;                                    // scintilla: c'è ancora da scavare, ampiezza raddoppiata
+  if (a > 0.4) { px(sx + 16, sy + 2, '#fff6c8'); px(sx + 14, sy + 4, '#f6d95c'); px(sx + 18, sy + 4, '#f6d95c'); }
   ctx.restore();
 }
 /* RELITTO in mare: scafo spezzato e albero pendente che affiorano dall'acqua (bob leggero) */
 export function drawWreck(sx, sy, time, tx, ty) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  /* FASE 2: nativa — assi dello scafo con quarto tono, vela con più stracci. */
   const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx)
-  const bob = Math.round(Math.sin(time / 500 + ph) * 1);
+  const bob = Math.round(Math.sin(time / 500 + ph) * 2);
   const y = sy + bob;
   // scafo scuro inclinato
-  rect(sx + 1, y + 6, 13, 5, '#4a382a'); rect(sx + 1, y + 6, 13, 1, '#6a5038');
-  rect(sx + 2, y + 5, 11, 1, '#5c4630'); rect(sx + 1, y + 11, 13, 1, '#2f2418');
-  for (let i = 0; i < 4; i++) px(sx + 3 + i * 3, y + 8, '#2f2418');            // fasciame (assi)
+  rect(sx + 2, y + 12, 26, 10, '#4a382a'); rect(sx + 2, y + 12, 26, 2, '#6a5038');
+  rect(sx + 4, y + 10, 22, 2, '#5c4630'); rect(sx + 2, y + 22, 26, 2, '#2f2418');
+  for (let i = 0; i < 4; i++) px(sx + 6 + i * 6, y + 16, '#2f2418');            // fasciame (assi)
+  rect(sx + 4, y + 20, 20, 1, shade8('#4a382a', 0.75));                        // quarto tono: ombra bassa dello scafo
   // buco nello scafo
-  rect(sx + 9, y + 8, 3, 3, '#20323f');
+  rect(sx + 18, y + 16, 6, 6, '#20323f');
   // albero maestro pendente + vela strappata
-  rect(sx + 4, y - 4, 1, 10, '#6a5038'); rect(sx + 4, y - 5, 1, 1, '#8a6a4a');
-  rect(sx + 5, y - 3, 4, 4, '#c9bfa6'); px(sx + 7, y - 1, '#a89a78'); px(sx + 8, y, '#a89a78'); // vela lacera
+  rect(sx + 8, y - 8, 2, 20, '#6a5038'); rect(sx + 8, y - 10, 2, 2, '#8a6a4a');
+  rect(sx + 10, y - 6, 8, 8, '#c9bfa6'); px(sx + 14, y - 2, '#a89a78'); px(sx + 16, y, '#a89a78'); // vela lacera
   // increspature attorno
-  ctx.fillStyle = 'rgba(200,235,245,.35)'; ctx.fillRect(sx - 1, y + 12, 4, 1); ctx.fillRect(sx + 12, y + 11, 4, 1);
+  ctx.fillStyle = 'rgba(200,235,245,.35)'; ctx.fillRect(sx - 2, y + 24, 8, 2); ctx.fillRect(sx + 24, y + 22, 8, 2);
   ctx.restore();
 }
 function drawTownDeco(d, sx, sy, time) {
@@ -428,57 +436,58 @@ export function drawMailbox(sx, sy) {
 const GLYPH_COL = { terra: ['#b07a3c', '#e6c48a'], acqua: ['#3f9bdc', '#bfe6ff'], albero: ['#5fae4a', '#c8f0b0'], roccia: ['#9aa2ad', '#e2e7ef'], grotta: ['#e0a83c', '#ffe6a6'] };
 function drawCompanionGlyph(type, cx, cy, time) {
   if (!type) return;
-  ctx.save(); ctx.translate(cx, cy); ctx.scale(2, 2); cx = 0; cy = 0;
-  const y = cy + (Math.sin(time / 300) < 0 ? -1 : 0);
+  /* FASE 2: nativa, blocchi 2×2 al posto del singolo pixel scalato meccanicamente. */
+  const y = cy + (Math.sin(time / 300) < 0 ? -2 : 0);
   const [c, hi] = GLYPH_COL[type] || GLYPH_COL.terra;
-  px(cx, y - 1, c); px(cx - 1, y, c); px(cx + 1, y, c); px(cx, y + 1, c); // diamante
-  px(cx, y, hi);                                                          // nucleo chiaro
-  ctx.restore();
+  rect(cx - 1, y - 2, 2, 2, c); rect(cx - 2, y, 2, 2, c); rect(cx + 2, y, 2, 2, c); rect(cx - 1, y + 2, 2, 2, c); // diamante
+  rect(cx - 1, y, 2, 2, hi);                                                                                     // nucleo chiaro
 }
 /* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — sedere/coda fuori dall'acqua
    che si tuffa e riemerge, zampe palmate che remano, increspature e bollicine. Sostituisce il
    disegno normale della creatura durante il lavoro d'acqua. Colore dal torace della creatura. */
 function drawCompanionDabble(cx, cyBase, time, obj) {
+  /* FASE 2: nativa — posizioni/ampiezze raddoppiate (cx/cyBase arrivano già alla scala vera). */
   const body = (obj && spColor[obj.c.torso]) || '#c8b078';
   const dark = shade8(body, 0.7), light = shade8(body, 1.18);
-  const wy = cyBase + 3;                                    // pelo dell'acqua
-  const bob = Math.round(Math.sin(time / 260) * 2);         // il sedere si tuffa e riemerge
-  const top = wy - 11 + bob;
+  const wy = cyBase + 6;                                    // pelo dell'acqua
+  const bob = Math.round(Math.sin(time / 260) * 4);         // il sedere si tuffa e riemerge
+  const top = wy - 22 + bob;
   const rows = [1, 1, 2, 2, 3, 3, 4, 4, 4];                 // rump a goccia: stretto in cima (coda)
-  for (let r = 0; r < rows.length; r++) { const yy = top + r, hw = rows[r];
-    for (let x = -hw; x <= hw; x++) px(cx + x, yy, (x === -hw || x === hw) ? dark : yy >= wy - 3 ? light : body); }
-  px(cx, top - 1, dark);
-  const wag = Math.round(Math.sin(time / 130));             // coda che scodinzola
-  px(cx + wag, top - 1, body); px(cx + wag, top - 2, light);
+  for (let r = 0; r < rows.length; r++) { const yy = top + r * 2, hw = rows[r] * 2;
+    for (let x = -hw; x <= hw; x++) rect(cx + x, yy, 1, 2, (x === -hw || x === hw) ? dark : yy >= wy - 6 ? light : body); }
+  px(cx, top - 2, dark);
+  const wag = Math.round(Math.sin(time / 130)) * 2;         // coda che scodinzola
+  px(cx + wag, top - 2, body); px(cx + wag, top - 4, light);
   const pad = Math.floor(time / 160) % 2;                   // zampe palmate che remano
-  px(cx - 5, wy + 1 - pad, dark); px(cx - 6, wy + 1 - pad, dark);
-  px(cx + 5, wy + pad, dark); px(cx + 6, wy + pad, dark);
-  rect(cx - 6, wy, 13, 2, '#4d8fb5'); rect(cx - 6, wy, 13, 1, '#83cfe6'); // acqua che copre la testa
+  px(cx - 10, wy + 2 - pad * 2, dark); px(cx - 12, wy + 2 - pad * 2, dark);
+  px(cx + 10, wy + pad * 2, dark); px(cx + 12, wy + pad * 2, dark);
+  rect(cx - 12, wy, 26, 4, '#4d8fb5'); rect(cx - 12, wy, 26, 2, '#83cfe6'); // acqua che copre la testa
   const rr = 1 + Math.floor((time / 200) % 3);              // increspature
-  for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(cx + Math.cos(an) * (rr + 2)), Math.round(wy + 1 + Math.sin(an) * (rr + 1) * 0.5), 'rgba(190,233,244,.45)'); }
-  if (Math.floor(time / 300) % 2) { px(cx - 2, wy + 2, '#bfe9f4'); px(cx + 2, wy + 3, '#e8f6fb'); } // bollicine
+  for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(cx + Math.cos(an) * (rr + 2) * 2), Math.round(wy + 2 + Math.sin(an) * (rr + 1)), 'rgba(190,233,244,.45)'); }
+  if (Math.floor(time / 300) % 2) { px(cx - 4, wy + 4, '#bfe9f4'); px(cx + 4, wy + 6, '#e8f6fb'); } // bollicine
 }
 /* SCAVO da ANIMALE (niente pala!): come un cane/talpa — testa nella buca, sedere/coda su che
    scodinzola, zampe che grattano e TERRA che schizza indietro a ondate, mucchietto che cresce
    dietro. Sostituisce il disegno normale della creatura. Colore dal torace. Fase dal TEMPO. */
 function drawCompanionDig(cx, cyBase, time, obj, dir) {
+  /* FASE 2: nativa — posizioni/ampiezze raddoppiate. */
   const body = (obj && spColor[obj.c.torso]) || '#c8b078';
   const dark = shade8(body, 0.7), light = shade8(body, 1.18);
-  const gy = cyBase + 4, back = -dir;                       // la terra vola DIETRO (opposto al muso)
-  for (let x = -4; x <= 4; x++) { const d = Math.round(2 * Math.sqrt(Math.max(0, 1 - x * x / 16))); if (d) rect(cx + x, gy - d + 1, 1, d, '#3a2a18'); } // buca
-  rect(cx - 4, gy, 9, 1, '#5a4326');
-  for (let x = -2; x <= 2; x++) { const h = Math.max(0, 3 - Math.abs(x)); for (let k = 0; k < h; k++) px(cx + back * 7 + x, gy - k, k === h - 1 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
-  const bob = Math.round(Math.sin(time / 110)), rx = cx + back * 2, top = gy - 6 - bob; // sedere su, il muso NELLA buca (niente gap)
+  const gy = cyBase + 8, back = -dir;                       // la terra vola DIETRO (opposto al muso)
+  for (let x = -8; x <= 8; x += 2) { const d = Math.round(4 * Math.sqrt(Math.max(0, 1 - x * x / 64))); if (d) rect(cx + x, gy - d + 2, 2, d, '#3a2a18'); } // buca
+  rect(cx - 8, gy, 18, 2, '#5a4326');
+  for (let x = -4; x <= 4; x += 2) { const h = Math.max(0, 6 - Math.abs(x)); for (let k = 0; k < h; k += 2) px(cx + back * 14 + x, gy - k, k >= h - 2 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
+  const bob = Math.round(Math.sin(time / 110)) * 2, rx = cx + back * 4, top = gy - 12 - bob; // sedere su, il muso NELLA buca (niente gap)
   const rows = [1, 1, 2, 2, 3, 3, 3];
-  for (let r = 0; r < rows.length; r++) { const yy = top + r, hw = rows[r]; for (let x = -hw; x <= hw; x++) px(rx + x, yy, (x === -hw || x === hw) ? dark : yy >= gy - 3 ? light : body); }
-  const wag = Math.round(Math.sin(time / 85));             // coda che scodinzola
-  px(rx + wag, top - 1, body); px(rx + wag, top - 2, light);
+  for (let r = 0; r < rows.length; r++) { const yy = top + r * 2, hw = rows[r] * 2; for (let x = -hw; x <= hw; x++) rect(rx + x, yy, 1, 2, (x === -hw || x === hw) ? dark : yy >= gy - 6 ? light : body); }
+  const wag = Math.round(Math.sin(time / 85)) * 2;         // coda che scodinzola
+  px(rx + wag, top - 2, body); px(rx + wag, top - 4, light);
   const scr = Math.floor(time / 70) % 2;                    // zampe davanti che grattano
-  px(cx - dir * 2, gy - scr, dark); px(cx - dir * 3, gy - 1 + scr, dark);
+  px(cx - dir * 4, gy - scr * 2, dark); px(cx - dir * 6, gy - 2 + scr * 2, dark);
   const beat = (time / 70) % 1;                             // TERRA a ondate indietro
   if (Math.floor(time / 70) % 2 === 0) {
-    const OX = [2, 4, 6, 8], H = [6, 8, 6, 4], CC = ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59'];
-    for (let i = 0; i < 4; i++) px(Math.round(cx + back * OX[i] * (0.6 + beat)), Math.round(gy - 2 - Math.sin(Math.PI * beat) * H[i]), CC[i]);
+    const OX = [4, 8, 12, 16], H = [12, 16, 12, 8], CC = ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59'];
+    for (let i = 0; i < 4; i++) px(Math.round(cx + back * OX[i] * (0.6 + beat)), Math.round(gy - 4 - Math.sin(Math.PI * beat) * H[i]), CC[i]);
   }
 }
 /* TAGLIO ALBERO da ANIMALE (niente accetta!): la creatura ROSICCHIA il tronco come un castoro —
@@ -486,16 +495,17 @@ function drawCompanionDig(cx, cyBase, time, obj, dir) {
    legno, e dalla chioma cadono FOGLIE ondeggiando. La creatura è disegnata a parte (in piedi
    col morso in avanti); qui gli effetti. Fase dal TEMPO. */
 function drawCompanionChop(cx, cy, time, dir) {
-  const tx = cx + dir * 7, beat = (time / 90) % 1, bite = Math.floor(time / 90) % 2 === 0; // tronco davanti
+  /* FASE 2: nativa — posizioni/ampiezze raddoppiate. */
+  const tx = cx + dir * 14, beat = (time / 90) % 1, bite = Math.floor(time / 90) % 2 === 0; // tronco davanti
   if (bite) {
-    const OX = [0, 2, 4, 6], H = [3, 5, 4, 2], CC = ['#8a5f38', '#b98d59', '#6e4a2e', '#d9b98a'];
-    for (let i = 0; i < 4; i++) px(Math.round(tx + dir * OX[i] * (0.5 + beat)), Math.round(cy - 1 - Math.sin(Math.PI * beat) * H[i]), CC[i]); // trucioli
-    px(tx, cy - 1, '#d9b98a'); px(tx, cy, '#c79a66');                              // tacca chiara sul tronco
+    const OX = [0, 4, 8, 12], H = [6, 10, 8, 4], CC = ['#8a5f38', '#b98d59', '#6e4a2e', '#d9b98a'];
+    for (let i = 0; i < 4; i++) px(Math.round(tx + dir * OX[i] * (0.5 + beat)), Math.round(cy - 2 - Math.sin(Math.PI * beat) * H[i]), CC[i]); // trucioli
+    rect(tx, cy - 2, 2, 2, '#d9b98a'); rect(tx, cy, 2, 2, '#c79a66');               // tacca chiara sul tronco
   }
   for (let k = 0; k < 3; k++) {                                                     // foglie che cadono ondeggiando
     const t = ((time / 800) + k * 0.37) % 1;
-    const fy = cy - 22 + t * 26, fx = cx + dir * 3 + Math.round(Math.sin((t * 5 + k) * 2) * 3);
-    if (t < 0.9) { px(Math.round(fx), Math.round(fy), k % 2 ? '#4e7a3d' : '#619a4c'); if (t < 0.5) px(Math.round(fx) + dir, Math.round(fy), '#3f6a32'); }
+    const fy = cy - 44 + t * 52, fx = cx + dir * 6 + Math.round(Math.sin((t * 5 + k) * 2) * 6);
+    if (t < 0.9) { px(Math.round(fx), Math.round(fy), k % 2 ? '#4e7a3d' : '#619a4c'); if (t < 0.5) px(Math.round(fx) + dir * 2, Math.round(fy), '#3f6a32'); }
   }
 }
 /* ROTTURA ROCCIA da ANIMALE (niente piccone!): la creatura TESTA il masso come un ariete/capra —
@@ -503,41 +513,40 @@ function drawCompanionChop(cx, cy, time, dir) {
    una CREPA pallida che si apre sul masso. La creatura è disegnata a parte (in piedi, testata in
    avanti); qui gli effetti. Fase dal TEMPO. */
 function drawCompanionMine(cx, cy, time, dir) {
-  const rx = cx + dir * 7, beat = (time / 85) % 1, hit = Math.floor(time / 85) % 2 === 0; // punto d'impatto
-  /* CREPA che si apre (zigzag pallido sul masso, sempre visibile durante il lavoro) */
-  px(rx, cy - 3, '#cbc4b6'); px(rx + dir, cy - 2, '#cbc4b6'); px(rx, cy - 1, '#d8d2c6'); px(rx - dir, cy, '#cbc4b6'); px(rx, cy + 1, '#cbc4b6');
+  /* FASE 2: nativa — posizioni/ampiezze raddoppiate, crepa e lampo a blocchi 2×2. */
+  const rx = cx + dir * 14, beat = (time / 85) % 1, hit = Math.floor(time / 85) % 2 === 0; // punto d'impatto
+  rect(rx, cy - 6, 2, 2, '#cbc4b6'); rect(rx + dir * 2, cy - 4, 2, 2, '#cbc4b6'); rect(rx, cy - 2, 2, 2, '#d8d2c6'); rect(rx - dir * 2, cy, 2, 2, '#cbc4b6'); rect(rx, cy + 2, 2, 2, '#cbc4b6'); // crepa che si apre
   if (hit) {
-    px(rx, cy - 1, '#ffffff'); px(rx - 1, cy - 1, '#eef2f6'); px(rx + 1, cy - 1, '#eef2f6'); px(rx, cy - 2, '#eef2f6'); px(rx, cy, '#eef2f6'); // LAMPO d'impatto
-    const OX = [0, 2, 4, 6], H = [5, 7, 5, 3], CC = ['#9a9285', '#b8b0a2', '#e2e7ef', '#7f776a'];
-    for (let i = 0; i < 4; i++) px(Math.round(rx + dir * OX[i] * (0.5 + beat)), Math.round(cy - 1 - Math.sin(Math.PI * beat) * H[i]), CC[i]); // scaglie
-    if (Math.floor(time / 170) % 2) px(rx + dir * 3, cy - 2, '#ffe98a'); // scintilla gialla
+    rect(rx, cy - 2, 2, 2, '#ffffff'); rect(rx - 2, cy - 2, 2, 2, '#eef2f6'); rect(rx + 2, cy - 2, 2, 2, '#eef2f6'); rect(rx, cy - 4, 2, 2, '#eef2f6'); rect(rx, cy, 2, 2, '#eef2f6'); // LAMPO d'impatto
+    const OX = [0, 4, 8, 12], H = [10, 14, 10, 6], CC = ['#9a9285', '#b8b0a2', '#e2e7ef', '#7f776a'];
+    for (let i = 0; i < 4; i++) px(Math.round(rx + dir * OX[i] * (0.5 + beat)), Math.round(cy - 2 - Math.sin(Math.PI * beat) * H[i]), CC[i]); // scaglie
+    if (Math.floor(time / 170) % 2) px(rx + dir * 6, cy - 4, '#ffe98a'); // scintilla gialla
   }
-  px(cx + dir * 5, cy + 2, 'rgba(150,150,150,.45)'); // polverina alla base
+  px(cx + dir * 10, cy + 4, 'rgba(150,150,150,.45)'); // polverina alla base
 }
 /* RACCOGLITORE LEGGENDARIO: animazione del lavoro (fase 'work'). Gli ANIMALI non usano attrezzi:
    ACQUA = dabble d'oca · TERRA = scavo a testa in giù (cane) · ALBERO = rosicchia il tronco
    (castoro) · ROCCIA = testa il masso (ariete). Coordinate già snap. */
 function drawCompanionWork(cxs, cys, time, obj) {
+  /* FASE 2: le 4 funzioni sottostanti sono ormai native, questo dispatcher non deve più
+     scalare (altrimenti le raddoppia una seconda volta). */
   const j = COMP.job; if (!j || j.phase !== 'work') return;
-  ctx.save(); ctx.translate(cxs, cys); ctx.scale(2, 2); cxs = 0; cys = 0;
   const dir = j.wx >= COMP.x ? 1 : -1;
-  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); ctx.restore(); return; }
-  if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); ctx.restore(); return; }
-  if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); ctx.restore(); return; }
+  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
+  if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); return; }
+  if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); return; }
   drawCompanionMine(cxs, cys, time, dir); // roccia
-  ctx.restore();
 }
 /* "+fossile" che sale dal raccoglitore quando trova qualcosa (contorno rarità) */
 const COMP_RARCOL = { comune: '#cfc8b6', raro: '#7fbfe0', eccezionale: '#c79be6', leggendario: '#f0c86a' };
 function drawCompanionFx(cam, time) {
+  /* FASE 2: nativa — ossino a blocchi 2×2, ampiezza di risalita raddoppiata. */
   if (!COMP.fx || !COMP.fx.length) return;
   for (const p of COMP.fx) {
-    const gx = snap(p.x - cam.x), gy = snap(p.y - cam.y - (1 - p.life) * 32), a = Math.max(0, p.life);
+    const gx = snap(p.x - cam.x), gy = snap(p.y - cam.y - (1 - p.life) * 64), a = Math.max(0, p.life);
     const w = 'rgba(245,240,225,' + a.toFixed(2) + ')', w2 = 'rgba(245,240,225,' + (a * 0.7).toFixed(2) + ')';
-    ctx.save(); ctx.translate(gx, gy); ctx.scale(2, 2);
-    px(0, 0, w); px(-1, 0, w2); px(1, 0, w2); px(0, -1, w2);      // ossino "+"
-    if (a > 0.4) px(0, -2, COMP_RARCOL[p.q] || '#e8d9b0');         // scintilla rarità
-    ctx.restore();
+    rect(gx - 1, gy - 1, 2, 2, w); rect(gx - 3, gy - 1, 2, 2, w2); rect(gx + 1, gy - 1, 2, 2, w2); rect(gx - 1, gy - 3, 2, 2, w2); // ossino "+"
+    if (a > 0.4) rect(gx - 1, gy - 5, 2, 2, COMP_RARCOL[p.q] || '#e8d9b0');                                                        // scintilla rarità
   }
 }
 /* MINIGIOCO "gioca col compagno": pallina lanciata con un arco, ferma dove atterra finché il
@@ -546,20 +555,19 @@ function drawCompanionFx(cam, time) {
    la attraversa: non è indovinare al buio, è leggere il momento giusto. Coordinate schermo
    (cxs/cys = compagno già -cam, come il resto del blocco che lo disegna). */
 function drawCompanionPlay(cxs, cys, cam, time) {
+  /* FASE 2: nativa — palla a blocchi 2×2, arco/soglia raddoppiati, barra di tempismo più larga. */
   const pl = COMP.play; if (!pl) return;
   let bx, by;
   if (pl.phase === 'throw') {
-    const f = Math.min(1, pl.t / PLAY_THROW), arc = Math.sin(f * Math.PI) * 32;
+    const f = Math.min(1, pl.t / PLAY_THROW), arc = Math.sin(f * Math.PI) * 64;
     bx = snap(P.x + (pl.tx - P.x) * f - cam.x); by = snap(P.y + (pl.ty - P.y) * f - cam.y - arc);
   } else if (pl.phase === 'chase' || pl.phase === 'catch') {
-    bx = snap(pl.tx - cam.x); by = snap(pl.ty - cam.y + (Math.sin(time / 140) > 0 ? -2 : 0)); // un filo di vita mentre aspetta
-  } else { bx = cxs; by = cys - 36; } // 'return': il compagno se la porta dietro
-  ctx.save(); ctx.translate(bx, by); ctx.scale(2, 2);
-  px(0, 0, '#e8763c'); px(-1, 0, '#c65a2e'); px(1, 0, '#c65a2e'); px(0, -1, '#f2935c'); px(0, 1, '#a8451f');
-  ctx.restore();
+    bx = snap(pl.tx - cam.x); by = snap(pl.ty - cam.y + (Math.sin(time / 140) > 0 ? -4 : 0)); // un filo di vita mentre aspetta
+  } else { bx = cxs; by = cys - 72; } // 'return': il compagno se la porta dietro
+  rect(bx - 1, by - 1, 2, 2, '#e8763c'); rect(bx - 3, by - 1, 2, 2, '#c65a2e'); rect(bx + 1, by - 1, 2, 2, '#c65a2e'); rect(bx - 1, by - 3, 2, 2, '#f2935c'); rect(bx - 1, by + 1, 2, 2, '#a8451f');
   if (pl.phase !== 'catch') return;
-  const W = 32, H = 6, x0 = cxs - W / 2, y0 = cys - 52;
-  rect(x0 - 2, y0 - 2, W + 4, H + 4, '#2a2115');                     // cornice
+  const W = 64, H = 12, x0 = cxs - W / 2, y0 = cys - 104;
+  rect(x0 - 4, y0 - 4, W + 8, H + 8, '#2a2115');                     // cornice
   rect(x0, y0, W, H, '#4a3a26');                                     // fondo
   rect(x0 + PLAY_PERFECT[0] * W, y0, (PLAY_PERFECT[1] - PLAY_PERFECT[0]) * W, H, '#c79a3c'); // zona d'oro
   const cur = x0 + Math.min(1, pl.t / PLAY_CATCH) * W;
