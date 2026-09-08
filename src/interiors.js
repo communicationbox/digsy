@@ -254,7 +254,7 @@ export function drawMuseumGallery(time) {
     const sx = tx * TS, sy = ty * TS;
     rect(sx, sy, TS, TS, ((tx >> 1) + (ty >> 1)) % 2 ? '#cdbc98' : '#c2af88');
     if (!(tx % 2)) rect(sx, sy, 1, TS, '#b09d76'); if (!(ty % 2)) rect(sx, sy, TS, 1, '#b09d76');
-    if (vhash(tx, ty, 91) < 0.12) px(sx + 4 + Math.floor(vhash(tx, ty, 92) * 8), sy + 5 + Math.floor(vhash(tx, ty, 93) * 7), '#b09d76');
+    if (vhash(tx, ty, 91) < 0.12) { const px2 = sx + 4 + Math.floor(vhash(tx, ty, 92) * 24), py2 = sy + 5 + Math.floor(vhash(tx, ty, 93) * 22); rect(px2, py2, 2, 1, '#b09d76'); }
   }
   /* SALE per bioma: ognuna con tappeto del colore del bioma, cornice a mosaico,
      stendardo sulla parete di fondo, colonne agli angoli, panche e piante */
@@ -865,7 +865,7 @@ export function drawInteriorScene(time) {
     if (type === 'lab') {
       rect(sx, sy, TS, TS, (tx + ty) % 2 ? '#8f887a' : '#9a9285');
       rect(sx, sy, TS, 1, '#7f776a'); rect(sx, sy, 1, TS, '#7f776a');
-      if ((tx * 7 + ty * 5) % 9 === 0) px(sx + 9, sy + 10, '#75695c');
+      if ((tx * 7 + ty * 5) % 9 === 0) rect(sx + 18, sy + 20, 2, 2, '#75695c');
     } else if (type === 'museum') {
       rect(sx, sy, TS, TS, (tx + ty) % 2 ? '#ece5d2' : '#d9d0bb');
       rect(sx, sy, TS, 1, '#c4baa2'); rect(sx, sy, 1, TS, '#c4baa2');
@@ -876,7 +876,7 @@ export function drawInteriorScene(time) {
       /* assi del pavimento: il LEGNO è quello del bioma (chiaro nelle dune, scuro nei boschi) */
       const [w1, w2, w3] = INT_WOOD[INT.town ? zoneIdxAt(INT.town.C.x, INT.town.C.y) : 0] || INT_WOOD[0];
       rect(sx, sy, TS, TS, (tx + ty) % 2 ? w1 : w2);
-      rect(sx, sy + 7, TS, 1, w3); rect(sx + ((ty % 2) * 8), sy, 1, TS, w3);
+      rect(sx, sy + 14, TS, 1, w3); rect(sx + ((ty % 2) * 16), sy, 1, TS, w3);
     }
   }
   /* parete di fondo + laterali */

@@ -1230,13 +1230,13 @@ function drawCaveScene(time) {
       const openAbove = !caveSolid(tx, ty - 1);
       if (openAbove) { rect(sx, sy, TS, 4, '#7a72ad'); rect(sx, sy + 4, TS, 1, '#5a5488'); } // faccia superiore che prende luce
       else rect(sx, sy, TS, 2, '#3d3960');
-      if (vhash(tx, ty, 71) < 0.3) px(sx + 6, sy + 9, '#26243a');                 // venature
+      if (vhash(tx, ty, 71) < 0.3) { const vx = sx + 4 + Math.floor(vhash(tx, ty, 77) * 24), vy = sy + 4 + Math.floor(vhash(tx, ty, 78) * 24); rect(vx, vy, 2, 2, '#26243a'); } // venature
       if (!caveSolid(tx, ty + 1)) { rect(sx, sy + TS - 2, TS, 2, '#1b1930'); }     // ombra alla base (stacca dal pavimento)
     } else { // PAVIMENTO = terra CALDA e chiara: qui si CAMMINA (leggibile a colpo d'occhio)
       rect(sx, sy, TS, TS, ((tx + ty) & 1) ? '#5a4d40' : '#524537');
       rect(sx, sy, TS, 1, '#4a3f32'); // giunto leggero tra le lastre
-      if (vhash(tx, ty, 72) < 0.16) px(sx + 4 + Math.floor(vhash(tx, ty, 73) * 8), sy + 5 + Math.floor(vhash(tx, ty, 74) * 8), '#463a2e');
-      if (vhash(tx, ty, 75) < 0.06) px(sx + 3 + Math.floor(vhash(tx, ty, 76) * 9), sy + 6, '#6a5c48'); // sassolino chiaro
+      if (vhash(tx, ty, 72) < 0.16) { const dx4 = sx + 4 + Math.floor(vhash(tx, ty, 73) * 24), dy4 = sy + 5 + Math.floor(vhash(tx, ty, 74) * 24); rect(dx4, dy4, 2, 2, '#463a2e'); }
+      if (vhash(tx, ty, 75) < 0.06) { const sx4 = sx + 3 + Math.floor(vhash(tx, ty, 76) * 26), sy4 = sy + 4 + Math.floor(vhash(tx, ty, 79) * 24); rect(sx4, sy4, 2, 1, '#6a5c48'); } // sassolino chiaro
     }
   }
   /* ORME sul pavimento (aiutano a ritrovare la strada), più sbiadite col tempo */
