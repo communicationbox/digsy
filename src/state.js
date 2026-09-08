@@ -11,7 +11,7 @@ export let choppedSet = new Set(); // alberi abbattuti (accetta)
 export let minedSet = new Set();   // massi/guglie spaccati (piccone)
 export let pickedSet = new Set();  // oggetti di superficie raccolti (E)
 
-export const P = { x: 0, y: 0, dir: 'down', moving: false, anim: 0, speed: 46, digging: null, speedMul: 1, fly: false };
+export const P = { x: 0, y: 0, dir: 'down', moving: false, anim: 0, speed: 92, digging: null, speedMul: 1, fly: false };
 export const cam = { x: 0, y: 0 };
 
 /* SPESA DI ENERGIA — unico punto che tocca S.energy. Prima ogni azione faceva `S.energy--`

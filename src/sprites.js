@@ -382,6 +382,8 @@ export function heroClothes(look, view, frame) {
 
 /* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
 export function drawHero(tctx, x, y, dir, frame, noHat) {
+  const c2 = tctx || ctx;
+  c2.save(); c2.translate(x, y); c2.scale(2, 2); x = 0; y = 0;
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const flip = dir === 'left';
   const c = heroClothes(S.look, key, frame);
@@ -399,6 +401,7 @@ export function drawHero(tctx, x, y, dir, frame, noHat) {
     const sp = [[5, -1], [10, 0], [7, 1], [4, 1], [9, -1]];
     for (let i = 0; i < sp.length; i++) { if ((i + t) % 3 !== 0) continue; const [sx, sy] = sp[i]; g.fillStyle = (i % 2 ? '#ffffff' : '#f8dd82'); g.fillRect(x + (flip ? 15 - sx : sx), y + sy, 1, 1); }
   }
+  c2.restore();
 }
 /* tempo per il twinkle del glitter (aggiornato da render); default 0 per test/anteprime statiche */
 let heroTime = 0;

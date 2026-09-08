@@ -1,5 +1,5 @@
 /* Dati statici di gioco: specie, parti, rarità, biomi, costi, palette look */
-export const TS = 16;
+export const TS = 32;
 
 /* ---------- zone del mondo (tipo biomi Minecraft: ripetibili, ampiezze variabili) ---------- */
 /* LE ZONE: UN ELENCO SOLO.

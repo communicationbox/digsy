@@ -11,17 +11,17 @@
  */
 import { TS } from './data.js';
 
-/* Lo sprite è alto 30 px e disegnato con l'origine in alto: i piedi cadono 13 px sotto il
+/* Lo sprite è alto 60 px e disegnato con l'origine in alto: i piedi cadono 26 px sotto il
    punto (x, y) che il gioco chiama "posizione". Da questo numero dipendono scavo, bussola,
    mappa, porte, grotte e tocca-dove-andare. */
-export const FOOT_DY = 13;
+export const FOOT_DY = 26;
 
 /* Scatola di collisione: solo la parte BASSA del corpo. Un personaggio alto che urtasse con
    la testa non potrebbe passare sotto niente, e in un gioco dall'alto la regola che si legge
    a occhio è "i piedi non entrano nel muro". */
-export const BODY_HW = 5;    // mezza larghezza
-export const BODY_Y0 = 10;   // dal ginocchio…
-export const BODY_Y1 = 15;   // …alla pianta
+export const BODY_HW = 10;   // mezza larghezza
+export const BODY_Y0 = 20;   // dal ginocchio…
+export const BODY_Y1 = 30;   // …alla pianta
 
 /* La casella su cui poggiano i piedi. Accetta P, CAVE o INT: hanno tutti x/y compatibili. */
 export function feetTile(pos) {

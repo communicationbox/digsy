@@ -897,14 +897,14 @@ export function findStart() {
       const t = townForCell(cx, cy);
       if (t && t.size === 'città') {
         const sx = t.C.x;
-        for (let yy = t.C.y + 3; yy >= t.C.y; yy--) { const ti = townInfo(sx, yy); if (ti && ti.floor && openArea(sx, yy)) return { x: sx * TS + 8, y: yy * TS + 2, town: t }; }
-        for (let yy = t.C.y + 5; yy < t.C.y + 10; yy++) { if (openArea(sx, yy)) return { x: sx * TS + 8, y: yy * TS + 2, town: t }; }
+        for (let yy = t.C.y + 3; yy >= t.C.y; yy--) { const ti = townInfo(sx, yy); if (ti && ti.floor && openArea(sx, yy)) return { x: sx * TS + TS / 2, y: yy * TS + 4, town: t }; }
+        for (let yy = t.C.y + 5; yy < t.C.y + 10; yy++) { if (openArea(sx, yy)) return { x: sx * TS + TS / 2, y: yy * TS + 4, town: t }; }
       }
     }
   }
   for (let r = 0; r < 60; r++) for (let d = -r; d <= r; d++) {
     const cand = [[d, -r], [d, r], [-r, d], [r, d]];
-    for (const [tx, ty] of cand) { if (walkableGround(baseTerrain(tx, ty)) && openArea(tx, ty)) return { x: tx * TS + 8, y: ty * TS + 2 }; }
+    for (const [tx, ty] of cand) { if (walkableGround(baseTerrain(tx, ty)) && openArea(tx, ty)) return { x: tx * TS + TS / 2, y: ty * TS + 4 }; }
   }
   return { x: 8, y: 8 };
 }

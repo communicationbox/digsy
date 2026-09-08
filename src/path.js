@@ -11,17 +11,18 @@
 
    Modulo PURO: la mappa dei muri arriva come funzione `blocked(tx, ty)`. Così è testabile
    senza mondo, e il gioco decide cosa è solido. */
+import { FOOT_DY } from './body.js';
 
-/* Una casella è percorribile solo se il personaggio ci STA: è largo ~10 px, quindi provare
+/* Una casella è percorribile solo se il personaggio ci STA: è largo ~20 px, quindi provare
    il solo punto centrale non basta. Con il test al centro il percorso passava rasente al
    bancone del Curatore, poi la collisione vera lo fermava e non si usciva più dal museo.
    Qui si prova il centro e i due fianchi: quello che il percorso promette, il movimento
    lo mantiene. */
 export function fits(tx, ty, TS, collide) {
-  const cy = ty * TS + TS / 2 - 13;
+  const cy = ty * TS + TS / 2 - FOOT_DY;
   return !collide(tx * TS + TS / 2, cy)
-    && !collide(tx * TS + TS / 2 - 4, cy)
-    && !collide(tx * TS + TS / 2 + 4, cy);
+    && !collide(tx * TS + TS / 2 - 8, cy)
+    && !collide(tx * TS + TS / 2 + 8, cy);
 }
 
 export const MAX_LEN = 40;        // caselle: oltre questa distanza il tocco non vale

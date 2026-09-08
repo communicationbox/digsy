@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.96.0', it: [
+      'GRAFICA: raddoppio della risoluzione (16bit HD vero) — griglia di gioco raddoppiata (TS 16→32) e ogni sprite disegnato a mano (personaggio, edifici, natura, interni, veicoli, grotta) ridisegnato proporzionalmente 2×, mantenendo coerenza fra tutti gli elementi',
+    ], en: [
+      'GRAPHICS: resolution doubled (real 16-bit HD) — game grid doubled (TS 16→32) and every hand-drawn sprite (character, buildings, nature, interiors, vehicles, cave) redrawn proportionally 2×, keeping every element consistent with the others',
+    ],
+  },
+  {
     v: 'v0.95.25', it: [
       'ARREDO: raccogli e ripiazza un mobile toccandolo DIRETTAMENTE (o con {act} sotto i piedi) — non serve più camminarci sopra apposta; due bottoni a schermo (Ruota/Annulla) e un\'anteprima di cosa hai in mano',
       'ARREDO: tappeto e piante piccole sono DECORO — non bloccano più il passo e possono stare sulla STESSA casella di un mobile solido (tappeto sotto la sedia, ecc.); disegnati piatti dall\'alto invece che come mobili voxel in miniatura',

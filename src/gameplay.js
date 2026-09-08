@@ -192,7 +192,7 @@ export function stepDig(dt) {
 }
 /* si scava la casella VERSO CUI si guarda */
 /* si scava sempre SOTTO I PIEDI: mai il cubetto sbagliato.
-   P.x/P.y è l'ancora ALTA dello sprite: i piedi stanno a +13 (vedi collide) */
+   P.x/P.y è l'ancora ALTA dello sprite: i piedi stanno a +FOOT_DY (vedi collide) */
 export function digTarget() {
   return { tx: Math.floor(P.x / TS), ty: Math.floor((P.y + FOOT_DY) / TS) };
 }
@@ -384,7 +384,7 @@ export function checkGateNotice() {
 export function nearbyReturnPortal() {
   if (!S.returnPortal) return null;
   if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom != null) return null;
-  return (Math.abs(INT.x - ATRIO_PORTAL.x) < 16 && Math.abs(INT.y - ATRIO_PORTAL.y) < 16) ? S.returnPortal : null;
+  return (Math.abs(INT.x - ATRIO_PORTAL.x) < 32 && Math.abs(INT.y - ATRIO_PORTAL.y) < 32) ? S.returnPortal : null;
 }
 export function useReturnPortal() {
   if (!S.teleportBack) { S.returnPortal = null; return false; }

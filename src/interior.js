@@ -65,7 +65,7 @@ export function pedList() {
       /* 2 file da 5 piedistalli, ben distanziati dentro la sala. Collisione SOLO sulla base:
          la teca svetta e il pg ci passa DIETRO (disegnata dopo, z-order per y) */
       const tx = rx + 4 + (i % 5) * 4, ty = ry + 3 + Math.floor(i / 5) * 5;
-      out.push({ sp: pool[i], zi, tx, ty, x0: tx * TS + 2, y0: ty * TS + 4, x1: tx * TS + 14, y1: ty * TS + 15 });
+      out.push({ sp: pool[i], zi, tx, ty, x0: tx * TS + 4, y0: ty * TS + 8, x1: tx * TS + 28, y1: ty * TS + 30 });
     }
   });
   _peds = out; return _peds;
@@ -75,7 +75,7 @@ export const GAL_DESK = { x0: (GAL_W / 2 - 3) * TS, y0: (GAL_H - 5) * TS, x1: (G
 /* MAESTRO SCAVATORE: gira per il museo — dall'atrio sale, aggira il bancone e passeggia
    nel corridoio FRA le due file di teche della sala in basso a sinistra, poi torna indietro.
    Waypoint derivati dalla geometria (mai numeri magici): tutti su tile camminabili. */
-export const GAL_MENTOR = { x: GAL_DESK.x0 - 72, y: GAL_DESK.y1 + 22 };
+export const GAL_MENTOR = { x: GAL_DESK.x0 - 144, y: GAL_DESK.y1 + 44 };
 export const MENTOR_PATH = (() => {
   const { rx, ry } = roomOrigin(0);                      // sala più vicina all'ingresso
   const midY = (ry + 5.5) * TS;                          // fascia libera fra le due file di teche
@@ -96,7 +96,7 @@ export function updateMentor(dt) {
   if (MENTOR.wait > 0) { MENTOR.wait -= dt; return; }
   const [tx, ty] = MENTOR_PATH[MENTOR.pi];
   const dx = tx - MENTOR.x, dy = ty - MENTOR.y, l = Math.hypot(dx, dy);
-  if (l < 2) {                                           // waypoint raggiunto: prossimo (o inverti)
+  if (l < 4) {                                           // waypoint raggiunto: prossimo (o inverti)
     MENTOR.x = tx; MENTOR.y = ty;
     const last = MENTOR.back ? 0 : MENTOR_PATH.length - 1;
     if (MENTOR.pi === last) { MENTOR.back = !MENTOR.back; MENTOR.wait = 1.2; }
@@ -104,14 +104,14 @@ export function updateMentor(dt) {
     MENTOR.pi = Math.max(0, Math.min(MENTOR_PATH.length - 1, MENTOR.pi));
     return;
   }
-  const sp = 22, ux = dx / l, uy = dy / l;               // direzione dalla VELOCITÀ (niente moonwalk)
+  const sp = 44, ux = dx / l, uy = dy / l;               // direzione dalla VELOCITÀ (niente moonwalk)
   MENTOR.x += ux * sp * dt; MENTOR.y += uy * sp * dt;
   MENTOR.dir = Math.abs(ux) > Math.abs(uy) ? (ux < 0 ? 'left' : 'right') : (uy < 0 ? 'up' : 'down');
   MENTOR.anim += dt;
 }
 export function nearMentorInt() {
   if (!INT.active || !INT.b || INT.b.type !== 'museum') return false;
-  return Math.abs(INT.x - MENTOR.x) < 26 && Math.abs(INT.y - MENTOR.y) < 26;
+  return Math.abs(INT.x - MENTOR.x) < 52 && Math.abs(INT.y - MENTOR.y) < 52;
 }
 
 /* NPC per mestiere: look (usato con drawHero) e nome */
@@ -125,32 +125,32 @@ export const NPCS = {
 };
 export function npcName(type) { const n = (NPCS[type] || NPCS.store).name; return tr(n[0], n[1]); }
 
-/* mobili solidi per mestiere (px, stanza 160×112) — corridoio centrale sempre libero */
+/* mobili solidi per mestiere (px, stanza 320×224) — corridoio centrale sempre libero */
 const FURN = {
   lab: [
-    { x0: 12, y0: 46, x1: 48, y1: 68 },    // postazione alambicco
-    { x0: 112, y0: 46, x1: 148, y1: 68 },  // banco da lavoro
-    { x0: 124, y0: 74, x1: 142, y1: 96 },  // teca di cova (in basso a destra, il corridoio centrale resta libero)
+    { x0: 24, y0: 92, x1: 96, y1: 136 },    // postazione alambicco
+    { x0: 224, y0: 92, x1: 296, y1: 136 },  // banco da lavoro
+    { x0: 248, y0: 148, x1: 284, y1: 192 },  // teca di cova (in basso a destra, il corridoio centrale resta libero)
   ],
   store: [
-    { x0: 12, y0: 46, x1: 46, y1: 68 },    // casse e sacchi
-    { x0: 114, y0: 46, x1: 148, y1: 68 },  // botti
+    { x0: 24, y0: 92, x1: 92, y1: 136 },    // casse e sacchi
+    { x0: 228, y0: 92, x1: 296, y1: 136 },  // botti
   ],
   museum: [
-    { x0: 18, y0: 46, x1: 52, y1: 70 },    // teca sinistra
-    { x0: 108, y0: 46, x1: 142, y1: 70 },  // teca destra
+    { x0: 36, y0: 92, x1: 104, y1: 140 },    // teca sinistra
+    { x0: 216, y0: 92, x1: 284, y1: 140 },  // teca destra
   ],
   inn: [
-    { x0: 14, y0: 48, x1: 48, y1: 68 },    // tavolo sinistro
-    { x0: 112, y0: 48, x1: 146, y1: 68 },  // tavolo destro
+    { x0: 28, y0: 96, x1: 96, y1: 136 },    // tavolo sinistro
+    { x0: 224, y0: 96, x1: 292, y1: 136 },  // tavolo destro
   ],
   barber: [
-    { x0: 14, y0: 46, x1: 44, y1: 68 },    // poltrona
-    { x0: 114, y0: 50, x1: 148, y1: 66 },  // panca d'attesa
+    { x0: 28, y0: 92, x1: 88, y1: 136 },    // poltrona
+    { x0: 228, y0: 100, x1: 296, y1: 132 },  // panca d'attesa
   ],
   tailor: [
-    { x0: 16, y0: 48, x1: 42, y1: 66 },    // manichino
-    { x0: 110, y0: 46, x1: 148, y1: 68 },  // tavolo da cucito
+    { x0: 32, y0: 96, x1: 84, y1: 132 },    // manichino
+    { x0: 220, y0: 92, x1: 296, y1: 136 },  // tavolo da cucito
   ],
   house: [], // casa del giocatore: stanza vuota (arredo in una milestone successiva)
 };
@@ -185,7 +185,7 @@ export function cutAdvance() {
 export function cutSkip() { if (CUT.on && CUT.phase !== 'back') cutStartBack(); }
 function cutStartBack() {
   CUT.phase = 'back'; CUT.pi = 0; CUT.line = null; CUT.thanks = null; cutHint(false);
-  CUT.path = [[GAL_DESK.x1 + 26, GAL_DESK.y1 + 14], [GAL_DESK.x1 + 26, GAL_DESK.y0 - 6], [(GAL_DESK.x0 + GAL_DESK.x1) / 2, GAL_DESK.y0 - 6]];
+  CUT.path = [[GAL_DESK.x1 + 52, GAL_DESK.y1 + 28], [GAL_DESK.x1 + 52, GAL_DESK.y0 - 12], [(GAL_DESK.x0 + GAL_DESK.x1) / 2, GAL_DESK.y0 - 12]];
 }
 export function enterInterior(b, town) {
   INT.fromX = P.x; INT.fromY = P.y;      // da dove si è entrati: via di ritorno sicura
@@ -214,16 +214,16 @@ export function enterInterior(b, town) {
         : tr('Aspetta! Ho qualcosa per te.', 'Wait! I have something for you.');
       /* parte a DESTRA del banco e DELLA PIANTA (mai sopra), poi scende verso il player */
       CUT.x = GAL_DESK.x1 + 26; CUT.y = GAL_DESK.y0 - 6;
-      CUT.path = [[GAL_DESK.x1 + 26, GAL_DESK.y1 + 14], [INT.x, INT.y - 22]];
+      CUT.path = [[GAL_DESK.x1 + 52, GAL_DESK.y1 + 28], [INT.x, INT.y - 44]];
       cutBars(true);
     }
   }
 }
 function follow(dt) { // segue i waypoint; true quando il percorso è finito
   const t2 = CUT.path[CUT.pi]; if (!t2) return true;
-  const speed = 46 * dt;
+  const speed = 92 * dt;
   const dx = t2[0] - CUT.x, dy = t2[1] - CUT.y, l = Math.hypot(dx, dy);
-  if (l < 2.5) { CUT.pi++; return CUT.pi >= CUT.path.length; }
+  if (l < 5) { CUT.pi++; return CUT.pi >= CUT.path.length; }
   CUT.x += dx / l * speed; CUT.y += dy / l * speed;
   return false;
 }
@@ -296,7 +296,7 @@ export function exitInterior() {
      reggeva solo perché davanti a ogni porta ci sono 3 caselle libere: bastava perderne una
      per uscire dentro un solido senza che niente lo segnalasse. */
   const cands = [[0, 1], [0, 2], [-1, 1], [1, 1], [-1, 2], [1, 2], [0, 3], [-1, 3], [1, 3], [-2, 1], [2, 1]];
-  const spot = (dx, dy) => ({ x: (INT.b.doorx + dx) * TS + 8, y: (INT.b.doory + dy) * TS + 10 });
+  const spot = (dx, dy) => ({ x: (INT.b.doorx + dx) * TS + TS / 2, y: (INT.b.doory + dy) * TS + 20 });
   for (const [dx, dy] of cands) { // 1° passaggio: libera E non intrappolata
     const p = spot(dx, dy), { tx, ty } = feetTile(p);
     if (!isSolidTile(tx, ty) && openArea(tx, ty, 5)) { P.x = p.x; P.y = p.y; return; }
@@ -305,7 +305,7 @@ export function exitInterior() {
     const p = spot(dx, dy), { tx, ty } = feetTile(p);
     if (!isSolidTile(tx, ty)) { P.x = p.x; P.y = p.y; return; }
   }
-  P.x = INT.b.doorx * TS + 8; P.y = (INT.b.doory + 1) * TS + 10; // ripiego (non dovrebbe servire)
+  P.x = INT.b.doorx * TS + TS / 2; P.y = (INT.b.doory + 1) * TS + 20; // ripiego (non dovrebbe servire)
 }
 /* tile-x del centro della porta "verso il basso" della scena attiva: nell'atrio è la porta
    d'ingresso di casa (CORR_W/2), in una stanza è il suo varco verso l'atrio (ROOM_TILE_W/2) —
@@ -406,14 +406,14 @@ export function nearCase() {
   for (const pd of pedList()) {
     const cx = (pd.x0 + pd.x1) / 2;
     /* si legge da SUD: il pg si ferma appena sotto la base (teca solida sopra) */
-    if (Math.abs(INT.x - cx) < 16 && INT.y > pd.y1 - 12 && INT.y < pd.y1 + 30) {
+    if (Math.abs(INT.x - cx) < 32 && INT.y > pd.y1 - 24 && INT.y < pd.y1 + 60) {
       return { sp: pd.sp, n: (S.museum[pd.sp.id] || []).length };
     }
   }
   return null;
 }
 export function onDoor() {
-  return INT.y > (INT.h - 1.15) * TS && Math.abs(INT.x - doorTileX() * TS) < 14;
+  return INT.y > (INT.h - 1.15) * TS && Math.abs(INT.x - doorTileX() * TS) < 28;
 }
 /* La meta toccata è l'USCIO? Zona generosa di proposito: nella galleria del museo (60×62
    caselle) la camera si ferma al bordo, quindi la porta finisce sull'ultima riga di pixel
@@ -471,7 +471,7 @@ export function updateInterior(dt, keys, speed) {
     /* Toccando l'USCIO si deve uscire. Il punto da raggiungere sta OLTRE l'ultima casella
        camminabile, quindi il percorso non potrebbe mai arrivarci: quando si è sulla soglia
        (o il cammino è finito lì) si esce, invece di restare fermi contro la porta. */
-    if (toExit && !hasGoal() && Math.abs(INT.x - doorTileX() * TS) < 18) { clearGoal(); interiorLeave(); return; }
+    if (toExit && !hasGoal() && Math.abs(INT.x - doorTileX() * TS) < 36) { clearGoal(); interiorLeave(); return; }
   } else INT.moving = false;
   if (onDoor() && INT.y > (INT.h - 0.9) * TS) { clearGoal(); interiorLeave(); return; } // vale anche per la galleria
   stepHouseNav(); // casa: varco laterale/alto dell'atrio raggiunto → si entra nella stanza
@@ -480,7 +480,7 @@ export function updateInterior(dt, keys, speed) {
    non passandoci davanti in orizzontale */
 export function checkDoorEnter() {
   if (INT.active) return;
-  /* si entra coi PIEDI sulla porta (P.y è l'ancora alta: i piedi stanno +13),
+  /* si entra coi PIEDI sulla porta (P.y è l'ancora alta: i piedi stanno +FOOT_DY),
      non un blocco prima */
   const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
   const ti = townInfo(tx, ty);

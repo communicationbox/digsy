@@ -1899,7 +1899,7 @@ document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
 
 /* ---------- look: anteprima + swatch condivisi da editor/barbiere/sartoria ---------- */
 function previewHtml() {
-  return `<div class="center" style="padding:6px"><canvas id="prevCv" width="60" height="22" class="prev"></canvas></div>`;
+  return `<div class="center" style="padding:6px"><canvas id="prevCv" width="120" height="44" class="prev"></canvas></div>`;
 }
 let prevRaf = 0;
 export function drawPreview(noHat) {
@@ -1907,18 +1907,18 @@ export function drawPreview(noHat) {
   const pc = document.getElementById('prevCv'); if (!pc) return;
   const c2 = pc.getContext('2d'); c2.imageSmoothingEnabled = false;
   const paint = (fr, bob) => {
-    c2.clearRect(0, 0, 60, 22);
-    drawHero(c2, 2, 4 + bob, 'down', fr, noHat);   // +4 in alto: spazio per cappelli che svettano (righe -3)
-    drawHero(c2, 22, 4 + bob, 'right', fr, noHat);
-    drawHero(c2, 42, 4 + bob, 'up', fr, noHat);
+    c2.clearRect(0, 0, 120, 44);
+    drawHero(c2, 4, 8 + bob, 'down', fr, noHat);   // +8 in alto: spazio per cappelli che svettano (righe -3)
+    drawHero(c2, 44, 8 + bob, 'right', fr, noHat);
+    drawHero(c2, 84, 8 + bob, 'up', fr, noHat);
   };
   paint(0, 0); // primo frame subito (e unico nei test, dove rAF è uno stub)
   if (typeof requestAnimationFrame !== 'function') return;
-  /* camminata sul posto: stesso ritmo del gioco (2 frame + bob di 1px) */
+  /* camminata sul posto: stesso ritmo del gioco (2 frame + bob di 2px) */
   const step = (t) => {
     if (!pc.isConnected) return; // canvas rimossa (rerender/chiusura): il loop muore da solo
     const fr = Math.floor(t / 140) % 2;
-    paint(fr, fr === 1 ? -1 : 0);
+    paint(fr, fr === 1 ? -2 : 0);
     prevRaf = requestAnimationFrame(step);
   };
   prevRaf = requestAnimationFrame(step);

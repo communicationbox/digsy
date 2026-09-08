@@ -102,7 +102,7 @@ sprites.applyLook();
     for (const b of t.buildings) {
       provate++;
       inter.INT.b = b; inter.INT.active = true;
-      inter.INT.fromX = b.doorx * TS + 8; inter.INT.fromY = b.doory * TS + 10;
+      inter.INT.fromX = b.doorx * TS + TS / 2; inter.INT.fromY = b.doory * TS + 20;
       inter.exitInterior();
       const f = ftile(P);
       const chi = `${t.size}/${b.type} @${b.doorx},${b.doory} → piedi ${f.tx},${f.ty}`;
@@ -313,9 +313,9 @@ sprites.applyLook();
   check('si entra in grotta', cave.CAVE.active === true);
   /* la camera deve scendere OLTRE il fondo, altrimenti non c'è nulla da cliccare */
   const rh = cave.CAVE.h * TS;
-  cave.CAVE.x = (cave.CAVE.w >> 1) * TS + 8;
+  cave.CAVE.x = (cave.CAVE.w >> 1) * TS + TS / 2;
   cave.CAVE.y = (cave.CAVE.h - 4) * TS;
-  const camBottom = cave.caveCam().y + 200;              // 200 = altezza vista di prova
+  const camBottom = cave.caveCam().y + 400;              // 400 = altezza vista di prova (13 tile × TS)
   check('sotto l\'imbocco c\'è spazio visibile (' + Math.round(camBottom - rh) + ' px)', camBottom > rh);
 
   /* la scena di grotta (buio + alone + corridoio) non era mai stata disegnata da un test:
@@ -449,7 +449,7 @@ sprites.applyLook();
   const hard13 = files.filter(f => f !== 'body.js' && /\.y \+ 13\b|\(y \+ 13\)/.test(read(f)));
   check('l\'offset dei piedi non è più scritto a mano' + (hard13.length ? ' → ' + hard13.join(', ') : ''),
     hard13.length === 0);
-  check('FOOT_DY vale quello che valeva', body.FOOT_DY === 13);
+  check('FOOT_DY vale quello che valeva', body.FOOT_DY === 26);
 
   /* 2. la scatola di collisione: mondo e grotta la prendono da body.js */
   for (const f of ['gameplay.js', 'cave.js']) {
@@ -1675,7 +1675,7 @@ sprites.applyLook();
     check('DEFAULT_LOOK ha shirtStyle/pantsStyle', dataMod.DEFAULT_LOOK.shirtStyle === 'tshirt' && dataMod.DEFAULT_LOOK.pantsStyle === 'long');
   }
   // smoke: eroe senza cappello e con ogni taglio, tutte le direzioni
-  const stubCtx = { fillStyle: '', fillRect() {}, clearRect() {} };
+  const stubCtx = { fillStyle: '', fillRect() {}, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
   let heroOk = true;
   try {
     for (const st of Object.keys(sprites.HAIRS)) {
@@ -1698,7 +1698,7 @@ sprites.applyLook();
     for (const hair of Object.keys(sprites.HAIRS)) {
       S.look.hatStyle = hst; S.look.hairStyle = hair; sprites.applyLook();
       const hairCol = sprites.PAL.A;
-      const rec = { fillStyle: '', fillRect(px2, py2) { if (this.fillStyle === hairCol && py2 <= crown) clip++; }, clearRect() {} };
+      const rec = { fillStyle: '', fillRect(px2, py2) { if (this.fillStyle === hairCol && py2 <= crown) clip++; }, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
       for (const dir of ['down', 'up', 'right']) sprites.drawHero(rec, 0, 0, dir, 0);
     }
   }
@@ -2884,7 +2884,7 @@ sprites.applyLook();
   for (let cx = -10; cx < 10 && !door; cx++) for (let cy = -10; cy < 10 && !door; cy++) {
     const t = world.townForCell(cx, cy); if (t) { door = t.buildings[0]; dtown = t; }
   }
-  P.x = door.doorx * TS + 8; P.y = door.doory * TS + 2;
+  P.x = door.doorx * TS + TS / 2; P.y = door.doory * TS + 4;
   inter.INT.justLeft = false;
   P.dir = 'right'; P.moving = true;
   inter.checkDoorEnter();
@@ -2896,14 +2896,14 @@ sprites.applyLook();
   // spawn interno: vicino alla porta, non nel muro
   check('spawn interno valido', !inter.interiorSolid(inter.INT.x, inter.INT.y));
   // cammina verso l'alto fino al bancone → vicino all'NPC
-  for (let i = 0; i < 300; i++) inter.updateInterior(1 / 60, { up: true }, 46);
+  for (let i = 0; i < 300; i++) inter.updateInterior(1 / 60, { up: true }, 92);
   check('si arriva davanti all\'NPC (bancone lo ferma)', inter.nearNpc() && !inter.interiorSolid(inter.INT.x, inter.INT.y));
   // torna giù fino alla porta → esce, player piazzato SOTTO la porta
-  for (let i = 0; i < 400 && inter.INT.active; i++) inter.updateInterior(1 / 60, { down: true }, 46);
+  for (let i = 0; i < 400 && inter.INT.active; i++) inter.updateInterior(1 / 60, { down: true }, 92);
   check('uscita dalla porta', inter.INT.active === false);
   check('player sotto la porta (fuori)', Math.floor(P.x / TS) === door.doorx && Math.floor(P.y / TS) === door.doory + 1);
   // anti-rientro: justLeft blocca finché non ti allontani
-  P.x = door.doorx * TS + 8; P.y = door.doory * TS + 2;
+  P.x = door.doorx * TS + TS / 2; P.y = door.doory * TS + 4;
   P.dir = 'up'; P.moving = true;
   inter.checkDoorEnter();
   check('niente rientro immediato dopo l\'uscita', inter.INT.active === false);
@@ -2923,9 +2923,9 @@ sprites.applyLook();
   for (const type of ['lab', 'store', 'inn', 'barber', 'tailor']) { // museo: stanze proprie, testato a parte
     const b = byType[type]; if (!b) { roomBad.push(type + ':manca'); continue; }
     inter.enterInterior(b, null);
-    if (!inter.interiorSolid(30, 56) || !inter.interiorSolid(130, 58)) roomBad.push(type + ':lati');
-    if (inter.interiorSolid(80, 56) || inter.interiorSolid(80, 90)) roomBad.push(type + ':corridoio');
-    for (let i = 0; i < 300 && !inter.nearNpc(); i++) inter.updateInterior(1 / 60, { up: true }, 46);
+    if (!inter.interiorSolid(60, 112) || !inter.interiorSolid(260, 116)) roomBad.push(type + ':lati');
+    if (inter.interiorSolid(160, 112) || inter.interiorSolid(160, 180)) roomBad.push(type + ':corridoio');
+    for (let i = 0; i < 300 && !inter.nearNpc(); i++) inter.updateInterior(1 / 60, { up: true }, 92);
     if (!inter.nearNpc()) roomBad.push(type + ':npc');
     inter.exitInterior(); inter.INT.justLeft = false;
   }
@@ -3170,19 +3170,19 @@ sprites.applyLook();
   check('Maestro percorre il giro in entrambi i sensi', seen.size >= 3, [...seen].join(','));
   /* etichetta di un piedistallo: nome specie + pezzi */
   const pd = peds.find(p => p.sp.id === 'lepre') || peds[0];
-  inter.INT.x = (pd.x0 + pd.x1) / 2; inter.INT.y = pd.y1 + 8;
+  inter.INT.x = (pd.x0 + pd.x1) / 2; inter.INT.y = pd.y1 + 16;
   const nc = inter.nearCase();
   check('etichetta piedistallo: specie e progresso', !!nc && nc.sp.id === pd.sp.id && nc.n === (S.museum[pd.sp.id] || []).length);
   /* si cammina nel corridoio a SUD dei piedistalli (le teche sono solide a tutta altezza) */
-  inter.INT.x = pd.x0 - 20; inter.INT.y = pd.y1 + 24;
+  inter.INT.x = pd.x0 - 40; inter.INT.y = pd.y1 + 48;
   let moved = 0;
-  for (let i = 0; i < 120; i++) { const x0 = inter.INT.x; inter.updateInterior(1 / 60, { right: true }, 46); if (inter.INT.x > x0) moved++; }
+  for (let i = 0; i < 120; i++) { const x0 = inter.INT.x; inter.updateInterior(1 / 60, { right: true }, 92); if (inter.INT.x > x0) moved++; }
   check('galleria: corridoi percorribili', moved > 60);
   /* collisione SOLO sulla base (il pg passa dietro la teca, z-order per y) */
-  check('teca: collisione sulla base', !!pd && pd.y0 === pd.ty * 16 + 4 && pd.y1 === pd.ty * 16 + 15);
+  check('teca: collisione sulla base', !!pd && pd.y0 === pd.ty * TS + 8 && pd.y1 === pd.ty * TS + 30);
   /* uscita dalla porta in basso al centro */
-  inter.INT.x = (inter.GAL_W / 2) * 16; inter.INT.y = (inter.GAL_H - 1.5) * 16;
-  for (let i = 0; i < 300 && inter.INT.active; i++) inter.updateInterior(1 / 60, { down: true }, 46);
+  inter.INT.x = (inter.GAL_W / 2) * TS; inter.INT.y = (inter.GAL_H - 1.5) * TS;
+  for (let i = 0; i < 300 && inter.INT.active; i++) inter.updateInterior(1 / 60, { down: true }, 92);
   check('galleria: si esce dalla porta (niente stanze)', inter.INT.active === false);
   inter.INT.justLeft = false;
   /* sprite esposizione: pezzi consegnati componibili e non vuoti */
@@ -4396,14 +4396,24 @@ sprites.applyLook();
      (W #f2ead8) in ogni frame, e che si SPOSTINO coi piedi tra fr0 e fr1 (animazione). */
   const sprMod = await import('../src/sprites.js');
   const { ctx: sctx } = await import('../src/screen.js');
-  const ofr = sctx.fillRect;
+  /* nello stub Node save/translate/scale sono no-op (Proxy): drawHero/drawBankSkates ora
+     usano il transform vero del canvas (16bit HD, raddoppio geometrico) per posizionarsi,
+     quindi qui bisogna SIMULARLO a mano per leggere le coordinate assolute vere, non quelle
+     locali grezze passate a fillRect. */
+  const ofr = sctx.fillRect, osave = sctx.save, orestore = sctx.restore, otr = sctx.translate, osc = sctx.scale;
+  let tx = 0, ty = 0, scX = 1, scY = 1, tstack = [];
+  sctx.save = () => { tstack.push([tx, ty, scX, scY]); };
+  sctx.restore = () => { const s = tstack.pop(); if (s) [tx, ty, scX, scY] = s; };
+  sctx.translate = (dx, dy) => { tx += dx * scX; ty += dy * scY; };
+  sctx.scale = (a, b) => { scX *= a; scY *= b; };
   let W = [], amb = [];
-  sctx.fillRect = (x, y) => { const X = Math.round(x), Y = Math.round(y); if (sctx.fillStyle === '#f2ead8') W.push([X, Y]); if (sctx.fillStyle === '#e0b040') amb.push([X, Y]); };
+  sctx.fillRect = (x, y) => { const X = Math.round(tx + x * scX), Y = Math.round(ty + y * scY); if (sctx.fillStyle === '#f2ead8') W.push([X, Y]); if (sctx.fillStyle === '#e0b040') amb.push([X, Y]); };
   const SX = 100;
   const shotSk = (dir, moving, fr) => {
-    P.dir = dir; P.moving = moving; W = []; amb = [];
+    P.dir = dir; P.moving = moving; W = []; amb = []; tx = 0; ty = 0; scX = 1; scY = 1; tstack = [];
     const bob = fr === 1 ? -1 : 0;
-    sprMod.drawHero(null, SX - 8, 100 + bob, dir, fr);
+    sprMod.drawHero(null, SX - 16, 100 + bob, dir, fr);
+    tx = 0; ty = 0; scX = 1; scY = 1; tstack = [];
     render.drawBankSkates(SX, 100 + bob, fr);
     const feetY = Math.max(...W.map(p => p[1]));                     // scarpe = riga più in basso
     const wheelY = Math.min(...amb.map(p => p[1]));                  // rotelle = riga più in alto
@@ -4412,10 +4422,10 @@ sprites.applyLook();
   };
   const d0 = shotSk('down', true, 0), d1 = shotSk('down', true, 1), sSt = shotSk('down', false, 0);
   const si0 = shotSk('side', true, 0), si1 = shotSk('side', true, 1);
-  sctx.fillRect = ofr; P.moving = false;
+  sctx.fillRect = ofr; sctx.save = osave; sctx.restore = orestore; sctx.translate = otr; sctx.scale = osc; P.moving = false;
   check('pattini a mano: le rotelle si disegnano (4)', d0.n === 4 && d1.n === 4);
-  check('pattini a mano: ATTACCATI ai piedi (rotelle appena sotto le scarpe, ogni frame)', d0.gap >= 1 && d0.gap <= 3 && d1.gap >= 1 && d1.gap <= 3 && si0.gap >= 1 && si0.gap <= 3 && si1.gap >= 1 && si1.gap <= 3);
-  check('pattini a mano: centrati sotto i piedi (fronte, entrambi i frame)', Math.abs(d0.wheelC - d0.feetC) <= 1 && Math.abs(d1.wheelC - d1.feetC) <= 1);
+  check('pattini a mano: ATTACCATI ai piedi (rotelle appena sotto le scarpe, ogni frame)', d0.gap >= 2 && d0.gap <= 6 && d1.gap >= 2 && d1.gap <= 6 && si0.gap >= 2 && si0.gap <= 6 && si1.gap >= 2 && si1.gap <= 6);
+  check('pattini a mano: centrati sotto i piedi (fronte, entrambi i frame)', Math.abs(d0.wheelC - d0.feetC) <= 2 && Math.abs(d1.wheelC - d1.feetC) <= 2);
   check('pattini a mano: ANIMATI, seguono i piedi che si spostano tra i frame', d0.wheelC !== d1.wheelC || si0.wheelC !== si1.wheelC);
   /* REGRESSIONE: drawPlayer deve passare `sy + bob` (attaccati al bob dei piedi), non `sy` liscio
      (che li staccava verticalmente). */
@@ -4614,7 +4624,7 @@ sprites.applyLook();
     S.raw = []; S.caveDug = [];
   }
   // uscita dal corridoio in basso
-  cave.CAVE.x = (cave.CAVE.w >> 1) * TS + 8; cave.CAVE.y = (cave.CAVE.h - 1.3) * TS;
+  cave.CAVE.x = (cave.CAVE.w >> 1) * TS + TS / 2; cave.CAVE.y = (cave.CAVE.h - 1.3) * TS;
   for (let i = 0; i < 200 && cave.CAVE.active; i++) cave.updateCave(1 / 60, { down: true }, 46);
   check('grotta: si esce dal corridoio', cave.CAVE.active === false);
   /* entrare in grotta apre l'ala del Libro: le 6 specie diventano catalogabili */

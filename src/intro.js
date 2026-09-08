@@ -138,7 +138,9 @@ function drawScene(t) {
   ctx.fillStyle = 'rgba(24,44,22,.28)'; ctx.fillRect(gpx - 6, gy - 1 + DY, 14, 2); // ombra a terra
   ctx.save(); ctx.translate(gpx, gpy); // scala 1 (interi): lo zoom 2× rende crisp, niente pixel staccati
   const dgi = line.act === 'dig' && Math.floor(t / 180) % 2, gfr = dgi ? 1 : (fr ? -1 : 0);
-  withLook(GRANDPA, () => drawHero(null, -8, gfr, 'right', fr));
+  /* drawHero ora raddoppia da sola (16bit HD): qui la scena resta alla scala fissa di sempre,
+     quindi si annulla il raddoppio solo per questa chiamata (0.5 fuori × 2 dentro = 1×) */
+  withLook(GRANDPA, () => { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, -8, gfr, 'right', fr); ctx.restore(); });
   px(-3, gfr + 6, 6, 3, '#eae6da'); px(-3, gfr + 9, 4, 1, '#d8d2c4'); // barba
   ctx.restore();
   px(gpx + 7, gpy - 2, 1, 11, '#5c4630'); px(gpx + 6, gpy - 3, 3, 1, '#6e4a2a');   // bastone
@@ -147,7 +149,7 @@ function drawScene(t) {
   const dpx = fx + 24, dpy = gy - 3 + DY, jump = line.s === 'D' ? Math.round(Math.abs(Math.sin(t / 190)) * -3) : 0, cfr = fr ? -1 : 0;
   ctx.fillStyle = 'rgba(24,44,22,.28)'; ctx.fillRect(dpx - 5, gy - 1 + DY, 11, 2); // ombra a terra
   ctx.save(); ctx.translate(dpx, dpy + jump); // scala 1 (interi)
-  drawHero(null, -8, cfr, 'left', fr);
+  ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, -8, cfr, 'left', fr); ctx.restore();
   ctx.restore();
   /* vignetta calda */
   ctx.fillStyle = 'rgba(90,50,20,.12)'; ctx.fillRect(0, 0, W, 3); ctx.fillRect(0, H - 3, W, 3);

@@ -15,8 +15,8 @@ import { FOOT_DY } from './body.js';
 import { TS } from './data.js';
 
 export const goal = { on: false, x: 0, y: 0, t: 0, stuck: 0, path: [], step: 0 };
-const ARRIVE = 5;          // px: sotto questa distanza si è arrivati
-const NODE_NEAR = 3;       // px: si considera raggiunta la casella intermedia
+const ARRIVE = 10;         // px: sotto questa distanza si è arrivati
+const NODE_NEAR = 6;       // px: si considera raggiunta la casella intermedia
 const STUCK_MS = 700;      // fermo per più di così con la meta attiva → si rinuncia
 
 /* centro camminabile di una casella: il giocatore sta con i PIEDI nella casella, quindi

@@ -247,7 +247,7 @@ if (cv && cv.addEventListener) {
     const stx = Math.floor(sc.pos.x / TS), sty = Math.floor((sc.pos.y + FOOT_DY) / TS);
     const gtx = Math.floor(w.x / TS), gty = Math.floor(w.y / TS);
     const path = findPath(stx, sty, gtx, gty, sc.blocked, sc.maxLen);
-    if (path) setGoal(w.x, w.y - 13, path);          // i PIEDI vanno sulla casella toccata
+    if (path) setGoal(w.x, w.y - FOOT_DY, path);      // i PIEDI vanno sulla casella toccata
     else toast('🚶 ' + tr('Troppo lontano, o non c\'è strada da qui', 'Too far, or no way through from here'));
   });
   /* toccare il joystick o premere un tasto annulla la meta: il comando diretto ha la

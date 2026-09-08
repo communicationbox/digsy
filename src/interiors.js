@@ -23,8 +23,8 @@ import { egg as breedEgg, eggReady } from './breeding.js';
 const MENTOR_LOOK = { hat: '#8a5a2a', shirt: '#b5622e', pants: '#4a3524', skin: '#e3b98a', hairStyle: 'short', hairColor: '#5a4636', hatStyle: 'explorer', eyeColor: '#33291f' };
 export function drawMentor(x, y, dir, fr) {
   const saved = S.look; S.look = MENTOR_LOOK; applyLook();
-  shadow(x, y + 6, 6);
-  drawHero(null, snap(x - 8), snap(y - 10), dir, fr);
+  shadow(x, y + 12, 12);
+  drawHero(null, snap(x - 16), snap(y - 20), dir, fr);
   S.look = saved; applyLook();
 }
 
@@ -32,6 +32,7 @@ export function drawMentor(x, y, dir, fr) {
 
 /* NEGOZIO: scaffali di merci, casse, sacchi, botti, bilancia che oscilla, lanterna */
 export function drawStoreRoom(rw, rh, time) {
+  ctx.save(); ctx.scale(2, 2); rw = rw / 2; rh = rh / 2;
   /* scaffale merci sulla parete + cartellino prezzi */
   const shx = rw / 2 - 30;
   rect(shx, 5, 60, 18, '#6e5138'); rect(shx + 2, 7, 56, 5, '#8a6a4a'); rect(shx + 2, 15, 56, 5, '#8a6a4a');
@@ -76,6 +77,7 @@ export function drawStoreRoom(rw, rh, time) {
   rect(118, 44, 10, 4, '#c65a54'); px(120, 42, '#5fa04e');
   /* paglia sparsa sul pavimento */
   for (let i = 0; i < 6; i++) px(56 + (i * 17) % 50, 78 + (i * 11) % 22, '#d4b13c');
+  ctx.restore();
 }
 
 /* MUSEO — HALL: 6 porte tematiche (una per bioma), banco accoglienza, tappeto rosso */
@@ -430,8 +432,8 @@ export function drawMuseumGallery(time) {
   const paintHero = () => {
     const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
     const sx = snap(INT.x), sy = snap(INT.y);
-    shadow(sx, sy + 6, 6);
-    drawHero(null, sx - 8, sy - 10, INT.dir, fr);
+    shadow(sx, sy + 12, 12);
+    drawHero(null, sx - 16, sy - 20, INT.dir, fr);
   };
   ents.push({ y: npy + 16, f: paintNpc });
   /* MAESTRO SCAVATORE: fa il giro del museo (posizione/verso da interior.js, mai dal seno) */
@@ -448,6 +450,7 @@ export function drawMuseumGallery(time) {
 }
 /* LOCANDA: camino ACCESO, tavoli con boccali fumanti, botti, appendiabiti */
 export function drawInnRoom(rw, rh, time) {
+  ctx.save(); ctx.scale(2, 2); rw = rw / 2; rh = rh / 2;
   /* camino con fuoco, PENTOLA di stufato che bolle e fumo che sale */
   const cx = rw / 2 - 14;
   rect(cx, 3, 28, 20, '#75695c'); rect(cx + 3, 6, 22, 14, '#3a3a44'); rect(cx - 2, 21, 32, 3, '#8f887a');
@@ -483,9 +486,11 @@ export function drawInnRoom(rw, rh, time) {
     const st = Math.floor(time / 400) % 3; px(ox + 12, 42 - st, '#f6efdd');             // vapore
     rect(ox + 22, 46, 2, 5, '#f0e6cc'); px(ox + 22, 44, Math.floor(time / 250) % 2 ? '#f2c53d' : '#e8862e'); // candela
   }
+  ctx.restore();
 }
 /* BARBIERE: pavimento a scacchi, specchiera, poltrona, palo con strisce che SCORRONO */
 export function drawBarberRoom(rw, rh, time) {
+  ctx.save(); ctx.scale(2, 2); rw = rw / 2; rh = rh / 2;
   /* specchiera: riflessi + BAGLIORE che scorre sul vetro */
   const mx = rw / 2 - 22;
   rect(mx, 4, 44, 18, '#8a5f38'); rect(mx + 3, 6, 38, 13, '#bfe9f4');
@@ -521,9 +526,11 @@ export function drawBarberRoom(rw, rh, time) {
   rect(116, 52, 30, 8, '#a97a4c'); rect(118, 60, 4, 6, '#6e5138'); rect(140, 60, 4, 6, '#6e5138');
   rect(146, 42, 8, 8, '#4a9a55'); rect(148, 50, 4, 6, '#c65a54');
   px(rw / 2 + 24, 32, '#8f887a'); px(rw / 2 + 25, 33, '#8f887a'); px(rw / 2 + 26, 32, '#8f887a');
+  ctx.restore();
 }
 /* SARTORIA: rotoli di stoffa, manichino vestito, macchina da cucire con ago ANIMATO */
 export function drawTailorRoom(rw, rh, time) {
+  ctx.save(); ctx.scale(2, 2); rw = rw / 2; rh = rh / 2;
   /* rastrelliera di stoffe + bozzetti incorniciati */
   const rx = rw / 2 - 28;
   rect(rx, 4, 56, 3, '#5c4229');
@@ -564,6 +571,7 @@ export function drawTailorRoom(rw, rh, time) {
   /* puntaspilli + ritagli di stoffa a terra */
   rect(118, 50, 4, 3, '#c65a54'); px(119, 49, '#8f887a'); px(121, 49, '#8f887a');
   for (let i = 0; i < 5; i++) px(60 + (i * 19) % 44, 80 + (i * 13) % 20, ['#c65a54', '#5a86c8', '#e08aa8', '#5fa04e', '#e8c34a'][i]);
+  ctx.restore();
 }
 /* LABORATORIO: lavagna con scheletro, scaffale pozioni, alambicco con fiamma e bolle, banco studio */
 /* TECA DI COVA: sta SEMPRE nella stanza, non solo nel pannello del Lab — spenta e vuota
@@ -589,6 +597,7 @@ function drawEggTank(x, y, time) {
   }
 }
 export function drawLabRoom(rw, rh, time) {
+  ctx.save(); ctx.scale(2, 2); rw = rw / 2; rh = rh / 2;
   /* lavagna al centro della parete */
   const bx = rw / 2 - 26;
   rect(bx - 2, 3, 56, 2, '#5c4229'); rect(bx - 2, 21, 56, 2, '#5c4229');
@@ -607,7 +616,7 @@ export function drawLabRoom(rw, rh, time) {
     const jb = (Math.floor(time / 300) + i) % 4; px(jx + 1 + (i % 2) * 4, 22 - jb, '#e8f6fb'); // bollicina
   }
   /* scaffale pozioni sotto la finestra destra */
-  const shx = rw - 3.4 * TS;
+  const shx = rw - 3.4 * (TS / 2);
   rect(shx - 2, 24, 40, 2, '#5c4229');
   const bots = [['#5a86c8', 7], ['#4e8d7c', 9], ['#c65a54', 6], ['#8d7ba0', 10], ['#e8c34a', 7]];
   bots.forEach(([c, hgt], i) => {
@@ -647,9 +656,10 @@ export function drawLabRoom(rw, rh, time) {
     px(rxp + 5, 101, '#1a120a');                               // occhio
     rect(rxp - 3, 101, 3, 1, '#8a8278');                       // coda
   }
+  ctx.restore();
 }
 /* pattugliamento dietro il bancone: fermo → cammina a destra → fermo → attraversa → fermo → torna */
-const NPC_SPAN = 22;
+const NPC_SPAN = 44;
 const NPC_SEGS = [[2.2, 0, 0], [1.5, 0, NPC_SPAN], [1.8, NPC_SPAN, NPC_SPAN], [3, NPC_SPAN, -NPC_SPAN], [1.8, -NPC_SPAN, -NPC_SPAN], [1.5, -NPC_SPAN, 0]];
 const NPC_TOT = NPC_SEGS.reduce((a, s) => a + s[0], 0);
 export function npcPose(time) {
@@ -671,7 +681,7 @@ export function drawNpc(x, y, type, time, forceDir) {
   const p = forceDir ? { dir: forceDir, ox: 0, mov: true } : npcPose(time);
   const fr = p.mov ? Math.floor(time / 170) % 2 : 0;
   /* SNAP alla griglia dei pixel fisici (come il player): niente righe quando si muove */
-  drawHero(null, snap(x - 8 + p.ox), snap(y - 12), p.dir, fr);
+  drawHero(null, snap(x - 16 + p.ox), snap(y - 24), p.dir, fr);
   S.look = saved; applyLook();
 }
 /* CAMERA della scena interna: la stessa formula usata per disegnare. Serve al "tocca dove
@@ -754,8 +764,8 @@ export function drawHouseCorridor(time) {
      esplicita: "il portale deve essere in mezzo al corridoio NON FUORI". */
   if (S.returnPortal) drawReturnPortal(ATRIO_PORTAL.x - 8, ATRIO_PORTAL.y - 8, time);
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
-  shadow(Math.round(INT.x), Math.round(INT.y) + 6, 6);
-  drawHero(null, Math.round(INT.x) - 8, Math.round(INT.y) - 10, INT.dir, fr);
+  shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
+  drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
   if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
   ctx.restore();
 }
@@ -771,15 +781,15 @@ function roomFloorTone(id, tx, ty) {
 }
 function drawRoomFixtures(id, rw) {
   if (id === 1) { // Cucina: piano cottura/credenza sagomati sulla parete di fondo
-    rect(rw / 2 - 16, 1.3 * TS, 32, 10, '#8a5f38'); rect(rw / 2 - 16, 1.3 * TS, 32, 3, '#c98a2e');
-    rect(rw / 2 - 16, 1.3 * TS, 2, 10, shade8('#8a5f38', 1.45)); rect(rw / 2 + 14, 1.3 * TS, 2, 10, shade8('#8a5f38', 0.6));
-    for (const fx of [-9, 0, 9]) rect(rw / 2 + fx - 2, 1.3 * TS + 4, 4, 4, '#3a2e20');
+    rect(rw / 2 - 32, 1.3 * TS, 64, 20, '#8a5f38'); rect(rw / 2 - 32, 1.3 * TS, 64, 6, '#c98a2e');
+    rect(rw / 2 - 32, 1.3 * TS, 4, 20, shade8('#8a5f38', 1.45)); rect(rw / 2 + 28, 1.3 * TS, 4, 20, shade8('#8a5f38', 0.6));
+    for (const fx of [-18, 0, 18]) rect(rw / 2 + fx - 4, 1.3 * TS + 8, 8, 8, '#3a2e20');
   } else if (id === 2) { // Bagno: vasca/lavabo sulla parete di fondo
-    rect(rw / 2 - 10, 1.3 * TS, 20, 10, '#dff0f7'); rect(rw / 2 - 10, 1.3 * TS, 20, 3, '#9fc4d0');
-    rect(rw / 2 - 10, 1.3 * TS + 3, 2, 7, '#c3e4ee'); rect(rw / 2 + 8, 1.3 * TS + 3, 2, 7, shade8('#dff0f7', 0.65));
+    rect(rw / 2 - 20, 1.3 * TS, 40, 20, '#dff0f7'); rect(rw / 2 - 20, 1.3 * TS, 40, 6, '#9fc4d0');
+    rect(rw / 2 - 20, 1.3 * TS + 6, 4, 14, '#c3e4ee'); rect(rw / 2 + 16, 1.3 * TS + 6, 4, 14, shade8('#dff0f7', 0.65));
   } else if (id === 3) { // Camera: alcova del letto sulla parete di fondo
-    rect(rw / 2 - 14, 1.3 * TS, 28, 8, '#5c4229');
-    rect(rw / 2 - 14, 1.3 * TS, 2, 8, shade8('#5c4229', 1.5)); rect(rw / 2 + 12, 1.3 * TS, 2, 8, shade8('#5c4229', 0.6));
+    rect(rw / 2 - 28, 1.3 * TS, 56, 16, '#5c4229');
+    rect(rw / 2 - 28, 1.3 * TS, 4, 16, shade8('#5c4229', 1.5)); rect(rw / 2 + 24, 1.3 * TS, 4, 16, shade8('#5c4229', 0.6));
   }
 }
 /* una STANZA della casa (Sala/Cucina/Bagno/Camera): scena PROPRIA, piccola come i 6 interni
@@ -791,12 +801,12 @@ export function drawHouseRoomScene(time, id) {
   ctx.save(); ctx.translate(ox, oy);
   for (let ty = 0; ty < ROOM_TILE_H; ty++) for (let tx = 0; tx < ROOM_TILE_W; tx++)
     rect(tx * TS, ty * TS, TS, TS, roomFloorTone(id, tx, ty));
-  rect(0, 0, rw, 1.3 * TS, '#8a6a4a'); rect(0, 1.3 * TS - 3, rw, 3, '#6e5138'); // parete di fondo
-  rect(0, 0, 6, rh, '#6e5138'); rect(rw - 6, 0, 6, rh, '#6e5138'); rect(0, rh - 4, rw, 4, '#6e5138'); // laterali+bassa
+  rect(0, 0, rw, 1.3 * TS, '#8a6a4a'); rect(0, 1.3 * TS - 6, rw, 6, '#6e5138'); // parete di fondo
+  rect(0, 0, 12, rh, '#6e5138'); rect(rw - 12, 0, 12, rh, '#6e5138'); rect(0, rh - 8, rw, 8, '#6e5138'); // laterali+bassa
   drawRoomFixtures(id, rw);
   /* finestra: un solo squarcio sulla parete di fondo, come negli altri interni */
   const wx = rw / 2 + (id % 2 ? -1 : 1) * 3 * TS;
-  rect(wx, 6, TS, 12, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 6, TS, 2, '#5c4229'); rect(wx, 16, TS, 2, '#5c4229'); rect(wx + 7, 6, 2, 12, '#5c4229');
+  rect(wx, 12, TS, 24, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 12, TS, 4, '#5c4229'); rect(wx, 32, TS, 4, '#5c4229'); rect(wx + 14, 12, 4, 24, '#5c4229');
   /* ARREDO PIAZZATO (M4): DUE STRATI per casella, decoro sotto e mobile solido sopra
      (`furnAt`/`decorAt`/`solidAt` in house.js) — "tappeto sotto la sedia" è questo: un
      tappeto e una sedia sulla STESSA cella, disegnati in ordine. Il decoro è un'ICONA PIATTA
@@ -829,8 +839,8 @@ export function drawHouseRoomScene(time, id) {
      si vede sempre per intero. */
   drawHouseDoorSlab(rw / 2 - 10, rh - 6, 20, 6);                 // varco in basso, verso l'atrio
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
-  shadow(Math.round(INT.x), Math.round(INT.y) + 6, 6);
-  drawHero(null, Math.round(INT.x) - 8, Math.round(INT.y) - 10, INT.dir, fr);
+  shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
+  drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
   if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
   ctx.restore();
 }
@@ -868,20 +878,20 @@ export function drawInteriorScene(time) {
     }
   }
   /* parete di fondo + laterali */
-  rect(0, 0, rw, 2 * TS, '#8a6a4a'); rect(0, 2 * TS - 3, rw, 3, '#6e5138');
-  rect(0, 0, 6, rh, '#6e5138'); rect(rw - 6, 0, 6, rh, '#6e5138');
-  rect(0, rh - 4, rw, 4, '#6e5138');
+  rect(0, 0, rw, 2 * TS, '#8a6a4a'); rect(0, 2 * TS - 6, rw, 6, '#6e5138');
+  rect(0, 0, 12, rh, '#6e5138'); rect(rw - 12, 0, 12, rh, '#6e5138');
+  rect(0, rh - 8, rw, 8, '#6e5138');
   if (type !== 'museum') {
     /* la CASA ha la sua scena dedicata (drawHouseRooms, N stanze affiancate): qui sotto restano
        solo i mestieri a stanza singola (lab/negozio/museo è già uscito sopra/locanda/barbiere/sartoria) */
     /* finestre sulla parete */
     for (const wx of [1.5 * TS, rw - 2.5 * TS]) {
-      rect(wx, 6, TS, 12, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 6, TS, 2, '#5c4229'); rect(wx, 16, TS, 2, '#5c4229'); rect(wx + 7, 6, 2, 12, '#5c4229');
+      rect(wx, 12, TS, 24, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 12, TS, 4, '#5c4229'); rect(wx, 32, TS, 4, '#5c4229'); rect(wx + 14, 12, 4, 24, '#5c4229');
     }
     {
       /* bancone davanti all'NPC */
-      rect(TS, 2.2 * TS, rw - 2 * TS, 10, '#8a5f38'); rect(TS, 2.2 * TS, rw - 2 * TS, 3, '#a97a4c');
-      rect(TS, 2.2 * TS, 2, 10, shade8('#8a5f38', 1.45)); rect(rw - TS - 2, 2.2 * TS, 2, 10, shade8('#8a5f38', 0.6));
+      rect(TS, 2.2 * TS, rw - 2 * TS, 20, '#8a5f38'); rect(TS, 2.2 * TS, rw - 2 * TS, 6, '#a97a4c');
+      rect(TS, 2.2 * TS, 4, 20, shade8('#8a5f38', 1.45)); rect(rw - TS - 4, 2.2 * TS, 4, 20, shade8('#8a5f38', 0.6));
       /* NPC disegnato QUI (dopo il bancone, PRIMA dell'arredo): gli oggetti appoggiati
          sul bancone restano in primo piano → l'NPC non ci cammina davanti.
          La sartoria ha invece arredo sulla parete di FONDO (rastrelliera stoffe): là
@@ -903,10 +913,10 @@ export function drawInteriorScene(time) {
     }
   }
   /* varco della porta in basso */
-  rect(rw / 2 - 10, rh - 6, 20, 6, '#3a2e20'); rect(rw / 2 - 8, rh - 4, 16, 4, '#c49a63');
+  rect(rw / 2 - 20, rh - 12, 40, 12, '#3a2e20'); rect(rw / 2 - 16, rh - 8, 32, 8, '#c49a63');
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
-  shadow(Math.round(INT.x), Math.round(INT.y) + 6, 6);
-  drawHero(null, Math.round(INT.x) - 8, Math.round(INT.y) - 10, INT.dir, fr);
+  shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
+  drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
   if (INT.say) drawSayBalloon(ox + rw / 2, oy + 1.9 * TS - 10, INT.say.text); // coord SCHERMO (stanza centrata in ox,oy)
   ctx.restore();
 }

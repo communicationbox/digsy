@@ -174,7 +174,7 @@ export function updateCave(dt, keys, speed) {
       if (CAVE.lastFoot > 9) { CAVE.lastFoot = 0; CAVE.trail.push({ x: CAVE.x, y: CAVE.y + FOOT_DY, s: CAVE.dir === 'left' || CAVE.dir === 'right' ? 1 : 0, t: 0 }); if (CAVE.trail.length > 60) CAVE.trail.shift(); }
     } else CAVE.moving = false;
     /* come per le porte: il corridoio d'uscita sta oltre l'ultima casella camminabile */
-    if (toExit && !hasGoal() && Math.abs(CAVE.x - (CAVE.w >> 1) * TS) < 24) { clearGoal(); exitCave(); return; }
+    if (toExit && !hasGoal() && Math.abs(CAVE.x - (CAVE.w >> 1) * TS) < 48) { clearGoal(); exitCave(); return; }
   } else CAVE.moving = false;
   for (const f of CAVE.trail) f.t += dt; // per lo sbiadire
   if (onCaveExit() && CAVE.y > (CAVE.h - 1.4) * TS) { clearGoal(); exitCave(); }
@@ -185,7 +185,7 @@ export function updateCave(dt, keys, speed) {
    pezzo di mondo esterno: senza, l'uscita sta sull'ultimo pixel dello schermo e con il solo
    mouse non si può cliccare "fuori" per uscire — lo stesso guaio che aveva la porta del
    museo. Vedere la luce del giorno dice anche DOVE si esce, che al buio non è ovvio. */
-export const CAVE_FOOT = 44;
+export const CAVE_FOOT = 88;
 export function caveCam() {
   const W = view.W, H = view.H, rw = CAVE.w * TS, rh = CAVE.h * TS;
   /* la camera può salire OLTRE il bordo della grotta quanto è alta la barra dell'HUD:
