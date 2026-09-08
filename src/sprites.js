@@ -106,12 +106,40 @@ function expand2x(ov) {
   }
   return out;
 }
+/* CRESCE la sagoma di un anello di 1 pixel (nativo) tutt'intorno, riempito col tono
+   d'ombra: dopo il raddoppio del corpo (fase 2) le vecchie sagome di capelli/cappelli —
+   pensate per la testa piccola di prima — restavano CONTENUTE dentro la nuova testa più
+   grande invece di sporgerne: si leggevano come "più capelli", non come un cappello
+   distinto (segnalato: "si confondono con la testa"). Un anello d'ombra tutt'intorno le fa
+   sporgere DAVVERO e insieme dà un bordo/rilievo leggero — una sola operazione condivisa,
+   non 36 ridisegni a mano. Gira sull'INTERA sagoma già rifinita (luce+dither), quindi non
+   tocca le bande già piazzate: aggiunge solo dove prima c'era il vuoto. */
+function dilateOverlay(ov, fillChar) {
+  if (!ov || !ov.length) return ov;
+  const W = ov[0][1].length;
+  const byRow = new Map(ov.map(([r, s]) => [r, s.split('')]));
+  const filled = (r, c) => { const a = byRow.get(r); return !!a && c >= 0 && c < W && a[c] !== '.'; };
+  const rows = [...byRow.keys()];
+  const minR = Math.min(...rows), maxR = Math.max(...rows);
+  const additions = [];
+  for (let r = minR - 1; r <= maxR + 1; r++) {
+    for (let c = 0; c < W; c++) {
+      if (filled(r, c)) continue;
+      if (filled(r - 1, c) || filled(r + 1, c) || filled(r, c - 1) || filled(r, c + 1)) additions.push([r, c]);
+    }
+  }
+  for (const [r, c] of additions) {
+    if (!byRow.has(r)) byRow.set(r, new Array(W).fill('.'));
+    byRow.get(r)[c] = fillChar;
+  }
+  return [...byRow.keys()].sort((a, b) => a - b).map(r => [r, byRow.get(r).join('')]);
+}
 function litHat(v) {
-  const d = ov => ditherBase(litOverlay(expand2x(ov), 'H', 'L'), 'H', 'h');
+  const d = ov => dilateOverlay(ditherBase(litOverlay(expand2x(ov), 'H', 'L'), 'H', 'h'), 'h');
   return { down: d(v.down), side: d(v.side), up: d(v.up) };
 }
 function litHair(v) {
-  const d = ov => ditherBase(litOverlay(expand2x(ov), 'A', 'M'), 'A', 'a');
+  const d = ov => dilateOverlay(ditherBase(litOverlay(expand2x(ov), 'A', 'M'), 'A', 'a'), 'a');
   return { down: d(v.down), side: d(v.side), up: d(v.up) };
 }
 
@@ -206,7 +234,7 @@ const HATS_RAW = {
 /* i cappelli-trofeo (oro, ...Gold) hanno già un loro schema chiaro/scuro/luce (G/g/Y): non
    toccarli. Gli altri (in H/h) prendono il terzo tono qui, una volta sola al caricamento. */
 export const HATS = Object.fromEntries(Object.entries(HATS_RAW).map(([k, v]) =>
-  [k, /Gold$/.test(k) ? { down: expand2x(v.down), side: expand2x(v.side), up: expand2x(v.up) } : litHat(v)]));
+  [k, /Gold$/.test(k) ? { down: dilateOverlay(expand2x(v.down), 'g'), side: dilateOverlay(expand2x(v.side), 'g'), up: dilateOverlay(expand2x(v.up), 'g') } : litHat(v)]));
 /* ultima riga di "corona" per forma: col cappello indossato i capelli NON si disegnano
    su queste righe (niente compenetrazioni); sotto restano frangia/lati/lunghezze */
 /* raddoppiati insieme a expand2x() sopra: riga vecchia R → coppia di righe 2R/2R+1,
