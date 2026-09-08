@@ -134,8 +134,23 @@ function dilateOverlay(ov, fillChar) {
   }
   return [...byRow.keys()].sort((a, b) => a - b).map(r => [r, byRow.get(r).join('')]);
 }
+/* filo di luce anche sul bordo BASSO della sagoma (non solo in cima): nella vista di
+   spalle il bordo che conta è quello inferiore, dove il cappello incontra lo zaino — senza
+   un rilievo lì i due si confondevano in un'unica macchia scura (segnalato). Stesso
+   principio di litOverlay ma sull'ultima riga, tono pieno non a scacchiera (deve leggersi
+   come UN bordo, non come rumore). */
+function litRimBottom(ov, mapChar, hiChar) {
+  if (!ov || !ov.length) return ov;
+  const maxRow = Math.max(...ov.map(p => p[0]));
+  return ov.map(([row, s]) => {
+    if (row !== maxRow) return [row, s];
+    return [row, s.split('').map(c => c === mapChar ? hiChar : c).join('')];
+  });
+}
 function litHat(v) {
-  const d = ov => dilateOverlay(ditherBase(litOverlay(expand2x(ov), 'H', 'L'), 'H', 'h'), 'h');
+  /* niente ditherBase qui: il bordo basso ora ha un filo di luce PIENO (litRimBottom),
+     una scacchiera nello stesso punto lo avrebbe solo confuso di nuovo */
+  const d = ov => dilateOverlay(litRimBottom(litOverlay(expand2x(ov), 'H', 'L'), 'H', 'L'), 'h');
   return { down: d(v.down), side: d(v.side), up: d(v.up) };
 }
 function litHair(v) {
