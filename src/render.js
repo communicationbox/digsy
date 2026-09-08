@@ -207,52 +207,63 @@ export function drawHouse(hf, sx, sy) {
 }
 /* ---------- arredo urbano ---------- */
 export function drawFountain(sx, sy, time) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  shadow(sx + 16, sy + 31, 13);
-  rect(sx + 2, sy + 10, 28, 20, '#aaa294');            // bordo esterno
-  rect(sx + 3, sy + 11, 26, 18, '#9a9285');
-  rect(sx + 3, sy + 11, 3, 18, '#b8b0a2'); rect(sx + 27, sy + 11, 3, 18, '#75695c'); // luce sx / ombra dx sul bordo di pietra
-  rect(sx + 5, sy + 13, 22, 14, '#4d8fb5');            // acqua
-  rect(sx + 5, sy + 13, 22, 2, '#5cb6d6');
+  /* FASE 2: nativa a piena scala (non più raddoppio meccanico) — bordo di pietra con
+     quarto tono/spigolo netto, colonna con tocco di luce, ampiezza di zampilli/riflessi
+     raddoppiata insieme alla geometria (altrimenti l'animazione sembra "debole"). */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  shadow(sx + 32, sy + 62, 26);
+  rect(sx + 4, sy + 20, 56, 40, '#aaa294');            // bordo esterno
+  rect(sx + 6, sy + 22, 52, 36, '#9a9285');
+  rect(sx + 6, sy + 22, 6, 36, '#b8b0a2'); rect(sx + 54, sy + 22, 6, 36, '#75695c'); // luce sx / ombra dx sul bordo di pietra
+  rect(sx + 6, sy + 22, 2, 36, shade8('#b8b0a2', 1.2)); rect(sx + 58, sy + 22, 2, 36, shade8('#75695c', 0.8)); // quarto tono: spigolo più netto
+  rect(sx + 10, sy + 26, 44, 28, '#4d8fb5');           // acqua
+  rect(sx + 10, sy + 26, 44, 4, '#5cb6d6');
   const ph = Math.floor(time / 220);                   // riflessi che scorrono
   for (let i = 0; i < 3; i++) {
-    rect(sx + 6 + ((ph + i * 3) % 9) * 2, sy + 16 + i * 4, 4, 1, '#83cfe6');
-    px(sx + 8 + ((ph * 2 + i * 5) % 14), sy + 18 + i * 3, '#bfe9f4');
+    rect(sx + 12 + ((ph + i * 3) % 9) * 4, sy + 32 + i * 8, 8, 2, '#83cfe6');
+    px(sx + 16 + ((ph * 2 + i * 5) % 14) * 2, sy + 36 + i * 6, '#bfe9f4');
   }
-  rect(sx + 12, sy + 15, 8, 3, '#9a9285');             // base colonna
-  rect(sx + 14, sy + 6, 4, 10, '#aaa294'); rect(sx + 14, sy + 6, 4, 2, '#c9c2b4');
-  const j = Math.floor(time / 160) % 4;                // zampilli e gocce
-  px(sx + 15, sy + 3 - (j % 2), '#bfe9f4'); px(sx + 16, sy + 2 + (j % 2), '#e8f6fb');
-  px(sx + 12 + (j & 1), sy + 6 + (j >> 1), '#bfe9f4'); px(sx + 19 - (j & 1), sy + 7 - (j >> 1), '#bfe9f4');
-  px(sx + 10, sy + 9 + j, '#bfe9f4'); px(sx + 21, sy + 12 - j, '#bfe9f4');
+  rect(sx + 24, sy + 30, 16, 6, '#9a9285');            // base colonna
+  rect(sx + 28, sy + 12, 8, 20, '#aaa294'); rect(sx + 28, sy + 12, 8, 4, '#c9c2b4');
+  px(sx + 29, sy + 13, shade8('#c9c2b4', 1.2));        // tocco di luce sulla colonna
+  const j = Math.floor(time / 160) % 4;                // zampilli e gocce, ampiezza raddoppiata
+  px(sx + 30, sy + 6 - (j % 2) * 2, '#bfe9f4'); px(sx + 32, sy + 4 + (j % 2) * 2, '#e8f6fb');
+  px(sx + 24 + (j & 1) * 2, sy + 12 + (j >> 1) * 2, '#bfe9f4'); px(sx + 38 - (j & 1) * 2, sy + 14 - (j >> 1) * 2, '#bfe9f4');
+  px(sx + 20, sy + 18 + j * 2, '#bfe9f4'); px(sx + 42, sy + 24 - j * 2, '#bfe9f4');
   ctx.restore();
 }
 export function drawBench(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  shadow(sx + 8, sy + 14, 6);
-  rect(sx + 2, sy + 4, 12, 2, '#c79a66'); px(sx + 2, sy + 4, '#a97a4c'); px(sx + 13, sy + 4, '#a97a4c'); // schienale
-  rect(sx + 2, sy + 8, 12, 3, '#c79a66'); rect(sx + 2, sy + 8, 12, 1, '#dcb27e');                        // seduta
-  rect(sx + 3, sy + 11, 2, 3, '#8a5f38'); rect(sx + 11, sy + 11, 2, 3, '#8a5f38');                       // gambe
-  px(sx + 3, sy + 4, '#e0c090'); rect(sx + 10, sy + 10, 3, 1, '#a97a4c'); // luce sullo schienale + ombra sulla seduta a dx
+  /* FASE 2: nativa — assi con venatura, gambe con ombra propria, seduta con quarto tono. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  shadow(sx + 16, sy + 28, 12);
+  rect(sx + 4, sy + 8, 24, 4, '#c79a66'); px(sx + 4, sy + 8, '#a97a4c'); px(sx + 26, sy + 8, '#a97a4c'); // schienale
+  px(sx + 12, sy + 9, shade8('#c79a66', 0.85)); px(sx + 20, sy + 9, shade8('#c79a66', 0.85)); // venatura
+  rect(sx + 4, sy + 16, 24, 6, '#c79a66'); rect(sx + 4, sy + 16, 24, 2, '#dcb27e');                        // seduta
+  rect(sx + 6, sy + 22, 4, 6, '#8a5f38'); rect(sx + 22, sy + 22, 4, 6, '#8a5f38');                         // gambe
+  px(sx + 6, sy + 22, shade8('#8a5f38', 0.7)); px(sx + 22, sy + 22, shade8('#8a5f38', 0.7));               // ombra propria delle gambe
+  px(sx + 6, sy + 8, '#e0c090'); rect(sx + 20, sy + 20, 6, 2, '#a97a4c'); // luce sullo schienale + ombra sulla seduta a dx
   ctx.restore();
 }
 export function drawBushDeco(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  shadow(sx + 8, sy + 14, 6);
-  rect(sx + 3, sy + 6, 10, 7, '#4a9a55'); rect(sx + 4, sy + 4, 8, 4, '#54ab5f');
-  px(sx + 5, sy + 5, '#7cd07f'); px(sx + 9, sy + 4, '#7cd07f');
-  px(sx + 6, sy + 9, '#e05a7a'); px(sx + 10, sy + 8, '#f2dd7a'); // bacche/fiori
-  rect(sx + 3, sy + 12, 10, 1, '#2f6b3b');
-  rect(sx + 4, sy + 11, 8, 1, '#245631'); // ombra propria alla base del cespuglio
+  /* FASE 2: nativa — fogliame con 2 grumi di luce in più, bacche/fiori più leggibili. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  shadow(sx + 16, sy + 28, 12);
+  rect(sx + 6, sy + 12, 20, 14, '#4a9a55'); rect(sx + 8, sy + 8, 16, 8, '#54ab5f');
+  px(sx + 10, sy + 10, '#7cd07f'); px(sx + 18, sy + 8, '#7cd07f'); px(sx + 14, sy + 14, shade8('#4a9a55', 1.15));
+  px(sx + 12, sy + 18, '#e05a7a'); px(sx + 20, sy + 16, '#f2dd7a'); px(sx + 8, sy + 16, '#e05a7a'); // bacche/fiori
+  rect(sx + 6, sy + 24, 20, 2, '#2f6b3b');
+  rect(sx + 8, sy + 22, 16, 2, '#245631'); // ombra propria alla base del cespuglio
   ctx.restore();
 }
 export function drawLamp(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  shadow(sx + 8, sy + 15, 4);
-  rect(sx + 7, sy + 3, 2, 12, '#5a5248'); px(sx + 7, sy + 3, '#847a6c');                        // palo (luce sul lato sx)
-  rect(sx + 5, sy, 6, 4, '#3f3a33'); rect(sx + 6, sy + 1, 4, 2, night() > 0.4 ? '#ffdf8a' : '#c9c2b4'); // lanterna
-  if (night() > 0.4) { px(sx + 5, sy + 1, '#ffe9a0'); px(sx + 10, sy + 1, '#ffe9a0'); }
-  rect(sx + 5, sy + 14, 6, 1, '#3f3a33');
+  /* FASE 2: nativa — palo con venatura metallica, lanterna con vetri distinti sui 4 lati. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  shadow(sx + 16, sy + 30, 8);
+  rect(sx + 14, sy + 6, 4, 24, '#5a5248'); px(sx + 14, sy + 6, '#847a6c'); px(sx + 14, sy + 20, shade8('#5a5248', 0.8)); // palo (luce sx + venatura)
+  rect(sx + 10, sy, 12, 8, '#3f3a33'); rect(sx + 12, sy + 2, 8, 4, night() > 0.4 ? '#ffdf8a' : '#c9c2b4'); // lanterna
+  rect(sx + 10, sy, 2, 8, shade8('#3f3a33', 1.3)); // spigolo chiaro del telaio
+  if (night() > 0.4) { px(sx + 10, sy + 2, '#ffe9a0'); px(sx + 20, sy + 2, '#ffe9a0'); }
+  rect(sx + 10, sy + 28, 12, 2, '#3f3a33');
   ctx.restore();
 }
 /* affioramento d'ossa: cranio semisepolto + costole; scintilla se ha ancora scavi */
@@ -337,7 +348,11 @@ export function drawWreck(sx, sy, time, tx, ty) {
   ctx.restore();
 }
 function drawTownDeco(d, sx, sy, time) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
+  /* FASE 2: ogni tipo qui sotto è ORMAI nativo (drawFountain/Bench/Lamp/BushDeco/Mailbox/
+     Statue/Board si scalano da sole al loro interno) — questo wrapper NON deve più
+     raddoppiare, altrimenti li disegna a 4× (bug reale trovato e corretto: la cassetta
+     della posta lo faceva già prima di questo giro). */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   if (d.type === 'fountain') drawFountain(sx, sy, time);
   else if (d.type === 'bench') drawBench(sx, sy);
   else if (d.type === 'lamp') drawLamp(sx, sy);
@@ -349,14 +364,15 @@ function drawTownDeco(d, sx, sy, time) {
 }
 /* CARTELLO delle missioni: due pali + tabellone di legno con fogli e un pennino luccicante */
 function drawBoard(sx, sy, time) {
-  shadow(sx + 8, sy + 15, 6);
-  rect(sx + 3, sy + 8, 2, 8, '#6e4a2a'); rect(sx + 11, sy + 8, 2, 8, '#6e4a2a');   // pali
-  rect(sx + 1, sy + 1, 14, 9, '#8a5f38'); rect(sx + 1, sy + 1, 14, 1, '#a97a4c');   // tavola
-  rect(sx + 2, sy + 2, 12, 7, '#c9a06a');                                            // fondo chiaro
-  rect(sx + 3, sy + 3, 4, 5, '#f2ead8'); rect(sx + 9, sy + 3, 4, 4, '#f2ead8');      // fogli appesi
-  rect(sx + 3, sy + 4, 4, 1, '#b8ad8c'); rect(sx + 3, sy + 6, 3, 1, '#b8ad8c'); rect(sx + 9, sy + 4, 4, 1, '#b8ad8c'); // righe di testo
-  rect(sx + 1, sy, 14, 1, '#5c4229');                                                // cornice alta
-  if (Math.floor(time / 400) % 3 === 0) { px(sx + 13, sy + 2, '#fff3b0'); px(sx + 14, sy + 1, '#fff8d0'); } // luccichio "novità"
+  /* FASE 2: nativa — cornice con quarto tono, pali con venatura, fogli con più righe. */
+  shadow(sx + 16, sy + 30, 12);
+  rect(sx + 6, sy + 16, 4, 16, '#6e4a2a'); rect(sx + 22, sy + 16, 4, 16, '#6e4a2a'); px(sx + 6, sy + 20, shade8('#6e4a2a', 0.8)); px(sx + 22, sy + 20, shade8('#6e4a2a', 0.8)); // pali + venatura
+  rect(sx + 2, sy + 2, 28, 18, '#8a5f38'); rect(sx + 2, sy + 2, 28, 2, '#a97a4c');   // tavola
+  rect(sx + 4, sy + 4, 24, 14, '#c9a06a'); rect(sx + 4, sy + 4, 24, 1, shade8('#c9a06a', 1.15)); // fondo chiaro + filo di luce
+  rect(sx + 6, sy + 6, 8, 10, '#f2ead8'); rect(sx + 18, sy + 6, 8, 8, '#f2ead8');    // fogli appesi
+  rect(sx + 6, sy + 8, 8, 2, '#b8ad8c'); rect(sx + 6, sy + 12, 6, 2, '#b8ad8c'); rect(sx + 18, sy + 8, 8, 2, '#b8ad8c'); rect(sx + 18, sy + 12, 5, 2, '#b8ad8c'); // righe di testo
+  rect(sx + 2, sy, 28, 2, '#5c4229');                                                // cornice alta
+  if (Math.floor(time / 400) % 3 === 0) { px(sx + 26, sy + 4, '#fff3b0'); px(sx + 28, sy + 2, '#fff8d0'); } // luccichio "novità"
 }
 /* STATUA DEL NONNO (solo città, accanto al Museo): piedistallo di pietra con targa d'ottone,
    il vecchio archeologo col cappello a tesa e la pala piantata a terra. Tutta in toni di PIETRA
@@ -364,49 +380,47 @@ function drawBoard(sx, sy, time) {
    con cui parlare per sbaglio. La targa manda un riflesso ogni tanto: dice "qui c'è da leggere"
    senza scriverlo. */
 function drawStatue(sx, sy, time) {
-  shadow(sx + 8, sy + 15, 7);
-  /* pietra a quattro toni + un contorno scuro: senza il contorno la statua si scioglieva nel
-     lastricato chiaro della piazza (regola ferrea 4 — ogni cosa stacca dal suo sfondo). */
+  /* FASE 2: nativa (era appesa allo scale(2,2) esterno di drawTownDeco, tolto: raddoppiata
+     con quarto tono in più su pietra/cappotto). */
+  shadow(sx + 16, sy + 30, 14);
   const D = '#4e4a42', P1 = '#7d766a', P2 = '#9a9384', P3 = '#b6ae9d', P4 = '#cfc7b4';
-  /* BASAMENTO: due gradini, il più largo in basso. Alto e stretto = monumento; largo e basso
-     sembrava una cassetta degli attrezzi. */
-  rect(sx + 1, sy + 12, 14, 4, D);                                    // ombra/base scura
-  rect(sx + 2, sy + 12, 12, 3, P1); rect(sx + 2, sy + 12, 12, 1, P2);
-  rect(sx + 4, sy + 8, 8, 4, D);                                      // colonna del piedistallo
-  rect(sx + 5, sy + 8, 6, 4, P2); rect(sx + 5, sy + 8, 6, 1, P3);
-  rect(sx + 4, sy + 13, 8, 2, '#b9a15c'); rect(sx + 4, sy + 13, 8, 1, '#dcc078'); // targa d'ottone
-  /* LA FIGURA: snella e verticale. Cappotto lungo che si stringe in vita, spalle strette,
-     testa piccola sotto una tesa larga — la silhouette di un vecchio, non di un armadio. */
-  rect(sx + 5, sy + 1, 6, 8, D);                                      // contorno del corpo
-  rect(sx + 6, sy + 2, 4, 6, P2);                                     // cappotto
-  rect(sx + 6, sy + 2, 4, 1, P3);                                     // luce sulle spalle
-  px(sx + 6, sy + 6, P1); px(sx + 9, sy + 6, P1);                     // pieghe in vita
-  rect(sx + 6, sy + 8, 4, 1, P1);                                     // orlo del cappotto
-  rect(sx + 6, sy - 3, 4, 4, D);                                      // contorno della testa
-  rect(sx + 7, sy - 2, 2, 2, P3);                                     // viso
-  rect(sx + 6, sy, 4, 1, P4);                                         // barba chiara
-  rect(sx + 4, sy - 4, 8, 1, D); rect(sx + 5, sy - 4, 6, 1, P2);      // tesa larga del cappello
-  rect(sx + 6, sy - 6, 4, 2, D); rect(sx + 6, sy - 5, 4, 1, P1);      // cupola del cappello
-  /* LA PALA, tenuta in mano: il braccio la raggiunge, così non sembra piantata lì per caso */
-  rect(sx + 11, sy + 3, 1, 6, D);                                     // manico
-  rect(sx + 10, sy + 4, 1, 1, P3);                                    // mano che lo stringe
-  rect(sx + 10, sy + 1, 3, 3, D); rect(sx + 11, sy + 1, 1, 2, P3);    // lama in alto
-  /* riflesso sulla targa: passa ogni tanto, come sull'ottone lucidato. Dice "qui c'è da
-     leggere" senza scriverlo. */
-  if (Math.floor(time / 520) % 4 === 0) { px(sx + 5, sy + 13, '#fff3c8'); px(sx + 6, sy + 14, '#fff8e0'); }
+  rect(sx + 2, sy + 24, 28, 8, D);                                    // ombra/base scura
+  rect(sx + 4, sy + 24, 24, 6, P1); rect(sx + 4, sy + 24, 24, 2, P2);
+  rect(sx + 8, sy + 16, 16, 8, D);                                    // colonna del piedistallo
+  rect(sx + 10, sy + 16, 12, 8, P2); rect(sx + 10, sy + 16, 12, 2, P3);
+  rect(sx + 8, sy + 26, 16, 4, '#b9a15c'); rect(sx + 8, sy + 26, 16, 2, '#dcc078'); // targa d'ottone
+  rect(sx + 10, sy + 2, 12, 16, D);                                   // contorno del corpo
+  rect(sx + 12, sy + 4, 8, 12, P2);                                   // cappotto
+  rect(sx + 12, sy + 4, 8, 2, P3);                                    // luce sulle spalle
+  px(sx + 12, sy + 12, P1); px(sx + 18, sy + 12, P1);                 // pieghe in vita
+  rect(sx + 12, sy + 16, 8, 2, P1);                                   // orlo del cappotto
+  rect(sx + 12, sy + 4, 2, 10, shade8(P2, 0.85));                     // quarto tono: piega verticale sul davanti
+  rect(sx + 12, sy - 6, 8, 8, D);                                     // contorno della testa
+  rect(sx + 14, sy - 4, 4, 4, P3);                                    // viso
+  rect(sx + 12, sy, 8, 2, P4);                                        // barba chiara
+  rect(sx + 8, sy - 8, 16, 2, D); rect(sx + 10, sy - 8, 12, 2, P2);   // tesa larga del cappello
+  rect(sx + 12, sy - 12, 8, 4, D); rect(sx + 12, sy - 10, 8, 2, P1);  // cupola del cappello
+  rect(sx + 22, sy + 6, 2, 12, D);                                    // manico della pala
+  rect(sx + 20, sy + 8, 2, 2, P3);                                    // mano che lo stringe
+  rect(sx + 20, sy + 2, 6, 6, D); rect(sx + 22, sy + 2, 2, 4, P3);    // lama in alto
+  if (Math.floor(time / 520) % 4 === 0) { px(sx + 10, sy + 26, '#fff3c8'); px(sx + 12, sy + 28, '#fff8e0'); }
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
-  shadow(sx + 8, sy + 15, 5);
-  rect(sx + 7, sy + 9, 2, 7, '#6e4a2a'); px(sx + 7, sy + 9, '#8a5f38');            // palo
-  rect(sx + 3, sy + 3, 10, 7, '#3a8c85'); rect(sx + 3, sy + 2, 10, 2, '#57c0b6'); // corpo + cima chiara
-  rect(sx + 3, sy + 3, 2, 7, shade8('#3a8c85', 1.2)); rect(sx + 9, sy + 3, 4, 7, shade8('#3a8c85', 0.75)); // volume: curva del portello
-  rect(sx + 3, sy + 9, 10, 1, '#2a6b64');                                          // base scura
-  px(sx + 2, sy + 4, '#2a6b64'); px(sx + 13, sy + 4, '#2a6b64');                   // spigoli (contorno)
-  rect(sx + 5, sy + 4, 6, 1, '#173e39');                                           // fessura per le lettere
-  rect(sx + 4, sy + 6, 3, 3, '#eaf3f0'); px(sx + 4, sy + 6, '#b7cfc9');            // etichetta bianca
-  rect(sx + 12, sy + 3, 1, 3, '#8a5f38'); rect(sx + 13, sy + 2, 2, 2, '#e05a54'); px(sx + 13, sy + 2, '#f27a74'); // bandierina rossa alzata
+  /* FASE 2: nativa (era doppiamente scalata: bug reale, chiamata dentro drawTownDeco che
+     scalava già 2× — corretto togliendo lo scale di qui). Portello con quarto tono, palo
+     con venatura, bandierina con luccichio. */
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  shadow(sx + 16, sy + 30, 10);
+  rect(sx + 14, sy + 18, 4, 14, '#6e4a2a'); px(sx + 14, sy + 18, '#8a5f38'); px(sx + 14, sy + 26, shade8('#6e4a2a', 0.8)); // palo (luce + venatura)
+  rect(sx + 6, sy + 6, 20, 14, '#3a8c85'); rect(sx + 6, sy + 4, 20, 4, '#57c0b6'); // corpo + cima chiara
+  rect(sx + 6, sy + 6, 4, 14, shade8('#3a8c85', 1.2)); rect(sx + 18, sy + 6, 8, 14, shade8('#3a8c85', 0.75)); // volume: curva del portello
+  rect(sx + 16, sy + 6, 2, 14, shade8('#3a8c85', 0.95)); // quarto tono: crinale centrale del portello
+  rect(sx + 6, sy + 18, 20, 2, '#2a6b64');                                          // base scura
+  px(sx + 4, sy + 8, '#2a6b64'); px(sx + 26, sy + 8, '#2a6b64');                    // spigoli (contorno)
+  rect(sx + 10, sy + 8, 12, 2, '#173e39');                                          // fessura per le lettere
+  rect(sx + 8, sy + 12, 6, 6, '#eaf3f0'); px(sx + 8, sy + 12, '#b7cfc9');           // etichetta bianca
+  rect(sx + 24, sy + 6, 2, 6, '#8a5f38'); rect(sx + 26, sy + 4, 4, 4, '#e05a54'); px(sx + 26, sy + 4, '#f27a74'); // bandierina rossa alzata
   ctx.restore();
 }
 /* glifo del TIPO del compagno sopra la sua testa (sempre visibile → il potere è "attivo"):
