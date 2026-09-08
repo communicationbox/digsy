@@ -125,42 +125,48 @@ export function updateSeasonPalette(day, tod) {
    Regola: stanno "dentro" il suolo (stessa palette, 1-2 toni di scarto), sono piatti, non
    hanno ombra né stellina. Così arricchiscono il mondo senza far credere che si raccolgano:
    ciò che si raccoglie ha SEMPRE ombra + stellina. */
-export function soilDetail(tx, ty, sx, sy, kind, pal) {
-  const v = vhash(tx, ty, 61);
-  if (v >= 0.28) return;                                 // 1 tile su 4: rumore basso, niente pixel sparsi ovunque
-  const x = sx + 2 + Math.floor(vhash(tx, ty, 62) * 11);
-  const y = sy + 2 + Math.floor(vhash(tx, ty, 63) * 11);
-  const k = Math.floor(vhash(tx, ty, 64) * 6);
+/* raggio pieno del NUOVO tile 32px: prima gli accenti stavano tutti nel terzo alto-sx
+   (offset pensati per un tile da 16px), lasciando il resto vuoto — fase 2, vero dettaglio:
+   posizione su tutto il tile, due accenti invece di uno dove c'è spazio, forme un po' più
+   grandi (leggibili alla nuova scala, non 1 pixel perso in un tile 2x più grande). */
+function soilMark(tx, ty, sx, sy, kind, pal, seed) {
+  const x = sx + 3 + Math.floor(vhash(tx, ty, 62 + seed) * 26);
+  const y = sy + 3 + Math.floor(vhash(tx, ty, 63 + seed) * 26);
+  const k = Math.floor(vhash(tx, ty, 64 + seed) * 6);
   const [dark, mid, light] = pal;
   if (kind === 'grass') {
-    if (k === 0) { rect(x, y, 3, 1, dark); px(x + 1, y + 1, dark); }                    // solco d'erba rasa
-    else if (k === 1) { px(x, y, dark); px(x + 2, y + 1, dark); px(x + 1, y + 2, dark); } // terriccio
-    else if (k === 2) { rect(x, y, 2, 2, mid); px(x + 2, y + 1, dark); }                 // sassolino incastonato
-    else if (k === 3) { rect(x, y, 3, 1, light); px(x + 1, y - 1, light); }              // filo secco
-    else if (k === 4) { rect(x, y, 4, 1, mid); px(x + 4, y + 1, mid); }                  // radice affiorante
-    else { rect(x, y, 2, 1, dark); rect(x + 1, y + 1, 2, 1, dark); }                     // zolla rasa
+    if (k === 0) { rect(x, y, 5, 2, dark); px(x + 2, y + 2, dark); }                     // solco d'erba rasa
+    else if (k === 1) { px(x, y, dark); px(x + 3, y + 1, dark); px(x + 1, y + 3, dark); px(x + 4, y + 3, dark); } // terriccio
+    else if (k === 2) { rect(x, y, 3, 3, mid); px(x + 3, y + 1, dark); px(x + 1, y - 1, light); }                 // sassolino incastonato
+    else if (k === 3) { rect(x, y, 4, 1, light); px(x + 1, y - 1, light); px(x + 2, y - 2, light); }              // filo secco
+    else if (k === 4) { rect(x, y, 6, 1, mid); px(x + 6, y + 1, mid); px(x - 1, y + 1, mid); }                    // radice affiorante
+    else { rect(x, y, 3, 2, dark); rect(x + 2, y + 2, 3, 2, dark); }                     // zolla rasa
   } else if (kind === 'sand') {
-    if (k === 0) { rect(x, y, 4, 1, dark); }                                             // ondulazione
-    else if (k === 1) { rect(x, y, 3, 1, light); rect(x + 1, y + 1, 3, 1, light); }       // duna in miniatura
-    else if (k === 2) { rect(x, y, 3, 1, mid); px(x + 1, y + 1, mid); }                   // ghiaia compatta
-    else if (k === 3) { rect(x, y, 5, 1, mid); px(x - 1, y + 1, mid); }                   // scia di vento
-    else if (k === 4) { rect(x, y, 2, 1, dark); rect(x + 2, y + 1, 2, 1, dark); }         // impronta
-    else { rect(x, y, 2, 2, light); }                                                    // chiazza chiara
+    if (k === 0) { rect(x, y, 7, 1, dark); rect(x + 2, y + 2, 4, 1, dark); }              // ondulazione
+    else if (k === 1) { rect(x, y, 5, 1, light); rect(x + 1, y + 1, 5, 1, light); rect(x + 2, y + 2, 3, 1, light); } // duna in miniatura
+    else if (k === 2) { rect(x, y, 4, 1, mid); px(x + 1, y + 1, mid); px(x + 5, y, mid); }// ghiaia compatta
+    else if (k === 3) { rect(x, y, 8, 1, mid); px(x - 1, y + 1, mid); }                   // scia di vento
+    else if (k === 4) { rect(x, y, 3, 1, dark); rect(x + 3, y + 1, 3, 1, dark); }         // impronta
+    else { rect(x, y, 3, 3, light); }                                                    // chiazza chiara
   } else if (kind === 'dirt') {
-    if (k === 0) { rect(x, y, 5, 1, dark); px(x + 2, y + 1, dark); }                      // crepa
-    else if (k === 1) { rect(x, y, 2, 2, mid); px(x + 2, y + 2, dark); }                  // zolla
-    else if (k === 2) { rect(x, y, 2, 1, light); px(x + 2, y + 1, light); }               // sassolini chiari
-    else if (k === 3) { rect(x, y, 3, 2, dark); }                                         // buca vecchia
-    else if (k === 4) { rect(x, y, 2, 1, mid); rect(x + 2, y + 1, 2, 1, mid); }           // ghiaino
-    else { rect(x, y, 1, 3, dark); px(x + 1, y + 3, dark); }                              // radice secca
+    if (k === 0) { rect(x, y, 7, 1, dark); px(x + 3, y + 1, dark); px(x + 5, y + 2, dark); } // crepa
+    else if (k === 1) { rect(x, y, 3, 3, mid); px(x + 3, y + 3, dark); }                  // zolla
+    else if (k === 2) { rect(x, y, 3, 1, light); px(x + 3, y + 1, light); }               // sassolini chiari
+    else if (k === 3) { rect(x, y, 4, 3, dark); }                                         // buca vecchia
+    else if (k === 4) { rect(x, y, 3, 1, mid); rect(x + 3, y + 1, 3, 1, mid); }           // ghiaino
+    else { rect(x, y, 1, 4, dark); px(x + 1, y + 4, dark); px(x - 1, y + 2, dark); }      // radice secca
   } else if (kind === 'forest') {
-    if (k === 0) { rect(x, y, 3, 1, dark); px(x + 1, y + 1, dark); }                      // aghi caduti
-    else if (k === 1) { rect(x, y, 3, 1, mid); px(x + 1, y + 1, mid); }                   // ramoscello
-    else if (k === 2) { rect(x, y, 2, 2, light); }                                        // chiazza di luce
-    else if (k === 3) { rect(x, y, 2, 1, dark); rect(x + 1, y + 1, 2, 1, dark); }          // foglie secche
-    else if (k === 4) { rect(x, y, 4, 1, dark); }                                         // radice affiorante
-    else { rect(x, y, 2, 1, mid); rect(x + 2, y + 1, 2, 1, mid); }                        // muschio
+    if (k === 0) { rect(x, y, 4, 1, dark); px(x + 2, y + 1, dark); }                      // aghi caduti
+    else if (k === 1) { rect(x, y, 4, 1, mid); px(x + 2, y + 1, mid); }                   // ramoscello
+    else if (k === 2) { rect(x, y, 3, 3, light); }                                        // chiazza di luce
+    else if (k === 3) { rect(x, y, 3, 1, dark); rect(x + 1, y + 1, 3, 1, dark); }         // foglie secche
+    else if (k === 4) { rect(x, y, 6, 1, dark); }                                         // radice affiorante
+    else { rect(x, y, 3, 1, mid); rect(x + 3, y + 1, 3, 1, mid); }                        // muschio
   }
+}
+export function soilDetail(tx, ty, sx, sy, kind, pal) {
+  if (vhash(tx, ty, 61) < 0.28) soilMark(tx, ty, sx, sy, kind, pal, 0);   // 1 tile su 4: rumore basso
+  if (vhash(tx, ty, 71) < 0.16) soilMark(tx, ty, sx, sy, kind, pal, 10);  // secondo accento più raro: il tile è 2x più grande, ci sta
 }
 /* ---------- tile di terreno ---------- */
 export function groundTile(t, tx, ty, sx, sy, time, zi) {
@@ -206,35 +212,35 @@ export function groundTile(t, tx, ty, sx, sy, time, zi) {
       const v = vhash(tx, ty, 21);
       rect(sx, sy, TS, TS, v < 0.4 ? SP.g[0] : v < 0.8 ? SP.g[1] : SP.g[2]);
       const d = vhash(tx, ty, 22);
-      const gx = sx + 3 + Math.floor(vhash(tx, ty, 23) * 9), gy = sy + 3 + Math.floor(vhash(tx, ty, 24) * 9);
-      if (d < 0.26) { px(gx, gy, SP.gd); px(gx + 1, gy, SP.gd); px(gx, gy - 1, SP.gh); px(gx + 2, gy - 1, SP.gh); }
-      else if (d < 0.33) { px(gx, gy, vhash(tx, ty, 26) < 0.5 ? '#f2dd7a' : '#f3ece0'); px(gx, gy + 1, SP.gd); }
-      else if (d < 0.38) { px(gx, gy, '#a8ad92'); px(gx + 1, gy, '#8f947c'); }
+      const gx = sx + 3 + Math.floor(vhash(tx, ty, 23) * 24), gy = sy + 3 + Math.floor(vhash(tx, ty, 24) * 24);
+      if (d < 0.26) { rect(gx, gy, 2, 2, SP.gd); px(gx + 2, gy, SP.gd); px(gx, gy - 2, SP.gh); rect(gx + 3, gy - 2, 2, 2, SP.gh); } // ciuffo d'erba: due colonne, non un puntino
+      else if (d < 0.33) { const fc = vhash(tx, ty, 26) < 0.5 ? '#f2dd7a' : '#f3ece0'; px(gx, gy, fc); px(gx + 1, gy, fc); px(gx, gy + 1, SP.gd); } // fiorellino
+      else if (d < 0.38) { rect(gx, gy, 2, 1, '#a8ad92'); rect(gx + 2, gy + 1, 2, 1, '#8f947c'); } // sassolino
       soilDetail(tx, ty, sx, sy, 'grass', [SP.gd, '#a8ad92', SP.gh]);
       break;
     }
     case FOREST: { const SP = ZP || SEA_TILE; rect(sx, sy, TS, TS, ((tx + ty) & 1) ? SP.f[0] : SP.f[1]);
-      const fx1 = sx + 2 + Math.floor(vhash(tx, ty, 65) * 5), fy1 = sy + 2 + Math.floor(vhash(tx, ty, 66) * 5);
-      const fx2 = sx + 8 + Math.floor(vhash(tx, ty, 67) * 6), fy2 = sy + 8 + Math.floor(vhash(tx, ty, 68) * 6);
-      px(fx1, fy1, SP.fd); px(fx2, fy2, SP.fd);
-      if (vhash(tx, ty, 69) < 0.4) px(fx2 - 1, fy2 - 1, SP.fh || SP.f[1]); // sprazzo di luce accanto all'ombra, non ripetuto ovunque
+      const fx1 = sx + 3 + Math.floor(vhash(tx, ty, 65) * 11), fy1 = sy + 3 + Math.floor(vhash(tx, ty, 66) * 11);
+      const fx2 = sx + 16 + Math.floor(vhash(tx, ty, 67) * 13), fy2 = sy + 16 + Math.floor(vhash(tx, ty, 68) * 13);
+      rect(fx1, fy1, 2, 2, SP.fd); rect(fx2, fy2, 2, 2, SP.fd);
+      if (vhash(tx, ty, 69) < 0.4) rect(fx2 - 2, fy2 - 2, 2, 2, SP.fh || SP.f[1]); // sprazzo di luce accanto all'ombra, non ripetuto ovunque
       soilDetail(tx, ty, sx, sy, 'forest', [SP.fd, SP.f[0], SP.fh || SP.f[1]]); break; }
     case DIRT: {
       const d0 = ZP ? ZP.dirt[0] : '#c9a06a', d1 = ZP ? ZP.dirt[1] : '#b98d59';
       rect(sx, sy, TS, TS, d0);
-      const dx1 = sx + 2 + Math.floor(vhash(tx, ty, 70) * 5), dy1 = sy + 2 + Math.floor(vhash(tx, ty, 71) * 5);
-      const dx2 = sx + 7 + Math.floor(vhash(tx, ty, 72) * 5), dy2 = sy + 6 + Math.floor(vhash(tx, ty, 73) * 5);
-      const dx3 = sx + 5 + Math.floor(vhash(tx, ty, 74) * 6), dy3 = sy + 10 + Math.floor(vhash(tx, ty, 75) * 4);
-      px(dx1, dy1, d1); px(dx2, dy2, d1); px(dx3, dy3, d1);
-      if (zi === 3 && vhash(tx, ty, 53) < 0.15) { px(sx + 6, sy + 6, '#8a3f2e'); px(sx + 7, sy + 6, '#8a3f2e'); px(sx + 8, sy + 7, '#8a3f2e'); } // crepe
+      const dx1 = sx + 3 + Math.floor(vhash(tx, ty, 70) * 12), dy1 = sy + 3 + Math.floor(vhash(tx, ty, 71) * 12);
+      const dx2 = sx + 15 + Math.floor(vhash(tx, ty, 72) * 12), dy2 = sy + 12 + Math.floor(vhash(tx, ty, 73) * 12);
+      const dx3 = sx + 9 + Math.floor(vhash(tx, ty, 74) * 14), dy3 = sy + 20 + Math.floor(vhash(tx, ty, 75) * 9);
+      rect(dx1, dy1, 2, 2, d1); rect(dx2, dy2, 2, 2, d1); rect(dx3, dy3, 2, 2, d1);
+      if (zi === 3 && vhash(tx, ty, 53) < 0.15) { const cx3 = sx + 10 + Math.floor(vhash(tx, ty, 54) * 12), cy3 = sy + 10 + Math.floor(vhash(tx, ty, 55) * 12); rect(cx3, cy3, 2, 1, '#8a3f2e'); rect(cx3 + 2, cy3, 1, 1, '#8a3f2e'); rect(cx3 + 3, cy3 + 1, 2, 1, '#8a3f2e'); } // crepe
       soilDetail(tx, ty, sx, sy, 'dirt', [shade8(d1, 0.82), d1, shade8(d0, 1.12)]);
       break;
     }
     case MTN: { rect(sx, sy, TS, TS, '#9a9285'); rect(sx, sy, TS, 3, '#aaa294');
-      const mx1 = sx + 2 + Math.floor(vhash(tx, ty, 76) * 6), my1 = sy + 4 + Math.floor(vhash(tx, ty, 77) * 6);
-      const mx2 = sx + 8 + Math.floor(vhash(tx, ty, 78) * 6), my2 = sy + 8 + Math.floor(vhash(tx, ty, 79) * 6);
-      px(mx1, my1, '#7f776a'); px(mx2, my2, '#7f776a');
-      if (vhash(tx, ty, 80) < 0.35) px(mx1 + 1, my1 - 1, '#c9c2b2'); // scaglia di roccia che coglie la luce
+      const mx1 = sx + 3 + Math.floor(vhash(tx, ty, 76) * 13), my1 = sy + 6 + Math.floor(vhash(tx, ty, 77) * 13);
+      const mx2 = sx + 15 + Math.floor(vhash(tx, ty, 78) * 14), my2 = sy + 16 + Math.floor(vhash(tx, ty, 79) * 13);
+      rect(mx1, my1, 2, 2, '#7f776a'); rect(mx2, my2, 2, 2, '#7f776a');
+      if (vhash(tx, ty, 80) < 0.35) rect(mx1 + 2, my1 - 2, 2, 2, '#c9c2b2'); // scaglia di roccia che coglie la luce
       soilDetail(tx, ty, sx, sy, 'dirt', ['#7f776a', '#8f887c', '#b5ada0']); break; }
     case FLOOR: { // lastricato: toni variabili, fughe a mattoni sfalsati, crepe rare
       const v = vhash(tx, ty, 25), FB = biomeBuild(tx, ty).floor;
@@ -243,18 +249,18 @@ export function groundTile(t, tx, ty, sx, sy, time, zi) {
          tegola rossa avevano lo stesso giunto color sabbia) */
       const fj = shade8(FB[1], 0.86), fj2 = shade8(FB[1], 0.92);
       rect(sx, sy, TS, 1, fj); rect(sx, sy, 1, TS, fj);
-      if (ty & 1) rect(sx + 8, sy, 1, TS, fj2); // giunto sfalsato a file alterne
-      if (vhash(tx, ty, 26) < 0.08) { const cr = shade8(FB[1], 0.8); px(sx + 5, sy + 6, cr); px(sx + 6, sy + 7, cr); px(sx + 7, sy + 8, cr); }
-      else if (vhash(tx, ty, 27) < 0.3) px(sx + 3 + Math.floor(vhash(tx, ty, 28) * 10), sy + 4 + Math.floor(vhash(tx, ty, 29) * 9), shade8(FB[2], 1.05));
+      if (ty & 1) rect(sx + 16, sy, 1, TS, fj2); // giunto sfalsato a file alterne (metà del tile 32px)
+      if (vhash(tx, ty, 26) < 0.08) { const cr = shade8(FB[1], 0.8), ccx = sx + 8 + Math.floor(vhash(tx, ty, 30) * 14), ccy = sy + 8 + Math.floor(vhash(tx, ty, 31) * 14); px(ccx, ccy, cr); px(ccx + 1, ccy + 1, cr); px(ccx + 2, ccy + 2, cr); }
+      else if (vhash(tx, ty, 27) < 0.3) { const gx2 = sx + 4 + Math.floor(vhash(tx, ty, 28) * 22), gy2 = sy + 4 + Math.floor(vhash(tx, ty, 29) * 22); rect(gx2, gy2, 2, 2, shade8(FB[2], 1.05)); }
       break;
     }
     case ROAD: { // strada sterrata: terra battuta chiara, orme e sassolini
       const v = vhash(tx, ty, 34), RB = biomeBuild(tx, ty).road;
       rect(sx, sy, TS, TS, v < 0.45 ? RB[0] : v < 0.85 ? RB[1] : RB[2]);
       const rd = shade8(RB[1], 0.85), rl = shade8(RB[2], 1.06), rs = shade8(RB[0], 0.74);
-      px(sx + 3 + Math.floor(vhash(tx, ty, 35) * 10), sy + 3 + Math.floor(vhash(tx, ty, 36) * 10), rd);
-      if (vhash(tx, ty, 37) < 0.3) px(sx + 2 + Math.floor(vhash(tx, ty, 38) * 12), sy + 2 + Math.floor(vhash(tx, ty, 39) * 12), rl);
-      if (vhash(tx, ty, 40) < 0.12) { px(sx + 6, sy + 9, rs); px(sx + 7, sy + 9, rs); px(sx + 6, sy + 8, shade8(RB[0], 0.85)); } // sasso
+      rect(sx + 4 + Math.floor(vhash(tx, ty, 35) * 24), sy + 4 + Math.floor(vhash(tx, ty, 36) * 24), 2, 1, rd);
+      if (vhash(tx, ty, 37) < 0.3) { const rlx = sx + 3 + Math.floor(vhash(tx, ty, 38) * 26), rly = sy + 3 + Math.floor(vhash(tx, ty, 39) * 26); rect(rlx, rly, 2, 1, rl); }
+      if (vhash(tx, ty, 40) < 0.12) { const sox = sx + 8 + Math.floor(vhash(tx, ty, 41) * 16), soy = sy + 8 + Math.floor(vhash(tx, ty, 42) * 16); rect(sox, soy, 2, 2, rs); px(sox, soy - 1, shade8(RB[0], 0.85)); } // sasso
       break;
     }
     case PARK: { // prato curato a STRISCE falciate orizzontali (continue tra i tile: niente scacchiera dura)
