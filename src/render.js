@@ -954,11 +954,12 @@ export function drawBikeFB(sx, sy, moving, dir) {
    SEDUTO in groppa (busto, gambe in sella). Colore dalla creatura + contorno scuro. 4 direzioni. */
 /* eroe SEDUTO in groppa: busto+testa (gambe tagliate dal clip = in sella), all'altezza `topY` */
 function seatHero(sx, topY, dir) {
-  ctx.save(); ctx.beginPath(); ctx.rect(sx - 9, topY - 4, 18, 16); ctx.clip();
-  /* drawHero raddoppia già da sola: qui siamo dentro il 2x di drawFlyingMount, quindi si
-     annulla quel raddoppio (0.5) e si compensa la posizione ×2, altrimenti il personaggio
-     in sella uscirebbe 4x invece di 2x. */
-  ctx.scale(0.5, 0.5); drawHero(null, (sx - 8) * 2, topY * 2, dir, 0);
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 18, topY - 8, 36, 32); ctx.clip();
+  /* drawHero ora disegna nativamente a 32×26 (non raddoppia più da sola): qui siamo
+     dentro il 2x di drawFlyingMount, quindi si annulla quel raddoppio (0.5) e si passa
+     l'ancora diretta (metà della nuova larghezza, 16), altrimenti il personaggio in
+     sella uscirebbe 2x invece che alla taglia giusta. */
+  ctx.scale(0.5, 0.5); drawHero(null, sx - 16, topY, dir, 0);
   ctx.restore();
 }
 /* ALA in stile VOXEL: colonne PIENE a ventaglio (niente membrana liscia coi buchi), 3 toni +
@@ -1050,9 +1051,10 @@ export function drawBoat(sx, sy, noHero) {
     px(sx + bx, y0 + 13 + by, '#bfe9f4');
   }
   /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
-  /* drawHero raddoppia già da sola: qui siamo dentro il 2x della barca, si annulla (0.5) e si
-     compensa la posizione ×2 per non finire a 4x. */
-  if (!noHero) { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, (sx - 8) * 2, (y0 - 5) * 2, P.dir, 0); ctx.restore(); }
+  /* drawHero ora disegna nativamente a 32×26 (non raddoppia più da sola): qui siamo dentro
+     il 2x della barca, si annulla (0.5) e si passa l'ancora diretta, altrimenti il
+     personaggio a bordo uscirebbe 2x invece che alla taglia giusta. */
+  if (!noHero) { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, y0 - 5, P.dir, 0); ctx.restore(); }
   if (!bankVeh('boat', sx, y0)) {                                     // scafo: disegno a mano se c'è, altrimenti procedurale
     if (P.dir === 'up' || P.dir === 'down') drawBoatFB(sx, y0, P.dir === 'up'); // fronte/retro: scafo di prua/poppa
     else {
@@ -1098,9 +1100,9 @@ export function drawMotorboat(sx, sy, noHero) {
     for (let i = 0; i < 3; i++) { px(sx + bx - 3 + i * 3 - w2, y0 + 14 + by, '#e8f6fb'); px(sx + bx - 2 + i * 3 + w2, y0 + 16 + by, '#bfe9f4'); }
   }
   /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
-  /* drawHero raddoppia già da sola: qui siamo dentro il 2x del motoscafo, si annulla (0.5) e si
-     compensa la posizione ×2 per non finire a 4x. */
-  if (!noHero) { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, (sx - 8) * 2, (y0 - 4) * 2, P.dir, 0); ctx.restore(); }
+  /* drawHero ora disegna nativamente a 32×26: si annulla il 2x del motoscafo (0.5) e si
+     passa l'ancora diretta. */
+  if (!noHero) { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, y0 - 4, P.dir, 0); ctx.restore(); }
   if (!bankVeh('motorboat', sx, y0)) {                                // scafo: disegno a mano se c'è, altrimenti procedurale
     if (P.dir === 'up' || P.dir === 'down') drawMotorboatFB(sx, y0, P.dir === 'up'); // fronte/retro
     else {
@@ -1132,7 +1134,7 @@ function drawDigging(sx, sy) {
   const ph = d.t / d.dur;
   const struck = Math.floor(ph * 4) % 2 === 1;              // due colpi per scavata
   if (kind === 'dig') {
-    ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, (sx - 8) * 2, (sy + (struck ? 1 : 0)) * 2, 'down', 0); ctx.restore(); // chino sul colpo
+    ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, sy + (struck ? 1 : 0), 'down', 0); ctx.restore(); // chino sul colpo
     if (!struck) { // PALA alzata: manico + lama LARGA a cucchiaio (≠ piccone)
       rect(sx + 5, sy - 5, 2, 8, '#8a5f38');                                   // manico
       rect(sx + 2, sy - 9, 8, 4, '#b8b0a2'); rect(sx + 3, sy - 5, 6, 1, '#9a9285'); // lama larga
@@ -1151,7 +1153,7 @@ function drawDigging(sx, sy) {
   }
   /* accetta/piccone: colpo LATERALE verso la tile che guardi, schegge a tema */
   const dx2 = P.dir === 'left' ? -1 : 1;
-  ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, (sx - 8) * 2, (sy + (struck ? 1 : 0)) * 2, P.dir === 'up' ? 'down' : P.dir, 0); ctx.restore();
+  ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, sx - 16, sy + (struck ? 1 : 0), P.dir === 'up' ? 'down' : P.dir, 0); ctx.restore();
   const headCol = kind === 'chop' ? '#b5622e' : '#9a9285';
   if (!struck) { // attrezzo alzato dietro la testa
     rect(sx + dx2 * 5, sy - 4, 2, 7, '#8a5f38');

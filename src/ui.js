@@ -1902,13 +1902,21 @@ function previewHtml() {
   return `<div class="center" style="padding:6px"><canvas id="prevCv" width="120" height="44" class="prev"></canvas></div>`;
 }
 let prevRaf = 0;
+/* riquadro NATURALE su cui sono tarate le posizioni qui sotto (personaggio ora 32×32
+   nativo, non più 16×16): il canvas GRANDE (120×44, barbiere/sartoria) è esattamente
+   questa taglia, scala 1. Il canvas PICCOLO e appiccicoso dell'editor (60×22) è la metà
+   esatta — senza questo adattamento il personaggio ci usciva fuori, tagliato a metà
+   (segnalato: "si vede solo la testa, capelli a chiazze"). */
+const PREV_REF_W = 120, PREV_REF_H = 44;
 export function drawPreview(noHat) {
   if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(prevRaf);
   const pc = document.getElementById('prevCv'); if (!pc) return;
   const c2 = pc.getContext('2d'); c2.imageSmoothingEnabled = false;
+  const scale = Math.min(pc.width / PREV_REF_W, pc.height / PREV_REF_H);
   const paint = (fr, bob) => {
-    c2.clearRect(0, 0, 120, 44);
-    drawHero(c2, 4, 8 + bob, 'down', fr, noHat);   // +8 in alto: spazio per cappelli che svettano (righe -3)
+    c2.setTransform(scale, 0, 0, scale, 0, 0);
+    c2.clearRect(0, 0, PREV_REF_W, PREV_REF_H);
+    drawHero(c2, 4, 8 + bob, 'down', fr, noHat);   // +8 in alto: spazio per cappelli che svettano
     drawHero(c2, 44, 8 + bob, 'right', fr, noHat);
     drawHero(c2, 84, 8 + bob, 'up', fr, noHat);
   };

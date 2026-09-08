@@ -1576,8 +1576,9 @@ sprites.applyLook();
     for (const view of ['down', 'up', 'side']) for (const fr of [0, 1])
       for (const sh of shirtIds) for (const pt of pantsIds) {
         const out = sprites.styleLook(sprites.SPR[view][fr], sh, pt);
-        const acceso = (x, y) => y >= 0 && y < out.length && x >= 0 && x < 16 && out[y][x] !== '.';
-        for (let y = 0; y < out.length; y++) for (let x = 0; x < 16; x++) {
+        const OW = out[0].length;
+        const acceso = (x, y) => y >= 0 && y < out.length && x >= 0 && x < OW && out[y][x] !== '.';
+        for (let y = 0; y < out.length; y++) for (let x = 0; x < OW; x++) {
           if (out[y][x] === '.') continue;
           if (!acceso(x - 1, y) && !acceso(x + 1, y) && !acceso(x, y - 1) && !acceso(x, y + 1))
             stacc.push(`${view}/passo${fr + 1} ${sh}+${pt} riga ${y} col ${x}`);
@@ -1616,26 +1617,26 @@ sprites.applyLook();
   let bad = 0;
   for (const dir of ['down', 'up', 'side']) for (const fr of [0, 1]) {
     const rows = sprites.SPR[dir][fr];
-    if (rows.length !== 16) bad++;
-    rows.forEach(r => { if (r.length !== 16) bad++; for (const ch of r) if (!(ch in sprites.PAL)) bad++; });
+    if (rows.length !== 32) bad++;
+    rows.forEach(r => { if (r.length !== 32) bad++; for (const ch of r) if (!(ch in sprites.PAL)) bad++; });
   }
-  check('6 varianti sprite 16x16 con chiavi valide', bad === 0);
+  check('6 varianti sprite 32x32 con chiavi valide', bad === 0);
   let hbad = 0;
   for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'side', 'up']) {
     for (const [y, r] of sprites.HAIRS[st][dir]) {
-      if (y < 0 || y > 15 || r.length !== 16) hbad++;
+      if (y < -8 || y > 40 || r.length !== 32) hbad++;
       for (const ch of r) if (!(ch in sprites.PAL)) hbad++;
     }
   }
   check('overlay capelli validi (4 stili × 3 direzioni)', hbad === 0);
   check('stili/colori capelli coerenti coi dati (6 stili, 12 colori)', HAIR_STYLES.length === 6 && HAIR_STYLES.every(s => s.id in sprites.HAIRS) && HAIR_COLORS.length === 12);
-  // fronte/retro: capelli simmetrici rispetto all'asse della testa (colonne 5–10 → specchio c↔15-c)
+  // fronte/retro: capelli simmetrici rispetto all'asse della testa (colonne raddoppiate → specchio c↔31-c)
   let asym = 0;
   for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'up']) {
     for (const [, r] of sprites.HAIRS[st][dir]) {
-      for (let c = 0; c < 16; c++) {
-        const m = 15 - c;
-        if (m >= 0 && m < 16 && (r[c] === 'A') !== (r[m] === 'A')) asym++;
+      for (let c = 0; c < 32; c++) {
+        const m = 31 - c;
+        if (m >= 0 && m < 32 && (r[c] === 'A') !== (r[m] === 'A')) asym++;
       }
     }
   }
@@ -1643,7 +1644,7 @@ sprites.applyLook();
   let hatBad = 0;
   for (const st of Object.keys(sprites.HATS)) for (const dir of ['down', 'side', 'up']) {
     for (const [y, r] of sprites.HATS[st][dir]) {
-      if (y < -3 || y > 15 || r.length !== 16) hatBad++; // fino a 3 righe sopra la testa
+      if (y < -8 || y > 40 || r.length !== 32) hatBad++; // fino a righe sopra la testa (raddoppiate)
       for (const ch of r) if (!(ch in sprites.PAL)) hatBad++;
     }
   }
@@ -1660,16 +1661,18 @@ sprites.applyLook();
   {
     const dataMod = await import('../src/data.js');
     const base = sprites.SPR.down[0];
+    /* corpo ridisegnato a 32×26 (testa righe 0–15, torso 16–25, gambe 26–31): la prima
+       riga di torso è 16, la prima riga di gambe 26 — non più 9/13 del vecchio 16×13 */
     const tank = sprites.styleLook(base, 'tank', 'long');
-    const bf = base[9].indexOf('S'), bl = base[9].lastIndexOf('S');
-    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', bf >= 0 && tank[9][bf] === 'F' && tank[9][bl] === 'F' && tank[9].includes('S'));
+    const bf = base[16].indexOf('S'), bl = base[16].lastIndexOf('S');
+    check('canottiera: braccia scoperte (pelle dove il torso aveva la maglia sui bordi)', bf >= 0 && tank[16][bf] === 'F' && tank[16][bl] === 'F' && tank[16].includes('S'));
     const shorts = sprites.styleLook(base, 'tshirt', 'shorts');
-    check('pantaloncini: stinco scoperto (una riga di pantalone → pelle)', !shorts[14].includes('P') && shorts[13].includes('P'));
+    check('pantaloncini: stinco scoperto (una riga di pantalone → pelle)', !shorts[29].includes('P') && shorts[28].includes('P'));
     const skirt = sprites.styleLook(base, 'tshirt', 'skirt');
     const wideCount = r => (r.match(/[Pp]/g) || []).length;
-    check('gonna: prima riga gambe svasata (più larga)', wideCount(skirt[13]) > wideCount(base[13]));
+    check('gonna: prima riga gambe svasata (più larga)', wideCount(skirt[26]) > wideCount(base[26]));
     const overall = sprites.styleLook(base, 'tshirt', 'overall');
-    check('salopette: bretelle di pantalone sul torso', overall[10].includes('P'));
+    check('salopette: bretelle di pantalone sul torso', overall[20].includes('P'));
     check('styleLook default (tshirt/long) = corpo invariato', sprites.styleLook(base, 'tshirt', 'long').join('|') === base.join('|'));
     check('4 maglie + 4 pantaloni definiti', dataMod.SHIRT_STYLES.length === 4 && dataMod.PANTS_STYLES.length === 4);
     check('DEFAULT_LOOK ha shirtStyle/pantsStyle', dataMod.DEFAULT_LOOK.shirtStyle === 'tshirt' && dataMod.DEFAULT_LOOK.pantsStyle === 'long');

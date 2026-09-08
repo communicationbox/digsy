@@ -33,19 +33,22 @@ export function applyLook() {
 }
 
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
-/* fronte: N=luce sulla fronte (alto-sx), T=luce sul petto, U=luce sulla coscia sx —
-   TERZO tono oltre a base F/S/P e ombra f/s/p già esistenti (non solo un blocco piatto) */
-const bDown = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFEFFFFEFF...", "...FFFFFFFFFF...", "....FfFFFFfF....", "....KFFFFFFK....", "....STSSSSSs....", "...SSTSSSSSss...", "...SSsSSSSsSS...", "...SSSSSSSSSS..."];
+/* RIDISEGNATO a risoluzione doppia (32×26 invece di 16×13): non più i vecchi pixel
+   duplicati in blocchi 2×2, ma sagoma tonda vera (profilo generato a curva, non a
+   scalini), occhi/naso/bocca leggibili, testa raccordata al collo. N=luce fronte,
+   T=luce maglia, U=luce coscia sx, f/s=ombra propria, dither a scacchiera dove le
+   bande si toccano (stesso principio già usato per capelli/cappelli/vestiti). */
+const bDown = ["..........FFFFFFFFFFFFF.........", ".......FFFFFFFFFFFFFFFFFF.......", "......FFNNNNNNFFFFFFFFFFFFF.....", "....FFFFNNNNNNFFFFFFFFFFFFF.....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "....FFFFFFFFFFFFFFFFFFFFFFFF....", "...FFFFFFffffFFFFFFffffFFFFFF...", "...FfFFFFFWEFFFFFFFFWEFFFFFfF...", ".....FFFFFEEFFFFFFFFEEFFFFF.....", "......FFFfFFfFFFFFFfFFfFFFF.....", "......FFFFFFFFFffFFFFFFFF.......", "........FFFFFFKffKFFFFFF........", "..........FFffffffffFFF.........", "............fffffffff...........", "..SSSSSSSSSFFFFKKFFFSSSSSSSSS...", "..SSSSSSSSSFFFFFFFFFSSSSSSSSSS..", "..SSSSSSSTTTTTTSTSSSSSSSSSSSSS..", "..SSSSSSSTTTTTSTSTSSSSSSSSSSS...", "...SSSSSSTTTTTTSTSSssssssSSSS...", "....SSSSSTTTTTSTSTSssssssSSSS...", "....SSSSSSSSSSSSsSsssssssSSS....", "....SSSSSSSSSSSSSsSssssssSSS....", "....SSSSSSSSSSSSsSsssssssSSS....", "....SSSSSSSSSSSSSsssssssssss...."];
 /* retro: nuca + zaino */
-const bUp = [".....FFFFFF.....", "....NFFFFFFF....", "...FNFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FFFFFFFFFF...", "...FfFFFFFFfF...", "....KFFFFFFK....", "....SBBBBBBS....", "...SSBBBBBBSS...", "...SSBbbbbBSS...", "...SSBBBBBBSS..."];
-/* profilo (guarda a destra; flip per sinistra): occhio singolo, naso */
-const bSide = [".....FFFFFF.....", "....NFFFFFFF....", "....NFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFFF...", "....FFFFFFFEFf..", "....FFFFFFFFF...", "....FfFFFFFFf...", ".....KFFFFFK....", ".....STSSSSSS...", "....SSTSSSSSSS..", "....SsSSSSSSSS..", "....SSSSSSSSSS.."];
+const bUp = ["..........FFFFFFFFFFFFF.........", ".......FFFFFFFFFFFFFFFFFF.......", "......FFNNNNNNFFFFFFFFFFFFF.....", "....FFFFNNNNNNFFFFFFFFFFFFF.....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "....FFFFNNNNNNFFFFFFFFFFFFFF....", "...FFFFFFFFFFFFFFFFFFFFFFFFFF...", "...FfFFFFFFFFFFFFFFFFFFFFFFfF...", ".....FFFFFFFFFFFFFFFFFFFFFF.....", "......FFFFFFFFFFFFFFFFFFFFF.....", "......FFFFFFFFFFFFFFFFFFF.......", "........FFFFFFFFFFFFFFFF........", "..........FFFFFFFFFFFFF.........", "............fffffffff...........", "..SSBBBBBBBFFFFFFFFFBBBBBBBSS...", "..SSBBBBBBBFFFFFFFFFBBBBBBBBSS..", "..SSBBBBBBBBBBBBBBBBBBBBBBBBSS..", "..SSBBBBBBBbbBBBBBBbbBBBBBBSS...", "...SSBBBBBBbbBBBBBBbbBBBBBBSS...", "....SSBBBBBbbBBBBBBbbBBBBBBSS...", "....SSBBBBBbbBBBBBBbbBBBBBSS....", "....SSBBBBBbbBBBBBBbbBBBBBSS....", "....SSBBBBBbbBBBBBBbbBBBBBSS....", "....SSBBBBBBBBBBBBBBBBBBBBSS...."];
+/* profilo (guarda a destra; flip per sinistra): occhio singolo, naso a sbalzo */
+const bSide = ["..........FFFFFFFFFFF...........", "........FFFFFFFFFFFFFFF.........", "......FFFNNNNNNFFFFFFFFFF.......", "......ffFNNNNNNFFFFFFFFFF.......", ".....fffFNNNNNNFFFFFFFFFFF......", ".....fffFNNNNNNFFFFFFFFFFF......", ".....fffFNNNNNNFFFFFFFFFFF......", ".....fffFFFFFFFFFFFFFFFFFFF.....", ".....fffFFFFFFFFFFFffffFFFF.....", "......FFFFFFFFFFFFFFWEFFFFF.....", "......FFFFFFFFFFFFFFEEFFFF......", "......FFFFFFFFFFFFFFFFFfF.......", "........FFFFFFFFFFFFFFF.........", ".........FFFFFFFFFFFKf..........", "..........FFFFFFFFfff...........", "............FFfffff.............", "......SSSSSFFFFKKFFFSSSSSSS.....", ".....SSSSSSFFFFFFFFFSSSSSSS.....", ".....SSSSSSSSSTSTTTTTTTSSSS.....", "......SSSSSSSTSTSTTTTTTSSSS.....", "......ssssssSSTSTTTTTTTSSS......", "......ssssssSTSTSTTTTTTSS.......", "......sssssssSsSSSSSSSSSS.......", "......ssssssSsSsSSSSSSSSS.......", "......sssssssSsSSSSSSSSSS.......", "......SSSSSSSSSSSSSSSSSSS......."];
 /* gambe fronte/retro (aperte/chiuse): U = luce sul davanti della coscia sinistra */
-const lA = ["....UPP..PpP....", "....PPP..PpP....", "....WW....WW...."];
-const lB = ["....UPP..PpP....", "...PPP....PpP...", "...WW......WW..."];
+const lA = [".........UUPPPP..PPPPPP.........", ".........UUPPPP..PPPPPP.........", ".........PPPPPP..PPPPpp.........", ".........PPPPPP..PPPPpp.........", "........WWWWWWWWWWWWWWWW........", "........fWWWWWWffWWWWWWf........"];
+const lB = [".........UUPPPP....PPPPPP.......", ".........UUPPPP....PPPPPP.......", ".........PPPPPP....PPPPpp.......", ".........PPPPPP....PPPPpp.......", "........WWWWWWWW..WWWWWWWW......", "........fWWWWWWf..fWWWWWWf......"];
 /* gambe profilo: falcata (avanti/dietro) e passaggio (unite) */
-const lsA = [".....UPP..PpP...", "....PPP....PpP..", "....WW......WW.."];
-const lsB = ["......UPPPpP....", "......PPPPpP....", "......WWWW......"];
+const lsA = ["..........PPPPPP.UUPPPP.........", "..........PPPPPP.UUPPPP.........", "..........PPppPP.PPPPPP.........", "..........PPppPP.PPPPPP.........", ".........WWWWWWWWWWWWWWWW.......", ".........fWWWWWWffWWWWWWf......."];
+const lsB = [".............UUPPPPPPPP.........", ".............UUPPPPPPPP.........", ".............PPPPPPPPpp.........", ".............PPPPPPPPpp.........", "............WWWWWWWWWWWW........", "............fWWWWWWWWWWf........"];
 
 export const SPR = {
   down: [bDown.concat(lA), bDown.concat(lB)],
@@ -87,12 +90,28 @@ function ditherBase(ov, mapChar, loChar) {
     return [row, arr.join('')];
   });
 }
+/* raddoppia un overlay [riga,mappa] a risoluzione doppia: ogni riga diventa 2 righe,
+   ogni carattere diventa 2 caratteri — stessa sagoma, il doppio dei pixel per poterci
+   passare sopra litOverlay/ditherBase con più margine (dithering più fine, non a scacchi
+   larghi). Punto di partenza onesto: non è ancora un ridisegno a mano dei 15+3 stili
+   (troppo rischioso farlo su tutti in un colpo solo, vedi nota nel report), ma con più
+   pixel disponibili il dithering condiviso produce una sfumatura via via più morbida
+   invece di un blocco piatto raddoppiato — un vero passo avanti sul piano precedente. */
+function expand2x(ov) {
+  if (!ov || !ov.length) return ov;
+  const out = [];
+  for (const [row, s] of ov) {
+    let wide = ''; for (const ch of s) wide += ch + ch;
+    out.push([row * 2, wide]); out.push([row * 2 + 1, wide]);
+  }
+  return out;
+}
 function litHat(v) {
-  const d = ov => ditherBase(litOverlay(ov, 'H', 'L'), 'H', 'h');
+  const d = ov => ditherBase(litOverlay(expand2x(ov), 'H', 'L'), 'H', 'h');
   return { down: d(v.down), side: d(v.side), up: d(v.up) };
 }
 function litHair(v) {
-  const d = ov => ditherBase(litOverlay(ov, 'A', 'M'), 'A', 'a');
+  const d = ov => ditherBase(litOverlay(expand2x(ov), 'A', 'M'), 'A', 'a');
   return { down: d(v.down), side: d(v.side), up: d(v.up) };
 }
 
@@ -186,13 +205,16 @@ const HATS_RAW = {
 };
 /* i cappelli-trofeo (oro, ...Gold) hanno già un loro schema chiaro/scuro/luce (G/g/Y): non
    toccarli. Gli altri (in H/h) prendono il terzo tono qui, una volta sola al caricamento. */
-export const HATS = Object.fromEntries(Object.entries(HATS_RAW).map(([k, v]) => [k, /Gold$/.test(k) ? v : litHat(v)]));
+export const HATS = Object.fromEntries(Object.entries(HATS_RAW).map(([k, v]) =>
+  [k, /Gold$/.test(k) ? { down: expand2x(v.down), side: expand2x(v.side), up: expand2x(v.up) } : litHat(v)]));
 /* ultima riga di "corona" per forma: col cappello indossato i capelli NON si disegnano
    su queste righe (niente compenetrazioni); sotto restano frangia/lati/lunghezze */
-export const HAT_CROWN = { explorer: 2, cap: 2, beanie: 3,
-  flowercrown: 1, bandana: 2, hood: 5, snorkel: -1, ushanka: 6, vikingo: 4,
-  sombrero: 4, partyhat: 3, cowboy: 2, santa: 3,
-  crownGold: 2, gradGold: 2, laurelGold: 1, gogglesGold: 2, hornsGold: 1, pithGold: 3, featherGold: 2, hardhatGold: 3, lampGold: 2 };
+/* raddoppiati insieme a expand2x() sopra: riga vecchia R → coppia di righe 2R/2R+1,
+   quindi la soglia diventa 2R+1 (l'ultima delle due righe corrispondenti a R). */
+export const HAT_CROWN = { explorer: 5, cap: 5, beanie: 7,
+  flowercrown: 3, bandana: 5, hood: 11, snorkel: -1, ushanka: 13, vikingo: 9,
+  sombrero: 9, partyhat: 7, cowboy: 5, santa: 7,
+  crownGold: 5, gradGold: 5, laurelGold: 3, gogglesGold: 5, hornsGold: 3, pithGold: 7, featherGold: 5, hardhatGold: 7, lampGold: 5 };
 
 /* ---------- capelli: overlay a testa piena (il cappello, se indossato, copre la parte alta) ---------- */
 const HAIRS_RAW = {
@@ -257,22 +279,26 @@ const HAIRS_RAW = {
 export const HAIRS = Object.fromEntries(Object.entries(HAIRS_RAW).map(([k, v]) => [k, litHair(v)]));
 
 /* ---------- blit ---------- */
+/* larghezza NON più fissa a 16: dal raddoppio geometrico il corpo è 32 colonne, ma
+   blit/blitPairs restano generiche (usate anche da anteprime più piccole nello Sprite
+   Studio) — la larghezza si legge dalla riga stessa, non si assume mai un numero fisso. */
 export function blit(rows, px, py, flip, tctx) {
   const c = tctx || ctx;
   for (let y = 0; y < rows.length; y++) {
-    const r = rows[y];
-    for (let x = 0; x < 16; x++) {
+    const r = rows[y]; const w = r.length;
+    for (let x = 0; x < w; x++) {
       const col = PAL[r[x]]; if (!col) continue;
-      c.fillStyle = col; c.fillRect(px + (flip ? 15 - x : x), py + y, 1, 1);
+      c.fillStyle = col; c.fillRect(px + (flip ? w - 1 - x : x), py + y, 1, 1);
     }
   }
 }
 export function blitPairs(pairs, px, py, flip, tctx) {
   const c = tctx || ctx;
   for (const [y, r] of pairs) {
-    for (let x = 0; x < 16; x++) {
+    const w = r.length;
+    for (let x = 0; x < w; x++) {
       const col = PAL[r[x]]; if (!col) continue;
-      c.fillStyle = col; c.fillRect(px + (flip ? 15 - x : x), py + y, 1, 1);
+      c.fillStyle = col; c.fillRect(px + (flip ? w - 1 - x : x), py + y, 1, 1);
     }
   }
 }
@@ -328,7 +354,8 @@ export function styleLook(rows, shirtStyle, pantsStyle) {
       if (cf >= 0) rows[cuff] = setAt(rows[cuff], cf, 'p'); if (cl >= 0) rows[cuff] = setAt(rows[cuff], cl, 'p'); } // orlo: ombra dove il tessuto finisce
   } else if (pantsStyle === 'skirt' && legs.length) {    // gonna: svasata sulla prima riga, gambe scoperte sotto
     const top = legs[0]; const f = rows[top].indexOf('P'), l = rows[top].lastIndexOf('P');
-    let s = rows[top].split(''); for (let x = Math.max(0, f - 1); x <= Math.min(15, l + 1); x++) s[x] = 'P'; s[Math.max(0, f - 1)] = 'p'; s[Math.min(15, l + 1)] = 'p';
+    const wMax = rows[top].length - 1;
+    let s = rows[top].split(''); for (let x = Math.max(0, f - 1); x <= Math.min(wMax, l + 1); x++) s[x] = 'P'; s[Math.max(0, f - 1)] = 'p'; s[Math.min(wMax, l + 1)] = 'p';
     for (let x = f; x <= l; x += 2) if (s[x] === 'P') s[x] = 'p';   // pieghe: scacchiera verticale, non un blocco piatto
     rows[top] = s.join('');
     for (let i = 1; i < legs.length; i++) rows[legs[i]] = rows[legs[i]].replace(/P/g, 'F');
@@ -382,8 +409,8 @@ export function heroClothes(look, view, frame) {
 
 /* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
 export function drawHero(tctx, x, y, dir, frame, noHat) {
-  const c2 = tctx || ctx;
-  c2.save(); c2.translate(x, y); c2.scale(2, 2); x = 0; y = 0;
+  /* niente più ctx.scale(2,2) qui: il corpo è ORA disegnato nativamente a 32×26,
+     non più 16×13 raddoppiato meccanicamente — vero dettaglio, non blocchi 2×2. */
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const flip = dir === 'left';
   const c = heroClothes(S.look, key, frame);
@@ -398,10 +425,9 @@ export function drawHero(tctx, x, y, dir, frame, noHat) {
   /* GLITTER del cappello PLATINO: qualche scintilla brillante sulla forma (twinkle dal tempo). */
   if (hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0) {
     const g = tctx || ctx, t = Math.floor(heroTime / 260) % 3;
-    const sp = [[5, -1], [10, 0], [7, 1], [4, 1], [9, -1]];
-    for (let i = 0; i < sp.length; i++) { if ((i + t) % 3 !== 0) continue; const [sx, sy] = sp[i]; g.fillStyle = (i % 2 ? '#ffffff' : '#f8dd82'); g.fillRect(x + (flip ? 15 - sx : sx), y + sy, 1, 1); }
+    const sp = [[10, -2], [20, 0], [14, 2], [8, 2], [18, -2]];
+    for (let i = 0; i < sp.length; i++) { if ((i + t) % 3 !== 0) continue; const [sx, sy] = sp[i]; g.fillStyle = (i % 2 ? '#ffffff' : '#f8dd82'); g.fillRect(x + (flip ? 31 - sx : sx), y + sy, 1, 1); }
   }
-  c2.restore();
 }
 /* tempo per il twinkle del glitter (aggiornato da render); default 0 per test/anteprime statiche */
 let heroTime = 0;
