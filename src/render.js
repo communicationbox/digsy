@@ -1530,7 +1530,7 @@ export function render(time) {
     const gx = snap(goalMark.x - cam.x), gy = snap(goalMark.y - cam.y + FOOT_DY);
     ents.push({ y: -9e9, f: () => drawGoalMark(gx, gy, time) });
   }
-  ents.push({ y: P.y - cam.y + 16, f: drawPlayer });
+  ents.push({ y: P.y - cam.y + TS, f: drawPlayer });
   /* COMPAGNO: chimera/risvegliato che insegue il player — MA non quando lo si cavalca (in volo
      il compagno È la cavalcatura sotto l'eroe: disegnarlo anche qui lo sdoppiava) */
   const compObj = companionDrawObj();
@@ -1571,17 +1571,17 @@ export function render(time) {
     }
     let best = sniffBest, bd = 8;
     if (best) {
-      const mx = best[0] * TS - cam.x + 8, my = best[1] * TS - cam.y - 4 + (Math.sin(time / 220) < 0 ? -1 : 0);
+      const mx = best[0] * TS - cam.x + TS / 2, my = best[1] * TS - cam.y - TS / 4 + (Math.sin(time / 220) < 0 ? -1 : 0);
       px(mx, my, '#fff3b0'); px(mx - 1, my + 1, '#f6d95c'); px(mx + 1, my + 1, '#f6d95c'); px(mx, my + 2, '#e0a020'); // pallino "fiuto"
     }
   }
   /* notte: fuori dalla luce quasi NERO; cono 8-bit attorno al player; le città restano illuminate */
   if (night() > 0.02) {
-    const pxc = P.x - cam.x, pyc = P.y - cam.y + 8;
+    const pxc = P.x - cam.x, pyc = P.y - cam.y + TS / 2;
     const tR = (S.tools && S.tools.torch ? 1.7 : 1) + companionLightBonus(); // torcia + compagno LANTERNA (grotta)
     for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
       const sx = tx * TS - cam.x, sy = ty * TS - cam.y;
-      const d = (Math.hypot(sx + 8 - pxc, sy + 8 - pyc) / TS) / tR;
+      const d = (Math.hypot(sx + TS / 2 - pxc, sy + TS / 2 - pyc) / TS) / tR;
       let base = d < 2.5 ? 0.15 : d < 4 ? 0.55 : d < 5.5 ? 0.85 : 0.96;
       /* città illuminata + ALONE graduale attorno (falloff su 5 tile, a scalini) */
       const tw = townForTile(tx, ty);
