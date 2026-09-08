@@ -93,7 +93,7 @@ export function exhibitSprite(spId, parts) {
   let cv = exCache.get(key); if (cv !== undefined) return cv;
   cv = null;
   try {
-    cv = document.createElement('canvas'); cv.width = 36; cv.height = 32;
+    cv = document.createElement('canvas'); cv.width = 72; cv.height = 64;
     const c2 = cv.getContext('2d');
     const vox = composedPartsVox(spId, parts);
     let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
@@ -103,7 +103,7 @@ export function exhibitSprite(spId, parts) {
     for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
       const zt = (v.z - mnz) / zr;
       c2.fillStyle = v.k === 'eye' ? '#201a14' : zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
-      c2.fillRect(ox + (v.x - mnx), oy + (mxy - v.y), 1, 1);
+      c2.fillRect((ox + (v.x - mnx)) * 2, (oy + (mxy - v.y)) * 2, 2, 2); // ogni voxel = blocco 2×2 (16bit HD)
     }
     outlineSprite(cv, '#1c160f');
   } catch (e) { cv = null; /* stub nei test */ }
@@ -348,33 +348,34 @@ export function drawMuseumGallery(time) {
     }
   }
   /* zerbino davanti alla porta: dice "si esce di qui" senza scriverlo */
-  const mx = Math.round(rw / 2 - 14), my = rh + 8;
-  rect(mx, my, 28, 12, '#8a5f38'); rect(mx + 1, my + 1, 26, 10, '#a97a4c');
-  for (let i = 0; i < 6; i++) rect(mx + 3 + i * 4, my + 3, 2, 6, '#8a5f38');
+  const mx = Math.round(rw / 2 - 28), my = rh + 16;
+  rect(mx, my, 56, 24, '#8a5f38'); rect(mx + 2, my + 2, 52, 20, '#a97a4c');
+  for (let i = 0; i < 6; i++) rect(mx + 6 + i * 8, my + 6, 4, 12, '#8a5f38');
   /* TECHE: vetrina SCURA con cornice dorata — le ossa bianche risaltano */
   /* teca disegnata come funzione: entra nella lista ordinata per y (il pg ci passa DIETRO) */
   const drawCase = (pd) => {
     const bx = pd.tx * TS, by = pd.ty * TS;
     const parts = S.museum[pd.sp.id] || [];
     const full = parts.length === PARTS.length;
-    shadow(bx + 8, by + 15, 9);
-    rect(bx, by + 8, 16, 7, '#9a9285'); rect(bx, by + 8, 16, 2, '#b5ad9e'); rect(bx - 1, by + 13, 18, 2, '#7f776a');
-    rect(bx, by + 10, 16, 1, '#c9a227');
-    rect(bx - 4, by - 27, 24, 35, full ? '#e8c34a' : '#8a7118');           // cornice
-    rect(bx - 3, by - 26, 22, 33, '#1b1626');                              // interno scuro
-    rect(bx - 3, by - 26, 22, 1, '#494066');                               // luce alta
+    shadow(bx + 16, by + 30, 18);
+    rect(bx, by + 16, 32, 14, '#9a9285'); rect(bx, by + 16, 32, 4, '#b5ad9e'); rect(bx - 2, by + 26, 36, 4, '#7f776a');
+    rect(bx, by + 20, 32, 2, '#c9a227');
+    rect(bx - 8, by - 54, 48, 70, full ? '#e8c34a' : '#8a7118');           // cornice
+    rect(bx - 6, by - 52, 44, 66, '#1b1626');                              // interno scuro
+    rect(bx - 6, by - 52, 44, 2, '#494066');                               // luce alta
     const cv = parts.length ? exhibitSprite(pd.sp.id, parts) : null;
-    if (cv) ctx.drawImage(cv, bx - 10, by - 25);
-    else { px(bx + 7, by - 14, '#4a4438'); px(bx + 8, by - 14, '#4a4438'); px(bx + 9, by - 13, '#4a4438'); px(bx + 8, by - 11, '#4a4438'); px(bx + 8, by - 8, '#4a4438'); }
-    for (let i = 0; i < 9; i++) px(bx + 14 - i, by - 24 + i, 'rgba(255,255,255,.14)'); // riflesso vetro
-    ctx.fillStyle = 'rgba(255,235,180,.08)'; ctx.fillRect(bx - 2, by - 25, 20, 14);
+    if (cv) ctx.drawImage(cv, bx - 20, by - 50);
+    else { rect(bx + 14, by - 28, 2, 2, '#4a4438'); rect(bx + 16, by - 28, 2, 2, '#4a4438'); rect(bx + 18, by - 26, 2, 2, '#4a4438'); rect(bx + 16, by - 22, 2, 2, '#4a4438'); rect(bx + 16, by - 16, 2, 2, '#4a4438'); }
+    for (let i = 0; i < 9; i++) rect(bx + 28 - i * 2, by - 48 + i * 2, 2, 2, 'rgba(255,255,255,.14)'); // riflesso vetro
+    ctx.fillStyle = 'rgba(255,235,180,.08)'; ctx.fillRect(bx - 4, by - 50, 40, 28);
     const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r];
-    rect(bx + 2, by + 15, 12, 4, '#3a3a44'); rect(bx + 2, by + 15, 12, 1, '#c9a227'); rect(bx + 3, by + 17, 10, 1, rc);
-    if (full) { const tw2 = Math.floor(time / 400) % 2; px(bx + (tw2 ? -2 : 17), by - 30, '#f2c53d'); px(bx + 8, by - 31 + tw2, '#f2c53d'); }
+    rect(bx + 4, by + 30, 24, 8, '#3a3a44'); rect(bx + 4, by + 30, 24, 2, '#c9a227'); rect(bx + 6, by + 34, 20, 2, rc);
+    if (full) { const tw2 = Math.floor(time / 400) % 2; px(bx + (tw2 ? -4 : 34), by - 60, '#f2c53d'); px(bx + 16, by - 62 + tw2 * 2, '#f2c53d'); }
   };
   /* pianta in vaso come funzione (fronde alte: il pg passa dietro) */
   const drawPlant = (pxo) => {
-    const vy = GAL_DESK.y1 - 2, sway = Math.round(Math.sin(time / 900 + pxo) * 1);
+    ctx.save(); ctx.translate(pxo, 0); ctx.scale(2, 2); pxo = 0;
+    const vy = (GAL_DESK.y1 - 2) / 2, sway = Math.round(Math.sin(time / 900 + pxo) * 1);
     shadow(pxo + 5, vy + 10, 6);
     rect(pxo + 1, vy, 8, 10, '#b5652a'); rect(pxo + 1, vy, 8, 2, '#d07d3c'); rect(pxo, vy - 1, 10, 2, '#8a4a1e'); // vaso
     rect(pxo + 2, vy + 3, 6, 1, '#8a4a1e');
@@ -384,6 +385,7 @@ export function drawMuseumGallery(time) {
       for (let k = 0; k < hh; k++) px(cx3 + Math.round(lx * (1 - k / hh)) + (k > hh - 3 ? sway : 0), vy + ly + k, k < 2 ? '#619a4c' : '#4e7a3d');
     }
     px(cx3 - 1, vy - 15 + sway, '#7fb862'); px(cx3 + 1, vy - 16 + sway, '#7fb862');
+    ctx.restore();
   };
   /* ATRIO d'ingresso: tappeto rosso dalla porta al bancone (sotto le entità) */
   const dx0 = (INT.w / 2) * TS;

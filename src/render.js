@@ -389,10 +389,12 @@ export function drawMailbox(sx, sy) {
 const GLYPH_COL = { terra: ['#b07a3c', '#e6c48a'], acqua: ['#3f9bdc', '#bfe6ff'], albero: ['#5fae4a', '#c8f0b0'], roccia: ['#9aa2ad', '#e2e7ef'], grotta: ['#e0a83c', '#ffe6a6'] };
 function drawCompanionGlyph(type, cx, cy, time) {
   if (!type) return;
+  ctx.save(); ctx.translate(cx, cy); ctx.scale(2, 2); cx = 0; cy = 0;
   const y = cy + (Math.sin(time / 300) < 0 ? -1 : 0);
   const [c, hi] = GLYPH_COL[type] || GLYPH_COL.terra;
   px(cx, y - 1, c); px(cx - 1, y, c); px(cx + 1, y, c); px(cx, y + 1, c); // diamante
   px(cx, y, hi);                                                          // nucleo chiaro
+  ctx.restore();
 }
 /* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — sedere/coda fuori dall'acqua
    che si tuffa e riemerge, zampe palmate che remano, increspature e bollicine. Sostituisce il
@@ -478,21 +480,25 @@ function drawCompanionMine(cx, cy, time, dir) {
    (castoro) · ROCCIA = testa il masso (ariete). Coordinate già snap. */
 function drawCompanionWork(cxs, cys, time, obj) {
   const j = COMP.job; if (!j || j.phase !== 'work') return;
+  ctx.save(); ctx.translate(cxs, cys); ctx.scale(2, 2); cxs = 0; cys = 0;
   const dir = j.wx >= COMP.x ? 1 : -1;
-  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
-  if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); return; }
-  if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); return; }
+  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); ctx.restore(); return; }
+  if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); ctx.restore(); return; }
+  if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); ctx.restore(); return; }
   drawCompanionMine(cxs, cys, time, dir); // roccia
+  ctx.restore();
 }
 /* "+fossile" che sale dal raccoglitore quando trova qualcosa (contorno rarità) */
 const COMP_RARCOL = { comune: '#cfc8b6', raro: '#7fbfe0', eccezionale: '#c79be6', leggendario: '#f0c86a' };
 function drawCompanionFx(cam, time) {
   if (!COMP.fx || !COMP.fx.length) return;
   for (const p of COMP.fx) {
-    const gx = snap(p.x - cam.x), gy = snap(p.y - cam.y - (1 - p.life) * 16), a = Math.max(0, p.life);
+    const gx = snap(p.x - cam.x), gy = snap(p.y - cam.y - (1 - p.life) * 32), a = Math.max(0, p.life);
     const w = 'rgba(245,240,225,' + a.toFixed(2) + ')', w2 = 'rgba(245,240,225,' + (a * 0.7).toFixed(2) + ')';
-    px(gx, gy, w); px(gx - 1, gy, w2); px(gx + 1, gy, w2); px(gx, gy - 1, w2);      // ossino "+"
-    if (a > 0.4) px(gx, gy - 2, COMP_RARCOL[p.q] || '#e8d9b0');                      // scintilla rarità
+    ctx.save(); ctx.translate(gx, gy); ctx.scale(2, 2);
+    px(0, 0, w); px(-1, 0, w2); px(1, 0, w2); px(0, -1, w2);      // ossino "+"
+    if (a > 0.4) px(0, -2, COMP_RARCOL[p.q] || '#e8d9b0');         // scintilla rarità
+    ctx.restore();
   }
 }
 /* MINIGIOCO "gioca col compagno": pallina lanciata con un arco, ferma dove atterra finché il
@@ -504,19 +510,21 @@ function drawCompanionPlay(cxs, cys, cam, time) {
   const pl = COMP.play; if (!pl) return;
   let bx, by;
   if (pl.phase === 'throw') {
-    const f = Math.min(1, pl.t / PLAY_THROW), arc = Math.sin(f * Math.PI) * 16;
+    const f = Math.min(1, pl.t / PLAY_THROW), arc = Math.sin(f * Math.PI) * 32;
     bx = snap(P.x + (pl.tx - P.x) * f - cam.x); by = snap(P.y + (pl.ty - P.y) * f - cam.y - arc);
   } else if (pl.phase === 'chase' || pl.phase === 'catch') {
-    bx = snap(pl.tx - cam.x); by = snap(pl.ty - cam.y + (Math.sin(time / 140) > 0 ? -1 : 0)); // un filo di vita mentre aspetta
-  } else { bx = cxs; by = cys - 18; } // 'return': il compagno se la porta dietro
-  px(bx, by, '#e8763c'); px(bx - 1, by, '#c65a2e'); px(bx + 1, by, '#c65a2e'); px(bx, by - 1, '#f2935c'); px(bx, by + 1, '#a8451f');
+    bx = snap(pl.tx - cam.x); by = snap(pl.ty - cam.y + (Math.sin(time / 140) > 0 ? -2 : 0)); // un filo di vita mentre aspetta
+  } else { bx = cxs; by = cys - 36; } // 'return': il compagno se la porta dietro
+  ctx.save(); ctx.translate(bx, by); ctx.scale(2, 2);
+  px(0, 0, '#e8763c'); px(-1, 0, '#c65a2e'); px(1, 0, '#c65a2e'); px(0, -1, '#f2935c'); px(0, 1, '#a8451f');
+  ctx.restore();
   if (pl.phase !== 'catch') return;
-  const W = 16, H = 3, x0 = cxs - W / 2, y0 = cys - 26;
-  rect(x0 - 1, y0 - 1, W + 2, H + 2, '#2a2115');                     // cornice
+  const W = 32, H = 6, x0 = cxs - W / 2, y0 = cys - 52;
+  rect(x0 - 2, y0 - 2, W + 4, H + 4, '#2a2115');                     // cornice
   rect(x0, y0, W, H, '#4a3a26');                                     // fondo
   rect(x0 + PLAY_PERFECT[0] * W, y0, (PLAY_PERFECT[1] - PLAY_PERFECT[0]) * W, H, '#c79a3c'); // zona d'oro
   const cur = x0 + Math.min(1, pl.t / PLAY_CATCH) * W;
-  rect(Math.round(cur), y0 - 1, 1, H + 2, '#fff');                   // cursore: dove sei ORA
+  rect(Math.round(cur), y0 - 2, 2, H + 4, '#fff');                   // cursore: dove sei ORA
 }
 /* MERAVIGLIE: il disegno vive in wonderart.js (modulo puro) così si può guardare e
    rifinire anche fuori dal gioco, nella pagina /wonders. */
@@ -665,6 +673,7 @@ function creatureArch(a) {
   return 'walk';
 }
 function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
+  ctx.save(); ctx.translate(sx, sy); ctx.scale(2, 2); sx = 0; sy = 0;
   /* verso a 4 direzioni: su → spalle, giù → fronte, sinistra/destra → profilo (specchiato).
      `a.face` è una stringa ('up'/'down'/'left'/'right'); per compatibilità si accetta anche
      il vecchio `a.dir` numerico (-1/1) → solo profilo. */
@@ -694,7 +703,7 @@ function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
   if (swim || noShadow) { hop = 0; lift = 0; skew = 0; sqX = 1; sqY = 1; }
   const bob = swim ? Math.round(Math.sin(frameTime / 520) * 1) : 0;
   if (!swim && !noShadow) shadow(sx + 8, sy + 13, sh);
-  if (!cv) { const b = spColor[a.c.torso] || '#c8b078'; rect(sx + 4, sy + 5 + hop - lift + bob, 9, 6, b); return; }
+  if (!cv) { const b = spColor[a.c.torso] || '#c8b078'; rect(sx + 4, sy + 5 + hop - lift + bob, 9, 6, b); ctx.restore(); return; }
   const d = face === 'left' ? -1 : 1;   // specchio solo di profilo
   const w = cv.width * sqX, h = cv.height * sqY;
   const dx = sx + 8 - w / 2, dy = sy + 14 - h + hop - lift + bob;
@@ -716,6 +725,7 @@ function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
     if (ph2) { px(sx + 1, wl + 1, '#dff3fa'); px(sx + 13, wl + 1, '#dff3fa'); }
   } else paint();
   ctx.imageSmoothingEnabled = sm;
+  ctx.restore();
 }
 
 /* imbocco di grotta sulla montagna: arco scuro nella roccia, con qualche scintillio */
@@ -1007,7 +1017,9 @@ export function drawFlyingMount(sx, sy) {
   if (view === 'side') { leg(sx - 4, -1); leg(sx + 2, 1); }
   else { leg(sx - 5, -1); leg(sx + 3, 1); }
   /* la CREATURA VERA senza zampe (uguale all'animale base), SOPRA le radici delle ali (attaccate) */
-  if (obj) drawCreature(obj, sx - 8, creatureY, false, true, mopts);
+  /* drawCreature raddoppia già da sola: qui siamo dentro il 2x della cavalcatura, si annulla
+     (0.5) e si compensa la posizione ×2 per non finire a 4x. */
+  if (obj) { ctx.save(); ctx.scale(0.5, 0.5); drawCreature(obj, (sx - 8) * 2, creatureY * 2, false, true, mopts); ctx.restore(); }
   /* SELLA: prolunga il dorso (stesso colore) sotto l'eroe → nessun pixel vuoto fra busto e creatura */
   rect(sx - 6, backTop - 1, 12, 5, base); rect(sx - 6, backTop - 1, 12, 1, shade8(base, 1.2));
   px(sx - 7, backTop, '#20160f'); px(sx - 7, backTop + 1, '#20160f'); px(sx + 6, backTop, '#20160f'); px(sx + 6, backTop + 1, '#20160f');
@@ -1423,14 +1435,14 @@ export function render(time) {
       const pd = yr && parkDeco(yr, yr.cx, Math.floor(a.x / TS), Math.floor(a.y / TS), alive());
       if (pd && pd.kind === 'pond') {
         ents.push({ y: ay, f: () => {                            // in acqua: metà sotto la linea d'acqua + increspature
-          const wl = ay - 3;                                     // linea d'acqua (sotto = sommerso)
-          ctx.save(); ctx.beginPath(); ctx.rect(ax - 16, ay - 30, 32, wl - (ay - 30)); ctx.clip();
-          drawCreature(a, ax - 8, ay - 13);
+          const wl = ay - 6;                                     // linea d'acqua (sotto = sommerso)
+          ctx.save(); ctx.beginPath(); ctx.rect(ax - 32, ay - 60, 64, wl - (ay - 60)); ctx.clip();
+          drawCreature(a, ax - 16, ay - 26);
           ctx.restore();
           const w2 = Math.floor(time / 260 + a.x) % 2;
-          px(ax - 6 + w2, wl, '#bfe9f4'); px(ax + 5 - w2, wl, '#bfe9f4'); px(ax - 2, wl + 1, '#e8f6fb'); px(ax + 2, wl + 1, '#e8f6fb');
+          px(ax - 12 + w2 * 2, wl, '#bfe9f4'); px(ax + 10 - w2 * 2, wl, '#bfe9f4'); px(ax - 4, wl + 2, '#e8f6fb'); px(ax + 4, wl + 2, '#e8f6fb');
         } });
-      } else ents.push({ y: ay, f: () => drawCreature(a, ax - 8, ay - 13) });
+      } else ents.push({ y: ay, f: () => drawCreature(a, ax - 16, ay - 26) });
     }
   }
   /* MERAVIGLIE fuori dal bordo: sono alte e larghe (fino a 9 tile e ~100px), quindi vanno
@@ -1462,10 +1474,10 @@ export function render(time) {
       const pose = working && (j.type === 'acqua' || j.type === 'terra'); // acqua=dabble, terra=scavo a testa giù → creatura ridisegnata dal lavoro
       if (!pose) {
         let lx = 0;                                    // albero/roccia: affondo verso la casella sul colpo
-        if (working) { const ph = 1 - j.t / 1.3; if (Math.floor(ph * 4) % 2 === 1) lx = Math.round(Math.sin(Math.PI * ((ph * 4) % 1)) * 3) * (j.wx >= COMP.x ? 1 : -1); }
-        drawCreature(compObj, cxs - 8 + lx, cys - 13, cswim);
+        if (working) { const ph = 1 - j.t / 1.3; if (Math.floor(ph * 4) % 2 === 1) lx = Math.round(Math.sin(Math.PI * ((ph * 4) % 1)) * 6) * (j.wx >= COMP.x ? 1 : -1); }
+        drawCreature(compObj, cxs - 16 + lx, cys - 26, cswim);
       }
-      drawCompanionGlyph(ctype, cxs, cys - 16, time);
+      drawCompanionGlyph(ctype, cxs, cys - 32, time);
       drawCompanionWork(cxs, cys, time, compObj);
       drawCompanionPlay(cxs, cys, cam, time);
     } });
