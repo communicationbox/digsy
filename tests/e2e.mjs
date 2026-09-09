@@ -198,7 +198,7 @@ const PROBE = `
           checkGaps('splash/principale', '#sp-menu .sp-btn');
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
-          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkSettings(finish); }); }); });
+          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkSettings(finish); }); }); }); });
         }, 120);
         return; }
       var v=views[vi++];
@@ -227,7 +227,7 @@ const PROBE = `
       }, 80);
     };
     stepView();
-  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkSettings(finish); }); }); }); }
+  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkSettings(finish); }); }); }); }); }
 
   /* USCIRE DAL MUSEO COL SOLO MOUSE: la galleria è enorme e la camera la segue, quindi la
      porta finiva sull'ultimo pixel dello schermo e oltre non c'era nulla da cliccare. */
@@ -738,6 +738,52 @@ const PROBE = `
           if (g.closeModal) g.closeModal();
           next();
         }, 60);
+      }, 200);
+    });
+  }
+
+  /* COMPAGNO E CORTILE: due scelte per scheda, quindi DUE bottoni.
+     Appesi a destra di una riga generica andavano a capo uno sotto l'altro, larghi ognuno
+     quanto la sua parola: una colonna a scalini, con ogni scheda alta in modo diverso. La foto
+     lo mostra in un secondo, ma la foto la si guarda una volta — la misura resta. */
+  function checkCompanion(next){
+    var g = window.__digsy;
+    if (!g || !g.openCompanion) { A('compagno: sonda presente', false, 'niente openCompanion'); return next(); }
+    g.cmd('chimera').then(function(){ return g.cmd('chimera'); }).then(function(){
+      return g.openCompanion();
+    }).then(function(){
+      setTimeout(function(){
+        var cards = document.querySelectorAll('#m-body .cmp');
+        A('compagno: le creature sono schede', cards.length > 0, cards.length + ' schede');
+        if (!cards.length) { if (g.closeModal) g.closeModal(); return next(); }
+        var larghezze = [], altezze = [], fuori = 0, sbilanciati = 0;
+        var mBox = document.getElementById('m-body').getBoundingClientRect();
+        for (var i = 0; i < cards.length; i++) {
+          var r = cards[i].getBoundingClientRect();
+          larghezze.push(Math.round(r.width));
+          if (r.left < mBox.left - 1 || r.right > mBox.right + 1) fuori++;
+          var bs = cards[i].querySelectorAll('.cmp-a .btn');
+          if (bs.length !== 2) { sbilanciati++; continue; }
+          var a = bs[0].getBoundingClientRect(), b = bs[1].getBoundingClientRect();
+          /* stessa larghezza, stessa altezza, e SULLA STESSA RIGA (non a capo) */
+          if (Math.abs(a.width - b.width) > 1 || Math.abs(a.height - b.height) > 1
+            || Math.abs(a.top - b.top) > 1) sbilanciati++;
+          altezze.push(Math.round(a.height));
+        }
+        A('compagno: le schede sono larghe uguali',
+          Math.max.apply(null, larghezze) - Math.min.apply(null, larghezze) <= 1, larghezze.join('/'));
+        A('compagno: nessuna scheda sborda dal pannello', fuori === 0, fuori + ' fuori');
+        A('compagno: i due bottoni di ogni scheda sono uguali e sulla stessa riga',
+          sbilanciati === 0, sbilanciati + ' schede storte');
+        A('compagno: i bottoni hanno tutti la stessa altezza',
+          altezze.length > 0 && Math.max.apply(null, altezze) - Math.min.apply(null, altezze) <= 1,
+          altezze.join('/'));
+        /* la miniatura è il modello voxel vero, disegnato: senza questa riga il canvas
+           potrebbe restare vuoto e nessuno se ne accorgerebbe */
+        var pv = document.querySelector('#m-body .cmp-pv');
+        A('compagno: ogni scheda ha la miniatura della creatura', !!pv && pv.width > 0);
+        if (g.closeModal) g.closeModal();
+        next();
       }, 200);
     });
   }

@@ -1169,3 +1169,32 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 /* la spiegazione è UNA riga, e solo dove serve capire cosa cambia */
 .sp-hint2{font-size:var(--fs-note);line-height:var(--lh);color:var(--c-ink-dim)}
 .sp-hint2 kbd{background:#2a2f2a;border:1px solid var(--c-line);border-radius:var(--r-1);padding:0 var(--sp-1);font-size:10px}
+
+/* COMPAGNO E CORTILE — le TUE creature, non un elenco di voci.
+   Prima era una `.row` generica con due bottoni appesi a destra: a 560px andavano a capo uno
+   sotto l'altro, larghi ognuno quanto la sua parola, e ogni riga risultava alta in modo
+   diverso a seconda di quanto era lungo il nome. Una colonna di bottoni a scalini.
+   Qui la scheda ha una forma sola: miniatura del VERO modello voxel a sinistra (le creature si
+   riconoscono a colpo d'occhio, non dal nome), nome + tipo + rarità sopra, il potere sotto, e
+   le DUE scelte come coppia di bottoni della stessa larghezza in fondo. Chi è scelto è ACCESO
+   (ambra), non una scritta al posto del bottone: così la scheda non cambia forma cliccandola. */
+.cmp-list{display:flex;flex-direction:column;gap:var(--sp-2)}
+.cmp{display:grid;grid-template-columns:48px 1fr;gap:var(--sp-1) var(--sp-3);align-items:start;
+  padding:var(--sp-2) var(--sp-3);border:2px solid #d8c79c;border-radius:var(--r-3);background:#fbf5e4}
+.cmp.chimera{border-left:5px solid #8d7ba0;background:#f3eef7}   /* le CHIMERE spiccano dai risvegli: accento e tinta DNA (viola) */
+.cmp.on{border-color:var(--c-amber);box-shadow:0 0 0 2px rgba(216,151,60,.3)}
+.cmp-pv{grid-column:1;grid-row:1/span 2;width:48px;height:44px;border:2px solid var(--c-line);
+  border-radius:var(--r-1);background:#15120d;image-rendering:pixelated}
+.cmp-h{grid-column:2;grid-row:1;display:flex;align-items:center;gap:var(--sp-1);flex-wrap:wrap;min-width:0}
+.cmp-n{font-weight:800;font-size:13px;color:var(--c-wood-2)}
+.cmp-k{font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;background:#e2d7bd;color:#6b5a3a}
+.cmp.chimera .cmp-k{background:#e4dcf0;color:#5b4a75}
+.cmp-p{grid-column:2;grid-row:2;font-size:var(--fs-note);color:#8a755a;line-height:1.35}
+.cmp-a{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);margin-top:var(--sp-1)}
+.cmp-a .btn{width:100%;padding:8px 6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* "vai da solo": la stessa scheda senza creatura, un bottone solo a tutta larghezza */
+.cmp-solo{display:grid;grid-template-columns:48px 1fr;gap:var(--sp-1) var(--sp-3);align-items:center;
+  padding:var(--sp-2) var(--sp-3);border:2px dashed #cbb488;border-radius:var(--r-3);background:var(--c-paper);margin-bottom:var(--sp-2)}
+.cmp-solo.on{border-style:solid;border-color:var(--c-amber);box-shadow:0 0 0 2px rgba(216,151,60,.3)}
+.cmp-solo .em{grid-row:1/span 2;justify-self:center;font-size:22px}
+.cmp-solo .cmp-a{grid-template-columns:1fr}

@@ -810,18 +810,29 @@ export function openCompanionPicker() {
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli chi ti segue nel mondo (il potere dipende dal TIPO e cresce con la RARITÀ) e chi vive nel tuo cortile (nessun limite).', 'Choose who follows you in the world (power depends on TYPE and grows with RARITY) and who lives in your yard (no limit).')}</div>`;
   if (!cands.length) h += `<div class="center muted">${tr('Nessuna chimera o fossile risvegliato. Risveglia una specie al Laboratorio (poi potrai anche allevare chimere)!', 'No chimera or awakened fossil yet. Awaken a species at the Lab (then you can breed chimeras too)!')}</div>`;
   else {
-    h += `<div class="row"${cur ? '' : ' style="background:#f1e6cc"'}><span class="em">🚫</span><div><div class="nm">${tr('Nessun compagno', 'No companion')}</div><div class="sub">${tr('vai da solo', 'go on your own')}</div></div><div class="rt">${cur ? `<button class="btn amber" data-comp="">${tr('Scegli', 'Choose')}</button>` : '<b>✓ ' + tr('da solo', 'on your own') + '</b>'}</div></div>`;
-    h += cands.map(c => {
+    h += `<div class="cmp-solo${cur ? '' : ' on'}"><span class="em">🚫</span>`
+      + `<div class="cmp-h"><span class="cmp-n">${tr('Nessun compagno', 'No companion')}</span></div>`
+      + `<div class="cmp-p">${tr('vai da solo', 'go on your own')}</div>`
+      + `<div class="cmp-a"><button class="btn ghost${cur ? '' : ' onbtn'}" data-comp="">${cur ? tr('Scegli', 'Choose') : '✓ ' + tr('da solo', 'on your own')}</button></div></div>`;
+    h += '<div class="cmp-list">' + cands.map(c => {
       const on = isCurrentCompanion(c.key);
       const inYard = yard.has(c.key);
       const chimera = !!(c.key && c.key.startsWith('chi'));   // parkPopulation: chimere 'chi'+uid, risvegli 'sp'+id
-      const em = chimera ? '🧬' : '🐾';                        // icona diversa: DNA per le chimere
       const kind = chimera ? tr('Chimera', 'Chimera') : tr('Risveglio', 'Awakened');
-      return `<div class="row${chimera ? ' chimera' : ''}"><span class="em">${em}</span><div><div class="nm">${c.name} · ${kind} · ${rarLabel(c.q)}</div><div class="sub">${abilLabel(c)}</div></div><div class="rt"><button class="btn ${inYard ? '' : 'amber'}" data-yard="${c.key}">🏠 ${inYard ? tr('nel cortile', 'in the yard') : tr('metti nel cortile', 'add to yard')}</button>${on ? '<b>✓ ' + tr('con te', 'with you') + '</b>' : `<button class="btn amber" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`}</div></div>`;
-    }).join('');
+      /* la miniatura è il modello voxel VIVO della creatura (lo stesso del cortile e del Libro):
+         un elenco di nomi tutti uguali non fa riconoscere niente, la sagoma sì */
+      return `<div class="cmp${chimera ? ' chimera' : ''}${on ? ' on' : ''}">`
+        + `<canvas class="cmp-pv" width="48" height="44" data-cpv="${c.skull}|${c.torso}|${c.leg}"></canvas>`
+        + `<div class="cmp-h"><span class="cmp-n">${c.name}</span><span class="cmp-k">${kind}</span>${rarSpan(c.q)}</div>`
+        + `<div class="cmp-p">${abilLabel(c)}</div>`
+        + `<div class="cmp-a">`
+        + `<button class="btn ghost${on ? ' onbtn' : ''}" data-comp="${on ? '' : c.key}">${on ? '✓ ' + tr('con te', 'with you') : tr('Scegli', 'Choose')}</button>`
+        + `<button class="btn ghost${inYard ? ' onbtn' : ''}" data-yard="${c.key}">🏠 ${inYard ? tr('nel cortile', 'in the yard') : tr('metti nel cortile', 'add to yard')}</button>`
+        + `</div></div>`;
+    }).join('') + '</div>';
   }
   mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno e cortile', 'Companion & yard'));
-  mBody.innerHTML = withIcons(h); openModal();
+  mBody.innerHTML = withIcons(h); openModal(); hydrateCpv();
   mBody.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => {
     const key = b.dataset.comp;
     if (!key) { clearCompanion(); toast('🚫 ' + tr('Compagno a casa', 'Companion sent home')); }
@@ -1104,6 +1115,22 @@ function hydratePv(root) {
     try { projectVox(cv, furnVoxels(cv.dataset.fpv)); } catch (e) { /* stub nei test */ }
   });
 }
+/* miniatura di una CREATURA (compagno/cortile): stesso modello voxel VIVO del recinto e del
+   Libro, proiettato in 2D. Non è un'icona decorativa — è come si riconosce la propria bestia. */
+function hydrateCpv(root) {
+  const r = root || mBody;
+  if (!r.querySelectorAll) return;
+  r.querySelectorAll('canvas[data-cpv]').forEach(cv => {
+    const [sk, to, lg] = cv.dataset.cpv.split('|');
+    try {
+      const c = spById[sk], t = spById[to], z = spById[lg];
+      if (!c || !t || !z) return;
+      const spec = { heads: [{ sp: c, horns: 1 }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
+      projectVox(cv, buildFleshVoxels(spec));
+    } catch (e) { /* stub nei test */ }
+  });
+}
+
 /* vista 3D di un mobile (voxel a mano, stesso motore dello scheletro): usata dal vassoio e
    dalla scheda Arredamento del Negozio. `back` riapre chi ha chiamato questa vista. */
 function openFurniture3D(id, back) {

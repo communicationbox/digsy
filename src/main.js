@@ -427,6 +427,10 @@ if (typeof window !== 'undefined') {
       openLab: () => import('./ui.js').then(u => u.openBuilding({ type: 'lab', name: 'Laboratorio' })),
       openMuseum: () => import('./ui.js').then(u => u.openBuilding({ type: 'museum', name: 'Museo' })),
       openTailor: () => import('./ui.js').then(u => u.openBuilding({ type: 'tailor', name: 'Sartoria' })),
+      /* il pannello COMPAGNO E CORTILE: è dove si sceglie chi ti segue e chi vive in casa, e
+         senza questo ponte non si poteva né fotografare né far disegnare da un test */
+      openCompanion: () => import('./ui.js').then(u => { u.openCompanionPicker(); return true; }),
+
       /* porta il giocatore ACCANTO alla statua: senza, fotografarla è questione di fortuna */
       gotoStatue: () => import('./world.js').then(w => {
         for (let r = 0; r < 14; r++) for (let cy = -r; cy <= r; cy++) for (let cx = -r; cx <= r; cx++) {

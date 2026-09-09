@@ -128,6 +128,12 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'lab-dna') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goddna'); }).then(function(){
         G.state().coins=510; if(G.openLab) G.openLab(); }); }
+    /* 'compagno' = il pannello Compagno e cortile con una decina di creature: due bottoni per
+       scheda, ed è la schermata dove si vedeva subito che i bottoni andavano a capo a scalini */
+    else if (${JSON.stringify(vista)} === 'compagno') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('godmode').then(function(){ return G.cmd('chimera'); }).then(function(){ return G.cmd('chimera'); })
+        .then(function(){ var S=G.state(); S.awakened = S.awakened.slice(0, 8); return G.debug(false); })
+        .then(function(){ if(G.openCompanion) G.openCompanion(); }); }
     else if (${JSON.stringify(vista)} === 'teca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openExhibit) G.openExhibit(); }
     /* 'scheletro' = il minigioco al banco del Museo: un pezzo nuovo, grezzo, di una specie
        ancora senza teca — deposito e ritiro veri (stessi bottoni del giocatore) fanno
