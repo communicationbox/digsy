@@ -32,6 +32,8 @@ src/brush.js        primitive di disegno (snap/px/rect/shadow/shade8, BRUSH)
 src/tiles.js        palette stagionali/bioma, BIOME_BUILD/INT_WOOD, soilDetail, groundTile
 src/props.js        alberi, sassi, fiori, funghi, oggetti a terra, decorazioni di bioma
 src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc)
+src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete, fondi), comodità
+src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
 src/render.js       composizione della scena: entità, player, veicoli, scavo, bussola, loop
 src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
@@ -370,6 +372,27 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   agganciati: scavo (dig/found), accetta/piccone, pesca, monete (fontana/vendite/acquisti).
 - **Cosmetici tematici disegnati a mano** (editor `/editor`): overlay HATS con righe da **-3**
   (svettano sopra la testa) e accenti W/K; anteprima sarto con +4px di headroom.
+
+## Arredare la casa serve a qualcosa (e si vede)
+Ogni pezzo dichiara **dove vive** (`place`: floor · rug · wall · paper · ground) e **quanto
+occupa** (`w`/`h` in caselle, scambiate ruotando). Prima erano tutti 1×1 e un letto era grande
+quanto una lampada: senza differenza di taglia la stanza non ha gerarchia e l'arredo sembra
+sparso. Tre strati indipendenti per casella — tappeto sotto, mobile sopra, quadro alla parete
+(fila `gy 1`, si appende stando addossati al muro).
+**Il fondo è arredo anche lui**: carta da parati e pavimento si comprano al Negozio della zona
+e si applicano alla stanza dal vassoio; sono la leva che cambia una stanza più di qualsiasi
+mobile, quindi costano poco e stanno in cima all'elenco. Anche il fondo DI SERIE
+(`ROOM_DEFAULT`) passa dallo stesso disegno: una stanza vuota deve sembrare una stanza.
+`furnArt.js` disegna tutto nativo a 32px nella stessa vista del gioco — ombra di contatto,
+lato in luce e lato in ombra, altezza che sfora verso l'alto. I mobili erano cubetti voxel
+isometrici sopra un pavimento in pianta: due proiezioni che litigano, e nessun pezzo che
+poggia da qualche parte. Le miniature del negozio e del vassoio sono LO STESSO disegno
+scalato, non un modellino a parte (quello divergeva).
+`roomComfort` misura la stanza (fino a 4 mobili, qualcosa a terra, qualcosa alla parete, i due
+fondi, la coerenza di zona). Dormire nel PROPRIO letto rifà l'energia come la Locanda e in più
+regala il "ben riposato": fino a 6 fatiche gratis, scalate dentro `spendEnergy` — l'unico
+punto di spesa — quindi valgono anche per accetta, piccone e cristalli.
+Foto: `npm run shot -- casa` (arredata) · `casa-vuota` (com'è la prima volta) · `letto`.
 
 ## Prossimi passi → vedi ROADMAP.md
 Le feature sono **congelate**: nessun sistema nuovo finché i quattro lavori di `ROADMAP.md`
