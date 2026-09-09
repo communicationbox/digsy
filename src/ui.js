@@ -1991,9 +1991,9 @@ function previewHtml() {
 let prevRaf = 0;
 /* riquadro NATURALE su cui sono tarate le posizioni qui sotto (personaggio ora 32×32
    nativo, non più 16×16): il canvas GRANDE (120×44, barbiere/sartoria) è esattamente
-   questa taglia, scala 1. Il canvas PICCOLO e appiccicoso dell'editor (60×22) è la metà
-   esatta — senza questo adattamento il personaggio ci usciva fuori, tagliato a metà
-   (segnalato: "si vede solo la testa, capelli a chiazze"). */
+   questa taglia, e TUTTE le anteprime (editor compreso) la usano: la canvas appiccicosa
+   dell'editor era 60×22, cioè metà, quindi il personaggio veniva disegnato a scala 0,5 — su
+   mezzo pixel — e poi ingrandito dal CSS. Era l'unica immagine sfuocata del gioco. */
 const PREV_REF_W = 120, PREV_REF_H = 44;
 export function drawPreview(noHat) {
   if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(prevRaf);
@@ -2192,7 +2192,11 @@ export function openEditor(onDone) {
      È `position:sticky`, non un secondo riquadro che scorre per conto suo: due aree che
      scorrono una dentro l'altra sono la regola ferrea n.14, e col dito si muove sempre quella
      sbagliata. Scorre una cosa sola, e il Digsy ci resta appeso sopra. */
-  let h = '<div class="ed-stick"><canvas id="prevCv" width="60" height="22" class="prev"></canvas></div>';
+  /* 120×44 come l'anteprima del barbiere/sarto, NON 60×22: a metà misura il personaggio
+     veniva disegnato a scala 0,5 — mezzo pixel — e poi il CSS lo ingrandiva a 360px. Il
+     risultato era l'unica immagine SFUOCATA di tutto il gioco (segnalato con foto). La
+     canvas ora è 1:1 col disegno e l'ingrandimento è intero (360 = 120×3). */
+  let h = '<div class="ed-stick"><canvas id="prevCv" width="120" height="44" class="prev"></canvas></div>';
   h += `<div class="edcol">`;
   h += `<div class="bighead">${tr('Nome', 'Name')}</div>`;
   h += `<input id="pgname" class="nameinput" maxlength="14" value="${(S.name || '').replace(/["<>&]/g, '')}" placeholder="${tr('Nome', 'Name')}">`;

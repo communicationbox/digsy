@@ -3898,6 +3898,19 @@ sprites.applyLook();
   }
 }
 
+/* ---------- ANTEPRIME DEL PERSONAGGIO: mai a scala frazionaria ---------- */
+{
+  /* La canvas dell'editor era 60×22 mentre il disegno è tarato su 120×44: il personaggio
+     veniva disegnato a scala 0,5 (mezzo pixel) e poi ingrandito dal CSS a 360px. Era l'unica
+     immagine sfuocata del gioco, e nessuna misura se ne accorgeva. */
+  const fsP = await import('node:fs');
+  const srcUi = fsP.readFileSync('src/ui.js', 'utf8');
+  const canv = [...srcUi.matchAll(/id="prevCv"\s+width="(\d+)"\s+height="(\d+)"/g)].map(m => m[1] + '×' + m[2]);
+  check('tutte le anteprime del personaggio hanno la stessa canvas', canv.length >= 2 && new Set(canv).size === 1, canv.join(' '));
+  const ref = (srcUi.match(/const PREV_REF_W = (\d+), PREV_REF_H = (\d+)/) || []).slice(1).join('×');
+  check('e la canvas è 1:1 col disegno (niente scala frazionaria)', canv[0] === ref, canv[0] + ' vs ' + ref);
+}
+
 /* ---------- CASA del giocatore (arredo: disegno nativo + piedistallo) ---------- */
 {
   const house = await import('../src/house.js');
