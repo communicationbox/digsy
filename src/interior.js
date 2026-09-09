@@ -15,7 +15,7 @@ import { pendingLetter, giveLetter, letterTitle } from './letters.js';
 import { museumOpen, museumClosedText } from './tutorial.js';
 import {
   CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, corridorSolid, corridorExitAt, corridorEntryFor,
-  roomPerimeterSolid, roomEntryPoint, houseFurnSolid, floorCellAt, furnAt,
+  roomPerimeterSolid, roomEntryPoint, houseFurnSolid, floorCellAt, furnAt, wallAt,
   roomUnlocked, nearbyGate,
 } from './house.js';
 
@@ -351,8 +351,12 @@ export function nearLockedGate() {
 export function houseFloorHere() {
   if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return null;
   const c = floorCellAt(INT.houseRoom, INT.x, INT.y); if (!c) return null;
-  const f = furnAt(c.room, c.gx, c.gy);
-  return { ...c, unlocked: roomUnlocked(c.room), itemId: f ? f.itemId : null, spId: f ? f.spId || null : null };
+  let f = furnAt(c.room, c.gx, c.gy), wall = false;
+  /* PARETE: stando addossati al muro (prima fila) si tocca quello che ci sta appeso sopra —
+     un quadro non si raccoglie camminandoci sopra, non c'è un "sopra". Vale solo se sotto i
+     piedi non c'è già qualcosa: la roba per terra viene prima, è quella su cui si sta. */
+  if (!f && c.gy === 2) { const w = wallAt(c.room, c.gx, 1); if (w) { f = w; wall = true; } }
+  return { ...c, wall, unlocked: roomUnlocked(c.room), itemId: f ? f.itemId : null, spId: f ? f.spId || null : null };
 }
 /* piazzare un pezzo sotto i propri piedi lo rende SOLIDO all'istante: senza questo il
    giocatore restava incastrato dentro il proprio mobile appena piazzato (segnalato). Si

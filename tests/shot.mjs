@@ -100,30 +100,42 @@ async function main() {
       }).then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
-    /* 'casa' = la Sala arredata (M4-bis): una sedia piazzata E RUOTATA (scala giusta, gambe
-       visibili), un TAPPETO SOTTO di lei (due strati sulla stessa cella: "vaso su tavolino,
-       tappeto sotto" richiesto esplicitamente), una pianta in vaso su una cella per conto suo
-       (decoro piatto, NON blocca il passo), il piedistallo, e un secondo pezzo "in mano"
-       (anteprima nella barra + Ruota/Annulla). */
+    /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per
+       famiglia — letto 2×2, tavolo 2×1, poltrona, tappeto sotto, lampada, pianta, quadro alla
+       parete e piedistallo. È la foto in cui si vede se la stanza è ARREDATA o se ha solo
+       della roba sopra, e va guardata: i test misurano che i pezzi esistano, non che stiano
+       bene insieme. */
     else if (${JSON.stringify(vista)} === 'casa') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       var hm2;
       if(G.enterRoom) G.enterRoom('house').then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.house(); }).then(function(hm){
         hm2 = hm;
         var S = G.state();
-        ['boschi_chair', 'boschi_rug', 'palude_vase', 'terre_throne', 'pedestal'].forEach(function (id) {
+        ['prati_paper', 'prati_ground', 'prati_rug', 'prati_bed', 'prati_table', 'prati_lamp',
+         'prati_art', 'boschi_chair', 'palude_vase', 'pedestal'].forEach(function (id) {
           if (S.furnOwned.indexOf(id) < 0) S.furnOwned.push(id);
         });
         S.house.rooms[0].furn = [];
+        hm.applyBackdrop(0, 'prati_paper'); hm.applyBackdrop(0, 'prati_ground');
         hm.cancelHold();
-        hm.tryPlaceFurniture(0, 6, 3, 'boschi_rug', 0);     // tappeto SOTTO...
-        hm.tryPlaceFurniture(0, 6, 3, 'boschi_chair', 1);   // ...la sedia, stessa cella
-        hm.tryPlaceFurniture(0, 8, 5, 'palude_vase', 0);    // pianta per conto suo: non blocca il passo
-        hm.tryPlaceFurniture(0, 8, 4, 'pedestal', 0);       // piedistallo: deve restare leggibile, non sparire
-        hm.tryPlaceFurniture(0, 3, 3, 'terre_throne', 0);   // secondo pezzo: appena posato...
-        hm.pickUpFurniture(0, 3, 3);                        // ...e subito ripreso in mano (anteprima + bottoni)
-        return G.intPos(3, 4);                              // il giocatore ci sta sopra
+        hm.tryPlaceFurniture(0, 1, 2, 'prati_bed', 0);      // letto 2×2 addossato al muro
+        hm.tryPlaceFurniture(0, 4, 3, 'prati_rug', 0);      // tappeto 2×2...
+        hm.tryPlaceFurniture(0, 4, 4, 'prati_table', 0);    // ...col tavolo sopra
+        hm.tryPlaceFurniture(0, 6, 2, 'boschi_chair', 0);
+        hm.tryPlaceFurniture(0, 8, 2, 'prati_lamp', 0);
+        hm.tryPlaceFurniture(0, 3, 2, 'palude_vase', 0);
+        hm.tryPlaceFurniture(0, 5, 2, 'prati_art', 0);      // quadro: si appende dalla prima fila
+        hm.tryPlaceFurniture(0, 8, 4, 'pedestal', 0);
+        return G.intPos(2, 5);
       }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
         .then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'casa-vuota' = la Camera SENZA niente comprato: è lo stato in cui si vede la casa la
+       prima volta, e deve già sembrare una stanza — non un livello di prova */
+    else if (${JSON.stringify(vista)} === 'casa-vuota') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('house').then(function(){
+        var S = G.state(); S.house.rooms[3].unlocked = true; S.house.rooms[3].furn = [];
+        S.house.rooms[3].paper = null; S.house.rooms[3].ground = null;
+        return G.enterHouseRoom(3);
+      }).then(function(){ return G.intPos(4, 4); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* l'altro caso: fialette in mano, requisiti soddisfatti, bottone acceso */
     else if (${JSON.stringify(vista)} === 'lab-dna') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goddna'); }).then(function(){

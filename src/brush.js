@@ -24,3 +24,21 @@ export function shade8(hex, k) {
 }
 /* il pennello passato ai moduli che disegnano "a ricetta" (wonderart, spritebank) */
 export const BRUSH = { rect, px, shadow, shade8, snap, get ctx() { return ctx; } };
+
+/* PENNELLO SU UNA CANVAS QUALSIASI (miniature del negozio/vassoio, pagine di prova): stesse
+   primitive, ma su un contesto che non è quello del gioco. Serve perché le anteprime devono
+   mostrare ESATTAMENTE il disegno che finisce nella stanza — una seconda funzione "simile"
+   è il modo sicuro per farle divergere (è già successo con la scala dei mobili). */
+export function makeCanvasBrush(c2) {
+  return {
+    ctx: c2,
+    rect: (x, y, w, h, c) => { c2.fillStyle = c; c2.fillRect(Math.round(x), Math.round(y), Math.max(1, Math.round(w)), Math.max(1, Math.round(h))); },
+    px: (x, y, c) => { c2.fillStyle = c; c2.fillRect(Math.round(x), Math.round(y), 1, 1); },
+    shadow: (cx, cy, rw) => {
+      c2.fillStyle = 'rgba(15,25,15,.16)';
+      for (let i = -rw; i <= rw; i++) { const h = Math.round(2 * Math.sqrt(Math.max(0, 1 - (i * i) / (rw * rw)))); c2.fillRect(cx + i, cy - h, 1, h * 2); }
+    },
+    shade8,
+    snap: v => Math.round(v),
+  };
+}

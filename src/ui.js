@@ -1,5 +1,5 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
-import { TS, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
+import { TS, furnSize, furnPlace, furnIsSolid, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
@@ -17,8 +17,8 @@ import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep,
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
-import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold } from './house.js';
-import { furnVoxels, rotateFurnVoxels } from './furnVox.js';
+import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
+import { drawFurnThumb } from './furnArt.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
@@ -35,7 +35,7 @@ import { fusibleGroups, nextRarity } from './fuse.js';
 import { projectVox } from './voxview.js';
 import { openMap, closeMap, isMapOpen, revealMap, mapZoomBy, mapReset } from './mapui.js';
 export { openMap, closeMap, isMapOpen, revealMap };
-import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawVoxel2D, mountSpecies3D, litForSpecies, mountFurniture3D } from './bookui.js';
+import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawVoxel2D, mountSpecies3D, litForSpecies } from './bookui.js';
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
@@ -227,10 +227,9 @@ function syncFurnHoldPreview() {
   const c2 = furnHoldPv.getContext('2d'); if (!c2) return;
   c2.clearRect(0, 0, furnHoldPv.width, furnHoldPv.height);
   const hv = isHolding() && holdItem(); if (!hv) return;
-  /* `projectVox` (già usata per le miniature del vassoio) CENTRA e RIEMPIE la canvas da sola:
-     la sprite del mondo (furnSprite) invece ancora tutto in basso su una tela grande quanto
-     il pezzo più alto del negozio, e qui dentro sembrava quasi vuota. */
-  try { projectVox(furnHoldPv, rotateFurnVoxels(furnVoxels(hv.itemId), hv.rot || 0), false, null, false); } catch (e) { /* stub nei test */ }
+  /* è lo STESSO disegno che finirà nella stanza, scalato per stare nel riquadro: un'anteprima
+     "simile ma non uguale" è il modo sicuro per far divergere le due (è già successo). */
+  try { drawFurnThumb(furnHoldPv, hv.itemId); } catch (e) { /* stub nei test */ }
 }
 if (furnRotBtn) furnRotBtn.onclick = () => { playSfx('ui'); rotateHold(); syncFurnHoldPreview(); };
 if (furnCancelBtn) furnCancelBtn.onclick = () => {
@@ -265,11 +264,18 @@ export function updatePrompt() {
       const cell = houseFloorHere();
       if (cell) {
         if (isHolding()) {
-          setPrompt(withIcons(cell.itemId ? tr('Cella occupata', 'Cell is occupied') : actKey() + ' ' + tr('Piazza qui 🎨', 'Place here 🎨')));
+          /* "Cella occupata" è la risposta sbagliata per un quadro: quello va SULLA parete,
+             e la casella sotto può benissimo essere piena. Chiede a chi lo sa (house.js). */
+          const hv = holdItem();
+          const t2 = hv && placeTarget(cell.gx, cell.gy, hv.itemId);
+          const ok = !!t2 && canPlace(cell.room, t2.gx, t2.gy, hv.itemId, hv.rot || 0);
+          setPrompt(withIcons(ok ? actKey() + ' ' + (furnPlace(hv.itemId) === 'wall' ? tr('Appendi qui 🎨', 'Hang it here 🎨') : tr('Piazza qui 🎨', 'Place here 🎨'))
+            : furnPlace(hv.itemId) === 'wall' ? tr('I quadri si appendono al muro di fondo', 'Wall pieces hang on the back wall')
+              : tr('Qui non ci sta', "It doesn't fit here")));
           return;
         }
         if (cell.itemId === PEDESTAL_ID) { setPrompt(withIcons(actKey() + ' ' + tr('Piedistallo 🏛️', 'Pedestal 🏛️'))); return; }
-        if (cell.itemId) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli ', 'Pick up ') + furnLabel(cell.itemId) + ' 🎨')); return; }
+        if (cell.itemId) { setPrompt(withIcons(actKey() + ' ' + (cell.wall ? tr('Stacca ', 'Take down ') : tr('Raccogli ', 'Pick up ')) + furnLabel(cell.itemId) + ' 🎨')); return; }
         if (cell.unlocked) { setPrompt(withIcons(actKey() + ' ' + tr('Arreda 🎨', 'Furnish 🎨'))); return; }
       }
     }
@@ -456,13 +462,40 @@ export function openRoomLock(roomId) {
    volta, niente trascinamento. */
 export function openFurnitureTray(room, gx, gy) {
   const items = ownedUnplaced();
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli un pezzo dal vassoio da piazzare qui.', 'Pick a piece from your tray to place here.')}</div>`;
+  const papers = ownedBackdrops('paper'), grounds = ownedBackdrops('ground');
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli un pezzo dal vassoio da piazzare qui. I quadri si appendono stando addossati alla parete di fondo.', 'Pick a piece from your tray to place here. Wall pieces hang when you stand against the back wall.')}</div>`;
   if (!items.length) h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
-  else h += items.map(id => `<div class="row"><canvas class="pv" width="36" height="30" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div></div><div class="rt"><button class="btn ghost" data-furn3d="${id}">🌀 3D</button><button class="btn amber" data-place="${id}">${tr('Piazza qui', 'Place here')}</button></div></div>`).join('');
+  else h += items.map(id => `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Piazza qui', 'Place here')}</button></div></div>`).join('');
+  /* IL FONDO DELLA STANZA sta qui e non nel mondo: carta da parati e pavimento non si posano
+     su una casella, si scelgono per la stanza in cui si è — e si tolgono, perché un cambio di
+     arredo dev'essere sempre annullabile. */
+  if (papers.length || grounds.length) {
+    h += `<div class="sp-sep"></div><div class="muted" style="margin:8px 0">${tr('Fondo della stanza', 'Room backdrop')}</div>`;
+    for (const [kind, list, cur] of [['paper', papers, roomPaper(room)], ['ground', grounds, roomGround(room)]]) {
+      for (const id of list) {
+        const on = cur === id;
+        h += `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${kind === 'paper' ? tr('carta da parati', 'wallpaper') : tr('pavimento', 'flooring')}</div></div><div class="rt"><button class="btn ghost${on ? ' onbtn' : ''}" data-bd="${on ? '' : id}" data-bdkind="${kind}">${on ? '✓ ' + tr('in uso', 'in use') : tr('Applica', 'Apply')}</button></div></div>`;
+      }
+    }
+  }
   mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
   mBody.innerHTML = withIcons(h); openModal(); hydratePv();
   mBody.querySelectorAll('[data-place]').forEach(el => el.onclick = () => { if (tryPlaceFurniture(room, gx, gy, el.dataset.place)) { nudgeOffFurniture(); closeModal(); } });
-  mBody.querySelectorAll('[data-furn3d]').forEach(el => el.onclick = () => openFurniture3D(el.dataset.furn3d, () => openFurnitureTray(room, gx, gy)));
+  mBody.querySelectorAll('[data-bd]').forEach(el => el.onclick = () => {
+    const id = el.dataset.bd;
+    if (id) applyBackdrop(room, id); else clearBackdrop(room, el.dataset.bdkind);
+    openFurnitureTray(room, gx, gy);
+  });
+}
+/* "2×2 caselle" detto in chiaro: la taglia decide dove ci sta, ed è l'informazione che manca
+   quando un pezzo viene rifiutato senza spiegazione */
+function furnSizeLabel(id) {
+  const sz = furnSize(id, 0), place = furnPlace(id);
+  if (place === 'wall') return tr('alla parete', 'on the wall');
+  if (place === 'paper') return tr('carta da parati', 'wallpaper');
+  if (place === 'ground') return tr('pavimento', 'flooring');
+  const size = sz.w === 1 && sz.h === 1 ? tr('1 casella', '1 tile') : sz.w + '×' + sz.h + ' ' + tr('caselle', 'tiles');
+  return furnIsSolid(id) ? size : size + ' · ' + tr('ci cammini sopra', 'you walk on it');
 }
 /* CASA — piedistallo (M4): espone in casa uno scheletro già consegnato al Museo (stessa
    fonte dei piedistalli della galleria, `S.museum[spId]`). Vuoto → scegli la specie;
@@ -1110,9 +1143,10 @@ function hydratePv(root) {
     const [s, t] = cv.dataset.pv.split('|');
     try { projectVox(cv, partVoxels(s, t)); } catch (e) { /* stub nei test */ }
   });
-  /* mobili (M4): stessa idea, voxel a mano di furnVox.js invece dei pezzi di fossile */
+  /* mobili: la MINIATURA è lo stesso disegno che finisce nella stanza (furnArt), non un
+     modellino a parte — l'anteprima deve mostrare quello che si compra */
   r.querySelectorAll('canvas[data-fpv]').forEach(cv => {
-    try { projectVox(cv, furnVoxels(cv.dataset.fpv)); } catch (e) { /* stub nei test */ }
+    try { drawFurnThumb(cv, cv.dataset.fpv); } catch (e) { /* stub nei test */ }
   });
 }
 /* miniatura di una CREATURA (compagno/cortile): stesso modello voxel VIVO del recinto e del
@@ -1129,18 +1163,6 @@ function hydrateCpv(root) {
       projectVox(cv, buildFleshVoxels(spec));
     } catch (e) { /* stub nei test */ }
   });
-}
-
-/* vista 3D di un mobile (voxel a mano, stesso motore dello scheletro): usata dal vassoio e
-   dalla scheda Arredamento del Negozio. `back` riapre chi ha chiamato questa vista. */
-function openFurniture3D(id, back) {
-  mTitle.innerHTML = withIcons('🌀 ' + furnLabel(id));
-  let h = `<div class="center" style="padding:4px"><canvas id="furn3dCv" width="160" height="140" style="width:100%;max-width:220px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px;touch-action:none;cursor:grab" title="${tr('Trascina per ruotare', 'Drag to rotate')}"></canvas></div>`;
-  h += `<div class="row" style="justify-content:center"><button class="btn ghost" data-furn3d-back="1">${tr('← Indietro', '← Back')}</button></div>`;
-  mBody.innerHTML = withIcons(h); openModal();
-  const cv = document.getElementById('furn3dCv');
-  if (cv) try { mountFurniture3D(cv, id); } catch (e) { /* stub */ }
-  mBody.querySelectorAll('[data-furn3d-back]').forEach(b => b.onclick = back);
 }
 
 /* ---------- edifici ---------- */
@@ -1431,18 +1453,28 @@ function renderFurnTab() {
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
   const items = FURN_SETS[z.id] || [];
   let h = `<div class="muted" style="margin-bottom:10px">${tr('Il set di arredo di questa zona. Comprato è tuo per sempre: lo piazzi in casa dal vassoio.', "This zone's furniture set. Once bought it's yours forever: place it at home from your tray.")}</div>`;
-  h += items.map(it => {
+  /* IL FONDO PRIMA DEI MOBILI, e detto per quello che è: carta da parati e pavimento cambiano
+     una stanza più di qualsiasi mobile e costano meno di tutti — messi in fondo all'elenco
+     sembravano un accessorio, e la prima stanza restava una scacchiera con roba sopra. */
+  const riga = it => {
     const owned = (S.furnOwned || []).includes(it.id);
     const needLvl = furnLevelLock(it.id);
-    const badge = owned ? ` <span class="lockp">✓</span>` : needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>` : '';
-    const btn = owned ? '' : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>` : `<button class="btn amber" data-furn="${it.id}">🪙 ${it.cost}</button>`;
-    return `<div class="row"><canvas class="pv" width="36" height="30" data-fpv="${it.id}"></canvas><div><div class="nm">${furnLabel(it.id)}${badge}</div></div><div class="rt"><button class="btn ghost" data-furn3d="${it.id}">🌀 3D</button>${btn}</div></div>`;
-  }).join('');
+    const badge = owned ? ' <span class="lockp">✓</span>' : needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>` : '';
+    const btn = owned ? `<b class="sub">${tr('già tuo', 'owned')}</b>` : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>` : `<button class="btn amber" data-furn="${it.id}">🪙 ${it.cost}</button>`;
+    return `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${it.id}"></canvas><div><div class="nm">${furnLabel(it.id)}${badge}</div><div class="sub">${furnSizeLabel(it.id)}</div></div><div class="rt">${btn}</div></div>`;
+  };
+  const fondi = items.filter(it => furnPlace(it.id) === 'paper' || furnPlace(it.id) === 'ground');
+  const mobili = items.filter(it => !fondi.includes(it));
+  if (fondi.length) {
+    h += `<div class="bighead">${tr('FONDO DELLA STANZA', 'ROOM BACKDROP')}</div>`;
+    h += fondi.map(riga).join('');
+  }
+  h += `<div class="bighead">${tr('MOBILI E DECORI', 'FURNITURE AND DECOR')}</div>`;
+  h += mobili.map(riga).join('');
   return h;
 }
 function wireFurnTab() {
   mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderStore(); });
-  mBody.querySelectorAll('[data-furn3d]').forEach(btn => btn.onclick = () => openFurniture3D(btn.dataset.furn3d, () => renderStore('furn')));
 }
 function renderStoreGoods() {
   /* PASSO "shop" DEL TUTORIAL: comprare la pala è l'UNICA cosa che conta (senza, l'unico

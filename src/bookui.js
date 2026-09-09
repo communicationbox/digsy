@@ -7,7 +7,6 @@ import { S } from './state.js';
 import { spById, ALL_SPECIES, ZONES, MUSEUM_ZONES, PARTS } from './data.js';
 import { baseSpec, buildVoxels, buildFleshVoxels, BP } from './bones.js';
 import { projectVox } from './voxview.js';
-import { furnVoxels } from './furnVox.js';
 import { isDebug } from './debug.js';
 import { icon, withIcons } from './icons.js';
 import { tr, zoneName } from './i18n.js';
@@ -53,17 +52,6 @@ export function mountSpecies3D(cv, spec, opts) {
   mount3D(cv, spec, !!o.silhouette, !!o.flesh, o.lit || null);
 }
 export function litForSpecies(spId) { return litFor(spId); }
-/* MOBILI: stessa vista 3D dello scheletro (mountSkeleton già accetta `voxels` grezzi), solo
-   con voxel a mano (furnVox.js) invece della ricetta di una specie. Ripiego 2D identico in
-   caso di WebGL assente — qui è projectVox, non drawVoxel2D (niente `spec` da costruire). */
-export function mountFurniture3D(cv, id) {
-  if (typeof window === 'undefined') return;
-  const voxels = furnVoxels(id);
-  import('./skeleton3d.js').then(({ mountSkeleton }) => {
-    try { const h = mountSkeleton(cv, null, { voxels, spin: true }); liveViews.push(h); viewByCv.set(cv, h); }
-    catch (e) { projectVox(cv, voxels); }
-  }).catch(() => projectVox(cv, voxels));
-}
 /* il contesto WebGL della canvas muore col dispose: si rimonta su una canvas CLONATA fresca */
 export function remount3D(cv, spec, silhouette, flesh, lit) {
   const h = viewByCv.get(cv);

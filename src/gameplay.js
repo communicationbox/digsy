@@ -1172,7 +1172,9 @@ export function act() {
       }
       else if (cell.itemId === PEDESTAL_ID) openPedestal(cell.room, cell.gx, cell.gy);
       else if (cell.itemId) {
-        if (pickUpFurniture(cell.room, cell.gx, cell.gy)) toast('🎨 ' + furnLabel(cell.itemId) + ' ' + keys(tr('in mano: cammina e {act} per ripiazzarlo', 'in hand: walk and {act} to place it')));
+        /* quello appeso sta una casella più in su: si tocca da sotto, stando al muro */
+        const pgy = cell.wall ? cell.gy - 1 : cell.gy;
+        if (pickUpFurniture(cell.room, cell.gx, pgy)) toast('🎨 ' + furnLabel(cell.itemId) + ' ' + keys(tr('in mano: cammina e {act} per ripiazzarlo', 'in hand: walk and {act} to place it')));
       } else if (cell.unlocked) openFurnitureTray(cell.room, cell.gx, cell.gy);
     }
     return;

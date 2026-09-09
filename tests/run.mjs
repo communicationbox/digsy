@@ -3839,56 +3839,68 @@ sprites.applyLook();
   }
 }
 
-/* ---------- CASA del giocatore (M4: piedistallo + mobili voxel + vista 3D) ---------- */
+/* ---------- CASA del giocatore (arredo: disegno nativo + piedistallo) ---------- */
 {
   const house = await import('../src/house.js');
   const inter = await import('../src/interior.js');
   const dataM = await import('../src/data.js');
   const i18n = await import('../src/i18n.js');
-  const furnVox = await import('../src/furnVox.js');
-  const bookui = await import('../src/bookui.js');
+  const furnArt = await import('../src/furnArt.js');
   const { ctx } = await import('../src/screen.js');
   const { FURN_BY_ID, PEDESTAL_ID } = dataM;
 
-  /* ---- furnVoxels: una forma valida per OGNI pezzo di arredo + il piedistallo ---- */
+  /* ---- ARTE DELL'ARREDO: ogni pezzo si disegna DAVVERO, e nella stessa vista del gioco ----
+     I mobili erano cubetti isometrici sopra un pavimento in pianta: non poggiavano da nessuna
+     parte e sembravano buttati lì. Un modulo di disegno che nessuno esegue è un crash che
+     aspetta (REGOLA #9), quindi qui si disegnano tutti, uno per uno. */
   const allIds = Object.keys(FURN_BY_ID);
   check('c\'è il piedistallo fra i pezzi', allIds.includes(PEDESTAL_ID));
-  check('furnVoxels torna una forma non vuota per ogni pezzo (' + allIds.length + ')',
-    allIds.every(id => Array.isArray(furnVox.furnVoxels(id)) && furnVox.furnVoxels(id).length > 0));
-  check('ogni voxel ha coordinate finite e un colore', allIds.every(id =>
-    furnVox.furnVoxels(id).every(v => Number.isFinite(v.x) && Number.isFinite(v.y) && Number.isFinite(v.z) && typeof v.col === 'string')));
-  /* forme distinguibili fra slot diversi (sagoma, non solo colore): un tappeto è basso e
-     largo, un letto ha più volume, un tavolo ha gambe più alte del tappeto */
-  const rug = furnVox.furnVoxels('prati_rug'), bed = furnVox.furnVoxels('prati_bed'), ped = furnVox.furnVoxels(PEDESTAL_ID);
-  check('tappeto e letto NON hanno la stessa identica sagoma', rug.length !== bed.length);
-  check('il piedistallo ha una sagoma sua', ped.length !== rug.length && ped.length !== bed.length);
-  check('furnVoxels di un id sconosciuto non esplode (torna [])', Array.isArray(furnVox.furnVoxels('non-esiste')) && furnVox.furnVoxels('non-esiste').length === 0);
-
-  /* ---- miniatura 2D: projectVox su furnVoxels non esplode e dipinge davvero ---- */
   {
-    const voxview = await import('../src/voxview.js');
-    const cv = document.createElement('canvas'); cv.width = 36; cv.height = 30;
+    const painted = [];
+    const g = { rect: (x, y, w, h, c) => painted.push(c), px: (x, y, c) => painted.push(c),
+      shadow: () => painted.push('shadow'), shade8: (h) => h };
+    const senzaDisegno = [], senzaOmbra = [];
+    for (const id of allIds) {
+      painted.length = 0;
+      let crash = null;
+      try { furnArt.drawFurnPiece(g, id, 0, 0, 32 * (FURN_BY_ID[id].w || 1), 32 * (FURN_BY_ID[id].h || 1), 1000); } catch (e) { crash = e.message; }
+      if (crash || painted.length < 3) senzaDisegno.push(id + (crash ? ' (' + crash + ')' : ''));
+      /* OMBRA DI CONTATTO su tutto ciò che sta in piedi sul pavimento: senza, l'oggetto
+         galleggia sopra le assi — è metà del motivo per cui sembravano incollati sopra */
+      const cat = furnArt.artCategory(id);
+      if (['bed', 'table', 'chair', 'chest', 'hearth', 'crystal', 'plant', 'lamp', 'pedestal', 'box'].includes(cat)
+        && !painted.includes('shadow')) senzaOmbra.push(id);
+    }
+    check('ogni pezzo di arredo si disegna davvero (' + allIds.length + ')', senzaDisegno.length === 0, senzaDisegno.join(' '));
+    check('ogni mobile poggia a terra con la sua ombra di contatto', senzaOmbra.length === 0, senzaOmbra.join(' '));
+    /* FORME DIVERSE per famiglie diverse: se tutte le categorie disegnassero lo stesso
+       rettangolo la stanza tornerebbe a sembrare piena di scatole */
+    const firme = new Map();
+    for (const id of allIds) {
+      painted.length = 0;
+      try { furnArt.drawFurnPiece(g, id, 0, 0, 64, 64, 1000); } catch (e) { /* già contato sopra */ }
+      firme.set(furnArt.artCategory(id), painted.length);
+    }
+    check('le famiglie di mobili non hanno tutte la stessa sagoma', new Set(firme.values()).size >= 5,
+      [...firme.entries()].map(e => e.join(':')).join(' '));
+    /* IL FONDO: pavimento e carta da parati sono arredo anche loro */
+    painted.length = 0;
+    furnArt.drawGroundTile(g, 'prati_ground', 0, 0, 1, 1);
+    check('il pavimento comprato disegna la sua trama', painted.length >= 2);
+    painted.length = 0;
+    furnArt.drawPaperBand(g, 'prati_paper', 0, 0, 320, 42);
+    check('la carta da parati disegna motivo e battiscopa', painted.length >= 4);
+  }
+  /* ---- miniatura: lo STESSO disegno del mondo, dentro un riquadro ---- */
+  {
+    const cv = document.createElement('canvas'); cv.width = 44; cv.height = 40;
     const painted = new Set();
     ctx.fillRect = () => painted.add(String(ctx.fillStyle));
     let crash = null;
-    try { voxview.projectVox(cv, furnVox.furnVoxels('prati_table'), false, null, false); } catch (e) { crash = e.message; }
+    try { furnArt.drawFurnThumb(cv, 'prati_table', 1000); } catch (e) { crash = e.message; }
     delete ctx.fillRect;
     check('la miniatura di un mobile si disegna senza crash', crash === null, crash || '');
     check('e dipinge dei pixel (non resta bianca)', painted.size > 0);
-  }
-
-  /* ---- vista 3D del mobile: senza WebGL ripiega su projectVox, niente crash ---- */
-  {
-    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 140;
-    const painted = new Set();
-    ctx.fillRect = () => painted.add(String(ctx.fillStyle));
-    let crash = null;
-    try { bookui.mountFurniture3D(cv, 'prati_table'); } catch (e) { crash = e.message; }
-    for (let i = 0; i < 200 && !painted.size; i++) await new Promise(r => setTimeout(r, 10));
-    delete ctx.fillRect;
-    bookui.disposeViews();
-    check('mountFurniture3D non esplode (async, ripiega su projectVox)', crash === null, crash || '');
-    check('e senza WebGL disegna comunque qualcosa', painted.size > 0);
   }
 
   /* ---- piazzamento del piedistallo + assegnazione di una specie (M4) ---- */
