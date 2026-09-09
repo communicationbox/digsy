@@ -128,6 +128,12 @@ async function main() {
         return G.intPos(2, 5);
       }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
         .then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'creature' = il cortile con le creature vive: è LÌ che si guarda la loro pixel art,
+       accanto a Digsy e alle staccionate ridisegnate native */
+    else if (${JSON.stringify(vista)} === 'creature') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('chimera').then(function(){ return G.cmd('chimera'); }).then(function(){ return G.cmd('chimera'); })
+        .then(function(){ var S=G.state(); S.house.yard = (S.creatures||[]).map(function(c){ return 'chi' + c.uid; }); return G.cmd('gotopark'); })
+        .then(function(){ for (var i=0;i<400;i++) G.stepPark(1/60); if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(2000); }); }
     /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
        rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
     else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

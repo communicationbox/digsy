@@ -491,7 +491,12 @@ const PROBE = `
     if(G5.closeBook) G5.closeBook();
     if(G5.closeMap) G5.closeMap();
     if(!TOUCH){ A('dispositivo con mouse: niente prove da dito', true, 'w='+W); return cb(); }
-    G5.resume().then(function(){ return G5.uiBusy(); }).then(function(b){
+    /* PRIMA di provare il tocco, ci si porta in un posto CAMMINABILE: le prove precedenti
+       lasciano il giocatore dove capita — anche in mezzo all'acqua, in barca — e lì nessuna
+       casella toccata è raggiungibile a piedi. Il test falliva mostrando "il tocco non
+       funziona" quando invece non c'era terra sotto (e col mondo casuale succedeva a giorni
+       alterni). La piazza di una città è camminabile per costruzione. */
+    G5.cmd('goto=city').then(function(){ if(G5.frame) G5.frame(1200); return G5.resume(); }).then(function(){ return G5.uiBusy(); }).then(function(b){
       A('prima del tocco il gioco è libero (niente pannelli aperti)', !b.modal && !b.splash && !b.prep,
         'modal='+b.modal+' splash='+b.splash+' prep='+b.prep);
       return G5.setPref('touch','joystick');
@@ -512,8 +517,18 @@ const PROBE = `
       /* la leva DEVE sparire: coprirebbe proprio la parte di schermo che si vuole toccare */
       A('scegliendo «tocca dove andare» la leva sparisce', !!joy1 && joy1.classList.contains('off') && (!jr || jr.width===0),
         jr?Math.round(jr.width)+'px':'assente');
-      tap(60,60);
-      return G5.goalInfo();
+      var rc=cv.getBoundingClientRect();
+      /* si toccano, una alla volta, alcune caselle ATTORNO al giocatore (che sta al centro
+         dello schermo) finché una regge il cammino: un punto fisso può cadere in acqua,
+         dentro un albero o oltre la portata, e il test falliva a caso senza che niente fosse
+         rotto. Qui si misura il TOCCO, non la fortuna di dove si è nati. */
+      var punti = [[0.62, 0.5], [0.38, 0.5], [0.5, 0.68], [0.5, 0.32], [0.68, 0.66], [0.32, 0.34], [0.72, 0.5], [0.5, 0.78]];
+      var provaPunto = function (i) {
+        if (i >= punti.length) return G5.goalInfo();
+        tap(rc.width * punti[i][0], rc.height * punti[i][1]);
+        return G5.goalInfo().then(function (g0) { return g0.on ? g0 : provaPunto(i + 1); });
+      };
+      return provaPunto(0);
     }).then(function(g){
       var r2=cv.getBoundingClientRect();
       A('con «tocca dove andare» il tocco fissa la meta', g.on===true,
@@ -923,7 +938,11 @@ function run() {
       dom = execFileSync(chrome, [
         '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars', '--allow-file-access-from-files',
         '--window-size=' + size, '--virtual-time-budget=15000',
-        '--dump-dom', 'file://' + page + '?nosplash',
+        /* SEME FISSO: il mondo era casuale a ogni giro e le prove che toccano il terreno
+           (tocca dove andare, cammino) fallivano quando il giocatore nasceva su una lingua
+           di spiaggia circondata d'acqua. Un test che dipende dalla fortuna non dice niente
+           quando è verde e fa perdere un'ora quando è rosso. */
+        '--dump-dom', 'file://' + page + '?nosplash&seed=20260909',
       ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
     } catch (e) { console.error('e2e: Chrome ha fallito su ' + label); return 1; }
     const m = dom.match(/data-res="__E2E__([\s\S]*?)__END__"/) || dom.match(/__E2E__([\s\S]*?)__END__/);
