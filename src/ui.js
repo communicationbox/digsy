@@ -13,11 +13,11 @@ import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
-import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
+import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
 import { drawFurnThumb } from './furnArt.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
@@ -45,7 +45,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { groundPalette } from './tiles.js';
-import { tr, actKey, keyHint, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel, furnLabel, roomName } from './i18n.js';
+import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel, furnLabel, roomName } from './i18n.js';
 
 /* ---------- toast / HUD / prompt ---------- */
 export function toast(m) {
@@ -496,6 +496,34 @@ function furnSizeLabel(id) {
   if (place === 'ground') return tr('pavimento', 'flooring');
   const size = sz.w === 1 && sz.h === 1 ? tr('1 casella', '1 tile') : sz.w + '×' + sz.h + ' ' + tr('caselle', 'tiles');
   return furnIsSolid(id) ? size : size + ' · ' + tr('ci cammini sopra', 'you walk on it');
+}
+/* CASA — IL LETTO: ci si dorme (è la sua funzione principale) e da qui si legge quanto è
+   COMODA la stanza. Il punteggio non è un numero misterioso: dice cosa lo alza e quanto vale
+   la dormita, perché "arreda e vedrai" è esattamente il tipo di promessa che nessuno segue. */
+export function openBed(room, gx, gy) {
+  const c = roomComfort(room), gratis = restFreeFor(room);
+  const LIV = [[' spoglia', ' bare'], [' accogliente', ' cosy'], [' curata', ' well kept'], [' da rivista', ' picture perfect']][c.level];
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Il tuo letto. Dormici per rifare l\'energia — e più la stanza è curata, più il riposo rende.', 'Your bed. Sleep to refill your energy — and the better kept the room, the better you rest.')}</div>`;
+  h += `<div class="row"><span class="em">🛏️</span><div><div class="nm">${roomName(room)}: ${tr('comodità', 'comfort')} ${c.score}/${COMFORT_MAX} ·${tr(LIV[0], LIV[1])}</div><div class="sub">${gratis ? tr('dormendo qui le prossime ', 'sleeping here your next ') + gratis + tr(' fatiche non costano energia', ' efforts cost no energy') : tr('così com\'è, dormire rifà solo l\'energia', 'as it is, sleeping only refills energy')}</div></div></div>`;
+  /* COSA MANCA, detto per nome: un punteggio senza la lista è un giudizio, non un consiglio */
+  const ha = k => c.bits.some(b => b.k === k);
+  const manca = [];
+  if (!ha('mobili') || c.bits.find(b => b.k === 'mobili').n < 4) manca.push(tr('altri mobili (fino a 4 contano)', 'more furniture (up to 4 counts)'));
+  if (!ha('tappeto')) manca.push(tr('qualcosa a terra (un tappeto)', 'something on the floor (a rug)'));
+  if (!ha('parete')) manca.push(tr('qualcosa alla parete', 'something on the wall'));
+  if (!ha('parato')) manca.push(tr('la carta da parati', 'wallpaper'));
+  if (!ha('pavimento')) manca.push(tr('il pavimento', 'flooring'));
+  if (!ha('coerenza')) manca.push(tr('pezzi tutti della stessa zona', 'pieces all from one zone'));
+  if (manca.length) h += `<div class="row"><span class="em">🎨</span><div><div class="nm">${tr('Per stare più comodi', 'To make it comfier')}</div><div class="sub">${manca.join(' · ')}</div></div></div>`;
+  const dorme = canSleep();
+  h += `<div class="row"><div class="btn2">${dorme ? `<button class="btn amber" data-sleep="1">😴 ${tr('Dormi', 'Sleep')}</button>` : `<button class="btn ghost" disabled>😴 ${tr('Non hai ancora sonno', 'Not sleepy yet')}</button>`}<button class="btn ghost" data-bedmove="1">🎨 ${tr('Sposta il letto', 'Move the bed')}</button></div></div>`;
+  if (!dorme) h += `<div class="center muted">${tr('Si dorme dopo almeno mezza giornata sveglio.', 'You can sleep after at least half a day awake.')}</div>`;
+  mTitle.innerHTML = withIcons('🛏️ ' + furnLabel(furnAt(room, gx, gy).itemId));
+  mBody.innerHTML = withIcons(h); openModal();
+  mBody.querySelectorAll('[data-sleep]').forEach(b => b.onclick = () => { if (sleepAtHome(room)) closeModal(); });
+  mBody.querySelectorAll('[data-bedmove]').forEach(b => b.onclick = () => {
+    if (pickUpFurniture(room, gx, gy)) { closeModal(); toast('🎨 ' + keys(tr('Letto in mano: cammina e {act} per ripiazzarlo', 'Bed in hand: walk and {act} to place it'))); }
+  });
 }
 /* CASA — piedistallo (M4): espone in casa uno scheletro già consegnato al Museo (stessa
    fonte dei piedistalli della galleria, `S.museum[spId]`). Vuoto → scegli la specie;

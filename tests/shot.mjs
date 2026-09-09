@@ -128,6 +128,22 @@ async function main() {
         return G.intPos(2, 5);
       }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
         .then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
+       rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
+    else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('house').then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.house(); }).then(function(hm){
+        var S = G.state();
+        ['prati_paper', 'prati_ground', 'prati_rug', 'prati_bed', 'prati_table'].forEach(function (id) {
+          if (S.furnOwned.indexOf(id) < 0) S.furnOwned.push(id);
+        });
+        S.house.rooms[0].furn = [];
+        hm.applyBackdrop(0, 'prati_ground');
+        hm.tryPlaceFurniture(0, 1, 2, 'prati_bed', 0);
+        hm.tryPlaceFurniture(0, 4, 3, 'prati_rug', 0);
+        hm.tryPlaceFurniture(0, 6, 2, 'prati_table', 0);
+        S.sleepBlockHalf = null;
+        return G.intPos(1, 2);
+      }).then(function(){ if(G.openBed) G.openBed(0, 1, 2); }); }
     /* 'casa-vuota' = la Camera SENZA niente comprato: è lo stato in cui si vede la casa la
        prima volta, e deve già sembrare una stanza — non un livello di prova */
     else if (${JSON.stringify(vista)} === 'casa-vuota') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

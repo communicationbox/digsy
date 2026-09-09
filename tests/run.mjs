@@ -3724,13 +3724,15 @@ sprites.applyLook();
       const cell3 = house.floorCellAt(0, 3 * TS + 8, 4 * TS + 8);
       check('tap su una cella vuota (non in mano) non è gestito: resta un comando per camminare',
         gameplay.tapFurnitureAt(cell3.gx, cell3.gy) === false);
-      house.tryPlaceFurniture(0, cell3.gx, cell3.gy, highLvl.id);
+      /* il LETTO non si raccoglie col tocco (ci si dorme: c'è il suo pannello), quindi il
+         test dello spostamento usa un mobile qualsiasi */
+      house.tryPlaceFurniture(0, cell3.gx, cell3.gy, extraSolid.id);
       check('tap su un mobile piazzato lo raccoglie (senza doverci stare sopra)', gameplay.tapFurnitureAt(cell3.gx, cell3.gy) === true);
       check('ora è "in mano"', house.isHolding() === true);
       const cell4 = house.floorCellAt(0, 6 * TS + 8, 4 * TS + 8);
       check('tap su una cella vuota, tenendolo in mano, lo piazza lì', gameplay.tapFurnitureAt(cell4.gx, cell4.gy) === true);
       check('non è più "in mano" dopo il piazzamento', house.isHolding() === false);
-      check('il mobile è ora sulla nuova cella toccata', house.furnAt(0, cell4.gx, cell4.gy) && house.furnAt(0, cell4.gx, cell4.gy).itemId === highLvl.id);
+      check('il mobile è ora sulla nuova cella toccata', house.furnAt(0, cell4.gx, cell4.gy) && house.furnAt(0, cell4.gx, cell4.gy).itemId === extraSolid.id);
       house.removeFurnitureAt(0, cell4.gx, cell4.gy); // ripulisce: non deve sporcare i test dopo
 
       inter.leaveHouseRoom();
@@ -3797,6 +3799,63 @@ sprites.applyLook();
     check('la migrazione rimette nel vassoio i pezzi che non ci stanno più', mossi === 2 && S.house.rooms[0].furn.length === 0);
     check('e restano tuoi (nel vassoio), non spariti', house.ownedUnplaced().includes(letto.id));
     S.house.rooms[0].furn = [];
+  }
+
+  /* ---- COMODITÀ DELLA STANZA e RIPOSO: arredare deve servire a qualcosa ---- */
+  {
+    const gameplay2 = await import('../src/gameplay.js');
+    const stateM = await import('../src/state.js');
+    const letto = FURN_SETS.prati.find(f => f.slot === 'letto');
+    const tappeto = FURN_SETS.prati.find(f => f.slot === 'tappeto');
+    const quadro = FURN_SETS.prati.find(f => f.place === 'wall');
+    const tav = FURN_SETS.prati.find(f => f.slot === 'tavolo');
+    const parato = FURN_SETS.prati.find(f => f.place === 'paper');
+    const pav = FURN_SETS.prati.find(f => f.place === 'ground');
+    S.furnOwned = [letto.id, tappeto.id, quadro.id, tav.id, parato.id, pav.id];
+    S.house.rooms[0].furn = []; S.house.rooms[0].paper = null; S.house.rooms[0].ground = null;
+
+    check('una stanza vuota non è comoda', house.roomComfort(0).score === 0 && house.roomComfort(0).level === 0);
+    check('e dormirci non regala nessuna fatica gratis', house.restFreeFor(0) === 0);
+    house.tryPlaceFurniture(0, 1, 2, letto.id);
+    check('il letto si riconosce nella stanza', !!house.bedInRoom(0) && house.bedInRoom(0).itemId === letto.id);
+    const soloLetto = house.roomComfort(0).score;
+    house.tryPlaceFurniture(0, 4, 3, tappeto.id);   // 2×2: la cella davanti alla porta non è piazzabile
+    house.tryPlaceFurniture(0, 6, 2, tav.id);
+    house.tryPlaceFurniture(0, 3, 2, quadro.id);              // dalla prima fila → va sulla parete
+    house.applyBackdrop(0, parato.id); house.applyBackdrop(0, pav.id);
+    const piena = house.roomComfort(0);
+    check('arredare alza davvero la comodità', piena.score > soloLetto, soloLetto + '→' + piena.score);
+    /* i pezzi CONTANO PER QUELLO CHE SONO: il tappeto, il quadro e i due fondi hanno ognuno
+       la sua voce — un punteggio che sale e basta non direbbe al giocatore cosa cambiare */
+    const voci = piena.bits.map(b => b.k);
+    check('la comodità dice DA COSA è fatta', ['tappeto', 'parete', 'parato', 'pavimento'].every(k => voci.includes(k)), voci.join(','));
+    check('pezzi tutti della stessa zona: coerenza premiata', voci.includes('coerenza'));
+    check('e la dormita a casa ora regala fatiche gratis', house.restFreeFor(0) > 0);
+    /* mescolare le zone toglie la coerenza (non è un divieto: è una scelta che si paga) */
+    house.removeFurnitureAt(0, 6, 2);
+    S.furnOwned.push('boschi_chair');
+    house.tryPlaceFurniture(0, 6, 2, 'boschi_chair');
+    check('mescolando le zone la coerenza si perde', !house.roomComfort(0).bits.some(b => b.k === 'coerenza'));
+
+    /* IL RIPOSO: le fatiche gratis si scalano nell'UNICO punto di spesa dell'energia, quindi
+       valgono per lo scavo come per accetta, piccone e cristalli (che costano 2) */
+    S.energy = 20; S.restFree = 3;
+    stateM.spendEnergy(1);
+    check('la prima fatica dopo una bella dormita non costa energia', S.energy === 20 && S.restFree === 2);
+    stateM.spendEnergy(2);
+    check('una fatica da 2 consuma due riposi, non energia', S.energy === 20 && S.restFree === 0);
+    stateM.spendEnergy(2);
+    check('finiti i riposi si torna a pagare in energia', S.energy === 18);
+
+    /* DORMIRE NEL PROPRIO LETTO: rifà l'energia come la Locanda e imposta il riposo */
+    S.energy = 3; S.restFree = 0; S.sleepBlockHalf = null;
+    const atteso = house.restFreeFor(0);
+    check('si dorme nel proprio letto', gameplay2.sleepAtHome(0) === true);
+    check('energia piena, come alla Locanda', S.energy === S.maxEnergy);
+    check('e il riposo vale quanto è curata la stanza', S.restFree === atteso, S.restFree + ' vs ' + atteso);
+    /* e non si dorme due volte di fila (stessa regola della Locanda) */
+    check('non si dorme due volte di fila', gameplay2.sleepAtHome(0) === false);
+    S.house.rooms[0].furn = []; S.house.rooms[0].paper = null; S.house.rooms[0].ground = null; S.restFree = 0;
   }
 
   /* save/load: arredo posseduto e piazzato sopravvivono */

@@ -401,6 +401,45 @@ export function houseFurnSolid(room, x, y) {
   return !!solidAt(room, gx, gy);
 }
 
+/* ---------- COMODITÀ DELLA STANZA: arredare serve a qualcosa ----------
+   Arredare era un giocattolo: comprato tutto, la stanza restava un fondale. Qui l'arredo si
+   MISURA, e la misura si vede (nel vassoio) e si sente (dormendo nel proprio letto).
+   Il punteggio premia una stanza COMPOSTA, non una stanza piena: contano il fondo scelto,
+   qualcosa a terra, qualcosa alla parete, un letto, e la coerenza fra i pezzi. Sei mobili
+   ammucchiati a caso valgono meno di quattro pezzi che si parlano. */
+export const COMFORT_MAX = 12;
+export function roomComfort(room) {
+  ensureHouseState();
+  const r = S.house.rooms[room];
+  if (!r) return { score: 0, level: 0, bits: [] };
+  const furn = (r.furn || []).filter(f => FURN_BY_ID[f.itemId]);
+  const bits = [];
+  let score = 0;
+  const mobili = furn.filter(f => furnLayer(f.itemId) === 'floor').length;
+  const n = Math.min(4, mobili);                      // oltre il quarto mobile non è arredare, è accatastare
+  if (n) { score += n; bits.push({ k: 'mobili', n }); }
+  if (furn.some(f => furnLayer(f.itemId) === 'rug')) { score += 2; bits.push({ k: 'tappeto' }); }
+  if (furn.some(f => furnLayer(f.itemId) === 'wall')) { score += 2; bits.push({ k: 'parete' }); }
+  if (r.paper) { score += 1; bits.push({ k: 'parato' }); }
+  if (r.ground) { score += 1; bits.push({ k: 'pavimento' }); }
+  /* COERENZA: tutti i pezzi della stessa zona (fondi compresi). È la differenza fra una
+     stanza arredata e un magazzino di roba comprata dove capitava. */
+  const zone = new Set([...furn.map(f => FURN_BY_ID[f.itemId].zone), r.paper && FURN_BY_ID[r.paper].zone, r.ground && FURN_BY_ID[r.ground].zone]
+    .filter(z => z && z !== 'any'));
+  if (furn.length >= 2 && zone.size === 1) { score += 2; bits.push({ k: 'coerenza', zone: [...zone][0] }); }
+  score = Math.min(COMFORT_MAX, score);
+  return { score, level: score >= 10 ? 3 : score >= 7 ? 2 : score >= 4 ? 1 : 0, bits };
+}
+/* c'è un letto piazzato in questa stanza? (si dorme nel PROPRIO letto, non per terra) */
+export function bedInRoom(room) {
+  ensureHouseState();
+  const r = S.house.rooms[room]; if (!r) return null;
+  return (r.furn || []).find(f => (FURN_BY_ID[f.itemId] || {}).slot === 'letto') || null;
+}
+/* quante fatiche gratis regala una dormita qui: 0 in una stanza spoglia, fino a 6 in una
+   stanza curata. È il motivo per cui arredare conviene, ed è scritto in chiaro nel gioco. */
+export function restFreeFor(room) { return roomComfort(room).level * 2; }
+
 /* ---------- PIEDISTALLO: esposizione di uno scheletro consegnato al Museo (M4) ---------- */
 /* specie assegnabili: almeno un pezzo consegnato (stessa fonte dei piedistalli del Museo,
    `S.museum[spId]`) */

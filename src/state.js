@@ -20,7 +20,12 @@ export const cam = { x: 0, y: 0 };
    `energy <= 0` sta a monte, ma non protegge da un costo maggiore di 1.
    Qui il fondo è zero, sempre. */
 export function spendEnergy(n) {
-  const cost = Math.max(0, n | 0);
+  let cost = Math.max(0, n | 0);
+  /* BEN RIPOSATO: dormire nel proprio letto, in una stanza arredata, regala un tot di fatiche
+     GRATIS per la giornata (`S.restFree`, quante ne restano). Lo sconto sta QUI, dentro
+     l'unico punto di spesa dell'energia: metterlo nello scavo avrebbe lasciato fuori accetta,
+     piccone e cristalli, che costano energia esattamente come lui. */
+  while (cost > 0 && (S.restFree || 0) > 0) { S.restFree--; cost--; }
   S.energy = Math.max(0, (S.energy || 0) - cost);
   return S.energy;
 }
@@ -300,6 +305,7 @@ export function initState() {
      di ore (cappato lo stesso, ma un regalo enorme al primo avvio dopo l'update non è quello
      che deve fare: il tetto orario protegge dalle assenze LUNGHE, non da un arretrato falso). */
   if (!S.idleAt) S.idleAt = Date.now();
+  if (S.restFree === undefined) S.restFree = 0;   // fatiche gratis del "ben riposato" (dormito in una camera arredata)
   if (S.gear === undefined) S.gear = null;
   if (S.teleportBack === undefined) S.teleportBack = null; // punto da cui torni col portale di casa
   if (S.returnPortal === undefined) S.returnPortal = null; // portale di ritorno a uso singolo (mai più di uno)

@@ -1198,3 +1198,9 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .cmp-solo.on{border-style:solid;border-color:var(--c-amber);box-shadow:0 0 0 2px rgba(216,151,60,.3)}
 .cmp-solo .em{grid-row:1/span 2;justify-self:center;font-size:22px}
 .cmp-solo .cmp-a{grid-template-columns:1fr}
+
+/* DUE AZIONI AFFIANCATE, larghe uguali (letto: Dormi / Sposta). Lasciate libere di stringersi
+   sul testo, due bottoni nella stessa riga escono di larghezze diverse e la riga sembra
+   storta — lo stesso difetto già corretto nelle schede del compagno. */
+.btn2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);width:100%}
+.btn2 .btn{width:100%;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

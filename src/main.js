@@ -430,6 +430,9 @@ if (typeof window !== 'undefined') {
       /* il pannello COMPAGNO E CORTILE: è dove si sceglie chi ti segue e chi vive in casa, e
          senza questo ponte non si poteva né fotografare né far disegnare da un test */
       openCompanion: () => import('./ui.js').then(u => { u.openCompanionPicker(); return true; }),
+      /* il pannello del LETTO di casa: comodità della stanza e riposo. Si legge lì perché
+         arredare conviene, quindi va guardato e fatto disegnare da un test */
+      openBed: (room, gx, gy) => import('./ui.js').then(u => { u.openBed(room || 0, gx || 1, gy || 2); return true; }),
 
       /* porta il giocatore ACCANTO alla statua: senza, fotografarla è questione di fortuna */
       gotoStatue: () => import('./world.js').then(w => {

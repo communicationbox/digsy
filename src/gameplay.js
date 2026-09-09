@@ -1,5 +1,5 @@
 /* Meccaniche: scavo, economia, chimere, collisioni, interazione */
-import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PREMIUM_HATS, PEDESTAL_ID } from './data.js';
+import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PREMIUM_HATS, PEDESTAL_ID, FURN_BY_ID } from './data.js';
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
 import { bodyHits, feetTile, FOOT_DY } from './body.js';
@@ -12,13 +12,13 @@ import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememb
 import { marketPrice } from './market.js';
 import { zoneAt } from './regions.js';
 import { isDebug } from './debug.js';
-import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, openStatue, openRoomLock, openFurnitureTray, openPedestal, showTip, announceTutStep } from './ui.js';
+import { toast, updateHUD, openBuilding, openExhibit, openQuestBoard, openCompanionPicker, openMentor, openWonder, openMailbox, openStatue, openRoomLock, openFurnitureTray, openPedestal, openBed, showTip, announceTutStep } from './ui.js';
 import { companionYieldMul, companionType, companionSpec, COMP } from './companion.js';
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearLockedGate, houseFloorHere, enterInterior, nudgeOffFurniture, CUT } from './interior.js';
-import { ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked } from './house.js';
+import { ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked, restFreeFor } from './house.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
@@ -1125,6 +1125,7 @@ export function tapFurnitureAt(gx, gy) {
   const f = furnAt(room, gx, gy);
   if (!f) return false; // niente da raccogliere: resta un tocco per camminare
   if (f.itemId === PEDESTAL_ID) { openPedestal(room, gx, gy); return true; }
+  if ((FURN_BY_ID[f.itemId] || {}).slot === 'letto') { openBed(room, gx, gy); return true; }
   if (pickUpFurniture(room, gx, gy)) toast('🎨 ' + furnLabel(f.itemId) + ' ' + keys(tr('in mano: tocca dove piazzarlo', 'in hand: tap where to place it')));
   return true;
 }
@@ -1171,6 +1172,9 @@ export function act() {
         else toast('🎨 ' + tr('Qui non si può piazzare', "Can't place it here"));
       }
       else if (cell.itemId === PEDESTAL_ID) openPedestal(cell.room, cell.gx, cell.gy);
+      /* il letto fa DUE cose e la principale è dormirci: raccoglierlo di colpo col tasto
+         azione voleva dire smontare il letto ogni volta che ci si passava sopra */
+      else if (cell.itemId && (FURN_BY_ID[cell.itemId] || {}).slot === 'letto') openBed(cell.room, cell.gx, cell.gy);
       else if (cell.itemId) {
         /* quello appeso sta una casella più in su: si tocca da sotto, stando al muro */
         const pgy = cell.wall ? cell.gy - 1 : cell.gy;
@@ -1383,6 +1387,20 @@ export function restInn() {
   { const t = questExpiryText(questsLost); if (t) toast(t); }
   return true;
 }
+/* DORMIRE NEL PROPRIO LETTO. La Locanda resta (è comoda quando sei lontano), ma il letto di
+   casa dà in più il "ben riposato": tante fatiche gratis quanto è curata la stanza. È il
+   motivo per cui arredare conviene davvero, e il gioco lo dice in chiaro invece di lasciarlo
+   scoprire (REGOLA #7: ogni testo dice cosa fa davvero). */
+export function sleepAtHome(room) {
+  const bonus = restFreeFor(room);
+  if (!restInn()) return false;
+  S.restFree = bonus;
+  if (bonus) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + bonus + tr(' fatiche non costano energia', ' efforts cost no energy'));
+  else toast('😴 ' + tr('Hai dormito, ma la stanza è spoglia: nessun riposo in più', 'You slept, but the room is bare: no extra rest'));
+  save(); updateHUD();
+  return true;
+}
+
 /* RISTORI — l'energia era una risorsa finta: 15🪙 fissi e ristori illimitati significavano
    che nessuna giornata poteva mai andare storta. Ora il fornaio ne ha pochi al giorno e il
    prezzo sale a ogni acquisto: la seconda metà di giornata va pianificata, non comprata. */

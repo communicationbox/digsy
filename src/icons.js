@@ -37,7 +37,7 @@ export function icon(name, cls) {
 
 /* mappa emoji → icona: withIcons() ripulisce OGNI stringa mostrata */
 const EMAP = {
-  '🪙': 'coin', '⚡': 'bolt', '📅': 'cal', '🧭': 'compass', '🎒': 'bag', '🐞': 'bug', '🌙': 'moon',
+  '🪙': 'coin', '⚡': 'bolt', '📅': 'cal', '🧭': 'compass', '🎒': 'bag', '🐞': 'bug', '🌙': 'moon', '😴': 'moon',
   '🌸': 'flower', '☀️': 'sun', '🍂': 'leaf', '❄️': 'snow',
   '🌾': 'wheat', '🏜️': 'dune', '🌲': 'pine', '⛰️': 'mount', '🐸': 'frog', '🧊': 'ice',
   '🏪': 'store', '🔬': 'lab', '🏛️': 'museum', '🛏️': 'bed', '💈': 'barber', '👕': 'shirt', '🏠': 'home',
