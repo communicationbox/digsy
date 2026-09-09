@@ -116,6 +116,19 @@ const FURNL = {
   ghiacci_rug: ['Tappeto di pelliccia', 'Fur rug'], ghiacci_bed: ['Letto di pelliccia', 'Fur bed'],
   ghiacci_hearth: ['Focolare glaciale', 'Glacial hearth'], ghiacci_lamp: ['Lanterna di ghiaccio', 'Ice lantern'],
   pedestal: ['Piedistallo', 'Pedestal'],
+  /* FONDO della stanza: carta da parati e pavimento. Cambiano la stanza più di qualunque
+     mobile, quindi hanno un nome che dice a cosa somigliano, non "parato 1". */
+  prati_paper: ['Parato di spighe', 'Wheat wallpaper'], prati_ground: ['Assi di grano', 'Wheat boards'],
+  dune_paper: ['Parato di sabbia', 'Sand wallpaper'], dune_ground: ['Arenaria chiara', 'Pale sandstone'],
+  boschi_paper: ['Parato di felci', 'Fern wallpaper'], boschi_ground: ['Assi di quercia', 'Oak boards'],
+  terre_paper: ['Parato d\'argilla', 'Clay wallpaper'], terre_ground: ['Cotto rosso', 'Red terracotta'],
+  palude_paper: ['Parato di canne', 'Reed wallpaper'], palude_ground: ['Assi d\'acqua', 'Bog boards'],
+  ghiacci_paper: ['Parato di brina', 'Frost wallpaper'], ghiacci_ground: ['Lastre di ghiaccio', 'Ice slabs'],
+  /* PARETE: l'unica famiglia che sta in alto — un quadro/una mensola alza lo sguardo e chiude
+     la stanza, che con solo mobili a terra resta una scacchiera con roba sopra. */
+  prati_art: ['Ghirlanda di spighe', 'Wheat wreath'], dune_art: ['Cranio alla parete', 'Wall skull'],
+  boschi_art: ['Mensola di funghi', 'Mushroom shelf'], terre_art: ['Quadro d\'argilla', 'Clay painting'],
+  palude_art: ['Ninfea appesa', 'Hanging lily'], ghiacci_art: ['Specchio di ghiaccio', 'Ice mirror'],
 };
 export function furnLabel(id) { const e = FURNL[id]; return e ? lab(e) : id; }
 

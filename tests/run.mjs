@@ -3579,8 +3579,11 @@ sprites.applyLook();
   /* stato pulito */
   S.furnOwned = []; S.house = { rooms: [{ id: 0, unlocked: true, furn: [] }, { id: 1, unlocked: false, furn: [] }, { id: 2, unlocked: false, furn: [] }, { id: 3, unlocked: false, furn: [] }] };
   S.level = 1; S.coins = 0;
-  const cheap = FURN_SETS.prati[0];    // lvl 1, il più economico
-  const highLvl = FURN_SETS.prati.find(f => f.lvl > 1) || FURN_SETS.prati[1];
+  /* si scelgono per RUOLO, non per posizione nell'elenco: il set ora contiene anche i fondi
+     (carta da parati/pavimento), che non si piazzano su una casella — un test che pescava
+     `[0]` si ritrovava a provare a posare la carta da parati sul pavimento. */
+  const cheap = FURN_SETS.prati.find(f => f.slot === 'tappeto');    // decoro 2×2, ci si cammina sopra
+  const highLvl = FURN_SETS.prati.find(f => f.slot === 'letto');    // mobile solido 2×2, lvl 3
 
   /* acquisto sotto livello: rifiutato, nessun effetto */
   S.coins = 9999;
@@ -3608,7 +3611,7 @@ sprites.applyLook();
      piazzato altrove" (che scatterebbe riprovando lo stesso `highLvl`). */
   S.coins = cheap.cost; S.level = Math.max(S.level, cheap.lvl);
   check('secondo acquisto riuscito (pezzo economico)', house.buyFurniture(cheap.id) === true);
-  const extraSolid = FURN_SETS.prati.find(f => f.slot === 'tavolo');
+  const extraSolid = FURN_SETS.prati.find(f => f.slot === 'tavolo');   // 2×1, stesso strato del letto
   S.coins = extraSolid.cost; S.level = Math.max(S.level, extraSolid.lvl);
   check('terzo acquisto riuscito (mobile solido di scorta)', house.buyFurniture(extraSolid.id) === true);
   check('il vassoio (non piazzato) contiene tutti e tre', house.ownedUnplaced().length === 3 &&
@@ -3617,7 +3620,7 @@ sprites.applyLook();
   /* piazzamento: cella valida di pavimento nella stanza 0 (sempre sbloccata) — coordinate
      LOCALI DIRETTE alla scena della stanza (0,0 = angolo della SUA griglia, niente più
      offset di un corridoio condiviso). */
-  const cell = house.floorCellAt(0, 3 * TS + 8, 4 * TS + 8); // dentro ROOM_TILE_W×ROOM_TILE_H
+  const cell = house.floorCellAt(0, 3 * TS + 8, 2 * TS + 8); // dentro ROOM_TILE_W×ROOM_TILE_H, con spazio per un 2×2
   check('la cella scelta per il test è pavimento calpestabile', !!cell && cell.room === 0);
   check('piazzare nella stanza sbloccata riesce', house.tryPlaceFurniture(0, cell.gx, cell.gy, cheap.id) === true);
   check('il pezzo ora è piazzato in S.house', house.furnAt(0, cell.gx, cell.gy) && house.furnAt(0, cell.gx, cell.gy).itemId === cheap.id);
@@ -3648,7 +3651,7 @@ sprites.applyLook();
   /* e ora si toglie anche il tappeto (unico strato rimasto) */
   check('rimuovere anche il decoro riesce', house.removeFurnitureAt(0, cell.gx, cell.gy) === true);
   check('torna nel vassoio anche lui', house.ownedUnplaced().includes(cheap.id));
-  const cell2 = house.floorCellAt(0, 5 * TS + 8, 4 * TS + 8);
+  const cell2 = house.floorCellAt(0, 6 * TS + 8, 2 * TS + 8);
   check('si ripiazza altrove (spostamento = rimuovi + piazza)', house.tryPlaceFurniture(0, cell2.gx, cell2.gy, cheap.id) === true);
   check('rimuovere da una cella vuota non fa nulla', house.removeFurnitureAt(0, 9, 9) === false);
 
@@ -3677,7 +3680,7 @@ sprites.applyLook();
       /* piazzare sotto i PROPRI piedi (come act() fa via houseFloorHere) rende la cella
          solida all'istante: senza nudgeOffFurniture() il giocatore restava incastrato dentro
          il mobile appena piazzato (segnalato: "mi blocco sulla poltrona"). */
-      const selfCell = house.floorCellAt(0, 6 * TS + 8, 4 * TS + 8);
+      const selfCell = house.floorCellAt(0, 1 * TS + 8, 4 * TS + 8);
       inter.INT.x = selfCell.gx * TS + 8; inter.INT.y = selfCell.gy * TS + 8;
       check('piazzare sulla propria cella riesce', house.tryPlaceFurniture(0, selfCell.gx, selfCell.gy, highLvl.id) === true);
       const stuckBefore = inter.interiorSolid(inter.INT.x, inter.INT.y);
@@ -3718,13 +3721,13 @@ sprites.applyLook();
       /* `act()` sopra ha RACCOLTO il tappeto (nuovo comportamento M4-bis: non lo rimuove più
          subito, resta "in mano" finché non lo si ripiazza) — si annulla per partire puliti. */
       house.cancelHold();
-      const cell3 = house.floorCellAt(0, 4 * TS + 8, 5 * TS + 8);
+      const cell3 = house.floorCellAt(0, 3 * TS + 8, 4 * TS + 8);
       check('tap su una cella vuota (non in mano) non è gestito: resta un comando per camminare',
         gameplay.tapFurnitureAt(cell3.gx, cell3.gy) === false);
       house.tryPlaceFurniture(0, cell3.gx, cell3.gy, highLvl.id);
       check('tap su un mobile piazzato lo raccoglie (senza doverci stare sopra)', gameplay.tapFurnitureAt(cell3.gx, cell3.gy) === true);
       check('ora è "in mano"', house.isHolding() === true);
-      const cell4 = house.floorCellAt(0, 4 * TS + 8, 4 * TS + 8);
+      const cell4 = house.floorCellAt(0, 6 * TS + 8, 4 * TS + 8);
       check('tap su una cella vuota, tenendolo in mano, lo piazza lì', gameplay.tapFurnitureAt(cell4.gx, cell4.gy) === true);
       check('non è più "in mano" dopo il piazzamento', house.isHolding() === false);
       check('il mobile è ora sulla nuova cella toccata', house.furnAt(0, cell4.gx, cell4.gy) && house.furnAt(0, cell4.gx, cell4.gy).itemId === highLvl.id);
@@ -3734,6 +3737,66 @@ sprites.applyLook();
       check('leaveHouseRoom torna nell\'atrio', inter.INT.houseRoom === null);
       inter.exitInterior();
     }
+  }
+
+  /* ---- TAGLIE, PARETE e FONDI (l'arredo che compone la stanza, non la riempie) ---- */
+  {
+    const { furnSize, furnPlace, furnIsBackdrop } = dataM;
+    const letto = FURN_SETS.prati.find(f => f.slot === 'letto');
+    const quadro = FURN_SETS.prati.find(f => f.place === 'wall');
+    const parato = FURN_SETS.prati.find(f => f.place === 'paper');
+    const pavim = FURN_SETS.prati.find(f => f.place === 'ground');
+    check('ogni zona ha carta da parati, pavimento e un pezzo da parete',
+      dataM.ZONES.every(z => ['paper', 'ground', 'wall'].every(p => FURN_SETS[z.id].some(f => f.place === p))));
+    /* LE TAGLIE ESISTONO DAVVERO: se tornassero tutte 1×1 la stanza tornerebbe senza
+       gerarchia (un letto grande quanto una lampada) e nessun test se ne accorgerebbe */
+    check('il letto occupa più di una casella', furnSize(letto.id, 0).w * furnSize(letto.id, 0).h > 1);
+    const tavolo = FURN_SETS.prati.find(f => f.slot === 'tavolo');
+    check('ruotare un pezzo rettangolare scambia larghezza e altezza',
+      furnSize(tavolo.id, 1).w === furnSize(tavolo.id, 0).h && furnSize(tavolo.id, 1).h === furnSize(tavolo.id, 0).w);
+    check('un quadro non è solido (non blocca il passo)', dataM.furnIsSolid(quadro.id) === false);
+    check('carta da parati e pavimento sono fondi, non oggetti da posare',
+      furnIsBackdrop(parato.id) && furnIsBackdrop(pavim.id) && !furnIsBackdrop(letto.id));
+
+    S.furnOwned = [letto.id, quadro.id, parato.id, pavim.id];
+    S.house.rooms[0].furn = [];
+    /* INGOMBRO: un 2×2 non entra se una delle sue quattro caselle è fuori dal pavimento */
+    check('un mobile 2×2 sul bordo destro è rifiutato (sborda)', house.tryPlaceFurniture(0, 8, 3, letto.id) === false);
+    check('lo stesso mobile entra una casella più dentro', house.tryPlaceFurniture(0, 7, 3, letto.id) === true);
+    check('le sue QUATTRO caselle bloccano il passo, non solo l\'angolo',
+      house.houseFurnSolid(0, 8 * TS + 8, 4 * TS + 8) === true && house.houseFurnSolid(0, 7 * TS + 8, 3 * TS + 8) === true);
+    check('un secondo mobile che si sovrappone anche solo in parte è rifiutato',
+      house.tryPlaceFurniture(0, 8, 4, tavolo.id) === false);
+    house.removeFurnitureAt(0, 7, 3);
+
+    /* PARETE: si appende stando nella prima fila, e finisce SULLA parete (gy 1), non per terra */
+    check('la fila alta è parete, non pavimento', house.isWallCell(3, 1) === true && house.isFloorCell(3, 1) === false);
+    check('un quadro appeso dalla prima fila finisce sulla parete', house.tryPlaceFurniture(0, 3, 2, quadro.id) === true);
+    check('il quadro sta sulla parete (gy 1)', !!house.wallAt(0, 3, 1));
+    check('la parete non blocca il passo sotto', house.houseFurnSolid(0, 3 * TS + 8, 2 * TS + 8) === false);
+    check('un quadro NON si appende dal centro della stanza (serve stare al muro)',
+      house.removeFurnitureAt(0, 3, 1) && house.tryPlaceFurniture(0, 3, 4, quadro.id) === false);
+
+    /* FONDI: non si posano, si applicano — e sono annullabili */
+    check('applicare la carta da parati riesce', house.tryPlaceFurniture(0, 3, 3, parato.id) === true);
+    check('la stanza ora ha quella carta da parati', house.roomPaper(0) === parato.id);
+    check('non è finita sul pavimento come un mobile', house.furnAt(0, 3, 3) === null);
+    check('applicare il pavimento riesce', house.applyBackdrop(0, pavim.id) === true);
+    check('la stanza ora ha quel pavimento', house.roomGround(0) === pavim.id);
+    check('togliere il fondo riporta la stanza di serie', house.clearBackdrop(0, 'paper') && house.roomPaper(0) === null);
+    check('i fondi non stanno nel vassoio dei pezzi da posare',
+      !house.ownedUnplaced().includes(parato.id) && !house.ownedUnplaced().includes(pavim.id));
+    check('ma si ritrovano nella loro lista', house.ownedBackdrops('paper').includes(parato.id));
+
+    /* MIGRAZIONE dei salvataggi vecchi: pezzi 1×1 rimasti dove non ci stanno più */
+    S.house.rooms[0].furn = [
+      { itemId: letto.id, gx: 8, gy: 5 },      // 2×2: sborda sia a destra sia in basso
+      { itemId: quadro.id, gx: 4, gy: 4 },     // quadro finito per terra
+    ];
+    const mossi = house.migrateFurniture();
+    check('la migrazione rimette nel vassoio i pezzi che non ci stanno più', mossi === 2 && S.house.rooms[0].furn.length === 0);
+    check('e restano tuoi (nel vassoio), non spariti', house.ownedUnplaced().includes(letto.id));
+    S.house.rooms[0].furn = [];
   }
 
   /* save/load: arredo posseduto e piazzato sopravvivono */

@@ -200,42 +200,67 @@ export const ROOM_PRICES = [0, 150, 400, 900];
    (`renderStore`), sbloccato per livello come `PREMIUM_HATS`. `slot` è un'etichetta libera
    (letto/tavolo/tappeto/decoro), non applica vincoli. `col` = colore del rettangolo
    segnaposto (vero mobile voxel/3D in M4). */
+/* Un pezzo di arredo ha:
+     `place` = DOVE vive. 'floor' mobile vero (blocca il passo) · 'rug' steso a terra (ci si
+       cammina sopra) · 'wall' appeso alla parete di fondo · 'paper' carta da parati e
+       'ground' pavimento (non si piazzano: si APPLICANO alla stanza, sono il fondo).
+     `w`/`h` = quante caselle occupa. Erano tutti 1×1 e un letto risultava grande quanto una
+       lampada: senza differenza di taglia la stanza non ha gerarchia e l'arredo sembra sparso.
+   `col` è la tinta del pezzo (l'arte la disegna a mano in furnArt.js, non è un rettangolo). */
 export const FURN_SETS = {
   prati: [
-    { id: 'prati_rug', zone: 'prati', slot: 'tappeto', lvl: 1, cost: 40, icon: '🌾', col: '#e8d27a' },
-    { id: 'prati_bed', zone: 'prati', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#f2a6b8' },
-    { id: 'prati_table', zone: 'prati', slot: 'tavolo', lvl: 6, cost: 150, icon: '🌾', col: '#c9a25a' },
-    { id: 'prati_lamp', zone: 'prati', slot: 'decoro', lvl: 10, cost: 240, icon: '✨', col: '#f6dc78' },
+    { id: 'prati_paper', zone: 'prati', slot: 'parato', place: 'paper', lvl: 1, cost: 60, icon: '🌾', col: '#e6d9a6', col2: '#cbb87e' },
+    { id: 'prati_ground', zone: 'prati', slot: 'pavimento', place: 'ground', lvl: 2, cost: 80, icon: '🌾', col: '#c9a25a', col2: '#b08c48' },
+    { id: 'prati_rug', zone: 'prati', slot: 'tappeto', place: 'rug', w: 2, h: 2, lvl: 1, cost: 40, icon: '🌾', col: '#e8d27a' },
+    { id: 'prati_bed', zone: 'prati', slot: 'letto', place: 'floor', w: 2, h: 2, lvl: 3, cost: 90, icon: '🛏️', col: '#f2a6b8' },
+    { id: 'prati_table', zone: 'prati', slot: 'tavolo', place: 'floor', w: 2, h: 1, lvl: 6, cost: 150, icon: '🌾', col: '#c9a25a' },
+    { id: 'prati_lamp', zone: 'prati', slot: 'decoro', place: 'floor', lvl: 10, cost: 240, icon: '✨', col: '#f6dc78' },
+    { id: 'prati_art', zone: 'prati', slot: 'parete', place: 'wall', lvl: 8, cost: 120, icon: '🌾', col: '#e8c86a' },
   ],
   dune: [
-    { id: 'dune_rug', zone: 'dune', slot: 'tappeto', lvl: 1, cost: 40, icon: '🏜️', col: '#e0c184' },
-    { id: 'dune_bed', zone: 'dune', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#caa15f' },
-    { id: 'dune_chest', zone: 'dune', slot: 'decoro', lvl: 6, cost: 150, icon: '🦴', col: '#d8c9a0' },
-    { id: 'dune_cactus', zone: 'dune', slot: 'decoro', lvl: 10, cost: 240, icon: '🌲', col: '#5c8a52' },
+    { id: 'dune_paper', zone: 'dune', slot: 'parato', place: 'paper', lvl: 1, cost: 60, icon: '🏜️', col: '#e3cfa4', col2: '#c7ab78' },
+    { id: 'dune_ground', zone: 'dune', slot: 'pavimento', place: 'ground', lvl: 2, cost: 80, icon: '🏜️', col: '#d9c496', col2: '#c2a97a' },
+    { id: 'dune_rug', zone: 'dune', slot: 'tappeto', place: 'rug', w: 2, h: 2, lvl: 1, cost: 40, icon: '🏜️', col: '#e0c184' },
+    { id: 'dune_bed', zone: 'dune', slot: 'letto', place: 'floor', w: 2, h: 2, lvl: 3, cost: 90, icon: '🛏️', col: '#caa15f' },
+    { id: 'dune_chest', zone: 'dune', slot: 'decoro', place: 'floor', lvl: 6, cost: 150, icon: '🦴', col: '#d8c9a0' },
+    { id: 'dune_cactus', zone: 'dune', slot: 'decoro', place: 'rug', lvl: 10, cost: 240, icon: '🌲', col: '#5c8a52' },
+    { id: 'dune_art', zone: 'dune', slot: 'parete', place: 'wall', lvl: 8, cost: 120, icon: '🦴', col: '#e6dcc0' },
   ],
   boschi: [
-    { id: 'boschi_rug', zone: 'boschi', slot: 'tappeto', lvl: 1, cost: 40, icon: '🌲', col: '#7a8f6e' },
-    { id: 'boschi_bed', zone: 'boschi', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#8a6a4a' },
-    { id: 'boschi_chair', zone: 'boschi', slot: 'decoro', lvl: 6, cost: 150, icon: '🌲', col: '#5c4a34' },
-    { id: 'boschi_lamp', zone: 'boschi', slot: 'decoro', lvl: 10, cost: 240, icon: '🍄', col: '#c95a5a' },
+    { id: 'boschi_paper', zone: 'boschi', slot: 'parato', place: 'paper', lvl: 1, cost: 60, icon: '🌲', col: '#9fae92', col2: '#7d8c72' },
+    { id: 'boschi_ground', zone: 'boschi', slot: 'pavimento', place: 'ground', lvl: 2, cost: 80, icon: '🌲', col: '#7a5a3c', col2: '#66492f' },
+    { id: 'boschi_rug', zone: 'boschi', slot: 'tappeto', place: 'rug', w: 2, h: 2, lvl: 1, cost: 40, icon: '🌲', col: '#7a8f6e' },
+    { id: 'boschi_bed', zone: 'boschi', slot: 'letto', place: 'floor', w: 2, h: 2, lvl: 3, cost: 90, icon: '🛏️', col: '#8a6a4a' },
+    { id: 'boschi_chair', zone: 'boschi', slot: 'decoro', place: 'floor', lvl: 6, cost: 150, icon: '🌲', col: '#5c4a34' },
+    { id: 'boschi_lamp', zone: 'boschi', slot: 'decoro', place: 'floor', lvl: 10, cost: 240, icon: '🍄', col: '#c95a5a' },
+    { id: 'boschi_art', zone: 'boschi', slot: 'parete', place: 'wall', lvl: 8, cost: 120, icon: '🍄', col: '#b8724a' },
   ],
   terre: [
-    { id: 'terre_rug', zone: 'terre', slot: 'tappeto', lvl: 1, cost: 40, icon: '⛰️', col: '#c86a4a' },
-    { id: 'terre_bed', zone: 'terre', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#a9502f' },
-    { id: 'terre_throne', zone: 'terre', slot: 'decoro', lvl: 6, cost: 150, icon: '⛰️', col: '#8a4028' },
-    { id: 'terre_crystal', zone: 'terre', slot: 'decoro', lvl: 10, cost: 240, icon: '💎', col: '#e0846a' },
+    { id: 'terre_paper', zone: 'terre', slot: 'parato', place: 'paper', lvl: 1, cost: 60, icon: '⛰️', col: '#c98a6a', col2: '#a96b4e' },
+    { id: 'terre_ground', zone: 'terre', slot: 'pavimento', place: 'ground', lvl: 2, cost: 80, icon: '⛰️', col: '#a9603f', col2: '#8e4c30' },
+    { id: 'terre_rug', zone: 'terre', slot: 'tappeto', place: 'rug', w: 2, h: 2, lvl: 1, cost: 40, icon: '⛰️', col: '#c86a4a' },
+    { id: 'terre_bed', zone: 'terre', slot: 'letto', place: 'floor', w: 2, h: 2, lvl: 3, cost: 90, icon: '🛏️', col: '#a9502f' },
+    { id: 'terre_throne', zone: 'terre', slot: 'decoro', place: 'floor', lvl: 6, cost: 150, icon: '⛰️', col: '#8a4028' },
+    { id: 'terre_crystal', zone: 'terre', slot: 'decoro', place: 'floor', lvl: 10, cost: 240, icon: '💎', col: '#e0846a' },
+    { id: 'terre_art', zone: 'terre', slot: 'parete', place: 'wall', lvl: 8, cost: 120, icon: '💎', col: '#d9704f' },
   ],
   palude: [
-    { id: 'palude_rug', zone: 'palude', slot: 'tappeto', lvl: 1, cost: 40, icon: '🐸', col: '#5f8a5a' },
-    { id: 'palude_bed', zone: 'palude', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#3f6a52' },
-    { id: 'palude_vase', zone: 'palude', slot: 'decoro', lvl: 6, cost: 150, icon: '🌸', col: '#8ec488' },
-    { id: 'palude_lamp', zone: 'palude', slot: 'decoro', lvl: 10, cost: 240, icon: '✨', col: '#a6e0a0' },
+    { id: 'palude_paper', zone: 'palude', slot: 'parato', place: 'paper', lvl: 1, cost: 60, icon: '🐸', col: '#7fa07a', col2: '#5f7f5c' },
+    { id: 'palude_ground', zone: 'palude', slot: 'pavimento', place: 'ground', lvl: 2, cost: 80, icon: '🐸', col: '#6b7a52', col2: '#576643' },
+    { id: 'palude_rug', zone: 'palude', slot: 'tappeto', place: 'rug', w: 2, h: 2, lvl: 1, cost: 40, icon: '🐸', col: '#5f8a5a' },
+    { id: 'palude_bed', zone: 'palude', slot: 'letto', place: 'floor', w: 2, h: 2, lvl: 3, cost: 90, icon: '🛏️', col: '#3f6a52' },
+    { id: 'palude_vase', zone: 'palude', slot: 'decoro', place: 'rug', lvl: 6, cost: 150, icon: '🌸', col: '#8ec488' },
+    { id: 'palude_lamp', zone: 'palude', slot: 'decoro', place: 'floor', lvl: 10, cost: 240, icon: '✨', col: '#a6e0a0' },
+    { id: 'palude_art', zone: 'palude', slot: 'parete', place: 'wall', lvl: 8, cost: 120, icon: '🌸', col: '#8ec488' },
   ],
   ghiacci: [
-    { id: 'ghiacci_rug', zone: 'ghiacci', slot: 'tappeto', lvl: 1, cost: 40, icon: '🧊', col: '#dff0f7' },
-    { id: 'ghiacci_bed', zone: 'ghiacci', slot: 'letto', lvl: 3, cost: 90, icon: '🛏️', col: '#bcdcec' },
-    { id: 'ghiacci_hearth', zone: 'ghiacci', slot: 'decoro', lvl: 6, cost: 150, icon: '🔥', col: '#8fb8d0' },
-    { id: 'ghiacci_lamp', zone: 'ghiacci', slot: 'decoro', lvl: 10, cost: 240, icon: '✨', col: '#c8e6f2' },
+    { id: 'ghiacci_paper', zone: 'ghiacci', slot: 'parato', place: 'paper', lvl: 1, cost: 60, icon: '🧊', col: '#cfe4ef', col2: '#adc8d8' },
+    { id: 'ghiacci_ground', zone: 'ghiacci', slot: 'pavimento', place: 'ground', lvl: 2, cost: 80, icon: '🧊', col: '#b6cfdd', col2: '#9fbccb' },
+    { id: 'ghiacci_rug', zone: 'ghiacci', slot: 'tappeto', place: 'rug', w: 2, h: 2, lvl: 1, cost: 40, icon: '🧊', col: '#dff0f7' },
+    { id: 'ghiacci_bed', zone: 'ghiacci', slot: 'letto', place: 'floor', w: 2, h: 2, lvl: 3, cost: 90, icon: '🛏️', col: '#bcdcec' },
+    { id: 'ghiacci_hearth', zone: 'ghiacci', slot: 'decoro', place: 'floor', w: 2, h: 1, lvl: 6, cost: 150, icon: '🔥', col: '#8fb8d0' },
+    { id: 'ghiacci_lamp', zone: 'ghiacci', slot: 'decoro', place: 'floor', lvl: 10, cost: 240, icon: '✨', col: '#c8e6f2' },
+    { id: 'ghiacci_art', zone: 'ghiacci', slot: 'parete', place: 'wall', lvl: 8, cost: 120, icon: '🧊', col: '#a9d4e6' },
   ],
 };
 export const FURN_BY_ID = Object.fromEntries(Object.values(FURN_SETS).flat().map(f => [f.id, f]));
@@ -243,8 +268,24 @@ export const FURN_BY_ID = Object.fromEntries(Object.values(FURN_SETS).flat().map
    in casa non arreda e basta ma espone uno scheletro consegnato al Museo (house.js gestisce
    l'assegnazione). `slot:'pedestal'` lo distingue dagli arredi normali nel tray/interazione. */
 export const PEDESTAL_ID = 'pedestal';
-export const PEDESTAL_ITEM = { id: PEDESTAL_ID, zone: 'any', slot: 'pedestal', lvl: 1, cost: 0, icon: '🏛️', col: '#c9a227' };
+export const PEDESTAL_ITEM = { id: PEDESTAL_ID, zone: 'any', slot: 'pedestal', place: 'pedestal', lvl: 1, cost: 0, icon: '🏛️', col: '#c9a227' };
 FURN_BY_ID[PEDESTAL_ID] = PEDESTAL_ITEM;
+
+/* DOVE vive un pezzo e QUANTO occupa — una funzione sola, così chi disegna, chi piazza e chi
+   calcola le collisioni non possono più divergere (è già successo con la scala dei mobili).
+   `rot` dispari gira il pezzo di un quarto: un letto 2×1 messo lungo la parete è 1×2. */
+export function furnPlace(id) { const it = FURN_BY_ID[id]; return (it && it.place) || 'floor'; }
+export function furnSize(id, rot) {
+  const it = FURN_BY_ID[id] || {};
+  const w = it.w || 1, h = it.h || 1;
+  return (((rot | 0) % 2) + 2) % 2 ? { w: h, h: w } : { w, h };
+}
+/* SOLIDO = blocca il passo. Tappeti, piante piccole e quadri no: un oggetto più piccolo di una
+   casella che però la occupa tutta si segnalava da solo ("non ci cammino attorno"). */
+export function furnIsSolid(id) { const p = furnPlace(id); return p === 'floor' || p === 'pedestal'; }
+/* FONDO della stanza (carta da parati / pavimento): non si piazza su una casella, si applica
+   alla stanza intera. È la leva che cambia una stanza più di qualsiasi mobile. */
+export function furnIsBackdrop(id) { const p = furnPlace(id); return p === 'paper' || p === 'ground'; }
 
 /* POLTRONA DI PARTENZA (M6, tutorial): regalata una volta sola in state.js, come il
    piedistallo — serve al passo `armchair` (piazzarla in Sala insegna il piazzamento

@@ -1442,6 +1442,16 @@ export const RU = {
   'Water lily vase': 'Ваза с кувшинками', "Will-o'-wisp lantern": 'Фонарь с блуждающим огоньком',
   'Fur rug': 'Меховой коврик', 'Fur bed': 'Меховая кровать',
   'Glacial hearth': 'Ледниковый очаг', 'Ice lantern': 'Ледяной фонарь',
+  /* fondi della stanza (carta da parati e pavimento) e pezzi da parete */
+  'Wheat wallpaper': 'Пшеничные обои', 'Wheat boards': 'Пшеничные доски',
+  'Sand wallpaper': 'Песчаные обои', 'Pale sandstone': 'Светлый песчаник',
+  'Fern wallpaper': 'Папоротниковые обои', 'Oak boards': 'Дубовые доски',
+  'Clay wallpaper': 'Глиняные обои', 'Red terracotta': 'Красная терракота',
+  'Reed wallpaper': 'Тростниковые обои', 'Bog boards': 'Болотные доски',
+  'Frost wallpaper': 'Морозные обои', 'Ice slabs': 'Ледяные плиты',
+  'Wheat wreath': 'Пшеничный венок', 'Wall skull': 'Череп на стене',
+  'Mushroom shelf': 'Грибная полка', 'Clay painting': 'Глиняная картина',
+  'Hanging lily': 'Подвесная кувшинка', 'Ice mirror': 'Ледяное зеркало',
   /* cancello del cortile chiuso a chiave dal teletrasporto */
   "Whoa! It's locked from outside!!": 'Ого! Заперто снаружи!!',
   'You reopen the gate': 'Ты снова открываешь калитку',

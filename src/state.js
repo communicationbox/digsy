@@ -305,7 +305,18 @@ export function initState() {
   if (S.returnPortal === undefined) S.returnPortal = null; // portale di ritorno a uso singolo (mai più di uno)
   /* stanze della casa (M2): la 0 parte sempre sbloccata, le altre dietro un lucchetto a pagamento */
   if (!S.house) S.house = { rooms: ROOM_PRICES.map((_, i) => ({ id: i, unlocked: i === 0 })) };
-  for (const r of S.house.rooms) if (!Array.isArray(r.furn)) r.furn = []; // arredo piazzato (M3)
+  for (const r of S.house.rooms) {
+    if (!Array.isArray(r.furn)) r.furn = [];        // arredo piazzato (M3)
+    if (r.paper === undefined) r.paper = null;      // carta da parati scelta (null = quella di serie)
+    if (r.ground === undefined) r.ground = null;    // pavimento scelto
+  }
+  /* i mobili hanno una TAGLIA in caselle (un letto è 2×2, non 1×1 come una lampada). I pezzi
+     dei salvataggi vecchi che con l'ingombro vero non ci stanno più tornano nel vassoio:
+     `migrateFurniture` gira una volta sola, alla prima apertura con il nuovo modello. */
+  if (S.house.furnV !== 2) {
+    S.house.furnV = 2;
+    import('./house.js').then(h => { if (h.migrateFurniture() > 0) save(); }).catch(() => { /* stub nei test */ });
+  }
   if (!S.furnOwned) S.furnOwned = []; // arredo comprato (posseduto per sempre, riposizionabile)
   /* PIEDISTALLO gratis, una volta sola (M4): serve a esporre in casa uno scheletro già
      consegnato al Museo, senza tornarci ogni volta. Il flag evita di regalarlo di nuovo se

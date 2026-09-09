@@ -12,8 +12,7 @@
    queste funzioni pure per collisioni/varchi; interiors.js le disegna. Il DATO resta lo
    stesso (`S.house.rooms[i] = {id, unlocked, furn:[{itemId,gx,gy}]}`, coordinate LOCALI
    alla stanza): piazzamento/arredo non cambia, cambia SOLO come le stanze stanno nel mondo. */
-import { TS, ROOM_PRICES, FURN_BY_ID, PEDESTAL_ID } from './data.js';
-import { furnIsSolid } from './furnVox.js';
+import { TS, ROOM_PRICES, FURN_BY_ID, PEDESTAL_ID, furnIsSolid, furnPlace, furnSize, furnIsBackdrop } from './data.js';
 import { S, save } from './state.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD } from './ui.js';
@@ -193,18 +192,42 @@ export function floorCellAt(room, x, y) {
   const gx = Math.floor(x / TS), gy = Math.floor(y / TS);
   return isFloorCell(gx, gy) ? { room, gx, gy } : null;
 }
-/* una CELLA porta fino a DUE pezzi indipendenti: uno SOLIDO (mobile vero, blocca il passo)
-   e uno di DECORO (tappeto/pianta, non solido) — "tappeto sotto la sedia" è proprio questo:
-   due strati sulla stessa casella, non uno sopra l'altro in senso fisico. `furnAt` (senza
-   `cat`) resta per la compatibilità con chi vuole "cosa c'è qui interagibile": preferisce il
-   SOLIDO (quello che si vede/tocca per primo), il decoro solo se non c'è nient'altro. */
+/* PARETE di fondo: la fila `gy===1`, sopra il pavimento calpestabile. Non ci si cammina mai
+   (isFloorCell parte da gy 2), quindi non serve nessuna collisione: è una superficie in più
+   su cui arredare. Senza, metà dell'arredo di una stanza vera — quadri, mensole, specchi —
+   semplicemente non esisteva e tutto finiva sparso per terra. */
+export function isWallCell(gx, gy) { return gy === 1 && gx >= 1 && gx <= ROOM_TILE_W - 2; }
+/* TRE STRATI indipendenti per casella: 'rug' (steso a terra, ci si cammina sopra), 'floor'
+   (mobile vero, blocca il passo), 'wall' (appeso). "Tappeto sotto la sedia" è questo: due
+   strati sulla stessa cella, non due mobili impilati. */
+export function furnLayer(id) {
+  const p = furnPlace(id);
+  return p === 'rug' ? 'rug' : p === 'wall' ? 'wall' : 'floor';
+}
+/* le caselle occupate da un pezzo piazzato, secondo la sua taglia e il suo verso */
+export function furnCells(f) {
+  const s = furnSize(f.itemId, f.rot || 0), out = [];
+  for (let dy = 0; dy < s.h; dy++) for (let dx = 0; dx < s.w; dx++) out.push({ gx: f.gx + dx, gy: f.gy + dy });
+  return out;
+}
+function covers(f, gx, gy) {
+  const s = furnSize(f.itemId, f.rot || 0);
+  return gx >= f.gx && gx < f.gx + s.w && gy >= f.gy && gy < f.gy + s.h;
+}
+/* `furnAt` (senza strato) = "cosa c'è qui da toccare": preferisce il mobile vero, poi il
+   quadro sopra la testa, poi il tappeto — l'ordine in cui una persona li nota. */
 function findFurnIndex(room, gx, gy, cat) {
   ensureHouseState();
   const r = S.house.rooms[room]; if (!r) return -1;
-  if (cat) return r.furn.findIndex(f => f.gx === gx && f.gy === gy && (furnIsSolid(f.itemId) ? 'solid' : 'decor') === cat);
-  const solidI = r.furn.findIndex(f => f.gx === gx && f.gy === gy && furnIsSolid(f.itemId));
-  if (solidI >= 0) return solidI;
-  return r.furn.findIndex(f => f.gx === gx && f.gy === gy);
+  if (cat) {
+    const layer = cat === 'decor' ? 'rug' : cat === 'solid' ? 'floor' : cat;
+    return r.furn.findIndex(f => covers(f, gx, gy) && furnLayer(f.itemId) === layer);
+  }
+  for (const layer of ['floor', 'wall', 'rug']) {
+    const i = r.furn.findIndex(f => covers(f, gx, gy) && furnLayer(f.itemId) === layer);
+    if (i >= 0) return i;
+  }
+  return -1;
 }
 export function furnAt(room, gx, gy) {
   ensureHouseState();
@@ -212,8 +235,8 @@ export function furnAt(room, gx, gy) {
   const i = findFurnIndex(room, gx, gy);
   return i >= 0 ? r.furn[i] : null;
 }
-/* SOLO lo strato di decoro (tappeto/pianta) sulla cella, o null: serve a disegnarlo SOTTO il
-   mobile e a validare il piazzamento/raccolta di quello strato specifico. */
+/* SOLO lo strato steso a terra (tappeto/pianta), o null: serve a disegnarlo SOTTO il mobile e
+   a validare il piazzamento/raccolta di quello strato specifico. */
 export function decorAt(room, gx, gy) {
   ensureHouseState();
   const r = S.house.rooms[room]; if (!r) return null;
@@ -226,30 +249,109 @@ export function solidAt(room, gx, gy) {
   const i = findFurnIndex(room, gx, gy, 'solid');
   return i >= 0 ? r.furn[i] : null;
 }
+export function wallAt(room, gx, gy) {
+  ensureHouseState();
+  const r = S.house.rooms[room]; if (!r) return null;
+  const i = findFurnIndex(room, gx, gy, 'wall');
+  return i >= 0 ? r.furn[i] : null;
+}
 /* id di tutti i pezzi già piazzati, in qualunque stanza (un pezzo comprato è uno solo: o è
    nel vassoio, o è piazzato da qualche parte, mai le due cose insieme) */
 export function placedItemIds() {
   ensureHouseState();
   return S.house.rooms.flatMap(r => r.furn.map(f => f.itemId));
 }
-/* pezzi posseduti ma non ancora piazzati: il "vassoio" (tray) del negozio arredo */
+/* pezzi posseduti ma non ancora piazzati: il "vassoio" (tray) del negozio arredo. I FONDI
+   (carta da parati/pavimento) non ci entrano: non si piazzano su una casella e resterebbero
+   lì per sempre a far sembrare il vassoio pieno di roba mai sistemata. */
 export function ownedUnplaced() {
   ensureHouseState();
   const placed = placedItemIds();
-  return S.furnOwned.filter(id => !placed.includes(id));
+  return S.furnOwned.filter(id => !furnIsBackdrop(id) && !placed.includes(id));
+}
+/* i fondi posseduti di un tipo ('paper'/'ground'): il vassoio li mostra a parte, come scelta
+   della stanza in cui si sta — non come oggetti da posare */
+export function ownedBackdrops(kind) {
+  ensureHouseState();
+  return S.furnOwned.filter(id => furnPlace(id) === kind);
+}
+/* MIGRAZIONE dei salvataggi vecchi: prima ogni pezzo era 1×1 e stava dove capitava. Con le
+   taglie vere un letto piazzato al bordo sborda e un quadro si ritrova per terra. Chi non ci
+   sta più torna nel vassoio: resta tuo, va solo rimesso — buttarlo via sarebbe furto, e
+   lasciarlo sovrapposto darebbe una stanza che il gioco stesso considera impossibile. */
+export function migrateFurniture() {
+  ensureHouseState();
+  let mossi = 0;
+  for (let i = 0; i < S.house.rooms.length; i++) {
+    const r = S.house.rooms[i];
+    const tenuti = [];
+    for (const f of r.furn || []) {
+      const rot = ((f.rot | 0) % 4 + 4) % 4;
+      const layer = furnLayer(f.itemId);
+      const cells = furnCells({ ...f, rot });
+      const ok = !furnIsBackdrop(f.itemId) && cells.every(c => (layer === 'wall' ? isWallCell(c.gx, c.gy) : isFloorCell(c.gx, c.gy))
+        && !tenuti.some(t => furnLayer(t.itemId) === layer && covers(t, c.gx, c.gy)));
+      if (ok) tenuti.push({ ...f, rot }); else mossi++;
+    }
+    r.furn = tenuti;
+  }
+  return mossi;
+}
+/* dove finisce DAVVERO un pezzo piazzato dalla casella sotto i piedi. Un quadro non si posa
+   sul pavimento: si appende alla parete davanti a te, cioè una casella più in su — e lo si può
+   fare solo stando nella prima fila, addossati al muro, come si fa in una stanza vera. */
+export function placeTarget(gx, gy, itemId) {
+  if (furnPlace(itemId) === 'wall') return gy === 2 && isWallCell(gx, 1) ? { gx, gy: 1 } : null;
+  return isFloorCell(gx, gy) ? { gx, gy } : null;
+}
+/* il pezzo ci sta? Tutte le caselle del suo ingombro devono essere pavimento (o parete, per i
+   quadri) e libere NEL SUO STRATO. Prima ogni pezzo era 1×1 e bastava guardare una cella. */
+export function canPlace(room, gx, gy, itemId, rot = 0) {
+  ensureHouseState();
+  if (!roomUnlocked(room)) return false;
+  const r = S.house.rooms[room]; if (!r) return false;
+  const layer = furnLayer(itemId);
+  const cells = furnCells({ itemId, gx, gy, rot });
+  for (const c of cells) {
+    if (layer === 'wall' ? !isWallCell(c.gx, c.gy) : !isFloorCell(c.gx, c.gy)) return false;
+    if (r.furn.some(f => f !== null && furnLayer(f.itemId) === layer && covers(f, c.gx, c.gy))) return false;
+  }
+  return true;
 }
 export function tryPlaceFurniture(room, gx, gy, itemId, rot = 0) {
   ensureHouseState();
   if (!roomUnlocked(room)) return false;
-  if (!isFloorCell(gx, gy)) return false;
   if (!S.furnOwned.includes(itemId)) return false;
-  if (placedItemIds().includes(itemId)) return false; // già piazzato altrove
-  /* occupata SOLO nel proprio strato: un tappeto non impedisce una sedia sopra, e viceversa —
-     è la richiesta esplicita ("vaso su tavolino, tappeto sotto"). Due decori o due mobili
-     sulla stessa cella restano vietati: quello sì è un doppione, non un arredamento. */
-  const occupied = furnIsSolid(itemId) ? solidAt(room, gx, gy) : decorAt(room, gx, gy);
-  if (occupied) return false;
-  S.house.rooms[room].furn.push({ itemId, gx, gy, rot: ((rot % 4) + 4) % 4 });
+  if (furnIsBackdrop(itemId)) return applyBackdrop(room, itemId);   // carta da parati/pavimento: non si posa, si applica
+  if (placedItemIds().includes(itemId)) return false;               // già piazzato altrove
+  const t = placeTarget(gx, gy, itemId); if (!t) return false;
+  rot = ((rot % 4) + 4) % 4;
+  if (!canPlace(room, t.gx, t.gy, itemId, rot)) return false;
+  S.house.rooms[room].furn.push({ itemId, gx: t.gx, gy: t.gy, rot });
+  save(); updateHUD();
+  return true;
+}
+/* ---------- FONDO della stanza: carta da parati e pavimento ---------- */
+/* Non si piazzano su una casella: vestono la stanza intera. Sono la ragione per cui due
+   stanze arredate con gli stessi mobili possono sembrare due case diverse — e costano poco
+   apposta, perché è la prima cosa che si vuole cambiare. */
+export function applyBackdrop(room, itemId) {
+  ensureHouseState();
+  const r = S.house.rooms[room]; if (!r || !roomUnlocked(room)) return false;
+  if (!S.furnOwned.includes(itemId)) return false;
+  const p = furnPlace(itemId);
+  if (p === 'paper') r.paper = itemId; else if (p === 'ground') r.ground = itemId; else return false;
+  save(); updateHUD();
+  return true;
+}
+/* fondo attualmente in uso (null = quello di serie della stanza) */
+export function roomPaper(room) { ensureHouseState(); const r = S.house.rooms[room]; return (r && r.paper) || null; }
+export function roomGround(room) { ensureHouseState(); const r = S.house.rooms[room]; return (r && r.ground) || null; }
+/* toglie il fondo e torna a quello di serie: un cambio di arredo deve essere sempre annullabile */
+export function clearBackdrop(room, kind) {
+  ensureHouseState();
+  const r = S.house.rooms[room]; if (!r) return false;
+  if (kind === 'paper') r.paper = null; else if (kind === 'ground') r.ground = null; else return false;
   save(); updateHUD();
   return true;
 }
