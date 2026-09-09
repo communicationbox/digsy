@@ -359,19 +359,33 @@ export function houseFloorHere() {
   return { ...c, wall, unlocked: roomUnlocked(c.room), itemId: f ? f.itemId : null, spId: f ? f.spId || null : null };
 }
 /* piazzare un pezzo sotto i propri piedi lo rende SOLIDO all'istante: senza questo il
-   giocatore restava incastrato dentro il proprio mobile appena piazzato (segnalato). Si
-   sposta di una casella verso il primo lato libero — mai in un muro, mai fuori stanza. */
+   giocatore resta incastrato dentro il mobile appena piazzato (segnalato due volte).
+   UNA CASELLA NON BASTA PIÙ: da quando i mobili occupano 2×2, la cella accanto può essere
+   ancora dentro lo stesso mobile, e le altre tre possono essere muro (piazzando in un
+   angolo) — restando fermi, incastrati. Si cerca a cerchi via via più larghi la prima
+   casella davvero libera, e in ultima istanza si torna al punto d'ingresso della stanza,
+   che è sempre calpestabile: meglio spostati di tre caselle che bloccati. */
 export function nudgeOffFurniture() {
   if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return;
   const gx = Math.floor(INT.x / TS), gy = Math.floor(INT.y / TS);
-  if (!houseFurnSolid(INT.houseRoom, INT.x, INT.y)) return;
+  if (!interiorSolid(INT.x, INT.y)) return;
   /* laterale/su PRIMA di giù: verso il basso, dalla cella d'ingresso, si scivola dritti nella
      zona che fa tornare all'atrio (stepHouseNav/onDoor) — un rimbalzo continuo, non uno
      spostamento (segnalato: "non entra neanche nella stanza dal corridoio"). */
-  for (const [dx, dy] of [[1, 0], [-1, 0], [0, -1], [0, 1]]) {
-    const nx = (gx + dx) * TS + 8, ny = (gy + dy) * TS + 8;
-    if (!interiorSolid(nx, ny)) { INT.x = nx; INT.y = ny; return; }
+  for (let r = 1; r <= 4; r++) {
+    const anelli = [];
+    for (let dx = -r; dx <= r; dx++) for (let dy = -r; dy <= r; dy++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      anelli.push([dx, dy]);
+    }
+    anelli.sort((a, b) => (Math.abs(a[0]) + a[1] * 0.5) - (Math.abs(b[0]) + b[1] * 0.5));  // lati e su prima di giù
+    for (const [dx, dy] of anelli) {
+      const nx = (gx + dx) * TS + 8, ny = (gy + dy) * TS + 8;
+      if (!interiorSolid(nx, ny)) { INT.x = nx; INT.y = ny; return; }
+    }
   }
+  const e = roomEntryPoint();
+  INT.x = e.x; INT.y = e.y;
 }
 /* NAVIGAZIONE fra le scene della casa: si entra in una stanza uscendo dall'atrio da un suo
    varco (già sbloccato), si torna nell'atrio uscendo dalla stanza dal suo varco in basso —

@@ -3688,6 +3688,34 @@ sprites.applyLook();
       check('il mobile appena piazzato sotto i piedi diventa solido', stuckBefore === true);
       check('nudgeOffFurniture sposta via dal mobile: non più incastrati', inter.interiorSolid(inter.INT.x, inter.INT.y) === false);
 
+      /* NON SI RESTA INCASTRATI, MAI. Con i mobili 2×2 spostarsi di UNA casella non basta:
+         quella accanto può essere ancora dentro lo stesso mobile, e in un angolo le altre
+         sono muro — si restava fermi dentro il proprio letto (segnalato: "ogni volta che
+         piazzo qualcosa in casa rimango bloccato"). */
+      {
+        const letto2 = FURN_SETS.prati.find(f => f.slot === 'letto');
+        if (!S.furnOwned.includes(letto2.id)) S.furnOwned.push(letto2.id);
+        const prima = S.house.rooms[0].furn.slice();   // il blocco dopo conta su quello che c'è già
+        S.house.rooms[0].furn = [];
+        /* angolo alto-sinistro: a destra e sotto c'è il mobile, sopra e a sinistra il muro */
+        inter.INT.x = 1 * TS + 8; inter.INT.y = 2 * TS + 8;
+        check('un 2×2 si piazza anche nell\'angolo', house.tryPlaceFurniture(0, 1, 2, letto2.id) === true);
+        check('e ci si ritrova dentro (la cella è diventata solida)', inter.interiorSolid(inter.INT.x, inter.INT.y) === true);
+        inter.nudgeOffFurniture();
+        check('dopo il piazzamento NON si resta incastrati', inter.interiorSolid(inter.INT.x, inter.INT.y) === false,
+          'x=' + inter.INT.x + ' y=' + inter.INT.y);
+        /* e nemmeno con la stanza quasi piena: si finisce comunque su una casella libera */
+        S.house.rooms[0].furn = [];
+        for (const [gx2, gy2] of [[1, 2], [3, 2], [5, 2], [7, 2], [1, 4], [3, 4]]) {
+          S.house.rooms[0].furn.push({ itemId: letto2.id, gx: gx2, gy: gy2, rot: 0 });
+        }
+        inter.INT.x = 3 * TS + 8; inter.INT.y = 4 * TS + 8;
+        inter.nudgeOffFurniture();
+        check('e nemmeno in una stanza quasi piena', inter.interiorSolid(inter.INT.x, inter.INT.y) === false,
+          'x=' + inter.INT.x + ' y=' + inter.INT.y);
+        S.house.rooms[0].furn = prima;
+      }
+
       /* piazzare DAVANTI ALLA PORTA: quella casella è dove si ricompare rientrando nella
          stanza. Un mobile lì bloccava il rientro (segnalato: "se lo metto davanti alla
          porta quando entro sono bloccato") — ora la cella d'ingresso non è piazzabile. */
