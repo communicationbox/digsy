@@ -1411,13 +1411,15 @@ sprites.applyLook();
       }
       return out;
     };
-    const a0 = arredo(0), a1 = arredo(1), a5 = arredo(5), a15 = arredo(15), a30 = arredo(30), a50 = arredo(50);
+    /* soglie DIMEZZATE da quando il cortile è grande il doppio: lo stesso arredo su quattro
+       volte il prato lasciava un campo vuoto per mezza partita */
+    const a0 = arredo(0), a1 = arredo(1), a5 = arredo(3), a15 = arredo(8), a30 = arredo(16), a50 = arredo(24);
     check('a zero risvegliate il parco è prato NUDO', Object.keys(a0).length === 0);
     check('la prima creatura porta il primo albero', a1.tree === 1 && !a1.pond && !a1.bush);
-    check('a 5 arriva lo stagno', a5.pond > 0 && a1.pond === undefined);
-    check('a 15 arrivano cespugli e sassi', (a15.bush || 0) + (a15.rock || 0) > 0 && (a5.bush || 0) + (a5.rock || 0) === 0);
-    check('a 30 arrivano le aiuole', a30.flowerbed > 0 && !a15.flowerbed);
-    check('a 50 si riempiono tutti gli angoli', a50.tree > a30.tree);
+    check('a 3 arriva lo stagno', a5.pond > 0 && a1.pond === undefined);
+    check('a 8 arrivano cespugli e sassi', (a15.bush || 0) + (a15.rock || 0) > 0 && (a5.bush || 0) + (a5.rock || 0) === 0);
+    check('a 16 arrivano le aiuole', a30.flowerbed > 0 && !a15.flowerbed);
+    check('a 24 si riempiono tutti gli angoli', a50.tree > a30.tree);
     /* il progresso non torna mai indietro: ogni soglia AGGIUNGE, non sostituisce */
     const tot = o => Object.values(o).reduce((s, v) => s + v, 0);
     check('ogni soglia aggiunge e non toglie',
@@ -1427,7 +1429,7 @@ sprites.applyLook();
     check('senza progresso passato, il parco resta quello di sempre', tot(arredo(undefined)) === tot(a50));
     /* il cancello resta libero a ogni soglia, o il parco diventa inaccessibile */
     check('la colonna del cancello non si arreda mai',
-      [0, 1, 5, 15, 30, 50, 66].every(n => [cx - 1, cx].every(x =>
+      [0, 1, 3, 8, 16, 24, 66].every(n => [cx - 1, cx].every(x =>
         [...Array(10).keys()].every(y => world.parkDeco(pen, cx, x, y, n) === null))));
   }
   /* le STATISTICHE mettono il traguardo in cima, non in mezzo all'elenco */

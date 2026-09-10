@@ -423,18 +423,22 @@ export function parkDeco(pen, cx, tx, ty, n) {
   if (tx <= x0 || tx >= x1 || ty <= y0 || ty >= y1) return null;      // il bordo è la staccionata
   if (tx === cx - 1 || tx === cx) return null;                         // colonna del cancello: libera
   const px = x0 + 1, py = y0 + 1;                                      // stagno 3×2 nell'angolo alto-sinistra
-  if (N >= 5 && tx >= px && tx <= px + 2 && ty >= py && ty <= py + 1) return { kind: 'pond', px: tx - px, py: ty - py };
+  if (N >= 3 && tx >= px && tx <= px + 2 && ty >= py && ty <= py + 1) return { kind: 'pond', px: tx - px, py: ty - py };
   const corner = (tx === x0 + 1 || tx === x1 - 1) && (ty === y0 + 1 || ty === y1 - 1);
   /* il PRIMO albero arriva con la prima creatura: è il segno che qualcuno ci abita davvero.
-     Gli altri angoli si riempiono a metà strada. */
+     Gli altri angoli si riempiono a metà strada.
+     LE SOGLIE SONO DIMEZZATE da quando il cortile è grande il doppio: con i vecchi numeri lo
+     stesso arredo si spargeva su quattro volte il prato e il giardino restava spoglio a lungo
+     ("è tutto troppo compresso" era il problema opposto, ma il rimedio non deve creare un
+     campo vuoto). */
   if (corner) {
     const primo = tx === x1 - 1 && ty === y1 - 1;                      // angolo in basso a destra
-    if (N >= 50 || (primo && N >= 1)) return { kind: 'tree' };
+    if (N >= 24 || (primo && N >= 1)) return { kind: 'tree' };
     return null;
   }
   const ring = tx === x0 + 1 || tx === x1 - 1 || ty === y0 + 1 || ty === y1 - 1;
-  if (ring) { if (N < 15) return null; const h = vhash(tx, ty, 61); if (h < 0.5) return { kind: h < 0.32 ? 'bush' : 'rock' }; }
-  else if (N >= 30 && vhash(tx, ty, 62) < 0.07) return { kind: 'flowerbed' }; // aiuole SPARSE (piatte) al centro
+  if (ring) { if (N < 8) return null; const h = vhash(tx, ty, 61); if (h < 0.5) return { kind: h < 0.32 ? 'bush' : 'rock' }; }
+  else if (N >= 16 && vhash(tx, ty, 62) < 0.1) return { kind: 'flowerbed' }; // aiuole SPARSE (piatte) al centro
   return null;
 }
 /* ingressi delle grotte: su una MONTAGNA con terra camminabile SOTTO (ci si avvicina da sud).
@@ -512,9 +516,12 @@ export function houseDoorAt(tx, ty) {
    sul lato lontano dalla porta (a sud, dove il prato è più largo) e un breve VIALETTO che
    esce dal cancello verso il mondo aperto — così il recinto non finisce a metà di un campo. */
 export function yardRectFor(hx, hy) {
-  // casa: colonne hx-1..hx+1, righe hy-1..hy (porta a hy). Margine 3 su nord/ovest/est,
-  // 4 a sud (spazio per camminare fra porta e cancello + il vialetto che segue).
-  return { x0: hx - 4, y0: hy - 4, x1: hx + 4, y1: hy + 4, cx: hx };
+  /* casa: colonne hx-1..hx+1, righe hy-1..hy (porta a hy). Il cortile è un quadrato attorno
+     a lei, RADDOPPIATO: con margine 4 la casa occupava quasi tutto il recinto e fra muro e
+     staccionata restavano due passi — con le creature dentro sembrava un pollaio ("è tutto
+     troppo compresso"). A margine 8 il prato è un giardino: ci si cammina attorno, le
+     chimere si sparpagliano e c'è spazio per arredarlo. */
+  return { x0: hx - 8, y0: hy - 8, x1: hx + 8, y1: hy + 8, cx: hx };
 }
 export function yardRect() {
   const h = S && S.home; return h ? yardRectFor(h.x, h.y) : null;
