@@ -198,7 +198,7 @@ const PROBE = `
           checkGaps('splash/principale', '#sp-menu .sp-btn');
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
-          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkSettings(finish); }); }); }); });
+          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkSettings(finish); }); }); }); }); });
         }, 120);
         return; }
       var v=views[vi++];
@@ -227,7 +227,7 @@ const PROBE = `
       }, 80);
     };
     stepView();
-  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkSettings(finish); }); }); }); }); }
+  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkSettings(finish); }); }); }); }); }); }
 
   /* USCIRE DAL MUSEO COL SOLO MOUSE: la galleria è enorme e la camera la segue, quindi la
      porta finiva sull'ultimo pixel dello schermo e oltre non c'era nulla da cliccare. */
@@ -801,6 +801,57 @@ const PROBE = `
         next();
       }, 200);
     });
+  }
+
+  /* ARREDARE COL PUNTATORE: si prende in mano, l'anteprima segue il dito e si posa dove la
+     si vede. È tutto pointer: senza una prova in un browser VERO nessuno saprebbe che il
+     trascinamento funziona — i test in Node possono solo chiamare le funzioni. */
+  function checkFurnDrag(next){
+    var g = window.__digsy;
+    if (!g || !g.enterRoom || !g.house) { A('arredo: sonda presente', false, 'niente enterRoom/house'); return next(); }
+    var hm = null;
+    g.enterRoom('house').then(function(){ return g.enterHouseRoom(0); }).then(function(){ return g.house(); }).then(function(h){
+      hm = h;
+      var S = g.state();
+      if (S.furnOwned.indexOf('prati_table') < 0) S.furnOwned.push('prati_table');
+      S.house.rooms[0].furn = [];
+      hm.cancelHold();
+      A('arredo: si parte a mani libere', hm.isHolding() === false);
+      A('arredo: il pezzo si prende in mano dal vassoio', hm.takeHold('prati_table') === true);
+      /* il puntatore muove l'ANTEPRIMA: si finge un trascinamento sulla canvas */
+      var cv2 = document.getElementById('cv'), r = cv2.getBoundingClientRect();
+      var manda = function (tipo, x, y) {
+        cv2.dispatchEvent(new PointerEvent(tipo, { clientX: r.left + x, clientY: r.top + y, bubbles: true, pointerId: 21 }));
+      };
+      /* si prova una manciata di punti della stanza: la stanza è centrata e piccola, e un
+         punto fisso può cadere sul muro (dove il mobile giustamente non ci sta) */
+      var punti = [[0.5, 0.45], [0.42, 0.5], [0.58, 0.5], [0.5, 0.55]];
+      var mosso = false, posato = false;
+      for (var i = 0; i < punti.length && !posato; i++) {
+        var x = r.width * punti[i][0], y = r.height * punti[i][1];
+        manda('pointerdown', x - 30, y);
+        manda('pointermove', x, y);
+        var t = hm.holdTarget();
+        if (t) mosso = true;
+        manda('pointerup', x, y);
+        if (!hm.isHolding()) posato = true;
+      }
+      A("arredo: il puntatore muove l'anteprima nella stanza", mosso === true);
+      A('arredo: rilasciando, il mobile si posa lì', posato === true, posato ? '' : 'resta in mano');
+      var piazzati = g.state().house.rooms[0].furn.length;
+      A('arredo: e adesso è davvero nella stanza', piazzati === 1, piazzati + ' pezzi');
+      /* premendo SOPRA il mobile lo si riprende in mano: è così che lo si sposta */
+      var f = g.state().house.rooms[0].furn[0];
+      return g.roomPoint(f.gx, f.gy).then(function (p) {
+        manda('pointerdown', p.x, p.y);
+        var preso = hm.isHolding();
+        A('arredo: premendo sul mobile lo si riprende in mano', preso === true);
+        manda('pointerup', p.x, p.y);
+        hm.cancelHold();
+        g.state().house.rooms[0].furn = [];
+        return g.leaveRoom();
+      });
+    }).then(function(){ next(); }).catch(function(e){ A('arredo: prova completata', false, e.message); next(); });
   }
 
   function checkSettings(next){

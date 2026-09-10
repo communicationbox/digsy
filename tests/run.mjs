@@ -3865,6 +3865,63 @@ sprites.applyLook();
     S.house.rooms[0].furn = [];
   }
 
+  /* ---- ARREDARE VEDENDO: il pezzo in mano si vede nella stanza e lo si trascina ---- */
+  {
+    const letto = FURN_SETS.prati.find(f => f.slot === 'letto');
+    const tav = FURN_SETS.prati.find(f => f.slot === 'tavolo');
+    const quadro = FURN_SETS.prati.find(f => f.place === 'wall');
+    const parato = FURN_SETS.prati.find(f => f.place === 'paper');
+    S.furnOwned = [letto.id, tav.id, quadro.id, parato.id];
+    S.house.rooms[0].furn = []; house.cancelHold();
+
+    /* dal vassoio si PRENDE IN MANO: prima veniva piantato sotto i piedi e per giudicarlo
+       bisognava posarlo, guardarlo, raccoglierlo e riposarlo */
+    check('un pezzo del vassoio si prende in mano', house.takeHold(tav.id) === true && house.isHolding() === true);
+    check('non se ne prendono due', house.takeHold(letto.id) === false);
+    check('non è ancora piazzato da nessuna parte', house.furnAt(0, 3, 3) === null);
+    check('appena preso non ha ancora una casella', house.holdTarget() === null);
+
+    /* l'ANTEPRIMA segue il puntatore: la casella la muove chi guarda */
+    house.setHoldTarget(4, 3);
+    check('l\'anteprima sta dove la si è portata', house.holdTarget().gx === 4 && house.holdTarget().gy === 3);
+    check('e lì ci sta (verde)', house.holdPlacement(0).ok === true);
+    house.tryPlaceFurniture(0, 1, 2, letto.id);        // un letto 2×2 in mezzo ai piedi
+    house.setHoldTarget(1, 2);
+    check('sopra un mobile l\'anteprima dice di NO (rosso)', house.holdPlacement(0).ok === false);
+    check('e posare lì non fa niente', house.placeHold(0) === false && house.isHolding() === true);
+
+    /* si posa DOVE SI VEDE, senza ripetere le coordinate */
+    house.setHoldTarget(5, 4);
+    check('si posa dove si vede l\'anteprima', house.placeHold(0) === true);
+    check('ed è finito proprio lì', house.furnAt(0, 5, 4) && house.furnAt(0, 5, 4).itemId === tav.id);
+    check('la mano è di nuovo libera', house.isHolding() === false);
+
+    /* raccogliendo un mobile l'anteprima nasce DOVE ERA: alzandolo non deve saltare altrove */
+    house.pickUpFurniture(0, 5, 4);
+    check('raccogliendo, l\'anteprima parte dalla sua casella', house.isHolding() && house.holdTarget().gx === 5 && house.holdTarget().gy === 4);
+
+    /* RUOTARE si vede subito: l'anteprima cambia ingombro, quindi anche il verdetto */
+    house.setHoldTarget(8, 3);                          // 2×1 orizzontale: sborda a destra
+    const primaDiRuotare = house.holdPlacement(0).ok;
+    house.rotateHold();                                 // 1×2 verticale: ci sta
+    check('ruotando cambia l\'ingombro e quindi il verdetto', primaDiRuotare === false && house.holdPlacement(0).ok === true);
+    house.cancelHold();
+
+    /* un QUADRO si trascina anche SULLA parete, non solo sulla casella davanti */
+    house.takeHold(quadro.id);
+    house.setHoldTarget(4, 1);
+    check('un quadro trascinato sul muro ci va davvero', house.holdPlacement(0).ok === true && house.holdPlacement(0).gy === 1);
+    house.setHoldTarget(4, 2);
+    check('e anche dalla casella davanti al muro', house.holdPlacement(0).gy === 1);
+    house.setHoldTarget(4, 4);
+    check('ma non in mezzo alla stanza', house.holdPlacement(0).ok === false);
+    house.cancelHold();
+
+    /* i FONDI non si prendono in mano: si applicano */
+    check('la carta da parati non si prende in mano', house.takeHold(parato.id) === false);
+    S.house.rooms[0].furn = [];
+  }
+
   /* ---- COMODITÀ DELLA STANZA e RIPOSO: arredare deve servire a qualcosa ---- */
   {
     const gameplay2 = await import('../src/gameplay.js');
@@ -4399,6 +4456,11 @@ sprites.applyLook();
     S.creatures = [{ uid: 5, name: 'Parcosauro', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
     S.house.yard = ['chi5'];
     park.yardAnimals.length = 0; park.yardList();
+    /* la creatura nasce in un punto a caso del cortile: da quando il cortile è grande il
+       doppio poteva capitare FUORI dall'inquadratura, e il test falliva a giri alterni senza
+       che niente fosse rotto. Qui la si mette davanti al giocatore: la prova è che venga
+       disegnata, non dove il caso l'ha messa. */
+    for (const a of park.yardAnimals) { a.x = a.tx = px0 * TS + 8; a.y = a.ty = (py0 - 1) * TS + 8; }
     const full = spy(() => render(2000));
     S.creatures = keepCre; S.awakened = keepAwk; S.house.yard = keepYard; park.yardAnimals.length = 0;
     check('cortile: la chimera assemblata passeggia davvero dentro', full.size > empty.size);

@@ -301,7 +301,9 @@ export function migrateFurniture() {
    sul pavimento: si appende alla parete davanti a te, cioè una casella più in su — e lo si può
    fare solo stando nella prima fila, addossati al muro, come si fa in una stanza vera. */
 export function placeTarget(gx, gy, itemId) {
-  if (furnPlace(itemId) === 'wall') return gy === 2 && isWallCell(gx, 1) ? { gx, gy: 1 } : null;
+  /* un quadro si può trascinare SULLA parete (fila 1) o sulla casella davanti (fila 2): sono
+     i due posti in cui il giocatore lo lascia cadere pensando "qui" */
+  if (furnPlace(itemId) === 'wall') return (gy === 1 || gy === 2) && isWallCell(gx, 1) ? { gx, gy: 1 } : null;
   return isFloorCell(gx, gy) ? { gx, gy } : null;
 }
 /* il pezzo ci sta? Tutte le caselle del suo ingombro devono essere pavimento (o parete, per i
@@ -359,11 +361,40 @@ export function clearBackdrop(room, kind) {
 /* un pezzo già piazzato, appena raccolto: transiente (NON salvato, come il vassoio del
    negozio) — si perde solo ricaricando a metà gesto, come qualunque overlay aperto.
    Una mano sola alla volta: raccoglierne un secondo prima di ripiazzare il primo non ha senso. */
-let hold = null; // {itemId, rot}
+let hold = null; // {itemId, rot, gx, gy} — gx/gy = la casella su cui sta l'ANTEPRIMA ora
 export function isHolding() { return !!hold; }
 export function holdItem() { return hold; }
 export function cancelHold() { hold = null; }
 export function rotateHold() { if (hold) hold.rot = (hold.rot + 1) % 4; }
+/* prendere in mano un pezzo DAL VASSOIO: prima il vassoio lo piazzava di colpo sotto i piedi,
+   e per capire come stava bisognava prima posarlo e poi guardarlo. Ora si prende in mano e lo
+   si vede nella stanza mentre lo si muove (richiesto: "devo vedere l'oggetto e poi draggarlo
+   dove lo voglio così vedo come sta"). */
+export function takeHold(itemId, rot = 0) {
+  ensureHouseState();
+  if (hold) return false;
+  if (!S.furnOwned.includes(itemId)) return false;
+  if (furnIsBackdrop(itemId)) return false;                 // i fondi si applicano, non si posano
+  if (placedItemIds().includes(itemId)) return false;
+  hold = { itemId, rot: ((rot % 4) + 4) % 4, gx: null, gy: null };
+  return true;
+}
+/* dove sta l'anteprima ADESSO: la muovono il puntatore (trascinamento) e i passi del
+   giocatore, così la si vede sempre dov'è, senza doverla posare per scoprirlo. */
+export function setHoldTarget(gx, gy) {
+  if (!hold) return false;
+  if (hold.gx === gx && hold.gy === gy) return false;
+  hold.gx = gx; hold.gy = gy;
+  return true;
+}
+export function holdTarget() { return hold && hold.gx != null ? { gx: hold.gx, gy: hold.gy } : null; }
+/* la casella su cui finirebbe DAVVERO (un quadro sale sulla parete) e se ci sta */
+export function holdPlacement(room) {
+  if (!hold || hold.gx == null) return null;
+  const t = placeTarget(hold.gx, hold.gy, hold.itemId);
+  if (!t) return { gx: hold.gx, gy: hold.gy, ok: false };
+  return { gx: t.gx, gy: t.gy, ok: canPlace(room, t.gx, t.gy, hold.itemId, hold.rot) };
+}
 export function pickUpFurniture(room, gx, gy, cat) {
   ensureHouseState();
   if (hold) return false;
@@ -371,12 +402,15 @@ export function pickUpFurniture(room, gx, gy, cat) {
   const i = findFurnIndex(room, gx, gy, cat);
   if (i < 0) return false;
   const [f] = r.furn.splice(i, 1);
-  hold = { itemId: f.itemId, rot: f.rot || 0 };
+  /* l'anteprima nasce ESATTAMENTE dov'era il mobile: alzandolo non deve saltare altrove */
+  hold = { itemId: f.itemId, rot: f.rot || 0, gx: f.gx, gy: f.gy };
   save(); updateHUD();
   return true;
 }
 export function placeHold(room, gx, gy) {
   if (!hold) return false;
+  /* senza coordinate si posa DOVE SI VEDE l'anteprima: è quello che il giocatore sta guardando */
+  if (gx === undefined || gx === null) { const t = holdTarget(); if (!t) return false; gx = t.gx; gy = t.gy; }
   const ok = tryPlaceFurniture(room, gx, gy, hold.itemId, hold.rot);
   if (ok) hold = null;
   return ok;

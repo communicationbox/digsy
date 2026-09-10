@@ -169,6 +169,23 @@ async function main() {
         .then(function(){ return G.cmd('chimera'); }).then(function(){ return G.cmd('chimera'); })
         .then(function(){ var S=G.state(); S.house.yard = (S.creatures||[]).map(function(c){ return 'chi' + c.uid; }); return G.cmd('gotopark'); })
         .then(function(){ for (var i=0;i<400;i++) G.stepPark(1/60); if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(2000); }); }
+    /* 'arredo-mano' = un mobile IN MANO: l'anteprima nella stanza, sulla casella dove
+       finirebbe (verde = ci sta, rosso = no). È la cosa che prima non si vedeva */
+    else if (${JSON.stringify(vista)} === 'arredo-mano') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('house').then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.house(); }).then(function(hm){
+        var S = G.state(), q = new URLSearchParams(location.search);
+        ['prati_ground', 'prati_paper', 'prati_rug', 'prati_bed', 'prati_table'].forEach(function (id) {
+          if (S.furnOwned.indexOf(id) < 0) S.furnOwned.push(id);
+        });
+        S.house.rooms[0].furn = [];
+        hm.applyBackdrop(0, 'prati_ground'); hm.applyBackdrop(0, 'prati_paper');
+        hm.tryPlaceFurniture(0, 1, 2, 'prati_bed', 0);
+        hm.cancelHold();
+        hm.takeHold('prati_table', q.get('rot') ? +q.get('rot') : 0);
+        hm.setHoldTarget(+(q.get('gx') || 5), +(q.get('gy') || 3));
+        return G.intPos(3, 5);
+      }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
+        .then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
        rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
     else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

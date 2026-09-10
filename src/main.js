@@ -1,7 +1,7 @@
 /* Boot + game loop */
 import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearCheatSnapshot } from './state.js';
 import { FOOT_DY } from './body.js';
-import { fit } from './screen.js';
+import { fit, view } from './screen.js';
 import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
@@ -433,6 +433,13 @@ if (typeof window !== 'undefined') {
       /* il rettangolo del CORTILE: serve a mettersi in punti precisi (davanti al cancello)
          per fotografare o misurare, senza indovinare le coordinate */
       yard: () => import('./world.js').then(w => w.yardRect()),
+      /* il punto SULLO SCHERMO di una casella della stanza di casa: serve alle prove del
+         trascinamento, che devono premere esattamente sopra un mobile */
+      roomPoint: (gx, gy) => import('./interiors.js').then(m => {
+        const c = m.interiorCam(), cv2 = document.getElementById('cv');
+        const r = cv2.getBoundingClientRect();
+        return { x: ((gx + 0.5) * TS - c.x) / view.W * r.width, y: ((gy + 0.5) * TS - c.y) / view.H * r.height };
+      }),
       /* il pannello del LETTO di casa: comodità della stanza e riposo. Si legge lì perché
          arredare conviene, quindi va guardato e fatto disegnare da un test */
       openBed: (room, gx, gy) => import('./ui.js').then(u => { u.openBed(room || 0, gx || 1, gy || 2); return true; }),

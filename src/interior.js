@@ -15,7 +15,7 @@ import { pendingLetter, giveLetter, letterTitle } from './letters.js';
 import { museumOpen, museumClosedText } from './tutorial.js';
 import {
   CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, corridorSolid, corridorExitAt, corridorEntryFor,
-  roomPerimeterSolid, roomEntryPoint, houseFurnSolid, floorCellAt, furnAt, wallAt,
+  roomPerimeterSolid, roomEntryPoint, houseFurnSolid, floorCellAt, furnAt, wallAt, isHolding, setHoldTarget,
   roomUnlocked, nearbyGate,
 } from './house.js';
 
@@ -492,6 +492,12 @@ export function updateInterior(dt, keys, speed) {
     if (toExit && !hasGoal() && Math.abs(INT.x - doorTileX() * TS) < 36) { clearGoal(); interiorLeave(); return; }
   } else INT.moving = false;
   if (onDoor() && INT.y > (INT.h - 0.9) * TS) { clearGoal(); interiorLeave(); return; } // vale anche per la galleria
+  /* ARREDO IN MANO: camminando, l'anteprima segue i PASSI. Col puntatore la muove il
+     puntatore; con la tastiera la deve muovere il personaggio, o chi gioca coi tasti non
+     vedrebbe mai dove sta per posare. */
+  if (INT.b && INT.b.type === 'house' && INT.houseRoom != null && isHolding() && INT.moving) {
+    setHoldTarget(Math.floor(INT.x / TS), Math.floor(INT.y / TS));
+  }
   stepHouseNav(); // casa: varco laterale/alto dell'atrio raggiunto → si entra nella stanza
 }
 /* chiamato dal loop: si entra solo CAMMINANDO DENTRO la porta (verso l'alto),

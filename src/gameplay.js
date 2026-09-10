@@ -18,7 +18,7 @@ import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearLockedGate, houseFloorHere, enterInterior, nudgeOffFurniture, CUT } from './interior.js';
-import { ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked, restFreeFor } from './house.js';
+import { ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked, restFreeFor, holdTarget, setHoldTarget } from './house.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
@@ -1120,6 +1120,7 @@ export function tapFurnitureAt(gx, gy) {
   const room = INT.houseRoom;
   if (!isFloorCell(gx, gy)) return false;
   if (isHolding()) {
+    setHoldTarget(gx, gy);
     if (placeHold(room, gx, gy)) { nudgeOffFurniture(); toast('🎨 ' + tr('Piazzato!', 'Placed!')); }
     else toast('🎨 ' + tr('Qui non si può piazzare', "Can't place it here"));
     return true;
@@ -1167,11 +1168,15 @@ export function act() {
        digTarget(), si agisce sotto i piedi, mai sul cubetto verso cui si guarda */
     const cell = houseFloorHere();
     if (cell) {
-      if (isHolding()) { // mobile in mano (raccolto altrove): {act} lo ripiazza qui
-        /* NIENTE controllo "cella occupata" a priori sul solo `cell.itemId`: una cella può
+      if (isHolding()) { // mobile in mano: {act} lo posa DOVE SI VEDE l'anteprima
+        /* l'anteprima è quello che il giocatore sta guardando: posare da un'altra parte
+           (sotto i piedi) sarebbe un dispetto. Sotto i piedi si ripiega solo se l'anteprima
+           non è mai stata mossa. NIENTE controllo "cella occupata" a priori: una cella può
            avere un mobile solido E un decoro insieme (tappeto sotto la sedia) — è
            `placeHold`/`tryPlaceFurniture` (house.js) a sapere se lo STRATO giusto è libero. */
-        if (placeHold(cell.room, cell.gx, cell.gy)) { nudgeOffFurniture(); toast('🎨 ' + tr('Piazzato!', 'Placed!')); }
+        const t = holdTarget();
+        const ok = t ? placeHold(cell.room) : placeHold(cell.room, cell.gx, cell.gy);
+        if (ok) { nudgeOffFurniture(); toast('🎨 ' + tr('Piazzato!', 'Placed!')); }
         else toast('🎨 ' + tr('Qui non si può piazzare', "Can't place it here"));
       }
       else if (cell.itemId === PEDESTAL_ID) openPedestal(cell.room, cell.gx, cell.gy);

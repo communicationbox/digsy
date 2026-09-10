@@ -9,7 +9,7 @@ import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
-import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround } from './house.js';
+import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { composedPartsVox, shadeHex } from './bones.js';
 import { zoneName, roomName } from './i18n.js';
@@ -724,10 +724,30 @@ export function drawHouseRoomScene(time, id) {
     drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
   } });
   depth.sort((a, b) => a.y - b.y).forEach(d => d.draw());
-  /* pezzo "in mano" (raccogli e ripiazza, M4): NIENTE anteprima nel mondo — si piazza
-     esattamente sulla casella sotto i piedi, cioè dove sta già il personaggio: un ghost lì
-     finiva SEMPRE dietro allo sprite del giocatore, quasi invisibile. L'anteprima vera sta
-     nella barra Ruota/Annulla (`furnholdpv` in ui.js), dove si vede sempre per intero. */
+  /* PEZZO IN MANO: l'anteprima sta NELLA STANZA, sulla casella dove finirebbe, e segue il
+     puntatore (o i passi). Prima non c'era: si posava alla cieca sotto i piedi e per capire
+     come stava bisognava prima posarlo e poi guardarlo — "devo vedere l'oggetto e poi
+     draggarlo dove lo voglio così vedo come sta". Verde = ci sta, rosso = no; ruotando si
+     aggiorna all'istante, perché è disegnata a ogni frame dallo stesso codice del mobile
+     vero (non una seconda versione "simile" che può divergere). */
+  if (isHolding()) {
+    const hv = holdItem(), pl = holdPlacement(id);
+    if (hv && pl) {
+      const sz = furnSize(hv.itemId, hv.rot || 0);
+      const parete = furnLayer(hv.itemId) === 'wall';
+      const gx = pl.gx * TS, gy = parete ? 2 : pl.gy * TS;
+      const gw = sz.w * TS, gh = parete ? WALL_H - 6 : sz.h * TS;
+      const tinta = pl.ok ? 'rgba(126,192,105,.30)' : 'rgba(201,90,74,.34)';
+      const bordo = pl.ok ? '#7ec069' : '#c95a4a';
+      rect(gx, gy, gw, gh, tinta);                                   // la casella che occuperebbe
+      ctx.globalAlpha = 0.72;
+      drawFurnPiece(BRUSH, hv.itemId, gx, gy, gw, gh, time);
+      ctx.globalAlpha = 1;
+      const tratto = Math.floor(time / 120) % 2 ? 0 : 1;             // cornice che lampeggia piano
+      for (let i = 0; i < gw; i += 4) { rect(gx + i + tratto, gy, 2, 1, bordo); rect(gx + i + tratto, gy + gh - 1, 2, 1, bordo); }
+      for (let i = 0; i < gh; i += 4) { rect(gx, gy + i + tratto, 1, 2, bordo); rect(gx + gw - 1, gy + i + tratto, 1, 2, bordo); }
+    }
+  }
   drawHouseDoorSlab(rw / 2 - 10, rh - 6, 20, 6);                 // varco in basso, verso l'atrio
   if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
   ctx.restore();

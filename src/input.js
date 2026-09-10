@@ -16,7 +16,9 @@ import { cam } from './state.js';
 import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
-import { INT, interiorLeave, intCollide, CUT, doorTileX } from './interior.js';
+import { INT, interiorLeave, intCollide, CUT, doorTileX, nudgeOffFurniture } from './interior.js';
+import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt } from './house.js';
+import { playSfx } from './audio.js';
 
 export const keys = {};
 const KM = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right', w: 'up', s: 'down', a: 'left', d: 'right', W: 'up', S: 'down', A: 'left', D: 'right' };
@@ -169,10 +171,32 @@ if (joy && knob && joy.addEventListener && typeof joy.getBoundingClientRect === 
    Si ascolta sulla CANVAS, non su document: così i tocchi su HUD, joystick, tasto A e
    overlay restano loro e non fanno partire il personaggio per sbaglio. */
 const cv = document.getElementById('cv');
+/* ARREDARE COL PUNTATORE: la casella della stanza di casa sotto il dito/mouse. È il ponte fra
+   lo schermo e l'anteprima del mobile in mano, che deve seguire quello che si sta guardando. */
+function houseCellAt(clientX, clientY) {
+  if (!(INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null)) return null;
+  const r = cv.getBoundingClientRect();
+  const w = screenToWorld(clientX, clientY, r, view, interiorCam());
+  return { gx: Math.floor(w.x / TS), gy: Math.floor(w.y / TS) };
+}
 if (cv && cv.addEventListener) {
   let downX = 0, downY = 0, downT = 0;
+  let dragFurn = false;
   cv.addEventListener('pointerdown', e => {
     downX = e.clientX; downY = e.clientY; downT = Date.now();
+    /* ARREDO: premendo su un mobile lo si prende in mano SUBITO, così si vede spostarsi
+       mentre lo si trascina invece di scoprire dov'è finito al rilascio. */
+    dragFurn = false;
+    if (!isModalOpen() && !splashActive() && !isPrepOpen()) {
+      const c = houseCellAt(e.clientX, e.clientY);
+      if (c) {
+        if (isHolding()) { setHoldTarget(c.gx, c.gy); dragFurn = true; }
+        else if (furnAt(INT.houseRoom, c.gx, c.gy) && pickUpFurniture(INT.houseRoom, c.gx, c.gy)) {
+          setHoldTarget(c.gx, c.gy); dragFurn = true;
+          try { cv.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+        }
+      }
+    }
     if (followMouseOn()) { followHeld = true; followX = e.clientX; followY = e.clientY; clearGoal(); }
     /* la leva fluttuante nasce qui sotto, ma resta invisibile finché non si trascina:
        chi voleva solo indicare un punto non si vede comparire un cerchio in faccia */
@@ -182,6 +206,10 @@ if (cv && cv.addEventListener) {
     }
   });
   cv.addEventListener('pointermove', e => {
+    if (isHolding()) {                                   // l'anteprima segue il puntatore
+      const c = houseCellAt(e.clientX, e.clientY);
+      if (c) setHoldTarget(c.gx, c.gy);
+    }
     if (followHeld) { followX = e.clientX; followY = e.clientY; }
     if (floatId === null || e.pointerId !== floatId) return;
     const dx = e.clientX - floatX, dy = e.clientY - floatY;
@@ -220,6 +248,18 @@ if (cv && cv.addEventListener) {
   cv.addEventListener('pointerup', e => {
     const wasDrag = floatMoved;
     floatEnd(e);
+    /* rilasciando dopo un trascinamento si POSA dove si vede l'anteprima: se lì non ci sta,
+       resta in mano (non sparisce e non finisce altrove di nascosto). */
+    if (dragFurn) {
+      dragFurn = false;
+      const c = houseCellAt(e.clientX, e.clientY);
+      if (c) setHoldTarget(c.gx, c.gy);
+      if (isHolding() && Math.hypot(e.clientX - downX, e.clientY - downY) > 6) {
+        if (placeHold(INT.houseRoom)) { nudgeOffFurniture(); playSfx('ui'); }
+        else toast('🎨 ' + tr('Qui non ci sta', "It doesn't fit here"));
+        return;
+      }
+    }
     if (wasDrag) return;                                     // si stava guidando: niente meta
     if (isModalOpen() || splashActive() || isPrepOpen()) return;
     /* un TOCCO, non un trascinamento e non una pressione lunga: chi trascina sta guardando */

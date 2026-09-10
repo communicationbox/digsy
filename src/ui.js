@@ -17,7 +17,7 @@ import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHo
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
-import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
+import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, takeHold, setHoldTarget, holdPlacement, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
 import { drawFurnThumb } from './furnArt.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
@@ -264,11 +264,14 @@ export function updatePrompt() {
       const cell = houseFloorHere();
       if (cell) {
         if (isHolding()) {
-          /* "Cella occupata" è la risposta sbagliata per un quadro: quello va SULLA parete,
-             e la casella sotto può benissimo essere piena. Chiede a chi lo sa (house.js). */
+          /* il prompt guarda DOVE SI VEDE l'anteprima, non sotto i piedi: è lì che il pezzo
+             finirà, ed è lì che il giocatore sta guardando. "Cella occupata" era anche la
+             risposta sbagliata per un quadro: quello va SULLA parete, e la casella sotto può
+             benissimo essere piena. */
           const hv = holdItem();
-          const t2 = hv && placeTarget(cell.gx, cell.gy, hv.itemId);
-          const ok = !!t2 && canPlace(cell.room, t2.gx, t2.gy, hv.itemId, hv.rot || 0);
+          const pl = holdPlacement(cell.room);
+          const t2 = pl || (hv && placeTarget(cell.gx, cell.gy, hv.itemId));
+          const ok = pl ? pl.ok : (!!t2 && canPlace(cell.room, t2.gx, t2.gy, hv.itemId, hv.rot || 0));
           setPrompt(withIcons(ok ? actKey() + ' ' + (furnPlace(hv.itemId) === 'wall' ? tr('Appendi qui 🎨', 'Hang it here 🎨') : tr('Piazza qui 🎨', 'Place here 🎨'))
             : furnPlace(hv.itemId) === 'wall' ? tr('I quadri si appendono al muro di fondo', 'Wall pieces hang on the back wall')
               : tr('Qui non ci sta', "It doesn't fit here")));
@@ -468,9 +471,9 @@ export function openRoomLock(roomId) {
 export function openFurnitureTray(room, gx, gy) {
   const items = ownedUnplaced();
   const papers = ownedBackdrops('paper'), grounds = ownedBackdrops('ground');
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli un pezzo dal vassoio da piazzare qui. I quadri si appendono stando addossati alla parete di fondo.', 'Pick a piece from your tray to place here. Wall pieces hang when you stand against the back wall.')}</div>`;
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Prendi un pezzo dal vassoio: lo vedi nella stanza e lo trascini dove vuoi. I quadri vanno sulla parete di fondo.', 'Take a piece from your tray: you see it in the room and drag it where you like. Wall pieces go on the back wall.')}</div>`;
   if (!items.length) h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
-  else h += items.map(id => `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Piazza qui', 'Place here')}</button></div></div>`).join('');
+  else h += items.map(id => `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi in mano', 'Pick it up')}</button></div></div>`).join('');
   /* IL FONDO DELLA STANZA sta qui e non nel mondo: carta da parati e pavimento non si posano
      su una casella, si scelgono per la stanza in cui si è — e si tolgono, perché un cambio di
      arredo dev'essere sempre annullabile. */
@@ -485,7 +488,16 @@ export function openFurnitureTray(room, gx, gy) {
   }
   mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
   mBody.innerHTML = withIcons(h); openModal(); hydratePv();
-  mBody.querySelectorAll('[data-place]').forEach(el => el.onclick = () => { if (tryPlaceFurniture(room, gx, gy, el.dataset.place)) { nudgeOffFurniture(); closeModal(); } });
+  /* PRENDI IN MANO, non "posa qui": il pezzo compare nella stanza come anteprima e lo si
+     trascina dove si vuole, vedendo come sta. Prima il vassoio lo piantava sotto i piedi e
+     per giudicarlo bisognava prima posarlo, poi raccoglierlo, poi riposarlo. */
+  mBody.querySelectorAll('[data-place]').forEach(el => el.onclick = () => {
+    if (!takeHold(el.dataset.place)) return;
+    setHoldTarget(gx, gy);
+    closeModal();
+    toast('🎨 ' + keys(isTouch() ? tr('Trascinalo dove vuoi, poi lascia', 'Drag it where you want, then let go')
+      : tr('Muovi il puntatore e clicca per posarlo ({act} sotto i piedi)', 'Move the pointer and click to place it ({act} at your feet)')));
+  });
   mBody.querySelectorAll('[data-bd]').forEach(el => el.onclick = () => {
     const id = el.dataset.bd;
     if (id) applyBackdrop(room, id); else clearBackdrop(room, el.dataset.bdkind);
