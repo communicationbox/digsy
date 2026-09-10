@@ -97,12 +97,12 @@ export function exhibitSprite(spId, parts) {
     const vox = composedPartsVox(spId, parts);
     let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
     for (const v of vox) { mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z); }
-    const ox = Math.floor((36 - (mxx - mnx + 1)) / 2), oy = Math.floor((32 - (mxy - mny + 1)) / 2);
+    const ox = Math.floor((cv.width - (mxx - mnx + 1)) / 2), oy = Math.floor((cv.height - (mxy - mny + 1)) / 2);
     const zr = Math.max(1, mxz - mnz);
     for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
       const zt = (v.z - mnz) / zr;
       c2.fillStyle = v.k === 'eye' ? '#201a14' : zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
-      c2.fillRect((ox + (v.x - mnx)) * 2, (oy + (mxy - v.y)) * 2, 2, 2); // ogni voxel = blocco 2×2 (16bit HD)
+      c2.fillRect(ox + (v.x - mnx), oy + (mxy - v.y), 1, 1); // un pixel per voxel: il modello è già a risoluzione doppia (R in bones.js)
     }
     outlineSprite(cv, '#1c160f');
   } catch (e) { cv = null; /* stub nei test */ }

@@ -694,10 +694,11 @@ function creatureSprite(a, view, opts) {
     for (const v of vox) { const [h, d] = proj(v); mnh = Math.min(mnh, h); mxh = Math.max(mxh, h); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnd = Math.min(mnd, d); mxd = Math.max(mxd, d); }
     const spanH = mxh - mnh + 1, spanY = mxy - mny + 1, dr = Math.max(1, mxd - mnd);
     const pad = 1, cw = spanH + pad * 2, ch = spanY + pad * 2;
-    /* FASE 2: canvas a risoluzione doppia (2 pixel fisici per voxel, come exhibitSprite nel
-       museo) — così la creatura non resta piccola rispetto al mondo ora a 32px, e non serve
-       più il ctx.scale(2,2) di chi la disegna. */
-    const S2 = 2;
+    /* UN pixel per voxel. Prima ne servivano due perché il modello era a risoluzione metà:
+       la creatura veniva su grande come serve, ma coi pixel grossi il doppio di tutto il resto
+       del gioco (segnalato con foto). Ora il modello stesso è a risoluzione doppia (`R` in
+       bones.js), quindi la taglia resta questa e i pixel sono quelli del mondo. */
+    const S2 = 1;
     cv = document.createElement('canvas'); cv.width = cw * S2; cv.height = ch * S2;
     const g = cv.getContext('2d');
     const grid = {}; const cells = [];

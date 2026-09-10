@@ -52,47 +52,110 @@ export function clampSpec(spec) {
   };
 }
 
+/* ---------- RISOLUZIONE DEL MODELLO ----------
+   I blueprint (BP) restano scritti in unità DI RICETTA: raggio 2 = corpo medio, zampa lunga
+   2, coda corta, e così via. Il modello però si costruisce a risoluzione DOPPIA: ogni unità
+   di ricetta vale `R` voxel.
+   Serve perché il mondo è disegnato nativamente a 32px, mentre le creature venivano proiettate
+   a 2 pixel fisici per voxel: erano l'unica cosa del gioco coi pixel grossi il doppio
+   (segnalato con foto). Raddoppiare la griglia non è un ingrandimento — le sezioni tonde
+   (corpo, teste, gusci, corni) vengono rasterizzate a raggio doppio, quindi sono davvero più
+   tonde, e gli arti possono assottigliarsi verso la punta invece di essere bastoncini da un
+   voxel. Chi disegna qui ragiona in voxel fini; chi scrive un blueprint continua a ragionare
+   in unità intere. */
+export const R = 2;
+const U = n => Math.round(n * R);
+
 /* ---------- crani e teste (condivisi) ---------- */
+/* mattone del cranio a SEZIONE OVALE: a risoluzione doppia una scatola squadrata si vede
+   subito per quello che è, e il muso di un animale non ha spigoli. */
+function ovalBlock(P, x0, x1, cy, ry, rz, taper) {
+  for (let x = x0; x <= x1; x++) {
+    const t = taper ? 1 - taper * ((x - x0) / Math.max(1, x1 - x0)) : 1;   // si assottiglia verso il muso
+    const ay = Math.max(0.6, ry * t), az = Math.max(0.6, rz * t);
+    for (let y = -Math.ceil(ay); y <= Math.ceil(ay); y++) for (let z = -Math.ceil(az); z <= Math.ceil(az); z++) {
+      if ((y * y) / ((ay + 0.4) * (ay + 0.4)) + (z * z) / ((az + 0.4) * (az + 0.4)) > 1) continue;
+      const bordo = Math.abs(z) >= az - 0.5 || y <= -ay + 0.5;
+      P(x, cy + y, z, bordo ? 'shade' : 'bone');
+    }
+  }
+}
 function skullVoxels(sp, horns, nx, ny, nz, out) {
   const i0 = out.length; // per il tag parte: cranio, poi corni
   const pp = partParams(sp), t = pp.skull, sz = pp.size; // il cranio scala con la taglia
   const P = (x, y, z, k) => out.push({ x: nx + x, y: ny + y, z: nz + z, k: k || 'bone' });
-  if (t === 0) {        // tozzo e largo
-    const w = 3 + sz;
-    for (let x = -w; x <= 0; x++) for (let y = 0; y <= 2 + (sz > 1 ? 1 : 0); y++) for (let z = -1; z <= 1; z++) P(x, y, z);
-    P(-w - 1, 0, 0); P(-w - 2, 0, 0, 'shade');
-    P(-2, 1, -1, 'eye'); P(-2, 1, 1, 'eye');
-  } else if (t === 1) { // muso LUNGO (coccodrillo)
-    const len = 6 + 2 * sz;
-    for (let x = -len; x <= 0; x++) for (let z = -1; z <= 0; z++) { P(x, 0, z); P(x, 1, z, x > -3 ? 'bone' : 'shade'); }
-    for (let x = -len; x <= -len + 2; x++) P(x, 2, 0, 'dark'); // narici rialzate
-    P(-2, 1, -1, 'eye'); P(-2, 1, 1, 'eye');
-  } else if (t === 2) { // becco appuntito
-    for (let x = -1; x <= 0; x++) for (let z = -1; z <= 1; z++) { P(x, 0, z); P(x, 1, z); P(x, 2, z, 'shade'); }
-    for (let i = 2; i <= 3 + sz; i++) P(-i, i > 3 ? 0 : 1, 0, i > 3 ? 'dark' : 'shade');
-    P(-1, 2, -1, 'eye'); P(-1, 2, 1, 'eye');
-  } else {              // cupola con cresta a ventaglio
-    for (let x = -3; x <= 0; x++) for (let y = 0; y <= 2; y++) for (let z = -1; z <= 1; z++) P(x, y, z);
-    for (let i = 0; i <= 2 + sz; i++) P(-i, 3 + Math.min(i, 2), 0, 'shade'); // cresta
-    P(-2, 1, -1, 'eye'); P(-2, 1, 1, 'eye');
+  /* occhio = due voxel per lato: a griglia fine un puntino solo sparirebbe */
+  const eyes = (ex, ey, ez) => { for (const s of [-1, 1]) for (let dy = 0; dy < R - 1 || dy < 1; dy++) for (let dx = 0; dx < 2; dx++) P(ex + dx, ey + dy, s * ez, 'eye'); };
+  const cy = U(1);
+  if (t === 0) {                        // tozzo e largo
+    const len = U(3 + sz);
+    ovalBlock(P, -len, 0, cy, U(1.2 + (sz > 1 ? 0.4 : 0)), U(1.1), 0.25);
+    for (let i = 1; i <= R; i++) P(-len - i, cy, 0, i === R ? 'shade' : 'bone');   // punta del muso
+    eyes(-U(1.2), cy, U(1.1));
+  } else if (t === 1) {                 // muso LUNGO (coccodrillo)
+    const len = U(6 + 2 * sz);
+    ovalBlock(P, -len, 0, cy, U(1.1), U(1), 0.55);                                 // si affusola davvero
+    for (let x = -len; x <= -len + R; x++) P(x, cy + U(0.8), 0, 'dark');           // narici rialzate
+    for (let x = -len + R; x <= -R; x += R) P(x, cy + U(0.7), 0, 'shade');         // cresta del muso
+    eyes(-U(1.4), cy + U(0.5), U(1));
+  } else if (t === 2) {                 // becco appuntito
+    ovalBlock(P, -U(1), 0, cy, U(1.1), U(1.1), 0.1);
+    const bl = U(3 + sz);
+    for (let i = 1; i <= bl; i++) {                                                // becco a cono
+      const rr = Math.max(0, Math.round((1 - i / bl) * R * 0.9));
+      for (let dy = -rr; dy <= rr; dy++) for (let dz = -rr; dz <= rr; dz++)
+        P(-U(1) - i, cy + dy, dz, i > bl - R ? 'dark' : 'shade');
+    }
+    eyes(-U(0.8), cy + U(0.4), U(1.1));
+  } else {                              // cupola con cresta a ventaglio
+    ovalBlock(P, -U(3), 0, cy, U(1.3), U(1.2), 0.2);
+    const cl = U(2 + sz);
+    for (let i = 0; i <= cl; i++) {                                                // cresta: ventaglio, non una fila
+      const h = U(1) + Math.min(U(2), i);
+      for (let j = 0; j <= h; j++) P(-i, cy + U(1.1) + j, 0, j > h - R ? 'dark' : 'shade');
+    }
+    eyes(-U(1.4), cy, U(1.2));
   }
   const h0 = out.length; // da qui in poi: corni
-  const hz = horns === 2 ? [-1, 1] : [0];
-  const hlen = 2 + sz;                                        // corni lunghi quanto la taglia
-  for (const z of hz) for (let i = 0; i < hlen; i++) P(-1 + Math.floor(i / 2), 3 + i, z, i === hlen - 1 ? 'dark' : 'shade');
+  const hz = horns === 2 ? [-U(1), U(1)] : [0];
+  const hlen = U(2 + sz);                                     // corni lunghi quanto la taglia
+  for (const z of hz) for (let i = 0; i < hlen; i++) {
+    const th = i < hlen * 0.5 ? 1 : 0;                         // si assottigliano verso la punta
+    for (let d = 0; d <= th; d++) P(-U(0.5) + Math.floor(i / 2), cy + U(1.4) + i, z + d * Math.sign(z || 1), i === hlen - 1 ? 'dark' : 'shade');
+  }
   for (let i = i0; i < out.length; i++) out[i].p = i >= h0 ? 'corno' : 'cranio';
 }
 function fleshHead(sp, horns, nx, ny, nz, out) {
   const pp = partParams(sp), col = spColor[sp.id] || '#c8b078';
   const P = (x, y, z, c) => out.push({ x: nx + x, y: ny + y, z: nz + z, col: c || col });
-  const w = pp.skull === 0 ? 3 + pp.size : 3;
-  for (let x = -w; x <= 0; x++) for (let y = 0; y <= 2; y++) for (let z = -1; z <= 1; z++) P(x, y, z, y === 2 ? shadeHex(col, 0.85) : col);
-  if (pp.skull === 1) { const len = 6 + 2 * pp.size; for (let x = -len; x <= -w; x++) for (let z = -1; z <= 0; z++) { P(x, 0, z); P(x, 1, z, shadeHex(col, 0.9)); } }
-  else if (pp.skull === 2) { for (let i = 1; i <= 3 + pp.size; i++) P(-w - i, i > 2 ? 0 : 1, 0, '#e8c34a'); }        // becco
-  else if (pp.skull === 3) { for (let i = 0; i <= 2 + pp.size; i++) P(-i, 3 + Math.min(i, 2), 0, shadeHex(col, 0.7)); } // cresta
-  P(-1, 1, -2, '#f6f2e4'); P(-1, 1, 2, '#f6f2e4'); P(-2, 1, -2, '#33291f'); P(-2, 1, 2, '#33291f');                  // occhi: pupilla scura davanti (verso il muso), bianco dietro
-  const hz = horns === 2 ? [-1, 1] : [0], hlen = 2 + pp.size;
-  for (const z of hz) for (let i = 0; i < hlen; i++) P(-1 + Math.floor(i / 2), 3 + i, z, '#e8e2d0');                 // corni ossei
+  const cy = U(1);
+  /* stessa forma del cranio, ma piena di pelle: la testa dell'animale VIVO deve essere
+     riconoscibile come quella del suo scheletro, non un'altra bestia. */
+  const skin = (x, y, z, k) => P(x, y, z, k === 'shade' ? shadeHex(col, 0.85) : col);
+  const w = pp.skull === 0 ? U(3 + pp.size) : U(3);
+  ovalBlock(skin, -w, 0, cy, U(1.3), U(1.2), pp.skull === 1 ? 0.35 : 0.2);
+  if (pp.skull === 1) {                                        // muso lungo
+    const len = U(6 + 2 * pp.size);
+    ovalBlock(skin, -len, -w, cy, U(1.1), U(1), 0.5);
+  } else if (pp.skull === 2) {                                 // becco giallo, a cono
+    const bl = U(3 + pp.size);
+    for (let i = 1; i <= bl; i++) {
+      const rr = Math.max(0, Math.round((1 - i / bl) * R * 0.9));
+      for (let dy = -rr; dy <= rr; dy++) for (let dz = -rr; dz <= rr; dz++) P(-w - i, cy + dy, dz, '#e8c34a');
+    }
+  } else if (pp.skull === 3) {                                 // cresta
+    const cl = U(2 + pp.size);
+    for (let i = 0; i <= cl; i++) { const h = U(1) + Math.min(U(2), i); for (let j = 0; j <= h; j++) P(-i, cy + U(1.2) + j, 0, shadeHex(col, 0.7)); }
+  }
+  for (const s of [-1, 1]) {                                   // occhi: bianco + pupilla scura davanti
+    for (let dy = 0; dy < R; dy++) for (let dx = 0; dx < R; dx++) P(-U(0.8) + dx, cy + dy, s * U(1.3), '#f6f2e4');
+    for (let dy = 0; dy < R; dy++) P(-U(1.4), cy + dy, s * U(1.3), '#33291f');
+  }
+  const hz = horns === 2 ? [-U(1), U(1)] : [0], hlen = U(2 + pp.size);
+  for (const z of hz) for (let i = 0; i < hlen; i++) {
+    const th = i < hlen * 0.5 ? 1 : 0;
+    for (let d = 0; d <= th; d++) P(-U(0.5) + Math.floor(i / 2), cy + U(1.4) + i, z + d * Math.sign(z || 1), '#e8e2d0');
+  }
 }
 
 /* ================= BLUEPRINT per specie: 60 ricette curate, ispirate alla natura =================
@@ -178,102 +241,162 @@ export const BP = {
 };
 
 /* ================= assemblatore: UNA pipeline per scheletro e carne =================
-   REGOLA D'ORO: ogni pezzo si RACCORDA — segmenti sovrapposti di 1, giunzioni esplicite
-   per collo/zampe/ali/code. Le chimere restano sempre attaccate. */
+   REGOLA D'ORO: ogni pezzo si RACCORDA — segmenti sovrapposti, giunzioni esplicite per
+   collo/zampe/ali/code. Le chimere restano sempre attaccate.
+   Tutto qui dentro lavora in VOXEL FINI (vedi `R`): i raggi arrivano già moltiplicati, così
+   le sezioni tonde sono rasterizzate grandi il doppio e si vedono tonde davvero. */
 function segRing(cx, cy, cz, r, mode, colT, out) {
   if (mode === 'skel') {
     for (let a = -r; a <= r; a++) {
       const rr = Math.round(Math.sqrt(Math.max(0, r * r - a * a)));
       out.push({ x: cx + a, y: cy + rr, z: cz, k: 'bone' });                // dorso
       out.push({ x: cx + a, y: cy - rr, z: cz, k: 'shade' });               // ventre
-      if (rr > 0 && (a + r) % 2 === 0) for (let t = 45; t < 360; t += 45) { // costole ogni 2
-        const y = cy + Math.round(Math.cos(t * Math.PI / 180) * rr);
-        const z = cz + Math.round(Math.sin(t * Math.PI / 180) * rr);
-        out.push({ x: cx + a, y, z, k: 'shade' });
+      /* COSTOLE: una ogni R voxel (cioè lo stesso passo di prima, ma disegnate con abbastanza
+         campioni da chiudere il cerchio — a raggio doppio il vecchio passo di 45° lasciava
+         buchi grandi come la costola stessa). */
+      if (rr > 0 && (a + r) % R === 0) {
+        const passi = Math.max(12, rr * 8);
+        for (let t = 0; t < passi; t++) {
+          const ang = t / passi * Math.PI * 2;
+          const y = cy + Math.round(Math.cos(ang) * rr);
+          const z = cz + Math.round(Math.sin(ang) * rr);
+          out.push({ x: cx + a, y, z, k: 'shade' });
+        }
       }
     }
   } else {
     for (let a = -r; a <= r; a++) for (let dy = -r; dy <= r; dy++) for (let dz = -r; dz <= r; dz++)
-      if (a * a + dy * dy + dz * dz <= r * r + 1)
-        out.push({ x: cx + a, y: cy + dy, z: cz + dz, col: dy === r ? shadeHex(colT, 0.8) : dy === -r ? shadeHex(colT, 1.18) : colT });
+      if (a * a + dy * dy + dz * dz <= r * r + r)
+        out.push({ x: cx + a, y: cy + dy, z: cz + dz, col: dy >= r - 1 ? shadeHex(colT, 0.8) : dy <= -r + 1 ? shadeHex(colT, 1.18) : colT });
   }
 }
+/* ZAMPA: si assottiglia dall'anca al piede, e il piede appoggia largo. A un voxel di spessore
+   (com'era) una zampa a scala doppia sembrerebbe un filo di ferro. */
 function legVox(lx, cy, cz, sr, side, len, mode, colT, out) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, k === 'dark' ? 0.7 : 0.88) });
+  const spesso = (x, y, z, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x + d, y, z + e * side, k); };
   if (len >= 2) { // ZAMPONA ad arco (ragno/zanzara): esce dal fianco, sale, poi scende
     let z = cz + side * sr;
-    P(lx, cy, z, 'bone'); // anca sul fianco
-    for (let j = 1; j <= 2; j++) { z = cz + side * (sr + j); P(lx, cy + j, z, 'bone'); }
-    P(lx, cy + 2, z, 'dark');
-    for (let y = cy + 1; y >= 0; y--) P(lx, y, z, y % 2 ? 'shade' : 'bone');
+    spesso(lx, cy, z, 'bone', R);                                        // anca sul fianco
+    for (let j = 1; j <= U(2); j++) { z = cz + side * (sr + j); spesso(lx, cy + j, z, 'bone', R - (j > U(1) ? 1 : 0)); }
+    P(lx, cy + U(2), z, 'dark');
+    for (let y = cy + U(1); y >= 0; y--) spesso(lx, y, z, y % R ? 'shade' : 'bone', y < U(1) ? R : 1);   // scende e poggia largo
   } else {
     const attachY = cy - sr, zz = cz + side;
-    P(lx, attachY, cz, 'bone'); // giunzione al ventre
-    for (let y = attachY; y >= 0; y--) { P(lx, y, zz, y === Math.floor(attachY / 2) ? 'dark' : 'bone'); if (mode === 'flesh') P(lx + 1, y, zz, 'shade'); }
-    P(lx + 1, 0, zz, 'shade');
+    spesso(lx, attachY, cz, 'bone', R);                                  // giunzione al ventre
+    for (let y = attachY; y >= 0; y--) {
+      const th = y > 1 ? R : R;                                          // gamba piena fino al piede: a griglia doppia un solo voxel sembrava un filo di ferro
+      spesso(lx, y, zz, y === Math.floor(attachY / 2) ? 'dark' : 'bone', th);
+    }
+    for (let d = 0; d < R + 1; d++) P(lx + d, 0, zz, 'shade');           // piede
   }
 }
 function wingVox(x0, topY, n, type, mode, colT, out) {
   const P = (x, y, z, k, cmul) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, cmul || 1.12) });
   const pairs = Math.max(1, Math.round(n / 2));
   for (let w = 0; w < pairs; w++) for (const dir of [-1, 1]) {
-    const wx = x0 + w * 3, span = 5 - w;
-    P(wx, topY, dir, 'bone', 1);                    // radice dell'ala sul dorso
+    const wx = x0 + w * U(3), span = U(5 - w);
+    for (let d = 0; d < R; d++) P(wx + d, topY, dir, 'bone', 1);          // radice dell'ala sul dorso
     for (let i = 1; i <= span; i++) {
-      const y = topY + Math.min(3, i);
-      if (type === 'i') { // ala da insetto: ovale sottile
-        P(wx, topY + 1, dir * i, i === span ? 'dark' : 'shade', 1.3);
-        if (i > 1 && i < span) P(wx + 1, topY + 1, dir * i, 'shade', 1.3);
-      } else if (type === 'f') { // piume
-        for (let j = 0; j <= 1 + (i % 2); j++) P(wx + j, y - j, dir * i, j ? 'shade' : 'bone', j % 2 ? 0.9 : 1.12);
-      } else { // membrana
+      const y = topY + Math.min(U(3), Math.round(i / 2));
+      if (type === 'i') {                                                 // ala da insetto: ovale sottile
+        P(wx, topY + 1, dir * i, i > span - R ? 'dark' : 'shade', 1.3);
+        if (i > R && i < span) for (let d = 1; d <= R; d++) P(wx + d, topY + 1, dir * i, 'shade', 1.3);
+      } else if (type === 'f') {                                          // piume: penne di lunghezze diverse
+        const pen = U(1) + (i % (R * 2) === 0 ? U(1) : 0);
+        for (let j = 0; j <= pen; j++) P(wx + j, y - Math.floor(j / 2), dir * i, j ? 'shade' : 'bone', j % 2 ? 0.9 : 1.12);
+      } else {                                                            // membrana tesa fra le dita
         P(wx, y, dir * i, 'bone', 1);
-        for (let j = 1; j <= 2; j++) P(wx + j, y - Math.floor(j / 2), dir * i, 'shade', 1.12);
+        const dita = i % U(2) === 0;
+        for (let j = 1; j <= U(2); j++) P(wx + j, y - Math.floor(j / 2), dir * i, dita ? 'bone' : 'shade', dita ? 1 : 1.12);
       }
     }
   }
 }
 function tailVox(x0, y0, kind, mode, colT, out) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: k === 'dark' ? shadeHex(colT, 0.6) : colT });
+  const spesso = (x, y, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x, y + d, e - Math.floor(Math.max(1, th) / 2), k); };
   if (kind === 'none') return;
-  if (kind === 'fin') { P(x0, y0, 0, 'bone'); for (let j = -3; j <= 3; j++) { P(x0 + 1, y0 + j, 0, 'bone'); P(x0 + 2, y0 + j, 0, Math.abs(j) > 1 ? 'dark' : 'shade'); } return; }
-  if (kind === 'fan') { P(x0, y0, 0, 'bone'); for (let j = -2; j <= 2; j++) for (let i = 1; i <= 2; i++) P(x0 + i, y0 + Math.round(j * i / 2), 0, i === 2 ? 'shade' : 'bone'); return; }
-  if (kind === 'sting') { // pungiglione da scorpione: si arriccia in ALTO
-    const pts = [[0, 0], [1, 1], [2, 2], [3, 3], [3, 4], [2, 5]];
-    pts.forEach(([dx, dy]) => P(x0 + dx, y0 + dy, 0, 'bone'));
-    P(x0 + 1, y0 + 5, 0, 'dark'); P(x0 + 1, y0 + 6, 0, 'dark');
+  if (kind === 'fin') {                                                   // pinna caudale, raggi visibili
+    spesso(x0, y0, 'bone', R);
+    for (let j = -U(3); j <= U(3); j++) for (let i = 1; i <= U(2); i++)
+      P(x0 + i, y0 + j, 0, Math.abs(j) > U(1) ? 'dark' : (j % R === 0 ? 'bone' : 'shade'));
     return;
   }
-  const len = kind === 'short' ? 3 : 6;
-  for (let i = 0; i < len; i++) P(x0 + i, y0 - Math.floor(i / 2), 0, i > len - 2 ? 'shade' : 'bone');
-  if (kind === 'club') { // mazza chiodata
-    const bx = x0 + len - 1, by = y0 - Math.floor((len - 1) / 2);
-    for (let dx = 0; dx <= 2; dx++) for (let dy = -1; dy <= 1; dy++) P(bx + dx, by + dy, 0, 'shade');
-    P(bx + 1, by + 2, 0, 'dark'); P(bx + 3, by, 0, 'dark'); P(bx + 1, by - 2, 0, 'dark');
+  if (kind === 'fan') {                                                   // ventaglio: raggi che si aprono
+    spesso(x0, y0, 'bone', R);
+    for (let j = -U(2); j <= U(2); j++) for (let i = 1; i <= U(2); i++)
+      P(x0 + i, y0 + Math.round(j * i / U(2)), 0, i > U(1) ? 'shade' : 'bone');
+    return;
+  }
+  if (kind === 'sting') {                                                 // pungiglione: si arriccia in ALTO
+    const pts = [];
+    for (let i = 0; i <= U(3); i++) pts.push([i, i]);
+    for (let i = 1; i <= U(2); i++) pts.push([U(3) - Math.floor(i / 2), U(3) + i]);
+    pts.forEach(([dx, dy]) => { P(x0 + dx, y0 + dy, 0, 'bone'); if (dy < U(3)) P(x0 + dx, y0 + dy, 1, 'shade'); });
+    P(x0 + U(1), y0 + U(5), 0, 'dark'); P(x0 + U(1), y0 + U(6), 0, 'dark');
+    return;
+  }
+  const len = kind === 'short' ? U(3) : U(6);
+  for (let i = 0; i < len; i++) {
+    const th = i < len / 2 ? R : Math.max(1, R - 1);                       // si assottiglia verso la punta
+    spesso(x0 + i, y0 - Math.floor(i / 2), i > len - R ? 'shade' : 'bone', th);
+  }
+  if (kind === 'club') {                                                  // mazza chiodata
+    const bx = x0 + len - 1, by = y0 - Math.floor((len - 1) / 2), rr = U(1.2);
+    for (let dx = 0; dx <= rr * 2; dx++) for (let dy = -rr; dy <= rr; dy++) for (let dz = -rr; dz <= rr; dz++) {
+      if ((dx - rr) * (dx - rr) + dy * dy + dz * dz > rr * rr + 1) continue;
+      P(bx + dx, by + dy, dz, 'shade');
+    }
+    P(bx + rr, by + rr + 1, 0, 'dark'); P(bx + rr * 2 + 1, by, 0, 'dark'); P(bx + rr, by - rr - 1, 0, 'dark');
   }
 }
 function extraVox(r, segsX, topYs, kind, mode, colT, out) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: k === 'dark' ? shadeHex(colT, 0.6) : shadeHex(colT, 0.75) });
-  if (kind === 'sail') segsX.forEach((sx, i) => { for (let y = 0; y <= 2 + (i === Math.floor(segsX.length / 2) ? 1 : 0); y++) P(sx, topYs[i] + y, 0, y > 1 ? 'dark' : 'shade'); });
-  else if (kind === 'spikes') segsX.forEach((sx, i) => { P(sx, topYs[i], 0, 'shade'); P(sx, topYs[i] + 1, 0, 'dark'); P(sx - 1, topYs[i], 1, 'dark'); P(sx + 1, topYs[i], -1, 'dark'); });
-  else if (kind === 'hump') { const sx = segsX[0]; for (let dx = -1; dx <= 1; dx++) P(sx + dx, topYs[0], 0, 'shade'); P(sx, topYs[0] + 1, 0, 'shade'); }
+  if (kind === 'sail') segsX.forEach((sx, i) => {                          // vela: profilo curvo, non un muro
+    const h = U(2) + (i === Math.floor(segsX.length / 2) ? U(1) : 0);
+    for (let dx = -1; dx <= 1; dx++) for (let y = 0; y <= h - Math.abs(dx); y++) P(sx + dx, topYs[i] + y, 0, y > h - R ? 'dark' : 'shade');
+  });
+  else if (kind === 'spikes') segsX.forEach((sx, i) => {                    // spuntoni a triangolo
+    for (let y = 0; y <= U(1.5); y++) { const w = Math.max(0, Math.round((1 - y / U(1.5)) * (R - 1))); for (let dx = -w; dx <= w; dx++) P(sx + dx, topYs[i] + y, 0, y > U(1) ? 'dark' : 'shade'); }
+    P(sx - U(1), topYs[i], 1, 'dark'); P(sx + U(1), topYs[i], -1, 'dark');
+  });
+  else if (kind === 'hump') {                                              // gobba: calotta piena
+    const sx = segsX[0], rr = U(1.5);
+    for (let dx = -rr; dx <= rr; dx++) for (let dz = -rr; dz <= rr; dz++) for (let y = 0; y <= rr; y++) {
+      if (dx * dx + dz * dz + y * y > rr * rr + 1) continue;
+      P(sx + dx, topYs[0] + y, dz, y > rr - R ? 'shade' : 'shade');
+    }
+  }
   else if (kind === 'shell') { // guscio a cupola, appoggiato sul dorso
-    const R = r + 1, sx = segsX[0];
-    for (let a = 0; a <= R; a++) {
-      const rr = Math.round(Math.sqrt(Math.max(0, R * R - a * a)));
-      for (let t = 0; t < 360; t += 30) {
-        const x = sx + Math.round(Math.cos(t * Math.PI / 180) * rr), z = Math.round(Math.sin(t * Math.PI / 180) * rr);
-        if (mode === 'skel') out.push({ x, y: topYs[0] - 1 + a, z, k: a % 2 ? 'shade' : 'bone' });
-        else for (let fx = -rr; fx <= rr; fx++) for (let fz = -rr; fz <= rr; fz++) { if (fx * fx + fz * fz <= rr * rr) out.push({ x: sx + fx, y: topYs[0] - 1 + a, z: fz, col: (fx + fz) % 3 === 0 ? shadeHex(colT, 0.7) : shadeHex(colT, 0.85) }); }
+    const R2 = r + U(1), sx = segsX[0];
+    for (let a = 0; a <= R2; a++) {
+      const rr = Math.round(Math.sqrt(Math.max(0, R2 * R2 - a * a)));
+      const passi = Math.max(16, rr * 8);
+      for (let t = 0; t < passi; t++) {
+        const ang = t / passi * Math.PI * 2;
+        const x = sx + Math.round(Math.cos(ang) * rr), z = Math.round(Math.sin(ang) * rr);
+        if (mode === 'skel') out.push({ x, y: topYs[0] - U(1) + a, z, k: a % R ? 'shade' : 'bone' });
+      }
+      if (mode !== 'skel') for (let fx = -rr; fx <= rr; fx++) for (let fz = -rr; fz <= rr; fz++) {
+        if (fx * fx + fz * fz <= rr * rr) out.push({ x: sx + fx, y: topYs[0] - U(1) + a, z: fz, col: (fx + fz) % (R * 3) === 0 ? shadeHex(colT, 0.7) : shadeHex(colT, 0.85) });
       }
     }
   }
 }
 function headExtras(r, hx, hy, mode, colT, out) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: k === 'dark' ? shadeHex(colT, 0.6) : colT });
-  if (r.mand) { for (const dz of [-1, 1]) { P(hx - 1, hy, dz * 2, 'bone'); P(hx - 2, hy, dz * 2, 'bone'); P(hx - 3, hy, dz, 'dark'); P(hx - 1, hy, dz, 'bone'); } }
-  if (r.ant) { for (const dz of [-1, 1]) { P(hx - 1, hy + 3, dz, 'shade'); P(hx - 2, hy + 4, dz, 'shade'); P(hx - 3, hy + 5, dz, 'dark'); } }
-  if (r.prob) { for (let i = 1; i <= 5; i++) P(hx - i, hy - Math.floor(i / 2), 0, i === 5 ? 'dark' : 'shade'); }
+  /* mandibole, antenne e proboscide restano SOTTILI anche a griglia doppia: è lì che si vede
+     la differenza fra un insetto e un mattoncino con le corna. */
+  if (r.mand) for (const dz of [-1, 1]) {
+    for (let i = 1; i <= U(2); i++) P(hx - i, hy, dz * U(2), i === U(2) ? 'dark' : 'bone');
+    for (let i = U(2); i <= U(3); i++) P(hx - i, hy, dz * U(1), 'dark');
+    P(hx - 1, hy, dz * U(1), 'bone');
+  }
+  if (r.ant) for (const dz of [-1, 1]) {
+    for (let i = 1; i <= U(3); i++) P(hx - i, hy + U(1.5) + i, dz * Math.min(U(1), i), i > U(2) ? 'dark' : 'shade');
+  }
+  if (r.prob) for (let i = 1; i <= U(5); i++) P(hx - i, hy - Math.floor(i / 2), 0, i > U(4) ? 'dark' : 'shade');
 }
 
 function buildFromRecipe(spec, mode, opts) {
@@ -285,7 +408,8 @@ function buildFromRecipe(spec, mode, opts) {
   const chest = spec.chest;
   const r = BP[chest.id] || { seg: [2, 2], legs: [4, 1], tail: 'short', head: 0 };
   const colT = spColor[chest.id] || '#c8b078';
-  const segs = r.seg || [2];
+  /* i raggi del blueprint sono in unità di ricetta: qui diventano voxel fini */
+  const segs = (r.seg || [2]).map(v => U(v));
   const maxR = Math.max(...segs);
   const legDef = r.legs || [4, 1];
   const isBase = spec.heads.length === 1 && spec.heads[0].sp.id === chest.id &&
@@ -293,20 +417,22 @@ function buildFromRecipe(spec, mode, opts) {
     spec.tails.length === 1 && spec.tails[0].id === chest.id;
   const nLegs = noLegs ? 0 : (isBase ? legDef[0] : (legDef[0] === 0 ? 0 : Math.max(2, spec.legs.length * 2)));
   const legLen = legDef[1] || 0;
-  const baseY = r.float ? 6 : (noLegs ? 3 : (nLegs > 0 ? (legLen >= 2 ? 5 : 2 + legLen * 2) : 1));
-  /* segmenti SOVRAPPOSTI di 1 → corpo sempre connesso; onda opzionale */
+  const baseY = r.float ? U(6) : (noLegs ? U(3) : (nLegs > 0 ? (legLen >= 2 ? U(5) : U(2 + legLen * 2)) : U(1)));
+  /* segmenti SOVRAPPOSTI → corpo sempre connesso; onda opzionale */
   const segsX = [], segCys = [], segCzs = [], topYs = [];
   const tSeg = out.length;
   let prevCx = null, prevR = 0;
   segs.forEach((sr, i) => {
-    const cx = prevCx === null ? sr : prevCx + prevR + sr - 1;
-    const cz = r.wave ? Math.round(Math.sin(i * 1.4) * 2) : 0;
-    const cy = baseY + maxR + (r.tall ? Math.round((segs.length - 1 - i) * 1.5) : 0);
+    const cx = prevCx === null ? sr : prevCx + prevR + sr - R;
+    const cz = r.wave ? Math.round(Math.sin(i * 1.4) * U(2)) : 0;
+    const cy = baseY + maxR + (r.tall ? Math.round((segs.length - 1 - i) * U(1.5)) : 0);
     segRing(cx, cy, cz, sr, mode, colT, out);
     if (i > 0 && (r.wave || r.tall)) { // giunzione esplicita tra segmenti spostati
       const px2 = prevCx + prevR;
-      out.push(mode === 'skel' ? { x: px2, y: (segCys[i - 1] + cy) >> 1, z: (segCzs[i - 1] + cz) >> 1, k: 'bone' }
-        : { x: px2, y: (segCys[i - 1] + cy) >> 1, z: (segCzs[i - 1] + cz) >> 1, col: colT });
+      for (let d = 0; d < R; d++) {
+        const jy = Math.round((segCys[i - 1] + cy) / 2), jz = Math.round((segCzs[i - 1] + cz) / 2);
+        out.push(mode === 'skel' ? { x: px2 + d, y: jy, z: jz, k: 'bone' } : { x: px2 + d, y: jy, z: jz, col: colT });
+      }
     }
     segsX.push(cx); segCys.push(cy); segCzs.push(cz); topYs.push(cy + sr);
     prevCx = cx; prevR = sr;
@@ -319,11 +445,14 @@ function buildFromRecipe(spec, mode, opts) {
     const pairs = Math.round(nLegs / 2);
     for (let i = 0; i < pairs; i++) {
       const si = Math.min(segs.length - 1, Math.floor(i * segs.length / pairs));
-      const lx = segsX[si] - 1 + (i % 2) * 2;
+      const lx = segsX[si] - U(1) + (i % 2) * U(2);
       for (const side of [-1, 1]) legVox(lx, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out);
     }
   } else if (!r.float && !noLegs) { // striscia: spuntoni ventrali attaccati al ventre
-    segsX.forEach((sx, i) => out.push(mode === 'skel' ? { x: sx, y: Math.max(0, segCys[i] - segs[i]), z: segCzs[i], k: 'shade' } : { x: sx, y: Math.max(0, segCys[i] - segs[i]), z: segCzs[i], col: shadeHex(colT, 0.8) }));
+    segsX.forEach((sx, i) => { for (let d = 0; d < R; d++) {
+      const vy = Math.max(0, segCys[i] - segs[i]);
+      out.push(mode === 'skel' ? { x: sx + d, y: vy, z: segCzs[i], k: 'shade' } : { x: sx + d, y: vy, z: segCzs[i], col: shadeHex(colT, 0.8) });
+    } });
     tagFrom(tLeg, 'torace');
   }
   tagFrom(tLeg, 'zampa');
@@ -339,38 +468,45 @@ function buildFromRecipe(spec, mode, opts) {
   const tNeck = out.length;
   const neck = r.neck || 0;
   let nx = frontX, ny = segCys[0];
-  for (let i = 1; i <= neck * 2; i++) {
+  for (let i = 1; i <= neck * U(2); i++) {
     nx = frontX - Math.ceil(i / 2); ny = segCys[0] + i;
-    out.push(mode === 'skel' ? { x: nx, y: ny, z: 0, k: 'bone' } : { x: nx, y: ny, z: 0, col: colT });
-    if (mode === 'flesh') for (const dz of [-1, 1]) out.push({ x: nx, y: ny, z: dz, col: colT });
+    /* il collo è una colonna, non un filo: a griglia doppia un voxel solo sarebbe un capello */
+    for (const dz of (mode === 'flesh' ? [-1, 0, 1] : [0])) for (let d = 0; d < R - 1 || d < 1; d++)
+      out.push(mode === 'skel' ? { x: nx + d, y: ny, z: dz, k: 'bone' } : { x: nx + d, y: ny, z: dz, col: colT });
   }
   tagFrom(tNeck, 'torace'); // il collo appartiene al torace
   const tHead = out.length;
   if (r.head === 'none' && isBase) { // occhi sul davanti del corpo
     const push = (x, y, z) => out.push(mode === 'skel' ? { x, y, z, k: 'eye' } : { x, y, z, col: '#33291f' });
-    push(frontX + 1, segCys[0] + 1, -1); push(frontX + 1, segCys[0] + 1, 1);
-    headExtras(r, frontX + 1, segCys[0], mode, colT, out);
+    for (const s of [-1, 1]) for (let d = 0; d < R; d++) for (let e = 0; e < R; e++) push(frontX + 1 + d, segCys[0] + U(0.5) + e, s * U(1));
+    headExtras(r, frontX + U(1), segCys[0], mode, colT, out);
   } else {
+    /* la NUCA tocca il corpo: il cranio parte con la sua faccia posteriore su `hx`, quindi
+       hx dev'essere UNA casella prima del collo, non una unità di ricetta (a griglia doppia
+       due voxel lasciavano un vuoto e la testa si staccava — flood-fill al 43%). */
     const hx = nx - 1, hy = Math.max(1, ny);
-    const hz = spec.heads.length === 1 ? [0] : spec.heads.length === 2 ? [-2, 2] : [-3, 0, 3];
+    const hz = spec.heads.length === 1 ? [0] : spec.heads.length === 2 ? [-U(2), U(2)] : [-U(3), 0, U(3)];
     spec.heads.forEach((h, i) => {
       if (mode === 'skel') skullVoxels(h.sp, h.horns, hx, hy, hz[i], out);
       else fleshHead(h.sp, h.horns, hx, hy, hz[i], out);
-      if (hz[i]) out.push(mode === 'skel' ? { x: hx, y: hy, z: hz[i] > 0 ? hz[i] - 1 : hz[i] + 1, k: 'bone' } : { x: hx, y: hy, z: hz[i] > 0 ? hz[i] - 1 : hz[i] + 1, col: colT }); // giunzione teste laterali
+      if (hz[i]) for (let d = 0; d < R; d++) {                        // giunzione teste laterali
+        const jz = hz[i] > 0 ? hz[i] - U(1) + d : hz[i] + U(1) - d;
+        out.push(mode === 'skel' ? { x: hx, y: hy, z: jz, k: 'bone' } : { x: hx, y: hy, z: jz, col: colT });
+      }
     });
     headExtras(r, hx, hy, mode, colT, out);
   }
   tagFrom(tHead, 'cranio'); // (i corni sono già taggati dentro skullVoxels)
-  /* code: parte DENTRO la superficie posteriore (x0=backX-1) → sempre raccordate */
+  /* code: parte DENTRO la superficie posteriore → sempre raccordate */
   const tTail = out.length;
   const tls = isBase ? [chest] : spec.tails;
-  const tzs = tls.length === 1 ? [0] : tls.length === 2 ? [-1, 1] : [-2, 0, 2];
+  const tzs = tls.length === 1 ? [0] : tls.length === 2 ? [-U(1), U(1)] : [-U(2), 0, U(2)];
   tls.forEach((tsp, i) => {
     const kind0 = (BP[tsp.id] || {}).tail || r.tail || 'short';
     const kind = (kind0 === 'none' && !isBase) ? 'short' : kind0;
     const colX = spColor[tsp.id] || colT;
     const before = out.length;
-    tailVox(backX - 1, segCys[segCys.length - 1], kind, mode, colX, out);
+    tailVox(backX - U(1), segCys[segCys.length - 1], kind, mode, colX, out);
     if (tzs[i]) for (let k2 = before; k2 < out.length; k2++) out[k2].z += tzs[i];
   });
   tagFrom(tTail, 'coda');
@@ -381,30 +517,35 @@ function buildFromRecipe(spec, mode, opts) {
   return ded;
 }
 
-/* voxel del SINGOLO pezzo (zaino/negozio/museo): stesso modello del 3D, isolato */
+/* voxel del SINGOLO pezzo (zaino/negozio/museo): stesso modello del 3D, isolato.
+   Anche qui tutto in voxel fini, così un cranio nello zaino e lo stesso cranio nello
+   scheletro montato sono lo stesso disegno alla stessa scala. */
 export function partVoxels(spId, part) {
   const out = [];
   const r = BP[spId] || { seg: [2, 2], legs: [4, 1], tail: 'short' };
   const colT = spColor[spId] || '#c8b078';
-  if (part === 'cranio') skullVoxels({ id: spId }, Math.min(2, r.horns === undefined ? 1 : r.horns), 6, 2, 0, out);
+  if (part === 'cranio') skullVoxels({ id: spId }, Math.min(2, r.horns === undefined ? 1 : r.horns), U(6), U(2), 0, out);
   else if (part === 'torace') {
-    const segs = r.seg || [2]; let prevCx = null, prevR = 0;
+    const segs = (r.seg || [2]).map(v => U(v)); let prevCx = null, prevR = 0;
     segs.forEach(sr => {
-      const cx = prevCx === null ? sr : prevCx + prevR + sr - 1;
+      const cx = prevCx === null ? sr : prevCx + prevR + sr - R;
       segRing(cx, Math.max(...segs), 0, sr, 'skel', colT, out);
       prevCx = cx; prevR = sr;
     });
-  } else if (part === 'zampa') legVox(2, 6, 0, 2, 1, Math.max(1, (r.legs || [4, 1])[1] || 1), 'skel', colT, out);
-  else if (part === 'coda') tailVox(0, 3, (r.tail && r.tail !== 'none') ? r.tail : 'short', 'skel', colT, out);
-  else { // corno: spuntone curvo, più lungo per le specie cornute
-    const hlen = 4 + (r.horns ? 2 : 0);
-    for (let i = 0; i < hlen; i++) out.push({ x: Math.floor(i / 2), y: i, z: 0, k: i >= hlen - 2 ? 'shade' : 'bone' });
+  } else if (part === 'zampa') legVox(U(2), U(6), 0, U(2), 1, Math.max(1, (r.legs || [4, 1])[1] || 1), 'skel', colT, out);
+  else if (part === 'coda') tailVox(0, U(3), (r.tail && r.tail !== 'none') ? r.tail : 'short', 'skel', colT, out);
+  else { // corno: spuntone curvo che si assottiglia, più lungo per le specie cornute
+    const hlen = U(4 + (r.horns ? 2 : 0));
+    for (let i = 0; i < hlen; i++) {
+      const th = i < hlen * 0.5 ? R : 1;
+      for (let d = 0; d < th; d++) out.push({ x: Math.floor(i / 2), y: i, z: d, k: i >= hlen - R ? 'shade' : 'bone' });
+    }
   }
   return out;
 }
 
 /* montaggio museale: SOLO i pezzi consegnati, disposti in posa anatomica */
-const EX_OFF = { torace: [0, 0], cranio: [-7, 3], zampa: [3, -5], coda: [8, 1], corno: [-7, 9] };
+const EX_OFF = { torace: [0, 0], cranio: [-U(7), U(3)], zampa: [U(3), -U(5)], coda: [U(8), U(1)], corno: [-U(7), U(9)] };
 export function composedPartsVox(spId, parts) {
   const vox = [];
   for (const p of parts) {

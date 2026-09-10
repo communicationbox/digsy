@@ -2586,6 +2586,26 @@ sprites.applyLook();
   }
   check(`census: ali ${c.wings} · 6zampe ${c.legs6} · 8zampe ${c.legs8} · chele ${c.mand} · pungiglioni ${c.sting} · mazze ${c.club} · gusci ${c.shell} · fluttuanti ${c.float} · multi-segmento ${c.multiseg}`,
     c.wings >= 6 && c.legs6 >= 2 && c.legs8 >= 2 && c.mand >= 2 && c.sting >= 2 && c.club >= 3 && c.shell >= 4 && c.float >= 3 && c.multiseg >= 5);
+  /* RISOLUZIONE DEL MODELLO: i voxel sono FINI (R per unità di ricetta). Se qualcuno tornasse
+     a costruire in unità intere, le creature riavrebbero i pixel grossi il doppio del mondo —
+     il difetto che si vedeva a colpo d'occhio nel cortile e che nessuna misura coglieva. */
+  check('i modelli si costruiscono a risoluzione doppia (R=2)', bones.R === 2);
+  {
+    const misure = SPECIES.map(sp => {
+      const v = bones.buildFleshVoxels(bones.baseSpec(sp));
+      const xs = v.map(p => p.x), ys = v.map(p => p.y);
+      return Math.max(Math.max(...xs) - Math.min(...xs), Math.max(...ys) - Math.min(...ys)) + 1;
+    });
+    const ord = misure.slice().sort((a, b) => a - b);
+    const mediana = ord[ord.length >> 1], minSpan = ord[0];
+    /* la misura vera è che il modello sia in voxel FINI: un girino resta piccolo (è un
+       girino), ma la creatura tipica deve stare sopra i 20 voxel di lato lungo. Con il
+       modello a scala metà la mediana crollerebbe attorno a 12 e le creature tornerebbero a
+       essere disegnate con pixel grossi il doppio. */
+    check('le creature sono in voxel fini (mediana ' + mediana + ', minimo ' + minSpan + ')',
+      mediana >= 20 && minSpan >= 10);
+  }
+
   // connettività: le parti si raccordano sempre (flood-fill 26-vicini copre quasi tutto)
   const connected = vox => {
     const set = new Map(vox.map((v, i) => [v.x + ',' + v.y + ',' + v.z, i]));

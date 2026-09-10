@@ -128,6 +128,14 @@ async function main() {
         return G.intPos(2, 5);
       }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
         .then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
+       o il doppio (era il caso delle creature) */
+    else if (${JSON.stringify(vista)} === 'meraviglia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('gotolandmark').then(function(){ if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1500); }); }
+    /* 'libro' = una pagina del Libro dei Fossili: lo scheletro 3D gira lì dentro, ed è dove
+       si guarda da vicino la risoluzione del modello */
+    else if (${JSON.stringify(vista)} === 'libro') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('godmode').then(function(){ return G.debug(false); }).then(function(){ if(G.openBook) G.openBook(); }); }
     /* 'creature' = il cortile con le creature vive: è LÌ che si guarda la loro pixel art,
        accanto a Digsy e alle staccionate ridisegnate native */
     else if (${JSON.stringify(vista)} === 'creature') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
