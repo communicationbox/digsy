@@ -128,6 +128,20 @@ async function main() {
         return G.intPos(2, 5);
       }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
         .then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'barca' = in acqua, in barca: si guarda che lo scafo copra davvero le gambe (il
+       relitto in mare è il modo più diretto per finire sull'acqua) */
+    else if (${JSON.stringify(vista)} === 'barca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('gotowater'); })
+        .then(function(){ var P2 = G.player(); P2.dir = (new URLSearchParams(location.search).get('dir') || 'right'); P2.moving = false;
+          var S2 = G.state(); S2.tools.motorboat = new URLSearchParams(location.search).get('mezzo') === 'motoscafo';
+          if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1000); }); }
+    /* 'mezzo' = bici/pattini sul terreno: si guarda che il mezzo sia grande quanto Digsy */
+    else if (${JSON.stringify(vista)} === 'mezzo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('goditem').then(function(){
+        var S2 = G.state(), P2 = G.player(), q = new URLSearchParams(location.search);
+        S2.gear = q.get('mezzo') || 'bike'; P2.dir = q.get('dir') || 'right'; P2.moving = true;
+        if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1000);
+      }); }
     /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
        o il doppio (era il caso delle creature) */
     else if (${JSON.stringify(vista)} === 'meraviglia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
@@ -229,7 +243,9 @@ async function main() {
     const ch = spawn(CHROME, ['--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars',
       '--user-data-dir=' + mkdtempSync(join(tmpdir(), 'digsy-shot-')),
       '--window-size=' + size, '--virtual-time-budget=6000',
-      '--screenshot=' + dest, `http://127.0.0.1:${porta}/__shot.html`], { stdio: 'ignore' });
+      /* argomenti extra alla pagina (es. `npm run shot -- barca 400,400 dir=up`): alcune viste
+         hanno una variante da guardare — il verso in cui si guarda, la scheda aperta */
+      '--screenshot=' + dest, `http://127.0.0.1:${porta}/__shot.html?` + (process.argv.slice(4).find(a => a.includes('=')) || '')], { stdio: 'ignore' });
     const stacca = setTimeout(() => { try { ch.kill('SIGKILL'); } catch (e) {} risolvi(); }, 45000);
     ch.on('exit', () => { clearTimeout(stacca); risolvi(); });
   });

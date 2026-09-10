@@ -514,6 +514,22 @@ export const COMMANDS = {
     run: () => { const n = teleportToPark(); return n ? '🌳 ' + tr('Cortile', 'Yard') : tr('Casa non ancora trovata', 'Home not found yet'); } },
   gotosite: { type: 'action', help: 'gotosite — vai al sito di scavo più vicino',
     run: () => teleportToSite() ? '⛏️ ' + tr('Sito di scavo', 'Dig site') : tr('Nessun sito trovato vicino', 'No site found nearby') },
+  /* IN ACQUA, per davvero: la barca compare da sola sull'acqua, quindi per guardarla (o
+     fotografarla) serviva prima trovare il mare a occhio. `gotowreck` non basta: lascia a
+     riva. */
+  gotowater: { aliases: ['acqua', 'mare', 'water'], type: 'action', help: 'gotowater — vai sull\'acqua (la barca compare da sola)',
+    run: () => {
+      const t0x = Math.floor(P.x / TS), t0y = Math.floor(P.y / TS);
+      for (let r = 1; r < 220; r++) {
+        for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+          if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+          const tx = t0x + dx, ty = t0y + dy;
+          const t = baseTerrain(tx, ty);
+          if ((t === 0 || t === 1) && !townInfo(tx, ty)) { P.x = tx * TS + 8; P.y = ty * TS + 2; return '⛵ ' + tr('In acqua', 'On the water'); }
+        }
+      }
+      return tr('Nessuna acqua qui intorno', 'No water around here');
+    } },
   gotowreck: { type: 'action', help: 'gotowreck — vai al relitto in mare più vicino (attiva la barca)',
     run: () => teleportToWreck() ? '🚢 ' + tr('Relitto (E per frugare)', 'Wreck (E to search)') : tr('Nessun relitto trovato vicino', 'No wreck found nearby') },
   gotolandmark: { aliases: ['goland'], type: 'action', help: 'gotolandmark — vai al landmark più vicino',

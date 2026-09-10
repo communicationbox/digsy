@@ -3946,6 +3946,54 @@ sprites.applyLook();
   }
 }
 
+/* ---------- IN BARCA NON SI VEDONO LE GAMBE ---------- */
+{
+  /* Il personaggio ridisegnato a 32px ha le gambe più in alto e il corpo più largo di prima:
+     lo scafo, tarato sulla vecchia figura, era più stretto di lui e partiva troppo in basso —
+     si vedevano i polpacci spuntare fuori dalla barca (segnalato con foto).
+     Qui si MISURA lo scafo come lo vede il giocatore: si tiene il conto delle trasformazioni
+     (i mezzi disegnati a mano a mezza scala vengono raddoppiati), e le misure sono prese
+     RISPETTO allo scafo, perché il beccheggio muove barca ed eroe insieme. */
+  const render2 = await import('../src/render.js');
+  const { ctx: ctx2 } = await import('../src/screen.js');
+  const { P: P2 } = state;
+  const scafo = (disegna) => {
+    const rects = [];
+    let tr = { x: 0, y: 0, kx: 1, ky: 1 };
+    const pila = [];
+    const oldFill = ctx2.fillRect, oldSave = ctx2.save, oldRestore = ctx2.restore, oldTr = ctx2.translate, oldSc = ctx2.scale;
+    /* lo specchio (verso sinistra) ha kx negativo: il rettangolo va riportato con la sua
+       larghezza positiva, altrimenti "largo -30" non somiglia a niente */
+    ctx2.fillRect = (x, y, w, h) => {
+      const x0 = tr.x + x * tr.kx, w0 = w * tr.kx;
+      rects.push([w0 < 0 ? x0 + w0 : x0, tr.y + y * tr.ky, Math.abs(w0), Math.abs(h * tr.ky)]);
+    };
+    ctx2.save = () => pila.push({ ...tr });
+    ctx2.restore = () => { tr = pila.pop() || { x: 0, y: 0, kx: 1, ky: 1 }; };
+    ctx2.translate = (x, y) => { tr.x += x * tr.kx; tr.y += y * tr.ky; };
+    ctx2.scale = (kx, ky) => { tr.kx *= kx; tr.ky *= (ky === undefined ? kx : ky); };
+    try { disegna(); } finally { ctx2.fillRect = oldFill; ctx2.save = oldSave; ctx2.restore = oldRestore; ctx2.translate = oldTr; ctx2.scale = oldSc; }
+    const largo = rects.filter(r => r[2] >= 18).sort((a2, b2) => a2[1] - b2[1]);   // i pezzi di scafo
+    if (!largo.length) return null;
+    const top = largo[0][1], w = Math.max(...largo.map(r => r[2]));
+    const fondo = Math.max(...largo.map(r => r[1] + r[3])) - top;
+    const buchi = [];
+    for (let x = -7; x <= 7; x += 2) for (let y = top + 1; y <= top + 9; y += 2) {
+      if (!rects.some(r => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3])) buchi.push(x + ',' + y);
+    }
+    return { w, fondo, buchi };
+  };
+  for (const dir of ['right', 'left', 'up', 'down']) {
+    P2.dir = dir; P2.moving = false; P2.digging = null;
+    for (const [nome, disegna] of [['barca', () => render2.drawBoat(0, 0, true)], ['motoscafo', () => render2.drawMotorboat(0, 0, true)]]) {
+      const m = scafo(disegna);
+      check(nome + ' (' + dir + '): lo scafo è largo quanto il corpo', !!m && m.w >= 20, m ? m.w + 'px' : 'nessuno scafo');
+      check(nome + ' (' + dir + '): ed è fondo abbastanza da nascondere le gambe', !!m && m.fondo >= 8, m ? m.fondo + 'px' : '—');
+      check(nome + ' (' + dir + '): pieno per tutta la larghezza del corpo', !!m && m.buchi.length === 0, m ? m.buchi.slice(0, 4).join(' ') : '—');
+    }
+  }
+}
+
 /* ---------- ANTEPRIME DEL PERSONAGGIO: mai a scala frazionaria ---------- */
 {
   /* La canvas dell'editor era 60×22 mentre il disegno è tarato su 120×44: il personaggio

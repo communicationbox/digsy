@@ -858,14 +858,36 @@ function drawPlatinumAura(sx, sy) {
    così drawSprite li posa esattamente a (sx, y0) — WYSIWYG con l'editor, e spostare un pixel al
    bordo non riancora più nulla. 'side' vale per left/right (a sinistra si specchia). */
 const VEH_FRAME = { w: 32, h: 34, ox: 16, oy: 12 };
+/* I MEZZI DISEGNATI A MANO SONO A SCALA VECCHIA. Motoscafo, bici e pattini in banca sono
+   stati disegnati quando Digsy era alto 16px: dentro la cornice 32×34 occupano una dozzina di
+   pixel, e col personaggio ridisegnato a 32 il mezzo diventa un giocattolo sotto la pancia,
+   con le gambe che spuntano fuori (segnalato con foto). Finché restano così si disegnano
+   RADDOPPIATI, che è la loro taglia vera; appena verranno ridisegnati a piena cornice nello
+   Sprite Studio, il raddoppio si spegne da solo e si torna al pixel nativo. */
+const vehFit = new Map();
+function vehSpriteScale(id) {
+  if (vehFit.has(id)) return vehFit.get(id);
+  const d = spriteDef(id);
+  let k = 1;
+  if (d) {
+    let mn = 9e9, mx = -9e9;
+    d.rows.forEach(row => { for (let x = 0; x < row.length; x++) if (row[x] !== '.') { mn = Math.min(mn, x); mx = Math.max(mx, x); } });
+    if (mx >= mn && mx - mn + 1 < 24) k = 2;                 // più stretto del corpo di Digsy: è mezza scala
+  }
+  vehFit.set(id, k);
+  return k;
+}
 function bankVeh(kind, sx, y0) {
   const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
   const id = 'vehicle:' + kind + ':' + view;
   if (!hasSprite(id)) return false;
+  const k = vehSpriteScale(id);
   const flip = P.dir === 'left';
-  if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
-  drawSprite({ rect }, id, sx, y0);
-  if (flip) ctx.restore();
+  ctx.save();
+  if (flip) { ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
+  if (k !== 1) { ctx.translate(sx, y0); ctx.scale(k, k); drawSprite({ rect }, id, 0, 0); }
+  else drawSprite({ rect }, id, sx, y0);
+  ctx.restore();
   return true;
 }
 function drawPlayer() {
@@ -1097,13 +1119,17 @@ export function drawFlyingMount(sx, sy) {
 export function drawBoatFB(sx, y0, up) {
   /* FASE 2: nativo (chiamata da drawBoat, ora anche lei nativa) — bordo con filo di luce
      vero oltre allo scafo, non solo due tinte piatte. */
-  rect(sx - 10, y0 + 16, 22, 12, '#8a5f38'); rect(sx - 10, y0 + 16, 22, 4, '#a97a4c'); // scafo
-  rect(sx - 10, y0 + 20, 3, 6, shade8('#8a5f38', 1.15)); rect(sx + 7, y0 + 20, 3, 6, shade8('#8a5f38', 0.75)); // fiancata con volume
-  px(sx - 12, y0 + 18, '#8a5f38'); px(sx + 10, y0 + 18, '#8a5f38');
-  rect(sx - 8, y0 + 28, 18, 2, '#5c4229');
-  if (up) { rect(sx - 4, y0 + 14, 10, 2, '#a97a4c'); px(sx, y0 + 12, '#a97a4c'); }   // prua a punta in alto (si allontana)
-  else { rect(sx - 6, y0 + 28, 14, 2, '#8a5f38'); rect(sx - 4, y0 + 30, 10, 2, '#5c4229'); px(sx, y0 + 32, '#5c4229'); } // poppa verso di noi
-  px(sx - 8, y0 + 34, '#bfe9f4'); px(sx + 6, y0 + 34, '#bfe9f4');                  // riflesso
+  /* IL BORDO ARRIVA ALLA VITA. Con il personaggio ridisegnato a 32px le gambe finiscono più
+     in alto di prima: lo scafo che partiva da +16 ne lasciava scoperti quattro pixel e si
+     vedevano i polpacci spuntare dallo scafo (segnalato con foto). Ed è largo quanto il
+     personaggio, non meno: di prua un busto più largo della barca sembra seduto sull'acqua. */
+  rect(sx - 14, y0 + 12, 30, 16, '#8a5f38'); rect(sx - 14, y0 + 12, 30, 4, '#a97a4c'); // scafo
+  rect(sx - 14, y0 + 16, 4, 10, shade8('#8a5f38', 1.15)); rect(sx + 12, y0 + 16, 4, 10, shade8('#8a5f38', 0.75)); // fiancata con volume
+  px(sx - 16, y0 + 16, '#8a5f38'); px(sx + 16, y0 + 16, '#8a5f38');
+  rect(sx - 12, y0 + 28, 26, 2, '#5c4229');
+  if (up) { rect(sx - 5, y0 + 10, 12, 2, '#a97a4c'); px(sx, y0 + 8, '#a97a4c'); }   // prua a punta in alto (si allontana)
+  else { rect(sx - 8, y0 + 28, 18, 2, '#8a5f38'); rect(sx - 5, y0 + 30, 12, 2, '#5c4229'); px(sx, y0 + 32, '#5c4229'); } // poppa verso di noi
+  px(sx - 10, y0 + 34, '#bfe9f4'); px(sx + 8, y0 + 34, '#bfe9f4');                  // riflesso
 }
 export function drawBoat(sx, sy, noHero) {
   /* FASE 2: nativo — niente più contro-scala per l'eroe (drawHero è già nativa, qui non
@@ -1125,10 +1151,10 @@ export function drawBoat(sx, sy, noHero) {
     if (P.dir === 'up' || P.dir === 'down') drawBoatFB(sx, y0, P.dir === 'up'); // fronte/retro: scafo di prua/poppa
     else {
       /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
-      rect(sx - 20, y0 + 16, 40, 12, '#8a5f38'); rect(sx - 20, y0 + 16, 40, 4, '#a97a4c');
-      rect(sx - 20, y0 + 20, 6, 8, shade8('#8a5f38', 1.15)); rect(sx + 14, y0 + 20, 6, 8, shade8('#8a5f38', 0.7)); // fiancata: luce a prua / ombra a poppa
+      rect(sx - 20, y0 + 12, 40, 16, '#8a5f38'); rect(sx - 20, y0 + 12, 40, 4, '#a97a4c');
+      rect(sx - 20, y0 + 16, 6, 12, shade8('#8a5f38', 1.15)); rect(sx + 14, y0 + 16, 6, 12, shade8('#8a5f38', 0.7)); // fiancata: luce a prua / ombra a poppa
       rect(sx - 6, y0 + 24, 12, 2, shade8('#8a5f38', 0.85)); // linea di galleggiamento
-      px(sx - 22, y0 + 18, '#8a5f38'); px(sx + 20, y0 + 18, '#8a5f38');
+      px(sx - 22, y0 + 15, '#8a5f38'); px(sx + 20, y0 + 15, '#8a5f38');
       rect(sx - 16, y0 + 28, 32, 2, '#5c4229'); rect(sx - 16, y0 + 28, 32, 1, shade8('#5c4229', 1.3)); // bordo di poppa con un filo di luce
       px(sx - 12, y0 + 32, '#bfe9f4'); px(sx + 10, y0 + 32, '#bfe9f4'); // riflesso sull'acqua
     }
@@ -1147,10 +1173,10 @@ export function drawBoat(sx, sy, noHero) {
 /* motoscafo di PRUA/POPPA (su/giù): scafo bianco compatto + parabrezza/motore secondo il verso. */
 export function drawMotorboatFB(sx, y0, up) {
   /* FASE 2: nativo — scafo con volume laterale, non solo scafo+banda piatti. */
-  rect(sx - 10, y0 + 16, 22, 10, '#eef2f4'); rect(sx - 10, y0 + 22, 22, 4, '#3d8ba0'); // scafo + banda
-  rect(sx - 10, y0 + 18, 3, 6, shade8('#eef2f4', 0.92)); rect(sx + 7, y0 + 18, 3, 6, shade8('#eef2f4', 0.85)); // fiancata con volume
-  px(sx - 12, y0 + 18, '#eef2f4'); px(sx + 10, y0 + 18, '#eef2f4');
-  rect(sx - 8, y0 + 26, 18, 2, '#2b6274');
+  rect(sx - 14, y0 + 12, 30, 14, '#eef2f4'); rect(sx - 14, y0 + 22, 30, 4, '#3d8ba0'); // scafo + banda (bordo alla vita)
+  rect(sx - 14, y0 + 14, 4, 10, shade8('#eef2f4', 0.92)); rect(sx + 12, y0 + 14, 4, 10, shade8('#eef2f4', 0.85)); // fiancata con volume
+  px(sx - 16, y0 + 16, '#eef2f4'); px(sx + 16, y0 + 16, '#eef2f4');
+  rect(sx - 12, y0 + 26, 26, 2, '#2b6274');
   /* il MOTORE è a POPPA: si vede quando ti ALLONTANI (di spalle), non quando vieni verso l'utente */
   if (up) { rect(sx - 4, y0 + 26, 10, 6, '#33291f'); px(sx, y0 + 32, '#20323f'); }  // di spalle: motore fuoribordo verso di noi
   else { rect(sx - 4, y0 + 24, 10, 4, '#bfe9f4'); rect(sx - 4, y0 + 24, 10, 2, '#8fd0e6'); rect(sx - 4, y0 + 28, 10, 2, '#eef2f4'); px(sx, y0 + 30, '#eef2f4'); } // di fronte: parabrezza + prua verso di noi
@@ -1175,9 +1201,9 @@ export function drawMotorboat(sx, sy, noHero) {
     if (P.dir === 'up' || P.dir === 'down') drawMotorboatFB(sx, y0, P.dir === 'up'); // fronte/retro
     else {
       /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
-      rect(sx - 20, y0 + 16, 40, 10, '#eef2f4'); rect(sx - 20, y0 + 22, 40, 4, '#3d8ba0'); // banda
-      px(sx - 24, y0 + 20, '#eef2f4'); px(sx - 22, y0 + 18, '#eef2f4');                    // prua sinistra
-      px(sx + 22, y0 + 20, '#eef2f4'); px(sx + 20, y0 + 18, '#eef2f4');                    // poppa
+      rect(sx - 20, y0 + 12, 40, 14, '#eef2f4'); rect(sx - 20, y0 + 22, 40, 4, '#3d8ba0'); // banda (bordo alla vita)
+      px(sx - 24, y0 + 18, '#eef2f4'); px(sx - 22, y0 + 15, '#eef2f4');                    // prua sinistra
+      px(sx + 22, y0 + 18, '#eef2f4'); px(sx + 20, y0 + 15, '#eef2f4');                    // poppa
       rect(sx - 18, y0 + 26, 36, 2, '#2b6274');
       rect(sx - 4, y0 + 8, 10, 8, '#bfe9f4'); rect(sx - 4, y0 + 8, 10, 2, '#8fd0e6');       // parabrezza + console
       rect(sx - 6, y0 + 14, 14, 2, '#9aa3a8');
