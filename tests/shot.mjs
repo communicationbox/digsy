@@ -142,6 +142,18 @@ async function main() {
         S2.gear = q.get('mezzo') || 'bike'; P2.dir = q.get('dir') || 'right'; P2.moving = true;
         if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1000);
       }); }
+    /* 'cancello' = fuori dal cortile, davanti al cancello chiuso a chiave: da qui lo si deve
+       poter riaprire con E (ed è il punto in cui è stato segnalato che non si apre più) */
+    else if (${JSON.stringify(vista)} === 'cancello') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('gotopark').then(function(){
+        var S2 = G.state(), P2 = G.player();
+        S2.gateLocked = new URLSearchParams(location.search).get('aperto') !== '1';
+        return G.yard();
+      }).then(function(y){
+        var P2 = G.player();
+        P2.x = y.cx * 32 + 16; P2.y = (y.y1 + 1) * 32 + 16 - 26; P2.dir = 'up';
+        return G.updatePrompt && G.updatePrompt();
+      }).then(function(){ if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1000); }); }
     /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
        o il doppio (era il caso delle creature) */
     else if (${JSON.stringify(vista)} === 'meraviglia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

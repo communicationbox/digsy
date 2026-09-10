@@ -3357,6 +3357,20 @@ sprites.applyLook();
        non oltre il cancello) o lo si sblocca da fuori più tardi. Da DENTRO, E sul cancello
        non lo sblocca (nearbyLockedGate è scoperto solo da fuori): l'unica uscita da lì è il
        portale, che infatti resta a portata. */
+    /* DA FUORI si riapre sempre, e ora con DUE caselle di tolleranza: col tocco ci si ferma
+       dove capita, e con una casella sola l'azione compariva solo incastrandosi nel battente.
+       E il PROMPT lo dice: prima davanti al cancello si leggeva "Compagno e cortile", cioè
+       l'azione che il tasto lì non fa — su mobile voleva dire restare fuori da casa propria
+       senza sapere come rientrare (segnalato). */
+    for (const d of [1, 2]) {
+      P.x = pYard.cx * TS + 8; P.y = (pYard.y1 + d) * TS + 2;
+      check('da fuori (a ' + d + ' casella dal cancello) si può riaprire', gameplay.nearbyLockedGate() === true);
+      ui.updatePrompt();
+      const pr = document.getElementById('prompt');
+      check('e il prompt dice proprio quello', /cancello|gate/i.test(String(pr && pr.innerHTML)), String(pr && pr.innerHTML).slice(0, 60));
+    }
+    P.x = (pYard.cx + 4) * TS + 8; P.y = (pYard.y1 + 1) * TS + 2;
+    check('ma non da un angolo qualsiasi del recinto', gameplay.nearbyLockedGate() === false);
     P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - 1) * TS + 2; // appena dentro il cancello
     check('da dentro, E sul cancello non lo sblocca', gameplay.nearbyLockedGate() === false);
     /* IL TONO ARRIVA QUI: avvicinandosi al cancello DA DENTRO il cortile — non al momento del

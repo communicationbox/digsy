@@ -403,7 +403,10 @@ export function nearbyLockedGate() {
   if (!S.gateLocked) return false;
   const p = yardRect(); if (!p) return false;
   const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
-  return (tx === p.cx - 1 || tx === p.cx) && ty === p.y1 + 1; // subito fuori dal cancello
+  /* DUE caselle di tolleranza davanti al cancello, non una: camminando col tocco ci si ferma
+     dove capita, e con una casella sola l'azione compariva solo se ci si incastrava contro il
+     battente. Le colonne restano quelle del cancello (non si apre da un angolo del recinto). */
+  return (tx === p.cx - 1 || tx === p.cx) && (ty === p.y1 + 1 || ty === p.y1 + 2);
 }
 export function openLockedGate() {
   S.gateLocked = false;
