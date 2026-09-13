@@ -3722,7 +3722,7 @@ sprites.applyLook();
       const stuckBefore = inter.interiorSolid(inter.INT.x, inter.INT.y);
       inter.nudgeOffFurniture();
       check('il mobile appena piazzato sotto i piedi diventa solido', stuckBefore === true);
-      check('nudgeOffFurniture sposta via dal mobile: non più incastrati', inter.interiorSolid(inter.INT.x, inter.INT.y) === false);
+      check('nudgeOffFurniture sposta via dal mobile: non più incastrati', inter.intCollide(inter.INT.x, inter.INT.y) === false);
 
       /* NON SI RESTA INCASTRATI, MAI. Con i mobili 2×2 spostarsi di UNA casella non basta:
          quella accanto può essere ancora dentro lo stesso mobile, e in un angolo le altre
@@ -3738,7 +3738,8 @@ sprites.applyLook();
         check('un 2×2 si piazza anche nell\'angolo', house.tryPlaceFurniture(0, 1, 2, letto2.id) === true);
         check('e ci si ritrova dentro (la cella è diventata solida)', inter.interiorSolid(inter.INT.x, inter.INT.y) === true);
         inter.nudgeOffFurniture();
-        check('dopo il piazzamento NON si resta incastrati', inter.interiorSolid(inter.INT.x, inter.INT.y) === false,
+        /* si misura con la scatola dei PIEDI (intCollide), la stessa con cui si cammina in casa */
+        check('dopo il piazzamento NON si resta incastrati', inter.intCollide(inter.INT.x, inter.INT.y) === false,
           'x=' + inter.INT.x + ' y=' + inter.INT.y);
         /* e nemmeno con la stanza quasi piena: si finisce comunque su una casella libera */
         S.house.rooms[0].furn = [];
@@ -3747,9 +3748,27 @@ sprites.applyLook();
         }
         inter.INT.x = 3 * TS + 8; inter.INT.y = 4 * TS + 8;
         inter.nudgeOffFurniture();
-        check('e nemmeno in una stanza quasi piena', inter.interiorSolid(inter.INT.x, inter.INT.y) === false,
+        check('e nemmeno in una stanza quasi piena', inter.intCollide(inter.INT.x, inter.INT.y) === false,
           'x=' + inter.INT.x + ' y=' + inter.INT.y);
         S.house.rooms[0].furn = prima;
+      }
+
+      /* IN CASA si urta coi PIEDI: la profondità si decide coi piedi (y+12), e con la scatola
+         vecchia (y..y+5) i piedi entravano 7px dentro una sedia — Digsy finiva disegnato dietro
+         lo schienale stando davanti. Si cammina verso il basso contro una sedia e si pretende
+         che i piedi restino FUORI dal suo ingombro. */
+      {
+        const sedia = 'boschi_chair';
+        if (!S.furnOwned.includes(sedia)) S.furnOwned.push(sedia);
+        const primaS = S.house.rooms[0].furn.slice();
+        S.house.rooms[0].furn = [];
+        house.tryPlaceFurniture(0, 4, 4, sedia);
+        inter.INT.x = 4 * TS + 16; inter.INT.y = 2 * TS;
+        let passi = 0;
+        while (!inter.intCollide(inter.INT.x, inter.INT.y + 1) && passi++ < 200) inter.INT.y += 1;
+        const piedi = inter.INT.y + 12;
+        check('camminando contro una sedia, i piedi restano FUORI dal suo ingombro', piedi <= 4 * TS, 'piedi a ' + piedi + ', sedia da ' + 4 * TS);
+        S.house.rooms[0].furn = primaS;
       }
 
       /* piazzare DAVANTI ALLA PORTA: quella casella è dove si ricompare rientrando nella
@@ -4170,6 +4189,24 @@ sprites.applyLook();
     painted.length = 0;
     furnArt.drawPaperBand(g, 'prati_paper', 0, 0, 320, 42);
     check('la carta da parati disegna motivo e battiscopa', painted.length >= 4);
+  }
+  /* ---- COPERTURE: un mobile non copre la faccia di Digsy ---- */
+  {
+    /* NESSUN pezzo sale sopra la sua casella più di RISE_MAX: Digsy è alto 32, e la sedia che
+       saliva di 22 gli copriva la faccia stando fra un tavolo e la sedia ("palesi errori di
+       copertura"). Si misura il DISEGNO vero — il rettangolo più alto dipinto — non la
+       tabella, che potrebbe mentire. */
+    const alti = [];
+    for (const id of allIds) {
+      const it = FURN_BY_ID[id];
+      if (['wall', 'paper', 'ground'].includes(it.place)) continue;
+      let minY = 0;
+      const g = { rect: (x, y) => { minY = Math.min(minY, y); }, px: (x, y) => { minY = Math.min(minY, y); }, shadow: () => {}, shade8: h => h };
+      try { furnArt.drawFurnPiece(g, id, 0, 0, 32 * (it.w || 1), 32 * (it.h || 1), 1000); } catch (e) { /* contato altrove */ }
+      if (-minY > furnArt.RISE_MAX) alti.push(id + ' (' + (-minY) + 'px)');
+      if (-minY > furnArt.furnRise(id) + 1) alti.push(id + ': la tabella dice ' + furnArt.furnRise(id) + ' ma il disegno sale di ' + (-minY));
+    }
+    check('nessun mobile sale oltre ' + furnArt.RISE_MAX + 'px (non copre la faccia) e la tabella dice il vero', alti.length === 0, alti.join(' · '));
   }
   /* ---- miniatura: lo STESSO disegno del mondo, dentro un riquadro ---- */
   {

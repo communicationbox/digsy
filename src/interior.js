@@ -368,7 +368,9 @@ export function houseFloorHere() {
 export function nudgeOffFurniture() {
   if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return;
   const gx = Math.floor(INT.x / TS), gy = Math.floor(INT.y / TS);
-  if (!interiorSolid(INT.x, INT.y)) return;
+  /* si guarda la scatola dei PIEDI (intCollide), la stessa con cui si cammina: controllando un
+     punto solo si poteva restare coi piedi dentro il mobile e non muoversi più */
+  if (!intCollide(INT.x, INT.y)) return;
   /* laterale/su PRIMA di giù: verso il basso, dalla cella d'ingresso, si scivola dritti nella
      zona che fa tornare all'atrio (stepHouseNav/onDoor) — un rimbalzo continuo, non uno
      spostamento (segnalato: "non entra neanche nella stanza dal corridoio"). */
@@ -381,7 +383,7 @@ export function nudgeOffFurniture() {
     anelli.sort((a, b) => (Math.abs(a[0]) + a[1] * 0.5) - (Math.abs(b[0]) + b[1] * 0.5));  // lati e su prima di giù
     for (const [dx, dy] of anelli) {
       const nx = (gx + dx) * TS + 8, ny = (gy + dy) * TS + 8;
-      if (!interiorSolid(nx, ny)) { INT.x = nx; INT.y = ny; return; }
+      if (!intCollide(nx, ny)) { INT.x = nx; INT.y = ny; return; }
     }
   }
   const e = roomEntryPoint();
@@ -460,9 +462,22 @@ export function intCollide(x, y) {
      saltano il bancone, l'uscita e la cutscene del Curatore (provato: 5 test rossi).
      Allinearla a body.js si può, ma vuol dire ritarare le stanze e guardarle una per una;
      va fatto come lavoro a sé, non come effetto collaterale. */
+  /* IN CASA si urta coi PIEDI. L'ordine di disegno fra Digsy e i mobili si decide coi piedi
+     (y+12, dove sta l'ombra), mentre la scatola qui sopra sta dieci pixel più su: i piedi
+     entravano dentro l'ingombro di una sedia e Digsy veniva disegnato DIETRO lo schienale pur
+     stando davanti (segnalato con foto: "l'omino dovrebbe stare fra la sedia e il tavolo").
+     Nelle stanze a mestiere resta la scatola vecchia per il motivo scritto sopra; la casa non
+     ha banconi, NPC né cutscene tarati su quel punto. */
+  if (INT.b && INT.b.type === 'house' && INT.houseRoom != null) {
+    return interiorSolid(x - BODY_HW, y + FOOT_TOP) || interiorSolid(x + BODY_HW, y + FOOT_TOP)
+      || interiorSolid(x - BODY_HW, y + FOOT_BOT) || interiorSolid(x + BODY_HW, y + FOOT_BOT);
+  }
   return interiorSolid(x - BODY_HW, y) || interiorSolid(x + BODY_HW, y)
     || interiorSolid(x - BODY_HW, y + 5) || interiorSolid(x + BODY_HW, y + 5);
 }
+/* la fascia dei PIEDI in casa, rispetto all'ancora INT.y: l'ombra (e quindi la profondità) sta
+   a +12, e i piedi occupano i pixel appena sopra */
+export const FOOT_TOP = 8, FOOT_BOT = 12;
 export function updateInterior(dt, keys, speed) {
   if (INT.say) { INT.say.t -= dt; if (INT.say.t <= 0) INT.say = null; } // scade il fumetto
   if (CUT.on) { INT.moving = false; stepCut(dt); return; } // cutscene: input bloccato (Maestro fermo)

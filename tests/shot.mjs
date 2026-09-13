@@ -186,6 +186,18 @@ async function main() {
         return G.intPos(3, 5);
       }).then(function(){ return G.updatePrompt && G.updatePrompt(); })
         .then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'profondita' = Digsy fra una sedia (sopra) e un tavolo (sotto): deve stare DAVANTI alla
+       sedia e DIETRO al tavolo. Parametri: px,py = posizione in caselle (anche frazionarie) */
+    else if (${JSON.stringify(vista)} === 'profondita') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('house').then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.house(); }).then(function(hm){
+        var S = G.state(), q = new URLSearchParams(location.search);
+        ['boschi_chair', 'prati_table', 'prati_ground'].forEach(function (id) { if (S.furnOwned.indexOf(id) < 0) S.furnOwned.push(id); });
+        S.house.rooms[0].furn = []; hm.cancelHold();
+        hm.applyBackdrop(0, 'prati_ground');
+        hm.tryPlaceFurniture(0, 4, +(q.get('cy') || 2), 'boschi_chair', 0);
+        hm.tryPlaceFurniture(0, 3.5, +(q.get('ty') || 4), 'prati_table', 0);
+        return G.intPos(+(q.get('px') || 4), +(q.get('py') || 3));
+      }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
        rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
     else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

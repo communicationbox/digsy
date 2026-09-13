@@ -45,7 +45,14 @@ export function artCategory(id) {
 
 /* quanto un pezzo sfora VERSO L'ALTO oltre la sua casella (px). È ciò che dà l'altezza: un
    letto ha la testiera, una lampada è tutta in verticale, un tappeto è raso terra. */
-const RISE = { rug: 0, bed: 14, table: 12, chair: 22, chest: 14, hearth: 20, crystal: 22, plant: 22, lamp: 30, pedestal: 26, box: 14, wall: 0, paper: 0, ground: 0 };
+/* NESSUN MOBILE SALE PIÙ DI 12px sopra la sua casella: Digsy è alto 32, e un pezzo che si alza
+   di più gli copre la FACCIA quando ci passa dietro. La sedia saliva di 22 — più alta di lui —
+   e stando fra un tavolo e la sedia si vedevano solo i capelli sopra lo schienale (segnalato
+   con foto: "palesi errori di copertura"). Lampade, piante, cristalli e piedistalli crescono
+   DENTRO la loro casella (stretti, non coprono), quindi qui valgono quasi zero. Questi numeri
+   servono anche a capire dove si clicca su un mobile: devono dire la verità sul disegno. */
+const RISE = { rug: 0, bed: 12, table: 12, chair: 10, chest: 10, hearth: 12, crystal: 0, plant: 0, lamp: 4, pedestal: 0, box: 8, wall: 0, paper: 0, ground: 0 };
+export const RISE_MAX = 12;
 export function furnRise(id) { return RISE[artCategory(id)] ?? 14; }
 
 /* palette di un pezzo dal suo colore: quattro toni veri (luce/base/ombra/contorno), non due
@@ -85,8 +92,8 @@ function drawRug(g, x, y, w, h, col) {
 }
 /* LETTO: materasso + coperta risvoltata + cuscino + testiera che sale sopra la casella */
 function drawBed(g, x, y, w, h, col) {
-  const p = pal(g, col), top = y - 14;
-  g.rect(x + 2, top, w - 4, 16, WOOD_D);                    // testiera
+  const p = pal(g, col), top = y - 12;
+  g.rect(x + 2, top, w - 4, 16, WOOD_D);                    // testiera (sale di 12, non di più)
   g.rect(x + 3, top + 1, w - 6, 12, WOOD);
   g.rect(x + 3, top + 1, w - 6, 3, WOOD_L);
   g.rect(x + 1, y + 2, w - 2, h - 4, WOOD_D);               // struttura
@@ -114,28 +121,30 @@ function drawTable(g, x, y, w, h, col) {
 /* SEDIA/POLTRONA/TRONO: seduta + schienale alto + BRACCIOLI che spuntano ai lati. Senza i
    braccioli la sagoma è una cassapanca (già segnalato sul modello voxel). */
 function drawChair(g, x, y, w, h, col) {
-  const p = pal(g, col), top = y - 22;
+  const p = pal(g, col), top = y - 10;
   /* i legni scuri (poltrona di corteccia, trono di pietra) hanno base, luce e ombra tutte
      scure: a questa scala si fondono in un blocco nero e la sagoma sparisce. Il CUSCINO
      prende un salto di tono vero — stoffa contro legno, come in un mobile vero. */
   const cush = g.shade8(col, 2.1);
-  g.rect(x + 6, top, w - 12, 22, p.line);                   // schienale
-  g.rect(x + 7, top + 1, w - 14, 19, p.base);
+  /* schienale nella metà alta della casella (e appena sopra), seduta in quella bassa: la sedia
+     vista di tre quarti occupa la sua casella in profondità, non ci si impila sopra */
+  g.rect(x + 6, top, w - 12, 20, p.line);                   // schienale
+  g.rect(x + 7, top + 1, w - 14, 17, p.base);
   g.rect(x + 7, top + 1, w - 14, 3, p.lite);
-  g.rect(x + 9, top + 6, w - 18, 8, cush);                  // schienale imbottito
-  g.rect(x + 3, top + 12, 4, 14, WOOD_D);                   // braccioli, più larghi della seduta
-  g.rect(x + w - 7, top + 12, 4, 14, WOOD_D);
-  g.rect(x + 4, y + 4, w - 8, h - 10, p.line);              // seduta
-  g.rect(x + 5, y + 5, w - 10, h - 12, cush);
-  g.rect(x + 5, y + 5, w - 10, 2, g.shade8(col, 2.6));
+  g.rect(x + 9, top + 5, w - 18, 7, cush);                  // schienale imbottito
+  g.rect(x + 3, y + 6, 4, 14, WOOD_D);                      // braccioli, più larghi della seduta
+  g.rect(x + w - 7, y + 6, 4, 14, WOOD_D);
+  g.rect(x + 4, y + 10, w - 8, h - 16, p.line);             // seduta
+  g.rect(x + 5, y + 11, w - 10, h - 18, cush);
+  g.rect(x + 5, y + 11, w - 10, 2, g.shade8(col, 2.6));
   g.rect(x + 5, y + h - 7, w - 10, 2, p.dark);
   g.rect(x + 5, y + h - 5, 3, 4, WOOD_D); g.rect(x + w - 8, y + h - 5, 3, 4, WOOD_D);
 }
 /* BAULE: cassa + coperchio bombato + serratura */
 function drawChest(g, x, y, w, h, col) {
-  const p = pal(g, col), top = y - 14;
-  g.rect(x + 3, top + 4, w - 6, h + 6, p.line);
-  g.rect(x + 4, top + 5, w - 8, h + 4, p.base);
+  const p = pal(g, col), top = y - 10;
+  g.rect(x + 3, top + 4, w - 6, h + 2, p.line);
+  g.rect(x + 4, top + 5, w - 8, h, p.base);
   g.rect(x + 4, top, w - 8, 7, p.dark);                     // coperchio
   g.rect(x + 5, top + 1, w - 10, 4, p.lite);
   g.rect(x + 4, top + 8, w - 8, 2, WOOD_D);                 // cinghia
@@ -144,9 +153,9 @@ function drawChest(g, x, y, w, h, col) {
 }
 /* FOCOLARE: pietre + fuoco ANIMATO (fase solo dal tempo) */
 function drawHearth(g, x, y, w, h, col, t) {
-  const p = pal(g, col), top = y - 20;
-  g.rect(x + 2, top, w - 4, h + 18, p.line);
-  g.rect(x + 3, top + 1, w - 6, h + 16, p.base);
+  const p = pal(g, col), top = y - 12;
+  g.rect(x + 2, top, w - 4, h + 10, p.line);
+  g.rect(x + 3, top + 1, w - 6, h + 8, p.base);
   for (let sx = x + 5; sx < x + w - 6; sx += 7) {           // conci di pietra
     g.rect(sx, top + 3, 5, 4, p.lite); g.rect(sx + 2, top + 9, 5, 4, p.dark);
   }
@@ -266,7 +275,7 @@ export function drawFurnPiece(g, id, x, y, w, h, time) {
     const p = pal(g, col);
     g.rect(x + 3, y - 8, w - 6, h + 6, p.line);
     g.rect(x + 4, y - 7, w - 8, h + 4, p.base);
-    g.rect(x + 4, y - 7, w - 8, 3, p.lite);
+    g.rect(x + 4, y - 7, w - 8, 3, p.lite);                   // ripiego: sale di 8
   }
 }
 
