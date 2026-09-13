@@ -19,6 +19,8 @@ import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
 import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, takeHold, setHoldTarget, holdPlacement, clampFurn, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
 import { drawFurnThumb, furnRotatable } from './furnArt.js';
+import { FURN_CATALOG, FURN_THEMES, ZONE_THEME } from './furnCatalog.js';
+import { catalogToday, catalogPrice } from './furnShop.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
@@ -45,7 +47,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { groundPalette } from './tiles.js';
-import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel, furnLabel, roomName } from './i18n.js';
+import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
 
 /* ---------- toast / HUD / prompt ---------- */
 export function toast(m) {
@@ -491,7 +493,17 @@ export function openFurnitureTray(room, gx, gy) {
   const papers = ownedBackdrops('paper'), grounds = ownedBackdrops('ground');
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Prendi un pezzo dal vassoio: lo vedi nella stanza e lo trascini dove vuoi. I quadri vanno sulla parete di fondo.', 'Take a piece from your tray: you see it in the room and drag it where you like. Wall pieces go on the back wall.')}</div>`;
   if (!items.length) h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
-  else h += items.map(id => `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi in mano', 'Pick it up')}</button></div></div>`).join('');
+  else {
+    /* PER TEMA: col catalogo i pezzi posseduti possono essere centinaia, e un elenco unico non
+       si legge. Prima i set di zona, poi un titoletto per ogni tema del catalogo. */
+    const riga = id => `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi in mano', 'Pick it up')}</button></div></div>`;
+    const diZona = items.filter(id => !(FURN_BY_ID[id] || {}).theme);
+    if (diZona.length) h += (items.length > diZona.length ? `<div class="bighead">${tr('Set di zona', 'Zone sets')}</div>` : '') + diZona.map(riga).join('');
+    for (const t of FURN_THEMES) {
+      const qui = items.filter(id => (FURN_BY_ID[id] || {}).theme === t.id);
+      if (qui.length) h += `<div class="bighead">${t.icon} ${furnThemeLabel(t.id)}</div>` + qui.map(riga).join('');
+    }
+  }
   /* IL FONDO DELLA STANZA sta qui e non nel mondo: carta da parati e pavimento non si posano
      su una casella, si scelgono per la stanza in cui si è — e si tolgono, perché un cambio di
      arredo dev'essere sempre annullabile. */
@@ -1501,14 +1513,14 @@ let storeTab = 'goods';
    nello stub DOM) e a chi in futuro voglia aprire il Negozio già sull'Arredamento */
 export function renderStore(tab) {
   if (tab) storeTab = tab;
-  const TABS = [['goods', tr('Negozio', 'Shop')], ['furn', tr('Arredamento', 'Furniture')]];
+  const TABS = [['goods', tr('Negozio', 'Shop')], ['furn', tr('Set della zona', 'Zone set')], ['cat', tr('Catalogo', 'Catalogue')]];
   if (!TABS.some(t => t[0] === storeTab)) storeTab = 'goods';
   let h = '<div class="pn-tabs">' + TABS.map(([id, lab]) =>
     `<button class="pn-tab${storeTab === id ? ' on' : ''}" data-stab="${id}">${lab}</button>`).join('') + '</div>';
-  h += storeTab === 'furn' ? renderFurnTab() : renderStoreGoods();
+  h += storeTab === 'furn' ? renderFurnTab() : storeTab === 'cat' ? renderCatalogTab() : renderStoreGoods();
   mBody.innerHTML = withIcons(h); hydratePv();
   mBody.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { storeTab = b.dataset.stab; renderStore(); });
-  wireStoreGoods(); wireFurnTab();
+  wireStoreGoods(); wireFurnTab(); wireCatalogTab();
 }
 /* ARREDAMENTO: solo il set della ZONA in cui si trova questo negozio (M3) — un pezzo
    comprato una volta per tutte, si piazza in casa (vassoio, act() sotto i piedi). */
@@ -1538,6 +1550,37 @@ function renderFurnTab() {
 }
 function wireFurnTab() {
   mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderStore(); });
+}
+/* CATALOGO PER TEMI: dodici argomenti, e per ognuno quello che OGGI è in vetrina (pezzi base
+   sempre, sei a rotazione; il tema della zona tutto e scontato — furnShop.js). Un tema alla
+   volta: 250 mobili in un elenco solo sarebbero da scorrere, non da scegliere. */
+let catTheme = null;
+function renderCatalogTab() {
+  const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
+  if (!catTheme || !FURN_THEMES.some(t => t.id === catTheme)) catTheme = ZONE_THEME[z.id] || FURN_THEMES[0].id;
+  const casa = ZONE_THEME[z.id];
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Ogni giorno in vetrina i pezzi base di ogni tema e altri sei a rotazione: domani ne arrivano di nuovi. Il tema di questa zona è tutto disponibile, e costa un quarto in meno.', 'Every day each theme shows its basic pieces plus six rotating ones: new ones arrive tomorrow. This zone\'s theme is all available, and a quarter cheaper.')}</div>`;
+  h += '<div class="cat-temi">' + FURN_THEMES.map(t =>
+    `<button class="cat-tema${t.id === catTheme ? ' on' : ''}${t.id === casa ? ' casa' : ''}" data-ctema="${t.id}">${t.icon} ${furnThemeLabel(t.id)}${t.id === casa ? ' · −25%' : ''}</button>`).join('') + '</div>';
+  const ids = catalogToday(catTheme, S.day || 1, z.id);
+  const tot = FURN_CATALOG.filter(f => f.theme === catTheme).length;
+  h += `<div class="bighead">${furnThemeLabel(catTheme)} · ${tr('in vetrina', 'on display')} ${ids.length}/${tot}</div>`;
+  h += ids.map(id => {
+    const it = FURN_BY_ID[id];
+    const owned = (S.furnOwned || []).includes(id);
+    const needLvl = furnLevelLock(id);
+    const prezzo = catalogPrice(id, z.id), scontato = prezzo < it.cost;
+    const btn = owned ? `<b class="sub">${tr('già tuo', 'owned')}</b>`
+      : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>`
+        : `<button class="btn amber" data-cfurn="${id}" data-cprezzo="${prezzo}">🪙 ${prezzo}</button>`;
+    const sub = furnSizeLabel(id) + (scontato ? ' · <s>' + it.cost + '</s>' : '');
+    return `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}${owned ? ' <span class="lockp">✓</span>' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
+  }).join('');
+  return h;
+}
+function wireCatalogTab() {
+  mBody.querySelectorAll('[data-ctema]').forEach(b => b.onclick = () => { catTheme = b.dataset.ctema; renderStore('cat'); });
+  mBody.querySelectorAll('[data-cfurn]').forEach(b => b.onclick = () => { buyFurniture(b.dataset.cfurn, +b.dataset.cprezzo); renderStore('cat'); });
 }
 function renderStoreGoods() {
   /* PASSO "shop" DEL TUTORIAL: comprare la pala è l'UNICA cosa che conta (senza, l'unico

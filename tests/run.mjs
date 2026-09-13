@@ -4125,6 +4125,113 @@ sprites.applyLook();
   }
 }
 
+/* ---------- CATALOGO DELL'ARREDO: 12 temi, sagome tutte diverse ---------- */
+{
+  const fc = await import('../src/furnCatalog.js');
+  const fr = await import('../src/furnRecipe.js');
+  const fa = await import('../src/furnArt.js');
+  const dm = await import('../src/data.js');
+  const { FURN_CATALOG: CAT, FURN_THEMES: TEMI } = fc;
+  check('catalogo: 12 temi', TEMI.length === 12);
+  /* la richiesta era "almeno altri 200/300": si pretende la soglia, e un minimo per tema così
+     nessun argomento resta con tre pezzi */
+  const perTema = Object.fromEntries(TEMI.map(t => [t.id, CAT.filter(f => f.theme === t.id).length]));
+  const pochi = Object.entries(perTema).filter(([, n]) => n < 18).map(([k, n]) => k + ':' + n);
+  check('catalogo: almeno 250 pezzi (' + CAT.length + ')', CAT.length >= 250);
+  check('catalogo: ogni tema ha almeno 18 pezzi', pochi.length === 0, pochi.join(' '));
+  const ids = new Set();
+  const dup = CAT.filter(f => { const d = ids.has(f.id); ids.add(f.id); return d; }).map(f => f.id);
+  check('catalogo: nessun id ripetuto', dup.length === 0, dup.join(' '));
+  check('catalogo: nessun id si scontra coi set di zona', CAT.every(f => !Object.values(dm.FURN_SETS).flat().some(z => z.id === f.id)));
+  /* SAGOME DIVERSE, NIENTE RICOLORI: la firma della ricetta senza colori deve essere unica */
+  const firme = new Map(), gemelli = [];
+  for (const f of CAT) {
+    const k = fr.recipeShape(f.art);
+    if (firme.has(k)) gemelli.push(f.id + '=' + firme.get(k)); else firme.set(k, f.id);
+  }
+  check('catalogo: ogni pezzo ha una sagoma sua (niente ricolori)', gemelli.length === 0, gemelli.join(' · '));
+  /* DENTRO LA SUA CASELLA: di lato non esce, sopra non sale oltre 12px (copre la faccia di
+     Digsy), sotto non sborda; i quadri stanno nella fascia della parete (36px) */
+  const fuori = [];
+  for (const f of CAT) {
+    const W = (f.w || 1) * 32, H = f.place === 'wall' ? 36 : (f.h || 1) * 32;
+    for (const [nome, src] of [['art', f.art], ['side', f.side], ['back', f.back]]) {
+      if (!src) continue;
+      const sw = nome === 'side' ? (f.h || 1) * 32 : W, sh = nome === 'side' ? (f.w || 1) * 32 : H;
+      const b = fr.recipeBounds(src);
+      const minY = f.place === 'wall' ? 0 : -fa.RISE_MAX;
+      if (b.x0 < 0 || b.x1 > sw || b.y0 < minY || b.y1 > sh) fuori.push(f.id + '.' + nome + ' ' + JSON.stringify(b));
+    }
+  }
+  check('catalogo: nessun disegno esce dal suo ingombro', fuori.length === 0, fuori.slice(0, 4).join(' · '));
+  const coloriStrani = [];
+  for (const f of CAT) for (const src of [f.art, f.side, f.back].filter(Boolean)) for (const c of fr.recipeColors(src)) {
+    if (fr.resolveColor(c, { m: f.m, n: f.n || f.m }) === '#ff00ff') coloriStrani.push(f.id + ':' + c);
+  }
+  check('catalogo: ogni colore delle ricette esiste', coloriStrani.length === 0, coloriStrani.slice(0, 6).join(' '));
+  const senzaNome = CAT.filter(f => !f.it || !f.en || !f.ru).map(f => f.id);
+  check('catalogo: ogni pezzo ha nome italiano, inglese e russo', senzaNome.length === 0, senzaNome.join(' '));
+  check('catalogo: taglie, prezzi e livelli sensati', CAT.every(f => [1, 2].includes(f.w || 1) && [1, 2].includes(f.h || 1) && f.cost > 0 && f.lvl >= 1 && f.lvl <= 15 && ['floor', 'rug', 'wall'].includes(f.place)));
+  check('catalogo: ogni tema ha pezzi base sempre in vendita', TEMI.every(t => CAT.some(f => f.theme === t.id && f.base)));
+  check('catalogo: ogni zona ha il suo tema', dm.ZONES.every(z => TEMI.some(t => t.id === fc.ZONE_THEME[z.id])));
+  /* e ogni pezzo si DISEGNA davvero (regola #9), anche nelle viste di profilo */
+  const rotti = [];
+  for (const f of CAT) {
+    let n = 0; const g = { rect: () => n++, px: () => n++, shadow: () => {}, shade8: h => h };
+    for (const rot of (f.side ? [0, 1, 2, 3] : [0])) {
+      try { fa.drawFurnPiece(g, f.id, 0, 0, 64, 64, 1000, rot); } catch (e) { rotti.push(f.id + ' ' + e.message); }
+    }
+    if (n < 6) rotti.push(f.id + ' (' + n + ' tratti)');
+  }
+  check('catalogo: ogni pezzo si disegna (e non è un francobollo vuoto)', rotti.length === 0, rotti.slice(0, 5).join(' · '));
+}
+
+/* ---------- CATALOGO AL NEGOZIO: vetrina del giorno, tema di zona, prezzo ---------- */
+{
+  const fs = await import('../src/furnShop.js');
+  const fc = await import('../src/furnCatalog.js');
+  const house9 = await import('../src/house.js');
+  const ui9 = await import('../src/ui.js');
+  const { FURN_CATALOG: CAT } = fc;
+  const tema = 'cucina', zonaAltrove = 'dune';                 // la cucina non è il tema delle dune
+  const oggi = fs.catalogToday(tema, 5, zonaAltrove);
+  const basi = CAT.filter(f => f.theme === tema && f.base).map(f => f.id);
+  check('vetrina: i pezzi base di un tema ci sono sempre', basi.every(id => oggi.includes(id)));
+  check('vetrina: più i pezzi a rotazione (e non tutto il tema)', oggi.length === basi.length + fs.ROTAZIONE && oggi.length < CAT.filter(f => f.theme === tema).length);
+  check('vetrina: lo stesso giorno mostra la stessa vetrina', JSON.stringify(fs.catalogToday(tema, 5, zonaAltrove)) === JSON.stringify(oggi));
+  const giorni = new Set([6, 7, 8, 9, 10].map(d => fs.catalogToday(tema, d, zonaAltrove).join(',')));
+  check('vetrina: nei giorni dopo cambia (un motivo per ripassare)', giorni.size >= 3, giorni.size + ' vetrine diverse su 5 giorni');
+  /* nel negozio di una zona il suo tema è tutto in vetrina e scontato */
+  const casa = fc.ZONE_THEME.dune;
+  check('vetrina: nella sua zona il tema di casa è tutto disponibile', fs.catalogToday(casa, 5, 'dune').length === CAT.filter(f => f.theme === casa).length);
+  const pezzoCasa = CAT.find(f => f.theme === casa && f.cost >= 40);
+  check('prezzo: il tema di casa costa un quarto in meno', fs.catalogPrice(pezzoCasa.id, 'dune') === Math.round(pezzoCasa.cost * 0.75));
+  check('prezzo: altrove si paga il listino', fs.catalogPrice(pezzoCasa.id, 'prati') === pezzoCasa.cost);
+  /* comprare al prezzo scontato scala proprio quel prezzo, mai più del listino */
+  S.furnOwned = []; S.level = 20; S.coins = 1000;
+  const prima = S.coins;
+  check('comprare dal catalogo a prezzo di zona riesce', house9.buyFurniture(pezzoCasa.id, fs.catalogPrice(pezzoCasa.id, 'dune')) === true);
+  check('e scala il prezzo scontato, non il listino', prima - S.coins === fs.catalogPrice(pezzoCasa.id, 'dune'), (prima - S.coins) + '');
+  const altro = CAT.find(f => f.theme === 'bambini' && f.cost >= 40);
+  S.coins = 1000;
+  house9.buyFurniture(altro.id, altro.cost * 10);
+  check('un "prezzo" sopra il listino non viene mai applicato', 1000 - S.coins === altro.cost);
+  /* la scheda Catalogo del Negozio si disegna, coi temi e la vetrina */
+  let crash = null;
+  try { ui9.renderStore('cat'); } catch (e) { crash = e.message; }
+  const html9 = document.getElementById('m-body').innerHTML;
+  check('Negozio: la scheda Catalogo si disegna', crash === null, crash || '');
+  check('Negozio: mostra i dodici temi', (html9.match(/data-ctema=/g) || []).length === 12);
+  check('Negozio: e i pezzi in vetrina da comprare', /data-cfurn=/.test(html9) || /già tuo|owned/.test(html9));
+  /* COMODITÀ: una stanza tutta dello stesso tema del catalogo è coerente */
+  const due = CAT.filter(f => f.theme === 'rustico' && f.place === 'floor' && (f.w || 1) === 1 && (f.h || 1) === 1).slice(0, 2);
+  S.furnOwned = due.map(f => f.id);
+  S.house.rooms[0].furn = []; S.house.rooms[0].paper = null; S.house.rooms[0].ground = null;
+  house9.tryPlaceFurniture(0, 2, 2, due[0].id); house9.tryPlaceFurniture(0, 6, 2, due[1].id);
+  check('comodità: due pezzi dello stesso tema del catalogo sono coerenti', house9.roomComfort(0).bits.some(b => b.k === 'coerenza'));
+  S.house.rooms[0].furn = [];
+}
+
 /* ---------- ANTEPRIME DEL PERSONAGGIO: mai a scala frazionaria ---------- */
 {
   /* La canvas dell'editor era 60×22 mentre il disegno è tarato su 120×44: il personaggio
@@ -7887,6 +7994,9 @@ sprites.applyLook();
     const a2 = await import('../src/achievements.js');
     for (const t of a2.TRACKS) { en.add(t.en); en.add(t.den); }
     for (const k of a2.TIERS) en.add(a2.TIER_LABEL[k][1]);
+    /* il CATALOGO dell'arredo: 250 nomi in una tabella, non in chiamate tr() */
+    const fc2 = await import('../src/furnCatalog.js');
+    for (const f of [...fc2.FURN_CATALOG, ...fc2.FURN_THEMES]) en.add(f.en);
     const l2 = await import('../src/letters.js');
     for (const l of [...Object.values(l2.LETTERS), l2.FINALE]) { en.add(l.t[1]); for (const line of l.b[1]) en.add(line); }
     /* le battute della cutscene iniziale stanno in una tabella dentro intro.js */

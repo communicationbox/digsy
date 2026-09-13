@@ -1206,3 +1206,11 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
    storta — lo stesso difetto già corretto nelle schede del compagno. */
 .btn2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);width:100%}
 .btn2 .btn{width:100%;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* CATALOGO: i dodici temi come fila di linguette che vanno a capo (niente scorrimento
+   orizzontale dentro al pannello: REGOLA #14). Il tema di casa della zona si riconosce. */
+.cat-temi{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin:0 0 var(--sp-2)}
+.cat-tema{font:inherit;font-size:var(--fs-note);font-weight:700;padding:5px 8px;border-radius:var(--r-1);cursor:pointer;
+  background:var(--c-paper);color:var(--c-wood-2);border:2px solid #cbb488}
+.cat-tema.casa{border-color:var(--c-amber)}
+.cat-tema.on{background:var(--c-amber);color:var(--c-dark);border-color:var(--c-amber-sh)}

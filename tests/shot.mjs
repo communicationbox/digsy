@@ -223,6 +223,17 @@ async function main() {
         for (var r = 0; r < 4; r++) S.house.rooms[0].furn.push({ itemId: pezzo, gx: 1 + r * (big ? 2.5 : 2), gy: 2, rot: r });
         return G.intPos(4, 5);
       }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'negozio-catalogo' = la scheda Catalogo del Negozio, coi temi e la vetrina del giorno */
+    else if (${JSON.stringify(vista)} === 'negozio-catalogo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var S0 = G.state(); S0.level = 12; S0.coins = 900;
+      if(G.openStore) G.openStore().then(function(){ var t=document.querySelector('[data-stab="cat"]'); if(t) t.click();
+        var q = new URLSearchParams(location.search).get('tema'); if (q) { var b=document.querySelector('[data-ctema="'+q+'"]'); if(b) b.click(); } }); }
+    /* 'catalogo' = TUTTI i pezzi di un tema del catalogo in griglia, disegnati dalla loro
+       ricetta (param tema=cucina). Si guardano insieme: 250 mobili non si giudicano uno alla volta */
+    else if (${JSON.stringify(vista)} === 'catalogo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      Promise.all([import('/src/furnArt.js').catch(function(){ return null; })]).then(function(){
+        return G.furnGallery ? G.furnGallery(new URLSearchParams(location.search).get('tema') || 'cucina') : null;
+      }); }
     /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
        rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
     else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

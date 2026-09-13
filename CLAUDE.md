@@ -34,6 +34,9 @@ src/props.js        alberi, sassi, fiori, funghi, oggetti a terra, decorazioni d
 src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc)
 src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete, fondi), comodità
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
+src/furnCatalog.js  CATALOGO: 12 temi × 21 pezzi, ognuno con la sua ricetta di disegno scritta a mano
+src/furnRecipe.js   interprete delle ricette (scatole, cilindri, dischi… nello stile 3/4 dell'arredo)
+src/furnShop.js     vetrina del giorno al Negozio (base + rotazione, tema di zona scontato)
 src/render.js       composizione della scena: entità, player, veicoli, scavo, bussola, loop
 src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
@@ -393,6 +396,14 @@ fondi, la coerenza di zona). Dormire nel PROPRIO letto rifà l'energia come la L
 regala il "ben riposato": fino a 6 fatiche gratis, scalate dentro `spendEnergy` — l'unico
 punto di spesa — quindi valgono anche per accetta, piccone e cristalli.
 Foto: `npm run shot -- casa` (arredata) · `casa-vuota` (com'è la prima volta) · `letto`.
+**Catalogo per temi** (`furnCatalog.js`): 252 pezzi in 12 temi (Cucina, Bagno, Camera, Salotto,
+Studio da archeologo, Giardino interno, Museo e fossili, Rustico, Marinaro, Magico e cristalli,
+Festivo, Bambini). Ogni pezzo è una RICETTA di poche righe scritta a mano (`furnRecipe.js`:
+`B` scatola, `C` cilindro, `O` disco, `T/V` triangoli, `G` vetro, `Q` fiammella…), non un
+ricolore: un test pretende sagome uniche, niente fuori dall'ingombro, colori validi, nomi in tre
+lingue. Si compra al Negozio, scheda Catalogo: ogni giorno i pezzi `base` più 6 a rotazione per
+tema; il tema DI CASA della zona (`ZONE_THEME`) è tutto in vetrina e costa un quarto in meno.
+Si ruota solo chi ha la vista `side`. Per guardarli tutti: `npm run shot -- catalogo 1400,1100 "tema=cucina"`.
 
 ## Prossimi passi → vedi ROADMAP.md
 Le feature sono **congelate**: nessun sistema nuovo finché i quattro lavori di `ROADMAP.md`

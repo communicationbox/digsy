@@ -435,6 +435,27 @@ if (typeof window !== 'undefined') {
       yard: () => import('./world.js').then(w => w.yardRect()),
       /* il modulo del COMPAGNO: dove sta e come segue, per le foto e le prove che lo guardano */
       companion: () => import('./companion.js'),
+      /* GALLERIA di un tema del catalogo: ogni pezzo disegnato dalla sua ricetta su un
+         pavimento, col nome sotto. Serve a GUARDARE duecentocinquanta mobili tutti insieme (per le
+         foto), non entra nel gioco. */
+      furnGallery: (tema) => Promise.all([import('./furnArt.js'), import('./furnCatalog.js'), import('./brush.js'), import('./data.js')]).then(([fa, fc, br, dm]) => {
+        const lista = fc.FURN_CATALOG.filter(f => f.theme === tema);
+        const cell = 112, cols = 6, rows = Math.ceil(lista.length / cols);
+        const cv2 = document.createElement('canvas'); cv2.width = cols * cell; cv2.height = rows * (cell + 14);
+        const c2 = cv2.getContext('2d'); c2.imageSmoothingEnabled = false;
+        c2.fillStyle = '#c9a66b'; c2.fillRect(0, 0, cv2.width, cv2.height);
+        const g = br.makeCanvasBrush(c2);
+        lista.forEach((f, i) => {
+          const cx = (i % cols) * cell, cy = Math.floor(i / cols) * (cell + 14);
+          const w = (f.w || 1) * 32, h = (f.h || 1) * (f.place === 'wall' ? 36 : 32);
+          if (f.place === 'wall') { c2.fillStyle = '#e6d9a6'; c2.fillRect(cx + 4, cy + 8, 104, 44); }
+          fa.drawFurnPiece(g, f.id, cx + Math.round((cell - w) / 2), cy + (f.place === 'wall' ? 12 : 22), w, h, 1000, 0);
+          c2.fillStyle = '#2a2016'; c2.font = '10px monospace'; c2.fillText(f.it.slice(0, 18), cx + 4, cy + cell + 10);
+        });
+        cv2.style.cssText = 'position:fixed;left:0;top:0;z-index:99998;image-rendering:pixelated;width:' + (cv2.width * 2) + 'px;height:' + (cv2.height * 2) + 'px';
+        document.body.appendChild(cv2);
+        return lista.length;
+      }),
       /* il punto SULLO SCHERMO di una casella della stanza di casa: serve alle prove del
          trascinamento, che devono premere esattamente sopra un mobile */
       roomPoint: (gx, gy) => import('./interiors.js').then(m => {

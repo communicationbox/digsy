@@ -1,3 +1,4 @@
+import { FURN_CATALOG, FURN_THEMES } from './furnCatalog.js';
 /* Lingua: INGLESE di default, italiano secondario, RUSSO da dizionario.
    I nomi propri (specie, città, chimere) NON si traducono. Cambio lingua → reload.
 
@@ -130,7 +131,14 @@ const FURNL = {
   boschi_art: ['Mensola di funghi', 'Mushroom shelf'], terre_art: ['Quadro d\'argilla', 'Clay painting'],
   palude_art: ['Ninfea appesa', 'Hanging lily'], ghiacci_art: ['Specchio di ghiaccio', 'Ice mirror'],
 };
-export function furnLabel(id) { const e = FURNL[id]; return e ? lab(e) : id; }
+export function furnLabel(id) {
+  const e = FURNL[id]; if (e) return lab(e);
+  const c = CATALOG_BY_ID[id];                                  // pezzi del catalogo: il nome sta nella loro scheda
+  return c ? lab([c.it, c.en]) : id;
+}
+const CATALOG_BY_ID = Object.fromEntries(FURN_CATALOG.map(f => [f.theme + '_' + f.id.replace(f.theme + '_', ''), f]).map(([, f]) => [f.id, f]));
+/* nome di un TEMA del catalogo */
+export function furnThemeLabel(id) { const t = FURN_THEMES.find(x => x.id === id); return t ? lab([t.it, t.en]) : id; }
 
 /* CASA — nomi delle stanze (pianta a corridoio, M2 ripianificato): la 0 è la Sala (gratis,
    in fondo al corridoio), le altre hanno un'identità vera di casa (Cucina/Bagno/Camera) —

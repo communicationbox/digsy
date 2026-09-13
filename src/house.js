@@ -162,13 +162,16 @@ export function furnLevelLock(id) {
   return (it && playerLevel() < it.lvl) ? it.lvl : null;
 }
 /* acquisto: coin-check-then-push, stesso schema di unlockCosmetic (gameplay.js) */
-export function buyFurniture(id) {
+export function buyFurniture(id, price) {
   ensureHouseState();
   const it = FURN_BY_ID[id]; if (!it) return false;
   if (S.furnOwned.includes(id)) return false; // già tuo
+  /* `price`: il prezzo DEL NEGOZIO in cui si compra (il tema della zona è scontato, vedi
+     furnShop.js). Senza, vale il listino. Mai sopra il listino: un prezzo è uno sconto o niente. */
+  const costo = Number.isFinite(price) ? Math.min(it.cost, Math.max(1, Math.round(price))) : it.cost;
   if (!isDebug() && playerLevel() < it.lvl) { toast('🔒 Lv' + it.lvl); return false; }
-  if (S.coins < it.cost && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + it.cost); return false; }
-  if (!isDebug()) S.coins -= it.cost;
+  if (S.coins < costo && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + costo); return false; }
+  if (!isDebug()) S.coins -= costo;
   S.furnOwned.push(id);
   playSfx('coin'); toast('🎨 ' + tr('Comprato! È nel vassoio: piazzalo in casa', 'Bought! It\'s in your tray: place it at home'));
   save(); updateHUD();
@@ -538,7 +541,10 @@ export function roomComfort(room) {
   if (r.ground) { score += 1; bits.push({ k: 'pavimento' }); }
   /* COERENZA: tutti i pezzi della stessa zona (fondi compresi). È la differenza fra una
      stanza arredata e un magazzino di roba comprata dove capitava. */
-  const zone = new Set([...furn.map(f => FURN_BY_ID[f.itemId].zone), r.paper && FURN_BY_ID[r.paper].zone, r.ground && FURN_BY_ID[r.ground].zone]
+  /* lo "stile" di un pezzo: la sua zona per i set di zona, il suo TEMA per il catalogo. Una
+     stanza tutta Cucina è coerente quanto una stanza tutta Boschi */
+  const stile = id => { const it = FURN_BY_ID[id]; return it ? (it.theme ? 'tema:' + it.theme : it.zone) : null; };
+  const zone = new Set([...furn.map(f => stile(f.itemId)), r.paper && stile(r.paper), r.ground && stile(r.ground)]
     .filter(z => z && z !== 'any'));
   if (furn.length >= 2 && zone.size === 1) { score += 2; bits.push({ k: 'coerenza', zone: [...zone][0] }); }
   score = Math.min(COMFORT_MAX, score);

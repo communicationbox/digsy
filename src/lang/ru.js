@@ -1,3 +1,4 @@
+import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
 /* RUSSO — dizionario chiave INGLESE → russo.
    Le 669 chiamate `tr(it, en)` sparse nel codice non si toccano: qui si aggiunge solo la
    traduzione della stringa inglese. Chiave assente = si vede l'inglese (mai vuoto).
@@ -8,7 +9,13 @@
    - i tag <b> <kbd> <br> e le emoji vanno lasciati dove sono;
    - i nomi propri (specie, città, chimere) NON si traducono: sono inventati e restano uguali.
    Il test `npm test` controlla spazi e tag: se sbagli, fallisce e dice quale riga. */
+/* il catalogo dell'arredo porta il russo nella sua scheda (250 nomi scritti accanto alla loro
+   ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
+const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  ...RU_CATALOG,
+  'Zone set': 'Набор зоны', 'Zone sets': 'Наборы зон', 'Catalogue': 'Каталог', 'on display': 'на витрине',
+  "Every day each theme shows its basic pieces plus six rotating ones: new ones arrive tomorrow. This zone's theme is all available, and a quarter cheaper.": 'Каждый день у каждой темы на витрине базовые предметы и ещё шесть по очереди: завтра привезут новые. Тема этой зоны доступна целиком и на четверть дешевле.',
   /* ---- descrizioni del Libro (generate dalla ricetta dello scheletro) ---- */
   'Only at night': 'Только ночью',
   'Only in ': 'Только ',
@@ -1418,7 +1425,6 @@ export const RU = {
   'Rotate': 'Повернуть',
   'Cancel': 'Отмена',
   "Bought! It's in your tray: place it at home": 'Куплено! Это в твоём лотке: поставь дома',
-  'Furniture': 'Мебель',
   "This zone's furniture set. Once bought it's yours forever: place it at home from your tray.": 'Набор мебели этой зоны. Купленное — твоё навсегда: ставишь дома из лотка.',
   'Take a piece from your tray: you see it in the room and drag it where you like. Wall pieces go on the back wall.': 'Возьми предмет из лотка: он появится в комнате, тащи его куда хочешь. Картины вешаются на дальнюю стену.',
   'Pick it up': 'Взять в руки',

@@ -1,3 +1,4 @@
+import { FURN_CATALOG } from './furnCatalog.js';
 /* Dati statici di gioco: specie, parti, rarità, biomi, costi, palette look */
 export const TS = 32;
 
@@ -264,6 +265,10 @@ export const FURN_SETS = {
   ],
 };
 export const FURN_BY_ID = Object.fromEntries(Object.values(FURN_SETS).flat().map(f => [f.id, f]));
+/* il CATALOGO per temi (furnCatalog.js): stessi campi dei set di zona, più `theme` e la ricetta
+   del disegno. Entra nello stesso indice, così piazzamento, vassoio, comodità e salvataggio
+   non devono sapere da dove arriva un pezzo. */
+for (const f of FURN_CATALOG) FURN_BY_ID[f.id] = { zone: 'any', slot: f.place === 'wall' ? 'parete' : f.place === 'rug' ? 'tappeto' : 'decoro', icon: '🎨', col: f.m || '#c8b078', ...f };
 /* PIEDISTALLO (M4): pezzo speciale, non venduto (regalato una volta sola in state.js), che
    in casa non arreda e basta ma espone uno scheletro consegnato al Museo (house.js gestisce
    l'assegnazione). `slot:'pedestal'` lo distingue dagli arredi normali nel tray/interazione. */

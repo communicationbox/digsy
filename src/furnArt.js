@@ -19,6 +19,7 @@
 import { FURN_BY_ID } from './data.js';
 import { hasSprite, drawSprite } from './spritebank.js';
 import { makeCanvasBrush as makeBrush } from './brush.js';
+import { drawRecipe, recipeBounds } from './furnRecipe.js';
 
 const TS = 32;
 
@@ -27,6 +28,7 @@ const TS = 32;
 export function artCategory(id) {
   const it = FURN_BY_ID[id];
   if (!it) return 'box';
+  if (it.art) return 'recipe';                                 // pezzo del catalogo: si disegna dalla sua ricetta
   if (it.place === 'wall') return 'wall';
   if (it.place === 'paper') return 'paper';
   if (it.place === 'ground') return 'ground';
@@ -53,7 +55,11 @@ export function artCategory(id) {
    servono anche a capire dove si clicca su un mobile: devono dire la verità sul disegno. */
 const RISE = { rug: 0, bed: 12, table: 12, chair: 10, chest: 10, hearth: 12, crystal: 0, plant: 0, lamp: 4, pedestal: 0, box: 8, wall: 0, paper: 0, ground: 0 };
 export const RISE_MAX = 12;
-export function furnRise(id) { return RISE[artCategory(id)] ?? 14; }
+export function furnRise(id) {
+  const it = FURN_BY_ID[id];
+  if (it && it.art) { if (it.place === 'wall') return 0; const b = recipeBounds(it.art); return Math.max(0, -b.y0); }
+  return RISE[artCategory(id)] ?? 14;
+}
 
 /* palette di un pezzo dal suo colore: quattro toni veri (luce/base/ombra/contorno), non due
    sfumature vicine — a questa scala 0.85 e 1.15 dello stesso colore si fondono in una massa. */
@@ -259,7 +265,11 @@ function drawWallPiece(g, x, y, w, h, id, col) {
    non si ruota affatto, e il gioco non offre la maniglia per farlo.
    Verso: 0 = guarda verso chi gioca (giù) · 1 = destra · 2 = di spalle (su) · 3 = sinistra. */
 const ROTATABLE = new Set(['bed', 'table', 'chair', 'chest', 'hearth', 'box']);
-export function furnRotatable(id) { return ROTATABLE.has(artCategory(id)); }
+export function furnRotatable(id) {
+  const it = FURN_BY_ID[id];
+  if (it && it.art) return !!it.side;                          // del catalogo: si gira solo chi ha la vista di profilo
+  return ROTATABLE.has(artCategory(id));
+}
 /* lo SPECCHIO orizzontale di un pennello dentro [x, x+w]: il verso 3 è il verso 1 riflesso,
    disegnato una volta sola (due disegni "simili" divergono) */
 function mirrorBrush(g, x, w) {
@@ -376,6 +386,17 @@ export function drawFurnPiece(g, id, x, y, w, h, time, rot) {
   const it = FURN_BY_ID[id]; if (!it) return;
   const col = it.col || '#c8b078', cat = artCategory(id), t = (time || 0) / 1000;
   if (hasSprite('furn:' + id)) { drawSprite(g, 'furn:' + id, x + w / 2, y + h); return; }
+  if (it.art) {
+    /* PEZZO DEL CATALOGO: la sua ricetta. Di profilo usa la vista `side` (specchiata per il
+       verso 3), di spalle `back` se c'è, altrimenti la vista frontale. */
+    if (it.place === 'floor') g.shadow(Math.round(x + w / 2), Math.round(y + h - 2), Math.round(w / 2 - 2));
+    const pal = { m: it.m, n: it.n };
+    if (it.side && rot % 2 === 1) {
+      const gg = rot === 3 ? { ...g, rect: (rx, ry, rw, rh, c) => g.rect(2 * x + w - rx - rw, ry, rw, rh, c) } : g;
+      drawRecipe(gg, it.side, x, y, pal, time);
+    } else drawRecipe(g, (rot === 2 && it.back) ? it.back : it.art, x, y, pal, time);
+    return;
+  }
   if (cat === 'wall') { drawWallPiece(g, x, y, w, h, id, col); return; }
   /* OMBRA DI CONTATTO: è la riga che fa poggiare il mobile sul pavimento invece di
      galleggiarci sopra. Sta prima del pezzo, larga come la sua base. */
