@@ -30,6 +30,7 @@ import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
+import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, mailboxArt, siteArt } from './decoArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
 import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
 
@@ -104,85 +105,22 @@ export function drawHouse(hf, sx, sy) {
 }
 /* ---------- arredo urbano ---------- */
 export function drawFountain(sx, sy, time) {
-  /* FASE 2: nativa a piena scala (non più raddoppio meccanico) — bordo di pietra con
-     quarto tono/spigolo netto, colonna con tocco di luce, ampiezza di zampilli/riflessi
-     raddoppiata insieme alla geometria (altrimenti l'animazione sembra "debole"). */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  shadow(sx + 32, sy + 62, 26);
-  rect(sx + 4, sy + 20, 56, 40, '#aaa294');            // bordo esterno
-  rect(sx + 6, sy + 22, 52, 36, '#9a9285');
-  rect(sx + 6, sy + 22, 6, 36, '#b8b0a2'); rect(sx + 54, sy + 22, 6, 36, '#75695c'); // luce sx / ombra dx sul bordo di pietra
-  rect(sx + 6, sy + 22, 2, 36, shade8('#b8b0a2', 1.2)); rect(sx + 58, sy + 22, 2, 36, shade8('#75695c', 0.8)); // quarto tono: spigolo più netto
-  rect(sx + 10, sy + 26, 44, 28, '#4d8fb5');           // acqua
-  rect(sx + 10, sy + 26, 44, 4, '#5cb6d6');
-  const ph = Math.floor(time / 220);                   // riflessi che scorrono
-  for (let i = 0; i < 3; i++) {
-    rect(sx + 12 + ((ph + i * 3) % 9) * 4, sy + 32 + i * 8, 8, 2, '#83cfe6');
-    px(sx + 16 + ((ph * 2 + i * 5) % 14) * 2, sy + 36 + i * 6, '#bfe9f4');
-  }
-  rect(sx + 24, sy + 30, 16, 6, '#9a9285');            // base colonna
-  rect(sx + 28, sy + 12, 8, 20, '#aaa294'); rect(sx + 28, sy + 12, 8, 4, '#c9c2b4');
-  px(sx + 29, sy + 13, shade8('#c9c2b4', 1.2));        // tocco di luce sulla colonna
-  const j = Math.floor(time / 160) % 4;                // zampilli e gocce, ampiezza raddoppiata
-  px(sx + 30, sy + 6 - (j % 2) * 2, '#bfe9f4'); px(sx + 32, sy + 4 + (j % 2) * 2, '#e8f6fb');
-  px(sx + 24 + (j & 1) * 2, sy + 12 + (j >> 1) * 2, '#bfe9f4'); px(sx + 38 - (j & 1) * 2, sy + 14 - (j >> 1) * 2, '#bfe9f4');
-  px(sx + 20, sy + 18 + j * 2, '#bfe9f4'); px(sx + 42, sy + 24 - j * 2, '#bfe9f4');
-  ctx.restore();
+  /* disegno in decoArt.js */
+  ctx.save(); ctx.translate(sx, sy); fountainArt(BRUSH, time); ctx.restore();
 }
 export function drawBench(sx, sy) {
-  /* FASE 2: nativa — assi con venatura, gambe con ombra propria, seduta con quarto tono. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  shadow(sx + 16, sy + 28, 12);
-  rect(sx + 4, sy + 8, 24, 4, '#c79a66'); px(sx + 4, sy + 8, '#a97a4c'); px(sx + 26, sy + 8, '#a97a4c'); // schienale
-  px(sx + 12, sy + 9, shade8('#c79a66', 0.85)); px(sx + 20, sy + 9, shade8('#c79a66', 0.85)); // venatura
-  rect(sx + 4, sy + 16, 24, 6, '#c79a66'); rect(sx + 4, sy + 16, 24, 2, '#dcb27e');                        // seduta
-  rect(sx + 6, sy + 22, 4, 6, '#8a5f38'); rect(sx + 22, sy + 22, 4, 6, '#8a5f38');                         // gambe
-  px(sx + 6, sy + 22, shade8('#8a5f38', 0.7)); px(sx + 22, sy + 22, shade8('#8a5f38', 0.7));               // ombra propria delle gambe
-  px(sx + 6, sy + 8, '#e0c090'); rect(sx + 20, sy + 20, 6, 2, '#a97a4c'); // luce sullo schienale + ombra sulla seduta a dx
-  ctx.restore();
+  ctx.save(); ctx.translate(sx, sy); benchArt(BRUSH); ctx.restore();
 }
 export function drawBushDeco(sx, sy) {
-  /* FASE 2: nativa — fogliame con 2 grumi di luce in più, bacche/fiori più leggibili. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  shadow(sx + 16, sy + 28, 12);
-  rect(sx + 6, sy + 12, 20, 14, '#4a9a55'); rect(sx + 8, sy + 8, 16, 8, '#54ab5f');
-  px(sx + 10, sy + 10, '#7cd07f'); px(sx + 18, sy + 8, '#7cd07f'); px(sx + 14, sy + 14, shade8('#4a9a55', 1.15));
-  px(sx + 12, sy + 18, '#e05a7a'); px(sx + 20, sy + 16, '#f2dd7a'); px(sx + 8, sy + 16, '#e05a7a'); // bacche/fiori
-  rect(sx + 6, sy + 24, 20, 2, '#2f6b3b');
-  rect(sx + 8, sy + 22, 16, 2, '#245631'); // ombra propria alla base del cespuglio
-  ctx.restore();
+  ctx.save(); ctx.translate(sx, sy); bushArt(BRUSH); ctx.restore();
 }
 export function drawLamp(sx, sy) {
-  /* FASE 2: nativa — palo con venatura metallica, lanterna con vetri distinti sui 4 lati. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  shadow(sx + 16, sy + 30, 8);
-  rect(sx + 14, sy + 6, 4, 24, '#5a5248'); px(sx + 14, sy + 6, '#847a6c'); px(sx + 14, sy + 20, shade8('#5a5248', 0.8)); // palo (luce sx + venatura)
-  rect(sx + 10, sy, 12, 8, '#3f3a33'); rect(sx + 12, sy + 2, 8, 4, night() > 0.4 ? '#ffdf8a' : '#c9c2b4'); // lanterna
-  rect(sx + 10, sy, 2, 8, shade8('#3f3a33', 1.3)); // spigolo chiaro del telaio
-  if (night() > 0.4) { px(sx + 10, sy + 2, '#ffe9a0'); px(sx + 20, sy + 2, '#ffe9a0'); }
-  rect(sx + 10, sy + 28, 12, 2, '#3f3a33');
-  ctx.restore();
+  ctx.save(); ctx.translate(sx, sy); lampArt(BRUSH, night() > 0.4); ctx.restore();
 }
 /* affioramento d'ossa: cranio semisepolto + costole; scintilla se ha ancora scavi */
 export function drawSite(sx, sy, remaining, time, tx, ty) {
-  /* FASE 2: nativa — montarolo con quarto tono, costole più leggibili, scintilla più ampia. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx: scatterebbe con la camera)
-  shadow(sx + 16, sy + 28, 14);
-  rect(sx + 4, sy + 18, 24, 10, '#c9a06a'); rect(sx + 6, sy + 16, 20, 4, '#d8b581'); // montarolo di terra
-  rect(sx + 4, sy + 24, 24, 4, shade8('#c9a06a', 0.8)); // ombra propria alla base del montarolo
-  rect(sx + 6, sy + 16, 4, 2, shade8('#d8b581', 1.15)); // quarto tono: cresta di luce sul montarolo
-  const boneC = remaining > 0 ? '#ece5d2' : '#b8b0a2', boneD = remaining > 0 ? '#cbbfa4' : '#9a927f';
-  for (let i = 0; i < 3; i++) { // costole ad arco
-    const bx = sx + 8 + i * 6;
-    px(bx, sy + 8 + i * 2, boneC); px(bx + 2, sy + 6 + i * 2, boneC); px(bx + 4, sy + 8 + i * 2, boneD); px(bx, sy + 12 + i * 2, boneD);
-  }
-  rect(sx + 20, sy + 14, 8, 6, boneC); px(sx + 22, sy + 16, '#3a3128'); px(sx + 26, sy + 16, '#3a3128'); // cranio
-  if (remaining > 0) { // scintilla pulsante, ampiezza raddoppiata
-    const a = (Math.sin(time / 300 + ph) + 1) / 2;
-    if (a > 0.4) { px(sx + 4, sy + 4, '#fff6c8'); px(sx + 2, sy + 6, '#f6d95c'); px(sx + 6, sy + 6, '#f6d95c'); px(sx + 4, sy + 8, '#fff6c8'); }
-  }
-  ctx.restore();
+  /* fase STABILE per casella (mai sx: scatterebbe con la camera) */
+  ctx.save(); ctx.translate(sx, sy); siteArt(BRUSH, remaining, time, (tx || 0) * 7 + (ty || 0) * 13); ctx.restore();
 }
 /* SCHELETRO SEPOLTO — un VERO scavo archeologico, non un mucchietto d'ossa come i siti normali:
    terra smossa dentro un riquadro delimitato da paletti e corda (i segnali di ogni scavo vero),
@@ -269,15 +207,7 @@ function drawTownDeco(d, sx, sy, time) {
 }
 /* CARTELLO delle missioni: due pali + tabellone di legno con fogli e un pennino luccicante */
 function drawBoard(sx, sy, time) {
-  /* FASE 2: nativa — cornice con quarto tono, pali con venatura, fogli con più righe. */
-  shadow(sx + 16, sy + 30, 12);
-  rect(sx + 6, sy + 16, 4, 16, '#6e4a2a'); rect(sx + 22, sy + 16, 4, 16, '#6e4a2a'); px(sx + 6, sy + 20, shade8('#6e4a2a', 0.8)); px(sx + 22, sy + 20, shade8('#6e4a2a', 0.8)); // pali + venatura
-  rect(sx + 2, sy + 2, 28, 18, '#8a5f38'); rect(sx + 2, sy + 2, 28, 2, '#a97a4c');   // tavola
-  rect(sx + 4, sy + 4, 24, 14, '#c9a06a'); rect(sx + 4, sy + 4, 24, 1, shade8('#c9a06a', 1.15)); // fondo chiaro + filo di luce
-  rect(sx + 6, sy + 6, 8, 10, '#f2ead8'); rect(sx + 18, sy + 6, 8, 8, '#f2ead8');    // fogli appesi
-  rect(sx + 6, sy + 8, 8, 2, '#b8ad8c'); rect(sx + 6, sy + 12, 6, 2, '#b8ad8c'); rect(sx + 18, sy + 8, 8, 2, '#b8ad8c'); rect(sx + 18, sy + 12, 5, 2, '#b8ad8c'); // righe di testo
-  rect(sx + 2, sy, 28, 2, '#5c4229');                                                // cornice alta
-  if (Math.floor(time / 400) % 3 === 0) { px(sx + 26, sy + 4, '#fff3b0'); px(sx + 28, sy + 2, '#fff8d0'); } // luccichio "novità"
+  ctx.save(); ctx.translate(sx, sy); boardArt(BRUSH, time); ctx.restore();
 }
 /* STATUA DEL NONNO (solo città, accanto al Museo): piedistallo di pietra con targa d'ottone,
    il vecchio archeologo col cappello a tesa e la pala piantata a terra. Tutta in toni di PIETRA
@@ -285,48 +215,11 @@ function drawBoard(sx, sy, time) {
    con cui parlare per sbaglio. La targa manda un riflesso ogni tanto: dice "qui c'è da leggere"
    senza scriverlo. */
 function drawStatue(sx, sy, time) {
-  /* FASE 2: nativa (era appesa allo scale(2,2) esterno di drawTownDeco, tolto: raddoppiata
-     con quarto tono in più su pietra/cappotto). */
-  shadow(sx + 16, sy + 30, 14);
-  const D = '#4e4a42', P1 = '#7d766a', P2 = '#9a9384', P3 = '#b6ae9d', P4 = '#cfc7b4';
-  rect(sx + 2, sy + 24, 28, 8, D);                                    // ombra/base scura
-  rect(sx + 4, sy + 24, 24, 6, P1); rect(sx + 4, sy + 24, 24, 2, P2);
-  rect(sx + 8, sy + 16, 16, 8, D);                                    // colonna del piedistallo
-  rect(sx + 10, sy + 16, 12, 8, P2); rect(sx + 10, sy + 16, 12, 2, P3);
-  rect(sx + 8, sy + 26, 16, 4, '#b9a15c'); rect(sx + 8, sy + 26, 16, 2, '#dcc078'); // targa d'ottone
-  rect(sx + 10, sy + 2, 12, 16, D);                                   // contorno del corpo
-  rect(sx + 12, sy + 4, 8, 12, P2);                                   // cappotto
-  rect(sx + 12, sy + 4, 8, 2, P3);                                    // luce sulle spalle
-  px(sx + 12, sy + 12, P1); px(sx + 18, sy + 12, P1);                 // pieghe in vita
-  rect(sx + 12, sy + 16, 8, 2, P1);                                   // orlo del cappotto
-  rect(sx + 12, sy + 4, 2, 10, shade8(P2, 0.85));                     // quarto tono: piega verticale sul davanti
-  rect(sx + 12, sy - 6, 8, 8, D);                                     // contorno della testa
-  rect(sx + 14, sy - 4, 4, 4, P3);                                    // viso
-  rect(sx + 12, sy, 8, 2, P4);                                        // barba chiara
-  rect(sx + 8, sy - 8, 16, 2, D); rect(sx + 10, sy - 8, 12, 2, P2);   // tesa larga del cappello
-  rect(sx + 12, sy - 12, 8, 4, D); rect(sx + 12, sy - 10, 8, 2, P1);  // cupola del cappello
-  rect(sx + 22, sy + 6, 2, 12, D);                                    // manico della pala
-  rect(sx + 20, sy + 8, 2, 2, P3);                                    // mano che lo stringe
-  rect(sx + 20, sy + 2, 6, 6, D); rect(sx + 22, sy + 2, 2, 4, P3);    // lama in alto
-  if (Math.floor(time / 520) % 4 === 0) { px(sx + 10, sy + 26, '#fff3c8'); px(sx + 12, sy + 28, '#fff8e0'); }
+  ctx.save(); ctx.translate(sx, sy); statueArt(BRUSH, time); ctx.restore();
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {
-  /* FASE 2: nativa (era doppiamente scalata: bug reale, chiamata dentro drawTownDeco che
-     scalava già 2× — corretto togliendo lo scale di qui). Portello con quarto tono, palo
-     con venatura, bandierina con luccichio. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  shadow(sx + 16, sy + 30, 10);
-  rect(sx + 14, sy + 18, 4, 14, '#6e4a2a'); px(sx + 14, sy + 18, '#8a5f38'); px(sx + 14, sy + 26, shade8('#6e4a2a', 0.8)); // palo (luce + venatura)
-  rect(sx + 6, sy + 6, 20, 14, '#3a8c85'); rect(sx + 6, sy + 4, 20, 4, '#57c0b6'); // corpo + cima chiara
-  rect(sx + 6, sy + 6, 4, 14, shade8('#3a8c85', 1.2)); rect(sx + 18, sy + 6, 8, 14, shade8('#3a8c85', 0.75)); // volume: curva del portello
-  rect(sx + 16, sy + 6, 2, 14, shade8('#3a8c85', 0.95)); // quarto tono: crinale centrale del portello
-  rect(sx + 6, sy + 18, 20, 2, '#2a6b64');                                          // base scura
-  px(sx + 4, sy + 8, '#2a6b64'); px(sx + 26, sy + 8, '#2a6b64');                    // spigoli (contorno)
-  rect(sx + 10, sy + 8, 12, 2, '#173e39');                                          // fessura per le lettere
-  rect(sx + 8, sy + 12, 6, 6, '#eaf3f0'); px(sx + 8, sy + 12, '#b7cfc9');           // etichetta bianca
-  rect(sx + 24, sy + 6, 2, 6, '#8a5f38'); rect(sx + 26, sy + 4, 4, 4, '#e05a54'); px(sx + 26, sy + 4, '#f27a74'); // bandierina rossa alzata
-  ctx.restore();
+  ctx.save(); ctx.translate(sx, sy); mailboxArt(BRUSH); ctx.restore();
 }
 /* glifo del TIPO del compagno sopra la sua testa (sempre visibile → il potere è "attivo"):
    un diamantino 8-bit col colore-tema del tipo e nucleo chiaro per staccare dallo sfondo */
