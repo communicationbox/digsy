@@ -562,7 +562,7 @@ const PROBE = `
   function rooms(cb){
     var G4=window.__digsy||{};
     if(!G4.enterRoom){ A('sonda: si può entrare nelle stanze', false, 'enterRoom assente'); return cb(); }
-    var list=['store','lab','museum','inn','barber','tailor'];
+    var list=['store','lab','museum','inn','barber','tailor','furniture'];
     var i=0, before=errCount;
     var step=function(){
       if(i>=list.length){
@@ -948,13 +948,12 @@ const PROBE = `
     }).then(function(){ next(); }).catch(function(e){ A('arredo: prova completata', false, e.message); next(); });
   }
 
-  /* ARREDAMENTO PER ARGOMENTI al Negozio: si entra negli argomenti, i riquadri sono alti uguali,
+  /* ARREDAMENTO PER ARGOMENTI alla Bottega d'arredo: si entra negli argomenti, i riquadri sono alti uguali,
      e scegliendone uno compaiono solo i suoi pezzi */
   function checkFurnTopics(next){
     var g = window.__digsy;
-    if (!g || !g.openStore) { A('argomenti: sonda presente', false, 'niente openStore'); return next(); }
-    g.openStore().then(function(){
-      var t = document.querySelector('[data-stab="furn"]'); if (t) t.click();
+    if (!g || !g.openFurnShop) { A('argomenti: sonda presente', false, 'niente openFurnShop'); return next(); }
+    g.openFurnShop().then(function(){
       var carte = document.querySelectorAll('#m-body .arg');
       A("argomenti: l'Arredamento si apre sugli argomenti", carte.length === 13, carte.length + ' riquadri');
       var alt = [], fuori = 0, box = document.getElementById('m-body').getBoundingClientRect();

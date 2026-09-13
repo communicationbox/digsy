@@ -58,7 +58,8 @@ sprites.applyLook();
     // città interamente dentro la cella
     const lim = { x0: cx * world.TCELL, y0: cy * world.TCELL, x1: (cx + 1) * world.TCELL - 1, y1: (cy + 1) * world.TCELL - 1 };
     if (t.x0 < lim.x0 || t.x1 > lim.x1 || t.y0 < lim.y0 || t.y1 > lim.y1) bad++;
-    if (t.size === 'città' && (!types.includes('barber') || !types.includes('tailor') || t.pen)) bad++;
+    if (t.size === 'città' && (!types.includes('barber') || !types.includes('tailor') || !types.includes('furniture') || t.pen)) bad++;
+    if (t.size !== 'città' && types.includes('furniture')) bad++;   // la Bottega d'arredo sta SOLO in città
     if (t.size === 'paese' && !types.includes('barber')) bad++;
   }
   check(`città campionate (${n}, taglie ${JSON.stringify(sizes)})`, n > 60 && bad === 0);
@@ -2917,7 +2918,7 @@ sprites.applyLook();
   P.dir = 'up'; P.moving = true;
   inter.checkDoorEnter();
   check('camminare DENTRO la porta (verso l\'alto) = dentro, senza E', inter.INT.active === true && inter.INT.b === door);
-  check('NPC con nome per ogni mestiere', ['lab','store','museum','inn','barber','tailor'].every(t => inter.npcName(t).length > 3));
+  check('NPC con nome per ogni mestiere', ['lab','store','museum','inn','barber','tailor','furniture'].every(t => inter.npcName(t).length > 3));
   // spawn interno: vicino alla porta, non nel muro
   check('spawn interno valido', !inter.interiorSolid(inter.INT.x, inter.INT.y));
   // cammina verso l'alto fino al bancone → vicino all'NPC
@@ -2945,7 +2946,7 @@ sprites.applyLook();
     for (const b of t.buildings) if (!byType[b.type]) byType[b.type] = b;
   }
   let roomBad = [];
-  for (const type of ['lab', 'store', 'inn', 'barber', 'tailor']) { // museo: stanze proprie, testato a parte
+  for (const type of ['lab', 'store', 'inn', 'barber', 'tailor', 'furniture']) { // museo: stanze proprie, testato a parte
     const b = byType[type]; if (!b) { roomBad.push(type + ':manca'); continue; }
     inter.enterInterior(b, null);
     if (!inter.interiorSolid(60, 112) || !inter.interiorSolid(260, 116)) roomBad.push(type + ':lati');
@@ -4052,23 +4053,23 @@ sprites.applyLook();
       raw.house.rooms[0].furn[0].itemId === highLvl.id && raw.house.rooms[0].furn[0].gx === 3 && raw.house.rooms[0].furn[0].gy === 4);
   }
 
-  /* NEGOZIO — scheda Arredamento: mostra SOLO il set della zona corrente, coi badge giusti */
+  /* BOTTEGA D'ARREDO: il Negozio non vende più mobili ("in un alimentari non ha senso
+     acquistare arredamenti"); la Bottega mostra SOLO il set della zona corrente, coi badge giusti */
   {
     S.furnOwned = []; S.level = 1; S.coins = 0;
     const z = regionsM.zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
     ui.openBuilding({ type: 'store', name: 'Negozio' });
     let html = document.getElementById('m-body').innerHTML;
-    check('la scheda Negozio parte sul tab principale (niente arredo mostrato)',
-      FURN_SETS[z.id].every(f => !html.includes(i18n.furnLabel(f.id))));
-    check('il tab Arredamento compare nel markup', /data-stab="furn"/.test(html));
-    /* passa al tab Arredamento (stesso schema di openBag(tab): lo stub DOM non clicca) */
-    /* ARREDAMENTO PER ARGOMENTI: entrando si vedono gli argomenti, non i mobili */
-    ui.renderStore('furn', null);
+    check('il Negozio non vende arredamento (niente mobili, niente argomenti, niente schede)',
+      FURN_SETS[z.id].every(f => !html.includes(i18n.furnLabel(f.id))) && !/data-ftopic=|data-stab=/.test(html));
+    /* ARREDAMENTO PER ARGOMENTI: entrando in bottega si vedono gli argomenti, non i mobili */
+    ui.openBuilding({ type: 'furniture', name: 'Bottega d\'arredo' });
     html = document.getElementById('m-body').innerHTML;
+    check('la Bottega d\'arredo si apre col suo titolo', /arredo/i.test(document.getElementById('m-title').innerHTML));
     check('Arredamento: si entra nella griglia degli ARGOMENTI (stile della zona + 12 temi)',
       (html.match(/data-ftopic=/g) || []).length === 13 && !FURN_SETS[z.id].some(f => html.includes('data-furn="' + f.id + '"')));
     /* e scegliendo lo stile della zona compaiono i suoi pezzi */
-    ui.renderStore('furn', 'zona');
+    ui.renderFurnShop('zona');
     html = document.getElementById('m-body').innerHTML;
     check('dentro un argomento c\'è il bottone per tornare agli argomenti', /data-fback=/.test(html));
     check('il tab Arredamento mostra il set della zona corrente (' + z.id + ')',
@@ -4226,14 +4227,14 @@ sprites.applyLook();
   check('un "prezzo" sopra il listino non viene mai applicato', 1000 - S.coins === altro.cost);
   /* la scheda Catalogo del Negozio si disegna, coi temi e la vetrina */
   let crash = null;
-  try { ui9.renderStore('furn', null); } catch (e) { crash = e.message; }
+  try { ui9.renderFurnShop(null); } catch (e) { crash = e.message; }
   let html9 = document.getElementById('m-body').innerHTML;
-  check('Negozio: la griglia degli argomenti si disegna', crash === null, crash || '');
-  check('Negozio: gli argomenti sono i dodici temi più lo stile della zona', (html9.match(/data-ftopic=/g) || []).length === 13);
-  ui9.renderStore('furn', 'magico');
+  check('Bottega d\'arredo: la griglia degli argomenti si disegna', crash === null, crash || '');
+  check('Bottega d\'arredo: gli argomenti sono i dodici temi più lo stile della zona', (html9.match(/data-ftopic=/g) || []).length === 13);
+  ui9.renderFurnShop('magico');
   html9 = document.getElementById('m-body').innerHTML;
-  check('Negozio: dentro un tema ci sono i pezzi in vetrina da comprare', /data-cfurn=/.test(html9) || /già tuo|owned/.test(html9));
-  check('Negozio: e SOLO di quel tema', FURN_CATALOG_T.filter(f => f.theme !== 'magico').every(f => !html9.includes('data-cfurn="' + f.id + '"')));
+  check('Bottega d\'arredo: dentro un tema ci sono i pezzi in vetrina da comprare', /data-cfurn=/.test(html9) || /già tuo|owned/.test(html9));
+  check('Bottega d\'arredo: e SOLO di quel tema', FURN_CATALOG_T.filter(f => f.theme !== 'magico').every(f => !html9.includes('data-cfurn="' + f.id + '"')));
   /* COMODITÀ: una stanza tutta dello stesso tema del catalogo è coerente */
   const due = CAT.filter(f => f.theme === 'rustico' && f.place === 'floor' && (f.w || 1) === 1 && (f.h || 1) === 1).slice(0, 2);
   S.furnOwned = due.map(f => f.id);
@@ -4372,7 +4373,7 @@ sprites.applyLook();
       const gb = { shade8: sh8, shadow: () => {},
         px: (x, y) => { n++; if (x < 0 || x >= RW || y < -shop.SHOP_TOP || y >= RH + 4) fuori.add('px'); },
         rect: (x, y, w, h) => { n++; if (x < 0 || x + w > RW || y < -shop.SHOP_TOP || y + h > RH + 4) fuori.add([x, y, w, h].join(',')); } };
-      for (const type of ['store', 'inn', 'barber', 'tailor', 'lab']) {
+      for (const type of ['store', 'inn', 'barber', 'tailor', 'lab', 'furniture']) {
         const wins = shop.SHOP_WINDOWS[type];
         for (const [nk, tm, egg, ready] of [[0, 1000, null, false], [0.9, 7777, { q: 'raro' }, true], [0.2, 3333, { q: 'raro' }, false]]) {
           const prima = fuori.size; n = 0;
@@ -4380,17 +4381,17 @@ sprites.applyLook();
             shop.drawShopFloor(gb, type, RW, RH, ['#b8894f', '#a97a45'], furnArt.drawGroundTile);
             shop.drawShopWall(gb, type, RW, RH, nk, tm, wins);
             shop.drawShopShell(gb, type, RW, RH, nk, wins);
-            ({ store: shop.drawStoreProps, inn: shop.drawInnProps, barber: shop.drawBarberProps, tailor: shop.drawTailorProps, lab: shop.drawLabProps })[type](gb, RW, RH, tm);
+            ({ store: shop.drawStoreProps, inn: shop.drawInnProps, barber: shop.drawBarberProps, tailor: shop.drawTailorProps, lab: shop.drawLabProps, furniture: shop.drawFurnitureProps })[type](gb, RW, RH, tm);
             shop.drawCounter(gb, type, TS, Math.round(2.2 * TS), RW - 2 * TS, 20);
-            ({ store: shop.drawStoreFloorProps, inn: shop.drawInnFloorProps, barber: shop.drawBarberFloorProps, tailor: shop.drawTailorFloorProps, lab: shop.drawLabFloorProps })[type](gb, RW, RH, tm, egg, ready);
+            ({ store: shop.drawStoreFloorProps, inn: shop.drawInnFloorProps, barber: shop.drawBarberFloorProps, tailor: shop.drawTailorFloorProps, lab: shop.drawLabFloorProps, furniture: shop.drawFurnitureFloorProps })[type](gb, RW, RH, tm, egg, ready);
             shop.drawShopFront(gb, RW, RH);
           } catch (e) { errori.push(type + ': ' + e.message); }
           if (fuori.size > prima) errori.push(type + ' sborda');
           if (n < 400) errori.push(type + ' quasi vuota (' + n + ')');
         }
       }
-      check('le 5 botteghe si disegnano intere, senza uscire dai muri', errori.length === 0, errori.concat([...fuori].slice(0, 4)).join(' | '));
-      check('ogni bottega ha i suoi materiali', new Set(Object.values(shop.SHOP_STYLE).map(st => st.wall)).size === 5);
+      check('le 6 botteghe si disegnano intere, senza uscire dai muri', errori.length === 0, errori.concat([...fuori].slice(0, 4)).join(' | '));
+      check('ogni bottega ha i suoi materiali', new Set(Object.values(shop.SHOP_STYLE).map(st => st.wall)).size === Object.keys(shop.SHOP_STYLE).length);
     }
   }
   /* ---- LA ROTAZIONE SI VEDE ---- */
@@ -4603,7 +4604,7 @@ sprites.applyLook();
      test verdi, perché nessuno chiamava mai drawInteriorScene. */
   {
     const inter2 = await import('../src/interior.js');
-    const types = ['store', 'lab', 'museum', 'inn', 'barber', 'tailor'];
+    const types = ['store', 'lab', 'museum', 'inn', 'barber', 'tailor', 'furniture'];
     const broken = [];
     for (const t of types) {
       for (const tod of [0.25, 0.7]) {          // di giorno e di notte (finestre accese)
@@ -6087,7 +6088,7 @@ sprites.applyLook();
   /* DISEGNO VERO: i 6 edifici si disegnano senza errori (materiale tetto + neve inclusi) */
   const render3 = await import('../src/render.js');
   let drew = true, drewErr = '';
-  try { for (const t of ['museum', 'store', 'inn', 'barber', 'tailor', 'lab']) render3.drawBuilding({ type: t, x0: 0, y0: 0, x1: 4, y1: 1 }, 120, 120); } catch (e) { drew = false; drewErr = e.message; }
+  try { for (const t of ['museum', 'store', 'inn', 'barber', 'tailor', 'lab', 'furniture']) render3.drawBuilding({ type: t, x0: 0, y0: 0, x1: 4, y1: 1 }, 120, 120); } catch (e) { drew = false; drewErr = e.message; }
   check('i 6 edifici si disegnano senza errori', drew, drewErr);
 }
 
@@ -7693,7 +7694,7 @@ sprites.applyLook();
   {
     // lo stub del DOM non implementa querySelectorAll (torna sempre []): si controlla
     // la stringa HTML generata direttamente, come già fa il resto di questo file
-    ui.openBuilding({ type: 'store', name: 'Negozio' }); ui.renderStore('goods'); // storeTab può essere rimasto su 'furn' da un test precedente
+    ui.openBuilding({ type: 'store', name: 'Negozio' });
     const body = document.getElementById('m-body').innerHTML;
     const spadeTag = (body.match(/<button[^>]*data-tool="spade"[^>]*>/) || [''])[0];
     check('la pala ha la classe che lampeggia', spadeTag.includes('tut-target'), spadeTag);
@@ -7707,7 +7708,7 @@ sprites.applyLook();
   S.tools = { spade: true };
   /* la pala presa: il Negozio torna normale, niente più lampeggio né blocchi */
   {
-    ui.openBuilding({ type: 'store', name: 'Negozio' }); ui.renderStore('goods');
+    ui.openBuilding({ type: 'store', name: 'Negozio' });
     const body2 = document.getElementById('m-body').innerHTML;
     const otherBtnTags2 = [...body2.matchAll(/<button[^>]*(?:data-tool="[^"]*"|data-map="[^"]*"|id="buy(?:En|Tp|Bag)")[^>]*>/g)].map(m => m[0]);
     check('pala comprata: gli altri acquisti tornano attivi', otherBtnTags2.length > 0 && otherBtnTags2.every(t => !t.includes('disabled')), otherBtnTags2.filter(t => t.includes('disabled')));

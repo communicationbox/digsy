@@ -56,7 +56,7 @@ export function zoneName(id) { const e = ZONEL[id]; return e ? lab(e) : id; }
 
 const BLDL = {
   lab: ['Laboratorio', 'Laboratory'], store: ['Negozio', 'Shop'], museum: ['Museo', 'Museum'],
-  inn: ['Locanda', 'Inn'], barber: ['Barbiere', 'Barber'], tailor: ['Sartoria', 'Tailor'],
+  inn: ['Locanda', 'Inn'], barber: ['Barbiere', 'Barber'], tailor: ['Sartoria', 'Tailor'], furniture: ['Bottega d\'arredo', 'Furniture shop'],
 };
 export function bldName(type) { const e = BLDL[type]; return e ? lab(e) : type; }
 

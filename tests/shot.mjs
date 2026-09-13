@@ -98,10 +98,16 @@ async function main() {
           p1:cs[0].name, p2:cs[1].name, laidDay:S.day, readyDay:S.day };
         return G.enterRoom('lab');
       }).then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
-    /* 'bottega' = l'interno di un mestiere scelto con tipo=store|inn|barber|tailor|lab (per
+    /* 'bottega' = l'interno di un mestiere scelto con tipo=store|inn|barber|tailor|lab|furniture (per
        confrontarli con la casa: stesso livello di dettaglio) */
     else if (${JSON.stringify(vista)} === 'bottega') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom(new URLSearchParams(location.search).get('tipo') || 'store').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'bottega-fuori' = la piazza di una città grande con la Bottega d'arredo in vista */
+    else if (${JSON.stringify(vista)} === 'bottega-fuori') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('goto=city').then(function(){ return G.townHere(); }).then(function(t){
+        var f = t && t.buildings.filter(function(b){ return b.type === 'furniture'; })[0];
+        if (f) { var p = G.player(); p.x = (f.doorx - 3) * 32 + 8; p.y = (f.doory + 2) * 32; }
+        if(G.frame) G.frame(1000); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per
@@ -230,7 +236,7 @@ async function main() {
     /* 'negozio-catalogo' = la scheda Catalogo del Negozio, coi temi e la vetrina del giorno */
     else if (${JSON.stringify(vista)} === 'negozio-catalogo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       var S0 = G.state(); S0.level = 12; S0.coins = 900;
-      if(G.openStore) G.openStore().then(function(){ var t=document.querySelector('[data-stab="furn"]'); if(t) t.click();
+      if(G.openFurnShop) G.openFurnShop().then(function(){
         var q = new URLSearchParams(location.search).get('tema'); if (q) { var b=document.querySelector('[data-ftopic="'+q+'"]'); if(b) b.click(); } }); }
     /* 'catalogo' = TUTTI i pezzi di un tema del catalogo in griglia, disegnati dalla loro
        ricetta (param tema=cucina). Si guardano insieme: 250 mobili non si giudicano uno alla volta */

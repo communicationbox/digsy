@@ -397,6 +397,7 @@ if (typeof window !== 'undefined') {
          sulla prima tile del bioma — e da lì l'inquadratura è quella che è: serve poter spostare
          la camera di qualche tile per comporre la scena. */
       player: () => P,
+      townHere: () => import('./world.js').then(w => w.townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS))),
       /* `godmode` accende anche la modalità debug, e con quella l'HUD mostra ∞ e il tag 🐞:
          va bene mentre si prova, non in una foto che finisce in vetrina. */
       debug: (on) => import('./debug.js').then(m => { m.setDebug(!!on); return u.updateHUD(), !!on; }),
@@ -419,6 +420,7 @@ if (typeof window !== 'undefined') {
       audio: () => import('./audio.js').then(a => a.audioState()),
       audioStart: () => import('./audio.js').then(a => { a.setMusicOn(true); a.startAudio(); return a.audioState(); }),
       openStore: () => import('./ui.js').then(u => u.openBuilding({ type: 'store', name: 'Negozio' })),
+      openFurnShop: () => import('./ui.js').then(u => u.openBuilding({ type: 'furniture', name: "Bottega d'arredo" })),
       /* un toast su richiesta: serve agli e2e per provare, in un browser VERO, che il
          messaggio si veda anche con un pannello aperto (là finiva dietro la modale) */
       toast: (m) => { u.toast(m || 'test'); return true; },

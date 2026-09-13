@@ -194,6 +194,7 @@ const PURPOSE = {
   inn: () => tr('dormi', 'sleep'),
   barber: () => tr('capelli', 'hair'),
   tailor: () => tr('vestiti', 'clothes'),
+  furniture: () => tr('arredo', 'furniture'),
 };
 export function bldPurpose(type) { return PURPOSE[type] ? PURPOSE[type]() : ''; }
 

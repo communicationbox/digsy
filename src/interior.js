@@ -121,6 +121,7 @@ export const NPCS = {
   museum: { name: ['Curatore Basalto', 'Curator Basalt'], look: { hat: '#6f5a94', hatStyle: 'none', shirt: '#6f5a94', pants: '#3d5f4a', skin: '#f3cfa0', hairStyle: 'receding', hairColor: '#9a9a9a' } },
   inn: { name: ['Locandiera Papavera', 'Innkeeper Poppy'], look: { hat: '#c65a54', hatStyle: 'none', shirt: '#c65a54', pants: '#8a5f38', skin: '#e3b98a', hairStyle: 'long', hairColor: '#b5622e' } },
   barber: { name: ['Barbiere Figaro', 'Barber Figaro'], look: { hat: '#5a86c8', hatStyle: 'none', shirt: '#5a86c8', pants: '#33291f', skin: '#a3744a', hairStyle: 'punk', hairColor: '#33291f' } },
+  furniture: { name: ['Falegname Ettore', 'Carpenter Hector'], look: { hat: '#5f7a52', hatStyle: 'none', shirt: '#5f7a52', pants: '#6b5137', skin: '#d9a877', hairStyle: 'short', hairColor: '#8a5a2a' } },
   tailor: { name: ['Sarta Ortensia', 'Tailor Hortense'], look: { hat: '#e08aa8', hatStyle: 'none', shirt: '#e08aa8', pants: '#5a6a8a', skin: '#f3cfa0', hairStyle: 'curly', hairColor: '#caa25a' } },
 };
 export function npcName(type) { const n = (NPCS[type] || NPCS.store).name; return tr(n[0], n[1]); }
@@ -151,6 +152,10 @@ const FURN = {
   tailor: [
     { x0: 32, y0: 96, x1: 84, y1: 132 },    // manichino
     { x0: 220, y0: 92, x1: 296, y1: 136 },  // tavolo da cucito
+  ],
+  furniture: [
+    { x0: 24, y0: 92, x1: 92, y1: 136 },    // poltrona in esposizione con la lampada
+    { x0: 228, y0: 92, x1: 296, y1: 136 },  // banco da falegname
   ],
   house: [], // casa del giocatore: stanza vuota (arredo in una milestone successiva)
 };

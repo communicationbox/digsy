@@ -55,6 +55,9 @@ function drawSignIcon(type, cx, y) {
       rect(cx - 1, y, 1, 5, '#e05a5a'); rect(cx, y, 1, 5, '#f3ecda'); rect(cx + 1, y, 1, 5, '#e05a5a'); break;
     case 'tailor': // maglietta
       rect(cx - 2, y + 1, 5, 1, '#e08aa8'); rect(cx - 1, y + 2, 3, 3, '#e08aa8'); px(cx - 2, y + 2, '#c06a88'); px(cx + 2, y + 2, '#c06a88'); break;
+    case 'furniture': // poltroncina
+      rect(cx - 1, y, 3, 2, '#b07c4a'); rect(cx - 2, y + 1, 1, 3, '#8a5f38'); rect(cx + 2, y + 1, 1, 3, '#8a5f38');
+      rect(cx - 1, y + 2, 3, 1, '#c98a5a'); px(cx - 2, y + 4, '#5c4229'); px(cx + 2, y + 4, '#5c4229'); break;
     case 'house': // casetta stilizzata
       px(cx, y, '#8a5f38'); px(cx - 1, y + 1, '#8a5f38'); px(cx + 1, y + 1, '#8a5f38');
       rect(cx - 2, y + 2, 5, 3, '#c98a5a'); px(cx, y + 3, '#6e4a2e'); break;
@@ -158,6 +161,18 @@ export function drawBuilding(b, sx, sy) {
     rect(dcx + 16, sy + h - 28, 6, 28, '#d9d0bb'); rect(dcx + 14, sy + h - 30, 10, 4, '#8fb0bd');
     for (let i = 0; i < 7; i++) { const yy = sy + h - 26 + i * 4; rect(dcx + 16, yy, 6, 2, i % 2 ? '#c65a54' : '#5a86c8'); }
     door('#5b7e99', '#3d5a72'); snowCap(sy + 2);
+  } else if (b.type === 'furniture') { /* BOTTEGA D'ARREDO: perline di legno chiaro, vetrina con la poltrona, assi fuori */
+    const wood = '#c9a07a';
+    rect(sx + 4, sy + 16, w - 8, h - 12, wood);
+    for (let i = 8; i < w - 8; i += 8) { rect(sx + i, sy + 16, 1, h - 12, shade8(wood, 0.8)); px(sx + i + 3, sy + 24 + ((i * 7) % 20), shade8(wood, 0.72)); } // perline con qualche nodo
+    wallDepth(sx + 4, sy + 16, w - 8, h - 12, wood); wallBase(sx + 4, sy + 16, w - 8, h - 12, wood);
+    rect(sx, sy + 4, w, 14, BB.roof); rect(sx, sy + 4, w, 4, BB.roof2); rect(sx - 2, sy + 16, w + 4, 4, shade8(BB.roof, 0.75)); roofMat(sy + 4, 14);
+    rect(sx + 8, sy + 26, 24, 24, '#4e3622'); rect(sx + 10, sy + 28, 20, 20, glass); winGlint(sx + 11, sy + 29, 20, 20); // vetrina
+    rect(sx + 13, sy + 36, 14, 8, '#5f9a52'); rect(sx + 12, sy + 38, 3, 8, '#4f8a45'); rect(sx + 25, sy + 38, 3, 8, '#4f8a45'); rect(sx + 15, sy + 41, 10, 4, '#7ec069'); // poltrona in vetrina
+    rect(sx + 6, sy + 50, 28, 3, '#8a5f38'); rect(sx + 6, sy + 50, 28, 1, '#b07c4a');           // davanzale
+    for (let i = 0; i < 3; i++) { rect(sx + w - 12 + i * 3, sy + h - 30 + i * 2, 3, 30 - i * 2, ['#b07c4a', '#8a5f38', '#d0ae82'][i]); } // assi appoggiate
+    rect(sx + w - 26, sy + h - 12, 10, 3, '#8a5f38'); rect(sx + w - 26, sy + h - 9, 2, 9, '#5c4229'); rect(sx + w - 18, sy + h - 9, 2, 9, '#5c4229'); rect(sx + w - 26, sy + h - 20, 2, 8, '#5c4229'); // sedia fuori
+    door('#6e4a2e', '#5c3d22'); snowCap(sy + 2);
   } else if (b.type === 'tailor') { /* SARTORIA: vetrina col manichino + rullo di stoffa */
     rect(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea'); rect(sx + 4, sy + h - 4, w - 8, 4, '#cfb4c0'); wallDepth(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea'); wallBase(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea'); wallCourse(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea');
     rect(sx, sy + 4, w, 16, '#b06a8c'); rect(sx, sy + 4, w, 4, '#c887a4'); rect(sx - 2, sy + 18, w + 4, 4, '#8c4e6c');

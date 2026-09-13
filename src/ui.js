@@ -524,7 +524,7 @@ export function openFurnitureTray(room, gx, gy) {
   if (!schede.some(sc => sc[0] === trayTab)) trayTab = 'tutti';
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Prendi un pezzo dal vassoio: lo vedi nella stanza e lo trascini dove vuoi. I quadri vanno sulla parete di fondo.', 'Take a piece from your tray: you see it in the room and drag it where you like. Wall pieces go on the back wall.')}</div>`;
   if (!tutti.length) {
-    h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
+    h += `<div class="center muted">${tr('Vassoio vuoto: i mobili si comprano alla Bottega d\'arredo, nelle città col Museo.', 'Tray empty: furniture is sold at the Furniture shop, in the cities with a Museum.')}</div>`;
     mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
     mBody.innerHTML = withIcons(h); openModal();
     return;
@@ -1286,7 +1286,7 @@ function hydrateCpv(root) {
 }
 
 /* ---------- edifici ---------- */
-const buildingEmoji = { store: '🏪', lab: '🔬', museum: '🏛️', inn: '🛏️', barber: '💈', tailor: '👕' };
+const buildingEmoji = { store: '🏪', lab: '🔬', museum: '🏛️', inn: '🛏️', barber: '💈', tailor: '👕', furniture: '🛋️' };
 const NPC_GREET = {
   lab: [
     ['Cranio, torace, zampa… e ti monto una creatura come nuova!', 'Skull, ribcage, leg… and I build you a creature good as new!'],
@@ -1348,6 +1348,18 @@ const NPC_GREET = {
     ['Guarda che meraviglia posso farti.', 'Look what a wonder I can do.'],
     ['Siediti, in un attimo sei un altro.', 'Sit down, in a blink you\'re a new person.'],
   ],
+  furniture: [
+    ['Una casa vuota è una tela bianca. Scegliamo i colori?', 'An empty house is a blank canvas. Shall we pick the colours?'],
+    ['Ogni mobile qui l\'ho piallato con queste mani.', 'I planed every piece in here with these hands.'],
+    ['Oggi in vetrina ci sono pezzi nuovi, guarda.', 'There are new pieces on display today, have a look.'],
+    ['La carta da parati cambia una stanza più di un armadio.', 'Wallpaper changes a room more than any wardrobe.'],
+    ['Attento ai trucioli, sono dappertutto.', 'Mind the wood shavings, they get everywhere.'],
+    ['Un letto buono e dormi come un sasso.', 'A good bed and you sleep like a rock.'],
+    ['Il legno di questa zona costa meno, e si vede.', 'This area\'s style costs less, and it shows.'],
+    ['Una stanza tutta dello stesso stile è più comoda.', 'A room all in one style is cosier.'],
+    ['Prendi le misure prima: un letto occupa due caselle.', 'Measure first: a bed takes two tiles.'],
+    ['Dimmi che stanza hai in mente e ti consiglio io.', 'Tell me what room you have in mind and I\'ll advise.'],
+  ],
   tailor: [
     ['Cerchi qualcosa da mettere? Sei nel posto giusto.', 'Looking for something to wear? Right place.'],
     ['Ho stoffe di ogni colore, guarda!', 'I\'ve got fabrics of every color, look!'],
@@ -1391,6 +1403,8 @@ const NPC_FIRST = {
     'Sleep here to restore your energy: you\'ll wake at dawn the next day. Handy before a long dig.'],
   barber: ['Ti cambio taglio e colore di capelli. Prova quanto vuoi gratis: paghi solo quando confermi. In ogni zona c\'è uno stile esclusivo da scoprire.',
     'I change your haircut and hair color. Try as much as you like for free: you only pay on confirm. Each region hides an exclusive style.'],
+  furniture: ['Qui si compra tutto per la casa: mobili, quadri, tappeti, carta da parati e pavimenti. Scegli un argomento; ogni giorno arrivano pezzi nuovi, e lo stile di questa zona costa un quarto in meno.',
+    'Everything for your home is here: furniture, pictures, rugs, wallpaper and floors. Pick a topic; new pieces arrive every day, and this area\'s style is a quarter cheaper.'],
   tailor: ['Qui scegli maglia, pantaloni e cappello. Prova liberamente e paghi alla conferma; alcuni cappelli speciali si sbloccano a parte.',
     'Here you pick shirt, trousers and hat. Try freely and pay on confirm; some special hats are unlocked separately.'],
 };
@@ -1407,7 +1421,8 @@ export function openBuilding(b) {
   const tw = townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS));
   mTitle.innerHTML = withIcons((buildingEmoji[b.type] || '🏠') + ' ' + bldName(b.type) + (tw ? ' — ' + tw.name : ''));
   if (b.type === 'lab') renderLab();
-  else if (b.type === 'store') { furnTopic = null; renderStore(); }   // si rientra sempre dalla griglia degli argomenti
+  else if (b.type === 'store') renderStore();
+  else if (b.type === 'furniture') { furnTopic = null; renderFurnShop(); }   // si rientra sempre dalla griglia degli argomenti
   else if (b.type === 'museum') renderMuseum();
   else if (b.type === 'barber') renderBarber();
   else if (b.type === 'tailor') renderTailor();
@@ -1553,23 +1568,22 @@ function renderLab() {
     }
   }
 }
-let storeTab = 'goods';
-/* ARGOMENTO scelto dentro l'Arredamento: null = la griglia degli argomenti, 'zona' = lo stile
-   della zona di questo negozio, altrimenti un tema del catalogo */
+/* ARGOMENTO scelto alla Bottega d'arredo: null = la griglia degli argomenti, 'zona' = lo stile
+   della zona di questa città, altrimenti un tema del catalogo */
 let furnTopic = null;
-/* `tab` esplicito = stesso schema di `openBag(tab)`: serve ai test (la scheda non si clicca
-   nello stub DOM). `topic` apre direttamente un argomento dell'Arredamento. */
-export function renderStore(tab, topic) {
-  if (tab) storeTab = tab;
+/* NEGOZIO: solo alimentari, attrezzi, mappe e vendita. L'arredamento stava in una seconda
+   scheda qui dentro, ma "in un alimentari non ha senso acquistare arredamenti": ora ha la sua
+   bottega nelle città (renderFurnShop). */
+export function renderStore() {
+  mBody.innerHTML = withIcons(renderStoreGoods()); hydratePv();
+  wireStoreGoods();
+}
+/* BOTTEGA D'ARREDO (solo città). `topic` esplicito apre direttamente un argomento: serve ai
+   test, dove lo stub DOM non clicca. */
+export function renderFurnShop(topic) {
   if (topic !== undefined) furnTopic = topic;
-  const TABS = [['goods', tr('Negozio', 'Shop')], ['furn', tr('Arredamento', 'Furniture')]];
-  if (!TABS.some(t => t[0] === storeTab)) storeTab = 'goods';
-  let h = '<div class="pn-tabs">' + TABS.map(([id, lab]) =>
-    `<button class="pn-tab${storeTab === id ? ' on' : ''}" data-stab="${id}">${lab}</button>`).join('') + '</div>';
-  h += storeTab === 'furn' ? renderFurnTab() : renderStoreGoods();
-  mBody.innerHTML = withIcons(h); hydratePv();
-  mBody.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { storeTab = b.dataset.stab; furnTopic = null; renderStore(); });
-  wireStoreGoods(); wireFurnTab();
+  mBody.innerHTML = withIcons(renderFurnTab()); hydratePv();
+  wireFurnTab();
 }
 /* ARREDAMENTO DIVISO PER ARGOMENTI. Si entra e si vedono GLI ARGOMENTI, non i mobili: lo stile
    della zona e i dodici temi del catalogo, ognuno col suo riquadro. Si sceglie un argomento e
@@ -1638,10 +1652,10 @@ function renderThemeItems(z, theme) {
   return h + ids.map(id => furnRow(id, catalogPrice(id, z.id), 'data-cfurn')).join('');
 }
 function wireFurnTab() {
-  mBody.querySelectorAll('[data-ftopic]').forEach(b => b.onclick = () => { furnTopic = b.dataset.ftopic; renderStore('furn'); });
-  mBody.querySelectorAll('[data-fback]').forEach(b => b.onclick = () => { furnTopic = null; renderStore('furn'); });
-  mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderStore('furn'); });
-  mBody.querySelectorAll('[data-cfurn]').forEach(b => b.onclick = () => { buyFurniture(b.dataset.cfurn, +b.dataset.cprezzo); renderStore('furn'); });
+  mBody.querySelectorAll('[data-ftopic]').forEach(b => b.onclick = () => { furnTopic = b.dataset.ftopic; renderFurnShop(); });
+  mBody.querySelectorAll('[data-fback]').forEach(b => b.onclick = () => { furnTopic = null; renderFurnShop(); });
+  mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderFurnShop(); });
+  mBody.querySelectorAll('[data-cfurn]').forEach(b => b.onclick = () => { buyFurniture(b.dataset.cfurn, +b.dataset.cprezzo); renderFurnShop(); });
 }
 function renderStoreGoods() {
   /* PASSO "shop" DEL TUTORIAL: comprare la pala è l'UNICA cosa che conta (senza, l'unico

@@ -105,6 +105,12 @@ function wallFill(g, kind, x, y, w, h) {
       clip(x, y + r * 8, w, 8, col); clip(x, y + r * 8, w, 1, g.shade8(col, 1.12)); clip(x, y + r * 8 + 7, w, 1, g.shade8(col, 0.72));
     }
     for (let bx = x + 6; bx < x + w; bx += 74) { clip(bx, y, 8, h, '#4e3622'); clip(bx + 1, y, 2, h, '#6b4a2e'); }
+  } else if (kind === 'boards') {                       // bottega d'arredo: perline chiare di legno grezzo
+    for (let bx = x, i = 0; bx < x + w; bx += 10, i++) {
+      const col = ['#c9a77a', '#bf9c6d', '#d0ae82'][i % 3];
+      clip(bx, y, 10, h, col); clip(bx, y, 1, h, g.shade8(col, 0.72)); clip(bx + 1, y, 1, h, g.shade8(col, 1.12));
+      if ((i * 7) % 5 === 0) clip(bx + 5, y + 14 + (i % 3) * 7, 2, 2, g.shade8(col, 0.78));        // nodo del legno
+    }
   } else if (kind === 'stripe') {                       // righe verdi del negozio
     clip(x, y, w, h, '#8fae7a');
     for (let sx = x + 2; sx < x + w; sx += 12) { clip(sx, y, 4, h, '#7c9b68'); clip(sx + 6, y, 1, h, '#a3c08c'); }
@@ -149,6 +155,7 @@ export const SHOP_STYLE = {
   inn: { floor: 'plank', wall: 'timber', wains: 'dark', accent: '#8a3f3a', accent2: '#d8b23c', mat: '#6e3a30', counter: '#5c3d22', top: '#7a5636' },
   barber: { floor: 'checker', wall: 'mint', wains: 'tile', accent: '#4e8d9c', accent2: '#f3ecda', mat: '#3f6f7c', counter: '#3f7f86', top: '#eef0ea' },
   tailor: { floor: 'plank', wall: 'damask', wains: 'light', accent: '#8a6ab0', accent2: '#e8c34a', mat: '#a0526a', counter: '#b07c4a', top: '#d8b58a' },
+  furniture: { floor: 'plank', wall: 'boards', wains: 'panel', accent: '#5f7a52', accent2: '#e8c34a', mat: '#6b5a3a', counter: '#a97a4c', top: '#d8b58a' },
   lab: { floor: 'flags', wall: 'stone', wains: 'slab', accent: '#4e8d7c', accent2: '#c9a227', mat: '#4a5a4e', counter: '#4e3a28', top: '#8f9aa3' },
 };
 export function shopStyle(type) { return SHOP_STYLE[type] || SHOP_STYLE.store; }
@@ -611,4 +618,79 @@ export const SHOP_WINDOWS = {
   barber: [62],
   tailor: [62],
   lab: [],
+  furniture: [236],
 };
+
+/* ================= BOTTEGA D'ARREDO ================= */
+export function drawFurnitureProps(g, rw, rh, time) {
+  const t = time || 0;
+  /* campionario di carte da parati appese a un'asta, dietro il bancone */
+  const cx = rw / 2, x0 = cx - 54;
+  g.rect(x0 - 4, 5, 116, 3, '#2a2016'); g.rect(x0 - 4, 5, 116, 1, '#8f9aa3'); g.rect(x0 - 6, 4, 3, 5, '#c9a227'); g.rect(x0 + 111, 4, 3, 5, '#c9a227');
+  const carte = [
+    ['#e7c9c4', 'rombi', '#d4a9a3'], ['#8fae7a', 'righe', '#7c9b68'], ['#bcd4de', 'fiocchi', '#f3ecda'],
+    ['#e8dcc0', 'foglie', '#7ec069'], ['#c86a4a', 'blocchi', '#a8563a'], ['#5a5a9a', 'stelle', '#e8c34a'],
+  ];
+  carte.forEach(([c, motivo, c2], i) => {
+    const sx = x0 + i * 18, h = 40 - (i % 2) * 6;
+    g.rect(sx, 8, 16, h, g.shade8(c, 0.45)); g.rect(sx + 1, 8, 14, h - 1, c);
+    for (let yy = 11; yy < 8 + h - 3; yy += 5) for (let xx = 3; xx < 14; xx += 5) {
+      if (motivo === 'righe') g.rect(sx + xx, 9, 2, h - 3, c2);
+      else if (motivo === 'rombi') { g.px(sx + xx, yy, c2); g.px(sx + xx - 1, yy + 1, c2); g.px(sx + xx + 1, yy + 1, c2); g.px(sx + xx, yy + 2, c2); }
+      else if (motivo === 'blocchi') g.rect(sx + xx - 2, yy, 4, 3, c2);
+      else if (motivo === 'foglie') { g.rect(sx + xx - 1, yy, 3, 2, c2); g.px(sx + xx, yy + 2, g.shade8(c2, 0.7)); }
+      else g.px(sx + xx, yy + 1, c2);
+    }
+    g.rect(sx + 1, 8 + h - 3, 14, 3, g.shade8(c, 0.8)); g.rect(sx + 3, 8 + h, 10, 2, g.shade8(c, 0.62));   // bordo arrotolato
+  });
+  /* pannello degli attrezzi a sinistra: sega, martello, squadra, pialla */
+  g.rect(18, 10, 70, 40, '#2a1e14'); g.rect(19, 11, 68, 38, '#b8955f');
+  for (let yy = 15; yy < 48; yy += 6) for (let xx = 23; xx < 86; xx += 6) g.px(xx, yy, '#8a6a3a');
+  g.rect(24, 16, 22, 8, '#2a2016'); g.rect(25, 17, 20, 6, '#c9ced3'); for (let i = 0; i < 20; i += 2) g.px(25 + i, 23, '#8f9aa3'); g.rect(44, 15, 6, 10, '#8a3f3a');   // sega
+  g.rect(56, 14, 3, 20, '#6e4a2e'); g.rect(52, 13, 11, 5, '#2a2016'); g.rect(53, 14, 9, 3, '#8f9aa3');                                                                 // martello
+  g.rect(68, 14, 2, 18, '#c9a227'); g.rect(68, 30, 14, 2, '#c9a227'); for (let i = 0; i < 16; i += 3) g.px(69, 16 + i, '#6b4f14');                                       // squadra
+  g.rect(24, 34, 26, 9, '#2a2016'); g.rect(25, 35, 24, 7, '#a97a4c'); g.rect(30, 32, 6, 4, '#6e4a2e'); g.rect(42, 33, 5, 3, '#8a3f3a');                                  // pialla
+  g.rect(58, 38, 24, 4, '#e8c34a'); for (let i = 0; i < 24; i += 3) g.px(58 + i, 38, '#2a2016');                                                                        // metro
+  /* orologio a muro in fondo a destra */
+  g.rect(rw - 32, 12, 16, 16, '#2a2016'); g.rect(rw - 31, 13, 14, 14, '#8a5f38'); g.rect(rw - 29, 15, 10, 10, '#f3ecda');
+  const hh = Math.floor(t / 1000) % 4; g.rect(rw - 24, 17, 1, 4, '#2a2016'); g.rect(rw - 24 + (hh < 2 ? 0 : -3), 20, 4, 1, '#2a2016');
+}
+export function drawFurnitureFloorProps(g, rw, rh, time) {
+  const t = time || 0, cx = rw / 2;
+  /* sul bancone: catalogo aperto, ventaglio di campioni di stoffa, matita, sedia in miniatura */
+  g.rect(cx - 70, 62, 28, 9, '#2a2016'); g.rect(cx - 69, 63, 13, 7, '#f3ecda'); g.rect(cx - 55, 63, 12, 7, '#e8dcc0'); g.rect(cx - 56, 62, 1, 9, '#8a3f3a');
+  g.rect(cx - 67, 65, 5, 3, '#c65a54'); g.rect(cx - 61, 65, 4, 3, '#5a86c8'); g.rect(cx - 53, 65, 8, 1, '#8f887a'); g.rect(cx - 53, 67, 6, 1, '#8f887a');
+  ['#c65a54', '#e8c34a', '#5fa04e', '#5a86c8', '#8a6ab0'].forEach((c, i) => { g.rect(cx - 30 + i * 4, 58 + Math.abs(2 - i), 6, 12 - Math.abs(2 - i), g.shade8(c, 0.55)); g.rect(cx - 29 + i * 4, 59 + Math.abs(2 - i), 4, 10 - Math.abs(2 - i), c); });
+  g.rect(cx - 6, 66, 14, 2, '#e8c34a'); g.px(cx + 8, 66, '#2a2016'); g.px(cx - 6, 66, '#e8a0b8');
+  g.rect(cx + 44, 56, 3, 14, '#6e4a2e'); g.rect(cx + 44, 62, 12, 3, '#a97a4c'); g.rect(cx + 53, 65, 3, 5, '#6e4a2e'); g.rect(cx + 44, 56, 3, 1, '#b07c4a');
+  /* POLTRONA in esposizione su un tappeto, con lampada da terra (24..92 × 92..136) */
+  g.rect(22, 112, 70, 26, '#5c2a26'); g.rect(23, 113, 68, 24, '#b8574a'); g.rect(26, 116, 62, 18, '#e0a24a'); g.rect(27, 117, 60, 16, '#a8453c');
+  for (let i = 25; i < 91; i += 3) { g.px(i, 111, '#e8dcc0'); g.px(i, 138, '#e8dcc0'); }
+  g.shadow(48, 132, 20);
+  g.rect(30, 92, 34, 24, '#2f4a2a'); g.rect(31, 93, 32, 22, '#5f9a52'); g.rect(31, 93, 32, 3, '#7ec069');                                   // schienale
+  for (const bx of [39, 47, 55]) g.px(bx, 100, '#3f6a38');
+  g.rect(26, 104, 8, 22, '#2f4a2a'); g.rect(27, 105, 6, 20, '#4f8a45'); g.rect(27, 105, 6, 2, '#7ec069');                                    // braccioli
+  g.rect(60, 104, 8, 22, '#2f4a2a'); g.rect(61, 105, 6, 20, '#4f8a45'); g.rect(61, 105, 6, 2, '#7ec069');
+  g.rect(32, 112, 30, 12, '#2f4a2a'); g.rect(33, 113, 28, 10, '#6aa85c'); g.rect(33, 113, 28, 2, '#8fd07a');                                 // cuscino
+  g.rect(28, 126, 4, 6, '#3a2a1c'); g.rect(62, 126, 4, 6, '#3a2a1c');
+  g.rect(36, 88, 22, 6, '#2a2016'); g.rect(37, 89, 20, 4, '#f3ecda'); g.rect(44, 89, 6, 4, '#c9a227');                                        // cartellino del prezzo
+  const on = Math.floor(t / 2000) % 5 !== 0;
+  g.rect(80, 94, 1, 38, '#2a2016'); g.rect(81, 94, 1, 38, '#8f887a'); g.rect(75, 132, 12, 3, '#2a2016');
+  g.rect(73, 82, 16, 13, '#2a2016'); g.rect(74, 83, 14, 11, on ? '#f6dc78' : '#e8dcc0'); g.rect(74, 83, 14, 2, '#fff3c8');
+  if (on) g.rect(66, 96, 30, 14, 'rgba(255,230,150,.10)');
+  /* BANCO DA FALEGNAME con morsa, pialla e trucioli (228..296 × 92..136) */
+  g.shadow(262, 136, 36);
+  g.rect(230, 108, 6, 28, '#2a1e14'); g.rect(288, 108, 6, 28, '#2a1e14'); g.rect(231, 126, 62, 3, '#4a3624');
+  g.rect(226, 98, 72, 12, '#2a1e14'); g.rect(227, 99, 70, 10, '#c49a63'); g.rect(227, 99, 70, 2, '#dcb880');
+  for (let i = 0; i < 70; i += 12) g.rect(227 + i, 101, 1, 8, '#a97a4c');
+  g.rect(222, 100, 8, 12, '#2a2016'); g.rect(223, 101, 6, 10, '#5a5248'); g.rect(218, 104, 5, 2, '#8f9aa3');                                    // morsa
+  g.rect(236, 90, 30, 9, '#2a2016'); g.rect(237, 91, 28, 7, '#e0b890'); g.rect(237, 91, 28, 1, '#f3d8b0');                                     // asse sul banco
+  g.rect(254, 84, 16, 8, '#2a2016'); g.rect(255, 85, 14, 6, '#a97a4c'); g.rect(258, 82, 4, 3, '#6e4a2e');                                      // pialla
+  const tr2 = Math.floor(t / 400) % 3;
+  for (let i = 0; i < 3; i++) { const sx = 240 + i * 5 + tr2; g.rect(sx, 88 - i, 3, 1, '#f3d8b0'); g.px(sx + 3, 87 - i, '#e0b890'); }        // truciolo che esce
+  g.rect(278, 88, 14, 10, '#2a2016'); g.rect(279, 89, 12, 8, '#8a6ab0'); g.rect(279, 89, 12, 2, '#a88ad0');                                     // barattolo di vernice
+  g.rect(283, 80, 2, 10, '#6e4a2e'); g.rect(282, 78, 4, 3, '#e8dcc0');
+  /* assi appoggiate al muro e trucioli sparsi */
+  for (let i = 0; i < 3; i++) { g.rect(300 - i * 4, 150 + i * 2, 5, 50 - i * 2, '#2a1e14'); g.rect(301 - i * 4, 151 + i * 2, 3, 48 - i * 2, ['#c49a63', '#a97a4c', '#dcb880'][i]); }
+  for (let i = 0; i < 9; i++) { const x = 110 + (i * 41) % 110, y = 150 + (i * 29) % 44; g.rect(x, y, 3, 1, '#e0b890'); g.px(x + 3, y - 1, '#e0b890'); g.px(x - 1, y + 1, '#c49a63'); }
+}

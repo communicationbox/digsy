@@ -214,7 +214,7 @@ export function pickupAt(tx, ty) {
 
 /* ---------- città ---------- */
 export const TCELL = 62;
-/* taglie: borgo (2 edifici), paese (4), città (6 + parco); footprint edificio 3x2, porta in basso al centro */
+/* taglie: borgo (2 edifici), paese (4), città (7); footprint edificio 3x2, porta in basso al centro */
 export const TOWN_SIZES = [
   { id: 'borgo', w: [-6, 6], h: [-6, 3], defs: [['store', 'Negozio', -5, -5], ['inn', 'Locanda', 3, -5]] },
   {
@@ -231,7 +231,10 @@ export const TOWN_SIZES = [
     id: 'città', w: [-11, 13], h: [-7, 6], defs: [
       ['store', 'Negozio', -10, -6], ['lab', 'Laboratorio', -1, -6], ['museum', 'Museo', 8, -6],
       /* fila bassa sfalsata: il viale centrale (x=C.x) resta sempre libero */
-      ['inn', 'Locanda', -10, 1], ['barber', 'Barbiere', -4, 1], ['tailor', 'Sartoria', 4, 1]]
+      ['inn', 'Locanda', -10, 1], ['barber', 'Barbiere', -4, 1], ['tailor', 'Sartoria', 4, 1],
+      /* BOTTEGA D'ARREDO: solo in città. In un alimentari non ha senso comprare un letto, e
+         andare in città per arredare casa è un piccolo viaggio che vale la pena fare. */
+      ['furniture', "Bottega d'arredo", 10, 1]]
   },
 ];
 const TN_A = ['Ossa', 'Terra', 'Cava', 'Selce', 'Creta', 'Ambra', 'Tufo', 'Ghiaia', 'Argilla', 'Fossa', 'Sabbia', 'Rocca'];

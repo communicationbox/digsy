@@ -115,7 +115,7 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   dopo 10 giorni. **Identificazione al MUSEO** (non più al Lab): il Lab tiene chimere+risveglio.
 - **Città procedurali** in celle `TCELL=40` (prob 0.45), nomi propri tema terra/ossa (`townName`).
   Taglie: **borgo** (Lab+Negozio), **paese** (+Locanda+**Barbiere**), **città**
-  (6 edifici: +Museo+**Sartoria**, piazza larga 23, + **parco recintato**). Piazze SPAZIOSE
+  (7 edifici: +Museo+**Sartoria**+**Bottega d'arredo**, piazza larga 23). Piazze SPAZIOSE
   (file di case distanti 5+ tile) con **strade sterrate** (`town.roads` Set, tile `ROAD`):
   vialetto porta→strada per ogni casa, strada orizzontale davanti a ogni fila, viale centrale
   x=C.x sempre libero (fila bassa città sfalsata apposta) che scende fino al cancello del parco.
@@ -302,7 +302,7 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   al Lab, piastrelle dal Barbiere, assi del legno di zona altrove), parete con carta/zoccolo/cornice,
   finestra con tende, bancone con piano e pannelli, arredi con contorno e ombre. Gli ingombri
   `FURN` NON sono cambiati. Un test disegna ogni bottega e vieta pixel fuori dai muri.
-  Foto: `npm run shot -- bottega 900,700 "tipo=inn"` (store/inn/barber/tailor/lab).
+  Foto: `npm run shot -- bottega 900,700 "tipo=inn"` (store/inn/barber/tailor/lab/furniture) · `bottega-fuori`.
 
 - **Biomi tematizzati per davvero**: palette terreno per zona (`ZONE_TILES` — zona 0 usa le
   stagioni), chiome alberi per zona (`ZONE_TREE`), acqua a tema (palude torbida con ninfee,
@@ -412,7 +412,9 @@ Studio da archeologo, Giardino interno, Museo e fossili, Rustico, Marinaro, Magi
 Festivo, Bambini). Ogni pezzo è una RICETTA di poche righe scritta a mano (`furnRecipe.js`:
 `B` scatola, `C` cilindro, `O` disco, `T/V` triangoli, `G` vetro, `Q` fiammella…), non un
 ricolore: un test pretende sagome uniche, niente fuori dall'ingombro, colori validi, nomi in tre
-lingue. Si compra al Negozio, scheda Catalogo: ogni giorno i pezzi `base` più 6 a rotazione per
+lingue. Si compra alla **Bottega d'arredo** (`furniture`, SOLO nelle città: settimo edificio della fila bassa,
+falegname Ettore; il Negozio è tornato alimentari — "in un alimentari non ha senso acquistare
+arredamenti"): ogni giorno i pezzi `base` più 6 a rotazione per
 tema; il tema DI CASA della zona (`ZONE_THEME`) è tutto in vetrina e costa un quarto in meno.
 Si ruota solo chi ha la vista `side`. Per guardarli tutti: `npm run shot -- catalogo 1400,1100 "tema=cucina"`.
 
