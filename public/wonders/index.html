@@ -74,8 +74,10 @@ function render(time) {
   for (const [id, w] of Object.entries(WONDERS)) {
     const cell = document.createElement('div'); cell.className = 'cell';
     cell.innerHTML = `<h2>${id} · ${w.zone} · ${w.w} tile${(WONDER_SOLID[id] || []).length ? ' · solido' : ''}</h2>`;
-    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
-    const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false;
+    /* canvas al DOPPIO, come il mondo: le meraviglie sono native a 32 px per casella e sulla
+       griglia da 16 cadrebbero a metà pixel */
+    const cv = document.createElement('canvas'); cv.width = W * 2; cv.height = H * 2;
+    const ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; ctx.scale(2, 2);
     const g = brushFor(ctx);
     const pal = GROUND[w.zone] || GROUND.prati;
     /* terreno a tile 16px con variazione */
@@ -86,8 +88,7 @@ function render(time) {
       if (showGrid) { ctx.strokeStyle = 'rgba(0,0,0,.18)'; ctx.strokeRect(x + .5, y + .5, 16, 16); }
     }
     /* la meraviglia, ancorata in basso al centro */
-    if (hasSprite('wonder:' + id)) drawSprite(g, 'wonder:' + id, Math.round(W / 2), H - 60 + 16);
-    else drawWonder(g, id, Math.round(W / 2) - 8, H - 60, time);
+    drawWonder(g, id, Math.round(W / 2) - 8, H - 60, time);   // drawWonder sceglie da sé: nativo, poi lo sprite dello Studio
     /* riferimento: sagoma del giocatore (16×22) accanto */
     ctx.fillStyle = '#241a10'; ctx.fillRect(W - 40, H - 44 - 22, 12, 22);
     ctx.fillStyle = '#e3b98a'; ctx.fillRect(W - 39, H - 44 - 21, 10, 8);

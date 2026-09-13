@@ -33,7 +33,7 @@ src/tiles.js        palette stagionali/bioma, BIOME_BUILD/INT_WOOD, soilDetail, 
 src/props.js        alberi, sassi, fiori, funghi, oggetti a terra, decorazioni di bioma
 src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc)
 src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete, fondi), comodità
-src/wonderNative.js le 13 meraviglie generate a codice ridisegnate in NATIVO a 32px (le 5 dello Sprite Studio restano)
+src/wonderNative.js tutte e 18 le meraviglie disegnate in NATIVO a 32px (gli sprite dello Studio restano in banca come riserva)
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
 src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)
 src/shopArt.js      le 5 botteghe (Negozio/Locanda/Barbiere/Sartoria/Lab): stesso guscio della casa, bancone, arredi (puro)

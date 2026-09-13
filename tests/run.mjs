@@ -399,18 +399,18 @@ sprites.applyLook();
       ctx: { fillRect() {}, beginPath() {}, moveTo() {}, lineTo() {}, closePath() {}, fill() {}, save() {}, restore() {}, set fillStyle(v) {} },
     };
   };
-  let wrong = 0;
   const handmade = Object.keys(bank.SPRITES).filter(k => k.startsWith('wonder:')).map(k => k.slice(7));
-  for (const type of handmade) {
-    const g = brush();
-    drawWonder(g, type, 0, 0, 0);
-    /* i colori della banca sono la firma: se si vedono, è stato usato il disegno a mano */
-    const pal = Object.values(bank.spriteDef('wonder:' + type).pal);
-    const hits = pal.filter(col => g.used.has(col)).length;
-    if (hits < pal.length / 2) wrong++;
+  /* oggi il NATIVO ha la precedenza su tutte (vedi wonderNative.js): gli sprite dello Studio
+     restano nella banca come riserva, e un tipo senza nativo li userebbe ancora */
+  check(`i disegni dello Studio restano in banca come riserva (${handmade.length})`, handmade.length > 0);
+  /* e la riserva funziona davvero: un tipo senza nativo usa lo sprite, uno sconosciuto un sasso */
+  {
+    bank.SPRITES['wonder:__prova'] = bank.SPRITES['wonder:' + handmade[0]];
+    const g1 = brush(); drawWonder(g1, '__prova', 0, 0, 0);
+    delete bank.SPRITES['wonder:__prova'];
+    const g2 = brush(); drawWonder(g2, '__sconosciuta', 0, 0, 0);
+    check('senza nativo si usa lo sprite dello Studio, e un tipo sconosciuto non esplode', g1.used.size > 4 && g2.used.size === 1);
   }
-  check(`drawWonder usa i disegni a mano (${handmade.length}: ${handmade.join(', ')})`,
-    handmade.length > 0 && wrong === 0);
   /* e il render del mondo non deve tenersene una copia propria */
   const { readFileSync } = await import('node:fs');
   const rsrc = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
@@ -6983,20 +6983,18 @@ sprites.applyLook();
     }
   }
   check('tutte e 18 le meraviglie si disegnano', broken.length === 0, broken[0] || '');
-  /* IN NATIVO: le meraviglie generate a codice sono ridisegnate a 32 px per casella (prima
-     erano sulla griglia da 16 e il mondo le raddoppiava: pixel grossi il doppio del resto).
-     Quelle rifinite a mano nello Sprite Studio restano le sue: il nativo non le sostituisce. */
+  /* IN NATIVO: tutte e 18 le meraviglie sono disegnate a 32 px per casella. Prima erano sulla
+     griglia da 16 e il mondo le raddoppiava: pixel grossi il doppio di Digsy e delle case.
+     Anche le cinque dello Sprite Studio sono state ridisegnate in nativo (a richiesta: "rifai
+     tu"); i loro sprite restano nella banca come riserva, ma il nativo ha la precedenza. */
   {
     const wn = await import('../src/wonderNative.js');
-    const sb = await import('../src/spritebank.js');
     const tipi = Object.keys(WONDERS);
-    const aMano = tipi.filter(t => sb.hasSprite('wonder:' + t));
-    check('ogni meraviglia è disegnata a mano o in nativo', tipi.every(t => aMano.includes(t) || wn.hasNativeWonder(t)),
-      tipi.filter(t => !aMano.includes(t) && !wn.hasNativeWonder(t)).join(' '));
-    check('i disegni a mano non vengono sostituiti dal nativo', aMano.every(t => {
-      let usato = false; const G2 = { rect() { usato = true; }, px() { usato = true; }, shadow() {}, shade8: h => h, ctx: { fillStyle: '', fillRect() {} } };
-      const orig = wn.NATIVE_WONDERS[t]; return !orig || (wa.drawWonder(G2, t, 0, 0, 0), true);
-    }) && aMano.every(t => !wn.hasNativeWonder(t)));
+    check('tutte le meraviglie sono disegnate in nativo', tipi.every(t => wn.hasNativeWonder(t)), tipi.filter(t => !wn.hasNativeWonder(t)).join(' '));
+    { let viaNativo = true;
+      for (const t of tipi) { let n = 0; const G2 = { rect: (x, y, w, h) => { if (w % 1 || h % 1 || w === 0.5) n++; }, px() {}, shadow() {}, shade8: h => h, ctx: { fillStyle: '', fillRect() {} } };
+        wa.drawWonder(G2, t, 0, 0, 0); if (n === 0) viaNativo = false; }
+      check('drawWonder usa il nativo anche dove c\'è uno sprite dello Studio', viaNativo); }
     const fuori = [];
     for (const t of tipi.filter(x => wn.hasNativeWonder(x))) {
       const half = (WONDERS[t].w * 32) / 2 + 20;
@@ -7004,7 +7002,8 @@ sprites.applyLook();
       const rec = { shade8: h => h, px: (x, y) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); },
         rect: (x, y, w, h) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x + w); y0 = Math.min(y0, y); y1 = Math.max(y1, y + h); } };
       for (const tm of [0, 700, 1900, 4100]) wn.drawNativeWonder(rec, t, tm);
-      if (x0 < -half || x1 > half || y0 < -260 || y1 > 32) fuori.push(t + ' [' + [x0, x1, y0, y1].join(',') + ']');
+      const alto = t === 'gianttree' ? -380 : -260;                       // l'albero più alto del mondo
+      if (x0 < -half || x1 > half || y0 < alto || y1 > 32) fuori.push(t + ' [' + [x0, x1, y0, y1].join(',') + ']');
     }
     check('ogni meraviglia nativa sta nel suo ingombro (larghezza in caselle, niente sotto terra)', fuori.length === 0, fuori.join(' '));
   }
