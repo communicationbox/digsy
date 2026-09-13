@@ -130,7 +130,8 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'edifici') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.buildingGallery) G.buildingGallery(); }
     /* 'bioma' = in mezzo a una zona (zona=prati|dune|boschi|terre|palude|ghiacci): natura e terreno */
     else if (${JSON.stringify(vista)} === 'bioma') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
-      if(G.cmd) G.cmd('goto=' + (new URLSearchParams(location.search).get('zona') || 'prati')).then(function(){ if(G.frame) G.frame(1000); }); }
+      var luce = new URLSearchParams(location.search).get('luce');
+      (luce && G.cmd ? G.cmd('goditem') : Promise.resolve()).then(function(){ return G.cmd('goto=' + (new URLSearchParams(location.search).get('zona') || 'prati')); }).then(function(){ if(G.frame) G.frame(1000); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per

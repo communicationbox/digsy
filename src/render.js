@@ -30,6 +30,7 @@ import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
+import { caveWall, caveFloor, caveCrystal } from './caveArt.js';
 import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, mailboxArt, siteArt } from './decoArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
 import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
@@ -1176,19 +1177,9 @@ function drawCaveScene(time) {
   const pcx = Math.floor(CAVE.x / TS), pcy = Math.floor((CAVE.y + FOOT_DY) / TS);
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
-    if (caveSolid(tx, ty)) { // PARETE = roccia FREDDA e scura, con CIMA illuminata e base in ombra
-      rect(sx, sy, TS, TS, ((tx + ty) & 1) ? '#33304a' : '#2c2942');
-      const openAbove = !caveSolid(tx, ty - 1);
-      if (openAbove) { rect(sx, sy, TS, 4, '#7a72ad'); rect(sx, sy + 4, TS, 1, '#5a5488'); } // faccia superiore che prende luce
-      else rect(sx, sy, TS, 2, '#3d3960');
-      if (vhash(tx, ty, 71) < 0.3) { const vx = sx + 4 + Math.floor(vhash(tx, ty, 77) * 24), vy = sy + 4 + Math.floor(vhash(tx, ty, 78) * 24); rect(vx, vy, 2, 2, '#26243a'); } // venature
-      if (!caveSolid(tx, ty + 1)) { rect(sx, sy + TS - 2, TS, 2, '#1b1930'); }     // ombra alla base (stacca dal pavimento)
-    } else { // PAVIMENTO = terra CALDA e chiara: qui si CAMMINA (leggibile a colpo d'occhio)
-      rect(sx, sy, TS, TS, ((tx + ty) & 1) ? '#5a4d40' : '#524537');
-      rect(sx, sy, TS, 1, '#4a3f32'); // giunto leggero tra le lastre
-      if (vhash(tx, ty, 72) < 0.16) { const dx4 = sx + 4 + Math.floor(vhash(tx, ty, 73) * 24), dy4 = sy + 5 + Math.floor(vhash(tx, ty, 74) * 24); rect(dx4, dy4, 2, 2, '#463a2e'); }
-      if (vhash(tx, ty, 75) < 0.06) { const sx4 = sx + 3 + Math.floor(vhash(tx, ty, 76) * 26), sy4 = sy + 4 + Math.floor(vhash(tx, ty, 79) * 24); rect(sx4, sy4, 2, 1, '#6a5c48'); } // sassolino chiaro
-    }
+    /* disegno in caveArt.js: pareti in 3/4 con faccia e cresta, pavimento a lastre */
+    if (caveSolid(tx, ty)) caveWall(BRUSH, tx, ty, sx, sy, { above: !caveSolid(tx, ty - 1), below: !caveSolid(tx, ty + 1), left: !caveSolid(tx - 1, ty), right: !caveSolid(tx + 1, ty) });
+    else caveFloor(BRUSH, tx, ty, sx, sy, time, caveSolid(tx, ty - 1));
   }
   /* ORME sul pavimento (aiutano a ritrovare la strada), più sbiadite col tempo */
   for (const f of CAVE.trail) {
@@ -1200,14 +1191,8 @@ function drawCaveScene(time) {
   const reach = caveNodeReach();
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     if (!caveNodeAt(tx, ty) || caveNodeDone(tx, ty)) continue;
-    const sx = tx * TS, sy = ty * TS, gl = Math.floor(time / 260) % 2, here = (reach && reach[0] === tx && reach[1] === ty);
-    ctx.fillStyle = 'rgba(120,220,235,.14)'; ctx.fillRect(sx - 6, sy - 6, TS + 12, TS + 12);       // alone
-    rect(sx + 4, sy + 24, 24, 6, '#2a3540'); rect(sx + 8, sy + 8, 16, 20, '#4fbccb');             // base + cristallo
-    rect(sx + 10, sy + 6, 12, 6, '#a6ecf2'); rect(sx + 12, sy + 12, 6, 12, '#e8fbff'); px(sx + 16, sy + 10, '#ffffff');
-    if (gl) { px(sx + 4, sy + 4, '#a6ecf2'); px(sx + 26, sy + 18, '#a6ecf2'); }
-    /* contorno della casella (dove ci si mette per scavare): giallo se ci sei sopra */
-    ctx.strokeStyle = here ? 'rgba(240,220,120,.9)' : 'rgba(120,220,235,.5)'; ctx.lineWidth = 1;
-    ctx.strokeRect(sx + .5, sy + .5, TS - 1, TS - 1);
+    const sx = tx * TS, sy = ty * TS, here = !!(reach && reach[0] === tx && reach[1] === ty);
+    caveCrystal(BRUSH, sx, sy, time, here);
   }
   /* player: stessi offset dell'overworld (feet allineati alla collisione: niente scarto di mezzo cubetto) */
   const fr = CAVE.moving ? (Math.floor(CAVE.anim * 7) % 2) : 0;
@@ -1242,15 +1227,18 @@ function drawCaveScene(time) {
      appena disegnato tornerebbe nero e non servirebbe a niente. */
   const exTx = CAVE.w >> 1;
   const caveR = (S.tools && S.tools.torch ? 1.7 : 1) + companionLightBonus(); // torcia + compagno LANTERNA
-  for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
-    const sx = tx * TS, sy = ty * TS;
+  /* a quarti di casella (non caselle intere): il cerchio di luce resta a gradini 8-bit ma non
+     è più fatto di quadrotti grandi quanto Digsy */
+  const HC = TS >> 1;
+  for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) for (let q = 0; q < 4; q++) {
+    const sx = tx * TS + (q & 1) * HC, sy = ty * TS + (q >> 1) * HC;
     const tR = caveR;
-    const d = (Math.hypot(sx + 8 - CAVE.x, sy + 8 - CAVE.y) / TS) / tR;
+    const d = (Math.hypot(sx + HC / 2 - CAVE.x, sy + HC / 2 - (CAVE.y + 16)) / TS) / tR;
     let a = d < 2 ? 0 : d < 3.2 ? 0.4 : d < 4.4 ? 0.72 : d < 5.6 ? 0.9 : 0.98;
     /* vicinanza all'imbocco: quanto più si è in fondo e in mezzo, tanto più c'è luce */
     const dEx = Math.hypot(tx - exTx, ty - (CAVE.h - 1));
     if (dEx < 5) a = Math.min(a, dEx < 2 ? 0 : dEx < 3 ? 0.35 : dEx < 4 ? 0.7 : 0.88);
-    if (a > 0) { ctx.fillStyle = 'rgba(4,4,8,' + a + ')'; ctx.fillRect(sx, sy, TS, TS); }
+    if (a > 0) { ctx.fillStyle = 'rgba(4,4,8,' + a + ')'; ctx.fillRect(sx, sy, HC, HC); }
   }
   ctx.restore();
   /* FRECCIA verso l'USCITA a bordo schermo (per non perdersi) */
