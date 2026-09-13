@@ -210,8 +210,10 @@ sprites.applyLook();
   /* REGOLA #1: i tetti non devono "nuotare" camminando — il pattern del materiale NON può
      dipendere dalla parità della y SCHERMO (prima lo shingle usava (r % 2), r = y schermo).
      La fase dello stagger deve venire dall'INDICE di riga (stabile col mondo). */
-  const roofFn = (() => { const s = readFileSync(new URL('render.js', dir), 'utf8'); const a = s.indexOf('const roofMat'); return a < 0 ? '' : s.slice(a, s.indexOf('const dcx', a)); })();
-  check('tetti: il materiale non usa la parità della y schermo (regola #1)', roofFn.length > 0 && !/\(\s*r\s*%\s*2\s*\)/.test(roofFn));
+  /* i tetti ora stanno in townArt.js e lavorano in coordinate LOCALI dell'edificio (0,0 = angolo
+     dell'ingombro): lo sfalsamento viene dall'indice di riga, mai dalla y dello schermo */
+  const roofFn = (() => { const s = readFileSync(new URL('townArt.js', dir), 'utf8'); const a = s.indexOf('export function roof('); return a < 0 ? '' : s.slice(a, s.indexOf('export function windowBox', a)); })();
+  check('tetti: il materiale non usa la y dello schermo (regola #1)', roofFn.length > 0 && !/\b(sy|cam)\b/.test(roofFn));
   /* L'altra metà dello stesso guasto: il giocatore leggeva "46/60" mentre l'energia era già
      a zero, perché il refresh dell'HUD stava DOPO i `return` di grotte e interni e là sotto
      non veniva mai eseguito. Qui si pretende che stia prima di entrambi. */
@@ -6081,9 +6083,11 @@ sprites.applyLook();
   check('esiste una palette di materiali per ogni bioma', /export const BIOME_BUILD = \[/.test(tsrc) &&
     (tsrc.match(/roof:/g) || []).length === 6);
   check('lastricato e strade prendono il materiale del bioma', /biomeBuild\(tx, ty\)\.floor/.test(tsrc) && /biomeBuild\(tx, ty\)\.road/.test(tsrc));
-  check('i tetti cambiano col bioma, e nelle Lande si innevano', /BB\.roof/.test(rsrc) && /snowCap/.test(rsrc));
+  check('i tetti cambiano col bioma, e nelle Lande si innevano', /BB\.roof/.test(fs.readFileSync('src/townArt.js', 'utf8')) && /BB\.snow/.test(fs.readFileSync('src/townArt.js', 'utf8')));
   check('ogni bioma ha un MATERIALE di tetto (mat)', (tsrc.match(/mat:\s*'/g) || []).length === 6);
-  check('i tetti disegnano il materiale del bioma (roofMat)', /roofMat\s*=/.test(rsrc) && /roofMat\(sy/.test(rsrc));
+  { const tsrc2 = fs.readFileSync('src/townArt.js', 'utf8');
+    const mats = [...new Set((tsrc.match(/mat:\s*'([a-z]+)'/g) || []).map(m => m.split("'")[1]))];
+    check('i tetti disegnano il materiale di OGNI bioma (townArt.roof)', mats.length >= 5 && mats.every(m => tsrc2.includes("case '" + m + "'")), mats.join(' ')); }
   check('il legno degli interni cambia col bioma', /export const INT_WOOD = \[/.test(tsrc) && (tsrc.match(/#/g) || []).length > 100);
   /* DISEGNO VERO: i 6 edifici si disegnano senza errori (materiale tetto + neve inclusi) */
   const render3 = await import('../src/render.js');

@@ -126,6 +126,8 @@ async function main() {
         var xy = pos === 'atrio' ? [30, 55] : pos === 'grotte' ? [30, 9] : pos === 'targa' ? [15, 44] : [15, 52];
         return G.intPos(xy[0], xy[1]);
       }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'edifici' = gli esterni di tutti gli edifici in griglia, di giorno e di notte */
+    else if (${JSON.stringify(vista)} === 'edifici') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.buildingGallery) G.buildingGallery(); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per

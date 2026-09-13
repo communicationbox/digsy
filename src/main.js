@@ -444,6 +444,28 @@ if (typeof window !== 'undefined') {
          pavimento, col nome sotto. Serve a GUARDARE duecentocinquanta mobili tutti insieme (per le
          foto), non entra nel gioco. */
       /* tutte le meraviglie insieme sul terreno della loro zona, per giudicarle una accanto all'altra */
+      /* gli esterni degli edifici in fila, giorno e notte, su lastricato e con tre materiali di tetto */
+      buildingGallery: () => Promise.all([import('./townArt.js'), import('./brush.js'), import('./tiles.js')]).then(([ta, br, tl]) => {
+        const types = ['store', 'lab', 'museum', 'inn', 'barber', 'tailor', 'furniture', 'house'];
+        const cw = 230, ch = 150, cols = 4, rows = 4;
+        const cv2 = document.createElement('canvas'); cv2.width = cols * cw * 2; cv2.height = rows * ch * 2;
+        const c2 = cv2.getContext('2d'); c2.imageSmoothingEnabled = false; c2.scale(2, 2);
+        const g = { ctx: c2, shade8: br.shade8, rect: (x, y, w, h, c) => { c2.fillStyle = c; c2.fillRect(x, y, w, h); }, px: (x, y, c) => { c2.fillStyle = c; c2.fillRect(x, y, 1, 1); } };
+        const builds = tl.BIOME_BUILD;
+        for (let r = 0; r < rows; r++) types.forEach((t, i) => {
+          const row = r * 2 + Math.floor(i / 4), col = i % 4; if (row >= rows) return;
+          const x = col * cw, y = row * ch; if (r > 0 && Math.floor(i / 4) === 0 && false) return;
+          const BB = builds[(r * 2 + i) % builds.length], night = r === 1;
+          c2.fillStyle = night ? '#6a6a70' : '#d8c49a'; c2.fillRect(x, y, cw, ch);
+          const w = (t === 'museum' ? 5 : 3) * 32;
+          c2.save(); c2.translate(x + (cw - w) / 2, y + ch - 80);
+          (ta.FRONTS[t])(g, w, 64, BB, night ? '#ffdf8a' : '#8fd0e6', night);
+          c2.restore();
+          c2.fillStyle = '#000'; c2.font = 'bold 10px monospace'; c2.fillText(t + ' · ' + (BB.mat || '') + (night ? ' · notte' : ''), x + 4, y + 12);
+        });
+        cv2.style.cssText = 'position:fixed;left:0;top:0;z-index:9999;image-rendering:pixelated';
+        document.body.appendChild(cv2); return true;
+      }),
       wonderGallery: (t) => Promise.all([import('./wonderart.js'), import('./wonders.js'), import('./brush.js'), import('./spritebank.js')]).then(([wa, wd, br, sb]) => {
         const ids = Object.keys(wd.WONDERS), cols = 3, cw = 360, ch = 330;
         const GROUND = { prati: '#7fb85a', dune: '#dcc08a', boschi: '#5c7050', terre: '#b0704a', palude: '#5a7a56', ghiacci: '#dfe9ee' };

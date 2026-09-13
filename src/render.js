@@ -29,6 +29,7 @@ import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tu
 import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
+import { FRONTS } from './townArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
 import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
 
@@ -68,129 +69,22 @@ function drawSign(type, cx, y) {
   rect(cx - 5, y, 11, 7, '#8a5f38'); rect(cx - 4, y + 1, 9, 5, '#d9b98a');
   drawSignIcon(type, cx, y + 1);
 }
-/* ---- rifiniture condivise da drawBuilding E drawHouse (fase 2, scala nativa) ---- */
-/* la parete non è un blocco piatto — luce da sx, ombra propria a dx (dà volume) */
-function wallDepth(wx, wy, ww, wh, base) { rect(wx, wy, 5, wh, shade8(base, 1.45)); rect(wx + ww - 5, wy, 5, wh, shade8(base, 0.6)); }
-/* riflesso sul vetro: due tocchi (alto-sx pieno + basso-dx debole), non un blocco piatto */
-function winGlint(wx, wy, ww, wh) { rect(wx, wy, 2, 2, '#ffffff'); px(wx + (ww || 5) - 1, wy + (wh || 5) - 1, 'rgba(255,255,255,.4)'); }
-/* telaio della finestra: croce vera (montanti orizzontale+verticale), non solo un bordo */
-function winFrame(wx, wy, ww, wh, frameCol) { const fc = frameCol || '#5c4229'; rect(wx - 1, wy - 1, ww + 2, 1, fc); rect(wx - 1, wy + wh, ww + 2, 1, fc); rect(wx - 1, wy - 1, 1, wh + 2, fc); rect(wx + ww, wy - 1, 1, wh + 2, fc); rect(wx + Math.floor(ww / 2), wy, 1, wh, fc); rect(wx, wy + Math.floor(wh / 2), ww, 1, fc); }
-/* zoccolo: striscia in ombra dove il muro tocca terra — quarto tono, ancora la casa al suolo */
-function wallBase(wx, wy, ww, wh, base) { rect(wx, wy + wh - 3, ww, 3, shade8(base, 0.7)); }
-/* seconda riga di tono a metà parete: leggera variazione di intonaco, non un blocco uniforme */
-function wallCourse(wx, wy, ww, wh, base) { rect(wx, wy + Math.floor(wh * 0.55), ww, 1, shade8(base, 0.88)); }
 /* Edifici RICONOSCIBILI a colpo d'occhio: ogni mestiere ha la sua sagoma */
 export function drawBuilding(b, sx, sy) {
-  /* FASE 2: disegno nativo a piena scala (non più raddoppio meccanico dei vecchi numeri a
-     16px) — w/h sono ora la taglia VERA, e ogni elemento (finestre, porta, muro) è stato
-     riautografato con dettaglio che nella vecchia griglia non ci stava: telaio delle
-     finestre con croci vere, porta a due pannelli con maniglia, muro con una seconda riga
-     di tono oltre a luce/ombra/zoccolo già presenti. */
+  /* il disegno sta in townArt.js (materiali per mestiere, tetto della zona, porta col gradino);
+     qui si decide solo dove, con quali materiali di bioma e se è notte */
   ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const w = (b.x1 - b.x0 + 1) * TS, h = (b.y1 - b.y0 + 1) * TS; // il museo è 5 tile largo
   const BB = biomeBuild(b.x0, b.y0);   // materiali del bioma (tetto, zoccolo, neve)
-  const bv = vhash(b.x0, b.y0, 77), bw = vhash(b.x0, b.y0, 78), bc = vhash(b.x0, b.y0, 79);
   shadow(sx + w / 2, sy + h + 4, Math.floor(w / 2) - 4);
   const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
-  /* NEVE (clima delle Lande) sul bordo alto del tetto, a qualsiasi altezza esso stia */
-  const snowCap = (ry) => { if (!BB.snow) return; const y = ry == null ? sy + 2 : ry; rect(sx, y, w, 4, '#eef7fa'); for (let i = 0; i < w; i += 10) px(sx + i + 4, y + 4, '#dfeef2'); };
-  /* MATERIALE del tetto per bioma (coppi/conci/scandole/tegole/paglia/ardesia): dettaglio a
-     pixel sopra il tetto colorato, alla NUOVA densità (unità di texture a taglia vera, non
-     solo più ripetizioni della stessa unità piccola). ry = bordo alto, th = spessore falda. */
-  const roofMat = (ry, th) => {
-    const d = shade8(BB.roof, 0.72), dd = shade8(BB.roof, 0.55), l = shade8(BB.roof2 || BB.roof, 1.15), bot = ry + th - 1;
-    switch (BB.mat) {
-      case 'coppi':   for (let i = 0; i < w; i += 8) { rect(sx + i, bot - 1, 3, 2, d); px(sx + i, bot - 2, dd); rect(sx + i + 4, ry + 3, 3, 2, l); } break;                     // coppi curvi, più grandi
-      case 'stone':   rect(sx, ry + Math.floor(th / 2), w, 2, d); for (let i = 5; i < w; i += 13) { rect(sx + i, ry + 2, 2, th - 4, d); px(sx + i - 3, ry + Math.floor(th/2) - 2, l); } break; // conci di pietra
-      case 'shingle': { let ri = 0; for (let r = ry + 3; r < bot; r += 6, ri++) { rect(sx, r, w, 2, d); for (let i = (ri & 1) * 4; i < w; i += 8) { px(sx + i, r + 2, d); px(sx + i + 1, r - 1, l); } } break; } // scandole sfalsate, raddoppiate
-      case 'tile':    for (let i = 4; i < w; i += 6) rect(sx + i, ry + 2, 2, th - 4, d); rect(sx, ry + Math.floor(th / 2), w, 2, d); break;        // tegole a griglia
-      case 'thatch':  for (let i = 0; i < w; i += 4) rect(sx + i, ry, 2, th + (i % 8 ? 0 : 2), i % 8 ? d : l); break;                             // paglia (bordo irregolare)
-      case 'slate':   rect(sx, ry + 4, w, 2, d); rect(sx, ry + Math.max(6, Math.floor(th * 0.7)), w, 2, d); for (let i = 6; i < w; i += 14) px(sx + i, ry + 5, l); break;        // ardesia
-    }
-  };
   const dcx = sx + w / 2;
-  /* porta a taglia vera: due pannelli in rilievo, cornice, maniglia distinta — non più due
-     rettangoli pieni con due pixel di spigolo */
-  const door = (col1, col2) => {
-    const c1 = col1 || '#7a5a3a', c2 = col2 || '#5c4229', dw = 20, dh = 24;
-    const dx0 = dcx - dw / 2, dy0 = sy + h - dh;
-    rect(dx0, dy0, dw, dh, c1); rect(dx0 + 2, dy0 + 2, dw - 4, dh - 4, c2);
-    rect(dx0 + 4, dy0 + 4, dw - 8, 8, shade8(c2, 1.2)); rect(dx0 + 4, dy0 + 15, dw - 8, 7, shade8(c2, 1.2)); // due pannelli in rilievo
-    rect(dx0 + 4, dy0 + 4, dw - 8, 1, shade8(c2, 0.7)); rect(dx0 + 4, dy0 + 15, dw - 8, 1, shade8(c2, 0.7)); // ombra sopra ogni pannello
-    px(dx0 + dw - 5, dy0 + dh / 2, '#e8c34a'); px(dx0 + dw - 5, dy0 + dh / 2 - 1, '#fff3c8'); // maniglia
-    px(dx0 + 1, dy0 + 1, shade8(c1, 1.3)); rect(dx0 + dw - 3, dy0 + dh - 3, 2, 3, shade8(c2, 0.6)); // spigolo chiaro sx / ombra bassa dx
-  };
-  if (b.type === 'museum') { /* TEMPIO: frontone triangolare + colonne elleniche */
-    rect(sx + 2, sy + 24, w - 4, h - 20, '#e8e2d0'); rect(sx + 2, sy + h - 4, w - 4, 4, '#c4baa2'); wallDepth(sx + 2, sy + 24, w - 4, h - 20, '#e8e2d0'); wallBase(sx + 2, sy + 24, w - 4, h - 20, '#e8e2d0'); wallCourse(sx + 2, sy + 24, w - 4, h - 20, '#e8e2d0');
-    ctx.fillStyle = '#d9d0bb'; ctx.beginPath(); ctx.moveTo(sx - 4, sy + 24); ctx.lineTo(sx + w / 2, sy - 12); ctx.lineTo(sx + w + 4, sy + 24); ctx.closePath(); ctx.fill();
-    ctx.fillStyle = '#efe8d6'; ctx.beginPath(); ctx.moveTo(sx + 6, sy + 22); ctx.lineTo(sx + w / 2, sy - 6); ctx.lineTo(sx + w - 6, sy + 22); ctx.closePath(); ctx.fill();
-    rect(sx - 4, sy + 22, w + 8, 6, '#c9a227'); rect(sx - 4, sy + 22, w + 8, 2, shade8('#c9a227', 1.2)); // architrave dorato, con filo di luce
-    rect(dcx - 3, sy + 6, 6, 5, '#8a7118'); px(dcx - 3, sy + 6, shade8('#8a7118', 1.3)); // osso nel timpano
-    for (let i = 0; i < 6; i++) { // 6 colonne scanalate distribuite sulla facciata
-      const cx2 = sx + 10 + Math.round(i * (w - 28) / 5);
-      if (Math.abs(cx2 + 4 - (sx + w / 2)) < 16) continue; // varco del portale
-      rect(cx2, sy + 28, 8, h - 28, '#efe8d6'); rect(cx2 + 2, sy + 28, 2, h - 28, '#cbbfa4'); rect(cx2 + 6, sy + 28, 1, h - 28, shade8('#efe8d6', 0.85));
-      rect(cx2 - 2, sy + 26, 12, 4, '#d9d0bb'); rect(cx2 - 2, sy + h - 6, 12, 6, '#c4baa2');
-    }
-    rect(sx + 8, sy + h - 2, w - 16, 2, '#b8ac90'); // gradino
-    rect(dcx - 10, sy + h - 24, 20, 24, '#3a3a44'); rect(dcx - 7, sy + h - 20, 14, 20, '#23232c'); rect(dcx - 10, sy + h - 24, 3, 24, shade8('#3a3a44', 1.4)); // portale scuro, con filo di luce sullo stipite
-    if (BB.snow) { rect(sx - 4, sy + 20, w + 8, 2, '#eef7fa'); px(dcx, sy - 10, '#eef7fa'); px(dcx - 2, sy - 8, '#eef7fa'); px(dcx + 2, sy - 8, '#eef7fa'); } // neve sul timpano
-  } else if (b.type === 'store') { /* NEGOZIO: pareti VERDE SALVIA (staccano dal pavimento) + tenda a strisce */
-    rect(sx + 4, sy + 16, w - 8, h - 12, '#7fa06a'); rect(sx + 4, sy + 16, w - 8, 4, '#93b47c'); rect(sx + 4, sy + h - 4, w - 8, 4, '#5f7d4c'); wallDepth(sx + 4, sy + 16, w - 8, h - 12, '#7fa06a'); wallBase(sx + 4, sy + 16, w - 8, h - 12, '#7fa06a'); wallCourse(sx + 4, sy + 16, w - 8, h - 12, '#7fa06a');
-    rect(sx, sy + 4, w, 14, BB.roof); rect(sx, sy + 4, w, 4, BB.roof2); roofMat(sy + 4, 14);
-    for (let i = 0; i < w; i += 16) { rect(sx + i, sy + 18, 8, 12, '#c65a54'); rect(sx + i + 8, sy + 18, 8, 12, '#f1e6cc'); px(sx + i + 2, sy + 30, '#a3494e'); px(sx + i + 10, sy + 30, '#cdbd97'); } // tenda
-    rect(sx + 10, sy + 36, 18, 16, glass); winFrame(sx + 10, sy + 36, 18, 16); rect(sx + 10, sy + 36, 18, 2, '#efe6cf'); rect(sx + 10, sy + 50, 18, 2, '#cdbd97'); winGlint(sx + 12, sy + 38, 18, 16); // vetrina
-    rect(sx + 12, sy + 44, 6, 6, '#b98d59'); rect(sx + 20, sy + 42, 6, 8, '#8a5f38'); // merci esposte
-    rect(sx + w - 24, sy + h - 14, 14, 14, '#b98d59'); rect(sx + w - 24, sy + h - 14, 14, 4, '#d9b98a'); px(sx + w - 20, sy + h - 8, '#6e4a2e'); // cassa fuori
-    snowCap(); door();
-  } else if (b.type === 'inn') { /* LOCANDA: pareti MATTONE CALDO a due piani (staccano dal pavimento) */
-    rect(sx + 4, sy - 4, w - 8, h + 4, '#c07a52'); rect(sx + 4, sy - 4, w - 8, 4, '#d0906a'); rect(sx + 4, sy + 20, w - 8, 4, '#7a4526'); wallDepth(sx + 4, sy - 4, w - 8, h + 4, '#c07a52'); wallBase(sx + 4, sy - 4, w - 8, h + 4, '#c07a52'); wallCourse(sx + 4, sy - 4, w - 8, h + 4, '#c07a52'); // marcapiano
-    rect(sx, sy - 16, w, 16, BB.roof); rect(sx, sy - 16, w, 4, BB.roof2); rect(sx - 2, sy - 2, w + 4, 4, shade8(BB.roof, 0.75)); roofMat(sy - 16, 16); snowCap(sy - 14); // tetto alto
-    rect(sx + 12, sy - 12, 8, 18, '#9a8874'); rect(sx + 12, sy - 12, 8, 4, '#7f6f5e'); px(sx + 14, sy - 12, shade8('#9a8874', 1.2)); // camino
-    px(sx + 14, sy - 16 - (Math.floor(bv * 4)), '#cfcabf'); px(sx + 16, sy - 20, '#dcd8cf');
-    for (const wx of [sx + 12, sx + w / 2 - 4, sx + w - 22]) { rect(wx, sy + 4, 10, 10, glass); winFrame(wx, sy + 4, 10, 10); rect(wx, sy + 12, 10, 2, '#cdbd97'); winGlint(wx + 1, sy + 5); } // finestre piano alto
-    rect(sx + 12, sy + 32, 10, 10, glass); winFrame(sx + 12, sy + 32, 10, 10); winGlint(sx + 13, sy + 33); rect(sx + w - 22, sy + 32, 10, 10, glass); winFrame(sx + w - 22, sy + 32, 10, 10); winGlint(sx + w - 21, sy + 33);
-    rect(sx + w - 14, sy + 26, 4, 4, '#e8c34a'); px(sx + w - 12, sy + 24, '#8a5f38'); // lanterna
-    door('#6e4a2e', '#4c3018');
-  } else if (b.type === 'barber') { /* BARBIERE: palo a spirale + tenda blu */
-    rect(sx + 4, sy + 16, w - 8, h - 12, '#eef4f6'); rect(sx + 4, sy + h - 4, w - 8, 4, '#b7c8cf'); wallDepth(sx + 4, sy + 16, w - 8, h - 12, '#eef4f6'); wallBase(sx + 4, sy + 16, w - 8, h - 12, '#eef4f6'); wallCourse(sx + 4, sy + 16, w - 8, h - 12, '#eef4f6');
-    rect(sx, sy + 4, w, 16, '#5a86c8'); rect(sx, sy + 4, w, 4, '#7aa2dc'); rect(sx - 2, sy + 18, w + 4, 4, '#41639a');
-    for (let i = 4; i < w - 4; i += 12) rect(sx + i, sy + 20, 6, 8, '#e8f2f5'); // frangia tenda
-    rect(sx + 10, sy + 32, 14, 14, glass); winFrame(sx + 10, sy + 32, 14, 14); rect(sx + 10, sy + 38, 14, 2, '#b7c8cf'); winGlint(sx + 11, sy + 33);
-    /* palo del barbiere accanto alla porta */
-    rect(dcx + 16, sy + h - 28, 6, 28, '#d9d0bb'); rect(dcx + 14, sy + h - 30, 10, 4, '#8fb0bd');
-    for (let i = 0; i < 7; i++) { const yy = sy + h - 26 + i * 4; rect(dcx + 16, yy, 6, 2, i % 2 ? '#c65a54' : '#5a86c8'); }
-    door('#5b7e99', '#3d5a72'); snowCap(sy + 2);
-  } else if (b.type === 'furniture') { /* BOTTEGA D'ARREDO: perline di legno chiaro, vetrina con la poltrona, assi fuori */
-    const wood = '#c9a07a';
-    rect(sx + 4, sy + 16, w - 8, h - 12, wood);
-    for (let i = 8; i < w - 8; i += 8) { rect(sx + i, sy + 16, 1, h - 12, shade8(wood, 0.8)); px(sx + i + 3, sy + 24 + ((i * 7) % 20), shade8(wood, 0.72)); } // perline con qualche nodo
-    wallDepth(sx + 4, sy + 16, w - 8, h - 12, wood); wallBase(sx + 4, sy + 16, w - 8, h - 12, wood);
-    rect(sx, sy + 4, w, 14, BB.roof); rect(sx, sy + 4, w, 4, BB.roof2); rect(sx - 2, sy + 16, w + 4, 4, shade8(BB.roof, 0.75)); roofMat(sy + 4, 14);
-    rect(sx + 8, sy + 26, 24, 24, '#4e3622'); rect(sx + 10, sy + 28, 20, 20, glass); winGlint(sx + 11, sy + 29, 20, 20); // vetrina
-    rect(sx + 13, sy + 36, 14, 8, '#5f9a52'); rect(sx + 12, sy + 38, 3, 8, '#4f8a45'); rect(sx + 25, sy + 38, 3, 8, '#4f8a45'); rect(sx + 15, sy + 41, 10, 4, '#7ec069'); // poltrona in vetrina
-    rect(sx + 6, sy + 50, 28, 3, '#8a5f38'); rect(sx + 6, sy + 50, 28, 1, '#b07c4a');           // davanzale
-    for (let i = 0; i < 3; i++) { rect(sx + w - 12 + i * 3, sy + h - 30 + i * 2, 3, 30 - i * 2, ['#b07c4a', '#8a5f38', '#d0ae82'][i]); } // assi appoggiate
-    rect(sx + w - 26, sy + h - 12, 10, 3, '#8a5f38'); rect(sx + w - 26, sy + h - 9, 2, 9, '#5c4229'); rect(sx + w - 18, sy + h - 9, 2, 9, '#5c4229'); rect(sx + w - 26, sy + h - 20, 2, 8, '#5c4229'); // sedia fuori
-    door('#6e4a2e', '#5c3d22'); snowCap(sy + 2);
-  } else if (b.type === 'tailor') { /* SARTORIA: vetrina col manichino + rullo di stoffa */
-    rect(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea'); rect(sx + 4, sy + h - 4, w - 8, 4, '#cfb4c0'); wallDepth(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea'); wallBase(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea'); wallCourse(sx + 4, sy + 16, w - 8, h - 12, '#f2e4ea');
-    rect(sx, sy + 4, w, 16, '#b06a8c'); rect(sx, sy + 4, w, 4, '#c887a4'); rect(sx - 2, sy + 18, w + 4, 4, '#8c4e6c');
-    rect(sx + 8, sy + 28, 22, 24, glass); winFrame(sx + 8, sy + 28, 22, 24); rect(sx + 8, sy + 28, 22, 2, '#efe6cf'); rect(sx + 8, sy + 50, 22, 2, '#cfb4c0'); winGlint(sx + 10, sy + 30); // vetrina grande
-    rect(sx + 16, sy + 34, 6, 10, '#e08aa8'); px(sx + 18, sy + 32, '#f3cfa0'); rect(sx + 14, sy + 44, 10, 4, '#8a5f38'); // manichino vestito
-    rect(sx + w - 20, sy + h - 16, 8, 16, '#8fd0a0'); rect(sx + w - 18, sy + h - 16, 2, 16, '#6faa80'); // rullo di stoffa
-    door('#8c5a74', '#6a4056'); snowCap(sy + 2);
-  } else { /* LABORATORIO: torretta con alambicco e fumo verde */
-    rect(sx + 4, sy + 20, w - 8, h - 16, '#e0e4d4'); rect(sx + 4, sy + h - 4, w - 8, 4, '#b9c0a8'); wallDepth(sx + 4, sy + 20, w - 8, h - 16, '#e0e4d4'); wallBase(sx + 4, sy + 20, w - 8, h - 16, '#e0e4d4'); wallCourse(sx + 4, sy + 20, w - 8, h - 16, '#e0e4d4');
-    rect(sx, sy + 8, w, 16, '#5f7a52'); rect(sx, sy + 8, w, 4, '#78966a'); rect(sx - 2, sy + 22, w + 4, 4, '#485e3e');
-    rect(sx + w - 28, sy - 12, 18, 24, '#9a9285'); rect(sx + w - 28, sy - 12, 18, 4, '#aaa294'); px(sx + w - 26, sy - 10, shade8('#9a9285', 1.2)); // torretta
-    rect(sx + w - 24, sy - 6, 10, 10, glass); winFrame(sx + w - 24, sy - 6, 10, 10); winGlint(sx + w - 23, sy - 5); px(sx + w - 20, sy - 18, '#8fd0a0'); px(sx + w - 18, sy - 22, '#b2e4be'); // oblò + fumo verde
-    rect(sx + 12, sy + 32, 10, 10, glass); winFrame(sx + 12, sy + 32, 10, 10); rect(sx + 12, sy + 38, 10, 2, '#b9c0a8'); winGlint(sx + 13, sy + 33);
-    rect(sx + w - 22, sy + 32, 10, 10, glass); winFrame(sx + w - 22, sy + 32, 10, 10); winGlint(sx + w - 21, sy + 33);
-    door('#5f7a52', '#3f5434'); snowCap(sy + 6);
-  }
+  /* ESTERNI (townArt.js): ogni mestiere coi suoi materiali, tetto della zona, porta col gradino */
+  const front = FRONTS[b.type] || FRONTS.lab;
+  front(BRUSH, w, h, BB, glass, night() > 0.4);
+  const doorOff = { barber: -6, tailor: 6, furniture: 4 }[b.type] || 0;
   // insegna appesa sopra la porta (comunque utile da lontano)
-  drawSign(b.type, dcx, sy + 24);
+  if (b.type !== 'museum') drawSign(b.type, dcx + doorOff, sy + 17);
   ctx.restore();
 }
 /* CASA del giocatore: un cottage piccolo e caldo (3×2, fuori dal sistema città), non un
@@ -204,20 +98,8 @@ export function drawHouse(hf, sx, sy) {
   const BB = biomeBuild(hf.x0, hf.y0);
   const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
   const dcx = sx + w / 2;
-  shadow(dcx, sy + h + 4, Math.floor(w / 2) - 4);
-  rect(sx + 4, sy + 16, w - 8, h - 12, '#d8a878'); rect(sx + 4, sy + 16, w - 8, 4, '#e6bb8e'); rect(sx + 4, sy + h - 4, w - 8, 4, '#a97a4c');
-  rect(sx + 4, sy + 16, 5, h - 12, shade8('#d8a878', 1.45)); rect(sx + w - 9, sy + 16, 5, h - 12, shade8('#d8a878', 0.6)); // luce sx / ombra dx: la parete ha volume
-  rect(sx + 4, sy + Math.floor((h - 12) * 0.55) + 16, w - 8, 1, shade8('#d8a878', 0.88)); // seconda riga di tono, non un muro uniforme
-  rect(sx + 4, sy + h - 6, w - 8, 3, shade8('#d8a878', 0.7)); // zoccolo: dove il muro tocca terra
-  rect(sx, sy + 4, w, 16, BB.roof); rect(sx, sy + 4, w, 4, BB.roof2); rect(sx - 2, sy + 18, w + 4, 4, shade8(BB.roof, 0.75));
-  { const d = shade8(BB.roof, 0.72), l = shade8(BB.roof2 || BB.roof, 1.15); for (let i = 0; i < w; i += 8) { rect(sx + i, sy + 18, 3, 2, d); px(sx + i + 4, sy + 6, l); } } // dettaglio tetto (coppi), a taglia vera
-  if (BB.snow) rect(sx - 4, sy + 2, w + 8, 4, '#eef7fa');
-  rect(sx + w - 24, sy + 24, 10, 10, glass); winFrame(sx + w - 24, sy + 24, 10, 10); rect(sx + w - 24, sy + 24, 10, 2, '#efe6cf'); rect(sx + w - 24, sy + 32, 10, 2, '#a97a4c'); winGlint(sx + w - 22, sy + 26); // finestrella
-  rect(dcx - 10, sy + h - 24, 20, 24, '#8a5f38'); rect(dcx - 6, sy + h - 20, 12, 20, '#6e4a2e'); // porta di casa (mai chiusa a nessuno)
-  rect(dcx - 4, sy + h - 18, 8, 7, shade8('#6e4a2e', 1.2)); rect(dcx - 4, sy + h - 9, 8, 6, shade8('#6e4a2e', 1.2)); // due pannelli in rilievo
-  px(dcx + 2, sy + h - 12, '#e8c34a'); px(dcx + 2, sy + h - 13, '#fff3c8'); // maniglia
-  px(dcx - 8, sy + h - 22, shade8('#8a5f38', 1.3)); rect(dcx + 6, sy + h - 6, 2, 3, shade8('#6e4a2e', 0.65)); // battente con volume
-  drawSign('house', dcx, sy + 24);
+  FRONTS.house(BRUSH, w, h, BB, glass === '#ffdf8a' ? '#8fd0e6' : glass, night() > 0.4);
+  drawSign('house', dcx, sy + 17);
   ctx.restore();
 }
 /* ---------- arredo urbano ---------- */
