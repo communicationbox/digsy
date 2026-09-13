@@ -97,7 +97,7 @@ export const WONDERS = {
     p: ['Vedetta: rivela una vasta porzione di mappa.', 'Lookout: reveals a wide portion of the map.'] },
   frozenbeast: { w: 9, cd: 2, zone: 'ghiacci',
     n: ['Bestia nel Ghiaccio', 'The Beast in the Ice'],
-    d: ['Una creatura intera, intatta, sospesa dentro il ghiaccio azzurro.', 'A whole creature, intact, suspended inside the blue ice.'],
+    d: ['Lo scheletro intero di una bestia dai denti a sciabola, fossile dentro il ghiaccio azzurro.', 'The whole skeleton of a sabre-toothed beast, fossilised inside the blue ice.'],
     gp: ['Non ho fatto in tempo a liberarla. Falla uscire tu, un pezzo per volta.', 'I never managed to free it. You do it, one piece at a time.'],
     p: ['Liberala: un pezzo della stessa specie ogni volta.', 'Free it: one piece of the same species each time.'] },
   aurora: { w: 9, cd: 5, zone: 'ghiacci',

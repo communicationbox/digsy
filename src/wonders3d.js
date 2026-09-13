@@ -129,17 +129,17 @@ const BP = {
     pil(-6, -2, 0, 14, 3, C.glass); pil(5, 3, 0, 18, 3, C.glass);
     disc(0, 0, 0, 8, 1, C.snow);
   },
-  frozenbeast() {                                  // blocco di ghiaccio con dentro la bestia
-    /* guscio di ghiaccio a scacchi: si intravede la creatura dentro */
+  frozenbeast() {                                  // blocco di ghiaccio con dentro lo SCHELETRO fossile
+    /* guscio di ghiaccio a scacchi: si intravede lo scheletro dentro */
     for (let x = -9; x <= 9; x++) for (let y = 0; y <= 15; y++) for (let z = -6; z <= 6; z++) {
       const edge = x === -9 || x === 9 || y === 0 || y === 15 || z === -6 || z === 6;
       if (edge && (x + y + z) % 2 === 0) out.push({ x, y, z, col: C.ice });
     }
-    box(-6, 3, -3, 11, 6, 6, C.fur);               // corpo
-    box(-9, 6, -2, 4, 4, 4, '#7a5a40');            // testa
-    box(-10, 7, -1, 1, 1, 1, C.bone);              // zanna
-    for (const x of [-5, -1, 3]) box(x, 0, -2, 2, 3, 2, C.fur);
-    box(5, 6, -1, 5, 2, 2, '#7a5a40');             // coda
+    for (let i = 0; i <= 12; i++) { const a = Math.PI * (0.1 + i * 0.066); box(Math.round(Math.cos(a) * 6) - 1, Math.round(4 + Math.sin(a) * 5), 0, 1, 1, 1, C.bone); } // spina ad arco
+    for (const x of [-4, -2, 0, 2]) box(x, 5, -1, 1, 3, 3, C.bone2);                                           // costole
+    box(6, 7, -1, 3, 3, 3, C.bone); box(9, 7, 0, 2, 1, 1, C.bone); box(8, 5, 0, 1, 2, 1, C.bone);              // cranio e sciabola
+    for (const x of [-5, 3]) box(x, 1, 0, 1, 3, 1, C.bone2);                                                  // zampe
+    disc(-6, 2, -3, 2, 1, C.ore2);                                                                            // ammonite
   },
   aurora() {                                       // neve + nastri di luce ondeggianti
     disc(0, 0, 0, 10, 1, C.snow);

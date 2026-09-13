@@ -462,34 +462,87 @@ function disegna_icespire(g, t) {
 }
 
 function disegna_frozenbeast(g, t) {
+  /* FOSSILE NEL GHIACCIO: lo scheletro intero di una bestia dai denti a sciabola, rannicchiato
+     dentro un blocco di ghiaccio, con un'ammonite incastrata accanto. Prima c'era un mammut col
+     pelo ("non mi piace, metterei un fossile"): le ossa dicono subito che cosa si libera qui,
+     un pezzo per volta. Il blocco resta quello solido (5×3 caselle). */
   groundShadow(g, 96, 16);
-  const X0 = -76, Y0 = -104, W = 152, H = 100;
-  /* il MAMMUT dentro, disegnato prima del ghiaccio che lo vela */
-  const bx = -8, by = -26;
-  ellipse(g, bx - 6, by - 26, 46, 30, '#2e2013');
-  ellipse(g, bx - 6, by - 26, 44, 28, '#8a6440');
-  ellipse(g, bx - 10, by - 40, 34, 14, '#a67c52');
-  for (let i = 0; i < 20; i++) { const x = bx - 46 + i * 4.6, len = 12 + ((i * 7) % 8); g.rect(Math.round(x), by - 14, 3, len, '#6b4a2e'); g.rect(Math.round(x), by - 14 + len, 3, 2, '#2e2013'); }
-  for (const lx of [-40, -22, 6, 22]) { g.rect(bx + lx - 1, by - 4, 14, 26, '#2e2013'); g.rect(bx + lx, by - 4, 12, 24, '#6b4a2e'); g.rect(bx + lx, by - 4, 4, 24, '#8a6440'); g.rect(bx + lx, by + 16, 12, 4, '#4a3524'); }
-  disc(g, bx + 40, by - 44, 22, '#2e2013'); disc(g, bx + 40, by - 44, 20, '#a67c52'); disc(g, bx + 34, by - 52, 10, '#bf9366');
-  g.rect(bx + 44, by - 50, 8, 7, '#2e2013'); g.rect(bx + 45, by - 49, 6, 5, '#f6efdd'); g.rect(bx + 48, by - 48, 2, 3, '#201a14');
-  for (let k = 0; k < 34; k++) { const x = bx + 52 + Math.round(Math.sin(k / 34 * 2.6) * 6), y = by - 36 + k; g.rect(x - 1, y, 10, 1, '#2e2013'); g.rect(x, y, 8, 1, k % 5 ? '#8a6440' : '#6b4a2e'); }
-  for (const zy of [-30, -22]) for (let k = 0; k < 30; k++) { const x = bx + 56 + k, y = by + zy + Math.round(Math.sin(k / 30 * 2.4) * 10); g.rect(x, y - 1, 1, 6, '#6e6450'); g.rect(x, y, 1, 4, '#f6efdd'); g.px(x, y, '#ffffff'); }
-  g.rect(bx - 56, by - 34, 10, 5, '#6b4a2e');
-  /* il BLOCCO di ghiaccio: facce trasparenti, spigoli chiari, crepe */
-  g.rect(X0 - 2, Y0 - 2, W + 4, 2, '#3f7890'); g.rect(X0 - 2, Y0 + H, W + 4, 2, '#3f7890'); g.rect(X0 - 2, Y0, 2, H, '#3f7890'); g.rect(X0 + W, Y0, 2, H, '#3f7890');
-  g.rect(X0, Y0, W, H, 'rgba(168,220,242,.30)');
-  g.rect(X0, Y0, W, 18, 'rgba(220,246,255,.70)');
-  g.rect(X0 + W - 26, Y0 + 18, 26, H - 18, 'rgba(100,160,196,.35)');
-  g.rect(X0, Y0, W, 2, '#f4fdff'); g.rect(X0, Y0 + 18, W, 1, 'rgba(255,255,255,.8)'); g.rect(X0 + W - 26, Y0, 1, H, 'rgba(255,255,255,.6)');
-  g.rect(X0 + 6, Y0 + 24, 20, H - 34, 'rgba(240,252,255,.30)'); g.rect(X0 + 34, Y0 + 28, 8, H - 44, 'rgba(240,252,255,.2)');
-  for (const [x, y, dx, dy, n] of [[30, 30, 3, 2, 12], [110, 50, -2, 3, 10], [60, 70, 3, -1, 9]]) for (let k = 0; k < n; k++) g.px(X0 + x + dx * k + (k % 2), Y0 + y + dy * k, 'rgba(255,255,255,.85)');
+  const X0 = -78, Y0 = -100, W = 156, H = 96;
+  /* fondo del ghiaccio: più scuro dentro, così le ossa chiare staccano */
+  g.rect(X0, Y0, W, H, '#3f7c9a');
+  g.rect(X0 + 4, Y0 + 14, W - 8, H - 18, '#4f90ac');
+  g.rect(X0 + 10, Y0 + 22, W - 20, H - 34, '#5a9cb6');
+  for (let i = 0; i < 9; i++) g.rect(X0 + 8 + i * 17, Y0 + 20 + ((i * 23) % 50), 10, 2, 'rgba(160,215,235,.35)');   // venature interne
+  /* SCHELETRO: stesso stile delle ossa del Drago (contorno scuro, corpo chiaro, filo di luce) */
+  const LN = '#2a3440', LT = '#eee6d2', HI = '#fffaf0', SH = '#b9ad91';
+  const bone = (ax, ay, bx, by, r) => {
+    const n = Math.max(1, Math.round(Math.hypot(bx - ax, by - ay) / 2));
+    for (const pass of [0, 1, 2]) for (let i = 0; i <= n; i++) {
+      const x = Math.round(ax + (bx - ax) * i / n), y = Math.round(ay + (by - ay) * i / n);
+      if (pass === 0) disc(g, x, y, r + 1, LN); else if (pass === 1) disc(g, x, y, r, LT); else if (r >= 2) g.rect(x - r + 1, y - r + 1, r, 1, HI);
+    }
+  };
+  const knuckle = (x, y, r) => { disc(g, x, y, r + 1, LN); disc(g, x, y, r, LT); g.px(x - 1, y - 1, HI); };
+  /* spina rannicchiata ad arco, dalla testa (destra) alla coda (sinistra) */
+  const sp = []; for (let i = 0; i <= 16; i++) { const a = Math.PI * (0.08 + i * 0.052); sp.push([Math.round(-6 + Math.cos(a) * 44), Math.round(-50 - Math.sin(a) * 26)]); }
+  for (let i = 0; i < sp.length - 1; i++) bone(sp[i][0], sp[i][1], sp[i + 1][0], sp[i + 1][1], 3);
+  for (let i = 1; i < sp.length; i += 2) { const [x, y] = sp[i]; g.rect(x - 1, y - 8, 3, 6, LN); g.rect(x, y - 7, 1, 5, HI); }
+  /* costole che scendono dalla spina */
+  for (let i = 3; i < 12; i++) {
+    const [x, y] = sp[i], len = 22 - Math.abs(i - 7) * 2;
+    let px0 = x, py0 = y;
+    for (let k = 3; k <= len; k += 3) { const u = k / len, nx = x + Math.round(Math.sin(u * 2.4) * 7) + 2, ny = y + k; bone(px0, py0, nx, ny, u > 0.8 ? 1 : 2); px0 = nx; py0 = ny; }
+  }
+  /* bacino e zampe ripiegate */
+  const [hx, hy] = sp[13];
+  ellipse(g, hx, hy + 4, 9, 6, LN); ellipse(g, hx, hy + 4, 7, 4, LT);
+  bone(hx, hy + 6, hx + 12, hy + 22, 2); knuckle(hx + 12, hy + 22, 3); bone(hx + 12, hy + 22, hx - 2, hy + 32, 2); bone(hx - 2, hy + 32, hx + 8, hy + 36, 1);
+  const [sx, sy] = sp[3];
+  bone(sx, sy + 4, sx - 6, sy + 24, 2); knuckle(sx - 6, sy + 24, 3); bone(sx - 6, sy + 24, sx + 8, sy + 36, 2); bone(sx + 8, sy + 36, sx + 16, sy + 38, 1);
+  /* coda che si arriccia */
+  let tx = sp[16][0], ty = sp[16][1];
+  for (let i = 0; i < 10; i++) { const a = i * 0.34, nx = tx - 4 + Math.round(Math.sin(a) * 2), ny = ty + 3 + Math.round(Math.cos(a) * 1); bone(tx, ty, nx, ny, i < 4 ? 2 : 1); tx = nx; ty = ny; }
+  /* CRANIO coi denti a sciabola, a destra: calotta tonda, orbita grande, zigomo, e le due
+     sciabole lunghe che scendono oltre la mandibola */
+  const cx = 42, cy = -60;
+  ellipse(g, cx, cy, 15, 11, LN); ellipse(g, cx, cy, 14, 10, LT); ellipse(g, cx - 3, cy - 5, 8, 3, HI);
+  g.rect(cx + 8, cy - 4, 18, 11, LN); g.rect(cx + 9, cy - 3, 16, 9, LT); g.rect(cx + 9, cy - 3, 16, 2, HI);   // muso
+  ellipse(g, cx + 3, cy - 1, 5, 5, '#1a222c'); g.px(cx + 1, cy - 3, '#4a5a6a');                             // orbita
+  g.rect(cx - 6, cy + 4, 12, 2, SH); g.rect(cx + 22, cy - 1, 2, 2, '#1a222c');                               // zigomo e narice
+  for (let d = 0; d < 3; d++) g.rect(cx + 11 + d * 4, cy + 5, 2, 3, '#fffaf0');                               // dentini
+  for (const [zx, len] of [[cx + 12, 22], [cx + 19, 18]]) {                                                  // SCIABOLE
+    for (let k = 0; k < len; k++) { const w = k > len - 5 ? 1 : 2, xx = zx - Math.round((k / len) * (k / len) * 3); g.rect(xx - 1, cy + 6 + k, w + 2, 1, LN); g.rect(xx, cy + 6 + k, w, 1, k < 3 ? SH : '#fffaf0'); }
+  }
+  bone(cx - 8, cy + 10, cx + 10, cy + 16, 2);                                                                // mandibola aperta
+  /* AMMONITE incastrata nell'angolo in basso: spirale netta con le costole a raggiera */
+  const ax = -52, ay = -24;
+  disc(g, ax, ay, 14, '#4a3418'); disc(g, ax, ay, 13, '#d8b27a');
+  let prev = null;
+  for (let q = 0; q <= 120; q++) {
+    const a2 = q * 0.105, r = 13 * Math.exp(-a2 / 7.5);
+    const x = ax + Math.round(Math.cos(a2) * r), y = ay + Math.round(Math.sin(a2) * r);
+    g.rect(x, y, 2, 2, '#6a4a22');
+    if (q % 8 === 0 && r > 3) { const r2 = r * 0.72; g.rect(ax + Math.round(Math.cos(a2) * r2), ay + Math.round(Math.sin(a2) * r2), 1, 1, '#8a6a3a'); }
+    prev = [x, y];
+  }
+  disc(g, ax - 5, ay - 6, 2, '#f4e0b8'); g.rect(ax + 4, ay + 8, 4, 1, '#a88450');
+  /* bollicine d'aria intrappolate */
+  for (const [x, y, r] of [[-20, -84, 2], [-10, -78, 1], [60, -30, 2], [66, -40, 1], [-66, -60, 1], [14, -18, 2]]) { disc(g, x, y, r, 'rgba(230,248,255,.7)'); g.px(x - r + 1, y - r + 1, '#ffffff'); }
+  /* il GHIACCIO sopra: velo chiaro, faccia superiore, lato in ombra, spigoli e crepe */
+  g.rect(X0, Y0, W, H, 'rgba(190,235,250,.22)');
+  g.rect(X0, Y0, W, 14, 'rgba(225,248,255,.78)');
+  g.rect(X0 + W - 22, Y0 + 14, 22, H - 14, 'rgba(40,90,120,.30)');
+  g.rect(X0 + 4, Y0 + 18, 12, H - 26, 'rgba(255,255,255,.18)'); g.rect(X0 + 22, Y0 + 20, 5, H - 34, 'rgba(255,255,255,.12)');
+  g.rect(X0 - 2, Y0 - 1, W + 4, 1, '#2f6a82'); g.rect(X0 - 2, Y0 + H, W + 4, 2, '#2f6a82'); g.rect(X0 - 2, Y0, 2, H, '#2f6a82'); g.rect(X0 + W, Y0, 2, H, '#2f6a82');
+  g.rect(X0, Y0, W, 1, '#ffffff'); g.rect(X0, Y0 + 14, W - 22, 1, 'rgba(255,255,255,.85)'); g.rect(X0 + W - 22, Y0 + 1, 1, H - 1, 'rgba(255,255,255,.55)');
+  for (const [x, y, dx, dy, n] of [[26, 22, 3, 2, 12], [118, 40, -2, 3, 11], [70, 74, 3, -1, 10]]) for (let k = 0; k < n; k++) g.px(X0 + x + dx * k + (k % 2), Y0 + y + dy * k, 'rgba(255,255,255,.9)');
   /* neve sopra e alla base, ghiaccioli */
-  ellipse(g, 0, Y0 - 2, 80, 8, '#b9d9e6'); ellipse(g, -6, Y0 - 4, 74, 6, '#eafcff');
-  for (let x = X0 + 8; x < X0 + W - 8; x += 14) { const h = 6 + ((x * 3) % 9); for (let k = 0; k < h; k++) g.rect(x + (k >> 3), Y0 + 2 + k, Math.max(1, 3 - (k >> 2)), 1, k < 2 ? '#ffffff' : '#b6e6f4'); }
+  ellipse(g, 0, Y0 - 2, 82, 8, '#b9d9e6'); ellipse(g, -6, Y0 - 4, 76, 6, '#eafcff');
+  for (let x = X0 + 8; x < X0 + W - 8; x += 14) { const h = 6 + ((x * 3 + 200) % 9); for (let k = 0; k < h; k++) g.rect(x + (k >> 3), Y0 + 15 + k, Math.max(1, 3 - (k >> 2)), 1, k < 2 ? '#ffffff' : '#b6e6f4'); }
   ellipse(g, 0, -2, 96, 10, '#9cc8d8'); ellipse(g, 0, -4, 92, 8, '#dff3fa'); ellipse(g, -20, -6, 50, 4, '#ffffff');
-  const sp = Math.floor(t / 500) % 5;
-  for (let i = 0; i < 5; i++) if (i === sp) { const x = X0 + 16 + i * 28, y = Y0 + 10 + ((i * 17) % 60); g.rect(x - 3, y, 7, 1, '#ffffff'); g.rect(x, y - 3, 1, 7, '#ffffff'); }
+  /* un luccichio che corre sul ghiaccio */
+  const k = (t / 2600) % 1, lx = X0 + Math.round(k * W);
+  for (let i = 0; i < 6; i++) g.rect(lx + i, Y0 + 16 + i * 2, 2, 2, 'rgba(255,255,255,' + (0.5 * (1 - i / 6)).toFixed(2) + ')');
 }
 
 function disegna_aurora(g, t) {

@@ -1054,8 +1054,8 @@ export const RU = {
     'С вершины видно очень далеко. Поднимайся медленно и смотри.',
   'Lookout: reveals a wide portion of the map.': 'Смотровая площадка: открывает большой участок карты.',
   'The Beast in the Ice': 'Зверь во льду',
-  'A whole creature, intact, suspended inside the blue ice.':
-    'Целое существо, нетронутое, застывшее в голубом льду.',
+  'The whole skeleton of a sabre-toothed beast, fossilised inside the blue ice.':
+    'Целый скелет саблезубого зверя, окаменевший в голубом льду.',
   'I never managed to free it. You do it, one piece at a time.':
     'Мне так и не удалось его освободить. Сделай это ты, по кусочку.',
   'Free it: one piece of the same species each time.': 'Освобождение: по одной части того же вида за раз.',
