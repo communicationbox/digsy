@@ -210,9 +210,42 @@ export function furnCells(f) {
   for (let dy = 0; dy < s.h; dy++) for (let dx = 0; dx < s.w; dx++) out.push({ gx: f.gx + dx, gy: f.gy + dy });
   return out;
 }
-function covers(f, gx, gy) {
+/* GRIGLIA DI MEZZA CASELLA. Con i mobili a caselle intere non si riusciva a metterli dove
+   stavano bene: un vaso o era attaccato al letto o stava una casella intera più in là
+   ("la griglia di posizionamento deve essere più fitta, devo poter mettere meglio gli
+   oggetti"). Le posizioni ora vanno di mezza casella in mezza casella (16px): `gx/gy`
+   possono valere 3.5. Le taglie restano in caselle intere — cambia DOVE si mette un pezzo,
+   non quanto è grande. */
+export const FURN_STEP = 0.5;
+export function snapFurn(v) { return Math.round(v / FURN_STEP) * FURN_STEP; }
+/* il rettangolo (in caselle, anche frazionarie) occupato da un pezzo */
+export function furnRect(f) {
   const s = furnSize(f.itemId, f.rot || 0);
-  return gx >= f.gx && gx < f.gx + s.w && gy >= f.gy && gy < f.gy + s.h;
+  return { x0: f.gx, y0: f.gy, x1: f.gx + s.w, y1: f.gy + s.h };
+}
+const intersect = (a, b) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+/* "questa casella tocca il pezzo?": si guarda il CENTRO della casella, così un pezzo spostato
+   di mezza casella appartiene a una sola casella per lato e le interazioni per casella
+   (raccogli sotto i piedi, pannello del letto) non raddoppiano */
+function covers(f, gx, gy) {
+  const r = furnRect(f), cx = gx + 0.5, cy = gy + 0.5;
+  return cx >= r.x0 && cx < r.x1 && cy >= r.y0 && cy < r.y1;
+}
+/* DOVE si può arredare, in caselle. Il pavimento parte dalla fila 1: la prima fila sotto la
+   parete è pavimento a tutti gli effetti (ci si cammina), ed era esclusa — un piedistallo
+   addossato al muro, cioè il posto più naturale per un piedistallo, risultava rosso
+   (segnalato con foto: "questa posizione deve essere accettabile"). Ai lati si arriva a mezza
+   casella dal muro. La porta d'ingresso resta sgombra: lì si ricompare entrando. */
+const FLOOR_BOUNDS = { x0: 0.5, y0: 1, x1: ROOM_TILE_W - 0.5, y1: ROOM_TILE_H - 0.5 };
+const WALL_BOUNDS = { x0: 0.5, x1: ROOM_TILE_W - 0.5 };
+function entryZone() {
+  const e = roomEntryPoint(), ex = e.x / TS, ey = e.y / TS;
+  return { x0: ex - 0.5, y0: Math.floor(ey), x1: ex + 0.5, y1: ROOM_TILE_H };
+}
+function rectInRoom(rect, layer) {
+  if (layer === 'wall') return rect.x0 >= WALL_BOUNDS.x0 && rect.x1 <= WALL_BOUNDS.x1 && rect.y0 === 1;
+  if (rect.x0 < FLOOR_BOUNDS.x0 || rect.x1 > FLOOR_BOUNDS.x1 || rect.y0 < FLOOR_BOUNDS.y0 || rect.y1 > FLOOR_BOUNDS.y1) return false;
+  return !intersect(rect, entryZone());
 }
 /* `furnAt` (senza strato) = "cosa c'è qui da toccare": preferisce il mobile vero, poi il
    quadro sopra la testa, poi il tappeto — l'ordine in cui una persona li nota. */
@@ -288,9 +321,9 @@ export function migrateFurniture() {
     for (const f of r.furn || []) {
       const rot = ((f.rot | 0) % 4 + 4) % 4;
       const layer = furnLayer(f.itemId);
-      const cells = furnCells({ ...f, rot });
-      const ok = !furnIsBackdrop(f.itemId) && cells.every(c => (layer === 'wall' ? isWallCell(c.gx, c.gy) : isFloorCell(c.gx, c.gy))
-        && !tenuti.some(t => furnLayer(t.itemId) === layer && covers(t, c.gx, c.gy)));
+      const rect = furnRect({ ...f, rot });
+      const ok = !furnIsBackdrop(f.itemId) && rectInRoom(rect, layer)
+        && !tenuti.some(t => furnLayer(t.itemId) === layer && intersect(furnRect(t), rect));
       if (ok) tenuti.push({ ...f, rot }); else mossi++;
     }
     r.furn = tenuti;
@@ -301,10 +334,11 @@ export function migrateFurniture() {
    sul pavimento: si appende alla parete davanti a te, cioè una casella più in su — e lo si può
    fare solo stando nella prima fila, addossati al muro, come si fa in una stanza vera. */
 export function placeTarget(gx, gy, itemId) {
-  /* un quadro si può trascinare SULLA parete (fila 1) o sulla casella davanti (fila 2): sono
-     i due posti in cui il giocatore lo lascia cadere pensando "qui" */
-  if (furnPlace(itemId) === 'wall') return (gy === 1 || gy === 2) && isWallCell(gx, 1) ? { gx, gy: 1 } : null;
-  return isFloorCell(gx, gy) ? { gx, gy } : null;
+  gx = snapFurn(gx); gy = snapFurn(gy);
+  /* un quadro si può trascinare SULLA parete o sulla fila davanti: sono i due posti in cui il
+     giocatore lo lascia cadere pensando "qui". Sulla parete scorre di mezza casella in mezza. */
+  if (furnPlace(itemId) === 'wall') return gy < 3 ? { gx, gy: 1 } : null;
+  return { gx, gy };
 }
 /* il pezzo ci sta? Tutte le caselle del suo ingombro devono essere pavimento (o parete, per i
    quadri) e libere NEL SUO STRATO. Prima ogni pezzo era 1×1 e bastava guardare una cella. */
@@ -313,12 +347,11 @@ export function canPlace(room, gx, gy, itemId, rot = 0) {
   if (!roomUnlocked(room)) return false;
   const r = S.house.rooms[room]; if (!r) return false;
   const layer = furnLayer(itemId);
-  const cells = furnCells({ itemId, gx, gy, rot });
-  for (const c of cells) {
-    if (layer === 'wall' ? !isWallCell(c.gx, c.gy) : !isFloorCell(c.gx, c.gy)) return false;
-    if (r.furn.some(f => f !== null && furnLayer(f.itemId) === layer && covers(f, c.gx, c.gy))) return false;
-  }
-  return true;
+  /* rettangoli, non caselle: con il passo di mezza casella due pezzi possono stare fianco a
+     fianco senza lasciare vuoti, e si controlla che non si SOVRAPPONGANO nel loro strato */
+  const rect = furnRect({ itemId, gx, gy, rot });
+  if (!rectInRoom(rect, layer)) return false;
+  return !r.furn.some(f => f && furnLayer(f.itemId) === layer && intersect(furnRect(f), rect));
 }
 export function tryPlaceFurniture(room, gx, gy, itemId, rot = 0) {
   ensureHouseState();
@@ -431,8 +464,12 @@ export function removeFurnitureAt(room, gx, gy, cat) {
    restare incastrato attorno"). Coordinate LOCALI px della stanza `room`. */
 export function houseFurnSolid(room, x, y) {
   if (room == null) return false;
-  const gx = Math.floor(x / TS), gy = Math.floor(y / TS);
-  return !!solidAt(room, gx, gy);
+  ensureHouseState();
+  const r = S.house.rooms[room]; if (!r) return false;
+  /* al PIXEL, non alla casella: un mobile spostato di mezza casella blocca metà casella, e
+     accanto ci si deve poter passare */
+  const px = x / TS, py = y / TS;
+  return r.furn.some(f => furnLayer(f.itemId) === 'floor' && (() => { const q = furnRect(f); return px >= q.x0 && px < q.x1 && py >= q.y0 && py < q.y1; })());
 }
 
 /* ---------- COMODITÀ DELLA STANZA: arredare serve a qualcosa ----------

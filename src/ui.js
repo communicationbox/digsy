@@ -232,6 +232,9 @@ function syncFurnHoldPreview() {
   try { drawFurnThumb(furnHoldPv, hv.itemId); } catch (e) { /* stub nei test */ }
 }
 if (furnRotBtn) furnRotBtn.onclick = () => { playSfx('ui'); rotateHold(); syncFurnHoldPreview(); };
+/* la barra Ruota/Annulla ridisegnata da fuori (tasto R, Esc): senza, la miniatura restava
+   girata come prima mentre nella stanza il mobile era già ruotato */
+export function refreshFurnHold() { syncFurnHoldPreview(); syncFurnHold(); }
 if (furnCancelBtn) furnCancelBtn.onclick = () => {
   playSfx('ui'); cancelHold();
   toast('🎨 ' + tr('Torna nel vassoio', 'Back in your tray'));

@@ -840,16 +840,36 @@ const PROBE = `
       A('arredo: rilasciando, il mobile si posa lì', posato === true, posato ? '' : 'resta in mano');
       var piazzati = g.state().house.rooms[0].furn.length;
       A('arredo: e adesso è davvero nella stanza', piazzati === 1, piazzati + ' pezzi');
-      /* premendo SOPRA il mobile lo si riprende in mano: è così che lo si sposta */
+      /* SELEZIONARE: un clic sul mobile (senza trascinare) lo alza e lo LASCIA in mano, così
+         lo si può ruotare. Prima il rilascio lo ripiazzava subito nella stessa casella e la
+         selezione durava un istante ("impossibile ruotare gli oggetti perché non posso
+         selezionarli"). */
       var f = g.state().house.rooms[0].furn[0];
       return g.roomPoint(f.gx, f.gy).then(function (p) {
         manda('pointerdown', p.x, p.y);
-        var preso = hm.isHolding();
-        A('arredo: premendo sul mobile lo si riprende in mano', preso === true);
         manda('pointerup', p.x, p.y);
-        hm.cancelHold();
-        g.state().house.rooms[0].furn = [];
-        return g.leaveRoom();
+        A('arredo: un clic sul mobile lo seleziona e RESTA in mano', hm.isHolding() === true);
+        var rot0 = hm.holdItem().rot;
+        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }));
+        window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }));
+        A('arredo: R lo ruota mentre è selezionato', hm.holdItem() && hm.holdItem().rot !== rot0,
+          'rot ' + rot0 + '→' + (hm.holdItem() && hm.holdItem().rot));
+        /* un secondo clic lo posa */
+        manda('pointerdown', p.x, p.y);
+        manda('pointerup', p.x, p.y);
+        A('arredo: un secondo clic lo posa', hm.isHolding() === false);
+        /* il DISEGNO si prende anche sopra la sua casella: la testiera/lo schienale/il paralume
+           stanno lì, ed è lì che uno clicca */
+        var f2 = g.state().house.rooms[0].furn[0];
+        return g.roomPoint(f2.gx, f2.gy).then(function (p2) {
+          var sopra = p2.y - (r.height / 60);                         // appena sopra la casella a terra
+          manda('pointerdown', p2.x, sopra);
+          manda('pointerup', p2.x, sopra);
+          A('arredo: cliccando la parte alta del disegno si seleziona lo stesso', hm.isHolding() === true);
+          hm.cancelHold();
+          g.state().house.rooms[0].furn = [];
+          return g.leaveRoom();
+        });
       });
     }).then(function(){ next(); }).catch(function(e){ A('arredo: prova completata', false, e.message); next(); });
   }

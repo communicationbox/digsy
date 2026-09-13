@@ -6,7 +6,7 @@ import { findPath, fits } from './path.js';
 import { tileBlocked, toggleMount, companionRides, tapFurnitureAt } from './gameplay.js';
 import { interiorCam } from './interiors.js';
 import { CAVE, caveSolid, caveCam } from './cave.js';
-import { toast } from './ui.js';
+import { toast, refreshFurnHold } from './ui.js';
 import { tr } from './i18n.js';
 import { TS } from './data.js';
 import { P } from './state.js';
@@ -17,7 +17,11 @@ import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
 import { INT, interiorLeave, intCollide, CUT, doorTileX, nudgeOffFurniture } from './interior.js';
-import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt } from './house.js';
+import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt, furnLayer, rotateHold, cancelHold, holdItem, snapFurn } from './house.js';
+import { furnSize } from './data.js';
+import { furnRise } from './furnArt.js';
+import { S } from './state.js';
+import { keys as keyText, isTouch } from './i18n.js';
 import { playSfx } from './audio.js';
 
 export const keys = {};
@@ -126,6 +130,11 @@ addEventListener('keydown', e => {
   if ((e.key === 'm' || e.key === 'M') && !busy()) { openMap(); e.preventDefault(); } // mappa del mondo
   if ((e.key === 'q' || e.key === 'Q') && !busy()) { openQuests(); e.preventDefault(); }
   if ((e.key === 'f' || e.key === 'F') && !isModalOpen() && companionRides()) { toggleMount(); e.preventDefault(); } // cavalca/scendi il compagno volante di grotta
+  /* ARREDO IN MANO: R ruota (e l'anteprima nella stanza cambia subito), Esc lo rimette nel
+     vassoio invece di farti uscire dalla stanza col mobile ancora a mezz'aria */
+  const inCasa = INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null;
+  if ((e.key === 'r' || e.key === 'R') && inCasa && isHolding() && !isModalOpen()) { rotateHold(); refreshFurnHold(); playSfx('ui'); e.preventDefault(); return; }
+  if (e.key === 'Escape' && inCasa && isHolding() && !isModalOpen()) { cancelHold(); refreshFurnHold(); toast('🎨 ' + tr('Torna nel vassoio', 'Back in your tray')); e.preventDefault(); return; }
   if (e.key === 'Escape') { if (isPrepOpen()) closePrepare(); else if (isMapOpen()) closeMap(); else if (isBookOpen()) closeBook(); else if (isBagOpen()) closeBag(); else if (isModalOpen()) closeModal(); else if (INT.active) interiorLeave(); else showSplash(); e.preventDefault(); }
 });
 addEventListener('keyup', e => {
@@ -173,28 +182,71 @@ if (joy && knob && joy.addEventListener && typeof joy.getBoundingClientRect === 
 const cv = document.getElementById('cv');
 /* ARREDARE COL PUNTATORE: la casella della stanza di casa sotto il dito/mouse. È il ponte fra
    lo schermo e l'anteprima del mobile in mano, che deve seguire quello che si sta guardando. */
-function houseCellAt(clientX, clientY) {
+function houseWorldAt(clientX, clientY) {
   if (!(INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null)) return null;
   const r = cv.getBoundingClientRect();
   const w = screenToWorld(clientX, clientY, r, view, interiorCam());
-  return { gx: Math.floor(w.x / TS), gy: Math.floor(w.y / TS) };
+  return { x: w.x, y: w.y, gx: Math.floor(w.x / TS), gy: Math.floor(w.y / TS) };
+}
+function houseCellAt(clientX, clientY) { return houseWorldAt(clientX, clientY); }
+/* QUALE MOBILE si sta indicando: si guarda il DISEGNO, non solo la casella a terra. Uno
+   schienale, un paralume, una testiera stanno sopra la loro casella — cliccando lì, cioè dove
+   l'oggetto si vede, non si prendeva niente ("impossibile ruotare gli oggetti perché non
+   posso selezionarli"). Vince quello più davanti, come nel disegno. */
+function furnHitAt(wx, wy) {
+  const room = (S.house && S.house.rooms || [])[INT.houseRoom];
+  if (!room) return null;
+  const WALL_H = Math.round(1.3 * TS);
+  let best = null, bestDepth = -1;
+  for (const f of room.furn || []) {
+    const sz = furnSize(f.itemId, f.rot || 0), layer = furnLayer(f.itemId);
+    let x0 = f.gx * TS, x1 = x0 + sz.w * TS, y0, y1, depth;
+    if (layer === 'wall') { y0 = 0; y1 = WALL_H; depth = 1; }
+    else {
+      y1 = (f.gy + sz.h) * TS; y0 = f.gy * TS - furnRise(f.itemId);
+      depth = layer === 'rug' ? 0 : 10 + y1;                      // tappeti sotto, mobili per profondità
+    }
+    if (wx >= x0 && wx < x1 && wy >= y0 && wy < y1 && depth > bestDepth) { best = f; bestDepth = depth; }
+  }
+  return best;
 }
 if (cv && cv.addEventListener) {
   let downX = 0, downY = 0, downT = 0;
-  let dragFurn = false;
+  /* pressione sull'arredo: 'preso' = si è appena alzato un mobile (al rilascio senza
+     trascinare RESTA IN MANO, selezionato: si può ruotare) · 'inmano' = lo si aveva già (al
+     rilascio si posa) · null = la pressione non riguarda l'arredo */
+  let furnPress = null, grabDx = 0, grabDy = 0, grabbed = false;
+  /* dove va l'anteprima col puntatore in (w): se il pezzo è stato PRESO da un punto, lo si
+     tiene da lì; se arriva dal vassoio, il puntatore sta al suo centro. Sempre a mezza
+     casella (snapFurn): la griglia fitta è quella che permette di sistemare davvero. */
+  const holdAt = (w) => {
+    const hv = holdItem(); if (!hv) return;
+    let ox = grabDx, oy = grabDy;
+    if (!grabbed) { const sz = furnSize(hv.itemId, hv.rot || 0); ox = sz.w / 2; oy = sz.h / 2; }
+    setHoldTarget(snapFurn(w.x / TS - ox), snapFurn(w.y / TS - oy));
+  };
   cv.addEventListener('pointerdown', e => {
     downX = e.clientX; downY = e.clientY; downT = Date.now();
-    /* ARREDO: premendo su un mobile lo si prende in mano SUBITO, così si vede spostarsi
-       mentre lo si trascina invece di scoprire dov'è finito al rilascio. */
-    dragFurn = false;
+    furnPress = null;
     if (!isModalOpen() && !splashActive() && !isPrepOpen()) {
-      const c = houseCellAt(e.clientX, e.clientY);
-      if (c) {
-        if (isHolding()) { setHoldTarget(c.gx, c.gy); dragFurn = true; }
-        else if (furnAt(INT.houseRoom, c.gx, c.gy) && pickUpFurniture(INT.houseRoom, c.gx, c.gy)) {
-          setHoldTarget(c.gx, c.gy); dragFurn = true;
-          try { cv.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+      const w = houseWorldAt(e.clientX, e.clientY);
+      if (w) {
+        if (isHolding()) {
+          furnPress = 'inmano';
+          holdAt(w);
+        } else {
+          const f = furnHitAt(w.x, w.y);
+          if (f && pickUpFurniture(INT.houseRoom, f.gx, f.gy, furnLayer(f.itemId) === 'rug' ? 'decor' : furnLayer(f.itemId) === 'wall' ? 'wall' : 'solid')) {
+            furnPress = 'preso';
+            /* si tiene il mobile DAL PUNTO in cui lo si è preso: trascinando un letto per la
+               testiera non deve saltare con l'angolo sotto il dito */
+            grabDx = w.x / TS - f.gx; grabDy = w.y / TS - f.gy;
+            grabbed = true;
+            setHoldTarget(f.gx, f.gy);
+            try { cv.setPointerCapture(e.pointerId); } catch (err) { /* ok */ }
+          }
         }
+        if (furnPress) { clearGoal(); return; }             // la pressione è per l'arredo, non per camminare
       }
     }
     if (followMouseOn()) { followHeld = true; followX = e.clientX; followY = e.clientY; clearGoal(); }
@@ -207,9 +259,9 @@ if (cv && cv.addEventListener) {
   });
   cv.addEventListener('pointermove', e => {
     if (isHolding()) {                                   // l'anteprima segue il puntatore
-      const c = houseCellAt(e.clientX, e.clientY);
-      if (c) setHoldTarget(c.gx, c.gy);
-    }
+      const c = houseWorldAt(e.clientX, e.clientY);
+      if (c) holdAt(c);
+    } else grabbed = false;                              // mano vuota: la prossima presa riparte dal centro
     if (followHeld) { followX = e.clientX; followY = e.clientY; }
     if (floatId === null || e.pointerId !== floatId) return;
     const dx = e.clientX - floatX, dy = e.clientY - floatY;
@@ -248,17 +300,28 @@ if (cv && cv.addEventListener) {
   cv.addEventListener('pointerup', e => {
     const wasDrag = floatMoved;
     floatEnd(e);
-    /* rilasciando dopo un trascinamento si POSA dove si vede l'anteprima: se lì non ci sta,
-       resta in mano (non sparisce e non finisce altrove di nascosto). */
-    if (dragFurn) {
-      dragFurn = false;
-      const c = houseCellAt(e.clientX, e.clientY);
-      if (c) setHoldTarget(c.gx, c.gy);
-      if (isHolding() && Math.hypot(e.clientX - downX, e.clientY - downY) > 6) {
-        if (placeHold(INT.houseRoom)) { nudgeOffFurniture(); playSfx('ui'); }
-        else toast('🎨 ' + tr('Qui non ci sta', "It doesn't fit here"));
+    /* ARREDO. Tre casi, e nessuno deve rimettere a posto di nascosto quello che si è appena
+       preso (era il difetto: la pressione lo alzava e il rilascio lo ripiazzava subito nella
+       stessa casella, quindi la selezione durava un istante e Ruota non serviva mai):
+         · alzato e rilasciato SENZA trascinare → resta in mano, selezionato: si ruota;
+         · trascinato → si posa dove lo si vede, se ci sta (altrimenti resta in mano);
+         · già in mano e cliccato → si posa lì. */
+    if (furnPress) {
+      const tipo = furnPress; furnPress = null;
+      const c = houseWorldAt(e.clientX, e.clientY);
+      if (c && isHolding()) holdAt(c);
+      const mosso = Math.hypot(e.clientX - downX, e.clientY - downY) > 6;
+      if (tipo === 'preso' && !mosso) {
+        playSfx('ui');
+        toast('🎨 ' + keyText(isTouch() ? tr('Selezionato: Ruota, oppure tocca dove posarlo', 'Selected: Rotate, or tap where to place it')
+          : tr('Selezionato: R per ruotare, clicca dove posarlo (Esc annulla)', 'Selected: R to rotate, click where to place it (Esc cancels)')));
         return;
       }
+      if (isHolding()) {
+        if (placeHold(INT.houseRoom)) { nudgeOffFurniture(); playSfx('ui'); grabDx = grabDy = 0; grabbed = false; }
+        else toast('🎨 ' + tr('Qui non ci sta', "It doesn't fit here"));
+      }
+      return;
     }
     if (wasDrag) return;                                     // si stava guidando: niente meta
     if (isModalOpen() || splashActive() || isPrepOpen()) return;

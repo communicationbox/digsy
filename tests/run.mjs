@@ -3922,6 +3922,37 @@ sprites.applyLook();
     S.house.rooms[0].furn = [];
   }
 
+  /* ---- GRIGLIA FITTA e PARETE DI FONDO ---- */
+  {
+    const vaso = FURN_SETS.palude.find(f => f.id === 'palude_vase');
+    const tav = FURN_SETS.prati.find(f => f.slot === 'tavolo');
+    const PEDESTAL_ID = dataM.PEDESTAL_ID;
+    S.furnOwned = [PEDESTAL_ID, vaso.id, tav.id];
+    S.house.rooms[0].furn = []; house.cancelHold();
+    /* "questa posizione deve essere accettabile": un piedistallo addossato alla parete di
+       fondo (la prima fila sotto il muro) risultava rosso */
+    check('un mobile si addossa alla parete di fondo (fila 1)', house.canPlace(0, 4, 1, PEDESTAL_ID, 0) === true);
+    /* "la griglia deve essere più fitta": si va di mezza casella in mezza casella */
+    check('il passo di posizionamento è mezza casella', house.FURN_STEP === 0.5);
+    check('le posizioni si agganciano alla mezza casella', house.snapFurn(3.26) === 3.5 && house.snapFurn(3.74) === 3.5 && house.snapFurn(3.1) === 3);
+    check('un pezzo si posa a mezza casella', house.tryPlaceFurniture(0, 3.5, 3, tav.id) === true);
+    const t = house.furnAt(0, 4, 3);
+    check('e ci resta davvero (3.5)', !!t && t.gx === 3.5);
+    /* fianco a fianco senza vuoti: un vaso attaccato al tavolo spostato di mezza casella */
+    check('un pezzo accanto, appena dopo, ci sta (niente vuoti obbligati)', house.tryPlaceFurniture(0, 5.5, 3, vaso.id) === true);
+    /* e la sovrapposizione anche di mezza casella resta vietata nello stesso strato */
+    house.removeFurnitureAt(0, 5, 3, 'decor');
+    S.furnOwned.push('boschi_chair');
+    check('sovrapporsi di mezza casella allo stesso strato è vietato', house.canPlace(0, 5, 3, 'boschi_chair', 0) === false);
+    /* la solidità è al pixel: accanto a un mobile spostato di mezza casella ci si passa */
+    check('il mobile a 3.5 blocca da 3.5 in poi', house.houseFurnSolid(0, 3.6 * TS, 3.5 * TS) === true);
+    check('ma la mezza casella prima resta libera', house.houseFurnSolid(0, 3.4 * TS, 3.5 * TS) === false);
+    /* la porta resta sgombra anche col passo fine */
+    const e = house.roomEntryPoint();
+    check('davanti alla porta non si posa neanche di sbieco', house.canPlace(0, e.x / TS - 0.5, Math.floor(e.y / TS), tav.id, 1) === false);
+    S.house.rooms[0].furn = [];
+  }
+
   /* ---- COMODITÀ DELLA STANZA e RIPOSO: arredare deve servire a qualcosa ---- */
   {
     const gameplay2 = await import('../src/gameplay.js');
