@@ -11,6 +11,7 @@ import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
+import { SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps } from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
 import { composedPartsVox, shadeHex } from './bones.js';
 import { zoneName } from './i18n.js';
@@ -30,55 +31,6 @@ export function drawMentor(x, y, dir, fr) {
 }
 
 /* ---------- interni delle case ---------- */
-
-/* NEGOZIO: scaffali di merci, casse, sacchi, botti, bilancia che oscilla, lanterna */
-export function drawStoreRoom(rw, rh, time) {
-  /* FASE 2: nativa — rw/rh arrivano già alla scala vera (niente più dimezzamento sotto
-     scale(2,2)); ogni numero interno raddoppiato, con un quarto tono in più su casse/botti. */
-  const shx = rw / 2 - 60;
-  rect(shx, 10, 120, 36, '#6e5138'); rect(shx + 4, 14, 112, 10, '#8a6a4a'); rect(shx + 4, 30, 112, 10, '#8a6a4a');
-  const goods = ['#e8c34a', '#c65a54', '#5a86c8', '#5fa04e', '#8d7ba0', '#e08aa8'];
-  goods.forEach((c, i) => { rect(shx + 8 + i * 18, 16, 12, 8, c); rect(shx + 12 + ((i * 10) % 80), 32, 10, 8, goods[(i + 3) % 6]); });
-  rect(shx + 100, 6, 16, 12, '#f6efdd'); px(shx + 104, 10, '#c65a54'); px(shx + 110, 10, '#c65a54'); // cartellino
-  /* salami e erbe appesi al soffitto (dondolano) */
-  const sw2 = Math.round(Math.sin(time / 700)) * 2;
-  for (const [hx2, c] of [[60, '#8a3f3a'], [84, '#5fa04e'], [252, '#8a3f3a']]) {
-    rect(hx2, 4, 2, 12, '#5c4229');
-    rect(hx2 - 2 + sw2, 16, 6, 16, c); px(hx2 + sw2, 32, c);
-  }
-  /* bilancia che oscilla + monete + registro sul bancone */
-  const bx = rw / 2 + 52, tilt = (Math.floor(time / 900) % 2 ? 1 : -1) * 2;
-  rect(bx, 60, 4, 16, '#5a5248'); rect(bx - 12, 60, 28, 4, '#8f887a');
-  rect(bx - 14, 64 + tilt, 10, 4, '#c9a06a'); rect(bx + 8, 64 - tilt, 10, 4, '#c9a06a');
-  rect(rw / 2 - 60, 64, 12, 6, '#e8c34a'); rect(rw / 2 - 56, 60, 8, 4, '#e8c34a');     // pila di monete
-  rect(rw / 2 - 36, 62, 20, 10, '#f6efdd'); rect(rw / 2 - 26, 62, 2, 10, '#8a5f38');   // registro aperto
-  /* lanterna appesa (fiammella) */
-  const lf = Math.floor(time / 300) % 2;
-  rect(28, 8, 4, 12, '#5c4229'); rect(22, 20, 16, 18, '#5a5248'); rect(26, 24, 8, 10, lf ? '#f2c53d' : '#e8862e');
-  /* casse, sacco di grano e GATTO che dorme (coda che si muove) */
-  rect(28, 92, 32, 32, '#a97a4c'); rect(28, 92, 32, 6, '#c49a63'); rect(40, 104, 8, 8, '#6e5138');
-  rect(28, 92, 4, 32, shade8('#a97a4c', 1.45)); rect(56, 92, 4, 32, shade8('#a97a4c', 0.6));
-  rect(60, 100, 28, 28, '#8a5f38'); rect(64, 96, 20, 8, '#8a5f38');
-  rect(60, 100, 4, 28, shade8('#8a5f38', 1.45)); rect(84, 100, 4, 28, shade8('#8a5f38', 0.6));
-  rect(32, 124, 24, 16, '#d4b13c'); rect(36, 120, 16, 8, '#c9a06a'); px(42, 120, '#8a5f38');
-  /* GATTO arancione a strisce che dorme (contorno scuro → stacca dal legno) */
-  const cat = (Math.floor(time / 800) % 2) * 2;
-  rect(60, 86, 24, 14, '#3a2a18'); rect(62, 88, 20, 10, '#e08a2c');                       // corpo + contorno
-  rect(56, 82, 12, 10, '#3a2a18'); rect(58, 84, 8, 6, '#e08a2c');                          // testa
-  px(64, 82, '#c65a1e'); px(58, 82, '#c65a1e');                                            // orecchie
-  rect(66, 88, 2, 8, '#b5652a'); rect(72, 88, 2, 8, '#b5652a');                            // strisce
-  px(60, 86, '#1a120a');                                                                   // occhio chiuso
-  rect(80, 92 + cat, 10, 2, '#3a2a18'); rect(80, 90 + cat, 8, 2, '#e08a2c');               // coda
-  /* botti + mele */
-  for (const ox of [232, 268]) {
-    rect(ox, 96, 28, 36, '#8a5f38'); rect(ox, 104, 28, 4, '#5c4229'); rect(ox, 120, 28, 4, '#5c4229');
-    rect(ox + 8, 92, 12, 4, '#a97a4c');
-    rect(ox, 96, 4, 36, shade8('#8a5f38', 1.45)); rect(ox + 24, 96, 4, 36, shade8('#8a5f38', 0.6));
-  }
-  rect(236, 88, 20, 8, '#c65a54'); px(240, 84, '#5fa04e');
-  /* paglia sparsa sul pavimento */
-  for (let i = 0; i < 6; i++) px(112 + (i * 34) % 100, 156 + (i * 22) % 44, '#d4b13c');
-}
 
 /* MUSEO — HALL: 6 porte tematiche (una per bioma), banco accoglienza, tappeto rosso */
 /* MATERIALI DELLE CITTÀ per bioma: la pianta resta identica, cambiano tetti, lastricato e
@@ -343,208 +295,6 @@ export function drawMuseumGallery(time) {
   else if (CUT.on && CUT.line) drawSayBalloon(npx - camx, npy - 12 - camy, CUT.line);
   ctx.restore();
 }
-/* LOCANDA: camino ACCESO, tavoli con boccali fumanti, botti, appendiabiti */
-export function drawInnRoom(rw, rh, time) {
-  /* FASE 2: nativa — rw/rh gia' alla scala vera, numeri interni raddoppiati (ampiezze di
-     animazione comprese: fiamma/fumo/vapore/coda si muovono il doppio, non restano deboli). */
-  const cx = rw / 2 - 28;
-  rect(cx, 6, 56, 40, '#75695c'); rect(cx + 6, 12, 44, 28, '#3a3a44'); rect(cx - 4, 42, 64, 6, '#8f887a');
-  const ff = Math.floor(time / 150) % 3, ff2 = ff * 2;
-  rect(cx + 18, 24 + ff2, 20, 14 - ff2, '#e8862e'); rect(cx + 22, 28 + (ff % 2) * 2, 12, 10, '#f2c53d');
-  px(cx + 26, 18 + ff2, '#f2c53d'); px(cx + 30, 16 + ((ff + 1) % 3) * 2, '#e8862e');
-  rect(cx + 12, 38, 32, 4, '#5c4229');
-  rect(cx + 16, 16, 24, 10, '#3f3a33'); rect(cx + 20, 12, 16, 4, '#5a5248');          // pentola appesa
-  const stw = Math.floor(time / 350) % 2; px(cx + 22 + stw * 8, 14, '#d4b13c');       // stufato che sobbolle
-  const sm = Math.floor(time / 500) % 3;
-  px(cx + 26, Math.max(0, 4 - sm * 2), '#8f887a'); px(cx + 32, 2, sm === 1 ? '#b8b0a2' : '#8f887a'); // fumo
-  /* bagliore caldo pulsante sul pavimento davanti al camino */
-  const gl = 0.10 + 0.04 * (Math.floor(time / 400) % 2);
-  ctx.fillStyle = 'rgba(240,160,60,' + gl + ')'; ctx.fillRect(cx - 12, 48, 80, 52);
-  /* trofeo alle pareti + mensola boccali + appendiabiti */
-  rect(32, 12, 20, 16, '#8a5f38'); rect(36, 16, 12, 8, '#ece5d2'); px(38, 18, '#201a14'); px(44, 18, '#201a14'); // cranio trofeo
-  rect(rw - 88, 10, 52, 4, '#5c4229');
-  for (let i = 0; i < 4; i++) rect(rw - 84 + i * 12, 14, 8, 10, i % 2 ? '#c9a06a' : '#8f887a'); // boccali
-  rect(rw - 52, 24, 28, 24, '#8a5f38'); rect(rw - 52, 32, 28, 4, '#5c4229'); px(rw - 40, 52, '#e8c34a'); // botte
-  /* tappeto al centro */
-  rect(rw / 2 - 36, 148, 72, 36, '#8a3f3a'); rect(rw / 2 - 32, 152, 64, 28, '#c65a54'); rect(rw / 2 - 24, 160, 48, 12, '#8a3f3a');
-  /* CANE che dorme accanto al camino (respira) */
-  const brt = (Math.floor(time / 700) % 2) * 2;
-  rect(188, 80 - brt, 24, 10 + brt, '#8a5f38'); rect(180, 84, 12, 8, '#8a5f38'); px(180, 82, '#8a5f38');
-  px(182, 86, '#201a14'); rect(210, 86, 8, 4, '#6e4a2a');                             // coda
-  /* tavoli in legno SCURO (staccano dal pavimento chiaro) con tovaglia, sgabelli, boccali, candela */
-  for (const ox of [32, 228]) {
-    rect(ox + 6, 128, 6, 10, '#3f2c18'); rect(ox + 56, 128, 6, 10, '#3f2c18');          // gambe
-    rect(ox + 4, 100, 60, 28, '#5c3d22'); rect(ox + 4, 100, 60, 6, '#7a5636');          // piano scuro
-    rect(ox + 10, 106, 48, 16, '#c9b58a'); rect(ox + 10, 106, 48, 4, '#ded0ab');        // tovaglia
-    rect(ox, 110, 10, 12, '#4c3320'); rect(ox + 60, 110, 10, 12, '#4c3320');            // sgabelli
-    rect(ox + 20, 92, 10, 12, '#d4a24a'); px(ox + 30, 94, '#d4a24a');                   // boccale
-    const st = Math.floor(time / 400) % 3; px(ox + 24, 84 - st * 2, '#f6efdd');         // vapore
-    rect(ox + 44, 92, 4, 10, '#f0e6cc'); px(ox + 44, 88, Math.floor(time / 250) % 2 ? '#f2c53d' : '#e8862e'); // candela
-  }
-}
-/* BARBIERE: pavimento a scacchi, specchiera, poltrona, palo con strisce che SCORRONO */
-export function drawBarberRoom(rw, rh, time) {
-  /* FASE 2: nativa — rw/rh gia' alla scala vera, numeri interni e ampiezze raddoppiati. */
-  const mx = rw / 2 - 44;
-  rect(mx, 8, 88, 36, '#8a5f38'); rect(mx + 6, 12, 76, 26, '#bfe9f4');
-  rect(mx + 10, 16, 20, 18, '#cfe8f2'); rect(mx + 56, 16, 16, 18, '#cfe8f2');
-  const sh2 = Math.floor(time / 260) % 12;
-  rect(mx + 8 + sh2 * 6, 14, 4, 22, '#e8f6fb');                                        // shine
-  rect(mx - 4, 44, 96, 6, '#a97a4c');
-  ['#5a86c8', '#e08aa8', '#5fa04e', '#e8c34a'].forEach((c, i) => rect(mx + 8 + i * 20, 34, 8, 10, c));
-  rect(mx + 80, 36, 12, 6, '#f6efdd'); rect(mx + 80, 30, 12, 6, '#f6efdd');             // asciugamani
-  /* OROLOGIO a pendolo (oscilla) */
-  const pd = (Math.floor(time / 600) % 2 ? 2 : -2) * 2;
-  rect(28, 8, 24, 28, '#8a5f38'); rect(32, 12, 16, 14, '#f6efdd'); px(38, 16, '#201a14'); px(38 + Math.sign(pd) * 2, 18, '#201a14');
-  rect(38, 36, 2, 12, '#5a5248'); px(38 + pd, 48, '#e8c34a');                          // pendolo
-  /* palo del barbiere: strisce che scorrono */
-  const off = (Math.floor(time / 180) % 6) * 2;
-  rect(rw - 40, 8, 20, 52, '#f3ecda'); rect(rw - 40, 4, 20, 4, '#5a5248'); rect(rw - 40, 60, 20, 4, '#5a5248');
-  for (let yy = -12 + off; yy < 52; yy += 12) { if (yy >= 0 && yy < 48) rect(rw - 40, 8 + yy, 20, 6, yy % 24 < 12 ? '#c65a54' : '#5a86c8'); }
-  /* POLTRONA DA BARBIERE: poggiatesta, schienale, braccioli, seduta, colonnina cromata,
-     base tonda, poggiapiedi */
-  const chx = 48;
-  rect(chx + 6, 88, 16, 4, '#3a3a44');                                                   // poggiatesta
-  rect(chx + 2, 92, 24, 20, '#8a3f3a'); rect(chx + 4, 94, 20, 16, '#c65a54');            // schienale
-  rect(chx + 4, 94, 20, 2, '#e08a84'); rect(chx + 12, 98, 2, 12, '#a3494e');             // imbottitura/cucitura
-  rect(chx - 2, 100, 6, 12, '#5a5248'); rect(chx + 24, 100, 6, 12, '#5a5248');           // braccioli
-  rect(chx + 2, 112, 24, 6, '#c65a54'); rect(chx + 2, 112, 24, 2, '#e08a84');            // seduta
-  rect(chx + 10, 118, 8, 10, '#cfc9bc'); rect(chx + 12, 118, 4, 10, '#e8e2d0');          // colonnina
-  rect(chx + 4, 128, 20, 4, '#3a3a44'); rect(chx + 6, 124, 16, 2, '#8f887a');            // base + poggiapiedi
-  /* CIUFFI di capelli tagliati a terra */
-  const hairs = [['#33291f', 92, 140], ['#caa25a', 104, 144], ['#b5622e', 88, 148], ['#6e4a2a', 108, 140]];
-  hairs.forEach(([c, hx2, hy2]) => { rect(hx2, hy2, 2, 2, c); rect(hx2 + 2, hy2, 2, 2, c); });
-  /* scopa appoggiata + panca d'attesa + pianta */
-  rect(120, 80, 4, 44, '#c9a06a'); rect(114, 120, 16, 10, '#d4b13c');
-  rect(232, 104, 60, 16, '#a97a4c'); rect(236, 120, 8, 12, '#6e5138'); rect(280, 120, 8, 12, '#6e5138');
-  rect(292, 84, 16, 16, '#4a9a55'); rect(296, 100, 8, 12, '#c65a54');
-  rect(rw / 2 + 46, 62, 2, 2, '#8f887a'); rect(rw / 2 + 48, 64, 2, 2, '#8f887a'); rect(rw / 2 + 50, 62, 2, 2, '#8f887a');
-}
-/* SARTORIA: rotoli di stoffa, manichino vestito, macchina da cucire con ago ANIMATO */
-export function drawTailorRoom(rw, rh, time) {
-  /* FASE 2: nativa — rw/rh gia' alla scala vera, numeri interni e ampiezze raddoppiati. */
-  const rx = rw / 2 - 56;
-  rect(rx, 8, 112, 6, '#5c4229');
-  ['#c65a54', '#5a86c8', '#5fa04e', '#e08aa8', '#e8c34a', '#8d7ba0'].forEach((c, i) => {
-    rect(rx + 6 + i * 18, 14, 14, 28, c); rect(rx + 6 + i * 18, 14, 14, 4, '#f6efdd');
-  });
-  rect(24, 12, 24, 28, '#8a5f38'); rect(28, 16, 16, 20, '#f6efdd'); rect(32, 20, 8, 12, '#e08aa8'); // bozzetto abito
-  rect(rw - 48, 12, 24, 28, '#8a5f38'); rect(rw - 44, 16, 16, 20, '#f6efdd'); rect(rw - 40, 20, 8, 6, '#5a86c8'); rect(rw - 42, 28, 12, 6, '#5a86c8');
-  /* mensola dei rocchetti di filo colorato */
-  rect(60, 48, 60, 4, '#5c4229');
-  ['#c65a54', '#5fa04e', '#f6efdd'].forEach((c, i) => { rect(64 + i * 18, 36, 10, 12, c); px(68 + i * 18, 32, '#5a5248'); });
-  /* manichino vestito + cesto di gomitoli */
-  rect(48, 88, 16, 12, '#f3cfa0'); rect(40, 100, 32, 24, '#e08aa8'); rect(44, 100, 24, 6, '#c06a88');
-  rect(54, 124, 4, 10, '#5a5248'); rect(48, 132, 16, 4, '#5a5248');
-  rect(84, 116, 24, 16, '#c9a06a'); rect(88, 112, 16, 6, '#a97a4c');
-  px(90, 110, '#c65a54'); px(96, 108, '#5a86c8'); px(102, 110, '#5fa04e');             // gomitoli
-  /* MACCHINA DA CUCIRE riconoscibile: tavolino, corpo a "C" nero con filo dorato,
-     volantino a destra che gira, ago su/giù, stoffa che avanza */
-  rect(220, 108, 80, 8, '#8a5f38'); rect(220, 108, 80, 4, '#a97a4c');                  // piano del tavolino
-  rect(224, 116, 6, 24, '#5c4229'); rect(290, 116, 6, 24, '#5c4229');                  // gambe
-  rect(232, 80, 44, 12, '#2f2b26'); rect(232, 80, 44, 4, '#4a4640');                   // braccio superiore
-  rect(232, 80, 10, 28, '#2f2b26');                                                    // colonna sinistra
-  rect(232, 100, 52, 8, '#3a3630'); rect(232, 100, 52, 2, '#c9a227');                  // base con filo dorato
-  px(240, 86, '#c9a227'); px(256, 86, '#e8c34a');                                      // dettagli oro
-  /* ago che sale/scende sotto la testa */
-  const ndl = (Math.floor(time / 180) % 2) * 2;
-  rect(268, 92, 4, 6, '#2f2b26');                                                      // testa dell'ago
-  rect(268, 98, 2, 6 + ndl, '#e8e2d0'); px(268, 104 + ndl, '#cfc9bc');                 // ago
-  /* stoffa sotto l'ago con la cucitura che avanza (trattini netti) */
-  rect(252, 104, 32, 4, '#5a86c8');
-  for (let i = 0; i < 4; i++) rect(256 + i * 6, 106, 2, 2, (i + Math.floor(time / 200)) % 2 ? '#e8e2d0' : '#5a86c8'); // punti cuciti
-  /* VOLANTINO a destra: ruota tonda con MANOVELLA che orbita (rotazione chiara) */
-  const wcx = 292, wcy = 90, ang = time / 200;
-  rect(wcx - 8, wcy - 8, 16, 16, '#3a3630'); rect(wcx - 6, wcy - 6, 12, 12, '#5a5248'); // corpo ruota
-  px(wcx, wcy, '#c9a06a');                                                             // mozzo
-  const hx = Math.round(wcx + Math.cos(ang) * 6), hy = Math.round(wcy + Math.sin(ang) * 6);
-  px(hx, hy, '#c9a227'); px(hx, hy - 2, '#e8c34a');                                    // manovella che gira
-  /* puntaspilli + ritagli di stoffa a terra */
-  rect(236, 100, 8, 6, '#c65a54'); px(238, 98, '#8f887a'); px(242, 98, '#8f887a');
-  for (let i = 0; i < 5; i++) rect(120 + (i * 38) % 88, 160 + (i * 26) % 40, 2, 2, ['#c65a54', '#5a86c8', '#e08aa8', '#5fa04e', '#e8c34a'][i]);
-}
-/* LABORATORIO: lavagna con scheletro, scaffale pozioni, alambicco con fiamma e bolle, banco studio */
-/* TECA DI COVA: sta SEMPRE nella stanza, non solo nel pannello del Lab — spenta e vuota
-   finché non deponi un uovo, poi ci galleggia dentro davvero (bagliore quando è pronto). */
-function drawEggTank(x, y, time) {
-  /* FASE 2: nativa — teca raddoppiata, bob/scintille con ampiezza raddoppiata. */
-  const e = breedEgg(), ready = !!e && eggReady();
-  const W = 28, H = 32;
-  rect(x - 4, y + H, W + 8, 6, '#5c4229');                                   // piedistallo
-  rect(x - 2, y - 2, W + 4, 4, '#5a5248');                                   // bocchetta
-  rect(x, y, W, H, ready ? '#dff4e0' : (e ? '#cdeef2' : '#a8b4ad'));         // vetro/liquido (spento se vuota)
-  rect(x + 2, y + 2, 4, H - 8, 'rgba(255,255,255,.30)');                     // riflesso sul vetro
-  if (e) {
-    const bob = Math.round(Math.sin(time / 480) * 3);
-    const ex = x + W / 2 - 4, ey = y + H / 2 - 8 + bob;
-    rect(ex, ey, 8, 2, '#d8973c'); rect(ex - 2, ey + 2, 12, 10, '#d8973c'); rect(ex, ey + 12, 8, 2, '#d8973c');
-    px(ex, ey + 4, '#f2c53d');                                              // riflesso sul guscio
-    if (ready) {
-      const sp = (Math.floor(time / 200) % 2) * 2;
-      px(ex - 6, ey + 2 + sp, '#f6efdd'); px(ex + 12, ey + 8 - sp, '#f6efdd'); // scintille
-    }
-  }
-}
-export function drawLabRoom(rw, rh, time) {
-  /* FASE 2: nativa — rw/rh gia' alla scala vera, numeri interni e ampiezze raddoppiati. */
-  const bx = rw / 2 - 52;
-  rect(bx - 4, 6, 112, 4, '#5c4229'); rect(bx - 4, 42, 112, 4, '#5c4229');
-  rect(bx, 10, 104, 32, '#2e3d33');
-  rect(bx + 10, 16, 14, 12, '#e8e2d0'); px(bx + 14, 20, '#2e3d33'); px(bx + 20, 20, '#2e3d33');
-  for (let i = 0; i < 7; i++) rect(bx + 28 + i * 6, 22 + (i % 2) * 2, 2, 2, '#e8e2d0');
-  for (let i = 0; i < 3; i++) { rect(bx + 32 + i * 12, 26, 2, 2, '#cbbfa4'); rect(bx + 32 + i * 12, 28, 2, 2, '#cbbfa4'); }
-  rect(bx + 76, 14, 18, 12, '#cbbfa4'); px(bx + 80, 18, '#2e3d33'); px(bx + 86, 18, '#2e3d33');
-  rect(bx + 8, 36, 16, 4, '#f6efdd');
-  /* barattoli con ESEMPLARI sospesi (bollicine) sotto la finestra sinistra */
-  rect(24, 48, 60, 4, '#5c4229');
-  for (let i = 0; i < 3; i++) {
-    const jx = 28 + i * 20;
-    rect(jx, 28, 14, 20, '#bfe9f4'); rect(jx, 26, 14, 2, '#5a5248');
-    rect(jx + 4, 34, 6, 8, ['#5fa04e', '#c65a54', '#8d7ba0'][i]);                       // esemplare
-    const jb = (Math.floor(time / 300) + i) % 4; px(jx + 2 + (i % 2) * 8, 44 - jb * 2, '#e8f6fb'); // bollicina
-  }
-  /* scaffale pozioni sotto la finestra destra */
-  const shx = rw - 3.4 * TS;
-  rect(shx - 4, 48, 80, 4, '#5c4229');
-  const bots = [['#5a86c8', 14], ['#4e8d7c', 18], ['#c65a54', 12], ['#8d7ba0', 20], ['#e8c34a', 14]];
-  bots.forEach(([c, hgt], i) => {
-    const x = shx + i * 16;
-    rect(x, 48 - hgt, 10, hgt, c); rect(x + 2, 44 - hgt, 6, 4, '#cfe8f2'); px(x + 2, 52 - hgt, '#f6efdd');
-  });
-  /* teca di cova: sul pavimento in basso a destra, fuori dal corridoio centrale porta→banco */
-  drawEggTank(252, 148, time);
-  /* postazione ALAMBICCO: bruciatore, storta con bolle, tubo con GOCCIA che cade, beuta */
-  rect(24, 88, 72, 44, '#8a5f38'); rect(24, 88, 72, 6, '#a97a4c'); rect(28, 132, 8, 8, '#5c4229'); rect(84, 132, 8, 8, '#5c4229');
-  const fl = Math.floor(time / 160) % 2;
-  rect(38, 80, 16, 6, '#75695c');
-  px(42 + fl * 2, 74, '#f2c53d'); px(44, 72 - fl * 2, '#e8862e'); px(46 - fl * 2, 74, '#f2c53d'); px(44, 76, '#e8862e');
-  rect(34, 52, 24, 24, '#bfe9f4'); rect(36, 60, 20, 14, '#5fa04e');
-  rect(40, 44, 8, 10, '#bfe9f4'); rect(38, 40, 12, 4, '#8fd0e6');
-  const bb = Math.floor(time / 260) % 3;
-  px(42, 70 - bb * 2, '#a4dd8c'); px(48, 66 - ((bb + 1) % 3) * 2, '#a4dd8c');
-  for (let i = 0; i < 5; i++) px(58 + i * 4, 48 + i * 2, '#8fd0e6');
-  const drop = Math.floor(time / 340) % 4;
-  px(74, 58 + drop * 2, '#8fd0e6');                                                     // goccia che cade
-  rect(76, 60, 14, 16, '#bfe9f4'); rect(78, 68, 10, 6, '#8d7ba0');
-  px(80, 56 - fl * 2, '#cfe8f2');
-  /* banco da studio: microscopio, teschio, libro, CANDELA accesa, fogli a terra */
-  rect(224, 88, 72, 44, '#8a5f38'); rect(224, 88, 72, 6, '#a97a4c'); rect(228, 132, 8, 8, '#5c4229'); rect(284, 132, 8, 8, '#5c4229');
-  rect(234, 68, 6, 20, '#5a5248'); rect(238, 64, 10, 6, '#3f3a33'); rect(232, 84, 18, 4, '#3f3a33');
-  px(242, 72, '#8fd0e6');
-  rect(258, 72, 16, 14, '#ece5d2'); px(262, 76, '#201a14'); px(268, 76, '#201a14'); rect(260, 82, 12, 2, '#cbbfa4');
-  rect(278, 76, 18, 12, '#f6efdd'); rect(286, 76, 2, 12, '#8a5f38'); px(280, 80, '#8f887a'); px(290, 80, '#8f887a');
-  rect(252, 64, 4, 10, '#f6efdd'); px(252, 60, Math.floor(time / 250) % 2 ? '#f2c53d' : '#e8862e'); // candela
-  rect(200, 156, 14, 10, '#f6efdd'); rect(208, 168, 14, 10, '#ece5d2'); px(204, 160, '#8f887a');     // fogli caduti
-  /* TOPOLINO grigio che sfreccia lungo la parete bassa */
-  const rt = (time / 1000) % 14;
-  if (rt < 2.2) {
-    const rxp = 36 + (rt / 2.2) * 240;
-    rect(rxp, 200, 10, 6, '#7a7268'); rect(rxp + 8, 200, 4, 4, '#7a7268');  // corpo + testa grigi
-    px(rxp + 10, 198, '#e0a8b0');                               // orecchio rosa
-    px(rxp + 10, 202, '#1a120a');                               // occhio
-    rect(rxp - 6, 202, 6, 2, '#8a8278');                        // coda
-  }
-}
 /* pattugliamento dietro il bancone: fermo → cammina a destra → fermo → attraversa → fermo → torna */
 const NPC_SPAN = 44;
 const NPC_SEGS = [[2.2, 0, 0], [1.5, 0, NPC_SPAN], [1.8, NPC_SPAN, NPC_SPAN], [3, NPC_SPAN, -NPC_SPAN], [1.8, -NPC_SPAN, -NPC_SPAN], [1.5, -NPC_SPAN, 0]];
@@ -805,66 +555,25 @@ export function drawInteriorScene(time) {
   const ox = Math.floor((W - rw) / 2), oy = Math.floor((H - rh) / 2);
   ctx.save(); ctx.translate(ox, oy);
   const type = INT.b ? INT.b.type : 'store';
-  /* pavimento a tema: pietra al laboratorio, assi di legno altrove */
-  for (let ty = 0; ty < INT.h; ty++) for (let tx = 0; tx < INT.w; tx++) {
-    const sx = tx * TS, sy = ty * TS;
-    if (type === 'lab') {
-      rect(sx, sy, TS, TS, (tx + ty) % 2 ? '#8f887a' : '#9a9285');
-      rect(sx, sy, TS, 1, '#7f776a'); rect(sx, sy, 1, TS, '#7f776a');
-      if ((tx * 7 + ty * 5) % 9 === 0) rect(sx + 18, sy + 20, 2, 2, '#75695c');
-    } else if (type === 'museum') {
-      rect(sx, sy, TS, TS, (tx + ty) % 2 ? '#ece5d2' : '#d9d0bb');
-      rect(sx, sy, TS, 1, '#c4baa2'); rect(sx, sy, 1, TS, '#c4baa2');
-    } else if (type === 'barber') {
-      rect(sx, sy, TS, TS, (tx + ty) % 2 ? '#e8f2f5' : '#9fc4d0');
-      rect(sx, sy, TS, 1, '#8fb0bd'); rect(sx, sy, 1, TS, '#8fb0bd');
-    } else {
-      /* assi del pavimento: il LEGNO è quello del bioma (chiaro nelle dune, scuro nei boschi) */
-      const [w1, w2, w3] = INT_WOOD[INT.town ? zoneIdxAt(INT.town.C.x, INT.town.C.y) : 0] || INT_WOOD[0];
-      rect(sx, sy, TS, TS, (tx + ty) % 2 ? w1 : w2);
-      rect(sx, sy + 14, TS, 1, w3); rect(sx + ((ty % 2) * 16), sy, 1, TS, w3);
-    }
-  }
-  /* parete di fondo + laterali */
-  rect(0, 0, rw, 2 * TS, '#8a6a4a'); rect(0, 2 * TS - 6, rw, 6, '#6e5138');
-  rect(0, 0, 12, rh, '#6e5138'); rect(rw - 12, 0, 12, rh, '#6e5138');
-  rect(0, rh - 8, rw, 8, '#6e5138');
-  if (type !== 'museum') {
-    /* la CASA ha la sua scena dedicata (drawHouseRooms, N stanze affiancate): qui sotto restano
-       solo i mestieri a stanza singola (lab/negozio/museo è già uscito sopra/locanda/barbiere/sartoria) */
-    /* finestre sulla parete */
-    for (const wx of [1.5 * TS, rw - 2.5 * TS]) {
-      rect(wx, 12, TS, 24, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 12, TS, 4, '#5c4229'); rect(wx, 32, TS, 4, '#5c4229'); rect(wx + 14, 12, 4, 24, '#5c4229');
-    }
-    {
-      /* bancone davanti all'NPC */
-      rect(TS, 2.2 * TS, rw - 2 * TS, 20, '#8a5f38'); rect(TS, 2.2 * TS, rw - 2 * TS, 6, '#a97a4c');
-      rect(TS, 2.2 * TS, 4, 20, shade8('#8a5f38', 1.45)); rect(rw - TS - 4, 2.2 * TS, 4, 20, shade8('#8a5f38', 0.6));
-      /* NPC disegnato QUI (dopo il bancone, PRIMA dell'arredo): gli oggetti appoggiati
-         sul bancone restano in primo piano → l'NPC non ci cammina davanti.
-         La sartoria ha invece arredo sulla parete di FONDO (rastrelliera stoffe): là
-         l'NPC va disegnato DOPO l'arredo, sennò le stoffe gli finiscono davanti. */
-      /* Arredo in DUE passate con clip → profondità giusta dell'NPC:
-         PARETE di fondo (fascia alta y<2·TS) prima → dietro l'NPC;
-         BANCONE + PAVIMENTO (sotto) dopo → davanti (l'NPC non cammina davanti alla merce). */
-      const drawRoom = () => {
-        if (type === 'lab') drawLabRoom(rw, rh, time);
-        else if (type === 'store') drawStoreRoom(rw, rh, time);
-        else if (type === 'inn') drawInnRoom(rw, rh, time);
-        else if (type === 'barber') drawBarberRoom(rw, rh, time);
-        else if (type === 'tailor') drawTailorRoom(rw, rh, time);
-      };
-      const band = 2 * TS;
-      ctx.save(); ctx.beginPath(); ctx.rect(0, 0, rw, band); ctx.clip(); drawRoom(); ctx.restore();
-      drawNpc(rw / 2, 1.9 * TS, type, time);
-      ctx.save(); ctx.beginPath(); ctx.rect(0, band, rw, rh - band); ctx.clip(); drawRoom(); ctx.restore();
-    }
-  }
-  /* varco della porta in basso */
-  rect(rw / 2 - 20, rh - 12, 40, 12, '#3a2e20'); rect(rw / 2 - 16, rh - 8, 32, 8, '#c49a63');
+  /* BOTTEGA (shopArt.js): lo stesso guscio della casa con i materiali del mestiere, il
+     bancone vero e gli arredi ridisegnati. Gli ingombri (FURN in interior.js) non cambiano. */
+  const g = BRUSH, nk = night(), wins = SHOP_WINDOWS[type] || [];
+  const wood = INT_WOOD[INT.town ? zoneIdxAt(INT.town.C.x, INT.town.C.y) : 0] || INT_WOOD[0];
+  drawShopFloor(g, type, rw, rh, wood, drawGroundTile);
+  drawShopWall(g, type, rw, rh, nk, time, wins);
+  drawShopShell(g, type, rw, rh, nk, wins);
+  const wallProps = { store: drawStoreProps, inn: drawInnProps, barber: drawBarberProps, tailor: drawTailorProps, lab: drawLabProps }[type];
+  const floorProps = { store: drawStoreFloorProps, inn: drawInnFloorProps, barber: drawBarberFloorProps, tailor: drawTailorFloorProps, lab: drawLabFloorProps }[type];
+  if (wallProps) wallProps(g, rw, rh, time);
+  /* bancone davanti all'NPC, poi l'NPC, poi quello che sta sul bancone e sul pavimento
+     (davanti a lui: l'NPC non cammina davanti alla merce) */
+  drawCounter(g, type, TS, Math.round(2.2 * TS), rw - 2 * TS, 20);
+  drawNpc(rw / 2, 1.9 * TS, type, time);
+  if (floorProps) { const e = type === 'lab' ? breedEgg() : null; floorProps(g, rw, rh, time, e, !!e && eggReady()); }
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
   shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
   drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
+  drawShopFront(BRUSH, rw, rh);
   if (INT.say) drawSayBalloon(ox + rw / 2, oy + 1.9 * TS - 10, INT.say.text); // coord SCHERMO (stanza centrata in ox,oy)
   ctx.restore();
 }

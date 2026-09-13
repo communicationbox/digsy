@@ -4360,6 +4360,38 @@ sprites.applyLook();
       }
       check('parquet: nessun cambio di tavola sul bordo della casella senza giunto', salti === 0, salti + ' salti');
     }
+    /* BOTTEGHE (shopArt.js): ogni mestiere si disegna tutto, di giorno e di notte, con e senza
+       uovo nella teca, e niente esce dai muri. Lo zoccolo di pietra del Laboratorio sbordava
+       di 15px nel buio a destra; un errore in un solo mobile fermava il disegno della stanza. */
+    {
+      const shop = await import('../src/shopArt.js');
+      const { shade8: sh8 } = await import('../src/brush.js');
+      const RW = 320, RH = 224;
+      const errori = [], fuori = new Set();
+      let n = 0;
+      const gb = { shade8: sh8, shadow: () => {},
+        px: (x, y) => { n++; if (x < 0 || x >= RW || y < -shop.SHOP_TOP || y >= RH + 4) fuori.add('px'); },
+        rect: (x, y, w, h) => { n++; if (x < 0 || x + w > RW || y < -shop.SHOP_TOP || y + h > RH + 4) fuori.add([x, y, w, h].join(',')); } };
+      for (const type of ['store', 'inn', 'barber', 'tailor', 'lab']) {
+        const wins = shop.SHOP_WINDOWS[type];
+        for (const [nk, tm, egg, ready] of [[0, 1000, null, false], [0.9, 7777, { q: 'raro' }, true], [0.2, 3333, { q: 'raro' }, false]]) {
+          const prima = fuori.size; n = 0;
+          try {
+            shop.drawShopFloor(gb, type, RW, RH, ['#b8894f', '#a97a45'], furnArt.drawGroundTile);
+            shop.drawShopWall(gb, type, RW, RH, nk, tm, wins);
+            shop.drawShopShell(gb, type, RW, RH, nk, wins);
+            ({ store: shop.drawStoreProps, inn: shop.drawInnProps, barber: shop.drawBarberProps, tailor: shop.drawTailorProps, lab: shop.drawLabProps })[type](gb, RW, RH, tm);
+            shop.drawCounter(gb, type, TS, Math.round(2.2 * TS), RW - 2 * TS, 20);
+            ({ store: shop.drawStoreFloorProps, inn: shop.drawInnFloorProps, barber: shop.drawBarberFloorProps, tailor: shop.drawTailorFloorProps, lab: shop.drawLabFloorProps })[type](gb, RW, RH, tm, egg, ready);
+            shop.drawShopFront(gb, RW, RH);
+          } catch (e) { errori.push(type + ': ' + e.message); }
+          if (fuori.size > prima) errori.push(type + ' sborda');
+          if (n < 400) errori.push(type + ' quasi vuota (' + n + ')');
+        }
+      }
+      check('le 5 botteghe si disegnano intere, senza uscire dai muri', errori.length === 0, errori.concat([...fuori].slice(0, 4)).join(' | '));
+      check('ogni bottega ha i suoi materiali', new Set(Object.values(shop.SHOP_STYLE).map(st => st.wall)).size === 5);
+    }
   }
   /* ---- LA ROTAZIONE SI VEDE ---- */
   {

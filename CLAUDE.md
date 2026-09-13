@@ -35,6 +35,7 @@ src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc
 src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete, fondi), comodità
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
 src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)
+src/shopArt.js      le 5 botteghe (Negozio/Locanda/Barbiere/Sartoria/Lab): stesso guscio della casa, bancone, arredi (puro)
 src/furnCatalog.js  CATALOGO: 12 temi × 21 pezzi, ognuno con la sua ricetta di disegno scritta a mano
 src/furnRecipe.js   interprete delle ricette (scatole, cilindri, dischi… nello stile 3/4 dell'arredo)
 src/furnShop.js     vetrina del giorno al Negozio (base + rotazione, tema di zona scontato)
@@ -297,6 +298,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   che scorrono** · SARTORIA stoffe colorate+rocchetti+manichino vestito+macchina da cucire
   con ago animato. NPC pattuglia dietro il bancone (npcPose); collisione interni a hitbox
   piedi (intCollide). Test generico sui 6 tipi.
+  **Aspetto rifatto al livello della casa** (`shopArt.js`): materiali per mestiere (lastre di pietra
+  al Lab, piastrelle dal Barbiere, assi del legno di zona altrove), parete con carta/zoccolo/cornice,
+  finestra con tende, bancone con piano e pannelli, arredi con contorno e ombre. Gli ingombri
+  `FURN` NON sono cambiati. Un test disegna ogni bottega e vieta pixel fuori dai muri.
+  Foto: `npm run shot -- bottega 900,700 "tipo=inn"` (store/inn/barber/tailor/lab).
 
 - **Biomi tematizzati per davvero**: palette terreno per zona (`ZONE_TILES` — zona 0 usa le
   stagioni), chiome alberi per zona (`ZONE_TREE`), acqua a tema (palude torbida con ninfee,

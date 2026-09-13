@@ -98,6 +98,10 @@ async function main() {
           p1:cs[0].name, p2:cs[1].name, laidDay:S.day, readyDay:S.day };
         return G.enterRoom('lab');
       }).then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'bottega' = l'interno di un mestiere scelto con tipo=store|inn|barber|tailor|lab (per
+       confrontarli con la casa: stesso livello di dettaglio) */
+    else if (${JSON.stringify(vista)} === 'bottega') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom(new URLSearchParams(location.search).get('tipo') || 'store').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per
