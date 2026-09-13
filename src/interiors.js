@@ -399,10 +399,14 @@ export function drawHouseCorridor(time) {
   }
   /* PORTALE DI RITORNO (goHome): in mezzo all'atrio, non fuori nel cortile — a richiesta
      esplicita: "il portale deve essere in mezzo al corridoio NON FUORI". */
-  if (S.returnPortal) drawReturnPortal(ATRIO_PORTAL.x - 8, ATRIO_PORTAL.y - 8, time);
+  /* il portale è un arco alto: chi gli passa DIETRO (piedi più in alto della sua base) deve
+     restare coperto, chi gli sta davanti gli si disegna sopra */
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
-  shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
-  drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
+  const eroe = () => { shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12); drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr); };
+  const dietro = S.returnPortal && INT.y < ATRIO_PORTAL.y;
+  if (dietro) eroe();
+  if (S.returnPortal) drawReturnPortal(ATRIO_PORTAL.x, ATRIO_PORTAL.y, time);   // centrato sul punto in cui si attiva
+  if (!dietro) eroe();
   /* muro davanti con la porta di casa: dopo il giocatore, che scendendo ci passa sotto */
   wallCap(g, -14, rh - 8, rw / 2 - 16 + 14 - 3, 22, 'top');
   wallCap(g, rw / 2 + 16 + 3, rh - 8, rw / 2 - 16 + 14 - 3, 22, 'top');

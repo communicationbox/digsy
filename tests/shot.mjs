@@ -282,6 +282,7 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'atrio') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('house').then(function(){
         var S = G.state(); S.house.rooms[1].unlocked = false; S.house.rooms[2].unlocked = true; S.house.rooms[3].unlocked = false;
+        if (new URLSearchParams(location.search).get('portale')) S.returnPortal = { x: 0, y: 0 };
         return G.intPos(4, 5);
       }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* l'altro caso: fialette in mano, requisiti soddisfatti, bottone acceso */

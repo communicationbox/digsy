@@ -818,18 +818,83 @@ function drawXmark(sx, sy, time) {
   if (Math.floor(time / 400) % 2) { px(sx + 16, sy + 2, '#ffe98a'); px(sx + 4, sy + 24, '#ffe98a'); }
   ctx.restore();
 }
-/* PORTALE DI RITORNO (goHome): un vortice viola che ti riporta dove eri, a uso singolo.
-   Fase dal TEMPO (regola ferrea), contorno scuro perché stacchi da ogni terreno. */
-export function drawReturnPortal(sx, sy, time) {
-  /* FASE 2: nativa — vortice con quarto tono, nucleo più ampio. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const t = Math.floor(time / 150) % 4;
-  shadow(sx + 16, sy + 30, 12);
-  rect(sx + 6, sy + 4, 20, 20, '#2b2140'); rect(sx + 8, sy + 6, 16, 16, '#6a4fa0');
-  rect(sx + 10, sy + 8, 6, 6, shade8('#6a4fa0', 1.2)); // quarto tono: bagliore interno
-  const cols = ['#c7b6f2', '#9a7ee0', '#6a4fa0', '#9a7ee0'];
-  px(sx + 12, sy + 6 + t * 2, cols[t]); px(sx + 20, sy + 6 + ((t + 2) % 4) * 2, cols[(t + 2) % 4]);
-  px(sx + 16, sy + 14, '#f3ecda');
+/* PORTALE DI RITORNO (goHome): riporta dove eri, a uso singolo. Sta in mezzo all'atrio.
+   Era un quadrato viola di 20 pixel con due puntini, e per giunta disegnato otto pixel più in
+   là del punto in cui si attiva. Ora è una PORTA vera, centrata su quel punto (cx, cy):
+     · un arco di pietra con la chiave di volta, e sulla chiave la casetta d'oro — dice "ritorno"
+       senza scriverlo;
+     · dentro, un vortice a spirale che gira (colore dal raggio e dall'angolo, fase dal TEMPO:
+       REGOLE FERREE #1), con l'orlo chiaro che brilla;
+     · a terra un anello di pietra con le rune che si accendono una dopo l'altra e un alone;
+     · scintille che salgono dal centro.
+   Contorno scuro ovunque, perché stacchi dal parquet (REGOLE FERREE #4). */
+const PORTAL_SPIRAL = ['#1c1030', '#3a2470', '#6a4fa0', '#9a7ee0', '#c7b6f2'];
+export function drawReturnPortal(cx, cy, time) {
+  ctx.save(); ctx.translate(Math.round(cx), Math.round(cy)); 
+  const base = 12;                                   // riga del pavimento sotto il portale
+  const t = (time || 0) / 1000;
+  /* alone a terra che respira */
+  const glow = 0.22 + 0.08 * (Math.floor((time || 0) / 400) % 2);
+  for (let yy = -9; yy <= 9; yy++) {
+    const w = Math.round(30 * Math.sqrt(1 - (yy * yy) / 90));
+    rect(-w, base + yy, w * 2, 1, 'rgba(214,200,255,' + glow.toFixed(2) + ')');
+  }
+  /* anello di pietra con 8 rune */
+  for (let a = 0; a < 64; a++) {
+    const ang = (a / 64) * Math.PI * 2, x = Math.round(Math.cos(ang) * 22), y = Math.round(Math.sin(ang) * 8);
+    rect(x, base + y, 2, 2, Math.sin(ang) < 0 ? '#5c5470' : '#3a3040');
+    px(x, base + y, Math.sin(ang) < 0 ? '#9a92a8' : '#6c6480');
+  }
+  const accesa = Math.floor((time || 0) / 180) % 8;
+  for (let r = 0; r < 8; r++) {
+    const ang = (r / 8) * Math.PI * 2 + Math.PI / 8, x = Math.round(Math.cos(ang) * 22), y = Math.round(Math.sin(ang) * 8);
+    const on = r === accesa || r === (accesa + 7) % 8;
+    rect(x - 1, base + y - 1, 2, 2, on ? '#f3ecda' : '#9a7ee0');
+  }
+  /* ombra dell'arco sul pavimento */
+  rect(-19, base - 1, 38, 2, 'rgba(20,12,30,.25)');
+  /* ARCO: due pilastri e la volta, pietra a conci */
+  const top = base - 50;
+  for (const sx of [-20, 13]) {
+    rect(sx, top + 14, 8, base - top - 13, '#241c2c');
+    rect(sx + 1, top + 15, 6, base - top - 15, '#7a7288');
+    rect(sx + 1, top + 15, 2, base - top - 15, '#9a92a8');
+    rect(sx + 6, top + 15, 1, base - top - 15, '#5c5470');
+    for (let yy = top + 22; yy < base; yy += 8) rect(sx + 1, yy, 6, 1, '#5c5470');
+    rect(sx - 1, base - 3, 10, 4, '#241c2c'); rect(sx, base - 2, 8, 2, '#8a82a0');                   // basamento
+  }
+  for (let a = 0; a <= 20; a++) {                                                                   // volta a semicerchio
+    const ang = Math.PI + (a / 20) * Math.PI, x = Math.round(Math.cos(ang) * 16.5), y = Math.round(Math.sin(ang) * 14);
+    rect(x - 4, top + 15 + y - 3, 8, 7, '#241c2c');
+  }
+  for (let a = 0; a <= 20; a++) {
+    const ang = Math.PI + (a / 20) * Math.PI, x = Math.round(Math.cos(ang) * 16.5), y = Math.round(Math.sin(ang) * 14);
+    rect(x - 3, top + 15 + y - 2, 6, 5, a % 4 === 0 ? '#5c5470' : '#7a7288');
+    px(x - 2, top + 15 + y - 2, '#9a92a8');
+  }
+  /* VORTICE: spirale dentro l'arco */
+  const vy = top + 30, RX = 12, RY = 20;
+  for (let yy = -RY; yy <= RY; yy++) for (let xx = -RX; xx <= RX; xx++) {
+    const nx = xx / RX, ny = yy / RY, rn = Math.sqrt(nx * nx + ny * ny);
+    if (rn > 1) continue;
+    const ang = Math.atan2(ny, nx);
+    const band = Math.floor(((ang / (Math.PI * 2)) * 3 + rn * 3.2 - t * 1.6) * 2);
+    let k = ((band % 3) + 3) % 3 + (rn < 0.45 ? 2 : rn < 0.75 ? 1 : 0);
+    if (rn > 0.86) k = (Math.floor(t * 4 + ang * 2) & 1) ? 4 : 3;                                  // orlo che brilla
+    px(xx, vy + yy, PORTAL_SPIRAL[Math.min(4, k)]);
+  }
+  rect(-2, vy - 3, 4, 6, '#f3ecda'); rect(-1, vy - 4, 2, 8, '#ffffff');                               // cuore di luce
+  /* chiave di volta con la casetta d'oro */
+  rect(-6, top - 1, 12, 11, '#241c2c'); rect(-5, top, 10, 9, '#8a82a0'); rect(-5, top, 10, 1, '#b0a8c0');
+  px(0, top + 2, '#e8c34a'); rect(-1, top + 3, 3, 1, '#e8c34a'); rect(-2, top + 4, 5, 1, '#e8c34a');
+  rect(-2, top + 5, 5, 3, '#e8c34a'); px(0, top + 6, '#6b4f14'); px(0, top + 7, '#6b4f14');
+  /* scintille che salgono dal vortice */
+  for (let i = 0; i < 6; i++) {
+    const life = ((time || 0) / 28 + i * 23) % 46;
+    const x = Math.round(Math.sin(i * 2.1 + life / 9) * (4 + i)), y = Math.round(vy + 14 - life);
+    if (y < top - 4) continue;
+    rect(x, y, i % 2 ? 1 : 2, i % 2 ? 1 : 2, life < 30 ? '#f3ecda' : '#c7b6f2');
+  }
   ctx.restore();
 }
 
