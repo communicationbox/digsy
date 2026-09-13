@@ -6983,6 +6983,31 @@ sprites.applyLook();
     }
   }
   check('tutte e 18 le meraviglie si disegnano', broken.length === 0, broken[0] || '');
+  /* IN NATIVO: le meraviglie generate a codice sono ridisegnate a 32 px per casella (prima
+     erano sulla griglia da 16 e il mondo le raddoppiava: pixel grossi il doppio del resto).
+     Quelle rifinite a mano nello Sprite Studio restano le sue: il nativo non le sostituisce. */
+  {
+    const wn = await import('../src/wonderNative.js');
+    const sb = await import('../src/spritebank.js');
+    const tipi = Object.keys(WONDERS);
+    const aMano = tipi.filter(t => sb.hasSprite('wonder:' + t));
+    check('ogni meraviglia è disegnata a mano o in nativo', tipi.every(t => aMano.includes(t) || wn.hasNativeWonder(t)),
+      tipi.filter(t => !aMano.includes(t) && !wn.hasNativeWonder(t)).join(' '));
+    check('i disegni a mano non vengono sostituiti dal nativo', aMano.every(t => {
+      let usato = false; const G2 = { rect() { usato = true; }, px() { usato = true; }, shadow() {}, shade8: h => h, ctx: { fillStyle: '', fillRect() {} } };
+      const orig = wn.NATIVE_WONDERS[t]; return !orig || (wa.drawWonder(G2, t, 0, 0, 0), true);
+    }) && aMano.every(t => !wn.hasNativeWonder(t)));
+    const fuori = [];
+    for (const t of tipi.filter(x => wn.hasNativeWonder(x))) {
+      const half = (WONDERS[t].w * 32) / 2 + 20;
+      let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
+      const rec = { shade8: h => h, px: (x, y) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); },
+        rect: (x, y, w, h) => { x0 = Math.min(x0, x); x1 = Math.max(x1, x + w); y0 = Math.min(y0, y); y1 = Math.max(y1, y + h); } };
+      for (const tm of [0, 700, 1900, 4100]) wn.drawNativeWonder(rec, t, tm);
+      if (x0 < -half || x1 > half || y0 < -260 || y1 > 32) fuori.push(t + ' [' + [x0, x1, y0, y1].join(',') + ']');
+    }
+    check('ogni meraviglia nativa sta nel suo ingombro (larghezza in caselle, niente sotto terra)', fuori.length === 0, fuori.join(' '));
+  }
   check('ogni meraviglia dichiara le sue tile solide', Object.keys(WONDERS).every(t =>
     wa.wonderSolidTile(t, 0, 0, 0, 0) === true || wa.wonderSolidTile(t, 0, 0, 0, 0) === false));
 }

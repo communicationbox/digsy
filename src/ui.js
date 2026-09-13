@@ -849,7 +849,9 @@ function drawWonderCard(cv, type) {
   /* scala INTERA (mai frazionaria: spaccherebbe i pixel), con un margine di respiro */
   const kx = Math.floor((W2 - 12) / Math.max(1, box.w));
   const ky = Math.floor((H2 - 12) / Math.max(1, box.h));
-  const k = Math.max(1, Math.min(4, Math.min(kx, ky)));
+  let k = Math.max(1, Math.min(4, Math.min(kx, ky)));
+  /* i disegni nativi usano mezze unità: con una scala dispari cadrebbero a metà pixel e si sfocano */
+  if (k > 1 && k % 2) k -= 1;
   const paint = () => {
     c.setTransform(1, 0, 0, 1, 0, 0);
     c.imageSmoothingEnabled = false;

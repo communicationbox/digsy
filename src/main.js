@@ -443,6 +443,26 @@ if (typeof window !== 'undefined') {
       /* GALLERIA di un tema del catalogo: ogni pezzo disegnato dalla sua ricetta su un
          pavimento, col nome sotto. Serve a GUARDARE duecentocinquanta mobili tutti insieme (per le
          foto), non entra nel gioco. */
+      /* tutte le meraviglie insieme sul terreno della loro zona, per giudicarle una accanto all'altra */
+      wonderGallery: (t) => Promise.all([import('./wonderart.js'), import('./wonders.js'), import('./brush.js'), import('./spritebank.js')]).then(([wa, wd, br, sb]) => {
+        const ids = Object.keys(wd.WONDERS), cols = 3, cw = 360, ch = 330;
+        const GROUND = { prati: '#7fb85a', dune: '#dcc08a', boschi: '#5c7050', terre: '#b0704a', palude: '#5a7a56', ghiacci: '#dfe9ee' };
+        const cv2 = document.createElement('canvas'); cv2.width = cols * cw; cv2.height = Math.ceil(ids.length / cols) * ch;
+        const c2 = cv2.getContext('2d'); c2.imageSmoothingEnabled = false;
+        const g = { ctx: c2, shade8: br.shade8, rect: (x, y, w, h, c) => { c2.fillStyle = c; c2.fillRect(x, y, w, h); }, px: (x, y, c) => { c2.fillStyle = c; c2.fillRect(x, y, 1, 1); },
+          shadow: (cx, cy, rw) => { c2.fillStyle = 'rgba(15,25,15,.16)'; for (let i = -rw; i <= rw; i++) { const hh = Math.round(2 * Math.sqrt(Math.max(0, 1 - (i * i) / (rw * rw)))); c2.fillRect(cx + i, cy - hh, 1, hh * 2); } } };
+        ids.forEach((id, i) => {
+          const x = (i % cols) * cw, y = Math.floor(i / cols) * ch;
+          c2.fillStyle = GROUND[wd.WONDERS[id].zone] || '#7fb85a'; c2.fillRect(x, y, cw, ch);
+          c2.strokeStyle = '#000'; c2.strokeRect(x + 0.5, y + 0.5, cw - 1, ch - 1);
+          c2.save(); c2.beginPath(); c2.rect(x, y, cw, ch); c2.clip(); c2.translate(x + cw / 2, y + ch - 30); c2.scale(2, 2);
+          try { wa.drawWonder(g, id, -8, -16, t || 1000); } catch (e) { c2.setTransform(1, 0, 0, 1, 0, 0); c2.fillStyle = '#f00'; c2.fillText(e.message, x + 4, y + 30); }
+          c2.restore();
+          c2.fillStyle = '#000'; c2.font = 'bold 14px monospace'; c2.fillText(id + (sb.hasSprite('wonder:' + id) ? ' (a mano)' : ''), x + 6, y + 18);
+        });
+        cv2.style.cssText = 'position:fixed;left:0;top:0;z-index:9999;image-rendering:pixelated';
+        document.body.appendChild(cv2); return true;
+      }),
       furnGallery: (tema) => Promise.all([import('./furnArt.js'), import('./furnCatalog.js'), import('./brush.js'), import('./data.js')]).then(([fa, fc, br, dm]) => {
         const lista = fc.FURN_CATALOG.filter(f => f.theme === tema);
         const cell = 112, cols = 6, rows = Math.ceil(lista.length / cols);

@@ -113,6 +113,12 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'mappa') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goto=city'); }).then(function(){ return G.reveal(new URLSearchParams(location.search).get('r') ? +new URLSearchParams(location.search).get('r') : 160); })
         .then(function(){ if(G.openMap) G.openMap(); }); }
+    /* 'meraviglie' = le 18 meraviglie in griglia, ognuna sul terreno della sua zona */
+    else if (${JSON.stringify(vista)} === 'meraviglie') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.wonderGallery) G.wonderGallery(+(new URLSearchParams(location.search).get('t') || 1000)); }
+    /* 'libro-meraviglie' = la scheda di una meraviglia (param tipo=oasis) */
+    else if (${JSON.stringify(vista)} === 'libro-meraviglie') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('godmode').then(function(){ return G.debug(false); }).then(function(){ if(G.openWonderBook) G.openWonderBook(new URLSearchParams(location.search).get('tipo') || 'oasis'); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per
