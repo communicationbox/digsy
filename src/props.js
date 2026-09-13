@@ -11,51 +11,75 @@ import { ctx, view } from './screen.js';
 import { seaTree, zoneTree } from './tiles.js';
 import { zoneIdxAt } from './regions.js';
 
+
+/* ---------- primitive per la natura ---------- */
+const LN = '#1e1a12';
+function disc(cx, cy, r, c) { for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y))); rect(cx - w, cy + y, w * 2 + 1, 1, c); } }
+function ellipseF(cx, cy, rx, ry, c) { for (let y = -ry; y <= ry; y++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry)))); if (w > 0) rect(cx - w, cy + y, w * 2, 1, c); } }
+/* una CHIOMA fatta di grumi: contorno, massa, ombra sotto, luce in alto a sinistra */
+function canopy(blobs, T) {
+  for (const [x, y, r] of blobs) disc(x, y + 1, r + 1, LN);
+  for (const [x, y, r] of blobs) disc(x, y + 2, r, T[5] || shade8(T[0], 0.7));
+  for (const [x, y, r] of blobs) disc(x - 1, y, r - 1, T[1]);
+  for (const [x, y, r] of blobs) disc(x - Math.round(r * 0.3), y - Math.round(r * 0.35), Math.max(1, Math.round(r * 0.55)), T[3]);
+  for (const [x, y, r] of blobs) { rect(x - Math.round(r * 0.5), y - Math.round(r * 0.6), 2, 2, T[4]); }
+}
+
 export function drawTree(sx, sy, time, tx, ty) {
-  /* FASE 2: nativo a piena scala, non più raddoppio meccanico. Tronco con corteccia a
-     righe verticali vere, chioma con più bande e macchie di fogliame (lo spazio in più
-     ospita dettaglio che nella vecchia griglia 16px non ci stava). */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const zi = zoneIdxAt(tx, ty);
-  const T = zoneTree(zi);
-  const sw = vhash(tx, ty, 41) < 0.35 ? Math.round(Math.sin(time / 850 + tx * 1.7 + ty * 2.3)) * 2 : 0;
-  const cx = sx + 16, base = sy + 30; shadow(cx, base, 14);
-  rect(cx - 4, base - 12, 8, 12, '#7c4f2e'); px(cx - 4, base - 12, '#5f3c22');
-  px(cx - 4, base - 10, shade8('#7c4f2e', 1.3)); px(cx - 3, base - 6, shade8('#7c4f2e', 1.2)); // luce sx
-  px(cx + 2, base - 4, shade8('#7c4f2e', 0.7)); px(cx + 3, base - 8, shade8('#7c4f2e', 0.65)); // ombra dx
-  rect(cx - 1, base - 11, 1, 10, shade8('#7c4f2e', 0.85)); // venatura verticale della corteccia
-  const k = cx + sw;
-  rect(k - 14, base - 32, 28, 18, T[0]); rect(k - 16, base - 28, 32, 12, T[1]); rect(k - 12, base - 38, 24, 12, T[2]); rect(k - 8, base - 42, 16, 10, T[3]);
-  rect(k - 6, base - 38, 6, 4, T[4]); px(k + 4, base - 34, T[4]); px(k + 5, base - 35, T[4]); px(k - 16, base - 18, T[5]); px(k - 17, base - 17, T[5]); px(k + 14, base - 18, T[5]); px(k + 15, base - 17, T[5]);
-  rect(k - 4, base - 42, 3, 2, shade8(T[3], 1.45)); rect(k - 1, base - 41, 2, 2, shade8(T[3], 1.45)); // luce in cima alla chioma
-  rect(k - 14, base - 18, 28, 2, shade8(T[0], 0.55)); // terzo tono: ombra interna sotto la chioma
-  rect(k - 16, base - 16, 6, 2, shade8(T[0], 0.68)); rect(k + 10, base - 16, 6, 2, shade8(T[0], 0.68)); // contorno leggero sul bordo basso
-  /* fogliame moteggiato: grumi di tono chiaro/scuro sparsi sulla chioma, ora 3 invece di 2
-     (spazio in più) — posizione per albero, così una fila non sembra la stessa chioma */
-  const lx1 = k - 12 + Math.floor(vhash(tx, ty, 42) * 24), ly1 = base - 34 + Math.floor(vhash(tx, ty, 43) * 12);
-  rect(lx1, ly1, 2, 2, shade8(T[1], 1.15));
-  const lx2 = k - 10 + Math.floor(vhash(tx, ty, 44) * 20), ly2 = base - 26 + Math.floor(vhash(tx, ty, 45) * 10);
-  if (vhash(tx, ty, 46) < 0.6) rect(lx2, ly2, 2, 2, shade8(T[0], 0.8));
-  const lx3 = k - 8 + Math.floor(vhash(tx, ty, 47) * 16), ly3 = base - 30 + Math.floor(vhash(tx, ty, 48) * 8);
-  if (vhash(tx, ty, 49) < 0.5) px(lx3, ly3, shade8(T[2], 1.2));
+  /* ALBERO con la forma della sua zona: latifoglia tonda nei Prati (colori delle stagioni),
+     pino alto nei Boschi Cinerei, chioma secca a ombrello nelle Terre, salice cupo in Palude,
+     abete carico di neve nelle Lande. La casella solida resta il tronco. */
+  ctx.save(); ctx.translate(sx, sy);
+  const zi = zoneIdxAt(tx, ty), T = zoneTree(zi);
+  const sw = vhash(tx, ty, 41) < 0.35 ? Math.round(Math.sin(time / 850 + tx * 1.7 + ty * 2.3)) : 0;
+  const cx = 16, base = 30, big = vhash(tx, ty, 50) < 0.5 ? 0 : 3;
+  shadow(cx, base, 14);
+  const trunk = (h, w) => {
+    rect(cx - (w >> 1) - 1, base - h, w + 2, h, LN);
+    rect(cx - (w >> 1), base - h, w, h, '#7c4f2e'); rect(cx - (w >> 1), base - h, 2, h, '#9a6a40'); rect(cx + (w >> 1) - 2, base - h, 2, h, '#5f3c22');
+    rect(cx - (w >> 1) - 3, base - 3, w + 6, 3, LN); rect(cx - (w >> 1) - 2, base - 3, w + 4, 2, '#6a4428');                  // radici
+  };
+  if (zi === 5 || (zi === 2)) {                                    // CONIFERE: pino dei Boschi, abete innevato delle Lande
+    trunk(10, 6);
+    const snow = zi === 5, C = snow ? ['#2f5a44', '#3a6a50', '#467a5c'] : [T[0], T[1], T[3]];
+    const tiers = [[18 + big, 4], [15 + big, 13], [12, 22], [8, 30], [4, 37]];
+    tiers.forEach(([w, up], i) => {
+      const y = base - 8 - up - big, k = cx + (i > 1 ? sw : 0);
+      for (let r = 0; r < 12; r++) { const ww = Math.round(w * (r / 12)); rect(k - ww - 1, y - 12 + r, ww * 2 + 2, 1, LN); rect(k - ww, y - 12 + r, ww * 2, 1, r > 8 ? C[0] : C[1]); rect(k - ww, y - 12 + r, Math.max(1, ww >> 1), 1, C[2]); }
+      if (snow) { for (let r = 0; r < 5; r++) { const ww = Math.round(w * (r / 12)); rect(k - ww, y - 12 + r, ww * 2, 1, r < 3 ? '#ffffff' : '#dfeef4'); } rect(k - w + 2, y - 1, w * 2 - 4, 2, '#eef7fa'); }
+    });
+    if (snow) rect(cx - 12, base - 2, 24, 2, '#eef7fa');
+  } else if (zi === 4) {                                           // SALICE di palude: cupola bassa e ciocche
+    trunk(14, 6);
+    const k = cx + sw;
+    canopy([[k - 9, base - 24, 9], [k + 9, base - 24, 9], [k, base - 30, 11]], T);
+    for (let i = 0; i < 8; i++) { const x = k - 16 + i * 4 + (i % 2 ? sw : 0), len = 8 + ((i * 5) % 7); rect(x, base - 22, 2, len, T[5]); rect(x, base - 22 + len - 2, 2, 2, T[2]); }
+  } else if (zi === 3) {                                           // TERRE: acacia secca a ombrello
+    trunk(16, 5);
+    rect(cx - 1, base - 20, 2, 6, LN); rect(cx - 8, base - 22, 8, 2, LN); rect(cx + 2, base - 24, 8, 2, LN);
+    const k = cx + sw;
+    canopy([[k - 11, base - 26, 7], [k + 10, base - 28, 7], [k, base - 30, 9]], T);
+  } else {                                                          // PRATI: latifoglia tonda coi colori della stagione
+    trunk(12, 7);
+    const k = cx + sw, up = big;
+    canopy([[k - 10, base - 20 - up, 8], [k + 10, base - 20 - up, 8], [k - 5, base - 30 - up, 10], [k + 6, base - 31 - up, 9], [k, base - 38 - up, 8]], T);
+    if (vhash(tx, ty, 51) < 0.25) for (const [fx, fy] of [[-6, -26], [5, -34], [9, -22]]) { rect(k + fx, base + fy - up, 2, 2, '#c65a54'); px(k + fx, base + fy - up, '#f08a80'); }   // qualche frutto
+  }
   ctx.restore();
 }
 export function drawBoulder(sx, sy, tx = 0, ty = 0) {
-  /* FASE 2: nativo, sagoma a faccette vere (non un blob ovale) — ogni faccetta il suo tono,
-     non solo luce/ombra ai bordi di un unico blocco. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 26; shadow(cx, base, 12);
-  rect(cx - 12, base - 14, 24, 14, '#9a9285'); rect(cx - 10, base - 18, 20, 6, '#aaa294'); px(cx - 4, base - 14, '#b8b0a2'); rect(cx - 8, base - 8, 8, 4, '#b8b0a2'); rect(cx - 12, base - 2, 24, 2, '#75695c');
-  px(cx - 8, base - 16, '#d0c8ba'); rect(cx - 7, base - 16, 3, 1, '#d0c8ba'); // sprazzo di luce alto-sx
-  rect(cx + 4, base - 4, 8, 2, '#5f574c'); // ombra propria bassa-dx
-  rect(cx + 6, base - 12, 6, 4, shade8('#9a9285', 0.8)); // faccetta in ombra sul fianco destro
-  rect(cx - 2, base - 10, 4, 3, shade8('#aaa294', 1.12)); // faccetta in luce al centro-alto: sagoma sfaccettata, non un blob
-  rect(cx - 10, base - 8, 4, 4, shade8('#9a9285', 0.9)); // faccetta laterale sx, un tono in meno della base
-  /* screpolature: 2-3 macchie di muschio/lichene, posizione diversa per masso così due
-     copie vicine non sembrano lo stesso identico sasso timbrato */
-  const mx = cx - 8 + Math.floor(vhash(tx, ty, 81) * 18), my = base - 12 + Math.floor(vhash(tx, ty, 82) * 8);
-  rect(mx, my, 2, 2, '#7f776a');
-  if (vhash(tx, ty, 83) < 0.5) rect(mx + 2, my, 2, 2, '#8f947c');
+  /* MASSO arrotondato con le facce, crepe e muschio: diverso per casella */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 27; shadow(cx, base, 13);
+  const a = vhash(tx, ty, 81);
+  ellipseF(cx, base - 10, 14, 11, LN);
+  ellipseF(cx, base - 10, 13, 10, '#8a8378');
+  ellipseF(cx - 2, base - 13, 10, 7, '#9f988b');
+  ellipseF(cx - 5, base - 16, 5, 3, '#bdb6a8');
+  rect(cx - 7, base - 18, 3, 1, '#d6d0c2');
+  ellipseF(cx + 5, base - 5, 7, 4, '#6f685c');
+  rect(cx - 3 + Math.round(a * 6), base - 12, 1, 6, '#5f584e'); rect(cx - 2 + Math.round(a * 6), base - 7, 3, 1, '#5f584e');   // crepa
+  if (vhash(tx, ty, 83) < 0.6) { rect(cx - 10, base - 6, 6, 3, '#6f8a52'); rect(cx - 9, base - 7, 4, 1, '#8aa86a'); }             // muschio
   ctx.restore();
 }
 /* FIORE — versione scenografica (piatta, a terra) e versione MATURA (alta, azzurra, col
@@ -176,48 +200,46 @@ export function glint(sx2, sy2, time, tx, ty) {
 
 /* ---------- decorazioni di zona ---------- */
 export function drawCactus(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 30; shadow(cx, base, 10);
-  rect(cx - 4, base - 24, 8, 24, '#4a9a55'); rect(cx - 2, base - 24, 2, 24, '#5fb768');
-  rect(cx - 12, base - 18, 8, 4, '#4a9a55'); rect(cx - 12, base - 18, 4, 10, '#4a9a55');
-  rect(cx + 4, base - 14, 8, 4, '#4a9a55'); rect(cx + 8, base - 22, 4, 12, '#4a9a55');
-  px(cx - 6, base - 20, '#2f6b3b'); px(cx + 2, base - 10, '#2f6b3b'); rect(cx, base - 26, 2, 2, '#e08aa8');
-  rect(cx - 2, base - 24, 2, 4, '#7fd489'); // luce in cima al fusto principale
-  rect(cx - 4, base - 2, 8, 2, '#2f6b3b'); // ombra propria alla base
-  rect(cx, base - 22, 2, 20, shade8('#4a9a55', 0.75)); // ombra sul fianco destro del fusto
-  rect(cx + 9, base - 20, 2, 8, shade8('#4a9a55', 0.75)); rect(cx - 11, base - 16, 2, 6, shade8('#4a9a55', 1.15)); // braccia: anche loro con volume, non due bande piatte
-  /* spine: punti chiari sparsi sul fusto, posizione per esemplare (non un timbro identico) */
-  rect(cx - 4 + Math.floor(vhash(tx, ty, 84) * 6), base - 8 - Math.floor(vhash(tx, ty, 85) * 12), 2, 1, '#e0f0d8');
-  rect(cx + Math.floor(vhash(tx, ty, 86) * 4), base - 18 - Math.floor(vhash(tx, ty, 87) * 6), 2, 1, '#e0f0d8');
-  rect(cx - 10 + Math.floor(vhash(tx, ty, 108) * 4), base - 16 - Math.floor(vhash(tx, ty, 109) * 4), 2, 1, '#e0f0d8');
+  /* SAGUARO: fusto a coste con due braccia, spine e un fiore in cima */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 30; shadow(cx, base, 9);
+  const arm = (x, y, w, h) => { rect(x - 1, y - 1, w + 2, h + 2, LN); rect(x, y, w, h, '#4a9a55'); rect(x, y, 2, h, '#6fbf78'); rect(x + w - 2, y, 2, h, '#357a42'); };
+  const flip = vhash(tx, ty, 84) < 0.5;
+  arm(cx - 5, base - 28, 10, 28);
+  for (const cxr of [cx - 2, cx + 2]) rect(cxr, base - 26, 1, 24, '#3d8a48');
+  arm(flip ? cx - 13 : cx + 5, base - 18, 8, 4); arm(flip ? cx - 13 : cx + 9, base - 26, 4, 10);
+  arm(flip ? cx + 5 : cx - 13, base - 13, 8, 4); arm(flip ? cx + 9 : cx - 13, base - 20, 4, 9);
+  for (let i = 0; i < 6; i++) px(cx - 4 + ((i * 7) % 9), base - 24 + i * 4, '#e0f0d8');
+  rect(cx - 2, base - 31, 4, 3, '#e08aa8'); px(cx - 1, base - 32, '#f6c0d4');
   ctx.restore();
 }
 export function drawBonespire(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 28; shadow(cx, base, 12);
-  let i = 0;
-  for (const [ox, h] of [[-10, 14], [0, 20], [10, 12]]) {
-    rect(cx + ox - 2, base - h, 4, h, '#ece5d2'); px(cx + ox - 4, base - h, '#ece5d2'); rect(cx + ox + 2, base - h + 2, 2, h - 2, '#cbbfa4');
-    rect(cx + ox - 2, base - h, 2, 2, '#fbf6e8'); // punta più chiara: luce dall'alto
-    if (vhash(tx, ty, 88 + i) < 0.5) rect(cx + ox, base - Math.floor(h / 2), 2, 2, '#d6cdb4'); // vena/crepa, non su ogni guglia
-    rect(cx + ox - 3, base - Math.floor(h * 0.3), 1, Math.floor(h * 0.4), shade8('#ece5d2', 0.85)); // scanalatura verticale: vero rilievo, non due bande piatte
-    i++;
-  }
-  rect(cx - 12, base - 4, 24, 4, '#cbbfa4'); rect(cx - 12, base - 2, 24, 2, '#9a927f'); // ombra propria alla base
+  /* COSTOLE che affiorano dalla sabbia: tre archi d'osso che si piegano, con la sabbia ammucchiata */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 28; shadow(cx, base, 12);
+  [[-9, 14, -1], [0, 21, 1], [9, 12, 1]].forEach(([ox, h, bend], i) => {
+    for (let k = 0; k < h; k++) { const x = cx + ox + Math.round(Math.sin((k / h) * 1.6) * 3 * bend), y = base - 2 - k, w = k > h - 4 ? 2 : 4; rect(x - (w >> 1) - 1, y, w + 2, 1, '#4a4234'); rect(x - (w >> 1), y, w, 1, '#ece5d2'); px(x - (w >> 1), y, '#fbf6e8'); }
+    if (vhash(tx, ty, 88 + i) < 0.5) rect(cx + ox - 1, base - Math.floor(h / 2), 3, 1, '#c9bd9f');
+  });
+  ellipseF(cx, base - 1, 14, 3, '#d8c9a0'); ellipseF(cx - 3, base - 2, 8, 1, '#e8dcb8');
   ctx.restore();
 }
 export function drawDeadtree(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 30; shadow(cx, base, 10);
-  rect(cx - 2, base - 26, 6, 26, '#6e5138'); px(cx - 2, base - 26, '#5c4229');
-  rect(cx - 12, base - 22, 10, 4, '#6e5138'); px(cx - 12, base - 26, '#6e5138');
-  rect(cx + 4, base - 18, 12, 4, '#6e5138'); px(cx + 14, base - 22, '#6e5138');
-  px(cx + 2, base - 30, '#6e5138'); px(cx - 6, base - 12, '#6e5138');
-  rect(cx, base - 26, 2, 4, '#9a7550'); rect(cx, base - 16, 2, 4, '#9a7550'); // striscia di luce sul tronco (lato sx)
-  rect(cx + 2, base - 12, 2, 4, shade8('#6e5138', 0.7)); // ombra sul fianco destro
-  rect(cx - 1, base - 2, 6, 2, '#4a3620'); // ombra propria alla base
-  rect(cx - 1, base - 20, 1, 8, shade8('#6e5138', 0.85)); // venatura verticale: vero rilievo di corteccia
-  if (vhash(tx, ty, 89) < 0.45) rect(cx, base - 20 - Math.floor(vhash(tx, ty, 90) * 6), 2, 2, '#3f2c1a'); // nodo del legno, non su ogni esemplare
+  /* ALBERO SECCO nodoso: tronco storto, rami che si biforcano, un nodo cavo */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 30; shadow(cx, base, 10);
+  const limb = (x0, y0, x1, y1, w) => {
+    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0)));
+    for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); rect(x - (w >> 1) - 1, y - 1, w + 2, 3, LN); }
+    for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); rect(x - (w >> 1), y, w, 1, '#6e5138'); if (w > 2) px(x - (w >> 1), y, '#9a7550'); }
+  };
+  const f = vhash(tx, ty, 89) < 0.5 ? 1 : -1;
+  limb(cx, base, cx + f * 2, base - 18, 6);
+  limb(cx + f * 2, base - 16, cx - f * 12, base - 26, 3); limb(cx - f * 8, base - 23, cx - f * 12, base - 31, 2);
+  limb(cx + f * 2, base - 18, cx + f * 10, base - 30, 3); limb(cx + f * 7, base - 26, cx + f * 14, base - 28, 2);
+  limb(cx + f * 2, base - 18, cx + f * 2, base - 32, 2);
+  rect(cx - 5, base - 3, 12, 3, LN); rect(cx - 4, base - 3, 10, 2, '#5c4229');
+  rect(cx - 1, base - 11, 3, 3, '#2a1e12');
   ctx.restore();
 }
 /* FUNGO — la scenografia è un fungo bruno piccolo e spento (non si raccoglie mai); quello
@@ -240,83 +262,80 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   ctx.restore();
 }
 export function drawStump(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 26; shadow(cx, base, 10);
-  rect(cx - 8, base - 10, 16, 10, '#8a5f38'); rect(cx - 8, base - 12, 16, 4, '#c9a06a');
-  rect(cx - 2, base - 12, 2, 2, '#a97a4c'); rect(cx + 2, base - 10, 2, 2, '#a97a4c'); px(cx - 10, base - 6, '#6e5138');
-  rect(cx - 6, base - 12, 2, 2, '#e0be8c'); rect(cx + 4, base - 4, 4, 2, '#5c4229'); // luce sull'anello + ombra propria
-  rect(cx + 2, base - 10, 2, 6, shade8('#8a5f38', 0.75)); // fianco destro in ombra
-  rect(cx - 8, base - 10, 2, 10, shade8('#8a5f38', 1.15)); // fianco sinistro in luce: la superficie tagliata ha volume
-  if (vhash(tx, ty, 91) < 0.5) rect(cx, base - 10, 2, 2, '#a97a4c'); // secondo anello, non su ogni ceppo
+  /* CEPPO: faccia tagliata con gli anelli, corteccia, radici */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 27; shadow(cx, base, 11);
+  rect(cx - 10, base - 12, 20, 12, LN); rect(cx - 9, base - 12, 18, 11, '#7a5230'); rect(cx - 9, base - 12, 4, 11, '#9a6a40'); rect(cx + 5, base - 12, 4, 11, '#5c3d22');
+  for (let i = -8; i < 9; i += 4) rect(cx + i, base - 9, 1, 8, '#5c3d22');
+  ellipseF(cx, base - 12, 10, 4, LN); ellipseF(cx, base - 12, 9, 3, '#d8b582');
+  ellipseF(cx, base - 12, 6, 2, '#c49a63'); ellipseF(cx, base - 12, 3, 1, '#d8b582'); px(cx, base - 12, '#8a5f38');
+  rect(cx - 13, base - 3, 5, 3, LN); rect(cx + 8, base - 3, 5, 3, LN); rect(cx - 12, base - 3, 3, 2, '#6a4428'); rect(cx + 9, base - 3, 3, 2, '#6a4428');
+  if (vhash(tx, ty, 91) < 0.5) { rect(cx + 4, base - 8, 4, 3, '#6f8a52'); }
   ctx.restore();
 }
 export function drawRedspire(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 30; shadow(cx, base, 12);
-  rect(cx - 6, base - 28, 12, 28, '#b05e3e'); rect(cx - 8, base - 16, 16, 16, '#c06a48');
-  rect(cx - 4, base - 28, 4, 28, '#cc7854'); px(cx - 2, base - 32, '#b05e3e'); rect(cx + 6, base - 12, 2, 2, '#8a3f2e');
-  rect(cx - 4, base - 28, 2, 2, '#e0a37e'); rect(cx + 2, base - 4, 4, 2, '#7a3324'); // luce in punta + ombra propria
-  rect(cx + 4, base - 20, 2, 10, shade8('#c06a48', 0.8)); // fianco destro della base in ombra: rilievo vero, non solo venature sparse
-  rect(cx - 6 + Math.floor(vhash(tx, ty, 92) * 10), base - 20 - Math.floor(vhash(tx, ty, 93) * 8), 2, 2, '#8a3f2e'); // venatura scura sparsa
+  /* CAMINO DI FATA delle Terre Rosse: colonna d'arenaria a strati con il cappello di roccia */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 30; shadow(cx, base, 11);
+  for (let y = 0; y < 26; y++) {
+    const w = 7 + Math.round(Math.sin(y / 4.2) * 1.5) + (y < 5 ? 4 - y : 0), yy = base - y - 1;
+    const c = ['#c06a48', '#b05e3e', '#cc7854'][Math.floor(y / 5) % 3];
+    rect(cx - w - 1, yy, w * 2 + 2, 1, LN); rect(cx - w, yy, w * 2, 1, c); rect(cx - w, yy, 2, 1, '#e0a37e'); rect(cx + w - 2, yy, 2, 1, '#8a3f2e');
+  }
+  ellipseF(cx, base - 28, 9, 4, LN); ellipseF(cx, base - 28, 8, 3, '#8a6a58'); rect(cx - 5, base - 31, 6, 1, '#b09080');
+  if (vhash(tx, ty, 92) < 0.5) rect(cx - 2, base - 14, 3, 3, '#6e2f1e');
   ctx.restore();
 }
 export function drawOrecrystal(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 26; shadow(cx, base, 10);
-  let i = 0;
-  for (const [ox, h, c] of [[-8, 12, '#8d7ba0'], [0, 18, '#9ad0c8'], [8, 10, '#8d7ba0']]) {
-    rect(cx + ox - 2, base - h, 6, h, c); px(cx + ox, base - h - 2, c); rect(cx + ox - 2, base - h + 2, 2, 2, '#e8f6fb');
-    rect(cx + ox, base - 4, 2, 2, shade8(c, 0.55)); // ombra propria alla base del cristallo
-    rect(cx + ox + 2, base - Math.floor(h * 0.6), 2, Math.floor(h * 0.4), shade8(c, 0.7)); // faccetta in ombra sul lato destro: rilievo vero
-    if (vhash(tx, ty, 94 + i) < 0.5) rect(cx + ox, base - Math.floor(h / 2), 2, 2, shade8(c, 1.25)); // faccetta interna in luce, non su ogni cristallo
-    i++;
-  }
+  /* CRISTALLI di minerale su un sasso: prismi sfaccettati con la punta */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 27; shadow(cx, base, 10);
+  ellipseF(cx, base - 3, 12, 4, LN); ellipseF(cx, base - 4, 11, 3, '#6f685c');
+  const prism = (x, h, w, c, lean) => {
+    for (let k = 0; k < h; k++) { const u = k / h, ww = u > 0.75 ? Math.max(1, Math.round(w * (1 - u) * 4)) : w, xx = x + Math.round(lean * k); rect(xx - (ww >> 1) - 1, base - 4 - k, ww + 2, 1, LN); rect(xx - (ww >> 1), base - 4 - k, ww, 1, c); rect(xx - (ww >> 1), base - 4 - k, Math.max(1, ww >> 2), 1, '#eaf6fa'); rect(xx + (ww >> 1) - 1, base - 4 - k, 1, 1, shade8(c, 0.65)); }
+  };
+  prism(cx - 7, 12, 6, '#8d7ba0', -0.2); prism(cx + 6, 10, 6, '#8d7ba0', 0.25); prism(cx, 19, 8, '#9ad0c8', 0.05);
+  if (vhash(tx, ty, 94) < 0.5) { rect(cx + 1, base - 16, 1, 3, '#ffffff'); rect(cx, base - 15, 3, 1, '#ffffff'); }
   ctx.restore();
 }
 /* CANNE — quelle di scenario sono steli verdi nudi; il giunco maturo ha il pennacchio bruno
    gonfio in cima (ed è l'unico che si raccoglie). */
 export function drawReed(sx, sy, time, tx, ty, ripe) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 28;
-  const sw2 = Math.round(Math.sin(time / 800 + tx * 2.1 + ty) * 2);
-  for (const ox of [-8, 0, 8]) {
-    rect(cx + ox, base - 18, 2, 18, '#4a6340');
-    px(cx + ox + sw2, base - 20, '#4a6340');
-    rect(cx + ox, base - 14, 2, 4, shade8('#4a6340', 1.3)); // filo di luce sullo stelo
-    rect(cx + ox + 1, base - 10, 1, 6, shade8('#4a6340', 0.75)); // ombra sul fianco destro: vero rilievo, non un colore piatto
-  }
-  if (ripe) {                                        // pennacchio: solo sul giunco maturo
-    rect(cx - 2 + sw2, base - 30, 6, 10, '#8a5f38'); px(cx + sw2, base - 32, '#a97a4c');
-    rect(cx - 2 + sw2, base - 28, 2, 2, '#a97a4c'); rect(cx + 2 + sw2, base - 24, 2, 2, '#6e4a2c');
-    rect(cx + 2 + sw2, base - 28, 2, 4, shade8('#8a5f38', 0.75)); // ombra sul pennacchio: quarto tono
+  /* CANNE: steli di altezze diverse che ondeggiano; il giunco MATURO ha la tifa bruna in cima */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 29;
+  const sw2 = Math.sin(time / 800 + tx * 2.1 + ty);
+  [[-9, 17], [-4, 22], [2, 19], [7, 24], [11, 15]].forEach(([ox, h], i) => {
+    for (let k = 0; k < h; k++) { const x = cx + ox + Math.round(sw2 * 2 * (k / h) * (i % 2 ? 1 : 0.7)); rect(x, base - k, 2, 1, k > h - 5 ? '#6f8a4a' : '#4a6340'); px(x, base - k, k % 5 === 0 ? '#86a86c' : '#5a7a4a'); }
+    if (i === 1 || i === 3) { const x = cx + ox + Math.round(sw2 * 2); rect(x - 3, base - h + 6, 3, 1, '#4a6340'); }
+  });
+  if (ripe) {
+    const x = cx + 2 + Math.round(sw2 * 2);
+    rect(x - 2, base - 31, 6, 11, '#2a1e12'); rect(x - 1, base - 30, 4, 9, '#8a5f38'); rect(x - 1, base - 30, 1, 9, '#a97a4c'); rect(x, base - 34, 2, 4, '#6f8a4a');
   }
   ctx.restore();
 }
 export function drawIcecrystal(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 26; shadow(cx, base, 10);
-  let i = 0;
-  for (const [ox, h] of [[-8, 12], [0, 20], [8, 14]]) {
-    rect(cx + ox - 2, base - h, 6, h, '#bfe9f4'); rect(cx + ox, base - h - 2, 2, 2, '#e8f6fb'); rect(cx + ox - 2, base - h + 4, 2, 2, '#8fd0e6');
-    rect(cx + ox, base - 4, 2, 2, '#5fa8bc'); // ombra propria alla base
-    rect(cx + ox + 2, base - Math.floor(h * 0.6), 2, Math.floor(h * 0.4), shade8('#bfe9f4', 0.75)); // faccetta in ombra sul fianco destro: rilievo vero
-    if (vhash(tx, ty, 98 + i) < 0.5) rect(cx + ox, base - Math.floor(h / 2), 2, 2, '#e8f6fb'); // riflesso interno, non su ogni cristallo
-    i++;
-  }
+  /* SCHEGGE DI GHIACCIO: prismi trasparenti con la faccia in luce e la brina alla base */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 27; shadow(cx, base, 10);
+  const prism = (x, h, w, lean) => {
+    for (let k = 0; k < h; k++) { const u = k / h, ww = u > 0.7 ? Math.max(1, Math.round(w * (1 - u) * 3.3)) : w, xx = x + Math.round(lean * k); rect(xx - (ww >> 1) - 1, base - 2 - k, ww + 2, 1, '#3f7890'); rect(xx - (ww >> 1), base - 2 - k, ww >> 1, 1, '#e8f6fb'); rect(xx, base - 2 - k, ww - (ww >> 1), 1, '#9fd4e6'); }
+  };
+  prism(cx - 8, 12, 6, -0.25); prism(cx + 8, 14, 6, 0.3); prism(cx, 22, 8, 0);
+  ellipseF(cx, base - 1, 12, 3, '#eef7fa'); rect(cx - 8, base - 2, 16, 1, '#ffffff');
+  if (vhash(tx, ty, 98) < 0.5) { rect(cx, base - 18, 1, 5, '#ffffff'); rect(cx - 2, base - 16, 5, 1, '#ffffff'); }
   ctx.restore();
 }
 export function drawHay(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, base = sy + 26; shadow(cx, base, 12);
-  rect(cx - 12, base - 16, 24, 16, '#d4b13c'); rect(cx - 12, base - 16, 24, 4, '#e0c25c');
-  rect(cx - 12, base - 10, 24, 2, '#b99b2e'); rect(cx - 8, base - 6, 2, 2, '#b99b2e'); rect(cx + 6, base - 12, 2, 2, '#e0c25c');
-  rect(cx - 10, base - 14, 2, 2, '#f0d888'); rect(cx - 12, base - 2, 24, 2, '#8f7724'); // luce in cima + ombra propria alla base
-  rect(cx + 6, base - 12, 6, 6, shade8('#d4b13c', 0.8)); // fianco destro in ombra: quarto tono
-  rect(cx - 12, base - 16, 3, 16, shade8('#d4b13c', 1.1)); // fianco sinistro in luce: il covone ha volume, non due bande piatte
-  for (let j = 0; j < 4; j++) { // fili di paglia sparsi che spuntano dal bordo, non solo uno
-    const fx = cx - 10 + Math.floor(vhash(tx, ty, 102 + j) * 20), fy = base - 8 - Math.floor(vhash(tx, ty, 103 + j) * 6);
-    px(fx, fy, j % 2 ? '#b99b2e' : '#f0d888');
-  }
+  /* ROTOBALLA di fieno: il cerchio della spirale sul fronte, i fili che spuntano */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, base = 27; shadow(cx, base, 12);
+  rect(cx - 13, base - 18, 22, 18, LN); rect(cx - 12, base - 17, 20, 16, '#c9a227'); rect(cx - 12, base - 17, 20, 3, '#e0c25c');
+  for (let i = 0; i < 20; i += 3) rect(cx - 12 + i, base - 14, 1, 12, '#b08a20');
+  disc(cx + 8, base - 9, 9, LN); disc(cx + 8, base - 9, 8, '#e0c25c');
+  for (let q = 0; q < 40; q++) { const a = q * 0.45, r = 7 - q * 0.17; if (r < 1) break; px(cx + 8 + Math.round(Math.cos(a) * r), base - 9 + Math.round(Math.sin(a) * r), '#b08a20'); }
+  for (let j = 0; j < 5; j++) { const fx = cx - 12 + Math.floor(vhash(tx, ty, 102 + j) * 28), fy = base - 18 - Math.floor(vhash(tx, ty, 103 + j) * 3); rect(fx, fy, 1, 3, '#f0d888'); }
   ctx.restore();
 }
 
