@@ -1207,10 +1207,16 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .btn2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);width:100%}
 .btn2 .btn{width:100%;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-/* CATALOGO: i dodici temi come fila di linguette che vanno a capo (niente scorrimento
-   orizzontale dentro al pannello: REGOLA #14). Il tema di casa della zona si riconosce. */
-.cat-temi{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin:0 0 var(--sp-2)}
-.cat-tema{font:inherit;font-size:var(--fs-note);font-weight:700;padding:5px 8px;border-radius:var(--r-1);cursor:pointer;
-  background:var(--c-paper);color:var(--c-wood-2);border:2px solid #cbb488}
-.cat-tema.casa{border-color:var(--c-amber)}
-.cat-tema.on{background:var(--c-amber);color:var(--c-dark);border-color:var(--c-amber-sh)}
+/* ARREDAMENTO PER ARGOMENTI: una griglia di riquadri, ognuno con la miniatura di un suo pezzo.
+   Le colonne si adattano alla larghezza (niente scorrimento orizzontale: REGOLA #14). */
+.arg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-2)}
+/* stessa altezza per tutti i riquadri: coi nomi su due righe la griglia usciva a scalini */
+.arg{display:grid;grid-template-columns:44px 1fr;grid-template-rows:auto auto;column-gap:var(--sp-2);align-items:center;text-align:left;min-height:64px;
+  font:inherit;cursor:pointer;padding:var(--sp-2);border-radius:var(--r-2);background:#fbf5e4;border:2px solid #d8c79c;color:var(--c-wood-2)}
+.arg .pv{grid-row:1/span 2}
+.arg:hover{border-color:var(--c-amber)}
+.arg.casa{border-color:var(--c-amber);background:#fdf0d8}
+.arg-nm{font-weight:800;font-size:var(--fs-sm);line-height:1.2}
+.arg-sub{font-size:var(--fs-note);color:#8a755a}
+.arg-su{display:flex;align-items:center;gap:var(--sp-2);margin:0 0 var(--sp-1)}
+.arg-su .btn{padding:6px 10px;font-size:12px}

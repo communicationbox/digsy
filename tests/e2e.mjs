@@ -198,7 +198,7 @@ const PROBE = `
           checkGaps('splash/principale', '#sp-menu .sp-btn');
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
-          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkSettings(finish); }); }); }); }); });
+          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkSettings(finish); }); }); }); }); }); });
         }, 120);
         return; }
       var v=views[vi++];
@@ -227,7 +227,7 @@ const PROBE = `
       }, 80);
     };
     stepView();
-  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkSettings(finish); }); }); }); }); }); }
+  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkSettings(finish); }); }); }); }); }); }); }
 
   /* USCIRE DAL MUSEO COL SOLO MOUSE: la galleria è enorme e la camera la segue, quindi la
      porta finiva sull'ultimo pixel dello schermo e oltre non c'era nulla da cliccare. */
@@ -946,6 +946,28 @@ const PROBE = `
         });
       });
     }).then(function(){ next(); }).catch(function(e){ A('arredo: prova completata', false, e.message); next(); });
+  }
+
+  /* ARREDAMENTO PER ARGOMENTI al Negozio: si entra negli argomenti, i riquadri sono alti uguali,
+     e scegliendone uno compaiono solo i suoi pezzi */
+  function checkFurnTopics(next){
+    var g = window.__digsy;
+    if (!g || !g.openStore) { A('argomenti: sonda presente', false, 'niente openStore'); return next(); }
+    g.openStore().then(function(){
+      var t = document.querySelector('[data-stab="furn"]'); if (t) t.click();
+      var carte = document.querySelectorAll('#m-body .arg');
+      A("argomenti: l'Arredamento si apre sugli argomenti", carte.length === 13, carte.length + ' riquadri');
+      var alt = [], fuori = 0, box = document.getElementById('m-body').getBoundingClientRect();
+      for (var i = 0; i < carte.length; i++) { var r = carte[i].getBoundingClientRect(); alt.push(Math.round(r.height)); if (r.right > box.right + 1 || r.left < box.left - 1) fuori++; }
+      A('argomenti: i riquadri sono alti uguali', alt.length > 0 && Math.max.apply(null, alt) - Math.min.apply(null, alt) <= 1, alt.join('/'));
+      A('argomenti: nessun riquadro sborda', fuori === 0, fuori + ' fuori');
+      var rust = document.querySelector('[data-ftopic="rustico"]'); if (rust) rust.click();
+      var righe = document.querySelectorAll('#m-body .row');
+      A('argomenti: dentro un argomento ci sono i suoi pezzi', righe.length > 0, righe.length + ' pezzi');
+      A("argomenti: e c'è il ritorno agli argomenti", !!document.querySelector('[data-fback]'));
+      if (g.closeModal) g.closeModal();
+      next();
+    }).catch(function(e){ A('argomenti: prova completata', false, e.message); next(); });
   }
 
   function checkSettings(next){

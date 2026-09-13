@@ -4062,8 +4062,15 @@ sprites.applyLook();
       FURN_SETS[z.id].every(f => !html.includes(i18n.furnLabel(f.id))));
     check('il tab Arredamento compare nel markup', /data-stab="furn"/.test(html));
     /* passa al tab Arredamento (stesso schema di openBag(tab): lo stub DOM non clicca) */
-    ui.renderStore('furn');
+    /* ARREDAMENTO PER ARGOMENTI: entrando si vedono gli argomenti, non i mobili */
+    ui.renderStore('furn', null);
     html = document.getElementById('m-body').innerHTML;
+    check('Arredamento: si entra nella griglia degli ARGOMENTI (stile della zona + 12 temi)',
+      (html.match(/data-ftopic=/g) || []).length === 13 && !FURN_SETS[z.id].some(f => html.includes('data-furn="' + f.id + '"')));
+    /* e scegliendo lo stile della zona compaiono i suoi pezzi */
+    ui.renderStore('furn', 'zona');
+    html = document.getElementById('m-body').innerHTML;
+    check('dentro un argomento c\'è il bottone per tornare agli argomenti', /data-fback=/.test(html));
     check('il tab Arredamento mostra il set della zona corrente (' + z.id + ')',
       FURN_SETS[z.id].every(f => html.includes(i18n.furnLabel(f.id))));
     const altriZone = dataM.ZONES.filter(zz => zz.id !== z.id);
@@ -4193,6 +4200,7 @@ sprites.applyLook();
   const house9 = await import('../src/house.js');
   const ui9 = await import('../src/ui.js');
   const { FURN_CATALOG: CAT } = fc;
+  const FURN_CATALOG_T = CAT;
   const tema = 'cucina', zonaAltrove = 'dune';                 // la cucina non è il tema delle dune
   const oggi = fs.catalogToday(tema, 5, zonaAltrove);
   const basi = CAT.filter(f => f.theme === tema && f.base).map(f => f.id);
@@ -4218,11 +4226,14 @@ sprites.applyLook();
   check('un "prezzo" sopra il listino non viene mai applicato', 1000 - S.coins === altro.cost);
   /* la scheda Catalogo del Negozio si disegna, coi temi e la vetrina */
   let crash = null;
-  try { ui9.renderStore('cat'); } catch (e) { crash = e.message; }
-  const html9 = document.getElementById('m-body').innerHTML;
-  check('Negozio: la scheda Catalogo si disegna', crash === null, crash || '');
-  check('Negozio: mostra i dodici temi', (html9.match(/data-ctema=/g) || []).length === 12);
-  check('Negozio: e i pezzi in vetrina da comprare', /data-cfurn=/.test(html9) || /già tuo|owned/.test(html9));
+  try { ui9.renderStore('furn', null); } catch (e) { crash = e.message; }
+  let html9 = document.getElementById('m-body').innerHTML;
+  check('Negozio: la griglia degli argomenti si disegna', crash === null, crash || '');
+  check('Negozio: gli argomenti sono i dodici temi più lo stile della zona', (html9.match(/data-ftopic=/g) || []).length === 13);
+  ui9.renderStore('furn', 'magico');
+  html9 = document.getElementById('m-body').innerHTML;
+  check('Negozio: dentro un tema ci sono i pezzi in vetrina da comprare', /data-cfurn=/.test(html9) || /già tuo|owned/.test(html9));
+  check('Negozio: e SOLO di quel tema', FURN_CATALOG_T.filter(f => f.theme !== 'magico').every(f => !html9.includes('data-cfurn="' + f.id + '"')));
   /* COMODITÀ: una stanza tutta dello stesso tema del catalogo è coerente */
   const due = CAT.filter(f => f.theme === 'rustico' && f.place === 'floor' && (f.w || 1) === 1 && (f.h || 1) === 1).slice(0, 2);
   S.furnOwned = due.map(f => f.id);

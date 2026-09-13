@@ -226,8 +226,8 @@ async function main() {
     /* 'negozio-catalogo' = la scheda Catalogo del Negozio, coi temi e la vetrina del giorno */
     else if (${JSON.stringify(vista)} === 'negozio-catalogo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       var S0 = G.state(); S0.level = 12; S0.coins = 900;
-      if(G.openStore) G.openStore().then(function(){ var t=document.querySelector('[data-stab="cat"]'); if(t) t.click();
-        var q = new URLSearchParams(location.search).get('tema'); if (q) { var b=document.querySelector('[data-ctema="'+q+'"]'); if(b) b.click(); } }); }
+      if(G.openStore) G.openStore().then(function(){ var t=document.querySelector('[data-stab="furn"]'); if(t) t.click();
+        var q = new URLSearchParams(location.search).get('tema'); if (q) { var b=document.querySelector('[data-ftopic="'+q+'"]'); if(b) b.click(); } }); }
     /* 'catalogo' = TUTTI i pezzi di un tema del catalogo in griglia, disegnati dalla loro
        ricetta (param tema=cucina). Si guardano insieme: 250 mobili non si giudicano uno alla volta */
     else if (${JSON.stringify(vista)} === 'catalogo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

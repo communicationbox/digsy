@@ -1362,7 +1362,7 @@ export function openBuilding(b) {
   const tw = townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS));
   mTitle.innerHTML = withIcons((buildingEmoji[b.type] || '🏠') + ' ' + bldName(b.type) + (tw ? ' — ' + tw.name : ''));
   if (b.type === 'lab') renderLab();
-  else if (b.type === 'store') renderStore();
+  else if (b.type === 'store') { furnTopic = null; renderStore(); }   // si rientra sempre dalla griglia degli argomenti
   else if (b.type === 'museum') renderMuseum();
   else if (b.type === 'barber') renderBarber();
   else if (b.type === 'tailor') renderTailor();
@@ -1509,78 +1509,94 @@ function renderLab() {
   }
 }
 let storeTab = 'goods';
+/* ARGOMENTO scelto dentro l'Arredamento: null = la griglia degli argomenti, 'zona' = lo stile
+   della zona di questo negozio, altrimenti un tema del catalogo */
+let furnTopic = null;
 /* `tab` esplicito = stesso schema di `openBag(tab)`: serve ai test (la scheda non si clicca
-   nello stub DOM) e a chi in futuro voglia aprire il Negozio già sull'Arredamento */
-export function renderStore(tab) {
+   nello stub DOM). `topic` apre direttamente un argomento dell'Arredamento. */
+export function renderStore(tab, topic) {
   if (tab) storeTab = tab;
-  const TABS = [['goods', tr('Negozio', 'Shop')], ['furn', tr('Set della zona', 'Zone set')], ['cat', tr('Catalogo', 'Catalogue')]];
+  if (topic !== undefined) furnTopic = topic;
+  const TABS = [['goods', tr('Negozio', 'Shop')], ['furn', tr('Arredamento', 'Furniture')]];
   if (!TABS.some(t => t[0] === storeTab)) storeTab = 'goods';
   let h = '<div class="pn-tabs">' + TABS.map(([id, lab]) =>
     `<button class="pn-tab${storeTab === id ? ' on' : ''}" data-stab="${id}">${lab}</button>`).join('') + '</div>';
-  h += storeTab === 'furn' ? renderFurnTab() : storeTab === 'cat' ? renderCatalogTab() : renderStoreGoods();
+  h += storeTab === 'furn' ? renderFurnTab() : renderStoreGoods();
   mBody.innerHTML = withIcons(h); hydratePv();
-  mBody.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { storeTab = b.dataset.stab; renderStore(); });
-  wireStoreGoods(); wireFurnTab(); wireCatalogTab();
+  mBody.querySelectorAll('[data-stab]').forEach(b => b.onclick = () => { storeTab = b.dataset.stab; furnTopic = null; renderStore(); });
+  wireStoreGoods(); wireFurnTab();
 }
-/* ARREDAMENTO: solo il set della ZONA in cui si trova questo negozio (M3) — un pezzo
-   comprato una volta per tutte, si piazza in casa (vassoio, act() sotto i piedi). */
+/* ARREDAMENTO DIVISO PER ARGOMENTI. Si entra e si vedono GLI ARGOMENTI, non i mobili: lo stile
+   della zona e i dodici temi del catalogo, ognuno col suo riquadro. Si sceglie un argomento e
+   solo allora compaiono i pezzi da comprare. Prima c'erano due schede diverse ("Set della
+   zona" e "Catalogo") e le linguette dei temi sopra un elenco già aperto: "gli arredamenti
+   devono essere suddivisi in argomenti quando li acquisti". */
 function renderFurnTab() {
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
+  if (furnTopic && furnTopic !== 'zona' && !FURN_THEMES.some(t => t.id === furnTopic)) furnTopic = null;
+  if (!furnTopic) return renderFurnTopics(z);
+  const titolo = furnTopic === 'zona' ? tr('Stile della zona', 'Zone style') + ': ' + zoneName(z.id) : furnThemeLabel(furnTopic);
+  let h = `<div class="arg-su"><button class="btn ghost" data-fback="1">← ${tr('Argomenti', 'Topics')}</button><b>${titolo}</b></div>`;
+  h += furnTopic === 'zona' ? renderZoneSet(z) : renderThemeItems(z, furnTopic);
+  return h;
+}
+/* la griglia degli argomenti: un riquadro per argomento, con la miniatura di un suo pezzo,
+   quanti ne sono in vetrina oggi, e lo sconto dove c'è */
+function renderFurnTopics(z) {
+  const casa = ZONE_THEME[z.id];
+  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli un argomento. Ogni giorno in vetrina ci sono i pezzi base e altri a rotazione; il tema di questa zona è tutto disponibile e costa un quarto in meno.', 'Pick a topic. Every day each one shows its basic pieces plus some rotating ones; this zone\'s theme is all available and a quarter cheaper.')}</div>`;
+  const zonaSet = FURN_SETS[z.id] || [];
+  const posseduti = ids => ids.filter(id => (S.furnOwned || []).includes(id)).length;
+  const card = (topic, icona, nome, ids, esempio, extra) =>
+    `<button class="arg${extra ? ' casa' : ''}" data-ftopic="${topic}"><canvas class="pv" width="44" height="40" data-fpv="${esempio}"></canvas>` +
+    `<span class="arg-nm">${nome}</span><span class="arg-sub">${ids.length} ${tr('in vetrina', 'on display')}${posseduti(ids) ? ' · ' + posseduti(ids) + ' ✓' : ''}${extra ? ' · ' + extra : ''}</span></button>`;
+  h += '<div class="arg-grid">';
+  if (zonaSet.length) h += card('zona', '🌍', tr('Stile della zona', 'Zone style'), zonaSet.map(f => f.id), (zonaSet.find(f => f.slot === 'letto') || zonaSet[0]).id, '');
+  for (const t of FURN_THEMES) {
+    const ids = catalogToday(t.id, S.day || 1, z.id);
+    const esempio = (FURN_CATALOG.find(f => f.theme === t.id && f.base && f.place === 'floor') || FURN_CATALOG.find(f => f.theme === t.id)).id;
+    h += card(t.id, t.icon, furnThemeLabel(t.id), ids, esempio, t.id === casa ? '−25%' : '');
+  }
+  h += '</div>';
+  return h;
+}
+function furnRow(id, prezzo, attr) {
+  const it = FURN_BY_ID[id];
+  const owned = (S.furnOwned || []).includes(id);
+  const needLvl = furnLevelLock(id);
+  const scontato = prezzo < it.cost;
+  const btn = owned ? `<b class="sub">${tr('già tuo', 'owned')}</b>`
+    : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>`
+      : `<button class="btn amber" ${attr}="${id}" data-cprezzo="${prezzo}">🪙 ${prezzo}</button>`;
+  const sub = furnSizeLabel(id) + (scontato ? ' · <s>' + it.cost + '</s>' : '');
+  return `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}${owned ? ' <span class="lockp">✓</span>' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
+}
+/* lo stile della ZONA: il set di arredo del bioma, col fondo della stanza prima dei mobili
+   (carta da parati e pavimento cambiano una stanza più di ogni mobile e costano meno) */
+function renderZoneSet(z) {
   const items = FURN_SETS[z.id] || [];
-  let h = `<div class="muted" style="margin-bottom:10px">${tr('Il set di arredo di questa zona. Comprato è tuo per sempre: lo piazzi in casa dal vassoio.', "This zone's furniture set. Once bought it's yours forever: place it at home from your tray.")}</div>`;
-  /* IL FONDO PRIMA DEI MOBILI, e detto per quello che è: carta da parati e pavimento cambiano
-     una stanza più di qualsiasi mobile e costano meno di tutti — messi in fondo all'elenco
-     sembravano un accessorio, e la prima stanza restava una scacchiera con roba sopra. */
-  const riga = it => {
-    const owned = (S.furnOwned || []).includes(it.id);
-    const needLvl = furnLevelLock(it.id);
-    const badge = owned ? ' <span class="lockp">✓</span>' : needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>` : '';
-    const btn = owned ? `<b class="sub">${tr('già tuo', 'owned')}</b>` : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>` : `<button class="btn amber" data-furn="${it.id}">🪙 ${it.cost}</button>`;
-    return `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${it.id}"></canvas><div><div class="nm">${furnLabel(it.id)}${badge}</div><div class="sub">${furnSizeLabel(it.id)}</div></div><div class="rt">${btn}</div></div>`;
-  };
+  let h = `<div class="muted" style="margin:6px 0 10px">${tr('Il set di arredo di questa zona. Comprato è tuo per sempre: lo piazzi in casa dal vassoio.', "This zone's furniture set. Once bought it's yours forever: place it at home from your tray.")}</div>`;
   const fondi = items.filter(it => furnPlace(it.id) === 'paper' || furnPlace(it.id) === 'ground');
   const mobili = items.filter(it => !fondi.includes(it));
-  if (fondi.length) {
-    h += `<div class="bighead">${tr('FONDO DELLA STANZA', 'ROOM BACKDROP')}</div>`;
-    h += fondi.map(riga).join('');
-  }
-  h += `<div class="bighead">${tr('MOBILI E DECORI', 'FURNITURE AND DECOR')}</div>`;
-  h += mobili.map(riga).join('');
+  if (fondi.length) h += `<div class="bighead">${tr('FONDO DELLA STANZA', 'ROOM BACKDROP')}</div>` + fondi.map(it => furnRow(it.id, it.cost, 'data-furn')).join('');
+  h += `<div class="bighead">${tr('MOBILI E DECORI', 'FURNITURE AND DECOR')}</div>` + mobili.map(it => furnRow(it.id, it.cost, 'data-furn')).join('');
   return h;
+}
+/* un tema del catalogo: quello che OGGI è in vetrina (furnShop.js) */
+function renderThemeItems(z, theme) {
+  const ids = catalogToday(theme, S.day || 1, z.id);
+  const tot = FURN_CATALOG.filter(f => f.theme === theme).length;
+  const casa = ZONE_THEME[z.id] === theme;
+  let h = `<div class="muted" style="margin:6px 0 10px">${casa
+    ? tr('È il tema di questa zona: qui c\'è tutto, e costa un quarto in meno.', 'This is this zone\'s theme: everything is here, a quarter cheaper.')
+    : tr('In vetrina oggi', 'On display today') + ': ' + ids.length + '/' + tot + ' — ' + tr('domani ne arrivano altri.', 'more arrive tomorrow.')}</div>`;
+  return h + ids.map(id => furnRow(id, catalogPrice(id, z.id), 'data-cfurn')).join('');
 }
 function wireFurnTab() {
-  mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderStore(); });
-}
-/* CATALOGO PER TEMI: dodici argomenti, e per ognuno quello che OGGI è in vetrina (pezzi base
-   sempre, sei a rotazione; il tema della zona tutto e scontato — furnShop.js). Un tema alla
-   volta: 250 mobili in un elenco solo sarebbero da scorrere, non da scegliere. */
-let catTheme = null;
-function renderCatalogTab() {
-  const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
-  if (!catTheme || !FURN_THEMES.some(t => t.id === catTheme)) catTheme = ZONE_THEME[z.id] || FURN_THEMES[0].id;
-  const casa = ZONE_THEME[z.id];
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Ogni giorno in vetrina i pezzi base di ogni tema e altri sei a rotazione: domani ne arrivano di nuovi. Il tema di questa zona è tutto disponibile, e costa un quarto in meno.', 'Every day each theme shows its basic pieces plus six rotating ones: new ones arrive tomorrow. This zone\'s theme is all available, and a quarter cheaper.')}</div>`;
-  h += '<div class="cat-temi">' + FURN_THEMES.map(t =>
-    `<button class="cat-tema${t.id === catTheme ? ' on' : ''}${t.id === casa ? ' casa' : ''}" data-ctema="${t.id}">${t.icon} ${furnThemeLabel(t.id)}${t.id === casa ? ' · −25%' : ''}</button>`).join('') + '</div>';
-  const ids = catalogToday(catTheme, S.day || 1, z.id);
-  const tot = FURN_CATALOG.filter(f => f.theme === catTheme).length;
-  h += `<div class="bighead">${furnThemeLabel(catTheme)} · ${tr('in vetrina', 'on display')} ${ids.length}/${tot}</div>`;
-  h += ids.map(id => {
-    const it = FURN_BY_ID[id];
-    const owned = (S.furnOwned || []).includes(id);
-    const needLvl = furnLevelLock(id);
-    const prezzo = catalogPrice(id, z.id), scontato = prezzo < it.cost;
-    const btn = owned ? `<b class="sub">${tr('già tuo', 'owned')}</b>`
-      : needLvl ? `<button class="btn ghost" disabled>🔒 Lv${needLvl}</button>`
-        : `<button class="btn amber" data-cfurn="${id}" data-cprezzo="${prezzo}">🪙 ${prezzo}</button>`;
-    const sub = furnSizeLabel(id) + (scontato ? ' · <s>' + it.cost + '</s>' : '');
-    return `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}${owned ? ' <span class="lockp">✓</span>' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
-  }).join('');
-  return h;
-}
-function wireCatalogTab() {
-  mBody.querySelectorAll('[data-ctema]').forEach(b => b.onclick = () => { catTheme = b.dataset.ctema; renderStore('cat'); });
-  mBody.querySelectorAll('[data-cfurn]').forEach(b => b.onclick = () => { buyFurniture(b.dataset.cfurn, +b.dataset.cprezzo); renderStore('cat'); });
+  mBody.querySelectorAll('[data-ftopic]').forEach(b => b.onclick = () => { furnTopic = b.dataset.ftopic; renderStore('furn'); });
+  mBody.querySelectorAll('[data-fback]').forEach(b => b.onclick = () => { furnTopic = null; renderStore('furn'); });
+  mBody.querySelectorAll('[data-furn]').forEach(btn => btn.onclick = () => { buyFurniture(btn.dataset.furn); renderStore('furn'); });
+  mBody.querySelectorAll('[data-cfurn]').forEach(b => b.onclick = () => { buyFurniture(b.dataset.cfurn, +b.dataset.cprezzo); renderStore('furn'); });
 }
 function renderStoreGoods() {
   /* PASSO "shop" DEL TUTORIAL: comprare la pala è l'UNICA cosa che conta (senza, l'unico
