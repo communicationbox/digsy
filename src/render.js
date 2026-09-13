@@ -1562,12 +1562,16 @@ export function render(time) {
      il compagno È la cavalcatura sotto l'eroe: disegnarlo anche qui lo sdoppiava) */
   const compObj = companionDrawObj();
   if (compObj && !isMounted()) {
-    const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y - cam.y), ctype = companionType(companionSpec());
+    /* `cys` = i PIEDI del compagno sullo schermo, con la stessa convenzione di Digsy (ancora +
+       FOOT_DY). Veniva disegnato con la base sull'ancora, cioè 26px sopra i suoi piedi veri —
+       un resto del mondo a 16px: stando dietro a Digsy davanti a una porta sembrava dentro la
+       casa, sulla facciata o sul tetto (segnalato con foto: "il buddy si compenetra"). */
+    const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y + FOOT_DY - cam.y), ctype = companionType(companionSpec());
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
-    /* chiave y = PIEDI reali del compagno (disegnato a cys-13 → piedi ≈ cys+1, come le creature
-       del parco): con +15 si ordinava 14px troppo avanti e finiva SOPRA le case che lo coprono */
-    ents.push({ y: COMP.y - cam.y + 1, f: () => {
+    /* chiave di profondità: la STESSA di Digsy (ancora + una casella), così i due si ordinano
+       fra loro e con le case con la stessa regola */
+    ents.push({ y: COMP.y - cam.y + TS, f: () => {
       const j = COMP.job, working = j && j.phase === 'work';
       const pose = working && (j.type === 'acqua' || j.type === 'terra'); // acqua=dabble, terra=scavo a testa giù → creatura ridisegnata dal lavoro
       if (!pose) {

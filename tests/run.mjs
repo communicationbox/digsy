@@ -6141,16 +6141,68 @@ sprites.applyLook();
   for (let i = 0; i < 200; i++) comp.updateCompanion(1 / 60);
   const cw = gameplay.waterTile(Math.floor(comp.COMP.x / TS), Math.floor((comp.COMP.y + 13) / TS));
   check('il compagno segue in acqua (→ nuota)', cw === true);
-  /* ANTI-TREMOLIO: niente più deadzone. Col bersaglio a 1.5px (dentro la vecchia soglia d>2 che
-     lo lasciava fermo → stop-and-go → tremava) il compagno DEVE muoversi verso di esso, senza
-     scavalcarlo (min(d, velocità)). */
-  comp.COMP.init = true; comp.COMP.job = null;
-  Pl.x = 500; Pl.y = 500; Pl.dir = 'right';              // bersaglio = (P.x-16, P.y+8) = (484, 508)
-  const targetX = 484;
-  comp.COMP.x = targetX - 1.5; comp.COMP.y = 508;         // 1,5px dal bersaglio
+  /* ANTI-TREMOLIO: niente deadzone. Col bersaglio a 1.5px il compagno DEVE muoversi verso di
+     esso, senza scavalcarlo (min(d, velocità)). Il bersaglio ora è sulla SCIA dei passi: la si
+     costruisce camminando davvero, su una fila di caselle libere. */
+  const wld = await import('../src/world.js');
+  let lx = null, ly = null;
+  for (let yy = 0; yy < 200 && lx === null; yy++) for (let xx = 0; xx < 200; xx++) {
+    let ok = true;
+    for (let k = -2; k <= 6 && ok; k++) if (wld.isSolidTile(xx + k, yy) || wld.townInfo(xx + k, yy)) ok = false;
+    if (ok) { lx = xx; ly = yy; break; }
+  }
+  comp.resetCompanionTrail(); comp.COMP.job = null;
+  Pl.dir = 'right'; Pl.x = lx * TS + 16; Pl.y = ly * TS + 16 - 26;
+  comp.updateCompanion(1 / 60);
+  for (let i = 0; i < 60; i++) { Pl.x += 2; comp.updateCompanion(1 / 60); }
+  const targetX = Pl.x - comp.FOLLOW_PX;
+  comp.COMP.x = targetX - 1.5; comp.COMP.y = Pl.y;         // 1,5px dal bersaglio sulla scia
   const x0 = comp.COMP.x;
   comp.updateCompanion(1 / 60);
   check('compagno: nessuna deadzone (segue anche da vicino, senza scavalcare)', comp.COMP.x > x0 && comp.COMP.x <= targetX + 1e-6);
+  /* E SI DISEGNA DOVE STA: l'ombra del compagno cade sui suoi PIEDI (ancora + FOOT_DY), come
+     quella di Digsy. Veniva disegnato con la base sull'ancora, 26px più su: dietro a Digsy
+     davanti a una porta sembrava dentro la casa, sul tetto. Si registra l'ombra disegnata. */
+  {
+    const { render: rnd } = await import('../src/render.js');
+    const { ctx: cctx } = await import('../src/screen.js');
+    const { cam: ccam } = await import('../src/state.js');
+    const { FOOT_DY: FD } = await import('../src/body.js');
+    if (!S.companion) comp.setCompanion({ skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune', key: 'sp' + SPECIES[0].id, name: 'Prova' });
+    comp.COMP.job = null; comp.COMP.play = null; comp.COMP.init = true;
+    comp.COMP.x = Pl.x + 60; comp.COMP.y = Pl.y;
+    const ombre = [];
+    const oldFR = cctx.fillRect, oldS = cctx.save, oldR = cctx.restore, oldT = cctx.translate, oldST = cctx.setTransform;
+    /* il compagno si disegna dentro un translate: si tiene il conto dell'origine per avere le
+       coordinate VERE sullo schermo (le scale non servono: l'ombra non viene scalata) */
+    let org = { x: 0, y: 0 }; const pila = [];
+    cctx.save = () => pila.push({ ...org });
+    cctx.restore = () => { org = pila.pop() || { x: 0, y: 0 }; };
+    cctx.translate = (x, y) => { org.x += x; org.y += y; };
+    cctx.setTransform = () => { org = { x: 0, y: 0 }; };
+    cctx.fillRect = (x, y, w, h) => { if (String(cctx.fillStyle).startsWith('rgba(15,25,15')) ombre.push([org.x + x, org.y + y, w, h]); };
+    try { rnd(3000); } finally { cctx.fillRect = oldFR; cctx.save = oldS; cctx.restore = oldR; cctx.translate = oldT; cctx.setTransform = oldST; }
+    const piediSchermo = comp.COMP.y + FD - ccam.y;
+    const sotto = ombre.some(r => Math.abs((r[1] + r[3] / 2) - piediSchermo) <= 3 && Math.abs(r[0] - (comp.COMP.x - ccam.x)) <= 20);
+    check('il compagno ha l\'ombra sotto i PIEDI (non 26px più su, dentro le case)', sotto, 'piedi a ' + Math.round(piediSchermo) + ', ombre: ' + ombre.slice(0, 3).map(r => Math.round(r[1])).join(','));
+  }
+  /* NON SI COMPENETRA: segue la scia dei passi, quindi uscendo da una casa verso il basso non
+     finisce DENTRO la casa (il vecchio bersaglio "dietro al verso" ci cadeva in mezzo —
+     segnalato con foto). Si esce dalla porta di casa camminando in giù e si pretende che il
+     compagno non stia mai su una casella dell'edificio. */
+  if (S.home) {
+    const hf = wld.houseFootprint();
+    comp.resetCompanionTrail(); comp.COMP.job = null;
+    Pl.dir = 'down'; Pl.x = hf.doorx * TS + 16; Pl.y = (hf.doory + 1) * TS + 4 - 26;   // appena usciti
+    let dentro = 0;
+    for (let i = 0; i < 90; i++) {
+      if (i > 0 && i < 50) Pl.y += 1;                                           // si allontana verso il basso
+      comp.updateCompanion(1 / 60);
+      const ctx2 = Math.floor(comp.COMP.x / TS), cty2 = Math.floor((comp.COMP.y + 26) / TS);
+      if (ctx2 >= hf.x0 && ctx2 <= hf.x1 && cty2 >= hf.y0 && cty2 <= hf.y1) dentro++;
+    }
+    check('uscendo di casa il compagno non finisce mai dentro l\'edificio', dentro === 0, dentro + ' frame dentro');
+  }
   /* ISTERESI: in DIAGONALE (dx≈dy) il verso non deve flippare profilo↔fronte a ogni frame */
   comp.COMP.init = true; comp.COMP.job = null;
   Pl.x = 200; Pl.y = 200; Pl.dir = 'right';              // bersaglio = (184, 208)

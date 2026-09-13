@@ -11,6 +11,9 @@ import { S, P } from './state.js';
 import { save } from './state.js';
 import { spById } from './data.js';
 import { parkPopulation } from './park.js';
+import { TS } from './data.js';
+import { FOOT_DY } from './body.js';
+import { isSolidTile, baseTerrain, townInfo, houseDoorAt, DEEP, WATER } from './world.js';
 
 /* job/cool/fx pilotati dal raccoglitore leggendario (gameplay.companionWorkTick, Fase 1):
    job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale.
@@ -90,17 +93,43 @@ export function updateCompanion(dt, mounted) {
   if (mounted) { COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; return; }
   if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
   if (COMP.play) return;              // durante il riporto guida il movimento gameplay.companionPlayTick
-  if (!COMP.init) { COMP.x = P.x - 16; COMP.y = P.y + 6; COMP.init = true; }
-  const off = P.dir === 'left' ? 16 : P.dir === 'right' ? -16 : 0;
-  const offy = P.dir === 'up' ? 16 : P.dir === 'down' ? -14 : 8;
-  const tx = P.x + off, ty = P.y + offy;
+  /* SEGUE LA SCIA DEI PASSI, non un punto fisso accanto a Digsy. Il vecchio bersaglio stava
+     16px dietro al verso in cui si guardava: uscendo da una casa verso il basso "dietro"
+     voleva dire DENTRO la casa, e il compagno ci finiva in mezzo, sul tetto (segnalato con
+     foto: "il buddy si compenetra"). La scia passa solo dove Digsy ha camminato davvero, quindi
+     il compagno non può entrare in un muro, in una staccionata o in una porta. */
+  const d0 = trail.length ? Math.hypot(P.x - trail[trail.length - 1].x, P.y - trail[trail.length - 1].y) : 0;
+  if (!COMP.init || d0 > TS * 2) {
+    /* SALTO (appena scelto, uscito da un edificio, teletrasporto): la scia vecchia non vale più,
+       e il compagno ricompare su una casella LIBERA accanto, mai dentro un edificio */
+    trail.length = 0;
+    trail.push({ x: P.x, y: P.y });
+    if (!COMP.init || Math.hypot(COMP.x - P.x, COMP.y - P.y) > TS * 2) {
+      const f = freeSpotNear(P.x, P.y);
+      COMP.x = f.x; COMP.y = f.y;
+    }
+    COMP.init = true;
+  } else if (d0 > 2) {
+    trail.push({ x: P.x, y: P.y });
+    if (trail.length > TRAIL_MAX) trail.shift();
+  }
+  const t = trailPointBehind(FOLLOW_PX);
+  /* scia troppo corta (Digsy fermo o appena arrivato): si resta dove si è, invece di
+     avvicinarsi fino a sovrapporsi a lui */
+  const tx = t ? t.x : COMP.x, ty = t ? t.y : COMP.y;
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
   /* segue SEMPRE, con passo min(d, velocità): tocca il bersaglio senza scavalcarlo. La vecchia
      deadzone `d > 2` faceva stop-and-go attorno al bersaglio mentre il player camminava → la
-     posizione oscillava e lo snap la faceva TREMARE. Ora è morbido (regola: niente tremolii). */
+     posizione oscillava e lo snap la faceva TREMARE. Ora è morbido (regola: niente tremolii).
+     Più veloce quando resta indietro, così non perde la scia. */
   if (d > 0.01) {
-    const sp = Math.min(d, 90 * dt);
-    COMP.x += dx / d * sp; COMP.y += dy / d * sp;
+    const sp = Math.min(d, (d > TS * 3 ? 180 : 90) * dt);
+    const nx = COMP.x + dx / d * sp, ny = COMP.y + dy / d * sp;
+    /* un passo che finirebbe in un solido non si fa (può succedere solo tagliando un angolo
+       fra due punti della scia): si prova un asse per volta, altrimenti si resta */
+    if (!compBlocked(nx, ny)) { COMP.x = nx; COMP.y = ny; }
+    else if (!compBlocked(nx, COMP.y)) COMP.x = nx;
+    else if (!compBlocked(COMP.x, ny)) COMP.y = ny;
     if (d > 0.5) {                         // anima/gira solo quando si muove davvero (niente flicker da fermo)
       COMP.anim += dt;
       /* ISTERESI sul verso: cambio SOLO se un asse domina di ×1.3. In diagonale dx≈dy: senza
@@ -111,6 +140,49 @@ export function updateCompanion(dt, mounted) {
       else if (ady > adx * 1.3) COMP.face = dy < 0 ? 'up' : 'down';
     }
   }
+}
+/* ---------- la scia ---------- */
+const trail = [];
+const TRAIL_MAX = 80;
+/* a che distanza (di cammino, non in linea d'aria) sta il compagno: poco più di una casella,
+   così non si sovrappone a Digsy ma resta vicino */
+export const FOLLOW_PX = 40;
+export function resetCompanionTrail() { trail.length = 0; COMP.init = false; }
+function trailPointBehind(dist) {
+  let acc = 0;
+  for (let i = trail.length - 1; i > 0; i--) {
+    const a = trail[i], b = trail[i - 1];
+    const seg = Math.hypot(a.x - b.x, a.y - b.y);
+    if (acc + seg >= dist) {
+      const k = (dist - acc) / seg;
+      return { x: a.x + (b.x - a.x) * k, y: a.y + (b.y - a.y) * k };
+    }
+    acc += seg;
+  }
+  return null;
+}
+/* dove il compagno NON può stare: solidi, porte (stare sulla soglia = dentro l'edificio
+   disegnato) — ma l'ACQUA sì, ci nuota quando Digsy va in barca */
+function compBlocked(x, y) {
+  const tx = Math.floor(x / TS), ty = Math.floor((y + FOOT_DY) / TS);
+  const t = baseTerrain(tx, ty);
+  if ((t === DEEP || t === WATER) && !townInfo(tx, ty)) return false;
+  if (houseDoorAt(tx, ty)) return true;
+  const ti = townInfo(tx, ty); if (ti && ti.door) return true;
+  /* nemmeno sullo SCALINO davanti alla porta: una creatura alta il doppio di una casella, ferma
+     lì, si disegna sopra la facciata e sembra dentro la casa (visto nella foto di prova) */
+  if (houseDoorAt(tx, ty - 1)) return true;
+  const tu = townInfo(tx, ty - 1); if (tu && tu.door) return true;
+  return isSolidTile(tx, ty);
+}
+/* una casella libera accanto a Digsy: prima dietro/ai lati, mai dentro un edificio */
+function freeSpotNear(x, y) {
+  const opz = [[0, 1], [-1, 0], [1, 0], [-1, 1], [1, 1], [0, -1], [-1, -1], [1, -1], [0, 2], [-2, 0], [2, 0]];
+  for (const [ox, oy] of opz) {
+    const cx = x + ox * TS, cy = y + oy * TS;
+    if (!compBlocked(cx, cy)) return { x: cx, y: cy };
+  }
+  return { x, y };
 }
 /* spec per drawCreature: { c:{skull,torso,leg,q}, anim, dir, face } */
 export function companionDrawObj() {

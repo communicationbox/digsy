@@ -381,7 +381,7 @@ if (typeof window !== 'undefined') {
       frame: (t) => { render(t || 1000); return true; },
       /* un passo del mondo su richiesta: in headless il rAF è fermo, quindi senza questo
          gli e2e non potrebbero verificare NIENTE di ciò che accade camminando */
-      stepWorld: (dt) => { steerFollow(); walk(dt || 1 / 60); return { moving: P.moving, anim: P.anim, x: P.x, y: P.y }; },
+      stepWorld: (dt) => { steerFollow(); walk(dt || 1 / 60); updateCompanion(dt || 1 / 60, isMounted()); return { moving: P.moving, anim: P.anim, x: P.x, y: P.y }; },
       /* un passo del CORTILE: le chimere partono tutte da una posizione derivata dall'uid e si
          sparpagliano solo camminando. Senza questo, in headless (rAF fermo) ogni foto del
          cortile le ritrae schierate sulla stessa griglia, che non è come si vede giocando. */
@@ -433,6 +433,8 @@ if (typeof window !== 'undefined') {
       /* il rettangolo del CORTILE: serve a mettersi in punti precisi (davanti al cancello)
          per fotografare o misurare, senza indovinare le coordinate */
       yard: () => import('./world.js').then(w => w.yardRect()),
+      /* il modulo del COMPAGNO: dove sta e come segue, per le foto e le prove che lo guardano */
+      companion: () => import('./companion.js'),
       /* il punto SULLO SCHERMO di una casella della stanza di casa: serve alle prove del
          trascinamento, che devono premere esattamente sopra un mobile */
       roomPoint: (gx, gy) => import('./interiors.js').then(m => {

@@ -154,6 +154,19 @@ async function main() {
         P2.x = y.cx * 32 + 16; P2.y = (y.y1 + 1) * 32 + 16 - 26; P2.dir = 'up';
         return G.updatePrompt && G.updatePrompt();
       }).then(function(){ if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1000); }); }
+    /* 'buddy-casa' = appena usciti di casa verso il basso, col compagno: non deve stare dentro
+       la casa (era sul tetto, segnalato con foto) */
+    else if (${JSON.stringify(vista)} === 'buddy-casa') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('godmode').then(function(){ return G.debug(false); }).then(function(){ return G.cmd('companion=terra raro'); })
+        .then(function(){ return G.cmd('gotopark'); })
+        .then(function(){ return G.yard(); }).then(function(y){
+          var P2 = G.player(); P2.dir = 'down';
+          var hy = (y.y0 + y.y1) / 2;                                   // la porta di casa sta al centro del cortile
+          P2.x = y.cx * 32 + 16; P2.y = (hy + 1) * 32 + 4 - 26;
+          for (var i = 0; i < 160; i++) { if (i > 0 && i < 90) P2.y += 1; if (G.stepWorld) G.stepWorld(1 / 60); }
+          if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1500);
+
+        }); }
     /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
        o il doppio (era il caso delle creature) */
     else if (${JSON.stringify(vista)} === 'meraviglia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
