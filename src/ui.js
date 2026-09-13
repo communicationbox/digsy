@@ -488,51 +488,96 @@ export function openRoomLock(roomId) {
 /* CASA — vassoio dell'arredo (M3): pezzi comprati ma non ancora piazzati. Si apre premendo
    il tasto azione su una cella di pavimento libera (act() → houseFloorHere), un pezzo alla
    volta, niente trascinamento. */
+/* VASSOIO A SCHEDE, CON RICERCA. Con 250 pezzi a catalogo un elenco solo non si usa: si
+   sceglie la SCHEDA (tutti · stile di zona · fondi della stanza · un tema) e si CERCA per nome,
+   dentro la scheda o in tutto il vassoio ("anche questi devono essere divisi in tab con la
+   possibilità di ricerca sia globale che per tab"). La scheda e la ricerca restano ricordate
+   finché non si chiude il gioco: riaprendo il vassoio si ritrova dove si era. */
+let trayTab = 'tutti', trayQuery = '', trayGlobal = false;
+/* nome "pulito" per cercare: minuscole, senza accenti (chi scrive "poltrona" trova "Poltroncina",
+   chi scrive "liberta" trova "libertà") */
+function normFind(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, ''); }
+export function trayTabOf(id) {
+  const it = FURN_BY_ID[id] || {};
+  if (it.place === 'paper' || it.place === 'ground') return 'fondi';
+  return it.theme || 'zona';
+}
+/* i pezzi che il vassoio mostra, con scheda e ricerca applicate (esportata per i test) */
+export function trayFilter(ids, tab, query, globale) {
+  const q = normFind(query).trim();
+  return ids.filter(id => {
+    if (q && !normFind(furnLabel(id)).includes(q)) return false;
+    if (q && globale) return true;                          // ricerca GLOBALE: ignora la scheda
+    return tab === 'tutti' || trayTabOf(id) === tab;
+  });
+}
 export function openFurnitureTray(room, gx, gy) {
-  const items = ownedUnplaced();
-  const papers = ownedBackdrops('paper'), grounds = ownedBackdrops('ground');
+  const pezzi = ownedUnplaced();
+  const fondi = [...ownedBackdrops('paper'), ...ownedBackdrops('ground')];
+  const tutti = [...pezzi, ...fondi];
+  /* le schede che esistono per QUESTO vassoio (niente schede vuote), con quanti pezzi */
+  const conta = t => tutti.filter(id => trayTabOf(id) === t).length;
+  const schede = [['tutti', tr('Tutti', 'All'), tutti.length]];
+  if (conta('zona')) schede.push(['zona', tr('Stile di zona', 'Zone style'), conta('zona')]);
+  if (conta('fondi')) schede.push(['fondi', tr('Fondo stanza', 'Room backdrop'), conta('fondi')]);
+  for (const t of FURN_THEMES) if (conta(t.id)) schede.push([t.id, furnThemeLabel(t.id), conta(t.id)]);
+  if (!schede.some(sc => sc[0] === trayTab)) trayTab = 'tutti';
   let h = `<div class="muted" style="margin-bottom:8px">${tr('Prendi un pezzo dal vassoio: lo vedi nella stanza e lo trascini dove vuoi. I quadri vanno sulla parete di fondo.', 'Take a piece from your tray: you see it in the room and drag it where you like. Wall pieces go on the back wall.')}</div>`;
-  if (!items.length) h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
-  else {
-    /* PER TEMA: col catalogo i pezzi posseduti possono essere centinaia, e un elenco unico non
-       si legge. Prima i set di zona, poi un titoletto per ogni tema del catalogo. */
-    const riga = id => `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi in mano', 'Pick it up')}</button></div></div>`;
-    const diZona = items.filter(id => !(FURN_BY_ID[id] || {}).theme);
-    if (diZona.length) h += (items.length > diZona.length ? `<div class="bighead">${tr('Set di zona', 'Zone sets')}</div>` : '') + diZona.map(riga).join('');
-    for (const t of FURN_THEMES) {
-      const qui = items.filter(id => (FURN_BY_ID[id] || {}).theme === t.id);
-      if (qui.length) h += `<div class="bighead">${t.icon} ${furnThemeLabel(t.id)}</div>` + qui.map(riga).join('');
-    }
+  if (!tutti.length) {
+    h += `<div class="center muted">${tr('Vassoio vuoto: comprane uno al Negozio, scheda Arredamento.', 'Tray empty: buy one at the Shop, Furniture tab.')}</div>`;
+    mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
+    mBody.innerHTML = withIcons(h); openModal();
+    return;
   }
-  /* IL FONDO DELLA STANZA sta qui e non nel mondo: carta da parati e pavimento non si posano
-     su una casella, si scelgono per la stanza in cui si è — e si tolgono, perché un cambio di
-     arredo dev'essere sempre annullabile. */
-  if (papers.length || grounds.length) {
-    h += `<div class="sp-sep"></div><div class="muted" style="margin:8px 0">${tr('Fondo della stanza', 'Room backdrop')}</div>`;
-    for (const [kind, list, cur] of [['paper', papers, roomPaper(room)], ['ground', grounds, roomGround(room)]]) {
-      for (const id of list) {
-        const on = cur === id;
-        h += `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${kind === 'paper' ? tr('carta da parati', 'wallpaper') : tr('pavimento', 'flooring')}</div></div><div class="rt"><button class="btn ghost${on ? ' onbtn' : ''}" data-bd="${on ? '' : id}" data-bdkind="${kind}">${on ? '✓ ' + tr('in uso', 'in use') : tr('Applica', 'Apply')}</button></div></div>`;
+  h += `<div class="tray-cerca"><input id="traySearch" class="nameinput" type="search" autocomplete="off" placeholder="${tr('Cerca per nome…', 'Search by name…')}" value="${trayQuery.replace(/"/g, '&quot;')}">`
+    + `<button class="btn ghost${trayGlobal ? ' onbtn' : ''}" id="trayGlobal">${trayGlobal ? tr('Ovunque', 'Everywhere') : tr('In questa scheda', 'In this tab')}</button></div>`;
+  h += '<div class="cat-temi">' + schede.map(([id, nome, n]) =>
+    `<button class="cat-tema${id === trayTab ? ' on' : ''}" data-ttab="${id}">${nome} · ${n}</button>`).join('') + '</div>';
+  h += '<div id="trayList"></div>';
+  mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
+  mBody.innerHTML = withIcons(h); openModal();
+  const lista = document.getElementById('trayList');
+  /* SOLO l'elenco si ridisegna mentre si scrive: ridisegnare il pannello intero toglierebbe
+     il fuoco al campo di ricerca a ogni lettera */
+  const disegnaLista = () => {
+    const vis = trayFilter(tutti, trayTab, trayQuery, trayGlobal);
+    let l = '';
+    if (!vis.length) l = `<div class="center muted" style="padding:12px">${trayQuery ? tr('Nessun pezzo con questo nome', 'No piece with this name') + (trayGlobal ? '' : ' — ' + tr('prova a cercare ovunque', 'try searching everywhere')) : tr('Niente in questa scheda', 'Nothing in this tab')}</div>`;
+    for (const id of vis) {
+      const kind = furnPlace(id);
+      if (kind === 'paper' || kind === 'ground') {
+        const on = (kind === 'paper' ? roomPaper(room) : roomGround(room)) === id;
+        l += `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${kind === 'paper' ? tr('carta da parati', 'wallpaper') : tr('pavimento', 'flooring')}</div></div><div class="rt"><button class="btn ghost${on ? ' onbtn' : ''}" data-bd="${on ? '' : id}" data-bdkind="${kind}">${on ? '✓ ' + tr('in uso', 'in use') : tr('Applica', 'Apply')}</button></div></div>`;
+      } else {
+        /* in una ricerca globale si dice anche DI CHE SCHEDA è: il pezzo trovato va riconosciuto */
+        const dove = (trayQuery && (trayGlobal || trayTab === 'tutti')) ? ' · ' + (trayTabOf(id) === 'zona' ? tr('stile di zona', 'zone style') : furnThemeLabel(trayTabOf(id))) : '';
+        l += `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}${dove}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi in mano', 'Pick it up')}</button></div></div>`;
       }
     }
-  }
-  mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
-  mBody.innerHTML = withIcons(h); openModal(); hydratePv();
-  /* PRENDI IN MANO, non "posa qui": il pezzo compare nella stanza come anteprima e lo si
-     trascina dove si vuole, vedendo come sta. Prima il vassoio lo piantava sotto i piedi e
-     per giudicarlo bisognava prima posarlo, poi raccoglierlo, poi riposarlo. */
-  mBody.querySelectorAll('[data-place]').forEach(el => el.onclick = () => {
-    if (!takeHold(el.dataset.place)) return;
-    setHoldTarget(gx, gy);
-    closeModal();
-    toast('🎨 ' + keys(isTouch() ? tr('Trascinalo dove vuoi · ↻ per ruotare', 'Drag it where you want · ↻ to rotate')
-      : tr('Trascinalo o clicca dove posarlo · ↻ (o R) per ruotare', 'Drag it or click where to place it · ↻ (or R) to rotate')));
-  });
-  mBody.querySelectorAll('[data-bd]').forEach(el => el.onclick = () => {
-    const id = el.dataset.bd;
-    if (id) applyBackdrop(room, id); else clearBackdrop(room, el.dataset.bdkind);
-    openFurnitureTray(room, gx, gy);
-  });
+    lista.innerHTML = withIcons(l); hydratePv(lista);
+    /* PRENDI IN MANO, non "posa qui": il pezzo compare nella stanza come anteprima e lo si
+       trascina dove si vuole, vedendo come sta. */
+    lista.querySelectorAll('[data-place]').forEach(el => el.onclick = () => {
+      if (!takeHold(el.dataset.place)) return;
+      setHoldTarget(gx, gy);
+      closeModal();
+      toast('🎨 ' + keys(isTouch() ? tr('Trascinalo dove vuoi · ↻ per ruotare', 'Drag it where you want · ↻ to rotate')
+        : tr('Trascinalo o clicca dove posarlo · ↻ (o R) per ruotare', 'Drag it or click where to place it · ↻ (or R) to rotate')));
+    });
+    /* IL FONDO DELLA STANZA si applica alla stanza in cui si è, e si toglie: un cambio di arredo
+       dev'essere sempre annullabile */
+    lista.querySelectorAll('[data-bd]').forEach(el => el.onclick = () => {
+      const id = el.dataset.bd;
+      if (id) applyBackdrop(room, id); else clearBackdrop(room, el.dataset.bdkind);
+      disegnaLista();
+    });
+  };
+  disegnaLista();
+  const campo = document.getElementById('traySearch');
+  if (campo) campo.oninput = () => { trayQuery = campo.value || ''; disegnaLista(); };
+  const glob = document.getElementById('trayGlobal');
+  if (glob) glob.onclick = () => { trayGlobal = !trayGlobal; openFurnitureTray(room, gx, gy); };
+  mBody.querySelectorAll('[data-ttab]').forEach(b2 => b2.onclick = () => { trayTab = b2.dataset.ttab; openFurnitureTray(room, gx, gy); });
 }
 /* "2×2 caselle" detto in chiaro: la taglia decide dove ci sta, ed è l'informazione che manca
    quando un pezzo viene rifiutato senza spiegazione */

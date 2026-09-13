@@ -14,7 +14,9 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
   ...RU_CATALOG,
-  'Zone sets': 'Наборы зон', 'on display': 'на витрине', 'Furniture': 'Мебель', 'Zone style': 'Стиль зоны', 'Topics': 'Разделы',
+  'All': 'Все', 'Search by name…': 'Поиск по названию…', 'Everywhere': 'Везде', 'In this tab': 'В этой вкладке',
+  'No piece with this name': 'Нет предмета с таким названием', 'try searching everywhere': 'попробуй искать везде', 'Nothing in this tab': 'В этой вкладке пусто', 'zone style': 'стиль зоны',
+  'on display': 'на витрине', 'Furniture': 'Мебель', 'Zone style': 'Стиль зоны', 'Topics': 'Разделы',
   'On display today': 'Сегодня на витрине', 'more arrive tomorrow.': 'завтра привезут ещё.',
   "This is this zone's theme: everything is here, a quarter cheaper.": 'Это тема этой зоны: здесь есть всё, и на четверть дешевле.',
   "Pick a topic. Every day each one shows its basic pieces plus some rotating ones; this zone's theme is all available and a quarter cheaper.": 'Выбери раздел. Каждый день в каждом есть базовые предметы и ещё несколько по очереди; тема этой зоны доступна целиком и на четверть дешевле.',

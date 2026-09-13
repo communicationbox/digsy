@@ -198,7 +198,7 @@ const PROBE = `
           checkGaps('splash/principale', '#sp-menu .sp-btn');
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
-          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkSettings(finish); }); }); }); }); }); });
+          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkTraySearch(function(){ checkSettings(finish); }); }); }); }); }); }); });
         }, 120);
         return; }
       var v=views[vi++];
@@ -227,7 +227,7 @@ const PROBE = `
       }, 80);
     };
     stepView();
-  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkSettings(finish); }); }); }); }); }); }); }
+  } else { rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkTraySearch(function(){ checkSettings(finish); }); }); }); }); }); }); }); }
 
   /* USCIRE DAL MUSEO COL SOLO MOUSE: la galleria è enorme e la camera la segue, quindi la
      porta finiva sull'ultimo pixel dello schermo e oltre non c'era nulla da cliccare. */
@@ -968,6 +968,29 @@ const PROBE = `
       if (g.closeModal) g.closeModal();
       next();
     }).catch(function(e){ A('argomenti: prova completata', false, e.message); next(); });
+  }
+
+  /* VASSOIO: schede e ricerca in un browser vero. Scrivendo nel campo, l'elenco si filtra e il
+     campo NON perde il fuoco (ridisegnare tutto il pannello a ogni lettera lo toglierebbe). */
+  function checkTraySearch(next){
+    var g = window.__digsy;
+    if (!g || !g.enterRoom || !g.openTray) { A('vassoio: sonda presente', false, 'niente openTray'); return next(); }
+    var S = g.state();
+    ['prati_bed', 'cucina_stufa', 'cucina_lavello', 'rustico_panca', 'bambini_palla'].forEach(function (id) { if (S.furnOwned.indexOf(id) < 0) S.furnOwned.push(id); });
+    g.enterRoom('house').then(function(){ return g.enterHouseRoom(0); }).then(function(){ return g.openTray(); }).then(function(){
+      var schede = document.querySelectorAll('#m-body [data-ttab]');
+      A('vassoio: diviso in schede', schede.length >= 4, schede.length + ' schede');
+      var campo = document.getElementById('traySearch');
+      A("vassoio: c'è il campo di ricerca", !!campo);
+      if (!campo) return;
+      campo.focus(); campo.value = 'bench'; campo.dispatchEvent(new Event('input', { bubbles: true }));
+      var righe = document.querySelectorAll('#trayList .row');
+      A("vassoio: scrivendo si filtra l'elenco", righe.length >= 1 && righe.length < 5, righe.length + ' righe');
+      A('vassoio: e il campo resta attivo mentre si scrive', document.activeElement === campo);
+      campo.value = ''; campo.dispatchEvent(new Event('input', { bubbles: true }));
+      if (g.closeModal) g.closeModal();
+      return g.leaveRoom();
+    }).then(function(){ next(); }).catch(function(e){ A('vassoio: prova completata', false, e.message); next(); });
   }
 
   function checkSettings(next){

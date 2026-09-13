@@ -234,6 +234,10 @@ async function main() {
       Promise.all([import('/src/furnArt.js').catch(function(){ return null; })]).then(function(){
         return G.furnGallery ? G.furnGallery(new URLSearchParams(location.search).get('tema') || 'cucina') : null;
       }); }
+    /* 'vassoio' = il vassoio dell'arredo con tanti pezzi: schede e ricerca */
+    else if (${JSON.stringify(vista)} === 'vassoio') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('godfurn').then(function(){ return G.debug(false); }).then(function(){ return G.enterRoom('house'); })
+        .then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.openTray(); }); }
     /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
        rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
     else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

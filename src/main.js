@@ -435,6 +435,8 @@ if (typeof window !== 'undefined') {
       yard: () => import('./world.js').then(w => w.yardRect()),
       /* il modulo del COMPAGNO: dove sta e come segue, per le foto e le prove che lo guardano */
       companion: () => import('./companion.js'),
+      /* il VASSOIO dell'arredo nella stanza in cui si è: schede e ricerca vanno provate in un browser */
+      openTray: () => import('./ui.js').then(u => import('./interior.js').then(m => { u.openFurnitureTray(m.INT.houseRoom == null ? 0 : m.INT.houseRoom, 3, 3); return true; })),
       /* GALLERIA di un tema del catalogo: ogni pezzo disegnato dalla sua ricetta su un
          pavimento, col nome sotto. Serve a GUARDARE duecentocinquanta mobili tutti insieme (per le
          foto), non entra nel gioco. */

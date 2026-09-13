@@ -4243,6 +4243,27 @@ sprites.applyLook();
   S.house.rooms[0].furn = [];
 }
 
+/* ---------- VASSOIO: schede per argomento e ricerca (nella scheda o ovunque) ---------- */
+{
+  const ui8 = await import('../src/ui.js');
+  const pezzi = ['prati_bed', 'cucina_stufa', 'cucina_lavello', 'rustico_panca', 'bambini_palla', 'prati_paper'];
+  check('vassoio: la scheda "Tutti" mostra tutto', ui8.trayFilter(pezzi, 'tutti', '', false).length === pezzi.length);
+  check('vassoio: una scheda mostra solo i suoi pezzi', JSON.stringify(ui8.trayFilter(pezzi, 'cucina', '', false)) === JSON.stringify(['cucina_stufa', 'cucina_lavello']));
+  check('vassoio: lo stile di zona ha la sua scheda', JSON.stringify(ui8.trayFilter(pezzi, 'zona', '', false)) === JSON.stringify(['prati_bed']));
+  check('vassoio: carta da parati e pavimento stanno nella scheda del fondo', JSON.stringify(ui8.trayFilter(pezzi, 'fondi', '', false)) === JSON.stringify(['prati_paper']));
+  /* i test girano in italiano: "stufa" è la Stufa a legna, "panca" la Panca di legno */
+  check('vassoio: la ricerca NELLA scheda resta nella scheda', ui8.trayFilter(pezzi, 'cucina', 'panca', false).length === 0);
+  check('vassoio: la ricerca OVUNQUE trova anche fuori dalla scheda', JSON.stringify(ui8.trayFilter(pezzi, 'cucina', 'panca', true)) === JSON.stringify(['rustico_panca']));
+  check('vassoio: la ricerca ignora maiuscole e accenti', ui8.trayFilter(pezzi, 'tutti', 'STUFA', false).includes('cucina_stufa'));
+  /* e il vassoio si disegna con le schede e il campo di ricerca */
+  S.furnOwned = pezzi.slice(); S.house.rooms[0].furn = [];
+  let crash8 = null;
+  try { ui8.openFurnitureTray(0, 3, 3); } catch (e) { crash8 = e.message; }
+  const h8 = document.getElementById('m-body').innerHTML;
+  check('vassoio: si apre con le schede e la ricerca', crash8 === null && /data-ttab=/.test(h8) && /traySearch/.test(h8), crash8 || '');
+  ui8.closeModal(true);
+}
+
 /* ---------- ANTEPRIME DEL PERSONAGGIO: mai a scala frazionaria ---------- */
 {
   /* La canvas dell'editor era 60×22 mentre il disegno è tarato su 120×44: il personaggio

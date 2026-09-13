@@ -1207,6 +1207,17 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .btn2{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);width:100%}
 .btn2 .btn{width:100%;padding:9px 6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
+/* SCHEDE come linguette che vanno a capo (niente scorrimento orizzontale dentro al pannello:
+   REGOLA #14) — vassoio dell'arredo */
+.cat-temi{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin:0 0 var(--sp-2)}
+.cat-tema{font:inherit;font-size:var(--fs-note);font-weight:700;padding:5px 8px;border-radius:var(--r-1);cursor:pointer;
+  background:var(--c-paper);color:var(--c-wood-2);border:2px solid #cbb488}
+.cat-tema.on{background:var(--c-amber);color:var(--c-dark);border-color:var(--c-amber-sh)}
+/* ricerca del vassoio: il campo prende lo spazio, il selettore "in questa scheda / ovunque"
+   resta della sua misura accanto */
+.tray-cerca{display:flex;gap:var(--sp-2);align-items:center;margin:0 0 var(--sp-2)}
+.tray-cerca .nameinput{flex:1;min-width:0;text-align:left;font-size:14px;padding:7px 10px}
+.tray-cerca .btn{white-space:nowrap}
 /* ARREDAMENTO PER ARGOMENTI: una griglia di riquadri, ognuno con la miniatura di un suo pezzo.
    Le colonne si adattano alla larghezza (niente scorrimento orizzontale: REGOLA #14). */
 .arg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:var(--sp-2)}
