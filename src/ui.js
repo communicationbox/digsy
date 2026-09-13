@@ -251,7 +251,16 @@ function syncFurnHold() {
   if (on && !furnHold.classList.contains('on')) syncFurnHoldPreview(); // appena raccolto: disegna subito
   furnHold.classList.toggle('on', on);
   /* Ruota spento (e detto) per chi è uguale da ogni lato: un bottone che non fa niente sembra rotto */
-  if (furnRotBtn && on) { const hv = holdItem(); const ok = !!hv && furnRotatable(hv.itemId); furnRotBtn.disabled = !ok; furnRotBtn.title = ok ? '' : tr('Uguale da ogni lato', 'Same from every side'); }
+  /* NON `disabled`: un bottone disabilitato non riceve il clic, quindi cliccandolo non
+     succedeva NIENTE, nemmeno la spiegazione — e senza uno stile diverso sembrava acceso
+     ("continua a non ruotare se clicco rotate"). Resta cliccabile, si vede spento, e al clic
+     dice perché. */
+  if (furnRotBtn && on) {
+    const hv = holdItem(); const ok = !!hv && furnRotatable(hv.itemId);
+    furnRotBtn.disabled = false;
+    if (furnRotBtn.classList) furnRotBtn.classList.toggle('spento', !ok);
+    furnRotBtn.title = ok ? '' : tr('Uguale da ogni lato: non si gira', 'Same from every side: it does not turn');
+  }
 }
 export function updatePrompt() {
   syncExitBtn();

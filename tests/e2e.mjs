@@ -874,6 +874,38 @@ const PROBE = `
             manda('pointerdown', ph.x, ph.y); manda('pointerup', ph.x, ph.y);
             A('arredo: cliccando la maniglia il mobile ruota', hm.holdItem() && hm.holdItem().rot === (rotH + 1) % 4);
             A('arredo: e resta in mano', hm.isHolding() === true);
+            /* IL BOTTONE "RUOTA" DELLA BARRA: si cerca cosa c'è DAVVERO sotto il suo centro
+               (elementFromPoint) e si clicca quello. Se è coperto da un altro elemento, o
+               spento, il giocatore clicca e non succede niente ("continua a non ruotare se
+               clicco rotate") */
+            if (g.updatePrompt) g.updatePrompt();
+            var rb0 = document.getElementById('furnrotbtn');
+            var bb = rb0.getBoundingClientRect();
+            var sotto = document.elementFromPoint(bb.left + bb.width / 2, bb.top + bb.height / 2);
+            A("arredo: sotto il bottone Ruota c'è proprio il bottone (non coperto)", sotto === rb0 || rb0.contains(sotto),
+              sotto ? (sotto.id || sotto.className || sotto.tagName) : 'niente');
+            A('arredo: il bottone Ruota è acceso per una sedia/tavolo', rb0.disabled === false);
+            var rotB = hm.holdItem().rot;
+            if (sotto) sotto.click();
+            A('arredo: cliccando il bottone Ruota il mobile ruota', hm.holdItem() && hm.holdItem().rot === (rotB + 1) % 4,
+              'rot ' + rotB + '→' + (hm.holdItem() && hm.holdItem().rot));
+            /* e con un pezzo SIMMETRICO in mano il bottone si vede spento ma, cliccato, lo DICE
+               (prima era disabilitato: muto e con l'aspetto di un bottone acceso) */
+            var giro = hm.holdItem();
+            hm.cancelHold();
+            var S3 = g.state(); if (S3.furnOwned.indexOf('palude_vase') < 0) S3.furnOwned.push('palude_vase');
+            hm.takeHold('palude_vase'); hm.setHoldTarget(2, 3);
+            return Promise.resolve(g.updatePrompt && g.updatePrompt()).then(function () {
+              var rb1 = document.getElementById('furnrotbtn');
+              A('arredo: con un vaso il bottone Ruota si VEDE spento', rb1.classList.contains('spento') && getComputedStyle(rb1).opacity < 0.9,
+                'classe=' + rb1.className + ' opacity=' + getComputedStyle(rb1).opacity);
+              rb1.click();
+              var box = document.getElementById('toasts'), ultimo = box && box.lastElementChild;
+              var testo = ultimo ? (ultimo.textContent || '') : '';
+              A('arredo: e cliccato spiega perché non gira (non resta muto)', /ogni lato|every side/i.test(testo), testo.slice(0, 60));
+              hm.cancelHold();
+              if (giro) { hm.takeHold(giro.itemId, giro.rot); }
+            }).then(function () {
             /* la barra in fondo non deve finire sotto lo zaino */
             var bar = document.getElementById('furnhold'), bag = document.getElementById('bagbtn');
             if (g.updatePrompt) g.updatePrompt();
@@ -883,6 +915,7 @@ const PROBE = `
               A('arredo: la barra Ruota/Annulla non finisce sotto lo zaino', !tocca,
                 'barra ' + Math.round(rb.left) + '..' + Math.round(rb.right) + '×' + Math.round(rb.top) + '..' + Math.round(rb.bottom) +
                 ' zaino ' + Math.round(rg.left) + '..' + Math.round(rg.right) + '×' + Math.round(rg.top) + '..' + Math.round(rg.bottom));
+            });
             });
           });
         }
