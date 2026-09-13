@@ -1299,7 +1299,9 @@ export function render(time) {
     const yd = ti ? null : yardInfo(tx, ty); // CORTILE di casa: fuori dal sistema città, un solo rettangolo fisso
     /* terreno */
     let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : baseTerrain(tx, ty);
-    groundTile(t, tx, ty, sx, sy, time, (ti || yd) ? 0 : zoneIdxAt(tx, ty));
+    /* i vicini servono ai BORDI fra terreni (riva, schiuma, erba sulla sabbia); solo per il terreno naturale */
+    const nb = (ti || yd) ? null : [baseTerrain(tx, ty - 1), baseTerrain(tx + 1, ty), baseTerrain(tx, ty + 1), baseTerrain(tx - 1, ty)];
+    groundTile(t, tx, ty, sx, sy, time, (ti || yd) ? 0 : zoneIdxAt(tx, ty), nb);
     if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
     if (!ti && !yd) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */

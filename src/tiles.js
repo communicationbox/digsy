@@ -2,7 +2,7 @@
    Estratto da render.js (che era un monolite): qui non si sa nulla di entità, camera o HUD,
    si sa solo che aspetto ha il suolo. Le stagioni si fondono con una transizione graduale
    nell'ultimo 30% della stagione, così il mondo non cambia colore di scatto. */
-import { vhash } from './noise.js';
+import { vhash, smooth } from './noise.js';
 import { px, rect, shade8 } from './brush.js';
 import { TS, ZONES } from './data.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD } from './world.js';
@@ -169,48 +169,120 @@ export function soilDetail(tx, ty, sx, sy, kind, pal) {
   if (vhash(tx, ty, 71) < 0.16) soilMark(tx, ty, sx, sy, kind, pal, 10);  // secondo accento più raro: il tile è 2x più grande, ci sta
 }
 /* ---------- tile di terreno ---------- */
-export function groundTile(t, tx, ty, sx, sy, time, zi) {
+/* CHIAZZE: il tono di un terreno segue un rumore largo qualche casella, diviso in quattro
+   quarti di casella. Prima ogni casella tirava a sorte il suo tono e il mondo sembrava una
+   scacchiera; così le zone più chiare e più scure si allargano morbide e la griglia sparisce. */
+function patches(tx, ty, sx, sy, cols, salt, scale) {
+  const H = TS >> 1;
+  for (let q = 0; q < 4; q++) {
+    const qx = q & 1, qy = q >> 1;
+    const n = smooth((tx + qx * 0.5) * scale, (ty + qy * 0.5) * scale, salt);
+    rect(sx + qx * H, sy + qy * H, H, H, cols[n < 0.36 ? 2 : n < 0.64 ? 0 : 1]);
+  }
+}
+/* ciuffo d'erba: tre fili di altezza diversa, lato in ombra e punta in luce */
+function tuft(x, y, dark, light) {
+  rect(x, y - 3, 1, 4, dark); rect(x + 2, y - 5, 1, 6, dark); rect(x + 4, y - 2, 1, 3, dark);
+  px(x + 2, y - 5, light); px(x, y - 3, light); px(x + 3, y - 1, dark);
+}
+const isWaterT = t => t === WATER || t === DEEP;
+const isLandT = t => t === SAND || t === GRASS || t === FOREST || t === DIRT || t === MTN;
+/* BORDI fra terreni (nb = tipi dei vicini [su, destra, giù, sinistra]): riva bagnata e schiuma
+   dove la terra tocca l'acqua, erba che sconfina sulla sabbia, ombra al limite del bosco.
+   Senza, ogni terreno finiva di netto sul bordo della casella e il mondo era a quadretti. */
+function tileEdges(t, tx, ty, sx, sy, time, nb, ZP) {
+  if (!nb) return;
+  const side = (i, band, col) => {
+    if (i === 0) rect(sx, sy, TS, band, col); else if (i === 1) rect(sx + TS - band, sy, band, TS, col);
+    else if (i === 2) rect(sx, sy + TS - band, TS, band, col); else rect(sx, sy, band, TS, col);
+  };
+  if (isWaterT(t)) {
+    for (let i = 0; i < 4; i++) if (isLandT(nb[i])) {
+      side(i, 7, 'rgba(190,235,240,.22)'); side(i, 3, 'rgba(230,250,250,.35)');
+      /* schiuma che va e viene: puntini sul bordo, fase dal tempo e dalla casella */
+      for (let k = 0; k < 5; k++) {
+        const u = 3 + ((k * 7 + tx * 3 + ty * 5) % 26), on = Math.sin(time / 520 + k * 1.7 + tx + ty) > -0.2;
+        if (!on) continue;
+        if (i === 0) rect(sx + u, sy + 1, 3, 1, '#f4fbfc'); else if (i === 2) rect(sx + u, sy + TS - 2, 3, 1, '#f4fbfc');
+        else if (i === 1) rect(sx + TS - 2, sy + u, 1, 3, '#f4fbfc'); else rect(sx + 1, sy + u, 1, 3, '#f4fbfc');
+      }
+    }
+    return;
+  }
+  if (!isLandT(t)) return;
+  for (let i = 0; i < 4; i++) if (isWaterT(nb[i])) { side(i, 4, 'rgba(40,30,20,.16)'); side(i, 1, 'rgba(30,24,16,.30)'); }   // riva bagnata
+  if (t === SAND) {
+    const SP = ZP || SEA_TILE;
+    for (let i = 0; i < 4; i++) if (nb[i] === GRASS || nb[i] === FOREST) {
+      for (let k = 0; k < TS; k += 4) {
+        const d = 1 + Math.floor(vhash(tx * 4 + k, ty * 4 + i, 91) * 5);
+        const c = nb[i] === FOREST ? SP.f[0] : SP.g[0];
+        if (i === 0) rect(sx + k, sy, 4, d, c); else if (i === 2) rect(sx + k, sy + TS - d, 4, d, c);
+        else if (i === 1) rect(sx + TS - d, sy + k, d, 4, c); else rect(sx, sy + k, d, 4, c);
+      }
+    }
+  } else if (t === GRASS) {
+    for (let i = 0; i < 4; i++) if (nb[i] === FOREST) side(i, 3, 'rgba(20,40,20,.18)');
+  }
+}
+export function groundTile(t, tx, ty, sx, sy, time, zi, nb) {
   const ZP = ZONE_TILES[zi] || null;
+  groundBase(t, tx, ty, sx, sy, time, zi, ZP);
+  tileEdges(t, tx, ty, sx, sy, time, nb, ZP);
+}
+/* increspature sull'acqua: pochi archetti chiari per casella, che si accendono e si spengono */
+function ripples(tx, ty, sx, sy, time, light) {
+  for (let k = 0; k < 2; k++) {
+    const x = sx + 3 + Math.floor(vhash(tx, ty, 140 + k) * 22), y = sy + 5 + Math.floor(vhash(tx, ty, 150 + k) * 20);
+    const ph = Math.sin(time / 900 + vhash(tx, ty, 160 + k) * 6.28);
+    if (ph < 0.1) continue;
+    rect(x, y, 5, 1, light); px(x - 1, y + 1, light); px(x + 5, y + 1, light);
+    if (ph > 0.8) px(x + 2, y - 1, '#ffffff');
+  }
+}
+function groundBase(t, tx, ty, sx, sy, time, zi, ZP) {
   switch (t) {
     case DEEP: {
       if (zi === 5) { // mare gelato profondo: acqua bluastra con onde chiare (chiaramente liquido)
-        rect(sx, sy, TS, TS, '#6f9ec0'); const wg = Math.floor(Math.sin((tx + ty) * 0.8 + time / 500) * 2);
-        rect(sx, sy + 6 + wg, TS, 2, '#a6ccdf'); rect(sx, sy + 11 - wg, TS, 1, '#5686a8'); break;
+        patches(tx, ty, sx, sy, ['#6a9abd', '#6493b5', '#74a5c6'], 133, 0.18);
+        ripples(tx, ty, sx, sy, time, '#b0d4e6'); break;
       }
       if (zi === 4) { // acque di palude profonde: verde-bluastro con riflessi (non erba)
-        rect(sx, sy, TS, TS, '#2f5148'); const wp = Math.floor(Math.sin((tx + ty) * 0.8 + time / 560) * 2);
-        rect(sx, sy + 6 + wp, TS, 2, '#3f7a66'); px(sx + ((Math.floor(time / 300) + tx) % 14) + 1, sy + 4, '#8fd0b8'); break;
+        patches(tx, ty, sx, sy, ['#2f5148', '#2a4a41', '#355a50'], 135, 0.18);
+        ripples(tx, ty, sx, sy, time, '#5f9a82'); break;
       }
-      rect(sx, sy, TS, TS, '#3f7fa6'); const wd = Math.floor(Math.sin((tx + ty) * 0.8 + time / 450) * 2);
-      rect(sx, sy + 6 + wd, TS, 2, '#5b9dc4'); rect(sx, sy + 11 - wd, TS, 1, '#316787'); break;
+      patches(tx, ty, sx, sy, ['#3a7aa2', '#357297', '#3f84ad'], 131, 0.18);
+      ripples(tx, ty, sx, sy, time, '#6aa9cf'); break;
     }
     case WATER: {
       if (zi === 5) { // acqua gelida a riva: azzurra con onde + lastre di ghiaccio galleggianti
-        rect(sx, sy, TS, TS, '#8fbdd8'); const wi = Math.floor(Math.sin((tx + ty) * 0.8 + time / 520) * 1);
-        rect(sx, sy + 7 + wi, TS, 2, '#bfe0ef');
+        patches(tx, ty, sx, sy, ['#8abad6', '#84b3cf', '#95c4de'], 134, 0.2);
+        ripples(tx, ty, sx, sy, time, '#d2ecf6');
         if (vhash(tx, ty, 51) < 0.35) { rect(sx + 4, sy + 4, 6, 4, '#e6f2f8'); rect(sx + 4, sy + 4, 6, 1, '#ffffff'); } // lastra di ghiaccio
         break;
       }
       if (zi === 4) { // acqua di palude: torbida MA chiaramente liquida (riflessi + ninfee)
-        rect(sx, sy, TS, TS, '#3a6154');
-        const w2 = Math.floor(Math.sin((tx + ty) * 0.8 + time / 500) * 1);
-        rect(sx, sy + 6 + w2, TS, 2, '#4f8a72'); px(sx + ((Math.floor(time / 260) + ty) % 12) + 2, sy + 4, '#9fd8c0'); // riflesso che scorre
+        patches(tx, ty, sx, sy, ['#3a6154', '#35594d', '#42695b'], 136, 0.2);
+        ripples(tx, ty, sx, sy, time, '#7fb8a0');
         if (vhash(tx, ty, 52) < 0.18) { rect(sx + 5, sy + 6, 5, 3, '#3f9a58'); px(sx + 7, sy + 5, '#e08aa8'); } // ninfea + fiore
         break;
       }
-      rect(sx, sy, TS, TS, '#5cb6d6'); const w = Math.floor(Math.sin((tx + ty) * 0.8 + time / 400) * 2); rect(sx, sy + 6 + w, TS, 2, '#83cfe6'); rect(sx, sy + 11 - w, TS, 1, '#49a4c6'); break;
+      patches(tx, ty, sx, sy, ['#56b0d2', '#4fa7ca', '#62bddb'], 132, 0.2);
+      ripples(tx, ty, sx, sy, time, '#9ad9ec'); break;
     }
     case SAND: {
-      if (zi === 1) { rect(sx, sy, TS, TS, '#e9d9a8'); px(sx + 4, sy + 5, '#f4ecd4'); px(sx + 11, sy + 9, '#d6c48e'); px(sx + 7, sy + 12, '#f4ecd4');
+      if (zi === 1) { patches(tx, ty, sx, sy, ['#e9d9a8', '#e2d09c', '#efe1b6'], 137, 0.22);
         soilDetail(tx, ty, sx, sy, 'sand', ['#cbb684', '#dccb9a', '#f6efd8']); break; } // sabbia d'ossa
-      if (zi === 5) { rect(sx, sy, TS, TS, '#d7dee3'); px(sx + 5, sy + 6, '#eef3f6'); px(sx + 10, sy + 10, '#b9c4cc'); break; }                                  // riva gelata
-      rect(sx, sy, TS, TS, '#e6cf96'); px(sx + 4, sy + 5, '#d6bd82'); px(sx + 11, sy + 9, '#d6bd82'); px(sx + 7, sy + 12, '#d6bd82');
+      if (zi === 5) { patches(tx, ty, sx, sy, ['#d7dee3', '#cfd7dd', '#e2e8ec'], 138, 0.22); px(sx + 5, sy + 6, '#eef3f6'); px(sx + 10, sy + 10, '#b9c4cc'); break; }                                  // riva gelata
+      patches(tx, ty, sx, sy, ['#e6cf96', '#dfc68b', '#ecd8a4'], 139, 0.22);
       soilDetail(tx, ty, sx, sy, 'sand', ['#c9ac72', '#d6bd82', '#f2e4bc']); break;
     }
     case GRASS: { // zona 0: stagioni · altrove: palette del bioma
       const SP = ZP || SEA_TILE;
       const v = vhash(tx, ty, 21);
-      rect(sx, sy, TS, TS, v < 0.4 ? SP.g[0] : v < 0.8 ? SP.g[1] : SP.g[2]);
+      patches(tx, ty, sx, sy, SP.g, 21, 0.21);
+      /* ciuffi: due o tre per casella, sparsi su tutta la casella */
+      for (let k = 0; k < 3; k++) if (vhash(tx, ty, 180 + k) < 0.55) tuft(sx + 2 + Math.floor(vhash(tx, ty, 190 + k) * 25), sy + 6 + Math.floor(vhash(tx, ty, 200 + k) * 24), SP.gd, SP.gh);
       const d = vhash(tx, ty, 22);
       const gx = sx + 3 + Math.floor(vhash(tx, ty, 23) * 24), gy = sy + 3 + Math.floor(vhash(tx, ty, 24) * 24);
       if (d < 0.26) { rect(gx, gy, 2, 2, SP.gd); px(gx + 2, gy, SP.gd); px(gx, gy - 2, SP.gh); rect(gx + 3, gy - 2, 2, 2, SP.gh); } // ciuffo d'erba: due colonne, non un puntino
@@ -219,7 +291,7 @@ export function groundTile(t, tx, ty, sx, sy, time, zi) {
       soilDetail(tx, ty, sx, sy, 'grass', [SP.gd, '#a8ad92', SP.gh]);
       break;
     }
-    case FOREST: { const SP = ZP || SEA_TILE; rect(sx, sy, TS, TS, ((tx + ty) & 1) ? SP.f[0] : SP.f[1]);
+    case FOREST: { const SP = ZP || SEA_TILE; patches(tx, ty, sx, sy, [SP.f[0], SP.f[1], shade8(SP.f[0], 0.92)], 22, 0.21);
       const fx1 = sx + 3 + Math.floor(vhash(tx, ty, 65) * 11), fy1 = sy + 3 + Math.floor(vhash(tx, ty, 66) * 11);
       const fx2 = sx + 16 + Math.floor(vhash(tx, ty, 67) * 13), fy2 = sy + 16 + Math.floor(vhash(tx, ty, 68) * 13);
       rect(fx1, fy1, 2, 2, SP.fd); rect(fx2, fy2, 2, 2, SP.fd);
@@ -227,7 +299,7 @@ export function groundTile(t, tx, ty, sx, sy, time, zi) {
       soilDetail(tx, ty, sx, sy, 'forest', [SP.fd, SP.f[0], SP.fh || SP.f[1]]); break; }
     case DIRT: {
       const d0 = ZP ? ZP.dirt[0] : '#c9a06a', d1 = ZP ? ZP.dirt[1] : '#b98d59';
-      rect(sx, sy, TS, TS, d0);
+      patches(tx, ty, sx, sy, [d0, shade8(d0, 0.95), shade8(d0, 1.05)], 23, 0.22);
       const dx1 = sx + 3 + Math.floor(vhash(tx, ty, 70) * 12), dy1 = sy + 3 + Math.floor(vhash(tx, ty, 71) * 12);
       const dx2 = sx + 15 + Math.floor(vhash(tx, ty, 72) * 12), dy2 = sy + 12 + Math.floor(vhash(tx, ty, 73) * 12);
       const dx3 = sx + 9 + Math.floor(vhash(tx, ty, 74) * 14), dy3 = sy + 20 + Math.floor(vhash(tx, ty, 75) * 9);
