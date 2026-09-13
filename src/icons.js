@@ -29,6 +29,20 @@ const ICOL = {
   arU: '#e8b93c', arUR: '#e8b93c', arR: '#e8b93c', arDR: '#e8b93c', arD: '#e8b93c', arDL: '#e8b93c', arL: '#e8b93c', arUL: '#e8b93c',
 };
 
+/* i TRACCIATI di un'icona (griglia 24), per disegnarla su una canvas con Path2D: la mappa usa
+   gli stessi simboli del resto del gioco invece di quadratini colorati. I <rect> diventano
+   percorsi. In Node il registro è vuoto e si torna un elenco vuoto. */
+export function iconPaths(name) {
+  const raw = SVGS[name]; if (!raw) return [];
+  const out = [];
+  raw.replace(/<path[^>]*\sd="([^"]+)"/g, (m, d) => { out.push(d); return m; });
+  raw.replace(/<rect[^>]*>/g, (m) => {
+    const a = k => +((m.match(new RegExp('\\s' + k + '="([^"]+)"')) || [])[1] || 0);
+    out.push('M' + a('x') + ' ' + a('y') + 'h' + a('width') + 'v' + a('height') + 'h' + (-a('width')) + 'z');
+    return m;
+  });
+  return out;
+}
 export function icon(name, cls) {
   const raw = SVGS[name];
   if (!raw) return '';

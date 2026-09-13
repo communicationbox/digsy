@@ -397,6 +397,7 @@ if (typeof window !== 'undefined') {
          sulla prima tile del bioma — e da lì l'inquadratura è quella che è: serve poter spostare
          la camera di qualche tile per comporre la scena. */
       player: () => P,
+      reveal: (r) => import('./map.js').then(m => m.revealArea(Math.floor(P.x / TS), Math.floor(P.y / TS), r)),
       townHere: () => import('./world.js').then(w => w.townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS))),
       /* `godmode` accende anche la modalità debug, e con quella l'HUD mostra ∞ e il tag 🐞:
          va bene mentre si prova, non in una foto che finisce in vetrina. */

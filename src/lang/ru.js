@@ -537,7 +537,8 @@ export const RU = {
   'Exit': 'Выход',
   'CHEAT · NO SAVE': 'ЧИТ · БЕЗ СОХРАНЕНИЯ',
   'Update the game': 'Обновить игру',
-  'museum': 'музей',
+  'city with Museum': 'город с Музеем', 'hamlet': 'деревушка', 'bones to dig': 'кости для раскопок',
+  'Tap a sign to see what it is.': 'Нажми на знак, чтобы узнать, что это.', 'Home': 'Дом', 'Bones showing': 'Кости выступают из земли', 'digs left: ': 'осталось раскопок: ',
   ' map': ' карта',
   /* intro: dove si porta il primo fossile */
   'has a Museum': 'есть Музей',

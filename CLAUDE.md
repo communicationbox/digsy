@@ -335,6 +335,12 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   con E → **6 fossili di grotta ESCLUSIVI** (`CAVE_SPECIES`, fuori dalle 60, `src:'grotta'`,
   BP dedicati in bones). Uscita dal corridoio in basso. `goto=grotta` e ingressi renderizzati
   (`drawCaveEntrance`/`drawCaveScene`). HUD zona = 🕳️ Grotta.
+- **Mappa leggibile a colpo d'occhio** (`mapui.js`, "non si capisce cosa è cosa"): ogni luogo è un
+  DISTINTIVO tondo con l'icona del set del gioco (`MAP_SIGNS` + `drawSign`: tempio = città col Museo,
+  case = paese/borgo, casetta = casa tua, stella = meraviglia, porta = arco, osso = siti di scavo
+  attivi), X del tesoro rossa, nomi delle città scritti, riga scura sulle coste e bordo a matita
+  dell'esplorato. Canvas a `RES` 2 per il testo; i segni crescono se la carta è mostrata piccola
+  (telefono). La legenda disegna gli STESSI segni (`paintLegend`). Foto: `npm run shot -- mappa`.
 - **Mappa: le città col Museo hanno un pin loro** (`hasMuseum` in world.js, `museumPin` in
   mapui.js): avorio come il marmo, timpano basso a casetta e due colonne, contro il quadratino
   giallo delle altre città. Il Museo è l'unico posto dove si identificano i reperti, si riempiono

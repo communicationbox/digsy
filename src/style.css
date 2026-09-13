@@ -869,8 +869,11 @@ body.introing #hud,body.introing #touch,body.introing #splash,body.introing #pro
 .mp-zoom button{width:34px;height:34px;background:var(--c-line-2);color:var(--c-ink);border:0;box-shadow:0 0 0 2px var(--c-deep);
   font:800 17px ui-monospace,monospace;cursor:pointer;line-height:1}
 .mp-zoom button:active{transform:translate(1px,1px)}
-.mp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:7px 12px;font-size:11px;background:#dcc79a;color:var(--c-line-3);
+.mp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 12px;font-size:13px;background:#dcc79a;color:var(--c-line-3);
   border-top:3px solid var(--c-parch);line-height:1.4}
+.mp-li{display:inline-flex;align-items:center;gap:6px;font-weight:700;white-space:nowrap}
+.mp-sg{width:22px;height:22px;flex:none}
+.mp-tip{flex-basis:100%;font-size:12px;opacity:.8}
 .mp-legend i{display:inline-block;width:8px;height:8px;margin-right:5px;vertical-align:0;box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 /* SUGGERIMENTO: riquadro con la lampadina */
 .tipbox{background:#fbf0d6;border:2px solid var(--c-amber);box-shadow:inset 0 0 0 2px #f6e7c4;padding:12px 14px}

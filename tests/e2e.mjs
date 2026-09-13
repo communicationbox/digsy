@@ -126,6 +126,11 @@ const PROBE = `
      quindi touch-action:none è voluto. Si controlla che il trascinamento ci sia. */
   if(G.openMap) checkOverlay('mappa', G.openMap, '#mapbox', null);
   var mcv=document.getElementById('mapcv');
+  /* la legenda mostra i SEGNI veri (non quadratini), a una misura che si legge */
+  if(G.openMap){ G.openMap(); var sgs=document.querySelectorAll('#mp-legend .mp-sg'), piccoli=0;
+    for(var si=0;si<sgs.length;si++){ if(sgs[si].getBoundingClientRect().width<20) piccoli++; }
+    var lgf=parseFloat(css(document.getElementById('mp-legend'),'font-size'));
+    A('mappa: la legenda disegna i segni, grandi abbastanza', sgs.length>=10 && piccoli===0 && lgf>=12, sgs.length+' segni, '+piccoli+' piccoli, testo '+lgf+'px'); }
   if(mcv){ A('mappa: si trascina col dito', css(mcv,'touch-action')==='none' && css(mcv,'cursor').indexOf('grab')>=0,
     'touch-action='+css(mcv,'touch-action')+' cursor='+css(mcv,'cursor')); }
   if(G.closeMap) G.closeMap();

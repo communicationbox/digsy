@@ -108,6 +108,11 @@ async function main() {
         var f = t && t.buildings.filter(function(b){ return b.type === 'furniture'; })[0];
         if (f) { var p = G.player(); p.x = (f.doorx - 3) * 32 + 8; p.y = (f.doory + 2) * 32; }
         if(G.frame) G.frame(1000); }); }
+    /* 'mappa' = la mappa del mondo aperta dopo aver scoperto un bel pezzo attorno a una città,
+       con le X del tesoro: la schermata dove si deve capire subito cosa è cosa */
+    else if (${JSON.stringify(vista)} === 'mappa') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goto=city'); }).then(function(){ return G.reveal(new URLSearchParams(location.search).get('r') ? +new URLSearchParams(location.search).get('r') : 160); })
+        .then(function(){ if(G.openMap) G.openMap(); }); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per

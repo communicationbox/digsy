@@ -8010,7 +8010,7 @@ sprites.applyLook();
      dice già mentre ci sei dentro. La legenda spiega i SIMBOLI, quelli che non si indovinano. */
   check('mappa: la legenda NON elenca i nomi dei biomi',
     !/ZONES\.map\(/.test(mapSrc) && !/z\.name/.test(mapSrc));
-  for (const voce of ['museo', 'meraviglia', 'X del tesoro', 'sei qui', 'da esplorare']) {
+  for (const voce of ['città col Museo', 'meraviglia', 'X del tesoro', 'sei qui', 'da esplorare', 'casa tua', 'paese', 'ossa da scavare']) {
     check('mappa: la legenda spiega ancora "' + voce + '"', mapSrc.includes(`'${voce}'`));
   }
 
@@ -8030,6 +8030,22 @@ sprites.applyLook();
   check('mappa: si apre già zoomata, non alla vista d\'insieme',
     /const MAP_ZOOM_DEF = 3;/.test(mapSrc) && /let mapZoom = MAP_ZOOM_DEF/.test(mapSrc)
     && /mapZoom = MAP_ZOOM_DEF; mapOff/.test(mapSrc));
+  /* "non si capisce cosa è cosa": ogni luogo è un DISTINTIVO con l'icona, di misura fissa e
+     leggibile, e la legenda usa la stessa funzione di disegno dei segni veri */
+  check('mappa: ogni segno ha la sua icona e il suo colore, tutti diversi',
+    Object.values(mapMod.MAP_SIGNS).every(sg => sg.size >= 30 && sg.icon) &&
+    new Set(Object.values(mapMod.MAP_SIGNS).map(sg => sg.bg + sg.icon + sg.size)).size === Object.keys(mapMod.MAP_SIGNS).length);
+  check('mappa: il Museo è il segno più grande (è il motivo per cui si torna in città)',
+    Object.values(mapMod.MAP_SIGNS).every(sg => sg.size <= mapMod.MAP_SIGNS.museum.size));
+  check('mappa: la legenda disegna gli STESSI segni della carta', /function paintLegend\(/.test(mapSrc) && /drawSign\(c2, k, 20, 20\)/.test(mapSrc)
+    && Object.keys(mapMod.MAP_SIGNS).every(k => mapSrc.includes("legendItem('" + k + "'")));
+  { let ok = true; const calls = [];
+    const fake = { fillRect: () => calls.push(1), beginPath() {}, arc() {}, fill() { calls.push(1); }, moveTo() {}, lineTo() {}, stroke() { calls.push(1); },
+      save() {}, restore() {}, translate() {}, scale() {}, closePath() {}, quadraticCurveTo() {} };
+    try { for (const k of Object.keys(mapMod.MAP_SIGNS)) mapMod.drawSign(fake, k, 20, 20); mapMod.drawTreasureX(fake, 20, 20); } catch (e) { ok = false; }
+    check('mappa: tutti i segni si disegnano (anche senza icone, come nei test)', ok && calls.length > 20); }
+  check('mappa: le coste hanno la loro riga, i nomi delle città sono scritti',
+    /COSTE:/.test(mapSrc) && /drawLabel\(c, label/.test(mapSrc));
   check('mappa: la stella pulsa e la fase viene dal tempo',
     /Math\.floor\(\(t \|\| 0\) \/ 380\)/.test(mapSrc) && /requestAnimationFrame/.test(mapSrc));
   check('mappa: la pulsazione si ferma chiudendo la mappa',
