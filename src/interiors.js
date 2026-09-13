@@ -11,6 +11,8 @@ import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
+import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
+import { EMAP, iconPaths } from './icons.js';
 import { SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps } from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
 import { composedPartsVox, shadeHex } from './bones.js';
@@ -82,6 +84,15 @@ function outlineSprite(cv, color) {
 /* MUSEO — GALLERIA unica camminabile ed ELEGANTE: teche scure con cornice dorata
    (le ossa bianche risaltano), tappeto bordeaux, colonne, lampadari, piante.
    Camera che segue il player; 6 aree bioma; solo i pezzi consegnati. */
+/* icona del bioma sulla targa della sala (stesso set di icone del gioco) */
+function drawZoneIcon(g, z, cx, cy) {
+  const name = EMAP[z.icon] || 'globe';
+  try {
+    const ps = typeof Path2D === 'function' ? iconPaths(name).map(d => new Path2D(d)) : [];
+    if (ps.length && ctx.fill) { ctx.save(); ctx.translate(cx - 8, cy - 8); ctx.scale(2 / 3, 2 / 3); ctx.fillStyle = '#e8c34a'; for (const p of ps) ctx.fill(p); ctx.restore(); return; }
+  } catch (e) { /* stub */ }
+  rect(cx - 4, cy - 4, 8, 8, '#e8c34a');
+}
 export function drawMuseumGallery(time) {
   const W = view.W, H = view.H, rw = INT.w * TS, rh = INT.h * TS;
   /* camera ancorata alla griglia dei pixel FISICI (come nel mondo): niente scatti */
@@ -95,68 +106,56 @@ export function drawMuseumGallery(time) {
   rect(camx, camy, W, H, '#c2af88'); // base parquet a tutto schermo: nessun vuoto nero fuori dalla galleria
   const t0x = Math.max(0, Math.floor(camx / TS) - 1), t1x = Math.min(INT.w, Math.ceil((camx + W) / TS) + 1);
   const t0y = Math.max(0, Math.floor(camy / TS) - 1), t1y = Math.min(INT.h, Math.ceil((camy + H) / TS) + 1);
-  /* parquet caldo a scacchi grandi 2×2, con rare venature (solo tile in vista) */
+  /* PAVIMENTO (museumArt.js): marmo nei corridoi, parquet a spina di pesce dentro le sale */
+  const inRoom = (tx, ty) => MUSEUM_ZONES.some((z, zi) => { const o = roomOrigin(zi); return tx >= o.rx && tx < o.rx + ROOM_W && ty >= o.ry && ty < o.ry + ROOM_H; });
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
-    const sx = tx * TS, sy = ty * TS;
-    rect(sx, sy, TS, TS, ((tx >> 1) + (ty >> 1)) % 2 ? '#cdbc98' : '#c2af88');
-    if (!(tx % 2)) rect(sx, sy, 1, TS, '#b09d76'); if (!(ty % 2)) rect(sx, sy, TS, 1, '#b09d76');
-    if (vhash(tx, ty, 91) < 0.12) { const px2 = sx + 4 + Math.floor(vhash(tx, ty, 92) * 24), py2 = sy + 5 + Math.floor(vhash(tx, ty, 93) * 22); rect(px2, py2, 2, 1, '#b09d76'); }
+    if (inRoom(tx, ty)) drawParquetTile(BRUSH, tx, ty); else drawMarbleTile(BRUSH, tx, ty);
   }
+  /* guida rossa lungo il corridoio centrale, dal bancone fino in fondo */
+  { const cxg = (INT.w / 2) * TS;
+    rect(cxg - 20, 2 * TS, 40, GAL_DESK.y0 - 2 * TS - 12, '#5c2a26'); rect(cxg - 18, 2 * TS, 36, GAL_DESK.y0 - 2 * TS - 12, '#a8453c');
+    rect(cxg - 14, 2 * TS, 2, GAL_DESK.y0 - 2 * TS - 12, '#c9a227'); rect(cxg + 12, 2 * TS, 2, GAL_DESK.y0 - 2 * TS - 12, '#c9a227'); }
   /* SALE per bioma: ognuna con tappeto del colore del bioma, cornice a mosaico,
      stendardo sulla parete di fondo, colonne agli angoli, panche e piante */
+  const roomCols = [];                                   // colonne delle sale: vanno in ordine di profondità
   MUSEUM_ZONES.forEach((z, zi) => {
     const { rx, ry } = roomOrigin(zi);
     const x0 = rx * TS, y0 = ry * TS, wpx = ROOM_W * TS, hpx = ROOM_H * TS;
-    if (x0 - camx > W || x0 + wpx - camx < 0 || y0 - camy > H || y0 + hpx - camy < 0) return; // fuori vista
+    if (x0 - camx > W + 60 || x0 + wpx - camx < -60 || y0 - camy > H + 120 || y0 + hpx - camy < -60) return; // fuori vista
     const col = WING_COL[zi];
-    /* tappeto grande della sala con bordo dorato + trama */
-    rect(x0 + 6, y0 + 8, wpx - 12, hpx - 14, shade8(col, 0.5));
-    rect(x0 + 6, y0 + 8, wpx - 12, 2, '#c9a227'); rect(x0 + 6, y0 + hpx - 8, wpx - 12, 2, '#c9a227');
-    rect(x0 + 6, y0 + 8, 2, hpx - 14, '#c9a227'); rect(x0 + wpx - 8, y0 + 8, 2, hpx - 14, '#c9a227');
-    for (let gx = x0 + 14; gx < x0 + wpx - 12; gx += 12) px(gx, y0 + hpx / 2, shade8(col, 0.72));
-    /* parete di fondo della sala + stendardo del bioma con emblema */
-    rect(x0, y0, wpx, 8, '#5f6f5c'); rect(x0, y0, wpx, 3, '#4c5a4a'); rect(x0, y0 + 7, wpx, 1, '#c9a227');
-    const bx0 = x0 + wpx / 2 - 12;
-    rect(bx0, y0 + 2, 24, 16, '#3a3a44'); rect(bx0, y0 + 2, 24, 2, col); rect(bx0 + 10, y0 + 18, 4, 3, col);
-    for (let i = 0; i < 3; i++) px(bx0 + 8 + i * 4, y0 + 9, col);
-    /* colonne ai 4 angoli */
-    for (const cxo of [x0 + 5, x0 + wpx - 9]) {
-      rect(cxo, y0 + 6, 4, hpx - 12, '#e3dcc8'); rect(cxo + 1, y0 + 6, 1, hpx - 12, '#f3ecda');
-      rect(cxo - 1, y0 + 4, 6, 3, '#f3ecda'); rect(cxo - 1, y0 + hpx - 8, 6, 3, '#b8ac90');
-    }
-    /* lampadario centrale con alone caldo */
-    const lx = x0 + wpx / 2;
-    rect(lx - 6, y0 + 6, 12, 2, '#8a7118'); for (const fx of [-5, -1, 3]) { const fl = Math.floor(time / 260 + fx + zi) % 2; px(lx + fx, y0 + 4 + fl, '#ffd873'); }
-    ctx.fillStyle = 'rgba(255,220,140,.06)'; ctx.fillRect(lx - 20, y0 + 4, 40, hpx - 10);
-    /* due panche in fondo alla sala */
-    for (const benchx of [x0 + wpx / 2 - 26, x0 + wpx / 2 + 12]) { rect(benchx, y0 + hpx - 16, 14, 5, '#8a5f38'); rect(benchx, y0 + hpx - 16, 14, 2, '#a97a4c'); rect(benchx + 1, y0 + hpx - 11, 2, 4, '#6e4a2e'); rect(benchx + 11, y0 + hpx - 11, 2, 4, '#6e4a2e'); }
-    /* TARGA della sala: il nome del bioma e quante specie hai esposto. Senza, le sei sale
+    drawRoomFloor(BRUSH, x0, y0, wpx, hpx, col, time);
+    for (const [cx0, cy0] of [[x0 + 14, y0 + 34], [x0 + wpx - 14, y0 + 34], [x0 + 14, y0 + hpx - 4], [x0 + wpx - 14, y0 + hpx - 4]]) roomCols.push([cx0, cy0]);
+    /* luce calda del lampadario al centro della sala */
+    ctx.fillStyle = 'rgba(255,220,140,.07)'; ctx.fillRect(x0 + wpx / 2 - 90, y0 + 40, 180, hpx - 60);
+    for (const benchx of [x0 + wpx / 2 - 64, x0 + wpx / 2 + 16]) drawBench(BRUSH, benchx, y0 + hpx - 30, col);
+    /* TARGA della sala: icona del bioma, nome e quante specie hai esposto. Senza, le sei sale
        sono indistinguibili e non si capisce a quale zona appartengano le teche. */
     {
       const pool = zonePools[z.id] || [];
       const done = pool.filter(sp => (S.museum[sp.id] || []).length === PARTS.length).length;
       const label = zoneName(z.id).toUpperCase(), sub = done + '/' + pool.length;
-      ctx.font = '700 7px ui-monospace, Menlo, monospace'; ctx.textBaseline = 'top';
+      ctx.font = '700 9px ui-monospace, Menlo, monospace'; ctx.textBaseline = 'top';
       /* measureText può non esserci (o non ritornare nulla) fuori dal browser: fallback sempre */
-      const wOf = t => { const m = ctx.measureText && ctx.measureText(t); return Math.ceil((m && m.width) || t.length * 4.2); };
-      /* la targa deve contenere NOME + spazio + CONTATORE: prima era dimensionata sul solo
-         nome e i due testi si sovrapponevano nelle zone dal nome lungo */
-      const PADL = 11, PADR = 9, GAP = 10;
+      const wOf = t => { const m = ctx.measureText && ctx.measureText(t); return Math.ceil((m && m.width) || t.length * 5.4); };
+      /* la targa deve contenere ICONA + NOME + spazio + CONTATORE: prima era dimensionata sul
+         solo nome e i due testi si sovrapponevano nelle zone dal nome lungo */
+      const PADL = 30, PADR = 10, GAP = 12;
       const wl = wOf(label), ws = wOf(sub);
-      const bw2 = Math.max(72, PADL + wl + GAP + ws + PADR);
-      const bx2 = x0 + wpx / 2 - bw2 / 2, by2 = y0 - 17;
-      rect(bx2 - 1, by2 - 1, bw2 + 2, 16, '#241a10');            // bordo scuro
-      rect(bx2, by2, bw2, 14, '#3a3a44'); rect(bx2, by2, bw2, 2, col);   // fascia del colore del bioma
-      rect(bx2, by2 + 12, bw2, 2, shade8(col, 0.6));
-      for (const hx of [bx2 + 3, bx2 + bw2 - 5]) rect(hx, by2 + 4, 2, 6, col); // bulloni laterali
-      ctx.fillStyle = '#f3ecda'; ctx.fillText(label, bx2 + PADL, by2 + 3);
-      ctx.fillStyle = done === pool.length && pool.length ? '#8fd06a' : '#c9a227';
-      ctx.fillText(sub, bx2 + bw2 - PADR - ws, by2 + 3);
+      const bw2 = Math.max(96, PADL + wl + GAP + ws + PADR);
+      const bx2 = Math.round(x0 + wpx / 2 - bw2 / 2), by2 = y0 - 28;
+      rect(bx2 + 3, by2 + 4, bw2, 22, 'rgba(30,20,10,.25)');
+      rect(bx2 - 1, by2 - 1, bw2 + 2, 22, '#241a10');
+      rect(bx2, by2, bw2, 20, '#3a3a44'); rect(bx2, by2, bw2, 3, col); rect(bx2, by2 + 17, bw2, 3, shade8(col, 0.6));
+      rect(bx2 + 3, by2 + 5, bw2 - 6, 1, '#c9a227');
+      drawZoneIcon(BRUSH, z, bx2 + 16, by2 + 10);
+      ctx.fillStyle = '#f3ecda'; ctx.fillText(label, bx2 + PADL, by2 + 6);
+      ctx.fillStyle = done === pool.length && pool.length ? '#8fd06a' : '#e8c34a';
+      ctx.fillText(sub, bx2 + bw2 - PADR - ws, by2 + 6);
     }
   });
   /* pareti esterne + fregio dorato in alto */
-  rect(0, 0, rw, 6, '#4c5a4a'); rect(0, 6, rw, 2, '#c9a227');
-  rect(0, 0, 6, rh, '#4c5a4a'); rect(rw - 6, 0, 6, rh, '#4c5a4a');
+  drawGalleryTopWall(BRUSH, 0, rw, 2 * TS);
+  rect(0, 0, 8, rh, '#3a2616'); rect(6, 0, 2, rh, '#8a5f38'); rect(rw - 8, 0, 8, rh, '#3a2616'); rect(rw - 8, 0, 2, rh, '#8a5f38');
   /* PARETE BASSA con un VARCO al centro: la porta si vede, e oltre la porta si vede la
      strada. Prima la parete era continua e per uscire bisognava camminare fuori dallo
      schermo: col solo mouse non c'era nulla da cliccare. */
@@ -203,20 +202,13 @@ export function drawMuseumGallery(time) {
     const bx = pd.tx * TS, by = pd.ty * TS;
     const parts = S.museum[pd.sp.id] || [];
     const full = parts.length === PARTS.length;
-    shadow(bx + 16, by + 30, 18);
-    rect(bx, by + 16, 32, 14, '#9a9285'); rect(bx, by + 16, 32, 4, '#b5ad9e'); rect(bx - 2, by + 26, 36, 4, '#7f776a');
-    rect(bx, by + 20, 32, 2, '#c9a227');
-    rect(bx - 8, by - 54, 48, 70, full ? '#e8c34a' : '#8a7118');           // cornice
-    rect(bx - 6, by - 52, 44, 66, '#1b1626');                              // interno scuro
-    rect(bx - 6, by - 52, 44, 2, '#494066');                               // luce alta
+    const col = WING_COL[pd.zi] || '#6f5a94';
+    drawCaseBack(BRUSH, bx, by, col, full, time);
     const cv = parts.length ? exhibitSprite(pd.sp.id, parts) : null;
     if (cv) ctx.drawImage(cv, bx - 20, by - 50);
-    else { rect(bx + 14, by - 28, 2, 2, '#4a4438'); rect(bx + 16, by - 28, 2, 2, '#4a4438'); rect(bx + 18, by - 26, 2, 2, '#4a4438'); rect(bx + 16, by - 22, 2, 2, '#4a4438'); rect(bx + 16, by - 16, 2, 2, '#4a4438'); }
-    for (let i = 0; i < 9; i++) rect(bx + 28 - i * 2, by - 48 + i * 2, 2, 2, 'rgba(255,255,255,.14)'); // riflesso vetro
-    ctx.fillStyle = 'rgba(255,235,180,.08)'; ctx.fillRect(bx - 4, by - 50, 40, 28);
-    const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r];
-    rect(bx + 4, by + 30, 24, 8, '#3a3a44'); rect(bx + 4, by + 30, 24, 2, '#c9a227'); rect(bx + 6, by + 34, 20, 2, rc);
-    if (full) { const tw2 = Math.floor(time / 400) % 2; px(bx + (tw2 ? -4 : 34), by - 60, '#f2c53d'); px(bx + 16, by - 62 + tw2 * 2, '#f2c53d'); }
+    else { rect(bx + 13, by - 30, 6, 6, 'rgba(255,255,255,.12)'); rect(bx + 15, by - 22, 2, 10, 'rgba(255,255,255,.12)'); }   // sagoma vuota: qui manca ancora tutto
+    const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r] || '#b8b0a2';
+    drawCaseFront(BRUSH, bx, by, rc, full, time);
   };
   /* pianta in vaso come funzione (fronde alte: il pg passa dietro) */
   const drawPlant = (pxo) => {
@@ -235,20 +227,13 @@ export function drawMuseumGallery(time) {
   /* ATRIO d'ingresso: tappeto rosso dalla porta al bancone (sotto le entità) */
   const dx0 = (INT.w / 2) * TS;
   const deskCx = (GAL_DESK.x0 + GAL_DESK.x1) / 2;
-  rect(dx0 - 12, GAL_DESK.y1, 24, rh - GAL_DESK.y1 - 4, '#7c2f34'); rect(dx0 - 10, GAL_DESK.y1, 20, rh - GAL_DESK.y1 - 4, '#a3494e');
-  for (let x = dx0 - 8; x < dx0 + 8; x += 6) px(x, (GAL_DESK.y1 + rh) / 2, '#8a3f42');
+  rect(dx0 - 20, GAL_DESK.y1, 40, rh - GAL_DESK.y1 - 4, '#5c2a26'); rect(dx0 - 18, GAL_DESK.y1, 36, rh - GAL_DESK.y1 - 4, '#a8453c');
+  rect(dx0 - 14, GAL_DESK.y1, 2, rh - GAL_DESK.y1 - 4, '#c9a227'); rect(dx0 + 12, GAL_DESK.y1, 2, rh - GAL_DESK.y1 - 4, '#c9a227');
   rect(dx0 - 10, rh - 6, 20, 6, '#3a2e20'); rect(dx0 - 8, rh - 4, 16, 4, '#c49a63'); // varco porta
   /* bancone: base+ripiano (statico, sta sotto); la parte alta/insegna resta qui */
   const dw = GAL_DESK.x1 - GAL_DESK.x0, dh = GAL_DESK.y1 - GAL_DESK.y0;
-  const drawDesk = () => {
-    rect(GAL_DESK.x0, GAL_DESK.y0, dw, dh, '#6e4a2e'); rect(GAL_DESK.x0, GAL_DESK.y0, dw, 3, '#8a5f38');
-    rect(GAL_DESK.x0, GAL_DESK.y0 + 3, dw, 1, '#c9a227'); rect(GAL_DESK.x0, GAL_DESK.y1 - 2, dw, 2, '#4c3018');
-    rect(deskCx - 10, GAL_DESK.y0 - 5, 8, 5, '#f6efdd'); px(deskCx - 6, GAL_DESK.y0 - 4, '#8a5f38');
-    rect(deskCx + 4, GAL_DESK.y0 - 4, 5, 4, '#e8c34a'); px(deskCx + 6, GAL_DESK.y0 - 5, '#8a7118');
-  };
-  /* insegna "MUSEO" appesa (in alto, sempre dietro) */
-  rect(deskCx - 20, GAL_DESK.y0 - 22, 40, 10, '#3a3a44'); rect(deskCx - 20, GAL_DESK.y0 - 22, 40, 2, '#c9a227');
-  for (let i = 0; i < 5; i++) px(deskCx - 12 + i * 5, GAL_DESK.y0 - 17, '#e8c34a');
+  const drawDesk = () => drawDeskArt(BRUSH, GAL_DESK.x0, GAL_DESK.y0, GAL_DESK.x1, GAL_DESK.y1, time);
+  drawMuseumSign(BRUSH, deskCx, GAL_DESK.y0 - 64);
   /* ORDINAMENTO per y: teche, piante, bancone, curatore e player — chi è più in alto sta dietro */
   const ents = [];
   for (const pd of pedList()) {
@@ -258,6 +243,7 @@ export function drawMuseumGallery(time) {
   }
   for (const pxo of [GAL_DESK.x0 - 16, GAL_DESK.x1 + 6]) ents.push({ y: GAL_DESK.y1 + 8, f: () => drawPlant(pxo) });
   ents.push({ y: GAL_DESK.y1 - 2, f: drawDesk });
+  for (const [ccx, ccy] of roomCols) if (ccx - camx > -40 && ccx - camx < W + 40 && ccy - camy > -20 && ccy - camy < H + 110) ents.push({ y: ccy, f: () => drawColumn(BRUSH, ccx, ccy) });
   const npx = CUT.on ? CUT.x : deskCx;
   const npy = CUT.on ? CUT.y : GAL_DESK.y0 - 8;
   const paintNpc = () => {

@@ -36,6 +36,7 @@ src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete
 src/wonderNative.js tutte e 18 le meraviglie disegnate in NATIVO a 32px (gli sprite dello Studio restano in banca come riserva)
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
 src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)
+src/museumArt.js    la galleria del Museo: marmo, parquet, tappeti, vetrine col faretto, colonne, bancone (puro)
 src/shopArt.js      le 5 botteghe (Negozio/Locanda/Barbiere/Sartoria/Lab): stesso guscio della casa, bancone, arredi (puro)
 src/furnCatalog.js  CATALOGO: 12 temi × 21 pezzi, ognuno con la sua ricetta di disegno scritta a mano
 src/furnRecipe.js   interprete delle ricette (scatole, cilindri, dischi… nello stile 3/4 dell'arredo)
