@@ -3950,6 +3950,14 @@ sprites.applyLook();
     /* la porta resta sgombra anche col passo fine */
     const e = house.roomEntryPoint();
     check('davanti alla porta non si posa neanche di sbieco', house.canPlace(0, e.x / TS - 0.5, Math.floor(e.y / TS), tav.id, 1) === false);
+    /* MIRANDO TROPPO IN ALTO l'anteprima si ferma contro la parete, non diventa rossa: il
+       puntatore sta sul disegno, che sale sopra la base ("continua a darmi rosso nella parte
+       alta", due foto) */
+    const su = house.clampFurn(vaso.id, 0, 4, 0.5);
+    check('trascinato sopra il muro, il pezzo si ferma contro la parete', su.gy === 1 && house.canPlace(0, su.gx, su.gy, vaso.id, 0) === true);
+    const dx = house.clampFurn(tav.id, 0, 9, 3);
+    check('e contro la parete laterale scorre invece di sbordare', dx.gx + 2 <= 9.5 && house.canPlace(0, dx.gx, dx.gy, tav.id, 0) === true);
+    check('un quadro trascinato ovunque resta sulla sua parete', house.clampFurn('prati_art', 0, 3, 5).gy === 1);
     S.house.rooms[0].furn = [];
   }
 

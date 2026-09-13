@@ -818,6 +818,16 @@ const PROBE = `
       hm.cancelHold();
       A('arredo: si parte a mani libere', hm.isHolding() === false);
       A('arredo: il pezzo si prende in mano dal vassoio', hm.takeHold('prati_table') === true);
+      /* MIRANDO SULLA PARETE di fondo (dove il disegno dell'oggetto arriva davvero) l'anteprima
+         deve fermarsi contro il muro ed essere VERDE: era rossa, due volte segnalato */
+      return g.roomPoint(5, 0).then(function (pm) {
+        var cvm = document.getElementById('cv'), rm = cvm.getBoundingClientRect();
+        cvm.dispatchEvent(new PointerEvent('pointermove', { clientX: rm.left + pm.x, clientY: rm.top + pm.y, bubbles: true, pointerId: 22 }));
+        var pl = hm.holdPlacement(0);
+        A("arredo: puntando sulla parete l'anteprima si accosta al muro ed è verde", !!pl && pl.ok === true && pl.gy === 1,
+          pl ? 'gy=' + pl.gy + ' ok=' + pl.ok : 'nessuna anteprima');
+      });
+    }).then(function(){
       /* il puntatore muove l'ANTEPRIMA: si finge un trascinamento sulla canvas */
       var cv2 = document.getElementById('cv'), r = cv2.getBoundingClientRect();
       var manda = function (tipo, x, y) {
@@ -850,9 +860,10 @@ const PROBE = `
         manda('pointerup', p.x, p.y);
         A('arredo: un clic sul mobile lo seleziona e RESTA in mano', hm.isHolding() === true);
         var rot0 = hm.holdItem().rot;
-        document.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }));
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }));
-        A('arredo: R lo ruota mentre è selezionato', hm.holdItem() && hm.holdItem().rot !== rot0,
+        /* UN quarto di giro per pressione: due ascoltatori sullo stesso tasto farebbero
+           saltare il verso, e sembrerebbe che R "non giri" */
+        A('arredo: R lo ruota di un quarto mentre è selezionato', hm.holdItem() && hm.holdItem().rot === (rot0 + 1) % 4,
           'rot ' + rot0 + '→' + (hm.holdItem() && hm.holdItem().rot));
         /* un secondo clic lo posa */
         manda('pointerdown', p.x, p.y);

@@ -242,6 +242,20 @@ function entryZone() {
   const e = roomEntryPoint(), ex = e.x / TS, ey = e.y / TS;
   return { x0: ex - 0.5, y0: Math.floor(ey), x1: ex + 0.5, y1: ROOM_TILE_H };
 }
+/* l'anteprima trascinata OLTRE il bordo si ferma contro il muro e ci scorre lungo, invece di
+   diventare rossa. Il puntatore sta sul DISEGNO dell'oggetto, che sale sopra la sua base:
+   avvicinandosi alla parete di fondo la base finiva mezza casella dentro il muro e l'anteprima
+   restava rossa proprio nella posizione più naturale (segnalato due volte con foto:
+   "continua a darmi rosso nella parte alta"). Rosso deve voler dire "c'è già qualcosa", non
+   "hai mirato troppo in alto". */
+export function clampFurn(itemId, rot, gx, gy) {
+  const sz = furnSize(itemId, rot || 0);
+  if (furnLayer(itemId) === 'wall') return { gx: Math.max(WALL_BOUNDS.x0, Math.min(WALL_BOUNDS.x1 - sz.w, gx)), gy: 1 };
+  return {
+    gx: Math.max(FLOOR_BOUNDS.x0, Math.min(FLOOR_BOUNDS.x1 - sz.w, gx)),
+    gy: Math.max(FLOOR_BOUNDS.y0, Math.min(FLOOR_BOUNDS.y1 - sz.h, gy)),
+  };
+}
 function rectInRoom(rect, layer) {
   if (layer === 'wall') return rect.x0 >= WALL_BOUNDS.x0 && rect.x1 <= WALL_BOUNDS.x1 && rect.y0 === 1;
   if (rect.x0 < FLOOR_BOUNDS.x0 || rect.x1 > FLOOR_BOUNDS.x1 || rect.y0 < FLOOR_BOUNDS.y0 || rect.y1 > FLOOR_BOUNDS.y1) return false;

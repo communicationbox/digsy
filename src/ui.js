@@ -17,7 +17,7 @@ import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHo
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
-import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, takeHold, setHoldTarget, holdPlacement, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
+import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, takeHold, setHoldTarget, holdPlacement, clampFurn, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
 import { drawFurnThumb } from './furnArt.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
@@ -231,7 +231,12 @@ function syncFurnHoldPreview() {
      "simile ma non uguale" è il modo sicuro per far divergere le due (è già successo). */
   try { drawFurnThumb(furnHoldPv, hv.itemId); } catch (e) { /* stub nei test */ }
 }
-if (furnRotBtn) furnRotBtn.onclick = () => { playSfx('ui'); rotateHold(); syncFurnHoldPreview(); };
+if (furnRotBtn) furnRotBtn.onclick = () => {
+  playSfx('ui'); rotateHold();
+  const hv = holdItem(), t = hv && hv.gx != null ? clampFurn(hv.itemId, hv.rot, hv.gx, hv.gy) : null;   // girato, si riaccosta al muro
+  if (t) setHoldTarget(t.gx, t.gy);
+  syncFurnHoldPreview();
+};
 /* la barra Ruota/Annulla ridisegnata da fuori (tasto R, Esc): senza, la miniatura restava
    girata come prima mentre nella stanza il mobile era già ruotato */
 export function refreshFurnHold() { syncFurnHoldPreview(); syncFurnHold(); }

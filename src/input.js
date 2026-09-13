@@ -17,7 +17,7 @@ import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
 import { INT, interiorLeave, intCollide, CUT, doorTileX, nudgeOffFurniture } from './interior.js';
-import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt, furnLayer, rotateHold, cancelHold, holdItem, snapFurn } from './house.js';
+import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt, furnLayer, rotateHold, cancelHold, holdItem, snapFurn, clampFurn } from './house.js';
 import { furnSize } from './data.js';
 import { furnRise } from './furnArt.js';
 import { S } from './state.js';
@@ -133,7 +133,13 @@ addEventListener('keydown', e => {
   /* ARREDO IN MANO: R ruota (e l'anteprima nella stanza cambia subito), Esc lo rimette nel
      vassoio invece di farti uscire dalla stanza col mobile ancora a mezz'aria */
   const inCasa = INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null;
-  if ((e.key === 'r' || e.key === 'R') && inCasa && isHolding() && !isModalOpen()) { rotateHold(); refreshFurnHold(); playSfx('ui'); e.preventDefault(); return; }
+  if ((e.key === 'r' || e.key === 'R') && inCasa && isHolding() && !isModalOpen()) {
+    rotateHold();
+    /* girato, un pezzo lungo può sbordare dal muro: si riaccosta invece di diventare rosso */
+    const hv = holdItem(), t = hv && hv.gx != null ? clampFurn(hv.itemId, hv.rot, hv.gx, hv.gy) : null;
+    if (t) setHoldTarget(t.gx, t.gy);
+    refreshFurnHold(); playSfx('ui'); e.preventDefault(); return;
+  }
   if (e.key === 'Escape' && inCasa && isHolding() && !isModalOpen()) { cancelHold(); refreshFurnHold(); toast('🎨 ' + tr('Torna nel vassoio', 'Back in your tray')); e.preventDefault(); return; }
   if (e.key === 'Escape') { if (isPrepOpen()) closePrepare(); else if (isMapOpen()) closeMap(); else if (isBookOpen()) closeBook(); else if (isBagOpen()) closeBag(); else if (isModalOpen()) closeModal(); else if (INT.active) interiorLeave(); else showSplash(); e.preventDefault(); }
 });
@@ -223,7 +229,8 @@ if (cv && cv.addEventListener) {
     const hv = holdItem(); if (!hv) return;
     let ox = grabDx, oy = grabDy;
     if (!grabbed) { const sz = furnSize(hv.itemId, hv.rot || 0); ox = sz.w / 2; oy = sz.h / 2; }
-    setHoldTarget(snapFurn(w.x / TS - ox), snapFurn(w.y / TS - oy));
+    const c = clampFurn(hv.itemId, hv.rot || 0, snapFurn(w.x / TS - ox), snapFurn(w.y / TS - oy));
+    setHoldTarget(c.gx, c.gy);
   };
   cv.addEventListener('pointerdown', e => {
     downX = e.clientX; downY = e.clientY; downT = Date.now();
