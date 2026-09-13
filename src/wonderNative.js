@@ -257,42 +257,56 @@ function disegna_geyser(g, t) {
 }
 
 function disegna_redarch(g, t) {
-  groundShadow(g, 88, 14);
-  /* un ARCO NATURALE scavato dal vento: una sola massa di arenaria a strati, con il foro
-     tondeggiante in mezzo e i bordi rosicchiati. Prima erano due pilastri e una trave:
-     sembrava uno stipite, non roccia. */
-  const band = ['#b5623a', '#c9784a', '#a85530', '#d08a5a', '#b86840', '#9a4a26'];
-  const TOP = -160;
-  for (let y = TOP; y < 0; y++) {
-    const u = (y - TOP) / -TOP;                                           // 0 in cima, 1 a terra
-    const jag = Math.round(Math.sin(y * 0.37) * 2 + Math.sin(y * 0.11) * 3);
-    const outer = Math.round(64 + (u < 0.18 ? -(0.18 - u) * 90 : 0) + u * u * 14) + jag;   // spalle arrotondate, base più larga
-    const hole = y > -122 ? Math.round(34 * Math.sqrt(Math.max(0, 1 - ((y + 30) / 92) ** 2))) + (y > -30 ? 4 : 0) : 0;
-    const c = band[(Math.floor((y + 400) / 7) % band.length)];
-    const seg = (x0, x1, lit) => {
-      if (x1 <= x0) return;
-      g.rect(x0 - 1, y, x1 - x0 + 2, 1, '#4a2010');
-      g.rect(x0, y, x1 - x0, 1, c);
-      g.rect(x0, y, Math.min(5, x1 - x0), 1, lit ? shade(c, 1.2) : shade(c, 0.85));
-      g.rect(x1 - Math.min(6, x1 - x0), y, Math.min(6, x1 - x0), 1, lit ? shade(c, 0.85) : shade(c, 0.66));
-    };
-    if (hole) { seg(-outer, -hole, true); seg(hole, outer, false); }
-    else seg(-outer, outer, true);
-    if ((Math.floor((y + 400) / 7) * 7 - 400) === y) {                  // filo di luce fra gli strati, mai dentro il foro
-      if (hole) { g.rect(-outer, y, outer - hole, 1, shade(c, 1.12)); g.rect(hole, y, outer - hole, 1, shade(c, 1.12)); } else g.rect(-outer, y, outer * 2, 1, shade(c, 1.12));
+  /* ARCO ROSSO: un arco naturale del deserto, di quelli scolpiti dal vento. Due gambe di
+     arenaria che poggiano sulle caselle solide (colonne -2 e +1), si assottigliano salendo, e un
+     ponte di roccia sottile e curvo che le unisce. La prima versione nativa era un muro alto
+     cinque caselle con un buco e le macchie scure ("troppo grande e non mi piace"). */
+  groundShadow(g, 80, 12);
+  ellipse(g, 0, -2, 64, 7, 'rgba(60,24,10,.18)');
+  const noise = (x, y) => Math.sin(x * 0.35 + y * 0.21) * 0.6 + Math.sin(y * 0.13 - x * 0.1) * 0.8;
+  const SC = 0.85;                                    // taglia: l'arco sale circa tre caselle e mezzo
+  const inside = (x0, y0) => {
+    const x = x0 / SC, y = y0 / SC;
+    if (y > 0) return false;
+    /* gambe: poggiano a ±50 e si piegano verso il centro salendo, come un arco vero */
+    for (const side of [-1, 1]) {
+      const h = -y, c = side * (50 - h * h * 0.0016);
+      const hw = 12 + (y > -16 ? (y + 16) * 0.55 : 0) + noise(x, y) * 0.5;
+      if (y > -90 && Math.abs(x - c) <= hw) return true;
     }
+    /* volta: un anello d'arco (tra due semiellissi) che unisce le cime delle gambe */
+    const rIn = (x * x) / (25 * 25) + ((y + 80) * (y + 80)) / (30 * 30), rOut = (x * x) / (49 * 49) + ((y + 80) * (y + 80)) / (48 * 48);
+    if (y <= -76 && rOut <= 1 + noise(x, y) * 0.02 && rIn >= 1) return true;
+    return false;
+  };
+  const band = ['#c0683e', '#cf7c4c', '#b35c34', '#d88c5a', '#bd6a40'];
+  for (let y = -116; y <= 0; y++) {
+    let runX = null, runC = null;
+    const flush = xEnd => { if (runX !== null) g.rect(runX, y, xEnd - runX, 1, runC); runX = null; };
+    for (let x = -80; x <= 80; x++) {
+      if (!inside(x, y)) { flush(x); continue; }
+      let c;
+      if (!inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || (y < 0 && !inside(x, y + 1))) c = '#4a2010';
+      else {
+        const b = band[((Math.floor((y + Math.round(noise(x, y) * 1.5) + 200) / 6)) % band.length)];
+        if (!inside(x, y - 2)) c = '#f0b080';                                        // cima in luce
+        else if (!inside(x - 3, y)) c = shade(b, 1.18);                              // lato sinistro in luce
+        else if (!inside(x + 4, y)) c = shade(b, 0.66);                              // lato destro in ombra
+        else if (y > -68 && Math.abs(x) < 38 && !inside(x + (x < 0 ? 4 : -4), y)) c = shade(b, 0.8);   // bordo interno delle gambe
+        else if (!inside(x, y + 3) && y < -6) c = shade(b, 0.62);                    // sotto il ponte, in ombra
+        else c = b;
+      }
+      if (c !== runC) { flush(x); runX = x; runC = c; }
+    }
+    flush(81);
   }
-  /* bordo in ombra dentro il foro e cavità erose */
-  for (let y = -122; y < 0; y++) { const hole = Math.round(34 * Math.sqrt(Math.max(0, 1 - ((y + 30) / 92) ** 2))) + (y > -30 ? 4 : 0); if (hole > 2) { g.rect(-hole, y, 3, 1, 'rgba(40,14,6,.45)'); g.rect(hole - 3, y, 3, 1, 'rgba(255,210,170,.25)'); } }
-  for (let x = -40; x <= 40; x += 2) { const d = Math.round(Math.sqrt(Math.max(0, 1 - (x / 40) ** 2)) * 6); g.rect(x, -124, 2, d, 'rgba(40,14,6,.4)'); }
-  for (const [x, y, rr] of [[-50, -96, 4], [52, -70, 5], [-18, -144, 3], [46, -30, 4], [-56, -40, 5], [8, -150, 2]]) { disc(g, x, y, rr, '#5c2a18'); g.rect(x - rr + 1, y + rr - 1, rr * 2 - 2, 1, '#d89a6a'); }
-  /* detriti e piante del deserto */
-  for (const [x, y, r] of [[-84, 2, 7], [-44, 6, 4], [78, 3, 6], [44, 8, 3], [-6, 10, 3]]) { disc(g, x, y, r + 1, '#4a2010'); disc(g, x, y - 1, r, '#a85a34'); g.rect(x - r + 2, y - r, r, 2, '#c9784a'); }
-  for (const x of [-96, 92]) { g.rect(x, -20, 5, 20, '#2f4a2a'); g.rect(x + 1, -19, 3, 18, '#5f8a4a'); g.rect(x - 5, -14, 5, 3, '#5f8a4a'); g.rect(x + 5, -10, 5, 3, '#5f8a4a'); g.rect(x - 5, -18, 2, 5, '#5f8a4a'); g.rect(x + 8, -14, 2, 5, '#5f8a4a'); }
-  /* polvere che il vento spinge dentro l'arco */
-  for (let i = 0; i < 6; i++) {
-    const k = ((t / 2200) + i / 6) % 1, x = -34 + Math.round(k * 68), y = -12 - ((i * 13) % 50) - Math.round(Math.sin(k * 6) * 4);
-    g.rect(x, y, 3, 1, 'rgba(240,190,140,' + (0.7 * (1 - Math.abs(k - 0.5) * 2)).toFixed(2) + ')');
+  /* sassi caduti ai piedi e un cespuglio del deserto */
+  for (const [x, y, r] of [[-70, 2, 5], [-26, 6, 3], [70, 3, 5], [28, 7, 3], [4, 9, 2]]) { disc(g, x, y, r + 1, '#4a2010'); disc(g, x, y - 1, r, '#b5623a'); g.rect(x - r + 2, y - r, r, 1, '#d8905a'); }
+  for (const x of [-86, 82]) { g.rect(x, -16, 4, 16, '#2f4a2a'); g.rect(x + 1, -15, 2, 14, '#6f9a52'); g.rect(x - 4, -11, 4, 2, '#6f9a52'); g.rect(x + 4, -8, 4, 2, '#6f9a52'); g.rect(x - 4, -14, 2, 4, '#6f9a52'); g.rect(x + 6, -11, 2, 4, '#6f9a52'); }
+  /* un filo di sabbia che il vento fa passare sotto l'arco */
+  for (let i = 0; i < 5; i++) {
+    const k = ((t / 2400) + i / 5) % 1, x = -30 + Math.round(k * 60), y = -8 - ((i * 11) % 30);
+    g.rect(x, y, 3, 1, 'rgba(245,200,150,' + (0.7 * (1 - Math.abs(k - 0.5) * 2)).toFixed(2) + ')');
   }
 }
 
