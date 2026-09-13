@@ -6246,6 +6246,56 @@ sprites.applyLook();
     check('il tasto destro chiama la stessa azione della E', /contextmenu[\s\S]{0,400}act\(\)/.test(isrc17));
   }
 
+  /* ARREDO COL PUNTATORE, dentro il vero input.js: selezionare, trascinare, ruotare con R,
+     annullare con Esc, e l'anteprima che si accosta al muro. L'e2e lo prova in un browser;
+     qui si fanno girare gli stessi rami a ogni `npm test`, perché un ramo mai eseguito è un
+     crash che aspetta (REGOLA #9). */
+  {
+    const inter18 = await import('../src/interior.js');
+    const house18 = await import('../src/house.js');
+    const { interiorCam } = await import('../src/interiors.js');
+    const { view: view18 } = await import('../src/screen.js');
+    const { TS: TS18 } = await import('../src/data.js');
+    if (!view18.W) { view18.W = 400; view18.H = 300; }
+    const cv18 = document.getElementById('cv');
+    const home18 = S.home || { x: 50, y: 50 };
+    if (!S.home) S.home = home18;
+    inter18.enterInterior({ type: 'house', name: 'house', x: home18.x, y: home18.y });
+    inter18.enterHouseRoom(0);
+    S.house.rooms[0].unlocked = true; S.house.rooms[0].furn = [];
+    if (!S.furnOwned.includes('prati_table')) S.furnOwned.push('prati_table');
+    house18.cancelHold();
+    const scr = (gx, gy) => { const c = interiorCam(); return { x: ((gx + 0.5) * TS18 - c.x) / view18.W * 100, y: ((gy + 0.5) * TS18 - c.y) / view18.H * 100 }; };
+    const pev = (t, gx, gy) => { const q = scr(gx, gy); cv18.dispatchEvent({ type: t, clientX: q.x, clientY: q.y, pointerId: 18, preventDefault() {} }); };
+    /* dal vassoio: il puntatore sopra la parete accosta l'anteprima al muro, verde */
+    house18.takeHold('prati_table');
+    pev('pointermove', 5, 0);
+    const pl18 = house18.holdPlacement(0);
+    check('input: puntando sopra la parete l\'anteprima si accosta al muro (verde)', !!pl18 && pl18.ok === true && pl18.gy === 1, JSON.stringify(pl18));
+    /* un clic posa */
+    pev('pointerdown', 4, 3); pev('pointerup', 4, 3);
+    check('input: col pezzo in mano, un clic lo posa', house18.isHolding() === false && S.house.rooms[0].furn.length === 1);
+    /* un clic sul mobile lo seleziona e RESTA in mano */
+    const f18 = S.house.rooms[0].furn[0];
+    pev('pointerdown', f18.gx + 0.2, f18.gy); pev('pointerup', f18.gx + 0.2, f18.gy);
+    check('input: un clic sul mobile lo seleziona (resta in mano)', house18.isHolding() === true);
+    const r0 = house18.holdItem().rot;
+    __fireKey('keydown', 'r');
+    check('input: R lo ruota di un quarto', house18.holdItem().rot === (r0 + 1) % 4);
+    __fireKey('keydown', 'Escape');
+    check('input: Esc lo rimette nel vassoio (e non fa uscire dalla stanza)', house18.isHolding() === false && inter18.INT.active === true);
+    /* trascinare un mobile piazzato: si alza alla pressione e si posa dove si rilascia */
+    house18.takeHold('prati_table'); pev('pointerdown', 3, 4); pev('pointerup', 3, 4);
+    const g0 = S.house.rooms[0].furn[0];
+    pev('pointerdown', g0.gx + 0.2, g0.gy);
+    pev('pointermove', g0.gx + 2.2, g0.gy - 1);             // verso il muro: lontano dalla porta
+    pev('pointerup', g0.gx + 2.2, g0.gy - 1);
+    const g1 = S.house.rooms[0].furn[0];
+    check('input: trascinando, il mobile si sposta dove lo si lascia', !!g1 && house18.isHolding() === false && g1.gx !== g0.gx, g0.gx + '→' + (g1 && g1.gx));
+    S.house.rooms[0].furn = []; house18.cancelHold();
+    inter18.leaveHouseRoom(); inter18.exitInterior();
+  }
+
   /* TOCCO SUL MONDO: la conversione e la scelta della scena vivono qui, e il tocco deve
      essere ignorato quando c'è un pannello aperto sopra */
   {
