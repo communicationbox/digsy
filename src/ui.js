@@ -18,7 +18,7 @@ import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
 import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, takeHold, setHoldTarget, holdPlacement, clampFurn, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
-import { drawFurnThumb } from './furnArt.js';
+import { drawFurnThumb, furnRotatable } from './furnArt.js';
 import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
@@ -229,10 +229,11 @@ function syncFurnHoldPreview() {
   const hv = isHolding() && holdItem(); if (!hv) return;
   /* è lo STESSO disegno che finirà nella stanza, scalato per stare nel riquadro: un'anteprima
      "simile ma non uguale" è il modo sicuro per far divergere le due (è già successo). */
-  try { drawFurnThumb(furnHoldPv, hv.itemId); } catch (e) { /* stub nei test */ }
+  try { drawFurnThumb(furnHoldPv, hv.itemId, 0, hv.rot || 0); } catch (e) { /* stub nei test */ }
 }
 if (furnRotBtn) furnRotBtn.onclick = () => {
-  playSfx('ui'); rotateHold();
+  playSfx('ui');
+  if (!rotateHold()) { toast('🎨 ' + tr('Questo pezzo è uguale da ogni lato: non si gira', 'This piece looks the same from every side: it does not turn')); return; }
   const hv = holdItem(), t = hv && hv.gx != null ? clampFurn(hv.itemId, hv.rot, hv.gx, hv.gy) : null;   // girato, si riaccosta al muro
   if (t) setHoldTarget(t.gx, t.gy);
   syncFurnHoldPreview();
@@ -249,6 +250,8 @@ function syncFurnHold() {
   const on = INT.active && isHolding();
   if (on && !furnHold.classList.contains('on')) syncFurnHoldPreview(); // appena raccolto: disegna subito
   furnHold.classList.toggle('on', on);
+  /* Ruota spento (e detto) per chi è uguale da ogni lato: un bottone che non fa niente sembra rotto */
+  if (furnRotBtn && on) { const hv = holdItem(); const ok = !!hv && furnRotatable(hv.itemId); furnRotBtn.disabled = !ok; furnRotBtn.title = ok ? '' : tr('Uguale da ogni lato', 'Same from every side'); }
 }
 export function updatePrompt() {
   syncExitBtn();

@@ -251,9 +251,128 @@ function drawWallPiece(g, x, y, w, h, id, col) {
   g.rect(x + 3, y + 2, w - 8, 2, WOOD_L);                   // filo di luce sulla cornice
 }
 
+/* ---------- ROTAZIONE VISIBILE ----------
+   Il disegno ignorava `rot`: ruotando cambiava solo l'ingombro, e un letto 2×2, una sedia o un
+   baule restavano IDENTICI dopo il giro. Il tasto funzionava e non si vedeva niente ("sono
+   scemo io ma non riesco a far ruotare nulla" — non lo era). Ora chi ha un VERSO ha un disegno
+   per verso; chi è uguale da ogni lato (vaso, lampada, cristallo, tappeto, piedistallo, quadri)
+   non si ruota affatto, e il gioco non offre la maniglia per farlo.
+   Verso: 0 = guarda verso chi gioca (giù) · 1 = destra · 2 = di spalle (su) · 3 = sinistra. */
+const ROTATABLE = new Set(['bed', 'table', 'chair', 'chest', 'hearth', 'box']);
+export function furnRotatable(id) { return ROTATABLE.has(artCategory(id)); }
+/* lo SPECCHIO orizzontale di un pennello dentro [x, x+w]: il verso 3 è il verso 1 riflesso,
+   disegnato una volta sola (due disegni "simili" divergono) */
+function mirrorBrush(g, x, w) {
+  return { ...g, rect: (rx, ry, rw, rh, c) => g.rect(2 * x + w - rx - rw, ry, rw, rh, c), px: (rx, ry, c) => g.rect(2 * x + w - rx - 1, ry, 1, 1, c) };
+}
+/* LETTO: la testiera sta dal lato del verso opposto a dove si guarda — rot 0 testiera in alto
+   (i piedi verso chi gioca), rot 2 testiera in basso, rot 1/3 testiera su un fianco */
+function drawBedRot(g, x, y, w, h, col, rot) {
+  if (rot === 0) { drawBed(g, x, y, w, h, col); return; }
+  const p = pal(g, col);
+  if (rot === 2) {                                            // di spalle: testiera bassa davanti
+    g.rect(x + 1, y - 4, w - 2, h, WOOD_D);                   // struttura
+    g.rect(x + 2, y - 3, w - 4, h - 3, WOOD);
+    g.rect(x + 4, y - 2, w - 8, h - 8, p.lite);               // lenzuolo
+    g.rect(x + 4, y - 2, w - 8, h * 0.5, p.base);             // coperta verso il fondo (in alto)
+    g.rect(x + 4, y - 2 + h * 0.5, w - 8, 3, p.dark);         // risvolto
+    for (let sx2 = x + 7; sx2 < x + w - 6; sx2 += 8) g.rect(sx2, y, 1, h * 0.35, p.dark);
+    g.rect(x + w * 0.25, y + h - 22, w * 0.5, 10, '#efe6cf'); // cuscino vicino alla testiera
+    g.rect(x + w * 0.25, y + h - 22, w * 0.5, 3, '#ffffff');
+    g.rect(x + 2, y + h - 12, w - 4, 12, WOOD_D);             // testiera, bassa e davanti
+    g.rect(x + 3, y + h - 11, w - 6, 9, WOOD);
+    g.rect(x + 3, y + h - 11, w - 6, 3, WOOD_L);
+    return;
+  }
+  const gg = rot === 3 ? mirrorBrush(g, x, w) : g;           // rot 1: testiera a destra
+  gg.rect(x + 1, y + 2, w - 2, h - 4, WOOD_D);
+  gg.rect(x + 2, y + 3, w - 4, h - 7, WOOD);
+  gg.rect(x + 4, y + 4, w - 12, h - 9, p.lite);               // lenzuolo
+  gg.rect(x + 4, y + 4, w * 0.5, h - 9, p.base);              // coperta verso i piedi (sinistra)
+  gg.rect(x + 4 + w * 0.5, y + 4, 3, h - 9, p.dark);          // risvolto
+  for (let sy2 = y + 8; sy2 < y + h - 8; sy2 += 8) gg.rect(x + 6, sy2, w * 0.4, 1, p.dark);
+  gg.rect(x + w - 20, y + h * 0.25, 10, h * 0.5, '#efe6cf');  // cuscino vicino alla testiera
+  gg.rect(x + w - 20, y + h * 0.25, 3, h * 0.5, '#ffffff');
+  gg.rect(x + w - 8, y - 12, 7, h + 10, WOOD_D);              // testiera sul fianco, sale di 12
+  gg.rect(x + w - 7, y - 11, 5, h + 7, WOOD);
+  gg.rect(x + w - 7, y - 11, 5, 3, WOOD_L);
+}
+/* SEDIA: rot 0 guarda chi gioca (schienale in alto), rot 2 di spalle (schienale davanti, la
+   seduta sparisce dietro), rot 1/3 di profilo (schienale su un fianco, seduta di lato) */
+function drawChairRot(g, x, y, w, h, col, rot) {
+  if (rot === 0) { drawChair(g, x, y, w, h, col); return; }
+  const p = pal(g, col), cush = g.shade8(col, 2.1);
+  if (rot === 2) {
+    g.rect(x + 5, y + h - 7, 3, 5, WOOD_D); g.rect(x + w - 8, y + h - 7, 3, 5, WOOD_D);   // gambe
+    g.rect(x + 4, y + 2, w - 8, 12, p.line);                  // seduta, dietro
+    g.rect(x + 5, y + 3, w - 10, 9, cush);
+    g.rect(x + 3, y + 4, 4, 12, WOOD_D); g.rect(x + w - 7, y + 4, 4, 12, WOOD_D);          // braccioli
+    g.rect(x + 6, y - 10, w - 12, h - 2, p.line);             // schienale davanti: la parte posteriore
+    g.rect(x + 7, y - 9, w - 14, h - 5, p.dark);
+    g.rect(x + 7, y - 9, w - 14, 3, p.base);
+    g.rect(x + 9, y - 4, w - 18, 1, p.line);                  // cuciture del retro
+    g.rect(x + 9, y + 4, w - 18, 1, p.line);
+    return;
+  }
+  const gg = rot === 3 ? mirrorBrush(g, x, w) : g;           // rot 1: guarda a destra, schienale a sinistra
+  gg.rect(x + 8, y + h - 6, 3, 5, WOOD_D); gg.rect(x + w - 8, y + h - 6, 3, 5, WOOD_D);    // gambe
+  gg.rect(x + 7, y + 8, w - 11, 16, p.line);                  // seduta di profilo
+  gg.rect(x + 8, y + 9, w - 13, 12, cush);
+  gg.rect(x + 8, y + 9, w - 13, 2, g.shade8(col, 2.6));
+  gg.rect(x + 10, y + 4, w - 16, 4, WOOD_D);                  // bracciolo (quello verso chi guarda)
+  gg.rect(x + 3, y - 10, 7, h + 2, p.line);                   // schienale: una lastra sul fianco
+  gg.rect(x + 4, y - 9, 5, h - 1, p.base);
+  gg.rect(x + 4, y - 9, 2, h - 1, p.lite);
+}
+/* TAVOLO: il piano copre la sua impronta, orizzontale o verticale che sia; le gambe si vedono
+   agli angoli bassi. Prima il piano era una striscia in cima e girato diventava un'asta. */
+function drawTableRot(g, x, y, w, h, col) {
+  const p = pal(g, col);
+  g.rect(x + 3, y + h - 12, 4, 11, WOOD_D); g.rect(x + w - 7, y + h - 12, 4, 11, WOOD_D);  // gambe davanti
+  g.rect(x + 1, y - 10, w - 2, h - 2, p.line);                // piano
+  g.rect(x + 2, y - 9, w - 4, h - 5, p.base);
+  g.rect(x + 2, y - 9, w - 4, 3, p.lite);                     // filo di luce
+  g.rect(x + 2, y + h - 16, w - 4, 3, p.dark);                // spessore del bordo davanti
+  if (h > w) for (let yy = y - 2; yy < y + h - 18; yy += 10) g.rect(x + 5, yy, w - 10, 1, g.shade8(col, 0.88));  // venatura lungo il verso
+  else for (let xx = x + 8; xx < x + w - 8; xx += 12) g.rect(xx, y - 4, 1, h - 16, g.shade8(col, 0.88));
+}
+/* BAULE: la serratura dice dov'è il davanti */
+function drawChestRot(g, x, y, w, h, col, rot) {
+  if (rot === 0) { drawChest(g, x, y, w, h, col); return; }
+  const p = pal(g, col), top = y - 10;
+  g.rect(x + 3, top + 4, w - 6, h + 2, p.line);
+  g.rect(x + 4, top + 5, w - 8, h, p.base);
+  g.rect(x + 4, top, w - 8, 7, p.dark);                       // coperchio
+  g.rect(x + 5, top + 1, w - 10, 4, p.lite);
+  g.rect(x + 4, top + 8, w - 8, 2, WOOD_D);                   // cinghia
+  if (rot === 2) { g.rect(x + 8, top + 12, 3, 8, WOOD_D); g.rect(x + w - 11, top + 12, 3, 8, WOOD_D); return; }  // di spalle: cardini
+  const gg = rot === 3 ? mirrorBrush(g, x, w) : g;
+  gg.rect(x + w - 6, top + 8, 3, 8, '#e8c34a');               // serratura sul fianco verso cui guarda
+  gg.rect(x + w - 5, top + 11, 1, 2, '#6b5137');
+}
+/* FOCOLARE: la bocca del fuoco sta sul lato verso cui guarda */
+function drawHearthRot(g, x, y, w, h, col, t, rot) {
+  if (rot === 0) { drawHearth(g, x, y, w, h, col, t); return; }
+  const p = pal(g, col), top = y - 12;
+  g.rect(x + 2, top, w - 4, h + 10, p.line);
+  g.rect(x + 3, top + 1, w - 6, h + 8, p.base);
+  for (let sy = top + 4; sy < y + h - 4; sy += 7) for (let sx = x + 5; sx < x + w - 6; sx += 8) {
+    g.rect(sx, sy, 5, 3, (sx + sy) % 2 ? p.lite : p.dark);
+  }
+  if (rot === 2) { g.rect(x + w / 2 - 5, top - 2, 10, 4, p.dark); return; }            // di spalle: solo la cappa
+  const gg = rot === 3 ? mirrorBrush(g, x, w) : g;
+  const my = y + h / 2 - 4;
+  gg.rect(x + w - 9, my - 8, 7, 18, '#2a1c12');               // bocca sul fianco
+  const f = Math.sin(t * 6) * 0.5 + 0.5, fh = 8 + Math.round(f * 4);
+  gg.rect(x + w - 8, my + 9 - fh, 5, fh, '#c9502a');
+  gg.rect(x + w - 7, my + 11 - fh, 3, fh - 3, '#e8873a');
+  gg.rect(x + w - 6, my + 13 - fh, 1, Math.max(1, fh - 6), '#f6dc78');
+}
+
 /* ---------- il pezzo, disegnato ---------- */
 /* `x,y` = angolo alto-sinistro dell'INGOMBRO (px), `w,h` = ingombro in px. */
-export function drawFurnPiece(g, id, x, y, w, h, time) {
+export function drawFurnPiece(g, id, x, y, w, h, time, rot) {
+  rot = (((rot | 0) % 4) + 4) % 4;
   const it = FURN_BY_ID[id]; if (!it) return;
   const col = it.col || '#c8b078', cat = artCategory(id), t = (time || 0) / 1000;
   if (hasSprite('furn:' + id)) { drawSprite(g, 'furn:' + id, x + w / 2, y + h); return; }
@@ -262,11 +381,11 @@ export function drawFurnPiece(g, id, x, y, w, h, time) {
      galleggiarci sopra. Sta prima del pezzo, larga come la sua base. */
   if (cat !== 'rug') g.shadow(Math.round(x + w / 2), Math.round(y + h - 2), Math.round(w / 2 - 2));
   if (cat === 'rug') drawRug(g, x, y, w, h, col);
-  else if (cat === 'bed') drawBed(g, x, y, w, h, col);
-  else if (cat === 'table') drawTable(g, x, y, w, h, col);
-  else if (cat === 'chair') drawChair(g, x, y, w, h, col);
-  else if (cat === 'chest') drawChest(g, x, y, w, h, col);
-  else if (cat === 'hearth') drawHearth(g, x, y, w, h, col, t);
+  else if (cat === 'bed') drawBedRot(g, x, y, w, h, col, rot);
+  else if (cat === 'table') drawTableRot(g, x, y, w, h, col);
+  else if (cat === 'chair') drawChairRot(g, x, y, w, h, col, rot);
+  else if (cat === 'chest') drawChestRot(g, x, y, w, h, col, rot);
+  else if (cat === 'hearth') drawHearthRot(g, x, y, w, h, col, t, rot);
   else if (cat === 'crystal') drawCrystal(g, x, y, w, h, col, t);
   else if (cat === 'plant') drawPlant(g, x, y, w, h, col);
   else if (cat === 'lamp') drawLamp(g, x, y, w, h, col, t);
@@ -350,12 +469,13 @@ export function drawPaperBand(g, id, x, y, w, hgt, def) {
 /* MINIATURA di un pezzo su una canvas piccola (negozio, vassoio, pezzo "in mano"): lo STESSO
    disegno della stanza, scalato per stare nel riquadro. Non un secondo disegno "simile": era
    proprio così che l'anteprima e il mobile vero finivano per non somigliarsi più. */
-export function drawFurnThumb(cv, id, time) {
+export function drawFurnThumb(cv, id, time, rot) {
   const c2 = cv.getContext && cv.getContext('2d'); if (!c2) return false;
   c2.imageSmoothingEnabled = false;
   c2.clearRect(0, 0, cv.width, cv.height);
   const it = FURN_BY_ID[id]; if (!it) return false;
-  const w = (it.w || 1) * TS, h = (it.h || 1) * TS, rise = furnRise(id);
+  const r2 = (((rot | 0) % 4) + 4) % 4, gira = r2 % 2 === 1;
+  const w = (gira ? (it.h || 1) : (it.w || 1)) * TS, h = (gira ? (it.w || 1) : (it.h || 1)) * TS, rise = furnRise(id);
   const cat = artCategory(id);
   /* i FONDI non sono oggetti: la loro anteprima è un pezzo di parete/pavimento, che è
      esattamente quello che si compra */
@@ -373,7 +493,7 @@ export function drawFurnThumb(cv, id, time) {
   c2.save();
   c2.translate(Math.round((cv.width - w * k) / 2), Math.round((cv.height - totH * k) / 2 + rise * k));
   c2.scale(k, k);
-  drawFurnPiece(makeBrush(c2), id, 0, 0, w, h, time);
+  drawFurnPiece(makeBrush(c2), id, 0, 0, w, h, time, r2);
   c2.restore();
   return true;
 }

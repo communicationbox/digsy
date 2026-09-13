@@ -211,6 +211,18 @@ async function main() {
         hm.tryPlaceFurniture(0, 3.5, +(q.get('ty') || 4), 'prati_table', 0);
         return G.intPos(+(q.get('px') || 4), +(q.get('py') || 3));
       }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'rotazioni' = i quattro versi di sedia, letto, baule e tavolo piazzati in fila: si guarda
+       che ruotare CAMBI davvero il disegno (prima restava identico e sembrava rotto) */
+    else if (${JSON.stringify(vista)} === 'rotazioni') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('house').then(function(){ return G.enterHouseRoom(0); }).then(function(){ return G.house(); }).then(function(hm){
+        var S = G.state(), q = new URLSearchParams(location.search), pezzo = q.get('pezzo') || 'boschi_chair';
+        S.house.rooms[0].furn = []; hm.cancelHold();
+        /* quattro copie dello stesso pezzo, una per verso: si scrive direttamente (un pezzo
+           comprato è uno solo, e qui serve vederlo in quattro pose affiancate) */
+        var big = pezzo.indexOf('bed') >= 0;
+        for (var r = 0; r < 4; r++) S.house.rooms[0].furn.push({ itemId: pezzo, gx: 1 + r * (big ? 2.5 : 2), gy: 2, rot: r });
+        return G.intPos(4, 5);
+      }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'letto' = il pannello del letto di casa: comodità della stanza, cosa manca, e quanto
        rende dormirci. È il posto dove si legge PERCHÉ arredare conviene */
     else if (${JSON.stringify(vista)} === 'letto') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

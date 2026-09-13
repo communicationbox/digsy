@@ -3,7 +3,7 @@
    idea (una stanza a tile con arredi solidi e un NPC che pattuglia dietro il bancone) e
    nessuna di loro serve al mondo aperto. */
 import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools, FURN_BY_ID, PEDESTAL_ID, furnIsSolid, furnSize, furnPlace } from './data.js';
-import { drawFurnPiece, drawGroundTile, drawPaperBand, furnRise, roomDefault } from './furnArt.js';
+import { drawFurnPiece, drawGroundTile, drawPaperBand, furnRise, roomDefault, furnRotatable } from './furnArt.js';
 import { drawReturnPortal } from './render.js'; // ciclo sicuro: chiamata solo a runtime, come drawInteriorScene(render.js→interiors.js)
 import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
@@ -723,7 +723,7 @@ export function drawHouseRoomScene(time, id) {
     drawFurnPiece(BRUSH, f.itemId, r.x, 2, r.w, WALL_H - 6, time);
   }
   for (const f of placed) if (furnLayer(f.itemId) === 'rug') {
-    const r = cellsOf(f); drawFurnPiece(BRUSH, f.itemId, r.x, r.y, r.w, r.h, time);
+    const r = cellsOf(f); drawFurnPiece(BRUSH, f.itemId, r.x, r.y, r.w, r.h, time, f.rot || 0);
   }
   /* profondità: chi ha la base più in alto si disegna prima. Il giocatore entra nella stessa
      fila, altrimenti resterebbe sempre davanti a tutto (o sempre dietro). */
@@ -734,7 +734,7 @@ export function drawHouseRoomScene(time, id) {
         const cv = exhibitSprite(f.spId, S.museum[f.spId] || []);
         if (cv) { try { ctx.drawImage(cv, r.x - Math.floor((cv.width - r.w) / 2), r.y - (cv.height - r.h)); return; } catch (e) { /* stub */ } }
       }
-      drawFurnPiece(BRUSH, f.itemId, r.x, r.y, r.w, r.h, time);
+      drawFurnPiece(BRUSH, f.itemId, r.x, r.y, r.w, r.h, time, f.rot || 0);
     } }; });
   depth.push({ y: Math.round(INT.y) + 12, draw: () => {
     shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
@@ -758,14 +758,14 @@ export function drawHouseRoomScene(time, id) {
       const bordo = pl.ok ? '#7ec069' : '#c95a4a';
       rect(gx, gy, gw, gh, tinta);                                   // la casella che occuperebbe
       ctx.globalAlpha = 0.72;
-      drawFurnPiece(BRUSH, hv.itemId, gx, gy, gw, gh, time);
+      drawFurnPiece(BRUSH, hv.itemId, gx, gy, gw, gh, time, hv.rot || 0);
       ctx.globalAlpha = 1;
       const tratto = Math.floor(time / 120) % 2 ? 0 : 1;             // cornice che lampeggia piano
       for (let i = 0; i < gw; i += 4) { rect(gx + i + tratto, gy, 2, 1, bordo); rect(gx + i + tratto, gy + gh - 1, 2, 1, bordo); }
       for (let i = 0; i < gh; i += 4) { rect(gx, gy + i + tratto, 1, 2, bordo); rect(gx + gw - 1, gy + i + tratto, 1, 2, bordo); }
       /* MANIGLIA ↻: cerchio pieno col bordo scuro e una freccia che gira. Deve staccare da
          qualunque pavimento, quindi fondo chiaro e contorno scuro (REGOLA #13). */
-      const hr = rotateHandleRect(id);
+      const hr = furnRotatable(hv.itemId) ? rotateHandleRect(id) : null;   // niente maniglia per chi è uguale da ogni lato
       if (hr) drawRotateHandle(hr.x, hr.y, hr.w, time);
     }
   }

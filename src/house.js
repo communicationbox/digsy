@@ -17,6 +17,7 @@ import { S, save } from './state.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD } from './ui.js';
 import { tr, roomName } from './i18n.js';
+import { furnRotatable } from './furnArt.js';
 import { playSfx } from './audio.js';
 import { playerLevel } from './progress.js';
 
@@ -412,7 +413,14 @@ let hold = null; // {itemId, rot, gx, gy} — gx/gy = la casella su cui sta l'AN
 export function isHolding() { return !!hold; }
 export function holdItem() { return hold; }
 export function cancelHold() { hold = null; }
-export function rotateHold() { if (hold) hold.rot = (hold.rot + 1) % 4; }
+/* ruota SOLO chi ha un verso (letto, sedia, tavolo, focolare, baule): un vaso o una lampada
+   sono uguali da ogni lato, e "ruotarli" non cambiava niente — sembrava un tasto rotto.
+   Torna true se ha girato davvero, così chi chiama può dirlo al giocatore. */
+export function rotateHold() {
+  if (!hold || !furnRotatable(hold.itemId)) return false;
+  hold.rot = (hold.rot + 1) % 4;
+  return true;
+}
 /* prendere in mano un pezzo DAL VASSOIO: prima il vassoio lo piazzava di colpo sotto i piedi,
    e per capire come stava bisognava prima posarlo e poi guardarlo. Ora si prende in mano e lo
    si vede nella stanza mentre lo si muove (richiesto: "devo vedere l'oggetto e poi draggarlo
@@ -453,6 +461,7 @@ export function holdPlacement(room) {
 export const ROT_HANDLE = 16;
 export function rotateHandleRect(room) {
   const pl = holdPlacement(room); if (!pl || !hold) return null;
+  if (!furnRotatable(hold.itemId)) return null;          // uguale da ogni lato: niente maniglia
   const sz = furnSize(hold.itemId, hold.rot || 0);
   const parete = furnLayer(hold.itemId) === 'wall';
   const R2 = ROT_HANDLE;

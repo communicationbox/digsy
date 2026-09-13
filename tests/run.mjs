@@ -4190,6 +4190,41 @@ sprites.applyLook();
     furnArt.drawPaperBand(g, 'prati_paper', 0, 0, 320, 42);
     check('la carta da parati disegna motivo e battiscopa', painted.length >= 4);
   }
+  /* ---- LA ROTAZIONE SI VEDE ---- */
+  {
+    /* il disegno ignorava `rot`: un letto 2×2 o una sedia ruotati restavano IDENTICI, e ruotare
+       sembrava non funzionare ("non riesco a far ruotare nulla"). Ogni pezzo con un verso deve
+       avere quattro disegni DIVERSI (almeno i tre non speculari fra loro); chi è uguale da ogni
+       lato non si ruota proprio. Si confronta la sequenza vera di rettangoli dipinti. */
+    const firma = (id, rot) => {
+      const out = [];
+      const g = { rect: (x, y, w, h, c) => out.push([Math.round(x), Math.round(y), Math.round(w), Math.round(h), c].join(':')),
+        px: (x, y, c) => out.push([x, y, c].join(':')), shadow: () => {}, shade8: (hx, k) => hx + '*' + k };
+      const it = FURN_BY_ID[id], sz = dataM.furnSize(id, rot);
+      furnArt.drawFurnPiece(g, id, 0, 0, sz.w * 32, sz.h * 32, 1000, rot);
+      return out.join('|');
+    };
+    const piatti = [];
+    for (const id of allIds) {
+      if (!furnArt.furnRotatable(id)) continue;
+      const f = [0, 1, 2, 3].map(r => firma(id, r));
+      /* un tavolo è uguale davanti e dietro: gli bastano due disegni (orizzontale/verticale);
+         letto, sedia, baule e focolare hanno un davanti e ne servono almeno tre */
+      const minimo = furnArt.artCategory(id) === 'table' ? 2 : 3;
+      if (new Set(f).size < minimo) piatti.push(id + ' (' + new Set(f).size + ' disegni)');
+    }
+    check('ogni mobile con un verso cambia disegno ruotandolo', piatti.length === 0, piatti.join(' · '));
+    check('letto, sedia, tavolo, focolare e baule si ruotano', ['prati_bed', 'boschi_chair', 'terre_throne', 'prati_table', 'ghiacci_hearth', 'dune_chest'].every(id => furnArt.furnRotatable(id)));
+    check('vaso, lampada, cristallo, tappeto, piedistallo e quadri NO', ['palude_vase', 'prati_lamp', 'terre_crystal', 'prati_rug', PEDESTAL_ID, 'prati_art'].every(id => !furnArt.furnRotatable(id)));
+    S.furnOwned = ['palude_vase', 'boschi_chair']; S.house.rooms[0].furn = []; house.cancelHold();
+    house.takeHold('palude_vase'); house.setHoldTarget(3, 3);
+    check('ruotare un vaso non fa nulla e lo dice (torna false)', house.rotateHold() === false && house.holdItem().rot === 0);
+    check('e non ha la maniglia ↻', house.rotateHandleRect(0) === null);
+    house.cancelHold();
+    house.takeHold('boschi_chair'); house.setHoldTarget(3, 3);
+    check('una sedia invece si gira', house.rotateHold() === true && house.holdItem().rot === 1 && !!house.rotateHandleRect(0));
+    house.cancelHold();
+  }
   /* ---- COPERTURE: un mobile non copre la faccia di Digsy ---- */
   {
     /* NESSUN pezzo sale sopra la sua casella più di RISE_MAX: Digsy è alto 32, e la sedia che

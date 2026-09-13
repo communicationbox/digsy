@@ -134,7 +134,7 @@ addEventListener('keydown', e => {
      vassoio invece di farti uscire dalla stanza col mobile ancora a mezz'aria */
   const inCasa = INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null;
   if ((e.key === 'r' || e.key === 'R') && inCasa && isHolding() && !isModalOpen()) {
-    rotateHold();
+    if (!rotateHold()) { toast('🎨 ' + tr('Questo pezzo è uguale da ogni lato: non si gira', 'This piece looks the same from every side: it does not turn')); e.preventDefault(); return; }
     /* girato, un pezzo lungo può sbordare dal muro: si riaccosta invece di diventare rosso */
     const hv = holdItem(), t = hv && hv.gx != null ? clampFurn(hv.itemId, hv.rot, hv.gx, hv.gy) : null;
     if (t) setHoldTarget(t.gx, t.gy);

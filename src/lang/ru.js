@@ -1468,6 +1468,8 @@ export const RU = {
   'Move the bed': 'Передвинуть кровать',
   'Bed in hand: walk and {act} to place it': 'Кровать в руках: иди и {act}, чтобы поставить',
   /* fondi della stanza (carta da parati e pavimento) e pezzi da parete */
+  'This piece looks the same from every side: it does not turn': 'Этот предмет одинаков со всех сторон: его не повернуть',
+  'Same from every side': 'Одинаков со всех сторон',
   'Wheat wallpaper': 'Пшеничные обои', 'Wheat boards': 'Пшеничные доски',
   'Sand wallpaper': 'Песчаные обои', 'Pale sandstone': 'Светлый песчаник',
   'Fern wallpaper': 'Папоротниковые обои', 'Oak boards': 'Дубовые доски',
