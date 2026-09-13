@@ -889,20 +889,19 @@ const PROBE = `
             if (sotto) sotto.click();
             A('arredo: cliccando il bottone Ruota il mobile ruota', hm.holdItem() && hm.holdItem().rot === (rotB + 1) % 4,
               'rot ' + rotB + '→' + (hm.holdItem() && hm.holdItem().rot));
-            /* e con un pezzo SIMMETRICO in mano il bottone si vede spento ma, cliccato, lo DICE
-               (prima era disabilitato: muto e con l'aspetto di un bottone acceso) */
+            /* e con un pezzo SIMMETRICO in mano il bottone Ruota non deve proprio esserci:
+               girato resterebbe identico, e un bottone che non fa niente è solo rumore */
             var giro = hm.holdItem();
             hm.cancelHold();
             var S3 = g.state(); if (S3.furnOwned.indexOf('palude_vase') < 0) S3.furnOwned.push('palude_vase');
             hm.takeHold('palude_vase'); hm.setHoldTarget(2, 3);
             return Promise.resolve(g.updatePrompt && g.updatePrompt()).then(function () {
               var rb1 = document.getElementById('furnrotbtn');
-              A('arredo: con un vaso il bottone Ruota si VEDE spento', rb1.classList.contains('spento') && getComputedStyle(rb1).opacity < 0.9,
-                'classe=' + rb1.className + ' opacity=' + getComputedStyle(rb1).opacity);
-              rb1.click();
-              var box = document.getElementById('toasts'), ultimo = box && box.lastElementChild;
-              var testo = ultimo ? (ultimo.textContent || '') : '';
-              A('arredo: e cliccato spiega perché non gira (non resta muto)', /ogni lato|every side/i.test(testo), testo.slice(0, 60));
+              /* per un pezzo che girato resta uguale il bottone NON c'è proprio */
+              var rbr = rb1.getBoundingClientRect();
+              A('arredo: con un vaso il bottone Ruota non compare', rb1.hidden === true && rbr.width === 0,
+                'hidden=' + rb1.hidden + ' largo=' + Math.round(rbr.width));
+              A('arredo: e nemmeno la maniglia ↻ nella stanza', hm.rotateHandleRect(0) === null);
               hm.cancelHold();
               if (giro) { hm.takeHold(giro.itemId, giro.rot); }
             }).then(function () {

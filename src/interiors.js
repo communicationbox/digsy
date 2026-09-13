@@ -671,22 +671,36 @@ function drawRoomFixtures(id, rw) {
     rect(rw / 2 - 28, 1.3 * TS, 4, 16, shade8('#5c4229', 1.5)); rect(rw / 2 + 24, 1.3 * TS, 4, 16, shade8('#5c4229', 0.6));
   }
 }
-/* maniglia per ruotare il mobile in mano: disco chiaro, contorno scuro, freccia circolare.
-   Pulsa appena (fase dal tempo, mai dalle coordinate) per farsi notare la prima volta. */
+/* maniglia per ruotare il mobile in mano. Due tentativi disegnati da zero erano brutti
+   ("la freccietta fa schifo!"): a 16px un'icona non si improvvisa. Qui c'è l'icona «reload»
+   di pixelarticons — lo STESSO set di tutte le icone del gioco — ridotta a 12×12 senza
+   perdere un pixel (il disegno originale ha tratti da 2 su una griglia da 24), dentro un
+   disco chiaro col bordo scuro che stacca da ogni pavimento. */
+const ROT_ICON = [
+  '............',
+  '.......#....',
+  '.......##...',
+  '..########..',
+  '.#.....##...',
+  '.#.....#....',
+  '.#..#.....#.',
+  '...##.....#.',
+  '..########..',
+  '...##.......',
+  '....#.......',
+  '............',
+];
 function drawRotateHandle(x, y, d, time) {
   const r = d / 2, cx = x + r, cy = y + r;
-  const puls = Math.floor(time / 400) % 2;
-  for (let yy = -r; yy < r; yy++) for (let xx = -r; xx < r; xx++) {
-    const q = (xx + 0.5) * (xx + 0.5) + (yy + 0.5) * (yy + 0.5);
-    if (q <= r * r) px(cx + xx, cy + yy, q >= (r - 1.5) * (r - 1.5) ? '#2a2016' : (puls ? '#f6efdd' : '#fff8e6'));
+  for (let yy = 0; yy < d; yy++) for (let xx = 0; xx < d; xx++) {
+    const dx = xx + 0.5 - r, dy = yy + 0.5 - r, q = dx * dx + dy * dy;
+    if (q > r * r) continue;
+    px(x + xx, y + yy, q > (r - 1.2) * (r - 1.2) ? '#2a2016' : '#f6efdd');
   }
-  /* freccia: arco di tre quarti + punta */
-  const ar = r - 4;
-  for (let a = 0.35; a < 5.2; a += 0.22) {
-    px(Math.round(cx + Math.cos(a) * ar), Math.round(cy + Math.sin(a) * ar), '#a86e22');
-  }
-  const ex = Math.round(cx + Math.cos(0.35) * ar), ey = Math.round(cy + Math.sin(0.35) * ar);
-  rect(ex - 1, ey - 3, 3, 1, '#a86e22'); rect(ex + 1, ey - 3, 1, 3, '#a86e22');
+  /* un respiro lento dell'inchiostro, fase dal tempo: si fa notare senza ballare */
+  const ink = Math.floor(time / 600) % 2 ? '#3a2f1e' : '#6b4a22';
+  const ox = x + Math.round((d - 12) / 2), oy = y + Math.round((d - 12) / 2);
+  for (let rr = 0; rr < 12; rr++) for (let c = 0; c < 12; c++) if (ROT_ICON[rr][c] === '#') px(ox + c, oy + rr, ink);
 }
 /* una STANZA della casa (Sala/Cucina/Bagno/Camera): scena PROPRIA, piccola come i 6 interni
    a mestiere — nessun NPC, un solo varco (in basso, verso l'atrio). L'arredo piazzato (M3/M4)

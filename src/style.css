@@ -1107,9 +1107,6 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
   background:#3a2f1e;color:var(--c-paper);border:2px solid var(--c-gold);border-radius:10px;
   box-shadow:0 4px 0 rgba(0,0,0,.45)}
 #furnhold button:hover{background:#4d3f28}
-/* Ruota per un pezzo uguale da ogni lato: si VEDE spento (tratteggiato e smorzato), ma resta
-   cliccabile per dire perché — un bottone muto sembra rotto */
-#furnhold button.spento{opacity:.5;border-style:dashed;cursor:help}
 #furnhold button:active{transform:translateY(2px);box-shadow:0 2px 0 rgba(0,0,0,.45)}
 /* ANTEPRIMA del pezzo in mano: niente ghost nel mondo (finiva sempre dietro al personaggio,
    sulla stessa casella — segnalato "disassamento verticale"), si vede QUI per intero. */
