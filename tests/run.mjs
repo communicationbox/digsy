@@ -4328,6 +4328,21 @@ sprites.applyLook();
     painted.length = 0;
     furnArt.drawPaperBand(g, 'prati_paper', 0, 0, 320, 42);
     check('la carta da parati disegna motivo e battiscopa', painted.length >= 4);
+    {
+      /* nessun fondo sborda: le mattonelle della carta "a blocchi" finivano fuori dalla stanza */
+      const fuori = [];
+      const ids = Object.keys(FURN_BY_ID).filter(k => ['paper', 'ground'].includes(FURN_BY_ID[k].place));
+      for (const id of ids) {
+        const paper = FURN_BY_ID[id].place === 'paper';
+        const W0 = paper ? 320 : TS, H0 = paper ? 42 : TS;
+        let esce = false;
+        const gb = { shade8: (h) => h, px: (x, y) => { if (x < 0 || y < 0 || x >= W0 || y >= H0) esce = true; },
+          rect: (x, y, w, h) => { if (x < 0 || y < 0 || x + w > W0 || y + h > H0) esce = true; } };
+        if (paper) furnArt.drawPaperBand(gb, id, 0, 0, W0, H0); else for (const [tx, ty] of [[0, 0], [1, 3], [5, 2]]) furnArt.drawGroundTile(gb, id, 0, 0, tx, ty);
+        if (esce) fuori.push(id);
+      }
+      check('carta da parati e pavimenti restano dentro il loro rettangolo', ids.length >= 6 && fuori.length === 0, fuori.join(' '));
+    }
     /* PARQUET: le tavole sono lunghe e attraversano le caselle. Dove una tavola finisce proprio
        sul bordo della casella mancava il giunto e il tono cambiava di colpo: si rivedevano i
        quadrotti. Nessun cambio di tono al bordo senza la riga scura del giunto. */

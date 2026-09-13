@@ -465,7 +465,14 @@ export function drawGroundTile(g, id, sx, sy, tx, ty, def) {
 }
 /* carta da parati: la fascia alta della stanza. Righe/quadretti/fiocchi secondo la zona, con
    BATTISCOPA in basso — la riga scura che separa parete e pavimento è ciò che fa "stanza". */
-export function drawPaperBand(g, id, x, y, w, hgt, def) {
+export function drawPaperBand(g0, id, x, y, w, hgt, def) {
+  /* ogni motivo si ripete a passo fisso e l'ultimo pezzo sbordava oltre la stanza (mattonelle
+     appese nel buio a destra): tutto quello che si disegna qui resta DENTRO la fascia */
+  const g = { shade8: g0.shade8, px: (px2, py2, c) => { if (px2 >= x && px2 < x + w && py2 >= y && py2 < y + hgt) g0.px(px2, py2, c); },
+    rect: (rx, ry, rw, rh, c) => {
+      const x0 = Math.max(rx, x), x1 = Math.min(rx + rw, x + w), y0 = Math.max(ry, y), y1 = Math.min(ry + rh, y + hgt);
+      if (x1 > x0 && y1 > y0) g0.rect(x0, y0, x1 - x0, y1 - y0, c);
+    } };
   const it = FURN_BY_ID[id];
   const c1 = (it && it.col) || (def && def.c1) || '#8a6a4a';
   const c2 = (it && it.col2) || (def && def.c2) || g.shade8(c1, 0.82);
