@@ -9,7 +9,7 @@ import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
-import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement } from './house.js';
+import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { composedPartsVox, shadeHex } from './bones.js';
 import { zoneName, roomName } from './i18n.js';
@@ -671,6 +671,23 @@ function drawRoomFixtures(id, rw) {
     rect(rw / 2 - 28, 1.3 * TS, 4, 16, shade8('#5c4229', 1.5)); rect(rw / 2 + 24, 1.3 * TS, 4, 16, shade8('#5c4229', 0.6));
   }
 }
+/* maniglia per ruotare il mobile in mano: disco chiaro, contorno scuro, freccia circolare.
+   Pulsa appena (fase dal tempo, mai dalle coordinate) per farsi notare la prima volta. */
+function drawRotateHandle(x, y, d, time) {
+  const r = d / 2, cx = x + r, cy = y + r;
+  const puls = Math.floor(time / 400) % 2;
+  for (let yy = -r; yy < r; yy++) for (let xx = -r; xx < r; xx++) {
+    const q = (xx + 0.5) * (xx + 0.5) + (yy + 0.5) * (yy + 0.5);
+    if (q <= r * r) px(cx + xx, cy + yy, q >= (r - 1.5) * (r - 1.5) ? '#2a2016' : (puls ? '#f6efdd' : '#fff8e6'));
+  }
+  /* freccia: arco di tre quarti + punta */
+  const ar = r - 4;
+  for (let a = 0.35; a < 5.2; a += 0.22) {
+    px(Math.round(cx + Math.cos(a) * ar), Math.round(cy + Math.sin(a) * ar), '#a86e22');
+  }
+  const ex = Math.round(cx + Math.cos(0.35) * ar), ey = Math.round(cy + Math.sin(0.35) * ar);
+  rect(ex - 1, ey - 3, 3, 1, '#a86e22'); rect(ex + 1, ey - 3, 1, 3, '#a86e22');
+}
 /* una STANZA della casa (Sala/Cucina/Bagno/Camera): scena PROPRIA, piccola come i 6 interni
    a mestiere — nessun NPC, un solo varco (in basso, verso l'atrio). L'arredo piazzato (M3/M4)
    si disegna in coordinate LOCALI dirette (gx,gy), niente più offset di una griglia condivisa. */
@@ -746,6 +763,10 @@ export function drawHouseRoomScene(time, id) {
       const tratto = Math.floor(time / 120) % 2 ? 0 : 1;             // cornice che lampeggia piano
       for (let i = 0; i < gw; i += 4) { rect(gx + i + tratto, gy, 2, 1, bordo); rect(gx + i + tratto, gy + gh - 1, 2, 1, bordo); }
       for (let i = 0; i < gh; i += 4) { rect(gx, gy + i + tratto, 1, 2, bordo); rect(gx + gw - 1, gy + i + tratto, 1, 2, bordo); }
+      /* MANIGLIA ↻: cerchio pieno col bordo scuro e una freccia che gira. Deve staccare da
+         qualunque pavimento, quindi fondo chiaro e contorno scuro (REGOLA #13). */
+      const hr = rotateHandleRect(id);
+      if (hr) drawRotateHandle(hr.x, hr.y, hr.w, time);
     }
   }
   drawHouseDoorSlab(rw / 2 - 10, rh - 6, 20, 6);                 // varco in basso, verso l'atrio

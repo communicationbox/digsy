@@ -1098,7 +1098,9 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
    ci sta lo zaino (su desktop è un comando fisso in quell'angolo, non un'informazione: vedi
    `@media(hover:hover)` più sopra) e a destra il bottone Esci, quindi qui i due si
    sovrapponevano proprio quando servivano insieme (in una stanza, mobile in mano). */
-#furnhold{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(58px + env(safe-area-inset-bottom));
+/* SOPRA lo zaino e il bottone Esci, non in mezzo: a 58px dal fondo su uno schermo stretto la
+   miniatura finiva sotto il pulsante dello zaino e la barra si leggeva a stento (foto). */
+#furnhold{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom));
   display:none;align-items:center;gap:8px;z-index:14}
 #furnhold.on{display:flex}
 #furnhold button{font:inherit;font-weight:800;font-size:15px;padding:10px 16px;cursor:pointer;

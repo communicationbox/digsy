@@ -6306,10 +6306,28 @@ sprites.applyLook();
     const pev = (t, gx, gy) => { const q = scr(gx, gy); cv18.dispatchEvent({ type: t, clientX: q.x, clientY: q.y, pointerId: 18, preventDefault() {} }); };
     /* dal vassoio: il puntatore sopra la parete accosta l'anteprima al muro, verde */
     house18.takeHold('prati_table');
+    /* l'anteprima si muove SOLO trascinando (col mouse inseguiva il puntatore e la maniglia ↻
+       scappava via): si preme e si porta sopra la parete */
+    pev('pointerdown', 4, 3);
     pev('pointermove', 5, 0);
     const pl18 = house18.holdPlacement(0);
-    check('input: puntando sopra la parete l\'anteprima si accosta al muro (verde)', !!pl18 && pl18.ok === true && pl18.gy === 1, JSON.stringify(pl18));
-    /* un clic posa */
+    check('input: trascinando sopra la parete l\'anteprima si accosta al muro (verde)', !!pl18 && pl18.ok === true && pl18.gy === 1, JSON.stringify(pl18));
+    pev('pointerup', 5, 0);
+    check('input: rilasciando, il pezzo si posa', house18.isHolding() === false && S.house.rooms[0].furn.length === 1);
+    /* senza premere, muovere il puntatore NON sposta il mobile in mano */
+    S.house.rooms[0].furn = [];
+    house18.takeHold('prati_table'); house18.setHoldTarget(3, 3);
+    pev('pointermove', 7, 5);
+    check('input: senza premere, il puntatore non trascina via il mobile', house18.holdTarget().gx === 3 && house18.holdTarget().gy === 3);
+    /* LA MANIGLIA ↻: si tocca e ruota, senza posare e senza spostare */
+    const hr18 = house18.rotateHandleRect(0);
+    check('input: col mobile in mano c\'è la maniglia per ruotare', !!hr18 && hr18.w >= 16);
+    const rotPrima = house18.holdItem().rot, cPrima = scr((hr18.x + hr18.w / 2) / TS18 - 0.5, (hr18.y + hr18.h / 2) / TS18 - 0.5);
+    cv18.dispatchEvent({ type: 'pointerdown', clientX: cPrima.x, clientY: cPrima.y, pointerId: 18, preventDefault() {} });
+    cv18.dispatchEvent({ type: 'pointerup', clientX: cPrima.x, clientY: cPrima.y, pointerId: 18, preventDefault() {} });
+    check('input: toccando la maniglia il mobile ruota di un quarto', house18.holdItem() && house18.holdItem().rot === (rotPrima + 1) % 4);
+    check('input: e resta in mano (la maniglia non lo posa)', house18.isHolding() === true);
+    /* un clic altrove lo posa lì */
     pev('pointerdown', 4, 3); pev('pointerup', 4, 3);
     check('input: col pezzo in mano, un clic lo posa', house18.isHolding() === false && S.house.rooms[0].furn.length === 1);
     /* un clic sul mobile lo seleziona e RESTA in mano */

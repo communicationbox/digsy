@@ -503,8 +503,8 @@ export function openFurnitureTray(room, gx, gy) {
     if (!takeHold(el.dataset.place)) return;
     setHoldTarget(gx, gy);
     closeModal();
-    toast('🎨 ' + keys(isTouch() ? tr('Trascinalo dove vuoi, poi lascia', 'Drag it where you want, then let go')
-      : tr('Muovi il puntatore e clicca per posarlo ({act} sotto i piedi)', 'Move the pointer and click to place it ({act} at your feet)')));
+    toast('🎨 ' + keys(isTouch() ? tr('Trascinalo dove vuoi · ↻ per ruotare', 'Drag it where you want · ↻ to rotate')
+      : tr('Trascinalo o clicca dove posarlo · ↻ (o R) per ruotare', 'Drag it or click where to place it · ↻ (or R) to rotate')));
   });
   mBody.querySelectorAll('[data-bd]').forEach(el => el.onclick = () => {
     const id = el.dataset.bd;

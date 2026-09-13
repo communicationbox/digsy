@@ -442,6 +442,26 @@ export function holdPlacement(room) {
   if (!t) return { gx: hold.gx, gy: hold.gy, ok: false };
   return { gx: t.gx, gy: t.gy, ok: canPlace(room, t.gx, t.gy, hold.itemId, hold.rot) };
 }
+/* LA MANIGLIA PER RUOTARE sta ATTACCATA al mobile in mano, nella stanza: un cerchio con la
+   freccia, in alto a destra dell'anteprima (a sinistra se lì c'è il muro). È l'unico comando
+   che funziona uguale col mouse e col dito: la R esiste solo sulla tastiera, e la barra in
+   fondo allo schermo su telefono era minuscola e finiva sotto il pulsante dello zaino
+   ("serve un modo per ruotare che funziona sia su mobile che su desktop").
+   16px di mondo: a scala ×3 sono 48px di schermo, la misura di un polpastrello.
+   Render e input chiedono la stessa geometria QUI, così il cerchio disegnato è esattamente
+   quello che si tocca. Coordinate in px della stanza. */
+export const ROT_HANDLE = 16;
+export function rotateHandleRect(room) {
+  const pl = holdPlacement(room); if (!pl || !hold) return null;
+  const sz = furnSize(hold.itemId, hold.rot || 0);
+  const parete = furnLayer(hold.itemId) === 'wall';
+  const R2 = ROT_HANDLE;
+  const top = parete ? 2 : pl.gy * TS;
+  let x = (pl.gx + sz.w) * TS + 2;
+  if (x + R2 > ROOM_TILE_W * TS - 2) x = pl.gx * TS - R2 - 2;          // contro il muro destro: a sinistra
+  const y = Math.max(2, top - R2 + 4);
+  return { x, y, w: R2, h: R2 };
+}
 export function pickUpFurniture(room, gx, gy, cat) {
   ensureHouseState();
   if (hold) return false;

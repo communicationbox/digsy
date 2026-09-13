@@ -822,8 +822,12 @@ const PROBE = `
          deve fermarsi contro il muro ed essere VERDE: era rossa, due volte segnalato */
       return g.roomPoint(5, 0).then(function (pm) {
         var cvm = document.getElementById('cv'), rm = cvm.getBoundingClientRect();
+        /* l'anteprima si trascina TENENDO PREMUTO: col solo movimento del mouse la maniglia ↻
+           scappava via insieme al mobile */
+        cvm.dispatchEvent(new PointerEvent('pointerdown', { clientX: rm.left + pm.x, clientY: rm.top + pm.y + 40, bubbles: true, pointerId: 22 }));
         cvm.dispatchEvent(new PointerEvent('pointermove', { clientX: rm.left + pm.x, clientY: rm.top + pm.y, bubbles: true, pointerId: 22 }));
         var pl = hm.holdPlacement(0);
+        hm.cancelHold(); hm.takeHold('prati_table');   // si riparte puliti per la prova successiva
         A("arredo: puntando sulla parete l'anteprima si accosta al muro ed è verde", !!pl && pl.ok === true && pl.gy === 1,
           pl ? 'gy=' + pl.gy + ' ok=' + pl.ok : 'nessuna anteprima');
       });
@@ -859,6 +863,33 @@ const PROBE = `
         manda('pointerdown', p.x, p.y);
         manda('pointerup', p.x, p.y);
         A('arredo: un clic sul mobile lo seleziona e RESTA in mano', hm.isHolding() === true);
+        /* LA MANIGLIA ↻ nella stanza: si clicca/tocca e il mobile ruota, restando in mano.
+           È il comando che vale uguale col mouse e col dito ("serve un modo per ruotare che
+           funziona sia su mobile che su desktop"). */
+        var hr = hm.rotateHandleRect(0);
+        A("arredo: accanto al mobile selezionato c'è la maniglia ↻", !!hr);
+        if (hr) {
+          var rotH = hm.holdItem().rot;
+          return g.roomPoint((hr.x + hr.w / 2) / 32 - 0.5, (hr.y + hr.h / 2) / 32 - 0.5).then(function (ph) {
+            manda('pointerdown', ph.x, ph.y); manda('pointerup', ph.x, ph.y);
+            A('arredo: cliccando la maniglia il mobile ruota', hm.holdItem() && hm.holdItem().rot === (rotH + 1) % 4);
+            A('arredo: e resta in mano', hm.isHolding() === true);
+            /* la barra in fondo non deve finire sotto lo zaino */
+            var bar = document.getElementById('furnhold'), bag = document.getElementById('bagbtn');
+            if (g.updatePrompt) g.updatePrompt();
+            return Promise.resolve(g.updatePrompt && g.updatePrompt()).then(function () {
+              var rb = bar.getBoundingClientRect(), rg = bag.getBoundingClientRect();
+              var tocca = rb.width > 0 && rg.width > 0 && rb.left < rg.right && rg.left < rb.right && rb.top < rg.bottom && rg.top < rb.bottom;
+              A('arredo: la barra Ruota/Annulla non finisce sotto lo zaino', !tocca,
+                'barra ' + Math.round(rb.left) + '..' + Math.round(rb.right) + '×' + Math.round(rb.top) + '..' + Math.round(rb.bottom) +
+                ' zaino ' + Math.round(rg.left) + '..' + Math.round(rg.right) + '×' + Math.round(rg.top) + '..' + Math.round(rg.bottom));
+            });
+          });
+        }
+      }).then(function () {
+        var f = g.state().house.rooms[0].furn[0] || { gx: 3, gy: 3 };
+        return g.roomPoint(f.gx, f.gy);
+      }).then(function (p) {
         var rot0 = hm.holdItem().rot;
         window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r', bubbles: true }));
         /* UN quarto di giro per pressione: due ascoltatori sullo stesso tasto farebbero

@@ -17,7 +17,7 @@ import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
 import { INT, interiorLeave, intCollide, CUT, doorTileX, nudgeOffFurniture } from './interior.js';
-import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt, furnLayer, rotateHold, cancelHold, holdItem, snapFurn, clampFurn } from './house.js';
+import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt, furnLayer, rotateHold, cancelHold, holdItem, snapFurn, clampFurn, rotateHandleRect } from './house.js';
 import { furnSize } from './data.js';
 import { furnRise } from './furnArt.js';
 import { S } from './state.js';
@@ -225,6 +225,10 @@ if (cv && cv.addEventListener) {
   /* dove va l'anteprima col puntatore in (w): se il pezzo è stato PRESO da un punto, lo si
      tiene da lì; se arriva dal vassoio, il puntatore sta al suo centro. Sempre a mezza
      casella (snapFurn): la griglia fitta è quella che permette di sistemare davvero. */
+  const overHandle = (w) => {
+    const hr = rotateHandleRect(INT.houseRoom);
+    return !!hr && w.x >= hr.x - 2 && w.x < hr.x + hr.w + 2 && w.y >= hr.y - 2 && w.y < hr.y + hr.h + 2;
+  };
   const holdAt = (w) => {
     const hv = holdItem(); if (!hv) return;
     let ox = grabDx, oy = grabDy;
@@ -238,6 +242,17 @@ if (cv && cv.addEventListener) {
     if (!isModalOpen() && !splashActive() && !isPrepOpen()) {
       const w = houseWorldAt(e.clientX, e.clientY);
       if (w) {
+        /* MANIGLIA ↻ vicino al mobile in mano: si tocca/clicca e ruota, e basta — niente
+           posa, niente spostamento. Viene PRIMA di tutto il resto della pressione. */
+        const hr = isHolding() ? rotateHandleRect(INT.houseRoom) : null;
+        if (hr && w.x >= hr.x - 2 && w.x < hr.x + hr.w + 2 && w.y >= hr.y - 2 && w.y < hr.y + hr.h + 2) {
+          furnPress = 'ruota';
+          rotateHold();
+          const hv = holdItem(), t = clampFurn(hv.itemId, hv.rot, hv.gx, hv.gy);
+          setHoldTarget(t.gx, t.gy);
+          refreshFurnHold(); playSfx('ui'); clearGoal();
+          return;
+        }
         if (isHolding()) {
           furnPress = 'inmano';
           holdAt(w);
@@ -265,10 +280,13 @@ if (cv && cv.addEventListener) {
     }
   });
   cv.addEventListener('pointermove', e => {
-    if (isHolding()) {                                   // l'anteprima segue il puntatore
+    /* l'anteprima segue il puntatore SOLO mentre si trascina (tasto o dito premuto). Seguendolo
+       sempre, col mouse la maniglia ↻ scappava via mentre ci si andava sopra: è attaccata al
+       mobile, e il mobile inseguiva il mouse. Da fermi si clicca dove posarlo. */
+    if (isHolding() && (furnPress === 'preso' || furnPress === 'inmano')) {
       const c = houseWorldAt(e.clientX, e.clientY);
       if (c) holdAt(c);
-    } else grabbed = false;                              // mano vuota: la prossima presa riparte dal centro
+    } else if (!isHolding()) grabbed = false;                              // mano vuota: la prossima presa riparte dal centro
     if (followHeld) { followX = e.clientX; followY = e.clientY; }
     if (floatId === null || e.pointerId !== floatId) return;
     const dx = e.clientX - floatX, dy = e.clientY - floatY;
@@ -313,6 +331,7 @@ if (cv && cv.addEventListener) {
          · alzato e rilasciato SENZA trascinare → resta in mano, selezionato: si ruota;
          · trascinato → si posa dove lo si vede, se ci sta (altrimenti resta in mano);
          · già in mano e cliccato → si posa lì. */
+    if (furnPress === 'ruota') { furnPress = null; return; }   // la maniglia ha già fatto il suo
     if (furnPress) {
       const tipo = furnPress; furnPress = null;
       const c = houseWorldAt(e.clientX, e.clientY);
@@ -320,8 +339,8 @@ if (cv && cv.addEventListener) {
       const mosso = Math.hypot(e.clientX - downX, e.clientY - downY) > 6;
       if (tipo === 'preso' && !mosso) {
         playSfx('ui');
-        toast('🎨 ' + keyText(isTouch() ? tr('Selezionato: Ruota, oppure tocca dove posarlo', 'Selected: Rotate, or tap where to place it')
-          : tr('Selezionato: R per ruotare, clicca dove posarlo (Esc annulla)', 'Selected: R to rotate, click where to place it (Esc cancels)')));
+        toast('🎨 ' + keyText(isTouch() ? tr('Selezionato: tocca ↻ per ruotare, poi tocca dove posarlo', 'Selected: tap ↻ to rotate, then tap where to place it')
+          : tr('Selezionato: clicca ↻ (o R) per ruotare, poi clicca dove posarlo', 'Selected: click ↻ (or R) to rotate, then click where to place it')));
         return;
       }
       if (isHolding()) {
