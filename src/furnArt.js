@@ -441,16 +441,25 @@ export function drawGroundTile(g, id, sx, sy, tx, ty, def) {
     g.rect(sx, sy, TS, TS, (tx + ty) % 2 ? c1 : c2);
     g.rect(sx, sy, TS, 1, g.shade8(c1, 0.7)); g.rect(sx, sy, 1, TS, g.shade8(c1, 0.7));
     g.rect(sx + 2, sy + 2, 10, 2, g.shade8(c1, 1.18));
-  } else {                                                    // assi: fughe continue, giunti sfalsati
-    const tono = (ty % 2) ? c1 : c2;
-    g.rect(sx, sy, TS, TS, tono);
-    g.rect(sx, sy, TS, 2, g.shade8(tono, 1.1));               // filo di luce in cima all'asse
-    g.rect(sx, sy + TS - 2, TS, 2, g.shade8(tono, 0.78));     // fuga fra un'asse e l'altra
-    /* GIUNTO VERTICALE RARO: un'asse è lunga, non quadrata. Uno per casella disegnava una
-       griglia di quadrati e il pavimento tornava a sembrare una scacchiera. */
-    if ((tx + ty * 2) % 3 === 0) {
-      g.rect(sx + 6, sy, 2, TS, g.shade8(tono, 0.72));
-      g.rect(sx + 8, sy, 1, TS, g.shade8(tono, 1.06));
+  } else {
+    /* ASSI: quattro tavole per casella, lunghe e sfalsate come un parquet vero. Prima c'era
+       un'asse alta quanto una casella: da lontano il pavimento tornava a essere una griglia di
+       quadrotti. Ogni tavola ha il suo tono (dall'indice, mai dai pixel schermo), un filo di
+       luce sopra, la fuga scura sotto e i giunti di testa dove finisce. */
+    const L = 56, toni = [c1, c2, g.shade8(c1, 0.94)];
+    for (let r = 0; r < 4; r++) {
+      const row = ty * 4 + r, off = (row * 23) % L, gx = tx * TS + off;
+      const yy = sy + r * 8;
+      let start = 0;
+      while (start < TS) {
+        const board = Math.floor((gx + start) / L), end = Math.min(TS, start + (L - ((gx + start) % L)));
+        const tono = toni[((board * 7 + row * 3) % 3 + 3) % 3];
+        g.rect(sx + start, yy, end - start, 8, tono);
+        g.rect(sx + start, yy, end - start, 1, g.shade8(tono, 1.1));
+        g.rect(sx + start, yy + 7, end - start, 1, g.shade8(tono, 0.7));
+        if ((gx + end) % L === 0) g.rect(sx + end - 1, yy, 1, 7, g.shade8(tono, 0.68));
+        start = end;
+      }
     }
   }
 }
@@ -477,7 +486,7 @@ export function drawPaperBand(g, id, x, y, w, hgt, def) {
     /* intonaco di serie: non un rettangolo piatto — due toni orizzontali e qualche stacco,
        perché anche la stanza NON arredata deve sembrare una stanza */
     g.rect(x, y, w, Math.round(hgt * 0.45), g.shade8(c1, 1.06));
-    for (let sx = x; sx < x + w; sx += 48) g.rect(sx, y + Math.round(hgt * 0.45), 48 - 4, 1, c2);
+    for (let sx = x; sx < x + w; sx += 48) g.rect(sx, y + Math.round(hgt * 0.45), Math.min(44, x + w - sx), 1, c2);
   } else {
     for (let sx = x + 8; sx < x + w; sx += 14) for (let sy = y + 7; sy < y + hgt - 8; sy += 13) {
       g.rect(sx, sy - 3, 1, 7, c2); g.rect(sx - 3, sy, 7, 1, c2); g.rect(sx - 2, sy - 2, 1, 1, c2); g.rect(sx + 2, sy + 2, 1, 1, c2);

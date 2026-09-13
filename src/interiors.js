@@ -11,8 +11,9 @@ import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
+import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
 import { composedPartsVox, shadeHex } from './bones.js';
-import { zoneName, roomName } from './i18n.js';
+import { zoneName } from './i18n.js';
 import { zoneIdxAt } from './regions.js';
 import { INT_WOOD, night } from './tiles.js';
 import { drawSayBalloon } from './props.js';
@@ -596,80 +597,68 @@ export function interiorCam() {
   }
   /* la casa (atrio o una sua stanza, house.js) è una scena PICCOLA come i 6 interni a
      mestiere: nessuna camera che scorre, sta tutta centrata sullo schermo. */
+  if (INT.b && INT.b.type === 'house') { const o = houseOrigin(W, H); return { x: -o.ox, y: -o.oy }; }
   return { x: -Math.floor((W - rw) / 2), y: -Math.floor((H - rh) / 2) };
 }
-/* lucchetto disegnato a mano (arco + corpo): stesso oro dell'icona 🔒 (icons.js), stacca
-   dal muro scuro del varco */
-function drawPadlock(cx, cy) {
-  rect(cx - 3, cy - 9, 2, 5, '#c9a227'); rect(cx + 1, cy - 9, 2, 5, '#c9a227'); rect(cx - 3, cy - 10, 6, 2, '#c9a227');
-  rect(cx - 5, cy - 4, 10, 9, '#8a6a1e'); rect(cx - 5, cy - 4, 10, 2, '#c9a227');
-  px(cx, cy, '#3a2e10');
+/* dove sta, sullo schermo, la scena della casa attiva: centrata tenendo conto di TUTTO il
+   disegno (la faccia del muro di fondo sale oltre la stanza). interiorCam usa questo stesso
+   punto, altrimenti un tocco finirebbe qualche pixel più in là di dove si vede. */
+export function houseOrigin(W, H) {
+  const atrio = INT.houseRoom == null;
+  const rw = (atrio ? CORR_W : ROOM_TILE_W) * TS, rh = (atrio ? CORR_H : ROOM_TILE_H) * TS;
+  const shift = atrio ? sceneShift(ATRIO_TOP, ATRIO_BOTTOM) : sceneShift(ROOM_TOP, ROOM_BOTTOM);
+  return { ox: Math.floor((W - rw) / 2), oy: Math.floor((H - rh) / 2) + shift };
 }
-/* etichetta sopra un punto (px SCENA): nome stanza, per riconoscerla dall'atrio senza
-   doverci entrare (guardia lo stub dei test: niente ctx.fillText → niente crash, niente testo) */
-function drawDoorLabel(cx, y, text) {
-  if (!ctx.fillText) return;
-  ctx.font = '600 6px ui-monospace, Menlo, monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
-  ctx.fillStyle = '#f3ecda'; ctx.fillText(text, cx, y);
-  ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
-}
-/* una porta di casa, disegnata come le porte degli edifici del mondo (stipite scuro +
-   battente chiaro): stessa identità visiva, si riconosce a colpo d'occhio come "una porta". */
-function drawHouseDoorSlab(x0, y0, w, h) {
-  rect(x0, y0, w, h, '#3a2e20'); rect(x0 + 2, y0 + 2, w - 4, h - 4, '#c49a63');
-}
-/* ATRIO: un piccolo ingresso, non un corridoio — quanto basta per la porta di casa in basso
-   e le porte delle 4 stanze sulle altre pareti (house.js: houseGates). Toni caldi come gli
-   altri interni (wood di INT_WOOD), non un grigio istituzionale. */
+/* ATRIO: l'ingresso di casa. Parete di fondo vera (cornice, intonaco, zoccolo a pannelli,
+   battiscopa) con le porte della Sala e della Cucina, le porte del Bagno e della Camera nei
+   muri laterali, la porta di casa in basso con lo zerbino e una guida rossa che porta in
+   mezzo. Ogni porta ha la sua targhetta con l'icona della stanza; chiusa, ha il lucchetto.
+   Il disegno sta in houseArt.js, la geometria (varchi e muri) in house.js. */
+const ATRIO_FLOOR = { c1: '#b8894f', c2: '#a97a45', kind: 'plank' };
+const ATRIO_STYLE = { accent: '#b8574a', accent2: '#e0a24a', wains: 'panel', wood: '#7a4f30' };
 export function drawHouseCorridor(time) {
   const rw = CORR_W * TS, rh = CORR_H * TS;
-  const ox = Math.floor((view.W - rw) / 2), oy = Math.floor((view.H - rh) / 2);
+  const { ox, oy } = houseOrigin(view.W, view.H);
   ctx.save(); ctx.translate(ox, oy);
-  const wood = INT_WOOD[0];
-  rect(0, 0, rw, rh, '#6e5138');                              // muro
-  for (let ty = 0; ty < CORR_H; ty++) for (let tx = 0; tx < CORR_W; tx++) {
-    if (tx === 0 || ty === 0 || tx === CORR_W - 1 || ty === CORR_H - 1) continue; // resta muro
-    const sx = tx * TS, sy = ty * TS;
-    rect(sx, sy, TS, TS, (tx + ty) % 2 ? wood[0] : wood[1]);
+  const g = BRUSH, FY0 = -26, FY1 = 14;
+  for (let ty = 0; ty < CORR_H; ty++) for (let tx = 0; tx < CORR_W; tx++) drawGroundTile(g, null, tx * TS, ty * TS, tx, ty, ATRIO_FLOOR);
+  drawRunner(g, rw / 2 - 16, 150, 32, 74);
+  drawDoormat(g, rw / 2 - 18, rh - 26, 36, 14, '#8a6a3a');
+  /* parete di fondo */
+  rect(0, FY0, rw, FY1 - FY0, '#dcc6a0');
+  rect(0, FY0 + 4, rw, 10, '#e6d3b0');
+  for (let x = 20; x < rw; x += 44) rect(x, FY0 + 17, 30, 1, '#cbb28a');
+  drawCrown(g, 0, FY0, rw);
+  drawWainscot(g, 0, -1, rw, 11, ATRIO_STYLE);
+  drawBaseboard(g, 0, 10, rw);
+  wallCap(g, -14, FY0 - 10, rw + 28, 10, 'bottom');
+  wallCap(g, -14, FY0 - 1, 22, rh - FY0 + 15, 'right');
+  wallCap(g, rw - 8, FY0 - 1, 22, rh - FY0 + 15, 'left');
+  /* le cose appese fra una porta e l'altra */
+  drawCoatHooks(g, 9, -18);
+  drawFramedPicture(g, rw / 2 - 12, -21, 24, 17);
+  drawSconce(g, rw / 2 - 22, -6, time); drawSconce(g, rw / 2 + 22, -6, time);
+  drawWallPlant(g, rw - 20, 13);
+  floorShadow(g, 8, FY1 + 1, rw - 16, 0, 'down');
+  floorShadow(g, 8, FY1, 0, rh - FY1, 'right');
+  floorShadow(g, rw - 13, FY1, 5, rh - FY1, 'left');
+  for (const gt of houseGates()) {
+    const floorCol = roomDefault(gt.id).ground.c1;
+    if (gt.wall === 'top') drawBackDoor(g, gt.x0, gt.x1, FY0, FY1, gt.unlocked, gt.id, floorCol);
+    else drawSideDoor(g, gt.wall === 'left' ? -14 : rw - 8, 22, gt.y0, gt.y1, gt.wall, gt.unlocked, gt.id, floorCol);
   }
-  for (const g of houseGates()) {
-    const onTop = g.wall === 'top', onLeft = g.wall === 'left';
-    const w = onTop ? (g.x1 - g.x0) : TS + 4, h = onTop ? TS + 4 : (g.y1 - g.y0);
-    const x0 = onTop ? g.x0 : (onLeft ? -2 : rw - w + 2);
-    const y0 = onTop ? -2 : g.y0;
-    drawHouseDoorSlab(x0, y0, w, h);
-    /* punto "dentro l'atrio" davanti al varco: lucchetto + etichetta stanno lì, mai a
-       cavallo della parete (fuori canvas per i varchi laterali) */
-    const px2 = onTop ? g.cx : (onLeft ? 15 : rw - 15), py2 = onTop ? 16 : g.cy;
-    if (!g.unlocked) drawPadlock(px2, py2 + 6);
-    drawDoorLabel(px2, onTop ? 28 : py2 - (h / 2) - 3, roomName(g.id));
-  }
-  const dx = (CORR_W / 2) * TS;                               // porta d'ingresso, verso il mondo
-  drawHouseDoorSlab(dx - 10, rh - 6, 20, 6);
   /* PORTALE DI RITORNO (goHome): in mezzo all'atrio, non fuori nel cortile — a richiesta
      esplicita: "il portale deve essere in mezzo al corridoio NON FUORI". */
   if (S.returnPortal) drawReturnPortal(ATRIO_PORTAL.x - 8, ATRIO_PORTAL.y - 8, time);
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
   shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
   drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
+  /* muro davanti con la porta di casa: dopo il giocatore, che scendendo ci passa sotto */
+  wallCap(g, -14, rh - 8, rw / 2 - 16 + 14 - 3, 22, 'top');
+  wallCap(g, rw / 2 + 16 + 3, rh - 8, rw / 2 - 16 + 14 - 3, 22, 'top');
+  drawFrontDoorway(g, rw / 2, rh - 8, 16, 22, true);
   if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
   ctx.restore();
-}
-/* ogni stanza si riconosce anche VUOTA, PRIMA di piazzarci l'arredo (che resta la vera
-   decorazione): il fondo di serie sta in `ROOM_DEFAULT` (furnArt.js) — Sala e Cucina in assi,
-   Bagno a mattonelle, Camera in legno scuro — e sopra ci vanno gli arredi fissi qui sotto. */
-function drawRoomFixtures(id, rw) {
-  if (id === 1) { // Cucina: piano cottura/credenza sagomati sulla parete di fondo
-    rect(rw / 2 - 32, 1.3 * TS, 64, 20, '#8a5f38'); rect(rw / 2 - 32, 1.3 * TS, 64, 6, '#c98a2e');
-    rect(rw / 2 - 32, 1.3 * TS, 4, 20, shade8('#8a5f38', 1.45)); rect(rw / 2 + 28, 1.3 * TS, 4, 20, shade8('#8a5f38', 0.6));
-    for (const fx of [-18, 0, 18]) rect(rw / 2 + fx - 4, 1.3 * TS + 8, 8, 8, '#3a2e20');
-  } else if (id === 2) { // Bagno: vasca/lavabo sulla parete di fondo
-    rect(rw / 2 - 20, 1.3 * TS, 40, 20, '#dff0f7'); rect(rw / 2 - 20, 1.3 * TS, 40, 6, '#9fc4d0');
-    rect(rw / 2 - 20, 1.3 * TS + 6, 4, 14, '#c3e4ee'); rect(rw / 2 + 16, 1.3 * TS + 6, 4, 14, shade8('#dff0f7', 0.65));
-  } else if (id === 3) { // Camera: alcova del letto sulla parete di fondo
-    rect(rw / 2 - 28, 1.3 * TS, 56, 16, '#5c4229');
-    rect(rw / 2 - 28, 1.3 * TS, 4, 16, shade8('#5c4229', 1.5)); rect(rw / 2 + 24, 1.3 * TS, 4, 16, shade8('#5c4229', 0.6));
-  }
 }
 /* maniglia per ruotare il mobile in mano. Due tentativi disegnati da zero erano brutti
    ("la freccietta fa schifo!"): a 16px un'icona non si improvvisa. Qui c'è l'icona «reload»
@@ -707,7 +696,7 @@ function drawRotateHandle(x, y, d, time) {
    si disegna in coordinate LOCALI dirette (gx,gy), niente più offset di una griglia condivisa. */
 export function drawHouseRoomScene(time, id) {
   const rw = ROOM_TILE_W * TS, rh = ROOM_TILE_H * TS;
-  const ox = Math.floor((view.W - rw) / 2), oy = Math.floor((view.H - rh) / 2);
+  const { ox, oy } = houseOrigin(view.W, view.H);
   const WALL_H = Math.round(1.3 * TS);
   ctx.save(); ctx.translate(ox, oy);
   /* PAVIMENTO: quello scelto per la stanza (comprato al Negozio), altrimenti quello di serie.
@@ -717,11 +706,24 @@ export function drawHouseRoomScene(time, id) {
   for (let ty = 0; ty < ROOM_TILE_H; ty++) for (let tx = 0; tx < ROOM_TILE_W; tx++)
     drawGroundTile(BRUSH, gid, tx * TS, ty * TS, tx, ty, def.ground);
   drawPaperBand(BRUSH, pid, 0, 0, rw, WALL_H, def.paper);
-  rect(0, 0, 12, rh, '#6e5138'); rect(rw - 12, 0, 12, rh, '#6e5138'); rect(0, rh - 8, rw, 8, '#6e5138'); // laterali+bassa
-  drawRoomFixtures(id, rw);
-  /* finestra: un solo squarcio sulla parete di fondo, come negli altri interni */
-  const wx = rw / 2 + (id % 2 ? -1 : 1) * 3 * TS;
-  rect(wx, 12, TS, 24, night() > 0.4 ? '#2b3a55' : '#8fd0e6'); rect(wx, 12, TS, 4, '#5c4229'); rect(wx, 32, TS, 4, '#5c4229'); rect(wx + 14, 12, 4, 24, '#5c4229');
+  /* ARCHITETTURA (houseArt.js): cornice in cima, zoccolo col carattere della stanza (pannelli
+     in sala, cotto in cucina, piastrelle in bagno, perline in camera), battiscopa, la finestra
+     con le tende del colore della stanza e la luce che cade sul pavimento, lo spessore dei muri
+     e l'ombra dove il pavimento li incontra. */
+  const st = roomStyle(id), g = BRUSH, nk = night();
+  drawCrown(g, 0, 0, rw);
+  drawWainscot(g, 0, 26, rw, 10, st);
+  drawBaseboard(g, 0, 36, rw);
+  const wx = rw / 2 + (id % 2 ? -1 : 1) * 3 * TS - 2;
+  drawWindow(g, wx, 3, st, nk, time);
+  drawWindowLight(g, wx, WALL_H, nk);
+  floorShadow(g, 12, WALL_H, rw - 24, 0, 'down');
+  floorShadow(g, 12, WALL_H, 0, rh - WALL_H, 'right');
+  floorShadow(g, rw - 17, WALL_H, 5, rh - WALL_H, 'left');
+  wallCap(g, 0, -ROOM_TOP, rw, ROOM_TOP, 'bottom');
+  wallCap(g, 0, -1, 12, rh + 1, 'right');
+  wallCap(g, rw - 12, -1, 12, rh + 1, 'left');
+  drawDoormat(g, rw / 2 - 16, rh - 22, 32, 12, st.accent);
   /* ARREDO PIAZZATO. Tre strati, e in mezzo ci cammina il giocatore:
        1. quello che sta ALLA PARETE (quadri, mensole): sopra il muro, dietro a tutto il resto;
        2. quello STESO A TERRA (tappeti): sotto ai piedi di chiunque;
@@ -783,7 +785,10 @@ export function drawHouseRoomScene(time, id) {
       if (hr) drawRotateHandle(hr.x, hr.y, hr.w, time);
     }
   }
-  drawHouseDoorSlab(rw / 2 - 10, rh - 6, 20, 6);                 // varco in basso, verso l'atrio
+  /* muro davanti col varco verso l'atrio: dopo mobili e giocatore */
+  wallCap(g, 0, rh - 8, rw / 2 - 19, 8 + ROOM_BOTTOM, 'top');
+  wallCap(g, rw / 2 + 19, rh - 8, rw / 2 - 19, 8 + ROOM_BOTTOM, 'top');
+  drawFrontDoorway(g, rw / 2, rh - 8, 16, 8 + ROOM_BOTTOM, false);
   if (INT.say) drawSayBalloon(INT.x + ox, INT.y - 20 + oy, INT.say.text);
   ctx.restore();
 }

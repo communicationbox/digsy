@@ -34,6 +34,7 @@ src/props.js        alberi, sassi, fiori, funghi, oggetti a terra, decorazioni d
 src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc)
 src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete, fondi), comodità
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
+src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)
 src/furnCatalog.js  CATALOGO: 12 temi × 21 pezzi, ognuno con la sua ricetta di disegno scritta a mano
 src/furnRecipe.js   interprete delle ricette (scatole, cilindri, dischi… nello stile 3/4 dell'arredo)
 src/furnShop.js     vetrina del giorno al Negozio (base + rotazione, tema di zona scontato)
@@ -396,6 +397,10 @@ fondi, la coerenza di zona). Dormire nel PROPRIO letto rifà l'energia come la L
 regala il "ben riposato": fino a 6 fatiche gratis, scalate dentro `spendEnergy` — l'unico
 punto di spesa — quindi valgono anche per accetta, piccone e cristalli.
 Foto: `npm run shot -- casa` (arredata) · `casa-vuota` (com'è la prima volta) · `letto`.
+L'ARCHITETTURA (`houseArt.js`) è separata dalla geometria (`house.js`): muri con cresta e faccia,
+porte con stipiti/battente/lucchetto e una targhetta con l'icona della stanza (niente testo a 6px),
+zoccolo diverso per stanza, parquet a tavole lunghe. La scena sfora sopra la stanza: `houseOrigin`
+la centra e `interiorCam` usa lo STESSO punto, o i tocchi finiscono di lato. Foto: `atrio`.
 **Catalogo per temi** (`furnCatalog.js`): 252 pezzi in 12 temi (Cucina, Bagno, Camera, Salotto,
 Studio da archeologo, Giardino interno, Museo e fossili, Rustico, Marinaro, Magico e cristalli,
 Festivo, Bambini). Ogni pezzo è una RICETTA di poche righe scritta a mano (`furnRecipe.js`:

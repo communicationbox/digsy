@@ -262,6 +262,13 @@ async function main() {
         S.house.rooms[3].paper = null; S.house.rooms[3].ground = null;
         return G.enterHouseRoom(3);
       }).then(function(){ return G.intPos(4, 4); }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'atrio' = l'ingresso della casa con una stanza comprata e due ancora chiuse: porte
+       aperte, porte col lucchetto e la porta di casa nella stessa foto */
+    else if (${JSON.stringify(vista)} === 'atrio') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.enterRoom) G.enterRoom('house').then(function(){
+        var S = G.state(); S.house.rooms[1].unlocked = false; S.house.rooms[2].unlocked = true; S.house.rooms[3].unlocked = false;
+        return G.intPos(4, 5);
+      }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* l'altro caso: fialette in mano, requisiti soddisfatti, bottone acceso */
     else if (${JSON.stringify(vista)} === 'lab-dna') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goddna'); }).then(function(){

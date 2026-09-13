@@ -4328,6 +4328,23 @@ sprites.applyLook();
     painted.length = 0;
     furnArt.drawPaperBand(g, 'prati_paper', 0, 0, 320, 42);
     check('la carta da parati disegna motivo e battiscopa', painted.length >= 4);
+    /* PARQUET: le tavole sono lunghe e attraversano le caselle. Dove una tavola finisce proprio
+       sul bordo della casella mancava il giunto e il tono cambiava di colpo: si rivedevano i
+       quadrotti. Nessun cambio di tono al bordo senza la riga scura del giunto. */
+    {
+      const { shade8: sh8 } = await import('../src/brush.js');
+      const Wp = 256, Hp = 256, buf = new Array(Wp * Hp).fill('');
+      const gp = { shade8: sh8, px() {}, rect: (x, y, w, h, c) => { for (let yy = y; yy < y + h; yy++) for (let xx = x; xx < x + w; xx++) if (yy >= 0 && yy < Hp && xx >= 0 && xx < Wp) buf[yy * Wp + xx] = c; } };
+      const def = { c1: '#b8894f', c2: '#a97a45', kind: 'plank' };
+      for (let ty = 0; ty < 8; ty++) for (let tx = 0; tx < 8; tx++) furnArt.drawGroundTile(gp, null, tx * TS, ty * TS, tx, ty, def);
+      const tinte = new Set([def.c1, def.c2, sh8(def.c1, 0.94)]);
+      let salti = 0;
+      for (let y = 3; y < Hp; y += 8) for (let x = TS; x < Wp; x += TS) {
+        const a = buf[y * Wp + x - 1], b = buf[y * Wp + x];
+        if (a !== b && tinte.has(a) && tinte.has(b)) salti++;
+      }
+      check('parquet: nessun cambio di tavola sul bordo della casella senza giunto', salti === 0, salti + ' salti');
+    }
   }
   /* ---- LA ROTAZIONE SI VEDE ---- */
   {
@@ -4453,6 +4470,32 @@ sprites.applyLook();
       let drewOk = true;
       try { render(4200); } catch (e) { drewOk = false; }
       check('la Sala col piedistallo esposto si disegna senza errori', drewOk);
+      /* ARCHITETTURA DELLA CASA (houseArt.js): l'atrio con porte aperte e chiuse su tutti e
+         due i tipi di muro, e le quattro stanze di giorno e di notte, si disegnano davvero */
+      const houseArt = await import('../src/houseArt.js');
+      const interiors = await import('../src/interiors.js');
+      const { view } = await import('../src/screen.js');
+      inter.leaveHouseRoom();
+      const lock0 = S.house.rooms.map(r => r.unlocked);
+      let archOk = true;
+      for (const mix of [[true, false, true, false], [true, true, false, true]]) {
+        mix.forEach((u, i) => { S.house.rooms[i].unlocked = u; });
+        try { render(5000); } catch (e) { archOk = false; }
+      }
+      const o = interiors.houseOrigin(view.W, view.H), c = interiors.interiorCam();
+      check('atrio: il tocco usa lo stesso punto in cui la scena è disegnata', c.x === -o.ox && c.y === -o.oy, JSON.stringify([o, c]));
+      for (let id = 0; id < 4; id++) {
+        S.house.rooms[id].unlocked = true; inter.enterHouseRoom(id);
+        for (const tod of [0.5, 0.95]) { const t0 = S.tod; S.tod = tod; try { render(6000); } catch (e) { archOk = false; } S.tod = t0; }
+        const o2 = interiors.houseOrigin(view.W, view.H), c2 = interiors.interiorCam();
+        if (c2.x !== -o2.ox || c2.y !== -o2.oy) archOk = false;
+        inter.leaveHouseRoom();
+      }
+      check('atrio e le 4 stanze (giorno e notte, porte aperte e chiuse) si disegnano', archOk);
+      check('ogni stanza ha il suo stile e la sua icona di targhetta', houseArt.ROOM_STYLE.length >= 4 && houseArt.ROOM_ICON.length >= 4
+        && new Set(houseArt.ROOM_STYLE.map(st => st.wains)).size === 4 && new Set(houseArt.ROOM_ICON.map(ic => ic.join())).size === 4);
+      lock0.forEach((u, i) => { S.house.rooms[i].unlocked = u; });
+      inter.enterHouseRoom(0);
       inter.leaveHouseRoom(); inter.exitInterior();
       if (museumBefore === undefined) delete S.museum[sp.id]; else S.museum[sp.id] = museumBefore;
     }
