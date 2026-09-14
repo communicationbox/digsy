@@ -2,6 +2,7 @@
 import { ctx } from './screen.js';
 import { S } from './state.js';
 import { buildHat, hatCrown, HAT_IDS } from './hatArt.js';
+import { buildHair, HAIR_IDS } from './hairArt.js';
 
 /* H/S/P/F (+ombre h/s/p/f) e A/a (capelli) vengono aggiornati da applyLook() */
 export const PAL = {
@@ -16,7 +17,7 @@ export const PAL = {
   'G': '#e8b93c', 'g': '#a8842a', 'Y': '#f8dd82', 'R': '#c65a54', 'D': '#8fe7dd', 'Q': '#5fa04e',
   /* contorni e ombre dei cappelli nativi: J contorno del colore scelto (applyLook), j contorno
      dell'oro, V/v ombra e contorno del bianco, q/r/d ombre di alloro, gemma e vetro */
-  'J': '#6e3a24', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
+  'J': '#6e3a24', 'I': '#3a2616', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
 };
 /* schiarisce/scurisce un hex, CLAMPATO (k>1 senza clamp sfora il byte e il colore vira, es.
    arancio→verde: bug reale trovato e corretto qui, non solo nell'esperimento HD abbandonato) */
@@ -32,7 +33,7 @@ export function applyLook() {
   PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.65); PAL.T = shade(L.shirt, 1.42);
   PAL.P = L.pants; PAL.p = shade(L.pants, 0.68); PAL.U = shade(L.pants, 1.4);
   PAL.F = L.skin; PAL.f = shade(L.skin, 0.78); PAL.N = shade(L.skin, 1.3);
-  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48);
+  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48); PAL.I = shade(L.hairColor, 0.4);
   PAL.E = L.eyeColor || '#33291f';
 }
 
@@ -62,156 +63,14 @@ export const SPR = {
   side: [bSide.concat(lsA), bSide.concat(lsB)],
 };
 
-/* terzo tono su cappelli/capelli: schiarisce il TERZO centrale della riga più alta della
-   silhouette (segue la forma, non il tile intero — niente riga piatta bordo a bordo come
-   nel tentativo precedente). mapChar→hiChar, es. 'H'→'L' cappello, 'A'→'M' capelli. */
-function litOverlay(ov, mapChar, hiChar) {
-  if (!ov || !ov.length) return ov;
-  const minRow = Math.min(...ov.map(p => p[0]));
-  return ov.map(([row, s]) => {
-    if (row !== minRow) return [row, s];
-    const idxs = []; for (let i = 0; i < s.length; i++) if (s[i] === mapChar) idxs.push(i);
-    if (!idxs.length) return [row, s];
-    const lo = idxs[0], hi = idxs[idxs.length - 1], span = hi - lo;
-    const a = lo + Math.floor(span / 4), b = hi - Math.floor(span / 4);
-    let arr = s.split('');
-    for (let i = a; i <= b; i++) if (arr[i] === mapChar) arr[i] = hiChar;
-    return [row, arr.join('')];
-  });
-}
-/* dither al bordo BASSO della sagoma (scacchiera base/ombra): dà volume rotondo senza
-   ridisegnare i 15 stili a mano — un pixel sì e uno no verso l'ombra, non una riga piatta */
-function ditherBase(ov, mapChar, loChar) {
-  if (!ov || !ov.length) return ov;
-  const maxRow = Math.max(...ov.map(p => p[0]));
-  return ov.map(([row, s]) => {
-    if (row !== maxRow) return [row, s];
-    const idxs = []; for (let i = 0; i < s.length; i++) if (s[i] === mapChar) idxs.push(i);
-    if (!idxs.length) return [row, s];
-    const lo = idxs[0], hi = idxs[idxs.length - 1], mid = (lo + hi) / 2;
-    let arr = s.split('');
-    /* scacchiera SIMMETRICA rispetto al centro della sagoma (non alla colonna assoluta):
-       la distanza dal centro determina la fase, così specchiando fronte/retro resta simmetrico */
-    for (const i of idxs) if (Math.floor(Math.abs(i - mid)) % 2 === 1) arr[i] = loChar;
-    return [row, arr.join('')];
-  });
-}
-/* raddoppia un overlay [riga,mappa] a risoluzione doppia: ogni riga diventa 2 righe,
-   ogni carattere diventa 2 caratteri — stessa sagoma, il doppio dei pixel per poterci
-   passare sopra litOverlay/ditherBase con più margine (dithering più fine, non a scacchi
-   larghi). Punto di partenza onesto: non è ancora un ridisegno a mano dei 15+3 stili
-   (troppo rischioso farlo su tutti in un colpo solo, vedi nota nel report), ma con più
-   pixel disponibili il dithering condiviso produce una sfumatura via via più morbida
-   invece di un blocco piatto raddoppiato — un vero passo avanti sul piano precedente. */
-function expand2x(ov) {
-  if (!ov || !ov.length) return ov;
-  const out = [];
-  for (const [row, s] of ov) {
-    let wide = ''; for (const ch of s) wide += ch + ch;
-    out.push([row * 2, wide]); out.push([row * 2 + 1, wide]);
-  }
-  return out;
-}
-/* CRESCE la sagoma di un anello di 1 pixel (nativo) tutt'intorno, riempito col tono
-   d'ombra: dopo il raddoppio del corpo (fase 2) le vecchie sagome di capelli/cappelli —
-   pensate per la testa piccola di prima — restavano CONTENUTE dentro la nuova testa più
-   grande invece di sporgerne: si leggevano come "più capelli", non come un cappello
-   distinto (segnalato: "si confondono con la testa"). Un anello d'ombra tutt'intorno le fa
-   sporgere DAVVERO e insieme dà un bordo/rilievo leggero — una sola operazione condivisa,
-   non 36 ridisegni a mano. Gira sull'INTERA sagoma già rifinita (luce+dither), quindi non
-   tocca le bande già piazzate: aggiunge solo dove prima c'era il vuoto. */
-function dilateOverlay(ov, fillChar) {
-  if (!ov || !ov.length) return ov;
-  const W = ov[0][1].length;
-  const byRow = new Map(ov.map(([r, s]) => [r, s.split('')]));
-  const filled = (r, c) => { const a = byRow.get(r); return !!a && c >= 0 && c < W && a[c] !== '.'; };
-  const rows = [...byRow.keys()];
-  const minR = Math.min(...rows), maxR = Math.max(...rows);
-  const additions = [];
-  for (let r = minR - 1; r <= maxR + 1; r++) {
-    for (let c = 0; c < W; c++) {
-      if (filled(r, c)) continue;
-      if (filled(r - 1, c) || filled(r + 1, c) || filled(r, c - 1) || filled(r, c + 1)) additions.push([r, c]);
-    }
-  }
-  for (const [r, c] of additions) {
-    if (!byRow.has(r)) byRow.set(r, new Array(W).fill('.'));
-    byRow.get(r)[c] = fillChar;
-  }
-  return [...byRow.keys()].sort((a, b) => a - b).map(r => [r, byRow.get(r).join('')]);
-}
-function litHair(v) {
-  const d = ov => dilateOverlay(ditherBase(litOverlay(expand2x(ov), 'A', 'M'), 'A', 'a'), 'a');
-  return { down: d(v.down), side: d(v.side), up: d(v.up) };
-}
-
 /* ---------- cappelli: disegnati in nativo da hatArt.js (forme, luce, un solo contorno) ---------- */
 export const HATS = Object.fromEntries(HAT_IDS.map(id => [id, buildHat(id)]));
 /* ultima riga di "corona" per forma: col cappello indossato i capelli NON si disegnano
    su queste righe (niente compenetrazioni); sotto restano frangia/lati/lunghezze */
 export const HAT_CROWN = Object.fromEntries(HAT_IDS.map(id => [id, hatCrown(id, HATS[id])]));
 
-/* ---------- capelli: overlay a testa piena (il cappello, se indossato, copre la parte alta) ---------- */
-const HAIRS_RAW = {
-  none: { down: [], side: [], up: [] }, // Rasato
-  short: {
-    down: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AA......AA..."]],
-    side: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "....AAAAAAAAA..."], [3, "....AAAA...AA..."], [4, ".....A.........."]],
-    up: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."], [5, "...AAAAAAAAAA..."], [6, "...AAAAAAAAAA..."], [7, "...AAAAAAAAAA..."], [8, ".....AAAAAA....."]],
-  },
-  long: {
-    down: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AA......AA..."], [5, "...A........A..."], [6, "...A........A..."], [7, "...A........A..."], [8, "...A........A..."], [9, "...A........A..."]],
-    side: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "....AAAAAAAAA..."], [3, "....AAAA...AA..."], [4, "....AA.........."], [5, "....AA.........."], [6, "....AA.........."], [7, "....AA.........."], [8, "....AA.........."], [9, "....AA.........."]],
-    up: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."], [5, "...AAAAAAAAAA..."], [6, "...AAAAAAAAAA..."], [7, "...AAAAAAAAAA..."], [8, "....AAAAAAAA...."], [9, "...AA......AA..."], [10, "...A........A..."], [11, "...A........A..."]],
-  },
-  curly: {
-    down: [[0, "....AAAAAAAA...."], [1, "...AAAAAAAAAA..."], [2, "..AAAAAAAAAAAA.."], [3, "...AAAAAAAAAA..."], [4, "..AA........AA.."]],
-    side: [[0, "....AAAAAAAA...."], [1, "...AAAAAAAAAA..."], [2, "...AAAAAAAAAA..."], [3, "...AAAA....AA..."], [4, "...AAA.........."], [5, "....AA.........."]],
-    up: [[0, "....AAAAAAAA...."], [1, "...AAAAAAAAAA..."], [2, "..AAAAAAAAAAAA.."], [3, "..AAAAAAAAAAAA.."], [4, "...AAAAAAAAAA..."], [5, "...AAAAAAAAAA..."], [6, "...AAAAAAAAAA..."], [7, "...AAAAAAAAAA..."], [8, "....AAAAAAAA...."]],
-  },
-  punk: { // cresta centrata sulla testa (testa: colonne 4–9 → cresta 5–8)
-    down: [[0, "......AAAA......"], [1, "......AAAA......"], [2, "......AAAA......"], [3, "......AAAA......"]],
-    side: [[0, ".....AAAAAAAA..."], [1, ".....AAAAAAAA..."], [2, "......AAAA......"]],
-    up: [[0, "......AAAA......"], [1, "......AAAA......"], [2, "......AAAA......"], [3, "......AAAA......"], [4, "......AAAA......"], [5, "......AAAA......"], [6, "......AAAA......"], [7, "......AAAA......"], [8, "......AAAA......"]],
-  },
-  receding: { // stempiato con pelata: solo lati e nuca
-    down: [[2, "...AA......AA..."], [3, "...AA......AA..."], [4, "...A........A..."]],
-    side: [[2, "....AA.........."], [3, "....AAA........."], [4, "....AA.........."]],
-    up: [[2, "...AA......AA..."], [3, "...AA......AA..."], [4, "...AA......AA..."], [5, "...AAAAAAAAAA..."], [6, "...AAAAAAAAAA..."], [7, "...AAAAAAAAAA..."], [8, ".....AAAAAA....."]],
-  },
-  /* ---- TAGLI TEMATICI PER ZONA (sbloccabili al barbiere della zona) — righe 16, fronte/retro simmetriche ---- */
-  meadow: { // Prati: chioma con due germogli che spuntano
-    down: [[0, ".....A....A....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AA......AA..."]],
-    side: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAA...AA...."], [4, "...AA..........."]],
-    up: [[0, ".....AAAAAA....."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."], [5, "....AAAAAAAA...."]],
-  },
-  dunespike: { // Dune: chioma bassa e larga battuta dal vento
-    down: [[0, "...AAAAAAAAAA..."], [1, "..AAAAAAAAAAAA.."], [2, "...AAAAAAAAAA..."]],
-    side: [[0, "...AAAAAAAAAAA.."], [1, "..AAAAAAAAAAAA.."], [2, "....AAAAAAAA...."]],
-    up: [[0, "...AAAAAAAAAA..."], [1, "..AAAAAAAAAAAA.."], [2, "..AAAAAAAAAAAA.."], [3, "...AAAAAAAAAA..."]],
-  },
-  afro: { // Boschi: gran chioma tonda
-    down: [[0, "....AAAAAAAA...."], [1, "..AAAAAAAAAAAA.."], [2, "..AAAAAAAAAAAA.."], [3, "..AAAAAAAAAAAA.."], [4, "..AA........AA.."]],
-    side: [[0, "....AAAAAAAA...."], [1, "..AAAAAAAAAAAA.."], [2, "..AAAAAAAAAAAA.."], [3, "..AAAA....AA...."], [4, "..AAA..........."]],
-    up: [[0, "....AAAAAAAA...."], [1, "..AAAAAAAAAAAA.."], [2, "..AAAAAAAAAAAA.."], [3, "..AAAAAAAAAAAA.."], [4, "..AAAAAAAAAAAA.."], [5, "...AAAAAAAAAA..."]],
-  },
-  ember: { // Terre: ciuffo alto all'insù come fiamma
-    down: [[0, "......AAAA......"], [1, ".....AAAAAA....."], [2, "....AAAAAAAA...."], [3, "...AAAAAAAAAA..."], [4, "...AA......AA..."]],
-    side: [[0, ".....AAAA......."], [1, "....AAAAAA......"], [2, "...AAAAAAAA....."], [3, "...AAAA........."], [4, "...AA..........."]],
-    up: [[0, "......AAAA......"], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."]],
-  },
-  algae: { // Palude: capelli lunghi che gocciolano
-    down: [[0, "....AAAAAAAA...."], [1, "...AAAAAAAAAA..."], [2, "...AAAAAAAAAA..."], [3, "...A.AA..AA.A..."], [4, "...A..A..A..A..."], [5, "......A..A......"]],
-    side: [[0, "....AAAAAAAA...."], [1, "...AAAAAAAAAA..."], [2, "...AAAAAAAAAA..."], [3, "...AA.A..AA....."], [4, "...A..A........."], [5, "......A........."]],
-    up: [[0, "....AAAAAAAA...."], [1, "...AAAAAAAAAA..."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."], [5, "...A..A..A..A..."]],
-  },
-  frost: { // Lande Gelide: cresta appuntita ghiacciata
-    down: [[0, "....A..AA..A...."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."]],
-    side: [[0, "....A..AA..A...."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAA.........."]],
-    up: [[0, "....A..AA..A...."], [1, "....AAAAAAAA...."], [2, "...AAAAAAAAAA..."], [3, "...AAAAAAAAAA..."], [4, "...AAAAAAAAAA..."]],
-  },
-};
-export const HAIRS = Object.fromEntries(Object.entries(HAIRS_RAW).map(([k, v]) => [k, litHair(v)]));
+/* ---------- capelli: disegnati in nativo da hairArt.js (massa, attaccatura, ciocche) ---------- */
+export const HAIRS = Object.fromEntries(HAIR_IDS.map(id => [id, buildHair(id)]));
 
 /* ---------- blit ---------- */
 /* larghezza NON più fissa a 16: dal raddoppio geometrico il corpo è 32 colonne, ma
@@ -342,6 +201,27 @@ export function heroClothes(look, view, frame) {
   return { shOv, ptOv, shirt: shOv ? 'tshirt' : shirt, pants: ptOv ? 'long' : pants };
 }
 
+/* capelli sotto il cappello: si tolgono le righe della corona e, dove i capelli restano FUORI dal
+   cappello (un riccio più largo di una cuffia), il bordo tagliato prende il contorno — senza,
+   sporgeva una fetta piatta senza bordo. Calcolato una volta per combinazione. */
+const UNDER_HAT = new Map();
+function hairUnderHat(hairId, hatId, view, hair, hat, crown) {
+  const k = hairId + '|' + hatId + '|' + view;
+  let out = UNDER_HAT.get(k);
+  if (out) return out;
+  const covered = new Set();
+  for (const [yy, r] of hat) for (let i = 0; i < r.length; i++) if (r[i] !== '.') covered.add(i + ',' + yy);
+  out = hair.filter(p => p[0] > crown).map(([yy, r]) => {
+    const above = hair.find(p => p[0] === yy - 1);
+    if (!above || above[0] > crown) return [yy, r];
+    let t = '';
+    for (let i = 0; i < r.length; i++) t += (r[i] !== '.' && r[i] !== 'I' && above[1][i] !== '.' && !covered.has(i + ',' + (yy - 1)) && !covered.has(i + ',' + yy)) ? 'I' : r[i];
+    return [yy, t];
+  });
+  UNDER_HAT.set(k, out);
+  return out;
+}
+
 /* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
 export function drawHero(tctx, x, y, dir, frame, noHat) {
   /* niente più ctx.scale(2,2) qui: il corpo è ORA disegnato nativamente a 32×26,
@@ -355,7 +235,7 @@ export function drawHero(tctx, x, y, dir, frame, noHat) {
   const hs = HAIRS[S.look.hairStyle] || HAIRS.none;
   const hat = !noHat ? HATS[S.look.hatStyle] : null;
   const crown = hat ? HAT_CROWN[S.look.hatStyle] : -1;
-  blitPairs(hat ? hs[key].filter(p => p[0] > crown) : hs[key], x, y, flip, tctx);
+  blitPairs(hat ? hairUnderHat(S.look.hairStyle, S.look.hatStyle, key, hs[key], hat[key], crown) : hs[key], x, y, flip, tctx);
   if (hat) blitPairs(hat[key], x, y, flip, tctx);
   /* GLITTER del cappello PLATINO: qualche scintilla brillante sulla forma (twinkle dal tempo). */
   if (hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0) {

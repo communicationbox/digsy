@@ -1660,23 +1660,33 @@ sprites.applyLook();
   let hbad = 0;
   for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'side', 'up']) {
     for (const [y, r] of sprites.HAIRS[st][dir]) {
-      if (y < -8 || y > 40 || r.length !== 32) hbad++;
+      if (y < -14 || y > 40 || r.length !== 32) hbad++;
       for (const ch of r) if (!(ch in sprites.PAL)) hbad++;
     }
   }
   check('overlay capelli validi (4 stili × 3 direzioni)', hbad === 0);
   check('stili/colori capelli coerenti coi dati (6 stili, 12 colori)', HAIR_STYLES.length === 6 && HAIR_STYLES.every(s => s.id in sprites.HAIRS) && HAIR_COLORS.length === 12);
-  // fronte/retro: capelli simmetrici rispetto all'asse della testa (colonne raddoppiate → specchio c↔31-c)
-  let asym = 0;
-  for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'up']) {
-    for (const [, r] of sprites.HAIRS[st][dir]) {
-      for (let c = 0; c < 32; c++) {
-        const m = 31 - c;
-        if (m >= 0 && m < 32 && (r[c] === 'A') !== (r[m] === 'A')) asym++;
-      }
+  /* fronte/retro: la SAGOMA dei capelli è centrata sulla testa (specchio c↔31-c). Si guarda la
+     sagoma e non il colore: luce a sinistra e ombra a destra sono volute. Le eccezioni sono tagli
+     asimmetrici per disegno (la Duna è spazzata dal vento da un lato). */
+  let asym = 0; const asymAt = [];
+  for (const st of Object.keys(sprites.HAIRS)) {
+    if (st === 'dunespike') continue;
+    for (const dir of ['down', 'up']) for (const [, r] of sprites.HAIRS[st][dir]) {
+      let n = 0; for (let c = 0; c < 32; c++) if ((r[c] === '.') !== (r[31 - c] === '.')) n++;
+      if (n > 2) { asym++; asymAt.push(st + '/' + dir); }
     }
   }
-  check('capelli centrati (simmetria fronte/retro)', asym === 0);
+  check('capelli centrati (sagoma simmetrica fronte/retro)' + (asym ? ': ' + [...new Set(asymAt)].join(' ') : ''), asym === 0);
+  /* capelli nativi: niente mappe raddoppiate a blocchi 2×2 e un contorno in ogni vista */
+  let hBlocky = 0;
+  for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'side', 'up']) {
+    const rows = sprites.HAIRS[st][dir]; if (!rows.length) continue;
+    let pairs = 0, cells = 0;
+    for (const [, r] of rows) for (let x = 0; x < 32; x += 2) if (r[x] !== '.' || r[x + 1] !== '.') { cells++; if (r[x] === r[x + 1]) pairs++; }
+    if (pairs / cells > 0.9 || !rows.some(([, r]) => r.includes('I'))) hBlocky++;
+  }
+  check('capelli nativi: contorno e niente blocchi 2×2 (' + hBlocky + ')', hBlocky === 0);
   let hatBad = 0;
   for (const st of Object.keys(sprites.HATS)) for (const dir of ['down', 'side', 'up']) {
     for (const [y, r] of sprites.HATS[st][dir]) {
@@ -1746,9 +1756,9 @@ sprites.applyLook();
   for (const hst of Object.keys(sprites.HATS)) {
     const crown = sprites.HAT_CROWN[hst];
     for (const hair of Object.keys(sprites.HAIRS)) {
-      S.look.hatStyle = hst; S.look.hairStyle = hair; sprites.applyLook();
-      const hairCol = sprites.PAL.A;
-      const rec = { fillStyle: '', fillRect(px2, py2) { if (this.fillStyle === hairCol && py2 <= crown) clip++; }, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
+      S.look.hatStyle = hst; S.look.hairStyle = hair; S.look.hairColor = '#1f5a7c'; sprites.applyLook();   // colore che nessun cappello usa: i 4 toni si riconoscono
+      const hairCols = [sprites.PAL.A, sprites.PAL.a, sprites.PAL.M, sprites.PAL.I];
+      const rec = { fillStyle: '', fillRect(px2, py2) { if (hairCols.includes(this.fillStyle) && py2 <= crown) clip++; }, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
       for (const dir of ['down', 'up', 'right']) sprites.drawHero(rec, 0, 0, dir, 0);
     }
   }

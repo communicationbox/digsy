@@ -19,24 +19,29 @@ const W = 32;
 const TONES = {
   H: ['L', 'H', 'h'], J: ['J', 'J', 'J'], G: ['Y', 'G', 'g'], Y: ['Y', 'Y', 'G'],
   W: ['W', 'W', 'V'], Q: ['Q', 'Q', 'q'], R: ['R', 'R', 'r'], D: ['W', 'D', 'd'], K: ['K', 'K', 'K'],
+  A: ['M', 'A', 'a'],   // capelli (hairArt.js): luce, base, ombra del colore scelto
 };
 /* contorno per materiale (vince il primo trovato in quest'ordine: il più scuro) */
-const OUTLINE_ORDER = ['H', 'J', 'G', 'Y', 'R', 'Q', 'D', 'W'];
-const OUTLINE = { H: 'J', J: 'K', G: 'j', Y: 'j', R: 'r', Q: 'q', D: 'd', W: 'v' };
+const OUTLINE_ORDER = ['H', 'J', 'A', 'G', 'Y', 'R', 'Q', 'D', 'W'];
+const OUTLINE = { H: 'J', J: 'K', A: 'I', G: 'j', Y: 'j', R: 'r', Q: 'q', D: 'd', W: 'v' };
 
-function grid() {
+/* arrotondamento SIMMETRICO: un mezzo pixel va verso il centro della testa (15.5), non sempre a
+   destra — con Math.round le due metà di una forma centrata non erano più una lo specchio dell'altra */
+export function rnd(v) { const f = v - Math.floor(v); return Math.abs(f - 0.5) < 1e-9 ? (v < 15.5 ? Math.ceil(v) : Math.floor(v)) : Math.round(v); }
+
+export function grid() {
   const rows = new Map();
   const g = {
     get(x, y) { const r = rows.get(y); return r && x >= 0 && x < W ? r[x] : null; },
     set(x, y, m, t) {
-      x = Math.round(x); y = Math.round(y);
+      x = rnd(x); y = Math.round(y);
       if (x < 0 || x >= W) return;
       if (!rows.has(y)) rows.set(y, new Array(W).fill(null));
       rows.get(y)[x] = { m, t: t == null ? 1 : t };
     },
     /* riga orizzontale con tono per posizione: luce a sinistra, ombra a destra */
     span(y, x0, x1, m, opt = {}) {
-      const lo = Math.round(x0), hi = Math.round(x1), n = Math.max(1, hi - lo);
+      const lo = rnd(x0), hi = rnd(x1), n = Math.max(1, hi - lo);
       for (let x = lo; x <= hi; x++) {
         const u = (x - lo) / n;
         let t = opt.t != null ? opt.t : (u < (opt.lit ?? 0.3) ? 0 : u > (opt.dark ?? 0.72) ? 2 : 1);
@@ -52,7 +57,7 @@ function grid() {
       for (let y = y0; y <= y1; y++) {
         const v = (y - y0 + 0.5) / h, e = Math.min(1, v / round);
         const w = rx * Math.sqrt(1 - (1 - e) * (1 - e));
-        const lo = Math.round(cx - w), hi = Math.round(cx + w), n = Math.max(1, hi - lo);
+        const lo = rnd(cx - w), hi = rnd(cx + w), n = Math.max(1, hi - lo);
         for (let x = lo; x <= hi; x++) {
           const u = (x - lo) / n;
           let t = 1;
@@ -93,7 +98,7 @@ function grid() {
 }
 
 /* dal disegno ai caratteri: contorno esterno + toni */
-function finish(g, opt = {}) {
+export function finish(g, opt = {}) {
   const out = new Map();
   const ys = [...g.rows.keys()];
   if (!ys.length) return [];
@@ -414,7 +419,7 @@ export function buildHat(id) {
    è più spessa) di profilo lasciava una riga di pelle fra la tesa e i capelli (segnalato con foto).
    Dove il cappello scende di più, i capelli sotto restano coperti dal cappello stesso, disegnato dopo.
    Chi lascia vedere i capelli (coroncine, maschera, occhialoni) lo dichiara a mano. */
-const CROWN_OVERRIDE = { flowercrown: -2, laurelGold: -2, snorkel: -1, gogglesGold: -1, hood: 17 };
+const CROWN_OVERRIDE = { partyhat: -3, flowercrown: -2, laurelGold: -2, snorkel: -1, gogglesGold: -1, hood: 17 };
 export function hatCrown(id, hat) {
   if (id in CROWN_OVERRIDE) return CROWN_OVERRIDE[id];
   let crown = Infinity;
