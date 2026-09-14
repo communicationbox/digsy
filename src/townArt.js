@@ -13,6 +13,21 @@
 
 const LN = '#241a10';
 function sh(g, c, k) { return g.shade8(c, k); }
+/* ---------- VITA DELLE FACCIATE ----------
+   `an` = { t: millisecondi, ph: fase dell'edificio presa dalle sue CASELLE } (regola 1: mai dai pixel
+   dello schermo, o l'animazione correrebbe con la camera). Solo movimenti di un pixel o due: il
+   palo del barbiere che gira, fumo dai comignoli, frange delle tende nel vento, una lucina che
+   lampeggia. Senza `an` (miniature, prove) il disegno resta fermo com'era. */
+const NOAN = { t: 0, ph: 0 };
+const step = (an, ms, n) => (Math.floor(an.t / ms) + an.ph) % n;
+/* fumo: tre sbuffi che salgono, si allargano e svaniscono, ognuno a un terzo di giro dal precedente */
+function smoke(g, x, y, an, rgb, still) {
+  for (let i = 0; i < 3; i++) {
+    const k = still ? [0.15, 0.45, 0.75][i] : ((an.t / 2400 + i / 3 + an.ph * 0.137) % 1 + 1) % 1;
+    const sz = 3 + Math.round(k * 3), yy = y - Math.round(k * 22), xx = x + Math.round(Math.sin(k * 6.28 + i * 2) * 1.5) - (sz >> 1);
+    g.rect(xx, yy, sz, sz, 'rgba(' + rgb + ',' + (0.6 * (1 - k)).toFixed(2) + ')');
+  }
+}
 
 /* ---------- materiali della parete ---------- */
 export function wallFace(g, x, y, w, h, base, kind) {
@@ -83,9 +98,13 @@ export function windowBox(g, x, y, w, h, glass, shutter, night) {
   g.rect(x - 3, y + h, w + 6, 3, '#8f887a'); g.rect(x - 3, y + h, w + 6, 1, '#c4bdb0');
 }
 /* fioriera sotto una finestra */
-export function flowerBox(g, x, y, w, flowers) {
+export function flowerBox(g, x, y, w, flowers, an = NOAN) {
   g.rect(x - 1, y, w + 2, 6, LN); g.rect(x, y + 1, w, 4, '#8a5f38'); g.rect(x, y + 1, w, 1, '#b07c4a');
-  for (let i = 2; i < w - 2; i += 4) { g.rect(x + i, y - 3, 3, 3, '#4e8d3f'); g.px(x + i + 1, y - 4, (flowers || ['#e2604f', '#f2c53d', '#e8a0b8'])[(i >> 2) % 3]); }
+  const sway = step(an, 700, 4);                                       // i fiori si piegano appena, a turno
+  for (let i = 2; i < w - 2; i += 4) {
+    const dx = sway === (i >> 2) % 4 ? 1 : 0;
+    g.rect(x + i, y - 3, 3, 3, '#4e8d3f'); g.px(x + i + 1 + dx, y - 4, (flowers || ['#e2604f', '#f2c53d', '#e8a0b8'])[(i >> 2) % 3]);
+  }
 }
 /* ---------- porta con telaio, gradino, maniglia ---------- */
 export function door(g, cx, bottom, c1, c2, arched) {
@@ -101,16 +120,25 @@ export function door(g, cx, bottom, c1, c2, arched) {
   g.rect(x - 5, bottom - 3, w + 10, 3, '#7f776a'); g.rect(x - 5, bottom - 3, w + 10, 1, '#b5ad9e');                                  // gradino
 }
 /* tenda a strisce con la frangia */
-export function awning(g, x, y, w, c1, c2) {
+export function awning(g, x, y, w, c1, c2, an = NOAN) {
   g.rect(x - 3, y - 1, w + 6, 12, LN);
   for (let i = 0; i < w + 4; i += 8) { g.rect(x - 2 + i, y, 4, 10, c1); g.rect(x + 2 + i, y, 4, 10, c2); }
   g.rect(x - 2, y, w + 4, 2, 'rgba(255,255,255,.25)');
-  for (let i = 0; i < w + 4; i += 8) { g.rect(x - 2 + i, y + 10, 4, 3, sh(g, c1, 0.8)); g.rect(x + 2 + i, y + 10, 4, 2, sh(g, c2, 0.85)); }
+  /* frangia nel vento: un'onda di un pixel che passa da una linguetta all'altra */
+  const wave = step(an, 220, 12);
+  for (let i = 0, j = 0; i < w + 4; i += 8, j++) {
+    const d1 = (wave === j * 2 % 12) ? 1 : 0, d2 = (wave === (j * 2 + 1) % 12) ? 1 : 0;
+    g.rect(x - 2 + i, y + 10, 4, 3 + d1, sh(g, c1, 0.8)); g.rect(x + 2 + i, y + 10, 4, 2 + d2, sh(g, c2, 0.85));
+  }
 }
 /* lanterna a muro */
-export function wallLamp(g, x, y, night) {
+export function wallLamp(g, x, y, night, an = NOAN) {
   g.rect(x, y, 6, 2, LN); g.rect(x + 1, y + 2, 4, 7, LN); g.rect(x + 2, y + 3, 2, 5, night ? '#ffe08a' : '#e8c34a');
-  if (night) g.rect(x - 4, y - 2, 14, 14, 'rgba(255,220,120,.2)');
+  if (night) {
+    const f = step(an, 170, 7);                                        // la fiamma trema: alone che respira
+    g.rect(x - 4, y - 2, 14, 14, f === 0 ? 'rgba(255,220,120,.14)' : f === 3 ? 'rgba(255,220,120,.26)' : 'rgba(255,220,120,.2)');
+    if (f === 3) g.px(x + 2, y + 3, '#fff6c8');
+  }
 }
 /* insegna appesa a una staffa, con l'icona del mestiere (disegnata da chi chiama) */
 export function hangingSign(g, x, y) {
@@ -118,6 +146,34 @@ export function hangingSign(g, x, y) {
   g.rect(x - 1, y + 6, 18, 14, LN); g.rect(x, y + 7, 16, 12, '#d9b98a'); g.rect(x, y + 7, 16, 2, '#efe0bd');
 }
 
+/* SEDIA A DONDOLO di profilo, che dondola davvero: il disegno è una lista di pixel attorno al punto
+   dove i pattini toccano terra, ruotata di un angolo piccolo e poi arrotondata alla griglia. Il
+   contorno si calcola DOPO la rotazione, così segue la sagoma inclinata. */
+const CHAIR = (() => {
+  const W = '#8a5f38', WL = '#b07c4a', WD = '#5c4229', CU = '#c65a54', CUL = '#e0837a', pts = [];
+  const add = (x, y, c) => pts.push([x, y, c]);
+  for (let x = -9; x <= 9; x++) { const y = -Math.round((x * x) / 30); add(x, y, WD); add(x, y - 1, W); }   // pattino ad arco
+  for (let y = -2; y >= -8; y--) { add(5, y, W); add(6, y, WD); }                                            // gamba davanti
+  for (let y = -2; y >= -8; y--) add(-5, y, WD);                                                             // gamba dietro
+  for (let x = -6; x <= 7; x++) { add(x, -9, WL); add(x, -10, x > 5 ? W : CU); }                            // seduta col cuscino
+  for (let x = -5; x <= 5; x++) add(x, -11, CUL);
+  for (let y = -10; y >= -22; y--) { const x = -6 - Math.round((-10 - y) * 0.2); add(x, y, W); add(x + 1, y, WL); }   // schienale inclinato
+  for (let y = -13; y >= -21; y -= 4) for (let x = -3 - Math.round((-10 - y) * 0.2); x <= -1 - Math.round((-10 - y) * 0.2); x++) add(x, y, W);   // stecche
+  for (let x = -5; x <= 5; x++) add(x, -15, x === 5 ? WD : WL);                                               // bracciolo
+  add(5, -14, W); add(5, -13, W); add(5, -12, W);
+  return pts;
+})();
+function rockingChair(g, x, y, an) {
+  const a = an === NOAN ? 0 : Math.sin(an.t / 650 + an.ph) * 0.16;
+  const ca = Math.cos(a), sa = Math.sin(a), cells = new Map();
+  for (const [px, py, c] of CHAIR) {
+    const rx = Math.round(px * ca - py * sa), ry = Math.round(px * sa + py * ca);
+    cells.set(rx + ',' + ry, [rx, ry, c]);
+  }
+  for (const [rx, ry] of cells.values()) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
+    if (!cells.has((rx + ox) + ',' + (ry + oy))) g.px(x + rx + ox, y + ry + oy, LN);
+  for (const [rx, ry, c] of cells.values()) g.px(x + rx, y + ry, c);
+}
 /* ================= gli edifici ================= */
 function base(g, w, h, wallCol, kind, BB, top) {
   g.rect(4, h - 2, w - 8, 6, 'rgba(20,14,8,.25)');
@@ -125,10 +181,10 @@ function base(g, w, h, wallCol, kind, BB, top) {
   foundation(g, 3, h - 8, w - 6);
 }
 
-export function drawStoreFront(g, w, h, BB, glass, night) {
+export function drawStoreFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#7fa06a', 'planks', BB, 18);
   roof(g, 3, -6, w - 6, 22, BB);
-  awning(g, 6, 20, w - 12, '#c65a54', '#f1e6cc');
+  awning(g, 6, 20, w - 12, '#c65a54', '#f1e6cc', an);
   windowBox(g, 10, 36, 22, 16, glass, null, night);
   g.rect(12, 46, 6, 6, '#b98d59'); g.rect(20, 44, 6, 8, '#8a5f38'); g.rect(26, 47, 4, 5, '#e8c34a');
   door(g, w / 2, h - 5, '#6e4a2e', '#5c3d22');
@@ -136,40 +192,48 @@ export function drawStoreFront(g, w, h, BB, glass, night) {
   g.rect(w - 30, h - 20, 16, 12, LN); g.rect(w - 29, h - 19, 14, 10, '#b98d59'); g.rect(w - 29, h - 19, 14, 2, '#d9b98a');
   for (let i = 0; i < 3; i++) { g.rect(w - 28 + i * 4, h - 23, 4, 4, ['#c65a54', '#e8c34a', '#7ec069'][i]); }
   g.rect(w - 12, h - 18, 9, 11, LN); g.rect(w - 11, h - 17, 7, 9, '#d8b58a'); g.rect(w - 10, h - 20, 5, 3, '#c9a06a');
-  wallLamp(g, w / 2 + 16, 30, night);
+  wallLamp(g, w / 2 + 16, 30, night, an);
 }
-export function drawInnFront(g, w, h, BB, glass, night) {
+export function drawInnFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#efe2c4', 'timber', BB, -8);
   roof(g, 3, -28, w - 6, 22, BB);
   g.rect(12, -44, 10, 20, LN); g.rect(13, -43, 8, 18, '#9a8874'); g.rect(13, -43, 8, 3, '#b5a592');                                 // comignolo
-  g.rect(15, -50, 4, 4, 'rgba(220,215,205,.6)'); g.rect(18, -56, 5, 5, 'rgba(230,225,215,.45)');
-  for (const wx of [12, w / 2 - 9, w - 30]) { windowBox(g, wx, 2, 18, 13, glass, '#8a3f3a', night); flowerBox(g, wx - 1, 18, 20); }
+  smoke(g, 17, -46, an, '225,220,210', an === NOAN);
+  for (const wx of [12, w / 2 - 9, w - 30]) { windowBox(g, wx, 2, 18, 13, glass, '#8a3f3a', night); flowerBox(g, wx - 1, 18, 20, null, an); }
   windowBox(g, 12, 34, 16, 14, glass, null, night); windowBox(g, w - 28, 34, 16, 14, glass, null, night);
   door(g, w / 2, h - 5, '#5c3d22', '#4c3018', true);
-  wallLamp(g, w / 2 + 16, 32, night);
-  /* insegna col boccale su una staffa */
+  wallLamp(g, w / 2 + 16, 32, night, an);
+  /* insegna col boccale su una staffa: dondola di un pixel */
+  const sw = [0, 0, 1, 1, 0, 0, -1, -1][step(an, 260, 8)];
   g.rect(w - 10, 24, 12, 2, LN); g.rect(w - 2, 26, 1, 4, LN);
-  g.rect(w - 10, 30, 14, 12, LN); g.rect(w - 9, 31, 12, 10, '#d9b98a'); g.rect(w - 6, 33, 5, 6, '#c9a06a'); g.rect(w - 6, 33, 5, 2, '#f3ecda');
+  g.rect(w - 10 + sw, 30, 14, 12, LN); g.rect(w - 9 + sw, 31, 12, 10, '#d9b98a'); g.rect(w - 6 + sw, 33, 5, 6, '#c9a06a'); g.rect(w - 6 + sw, 33, 5, 2, '#f3ecda');
 }
-export function drawBarberFront(g, w, h, BB, glass, night) {
+export function drawBarberFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#eef4f6', 'tiles', BB, 18);
   roof(g, 3, -6, w - 6, 22, BB);
-  awning(g, 6, 20, w - 12, '#5a86c8', '#f3ecda');
+  awning(g, 6, 20, w - 12, '#5a86c8', '#f3ecda', an);
   windowBox(g, 9, 36, 22, 16, glass, null, night);
   g.rect(15, 44, 10, 6, '#c65a54'); g.rect(17, 40, 6, 4, '#c65a54'); g.rect(19, 50, 2, 2, '#8f9aa3');                               // poltrona in vetrina
   door(g, w / 2 - 6, h - 5, '#5b7e99', '#3d5a72');
   /* il palo del barbiere accanto alla porta */
   const px0 = w / 2 + 12;
   g.rect(px0 - 1, h - 42, 10, 36, LN); g.rect(px0, h - 41, 8, 34, '#f3ecda');
-  for (let i = 0; i < 34; i += 6) { g.rect(px0, h - 41 + i, 8, 3, '#c65a54'); g.rect(px0, h - 38 + i, 4, 2, '#5a86c8'); }
+  /* le strisce SALGONO girando, come il palo vero: bande inclinate che scorrono, tagliate al tubo */
+  const off = step(an, 110, 12);
+  for (let yy = 0; yy < 34; yy++) for (let xx = 0; xx < 8; xx++) {
+    const b = ((yy + off + xx) % 12 + 12) % 12;
+    if (b < 3) g.px(px0 + xx, h - 41 + yy, '#c65a54'); else if (b >= 6 && b < 8) g.px(px0 + xx, h - 41 + yy, '#5a86c8');
+  }
+  g.rect(px0, h - 41, 2, 34, 'rgba(255,255,255,.28)'); g.rect(px0 + 6, h - 41, 2, 34, 'rgba(20,20,40,.18)');   // il vetro del tubo
   g.rect(px0 - 2, h - 44, 12, 4, '#8f9aa3'); g.rect(px0 - 2, h - 8, 12, 3, '#8f9aa3'); g.rect(px0 + 2, h - 47, 4, 3, '#c9a227');
 }
-export function drawTailorFront(g, w, h, BB, glass, night) {
+export function drawTailorFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#f2e4ea', 'plaster', BB, 18);
   roof(g, 3, -6, w - 6, 22, BB);
   /* tenda a smerlo */
   g.rect(4, 19, w - 8, 8, LN); g.rect(5, 20, w - 10, 6, '#b06a8c');
-  for (let i = 5; i < w - 6; i += 8) { g.rect(i, 26, 8, 3, '#b06a8c'); g.rect(i + 2, 29, 4, 1, '#8c4e6c'); }
+  const tw = step(an, 240, 10);
+  for (let i = 5, j = 0; i < w - 6; i += 8, j++) { const d = tw === j % 10 ? 1 : 0; g.rect(i, 26, 8, 3 + d, '#b06a8c'); g.rect(i + 2, 29 + d, 4, 1, '#8c4e6c'); }
   /* vetrina a bovindo col manichino */
   g.rect(7, 33, 30, 24, LN); g.rect(8, 34, 28, 22, '#f3ecda'); g.rect(10, 36, 24, 18, glass);
   g.rect(19, 38, 6, 3, '#e0c49a'); g.rect(17, 41, 10, 10, '#e8a0b8'); g.rect(21, 51, 2, 3, '#5a5248');
@@ -179,7 +243,7 @@ export function drawTailorFront(g, w, h, BB, glass, night) {
   /* rotoli di stoffa fuori */
   for (let i = 0; i < 3; i++) { g.rect(w - 22 + i * 6, h - 30 + i * 2, 6, 22 - i * 2, LN); g.rect(w - 21 + i * 6, h - 29 + i * 2, 4, 20 - i * 2, ['#8fd0a0', '#e2604f', '#5a86c8'][i]); }
 }
-export function drawLabFront(g, w, h, BB, glass, night) {
+export function drawLabFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#b7b7a8', 'stone', BB, 20);
   roof(g, 3, -2, w - 6, 22, { ...BB, roof: '#5f7a52', roof2: '#78966a', mat: 'tile' });
   /* torretta tonda con l'osservatorio */
@@ -188,14 +252,19 @@ export function drawLabFront(g, w, h, BB, glass, night) {
   g.rect(tx - 4, -38, 30, 9, LN); g.rect(tx - 3, -37, 28, 7, '#5f7a52'); g.rect(tx - 3, -37, 28, 2, '#78966a');
   g.rect(tx + 5, -24, 12, 12, LN); g.rect(tx + 6, -23, 10, 10, night ? '#ffe08a' : '#8fd0e6'); g.rect(tx + 10, -23, 2, 10, '#5a5248'); g.rect(tx + 6, -19, 10, 2, '#5a5248');
   g.rect(tx + 8, -50, 4, 12, LN); g.rect(tx + 9, -49, 2, 10, '#8f9aa3');                                                              // antenna
-  g.rect(12, -18, 8, 20, LN); g.rect(13, -17, 6, 18, '#8f887a'); g.rect(14, -26, 5, 6, 'rgba(160,230,170,.6)'); g.rect(17, -34, 6, 6, 'rgba(180,240,190,.45)');  // camino col fumo verde
+  const blink = step(an, 450, 5) === 0;                                // la lucina in cima lampeggia
+  g.rect(tx + 8, -54, 4, 4, LN); g.rect(tx + 9, -53, 2, 2, blink ? '#ff6a5a' : '#8a3a32');
+  if (blink) g.rect(tx + 6, -56, 8, 8, 'rgba(255,110,90,.25)');
+  g.rect(12, -18, 8, 20, LN); g.rect(13, -17, 6, 18, '#8f887a'); smoke(g, 16, -22, an, '170,235,180', an === NOAN);  // camino col fumo verde
   windowBox(g, 10, 34, 16, 14, glass, null, night);
   door(g, w / 2, h - 5, '#5f7a52', '#3f5434', true);
   /* casse di fiale fuori */
   g.rect(w - 22, h - 18, 16, 10, LN); g.rect(w - 21, h - 17, 14, 8, '#a97a4c');
   for (let i = 0; i < 3; i++) { g.rect(w - 19 + i * 4, h - 22, 3, 6, LN); g.rect(w - 19 + i * 4, h - 21, 2, 4, ['#5fa04e', '#5a86c8', '#c65a54'][i]); }
+  const bub = step(an, 300, 9);                                       // una bollicina sale nelle fiale, una alla volta
+  if (bub < 3) g.px(w - 19 + (bub % 3) * 4, h - 18 - bub, 'rgba(255,255,255,.8)');
 }
-export function drawFurnitureFront(g, w, h, BB, glass, night) {
+export function drawFurnitureFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#c9a07a', 'planks', BB, 18);
   roof(g, 3, -6, w - 6, 22, BB);
   g.rect(6, 26, 30, 28, LN); g.rect(7, 27, 28, 26, '#6e4a2e'); g.rect(9, 29, 24, 22, glass);
@@ -204,9 +273,9 @@ export function drawFurnitureFront(g, w, h, BB, glass, night) {
   g.rect(5, 53, 32, 3, '#8f887a');
   door(g, w / 2 + 4, h - 5, '#6e4a2e', '#5c3d22');
   for (let i = 0; i < 3; i++) { g.rect(w - 14 + i * 3, h - 36 + i * 2, 4, 30 - i * 2, LN); g.rect(w - 13 + i * 3, h - 35 + i * 2, 2, 28 - i * 2, ['#b07c4a', '#8a5f38', '#d0ae82'][i]); }
-  g.rect(w - 28, h - 18, 12, 3, '#8a5f38'); g.rect(w - 28, h - 15, 2, 8, '#5c4229'); g.rect(w - 18, h - 15, 2, 8, '#5c4229'); g.rect(w - 28, h - 28, 2, 10, '#5c4229');
+  rockingChair(g, w - 23, h - 7, an);                                   // la sedia a dondolo davanti alla bottega
 }
-export function drawMuseumFront(g, w, h, BB, glass, night) {
+export function drawMuseumFront(g, w, h, BB, glass, night, an = NOAN) {
   g.rect(4, h - 2, w - 8, 6, 'rgba(20,14,8,.25)');
   wallFace(g, 6, 22, w - 12, h - 30, '#e8e2d0', 'marble');
   /* scalinata */
@@ -230,22 +299,30 @@ export function drawMuseumFront(g, w, h, BB, glass, night) {
   g.rect(w / 2 - 14, h - 40, 28, 32, LN); g.rect(w / 2 - 12, h - 38, 24, 30, '#23232c'); g.rect(w / 2 - 12, h - 38, 24, 3, '#3a3a44');
   if (night) g.rect(w / 2 - 12, h - 30, 24, 22, 'rgba(255,220,140,.25)');
   /* stendardi ai lati del portale */
-  for (const bx of [w / 2 - 26, w / 2 + 20]) { g.rect(bx - 1, 28, 8, 20, LN); g.rect(bx, 29, 6, 18, '#8a3f3a'); g.rect(bx + 2, 34, 2, 6, '#c9a227'); }
+  const fl = step(an, 380, 4);
+  for (const [k, bx] of [[0, w / 2 - 26], [1, w / 2 + 20]]) {
+    const d = (fl + k * 2) % 4 < 2 ? 1 : 0;                              // gli stendardi si muovono nell'aria, sfasati
+    g.rect(bx - 1, 28, 8, 20 + d, LN); g.rect(bx, 29, 6, 18 + d, '#8a3f3a'); g.rect(bx + 2, 34, 2, 6, '#c9a227');
+    g.px(bx + (d ? 5 : 0), 47 + d, LN);
+  }
+  /* un riflesso di luce che attraversa l'architrave d'oro ogni tanto */
+  const gx = Math.floor(((an.t / 14 + an.ph * 97) % (w + 360))) - 60;
+  if (an !== NOAN && gx > -3 && gx < w + 3) { g.rect(gx, 19, 3, 5, 'rgba(255,248,210,.75)'); g.rect(gx + 4, 19, 1, 5, 'rgba(255,248,210,.45)'); }
 }
-export function drawHouseFront(g, w, h, BB, glass, night) {
+export function drawHouseFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#d8a878', 'plaster', BB, 18);
   roof(g, 3, -8, w - 6, 26, BB);
   g.rect(w - 26, -24, 10, 18, LN); g.rect(w - 25, -23, 8, 16, '#9a8874'); g.rect(w - 25, -23, 8, 3, '#b5a592');
-  g.rect(w - 23, -30, 4, 4, 'rgba(220,215,205,.6)');
+  smoke(g, w - 21, -26, an, '225,220,210', an === NOAN);
   /* finestra tonda */
   const rx = w - 24, ry = 38;
   for (let yy = -8; yy <= 8; yy++) { const ww = Math.round(Math.sqrt(64 - yy * yy)); g.rect(rx - ww - 1, ry + yy, ww * 2 + 3, 1, LN); }
   for (let yy = -7; yy <= 7; yy++) { const ww = Math.round(Math.sqrt(49 - yy * yy)); g.rect(rx - ww, ry + yy, ww * 2 + 1, 1, '#f3ecda'); }
   for (let yy = -5; yy <= 5; yy++) { const ww = Math.round(Math.sqrt(25 - yy * yy)); g.rect(rx - ww, ry + yy, ww * 2 + 1, 1, night ? '#ffdf8a' : glass); }
   g.rect(rx - 5, ry, 11, 1, '#f3ecda'); g.rect(rx, ry - 5, 1, 11, '#f3ecda');
-  windowBox(g, 12, 32, 16, 13, glass, '#5f7a52', night); flowerBox(g, 10, 48, 20);
+  windowBox(g, 12, 32, 16, 13, glass, '#5f7a52', night); flowerBox(g, 10, 48, 20, null, an);
   door(g, w / 2, h - 5, '#8a5f38', '#6e4a2e', true);
-  wallLamp(g, w / 2 - 22, 28, night);
+  wallLamp(g, w / 2 - 22, 28, night, an);
 }
 
 export const FRONTS = {

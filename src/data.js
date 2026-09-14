@@ -299,6 +299,7 @@ export function furnIsBackdrop(id) { const p = furnPlace(id); return p === 'pape
    corteccia"/"Bark armchair" in i18n.js): è già la sedia generica del set, niente da
    inventare — regalarla ignora il suo `lvl` normale (il dono bypassa `buyFurniture`). */
 export const STARTER_FURN_ID = 'boschi_chair';
+export const STARTER_PLANT_ID = 'giardino_monstera';
 
 /* COSMETICI TEMATICI: ogni zona ha un taglio (barbiere) e un cappello (sarto)
    scopribili solo visitando il negozio IN quella zona; una volta sbloccati

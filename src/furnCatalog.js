@@ -262,6 +262,9 @@ export const FURN_CATALOG = [
   ]),
   /* ================= GIARDINO INTERNO ================= */
   ...P('giardino', [
+    /* MONSTERA: la pianta che si ha fin dall'inizio (regalata in state.js, come la poltrona) */
+    { id: 'monstera', it: 'Monstera', en: 'Monstera', ru: 'Монстера', cost: 55, lvl: 1, base: true, m: '#c86a4a',
+      art: 'L 16 21 10 13 GR-; L 16 21 21 9 GR-; L 16 21 16 -2 GR-; E 9 11 8 6 GR--; E 9 11 7 5 GR; L 16 12 3 9 LF; L 5 6 6 9 GR--; L 9 5 10 9 GR--; L 13 6 13 9 GR--; L 4 15 6 12 GR--; L 9 17 10 13 GR--; L 13 16 13 13 GR--; D 7 11 GR--; E 23 6 8 6 GR--; E 23 6 7 5 GR+; L 16 9 30 4 LF; L 19 1 19 5 GR--; L 23 0 23 4 GR--; L 27 1 27 4 GR--; L 19 12 20 9 GR--; L 23 12 23 8 GR--; L 27 11 27 7 GR--; D 25 6 GR--; E 16 -4 3 5 GR--; E 16 -4 2 4 LF; L 16 -8 16 0 GR; C 10 20 12 10 m' },
     { id: 'girasoli', it: 'Vaso di girasoli', en: 'Pot of sunflowers', ru: 'Горшок с подсолнухами', cost: 45, lvl: 1, base: true, m: '#c86a4a',
       art: 'L 12 18 10 2 GR; L 18 18 22 0 GR; E 14 10 3 2 LF; C 9 18 14 12 m; O 10 0 4 YE; D 10 0 BR; O 22 -2 4 YE; D 22 -2 BR' },
     { id: 'aiuola', it: 'Aiuola rialzata', en: 'Raised flower bed', ru: 'Приподнятая клумба', w: 2, cost: 90, lvl: 2, base: true, m: '#8a5f38',

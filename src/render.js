@@ -84,7 +84,7 @@ export function drawBuilding(b, sx, sy) {
   const dcx = sx + w / 2;
   /* ESTERNI (townArt.js): ogni mestiere coi suoi materiali, tetto della zona, porta col gradino */
   const front = FRONTS[b.type] || FRONTS.lab;
-  front(BRUSH, w, h, BB, glass, night() > 0.4);
+  front(BRUSH, w, h, BB, glass, night() > 0.4, { t: frameTime, ph: (b.x0 * 7 + b.y0 * 13) & 1023 });   // fase dalle caselle, mai dai pixel
   const doorOff = { barber: -6, tailor: 6, furniture: 4 }[b.type] || 0;
   // insegna appesa sopra la porta (comunque utile da lontano)
   if (b.type !== 'museum') drawSign(b.type, dcx + doorOff, sy + 17);
@@ -101,7 +101,7 @@ export function drawHouse(hf, sx, sy) {
   const BB = biomeBuild(hf.x0, hf.y0);
   const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
   const dcx = sx + w / 2;
-  FRONTS.house(BRUSH, w, h, BB, glass === '#ffdf8a' ? '#8fd0e6' : glass, night() > 0.4);
+  FRONTS.house(BRUSH, w, h, BB, glass === '#ffdf8a' ? '#8fd0e6' : glass, night() > 0.4, { t: frameTime, ph: (hf.x0 * 7 + hf.y0 * 13) & 1023 });
   drawSign('house', dcx, sy + 17);
   ctx.restore();
 }

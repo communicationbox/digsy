@@ -463,7 +463,8 @@ if (typeof window !== 'undefined') {
           c2.fillStyle = night ? '#6a6a70' : '#d8c49a'; c2.fillRect(x, y, cw, ch);
           const w = (t === 'museum' ? 5 : 3) * 32;
           c2.save(); c2.translate(x + (cw - w) / 2, y + ch - 80);
-          (ta.FRONTS[t])(g, w, 64, BB, night ? '#ffdf8a' : '#8fd0e6', night);
+          const tq = typeof location !== 'undefined' && new URLSearchParams(location.search).get('t');   // ?t=ms: un fotogramma delle animazioni
+          (ta.FRONTS[t])(g, w, 64, BB, night ? '#ffdf8a' : '#8fd0e6', night, tq != null ? { t: +tq, ph: 0 } : undefined);
           c2.restore();
           c2.fillStyle = '#000'; c2.font = 'bold 10px monospace'; c2.fillText(t + ' · ' + (BB.mat || '') + (night ? ' · notte' : ''), x + 4, y + 12);
         });

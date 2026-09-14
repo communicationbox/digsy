@@ -1,7 +1,7 @@
 /* Stato di gioco (salvato in localStorage) + player/camera runtime */
 import { setSeed } from './noise.js';
 import { packExplored, unpackExplored, packDug, unpackDug } from './packmap.js';
-import { DEFAULT_LOOK, ROOM_PRICES, PEDESTAL_ID, STARTER_FURN_ID } from './data.js';
+import { DEFAULT_LOOK, ROOM_PRICES, PEDESTAL_ID, STARTER_FURN_ID, STARTER_PLANT_ID } from './data.js';
 
 export const SK = 'ossa_world_pixel_v1';
 
@@ -334,6 +334,9 @@ export function initState() {
      tutorial (piazzarla in Sala PRIMA di scavare). Stesso schema del piedistallo: il flag
      evita di regalarla di nuovo se poi sparisce dal vassoio in qualche modo. */
   if (!S.starterFurnGiven) { S.starterFurnGiven = true; if (!S.furnOwned.includes(STARTER_FURN_ID)) S.furnOwned.push(STARTER_FURN_ID); }
+  /* MONSTERA di base (a richiesta: "una monstera che si ha di default"): anche le partite già
+     avviate la ricevono una volta sola, nel vassoio */
+  if (!S.monsteraGiven) { S.monsteraGiven = true; if (!S.furnOwned.includes(STARTER_PLANT_ID)) S.furnOwned.push(STARTER_PLANT_ID); }
   /* i natanti non sono più un "gear attivabile": in acqua si sale da soli (v0.16.5) */
   if (S.gear === 'boat' || S.gear === 'motorboat') S.gear = null;
   delete S.gearOn; // vecchio modello (mezzi indipendenti) rimosso

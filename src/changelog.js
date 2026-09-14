@@ -1,6 +1,25 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.97.0', it: [
+      'CITTÀ VIVE: il palo del barbiere gira, i comignoli fumano (verde al Lab), le tende hanno la frangia nel vento, l\'insegna della locanda dondola, l\'antenna del Lab lampeggia, gli stendardi del Museo si muovono e un riflesso scorre sull\'oro; davanti alla Bottega d\'arredo una sedia a dondolo che dondola',
+      'CASA: una Monstera in regalo nel vassoio, per tutti; si trova anche nel catalogo del Giardino interno',
+      'PERSONAGGIO: maglie disegnate col corpo (maglietta, canottiera, camicia, felpa si distinguono), capelli lunghi rifatti, profilo senza bozzo sulla fronte',
+      'MEZZI: motoscafo ridisegnato; cavalcatura più piccola',
+      'CORTILE: il cancello aspetta il compagno e Digsy torna a chiuderlo; il cibo lanciato non vola oltre la staccionata',
+      'FIX: niente più tratteggi bianchi sulla terra agli angoli dell\'acqua; salvataggio automatico senza scatti anche con partite enormi',
+      'TESTI più corti ovunque',
+    ], en: [
+      'LIVELY TOWNS: the barber pole spins, chimneys smoke (green at the Lab), awning fringes flutter, the inn sign swings, the Lab antenna blinks, Museum banners sway and a glint runs across the gold; a rocking chair rocks outside the Furniture shop',
+      'HOME: a Monstera gift in your tray, for everyone; also in the Indoor garden catalog',
+      'CHARACTER: shirts drawn with the body (T-shirt, tank top, shirt and hoodie now look different), long hair redone, profile without the forehead bump',
+      'VEHICLES: motorboat redrawn; smaller mount',
+      'YARD: the gate waits for your companion and Digsy walks back to close it; thrown food no longer lands beyond the fence',
+      'FIX: no more white dashes on land at water corners; autosave without hitches even in huge games',
+      'SHORTER texts everywhere',
+    ],
+  },
+  {
     v: 'v0.96.0', it: [
       'GRAFICA: raddoppio della risoluzione (16bit HD vero) — griglia di gioco raddoppiata (TS 16→32) e ogni sprite disegnato a mano (personaggio, edifici, natura, interni, veicoli, grotta) ridisegnato proporzionalmente 2×, mantenendo coerenza fra tutti gli elementi',
     ], en: [
