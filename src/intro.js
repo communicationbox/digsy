@@ -1,196 +1,204 @@
-/* Intro IN-GAME (prima partita): scenetta col motore del gioco — il nonno archeologo e il
-   piccolo Digsy davanti a uno scavo, dialoghi in BALOON. Sfondo curato. Skippabile. */
+/* INTRO (prima partita) — rifatta da capo ("da rifare totalmente il video introduttivo con nuove
+   grafiche, adesso fa un po' schifo").
+   Com'era: un solo quadro fisso con montagne a triangoli e cielo sfumato, i personaggi disegnati a
+   scala 0,5 (pixel spaccati, contro le regole) e il testo in una nuvoletta con caratteri da 6 pixel.
+   Adesso: UNA INQUADRATURA PER BATTUTA, disegnata a pixel veri a scala intera, con passaggi a
+   dissolvenza a gradini, e il testo in un riquadro grande in basso, leggibile.
+     1 · tramonto sul campo di scavo: il nonno chiama, il piccolo arriva di corsa
+     2 · primo piano sottoterra: strati di terra, il cranio, il pennello che lo libera
+     3 · il ricordo: notte di luna, una creatura viva passa sopra il suo scheletro
+     4 · il dono: il nonno porge il fossile che brilla
+     5 · alba: il piccolo, da solo, alza il piccone
+   Regole che restano: si avanza SOLO al clic, con "tocca per continuare" e Salta. */
 import { ctx, view, fit } from './screen.js';
 import { drawHero, applyLook } from './sprites.js';
 import { S } from './state.js';
 import { tr } from './i18n.js';
+import { treeSprite, TREE_AX, TREE_AY } from './treeArt.js';
+import { drawBuriedSkull } from './splashScene.js';
 
 let active = false;
 export function introActive() { return active; }
 
 const GRANDPA = { acc: 'grandpa', hat: '#6e4a2a', shirt: '#7a6a52', pants: '#5c4630', skin: '#e3b98a', hairStyle: 'short', hairColor: '#eae6da', hatStyle: 'explorer', eyeColor: '#33291f' };
-function withLook(look, fn) { const saved = S.look; S.look = look; applyLook(); fn(); S.look = saved; applyLook(); }
-const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
+function withLook(look, fn) { const saved = S.look; S.look = look; applyLook(); try { fn(); } finally { S.look = saved; applyLook(); } }
 
-/* dialoghi: 'G' nonno · 'D' piccolo Digsy · act = beat scenico
+/* dialoghi: 'G' nonno · 'D' piccolo Digsy · shot = inquadratura
  *
- * CINQUE BATTUTE, NON SEDICI. Erano sedici e quasi tutti premevano Salta: un giocatore che
- * apre un gioco per la prima volta vuole giocarlo, e ogni frase in più è un invito a saltare
- * TUTTO — comprese quelle che servivano davvero.
- *
- * Le sedici contenevano anche l'insegnamento (il reperto è grezzo, si porta al Museo, il
- * Museo sta solo nelle città grandi, sulla mappa cerca il tempietto, raccogli la roba a terra
- * e vendila, compra la pala). Quella roba NON è stata buttata: è passata al TUTORIAL
- * (tutorial.js), che la fa fare invece di raccontarla. Una cosa che hai fatto una volta te la
- * ricordi; una frase letta prima di cominciare, no.
- *
- * Qui resta solo quello che il tutorial non può dare: chi era il nonno e perché tocca a te.
- */
+ * CINQUE BATTUTE, NON SEDICI: l'insegnamento sta nel TUTORIAL (tutorial.js), che lo fa fare
+ * invece di raccontarlo. Qui resta solo chi era il nonno e perché tocca a te; e lo scopo del gioco
+ * detto da chi ha diritto di chiederlo (nessuno le ha mai riviste vive → riportarle indietro). */
 const LINES = [
-  { s: 'G', it: 'Vieni, {n}. Guarda cosa nasconde la terra.', en: 'Come, {n}. Look what the earth hides.' },
-  { s: 'G', it: 'Un osso. Di una creatura di tantissimo tempo fa.', en: 'A bone. From a creature of long, long ago.', act: 'point' },
-  /* LO SCOPO SI DICE QUI. Il nonno ha passato la vita a dimostrare che esistevano; quello che
-     non gli è riuscito è rivederle vive. È la cosa che il giocatore può fare al posto suo, ed
-     è il traguardo del gioco (goal.js) — detto all'inizio, da chi ha diritto di chiederlo.
-     Non allunga l'intro: sono le stesse cinque battute, una dice una cosa in più. */
-  { s: 'G', it: 'Io fui il primo a trovarle. Ma trovarle non basta: nessuno le ha mai riviste vive.', en: 'I was the first to find them. But finding them is not enough: no one has ever seen one alive.', act: 'dig' },
-  { s: 'G', it: 'Tienilo, {n}: il tuo primo tesoro. A me il tempo è finito.', en: 'Take it, {n}: your first treasure. My time ran out.', act: 'give' },
-  { s: 'D', it: 'Allora le riporterò indietro. Tutte.', en: 'Then I will bring them back. All of them.' },
+  { s: 'G', it: 'Vieni, {n}. Guarda cosa nasconde la terra.', en: 'Come, {n}. Look what the earth hides.', shot: 1 },
+  { s: 'G', it: 'Un osso. Di una creatura di tantissimo tempo fa.', en: 'A bone. From a creature of long, long ago.', shot: 2 },
+  { s: 'G', it: 'Io fui il primo a trovarle. Ma trovarle non basta: nessuno le ha mai riviste vive.', en: 'I was the first to find them. But finding them is not enough: no one has ever seen one alive.', shot: 3 },
+  { s: 'G', it: 'Tienilo, {n}: il tuo primo tesoro. A me il tempo è finito.', en: 'Take it, {n}: your first treasure. My time ran out.', shot: 4 },
+  { s: 'D', it: 'Allora le riporterò indietro. Tutte.', en: 'Then I will bring them back. All of them.', shot: 5 },
 ];
 
-function cloud(x, y, s) { px(x, y, Math.round(14 * s), Math.round(4 * s), '#f4eddd'); px(x + Math.round(3 * s), y - Math.round(3 * s), Math.round(9 * s), Math.round(4 * s), '#fbf6ea'); px(x + Math.round(9 * s), y - Math.round(1 * s), Math.round(8 * s), Math.round(4 * s), '#e9ddc6'); }
-/* MONTAGNA 8-bit alla reference: picco marrone, lato al sole più chiaro, lato in ombra scuro,
-   colate/creste verticali e base larga. baseY = linea dove poggia. */
-function mountain(cx, baseY, halfW, peakH) {
-  const base = '#6a4632', sun = '#8a5c3c', dark = '#4a2f20', ridgeC = '#3a2418';
-  for (let yy = 0; yy < peakH; yy++) {
-    const w = Math.round((yy / peakH) * halfW * 2) + 2;            // triangolo (largo in basso)
-    const x0 = Math.round(cx - w / 2), y = baseY - peakH + yy;
-    px(x0, y, w, 1, base);
-    px(x0, y, Math.max(1, Math.round(w * 0.42)), 1, sun);          // versante al sole (sinistra)
-    px(x0 + Math.round(w * 0.72), y, Math.round(w * 0.28), 1, dark); // versante in ombra (destra)
+/* ---------------- pennelli ---------------- */
+const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h)); };
+function hash(i, s) { let h = Math.imul(i | 0, 374761393) ^ Math.imul(s | 0, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967296; }
+/* cielo a BANDE nette (niente sfumature morbide): colori dall'alto in basso */
+function sky(W, H, cols, h) { const bh = Math.ceil(h / cols.length); cols.forEach((c, i) => px(0, i * bh, W, bh + 1, c)); }
+/* colline: sagoma mossa da due seni, riempita fino in fondo */
+function hills(W, H, y, amp, f, col, seed, top) {
+  for (let x = 0; x < W; x++) {
+    const hy = Math.round(y - Math.sin(x * f + seed) * amp - Math.sin(x * f * 2.3 + seed * 2) * amp * 0.35);
+    if (top) px(x, hy, 1, 1, top);
+    px(x, hy + (top ? 1 : 0), 1, H - hy, col);
   }
-  // creste/colate verticali che scendono dal picco
-  for (const o of [-0.18, 0.1, 0.34]) {
-    let x = Math.round(cx + halfW * 2 * o);
-    for (let yy = 4; yy < peakH; yy += 1) { const w = Math.round((yy / peakH) * halfW * 2); if (Math.abs(x - cx) < w / 2 - 1) px(x + (yy % 5 === 0 ? 1 : 0), baseY - peakH + yy, 1, 1, ridgeC); }
-  }
-  px(cx - 1, baseY - peakH, 2, 2, '#9a6a44');                       // cima illuminata
 }
-/* abete/pino 8-bit (triangoli sovrapposti) */
-function pine(x, base, h) {
-  const g1 = '#2f5a30', g2 = '#3c6a3a', g3 = '#254c28';
-  px(x - 1, base - 2, 2, 4, '#4a3524');                            // tronco
-  const tiers = Math.max(2, Math.round(h / 4));
-  for (let ti = 0; ti < tiers; ti++) {
-    const ty2 = base - 2 - ti * 3, w = 2 + (tiers - ti) * 2;
-    px(Math.round(x - w / 2), ty2 - 3, w, 3, ti % 2 ? g2 : g1);
-    px(Math.round(x - w / 2), ty2 - 3, Math.max(1, Math.round(w * 0.4)), 3, g3); // ombra a sx
-  }
-  px(x, base - 2 - tiers * 3 - 1, 1, 2, g2);                       // punta
+function sun(x, y, r, col, glow) {
+  for (let yy = -r - 3; yy <= r + 3; yy++) { const w = Math.round(Math.sqrt(Math.max(0, (r + 3) ** 2 - yy * yy))); if (glow) px(x - w, y + yy, w * 2, 1, glow); }
+  for (let yy = -r; yy <= r; yy++) { const w = Math.round(Math.sqrt(r * r - yy * yy)); px(x - w, y + yy, w * 2, 1, col); }
 }
-/* zona di scavo con attrezzi: buca, cassa, piccone, secchio, spazzola, mappa */
-function digsite(bx, by) {
-  px(bx - 11, by - 1, 24, 6, '#6d4f30'); px(bx - 10, by, 22, 4, '#573d24');        // buca
-  px(bx - 13, by - 2, 4, 3, '#a97a4c'); px(bx + 10, by - 2, 4, 3, '#a97a4c');       // mucchietti di terra
-  px(bx - 18, by - 7, 8, 7, '#8a5f38'); px(bx - 18, by - 7, 8, 1, '#a97a4c'); px(bx - 18, by - 4, 8, 1, '#5c4229'); px(bx - 15, by - 7, 1, 7, '#5c4229'); // cassa
-  px(bx - 12, by - 14, 1, 9, '#8a5f38'); px(bx - 14, by - 14, 5, 1, '#9a9285'); px(bx - 14, by - 15, 2, 1, '#b8b0a2'); // piccone
-  px(bx + 12, by - 5, 5, 5, '#7a7268'); px(bx + 12, by - 5, 5, 1, '#9a9285'); px(bx + 13, by - 6, 3, 1, '#6a6258'); // secchio
-  px(bx + 2, by - 2, 4, 1, '#c9a06a'); px(bx + 2, by - 1, 4, 1, '#e8d29a');          // spazzola
-  px(bx - 5, by - 3, 5, 2, '#e8dcc0'); px(bx - 5, by - 3, 1, 2, '#c9a06a'); px(bx - 1, by - 3, 1, 2, '#c9a06a'); // mappa
+function grass(W, H, y, cols, t) {
+  px(0, y, W, H - y, cols[0]); px(0, y, W, 2, cols[1]);
+  for (let x = 0; x < W; x += 2) { const sway = Math.round(Math.sin(t / 700 + x * 0.3) * 0.6); px(x + sway, y - 1 - (hash(x, 3) * 3 | 0), 1, 2 + (hash(x, 4) * 2 | 0), cols[2]); }
 }
-function tree(x, base) { px(x - 1, base - 10, 3, 10, '#6e4a2a'); px(x - 6, base - 22, 14, 12, '#4e8d3f'); px(x - 4, base - 26, 10, 6, '#5fa04e'); px(x - 4, base - 24, 10, 2, '#7ec069'); }
+const PRATI = ['#3f7a3a', '#4f8f44', '#62a651', '#7fbf63', '#9fd07a', '#2e5a2c'];
+const DUSK_TREE = ['#2e3a3a', '#3a4848', '#465656', '#526464', '#607272', '#222c2c'];
+function tree(x, base, v, T, t) {
+  const cv = treeSprite('broad', v, T, Math.floor(t / 900 + v) % 2 ? 1 : 0, false);
+  if (cv) ctx.drawImage(cv, Math.round(x - TREE_AX), Math.round(base - TREE_AY));
+}
+/* personaggio a scala 1 (i pixel del gioco): la scena intera è ingrandita a scala intera */
+function hero(look, x, y, dir, fr, pose) { if (look) withLook(look, () => drawHero(null, Math.round(x - 16), Math.round(y - 32), dir, fr, false, pose)); else drawHero(null, Math.round(x - 16), Math.round(y - 32), dir, fr, false, pose); }
+function shadowAt(x, y, w) { ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(Math.round(x - w / 2), Math.round(y - 1), Math.round(w), 2); }
+function sparkle(x, y, col) { px(x, y - 2, 1, 5, col); px(x - 2, y, 5, 1, col); }
 
-function drawScene(t) {
-  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
-  const W = view.W, H = view.H, gy = Math.round(H * 0.68), DY = Math.round(H * 0.05);
-  /* ZOOM INTERO 2× (mai frazionario: lo scaling frazionario spacca i pixel in
-     "quadratini staccati"). Centrato sull'azione; il baloon si disegna FUORI dallo zoom. */
-  const Z = 2, ZCX = Math.round(W / 2), ZCY = Math.round(H * 0.72);
-  ctx.translate(ZCX, ZCY); ctx.scale(Z, Z); ctx.translate(-ZCX, -ZCY);
-  /* CIELO arancione al tramonto (8-bit) */
-  const g = ctx.createLinearGradient(0, 0, 0, H);
-  g.addColorStop(0, '#cf4f36'); g.addColorStop(0.4, '#ea7a3a'); g.addColorStop(0.72, '#f29a48'); g.addColorStop(1, '#f6ba5c');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-  /* SOLE */
-  const ssx = Math.round(W * 0.5), ssy = Math.round(H * 0.30);
-  ctx.fillStyle = 'rgba(255,235,170,.26)'; ctx.fillRect(ssx - 14, ssy - 14, 28, 28);
-  px(ssx - 8, ssy - 8, 16, 16, '#ffe6a0'); px(ssx - 6, ssy - 10, 12, 20, '#ffe6a0'); px(ssx - 10, ssy - 6, 20, 12, '#ffe6a0');
-  /* NUVOLE bianche */
-  cloud((20 + t / 90) % (W + 40) - 20, H * 0.15, 1); cloud((W * 0.5 + t / 130) % (W + 40) - 20, H * 0.09, 0.9); cloud((W * 0.82 + t / 70) % (W + 40) - 20, H * 0.22, 1.1);
-  /* MONTAGNE marroni grandi (reference): la base ARRIVA fino al terreno (niente stacco) */
-  const mby = gy + 2;
-  mountain(Math.round(W * 0.18), mby, 20, 30); mountain(Math.round(W * 0.82), mby, 20, 30);
-  mountain(Math.round(W * 0.34), mby, 16, 24); mountain(Math.round(W * 0.66), mby, 18, 26);
-  mountain(Math.round(W * 0.5), mby, 30, 46);
-  /* FASCIA DI PINI scuri alla base */
-  for (let x = 2; x < W; x += 7) pine(x + ((x * 13) % 3), gy + 1, 7 + ((x * 7) % 6));
-  /* PRATO ricco: 3 toni, chiazze, ciuffi d'erba e FIORI colorati (mondo più vivo) */
-  px(0, gy, W, H - gy, '#57a83f'); px(0, gy, W, 4, '#7ec861');                 // base + bordo chiaro
-  for (let x = 0; x < W; x += 9) px(x, gy + 6 + ((x * 7) % 3), 8, 2, '#4f9a37'); // chiazze scure
-  for (let x = 5; x < W; x += 13) px(x, gy + 12 + ((x * 3) % 4), 6, 2, '#69bd4e'); // chiazze chiare
-  for (let x = 0; x < W; x += 3) px(x, gy + 3, 1, 3 + ((x * 5) % 3), (x % 2) ? '#3f8a34' : '#4f9a3c'); // ciuffi
-  const FCOL = ['#f2d24a', '#f6f0d0', '#e0607a', '#d98ab0', '#8a6fd0', '#ef8a3a'];
-  for (let x = 4; x < W; x += 10) {
-    const r = (x * 2654435761) >>> 0, fy = gy + 7 + (r % Math.max(1, (H - gy - 12))), col = FCOL[(r >> 5) % FCOL.length];
-    px(x, fy + 2, 1, 3, '#3f8a34');                                            // stelo
-    px(x - 1, fy, 3, 1, col); px(x, fy - 1, 1, 3, col); px(x, fy, 1, 1, '#fff2b8'); // petali + cuore
-  }
-  /* STRISCIA DI TERRA in basso */
-  const ddy = H - 12; px(0, ddy, W, H - ddy, '#b57a3a'); px(0, ddy, W, 2, '#8a5a2a');
-  for (let x = 0; x < W; x += 6) px(x + (x % 12 ? 0 : 3), ddy + 4, 2, 2, '#9a6630');
-  /* UCCELLI */
-  for (let b = 0; b < 3; b++) { const bx = ((t / 40) + b * 46) % (W + 20) - 10, by = H * 0.15 + b * 6 + Math.sin(t / 300 + b) * 2; px(Math.round(bx - 1), Math.round(by), 1, 1, '#3a2f28'); px(Math.round(bx), Math.round(by - 1), 1, 1, '#3a2f28'); px(Math.round(bx + 1), Math.round(by), 1, 1, '#3a2f28'); }
-  /* ZONA SCAVATA con attrezzi (a metà strada fra bordo sinistro e nonno) + fossile centrale */
-  const fx = Math.round(W / 2), fy = gy + 2 + DY;
-  digsite(Math.round((W * 0.14 + W / 2 - 30) / 2), gy + 2 + DY);
-  px(fx - 13, fy, 28, 7, '#a97a4c'); px(fx - 12, fy - 1, 26, 2, '#c49a63');   // tavolo (centro = fx+1)
-  const boneC = '#efe6c8', boneD = '#cbbfa4', bx = fx - 5;                    // ossa CENTRATE sul tavolo
-  px(bx - 3, fy - 2, 20, 2, boneC);                                  // colonna
-  for (let i = 0; i < 4; i++) { px(bx - 1 + i * 5, fy - 6 - i, 1, 6 + i, boneC); px(bx + i * 5, fy - 6 - i, 1, 6 + i, boneD); } // costole
-  px(bx + 13, fy - 8, 8, 6, boneC); px(bx + 14, fy - 6, 2, 2, '#3a3128'); px(bx + 17, fy - 6, 2, 2, '#3a3128'); // cranio
-  px(bx - 6, fy - 1, 7, 1, boneC);                                   // osso zampa
-  /* luccichio del fossile quando il nonno scava/dona */
-  const line = LINES[Math.min(cur, LINES.length - 1)] || LINES[0]; // durante la pausa di fine, resta sull'ultima frase (il baloon non "salta" al nonno)
-  if (line.act === 'dig' || line.act === 'give') { const a = (Math.sin(t / 160) + 1) / 2; ctx.fillStyle = `rgba(255,246,190,${(0.3 + a * 0.5).toFixed(2)})`; ctx.fillRect(bx + 12, fy - 12, 10, 12); for (let k = 0; k < 3; k++) { const aa = t / 200 + k * 2; if ((Math.sin(aa) + 1) / 2 > 0.6) px(Math.round(bx + 16 + Math.cos(aa) * 6), Math.round(fy - 6 + Math.sin(aa) * 6), 1, 1, '#fff6c8'); } }
-  /* NONNO (sinistra) con barba + bastone + CONTORNO VERDE */
-  const fr = Math.floor(t / 400) % 2, gpx = fx - 30, gpy = gy - 6 + DY;
-  ctx.fillStyle = 'rgba(24,44,22,.28)'; ctx.fillRect(gpx - 6, gy - 1 + DY, 14, 2); // ombra a terra
-  ctx.save(); ctx.translate(gpx, gpy); // scala 1 (interi): lo zoom 2× rende crisp, niente pixel staccati
-  const dgi = line.act === 'dig' && Math.floor(t / 180) % 2, gfr = dgi ? 1 : (fr ? -1 : 0);
-  /* drawHero ora disegna nativamente a 32×26 (non raddoppia più da sola): qui la scena resta
-     alla scala fissa di sempre, quindi si dimezza (0.5) e si passa l'ancora piena (metà
-     della nuova larghezza) per restare alla stessa taglia visiva di prima. */
-  withLook(GRANDPA, () => { ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, -16, gfr, 'right', fr); ctx.restore(); });
-  px(-3, gfr + 6, 6, 3, '#eae6da'); px(-3, gfr + 9, 4, 1, '#d8d2c4'); // barba
-  ctx.restore();
-  px(gpx + 7, gpy - 2, 1, 11, '#5c4630'); px(gpx + 6, gpy - 3, 3, 1, '#6e4a2a');   // bastone
-  if (line.act === 'point') { px(gpx + 9, gpy - 1, 4, 1, '#5c4630'); px(gpx + 12, gpy - 2, 1, 1, '#5c4630'); } // indica
-  /* PICCOLO DIGSY (destra) più piccolo, saltella quando parla + CONTORNO VERDE */
-  const dpx = fx + 24, dpy = gy - 3 + DY, jump = line.s === 'D' ? Math.round(Math.abs(Math.sin(t / 190)) * -3) : 0, cfr = fr ? -1 : 0;
-  ctx.fillStyle = 'rgba(24,44,22,.28)'; ctx.fillRect(dpx - 5, gy - 1 + DY, 11, 2); // ombra a terra
-  ctx.save(); ctx.translate(dpx, dpy + jump); // scala 1 (interi)
-  ctx.save(); ctx.scale(0.5, 0.5); drawHero(null, -16, cfr, 'left', fr); ctx.restore();
-  ctx.restore();
-  /* vignetta calda */
-  ctx.fillStyle = 'rgba(90,50,20,.12)'; ctx.fillRect(0, 0, W, 3); ctx.fillRect(0, H - 3, W, 3);
-  /* BALOON sopra chi parla — disegnato FUORI dallo zoom (dimensione piena, mai tagliato):
-     converto la posizione dello speaker da coord-zoom a coord-schermo. */
-  const spX = line.s === 'G' ? gpx : dpx, spY = (line.s === 'G' ? gpy : dpy) - 14;
-  const scrX = ZCX + (spX - ZCX) * Z, scrY = ZCY + (spY - ZCY) * Z;
-  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0); // esci dallo zoom
-  drawBalloon(scrX, scrY, textFull, typedStr());
+/* ---------------- le cinque inquadrature (tu = tempo dall'inizio dell'inquadratura) ---------------- */
+function shotSite(W, H, t, tu) {
+  sky(W, H, ['#4a3a6e', '#7a4a78', '#b55a6a', '#e07a52', '#f2a55a', '#f7c878'], Math.round(H * 0.62));
+  sun(Math.round(W * 0.7), Math.round(H * 0.56), 14, '#ffe09a', 'rgba(255,226,150,.25)');
+  for (let i = 0; i < 4; i++) { const cx = ((i * 97 + t / 120) % (W + 60)) - 30; px(cx, 12 + i * 9, 26, 3, '#f6b08a'); px(cx + 6, 10 + i * 9, 14, 2, '#f8c8a2'); }
+  hills(W, H, Math.round(H * 0.58), 6, 0.035, '#6a4a7a', 1.3, '#7e5a8c');
+  hills(W, H, Math.round(H * 0.66), 5, 0.05, '#3e4a5a', 4.1, '#4c5a6a');
+  for (let i = 0; i < 7; i++) tree(12 + i * (W / 6.5) + hash(i, 9) * 10, Math.round(H * 0.72), i, DUSK_TREE, t);
+  const gy = Math.round(H * 0.8);
+  grass(W, H, gy, ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
+  /* il campo: tenda, cassa, lanterna accesa, cumulo */
+  const tx = Math.round(W * 0.18);
+  for (let y = 0; y < 24; y++) { const w = Math.round(y * 0.9); px(tx - w, gy - 24 + y, w * 2, 1, y < 2 ? '#e8d6a8' : '#c9b07a'); px(tx - w, gy - 24 + y, 2, 1, '#8a7048'); }
+  px(tx - 3, gy - 14, 6, 14, '#3a2a1a');
+  px(tx + 26, gy - 8, 12, 8, '#8a5f38'); px(tx + 26, gy - 8, 12, 2, '#b07c4a'); px(tx + 31, gy - 8, 2, 8, '#5c4229');
+  const fl = Math.floor(t / 200) % 2;
+  ctx.fillStyle = 'rgba(255,210,120,.18)'; ctx.fillRect(tx + 38, gy - 26, 22, 22);
+  px(tx + 47, gy - 16, 4, 6, '#2a1f14'); px(tx + 48, gy - 15, 2, 4, fl ? '#ffd27a' : '#ffe9a8');
+  for (let x = 0; x < 50; x++) { const h = Math.round(Math.sin(x / 50 * Math.PI) * 9); px(W * 0.5 + x, gy - h, 1, h, x % 7 ? '#8a6440' : '#6b4a2e'); }
+  /* il nonno aspetta vicino al cumulo; il piccolo arriva di corsa da destra */
+  const gx = Math.round(W * 0.46);
+  shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', Math.floor(t / 600) % 2 ? 0 : 0);
+  const arrive = Math.min(1, tu / 1800), dx = Math.round(W + 20 - (W + 20 - W * 0.62) * (1 - (1 - arrive) ** 2));
+  shadowAt(dx, gy, 12); hero(null, dx, gy - (arrive < 1 ? Math.abs(Math.sin(t / 90)) * 2 : 0), 'left', arrive < 1 ? Math.floor(t / 120) % 2 : 0);
 }
-
-/* baloon a fumetto (game px): riquadro chiaro, testo scuro, codina verso chi parla */
-function drawBalloon(cx, cy, full, shown) {
-  if (!full) return;
-  ctx.font = '600 6px ui-monospace, Menlo, monospace'; ctx.textBaseline = 'top';
-  const meas = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * 3.6; };
-  const maxW = Math.min(120, view.W - 16), words = full.split(' '), lines = []; let line = '';
-  for (const w of words) { const test = line ? line + ' ' + w : w; if (line && meas(test) > maxW) { lines.push(line); line = w; } else line = test; }
-  if (line) lines.push(line);
-  let mw = 0; for (const l of lines) mw = Math.max(mw, meas(l));
-  const padX = 7, padY = 4, lh = 7, bw = Math.ceil(mw) + padX * 2, bh = lines.length * lh + padY * 2;
-  let bx = Math.round(cx - bw / 2); bx = Math.max(8, Math.min(view.W - bw - 8, bx)); // margine schermo più ampio
-  const by = Math.max(2, Math.round(cy - bh));
-  const tcx = Math.max(bx + 4, Math.min(bx + bw - 4, Math.round(cx))); // codina sempre dentro il baloon
-  ctx.fillStyle = '#241a10'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);
-  ctx.fillStyle = '#f8f1df'; ctx.fillRect(bx, by, bw, bh);
-  ctx.fillStyle = '#241a10'; ctx.fillRect(tcx - 2, by + bh, 4, 3); ctx.fillStyle = '#f8f1df'; ctx.fillRect(tcx - 1, by + bh, 2, 2);
-  ctx.fillStyle = '#2a2016';
-  /* testo troncato all'effetto macchina da scrivere */
-  let acc = 0; const shownN = shown.length;
-  for (let li = 0; li < lines.length; li++) {
-    const l = lines[li]; let out = '';
-    for (let ci = 0; ci < l.length; ci++) { if (acc < shownN) { out += l[ci]; acc++; } }
-    ctx.fillText(out, bx + padX, by + padY + li * lh);
-    acc++; // lo spazio tra righe conta un carattere
+function shotBone(W, H, t) {
+  /* SEZIONE DEL TERRENO: in cima l'erba, sotto gli strati e dentro il cranio */
+  sky(W, H, ['#f2a55a', '#f7c878'], Math.round(H * 0.18));
+  const gy = Math.round(H * 0.2);
+  grass(W, H, gy, ['#5a8a44', '#7aaa5a', '#4a7a3a'], t);
+  const layers = ['#8a6440', '#7a5634', '#6b4a2e', '#5a3c24', '#4a3120'];
+  layers.forEach((c, i) => { const y0 = gy + 6 + i * Math.round((H - gy) / 5); for (let x = 0; x < W; x++) px(x, y0 + Math.round(Math.sin(x * 0.07 + i) * 2), 1, H, c); });
+  for (let i = 0; i < 40; i++) { const x = hash(i, 5) * W, y = gy + 12 + hash(i, 6) * (H - gy); px(x, y, 2 + (hash(i, 7) * 3 | 0), 2, i % 3 ? '#9a9285' : '#3a2a1a'); }
+  /* il cranio al centro, luce che scende */
+  const sx = Math.round(W / 2 - 55), sy = Math.round(H * 0.58 - 45);
+  ctx.fillStyle = 'rgba(255,230,160,.10)'; for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(W / 2 - 40 + i * 6), gy, 30 - i * 6, H);
+  drawBuriedSkull(ctx, t, sx, sy);
+  /* il PENNELLO del nonno che spazzola avanti e indietro, con la polvere */
+  const bx = Math.round(W / 2 + 10 + Math.sin(t / 180) * 14), by = sy + 22;
+  px(bx - 1, by - 22, 3, 20, '#6e4a2a'); px(bx - 3, by - 3, 7, 5, '#e8d29a'); px(bx - 3, by + 1, 7, 2, '#c9a06a');
+  for (let i = 0; i < 8; i++) { const a = (t / 400 + i / 8) % 1; px(bx - 10 + hash(i, 1) * 20 + Math.sin(t / 180) * 6 * a, by + 2 - a * 16, 1, 1, `rgba(236,220,180,${(1 - a).toFixed(2)})`); }
+  if (Math.floor(t / 500) % 3 === 0) sparkle(sx + 48, sy + 40, '#fff6c8');
+}
+function shotMemory(W, H, t, tu, creature) {
+  /* IL RICORDO: notte di luna, tinta viola; una creatura VIVA passa sopra il suo scheletro */
+  sky(W, H, ['#120f24', '#1a1634', '#241e44', '#2e2652'], Math.round(H * 0.75));
+  for (let i = 0; i < 60; i++) { const x = hash(i, 11) * W, y = hash(i, 12) * H * 0.6; if (Math.floor(t / 400 + i) % 5) px(x, y, 1, 1, i % 4 ? '#cfc8ff' : '#fff6c8'); }
+  sun(Math.round(W * 0.22), Math.round(H * 0.24), 12, '#efe6c8', 'rgba(239,230,200,.12)');
+  px(Math.round(W * 0.22) + 3, Math.round(H * 0.24) - 5, 4, 3, '#d6cba8');
+  hills(W, H, Math.round(H * 0.7), 5, 0.04, '#231c3e', 2.2, '#302852');
+  const gy = Math.round(H * 0.82);
+  px(0, gy, W, H - gy, '#1a1530'); px(0, gy, W, 1, '#3a3266');
+  /* lo scheletro a terra, fantasma */
+  ctx.globalAlpha = 0.55; drawBuriedSkull(ctx, t, Math.round(W * 0.5 - 55), gy - 62); ctx.globalAlpha = 1;
+  /* la creatura: sagoma viva col bordo di luna, cammina lenta da sinistra a destra */
+  if (creature) {
+    const k = Math.min(1, tu / 9000), cx = Math.round(-creature.width + (W + creature.width) * k * 0.9 + W * 0.05);
+    const cy = gy - creature.height + 4 + Math.round(Math.abs(Math.sin(t / 320)) * 1.5);
+    ctx.save(); ctx.globalAlpha = 0.9;
+    ctx.translate(cx + creature.width, cy); ctx.scale(-1, 1); ctx.drawImage(creature, 0, 0);
+    ctx.restore();
+    ctx.fillStyle = 'rgba(40,30,80,.45)'; ctx.fillRect(cx, cy, creature.width, creature.height);   // velo notturno
   }
+  /* il nonno giovane, piccolo in controluce, guarda */
+  const gx = Math.round(W * 0.84);
+  hero(GRANDPA, gx, gy, 'left', 0);
+  ctx.fillStyle = 'rgba(30,20,70,.35)'; ctx.fillRect(0, 0, W, H);
+}
+function shotGive(W, H, t, tu) {
+  sky(W, H, ['#6a3a5e', '#a24a5a', '#d8664a', '#f0904a', '#f6b45a'], Math.round(H * 0.7));
+  sun(Math.round(W * 0.5), Math.round(H * 0.7), 22, '#ffd48a', 'rgba(255,212,138,.2)');
+  hills(W, H, Math.round(H * 0.68), 4, 0.05, '#4a3a5a', 0.7, '#5a4a6a');
+  const gy = Math.round(H * 0.84);
+  grass(W, H, gy, ['#4a5a3a', '#6a7a4a', '#3a4a2e'], t);
+  const gx = Math.round(W * 0.4), dx = Math.round(W * 0.6);
+  shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'strike');
+  shadowAt(dx, gy, 12); hero(null, dx, gy, 'left', 0, tu > 1400 ? 'strike' : undefined);
+  /* il fossile che passa di mano e brilla */
+  const k = Math.min(1, tu / 1600), fx = Math.round(gx + 10 + (dx - gx - 20) * k), fy = gy - 12 - Math.round(Math.sin(k * Math.PI) * 6);
+  ctx.fillStyle = 'rgba(255,240,180,.25)'; ctx.fillRect(fx - 7, fy - 7, 14, 14);
+  px(fx - 4, fy - 1, 9, 3, '#2a1f14'); px(fx - 3, fy, 7, 1, '#f1e8d2'); px(fx - 5, fy - 2, 3, 5, '#2a1f14'); px(fx - 4, fy - 1, 1, 3, '#f1e8d2'); px(fx + 3, fy - 2, 3, 5, '#2a1f14'); px(fx + 4, fy - 1, 1, 3, '#f1e8d2');
+  for (let i = 0; i < 5; i++) { const a = (t / 900 + i / 5) % 1; if (a < 0.8) sparkle(fx - 8 + hash(i, 2) * 16, fy - 2 - a * 18, i % 2 ? '#fff6c8' : '#ffe27a'); }
+}
+function shotDawn(W, H, t, tu) {
+  sky(W, H, ['#3a5a8a', '#6a8ab0', '#a8b8c8', '#f0c89a', '#f7dcaa'], Math.round(H * 0.72));
+  const sxn = Math.round(W / 2), syn = Math.round(H * 0.72) - Math.min(10, Math.round(tu / 300));
+  /* raggi del sole che sorge: spicchi alternati */
+  for (let i = 0; i < 10; i++) {
+    if (i % 2) continue;
+    const a0 = Math.PI + i / 10 * Math.PI, a1 = a0 + Math.PI / 10;
+    ctx.fillStyle = 'rgba(255,236,190,.18)'; ctx.beginPath(); ctx.moveTo(sxn, syn); ctx.lineTo(sxn + Math.cos(a0) * W, syn + Math.sin(a0) * W); ctx.lineTo(sxn + Math.cos(a1) * W, syn + Math.sin(a1) * W); ctx.closePath(); ctx.fill();
+  }
+  sun(sxn, syn, 16, '#fff0b8', 'rgba(255,240,184,.3)');
+  hills(W, H, Math.round(H * 0.7), 5, 0.04, '#5a7a8a', 3.3, '#6a8a9a');
+  for (let i = 0; i < 6; i++) tree(8 + i * (W / 5.5) + hash(i, 13) * 12, Math.round(H * 0.8), i + 3, PRATI, t);
+  const gy = Math.round(H * 0.84);
+  grass(W, H, gy, ['#4f8f44', '#7fbf63', '#3f7a3a'], t);
+  for (let b = 0; b < 3; b++) { const bx = ((t / 30) + b * 60) % (W + 20) - 10, by = H * 0.2 + b * 7 + Math.sin(t / 250 + b) * 2; px(bx - 1, by, 1, 1, '#2a2a3a'); px(bx, by - 1, 1, 1, '#2a2a3a'); px(bx + 1, by, 1, 1, '#2a2a3a'); }
+  /* il piccolo, da solo, alza il piccone verso il sole */
+  const dx = Math.round(W / 2), raise = tu > 700;
+  shadowAt(dx, gy, 14); hero(null, dx, gy, 'right', 0, raise ? 'lift' : undefined);
+  if (raise) { const hx = dx - 16 + 23, hy = gy - 32 + 16; px(hx, hy - 16, 2, 16, '#8a5f38'); px(hx - 6, hy - 18, 14, 3, '#c9c2b2'); px(hx - 7, hy - 17, 2, 2, '#7f776a'); px(hx + 7, hy - 17, 2, 2, '#7f776a'); if (Math.floor(t / 300) % 2) sparkle(hx + 9, hy - 20, '#fff6c8'); }
 }
 
-let cur = 0, textFull = '', typed = 0, tStart = 0;
-function typedStr() { return textFull.slice(0, typed); }
+/* ---------------- regia ---------------- */
+let cur = 0, typed = 0, tStart = 0, shotStart = 0, lastShot = 0, fadeT = -1e9;
+let memCreature = null;
+function drawIntro(t) {
+  const Z = Math.max(1, Math.floor(Math.min(view.W / 240, view.H / 135)));
+  ctx.setTransform(view.PX * Z, 0, 0, view.PX * Z, 0, 0);
+  ctx.imageSmoothingEnabled = false;
+  const W = Math.ceil(view.W / Z), H = Math.ceil(view.H / Z);
+  const line = LINES[Math.min(cur, LINES.length - 1)];
+  if (line.shot !== lastShot) { lastShot = line.shot; shotStart = t; fadeT = t; }
+  const tu = t - shotStart;
+  if (line.shot === 1) shotSite(W, H, t, tu);
+  else if (line.shot === 2) shotBone(W, H, t);
+  else if (line.shot === 3) shotMemory(W, H, t, tu, memCreature);
+  else if (line.shot === 4) shotGive(W, H, t, tu);
+  else shotDawn(W, H, t, tu);
+  /* PASSAGGIO a gradini: dal nero si apre a scacchiera che si dirada (niente dissolvenza morbida) */
+  const f = (t - fadeT) / 420;
+  if (f < 1) {
+    const step = Math.floor(f * 4);
+    ctx.fillStyle = '#000';
+    for (let y = 0; y < H; y += 2) for (let x = 0; x < W; x += 2) {
+      const d = ((x >> 1) + (y >> 1) * 2) % 4;
+      if (d >= step) ctx.fillRect(x, y, 2, 2);
+    }
+  }
+}
 
 export function playIntro(onDone) {
   const finish = () => { active = false; try { removeEventListener('resize', fit); box.remove(); document.body.classList.remove('introing'); } catch (e) { /* ok */ } if (onDone) onDone(); };
@@ -199,37 +207,45 @@ export function playIntro(onDone) {
   const box = document.createElement('div'); box.id = 'introbox';
   box.innerHTML = `<div class="introbar top"></div><div class="introbar bot"></div>
     <div id="introtap"></div>
+    <div id="introdlg"><div id="introname"></div><div id="introtext"></div></div>
     <div id="introhint">▶ ${tr('tocca per continuare', 'tap to continue')}</div>
     <button id="introskip">${tr('Salta ⏭', 'Skip ⏭')}</button>`;
   document.body.appendChild(box);
-  function now() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0; }
-  cur = 0; let ending = false;
+  const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
+  cur = 0; lastShot = 0; let ending = false;
+  /* la creatura del ricordo: una leggendaria VIVA, costruita a risoluzione 4 (grande, pixel del mondo) */
+  import('./render.js').then(r => {
+    try { memCreature = r.creatureSprite({ c: { skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'leggendario' } }, 'side', { res: 4 }); } catch (e) { memCreature = null; }
+  }).catch(() => { memCreature = null; });
   const nm = () => (S.name || tr('piccolo', 'little one'));
-  function showLine() { const l = LINES[cur]; textFull = tr(l.it, l.en).replace(/\{n\}/g, nm()); typed = 0; tStart = now(); }
-  function endThen() { // fadeout 8-bit al nero + "Qualche anno dopo…" → gioco (lento, non accavalla l'ultima frase)
+  const nameEl = box.querySelector('#introname'), textEl = box.querySelector('#introtext');
+  let textFull = '';
+  function showLine() {
+    const l = LINES[cur]; textFull = tr(l.it, l.en).replace(/\{n\}/g, nm()); typed = 0; tStart = now();
+    if (nameEl) { nameEl.textContent = l.s === 'G' ? tr('Nonno', 'Grandpa') : nm(); nameEl.style.color = l.s === 'G' ? '#f0c674' : '#8fd0c0'; }
+    if (textEl) textEl.textContent = '';
+  }
+  function endThen() {
     if (ending) return; ending = true;
-    const tap = box.querySelector('#introtap'); if (tap) tap.style.display = 'none';
-    const sk = box.querySelector('#introskip'); if (sk) sk.style.display = 'none';
-    const hint = box.querySelector('#introhint'); if (hint) hint.style.display = 'none';
+    for (const id of ['#introtap', '#introskip', '#introhint', '#introdlg']) { const el = box.querySelector(id); if (el) el.style.display = 'none'; }
     setTimeout(() => {
       const end = document.createElement('div'); end.id = 'introend';
       end.innerHTML = `<div class="et">${tr('Qualche anno dopo…', 'A few years later…')}</div>`;
       box.appendChild(end);
       requestAnimationFrame(() => requestAnimationFrame(() => end.classList.add('show')));
-      setTimeout(finish, 3200); // fade nero + "Qualche anno dopo…" + attesa
-    }, 500); // pausa per leggere l'ultima frase prima del fade
+      setTimeout(finish, 3200);
+    }, 600);
   }
-  function next() { if (ending) return; if (typed < textFull.length) { typed = textFull.length; return; } cur++; if (cur >= LINES.length) endThen(); else showLine(); }
+  function next() { if (ending) return; if (typed < textFull.length) { typed = textFull.length; if (textEl) textEl.textContent = textFull; return; } cur++; if (cur >= LINES.length) endThen(); else showLine(); }
   function frame(ts) {
     if (!active) return;
     const t = ts || now();
-    /* 18 ms a carattere invece di 24: la macchina da scrivere si deve SENTIRE, non aspettare.
-       Chi non vuole aspettarla clicca e la riga compare tutta (next() lo fa già). */
-    if (typed < textFull.length) typed = Math.min(textFull.length, Math.floor((t - tStart) / 18));
-    drawScene(t);
+    if (typed < textFull.length) { typed = Math.min(textFull.length, Math.floor((t - tStart) / 22)); if (textEl) textEl.textContent = textFull.slice(0, typed); }
+    drawIntro(t);
     requestAnimationFrame(frame);
   }
   showLine(); requestAnimationFrame(frame);
   box.querySelector('#introtap').onclick = () => next();
+  const dlg = box.querySelector('#introdlg'); if (dlg) dlg.onclick = () => next();
   box.querySelector('#introskip').onclick = e => { e.stopPropagation(); finish(); };
 }
