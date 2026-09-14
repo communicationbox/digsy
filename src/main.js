@@ -482,7 +482,7 @@ if (typeof window !== 'undefined') {
           ['accetta', () => { P2.digging = { kind: 'chop', t: 0.05, dur: 1 }; }], ['accetta colpo', () => { P2.digging = { kind: 'chop', t: 0.35, dur: 1 }; }],
           ['piccone carica', () => { P2.digging = { kind: 'mine', t: 0.1, dur: 1 }; }], ['piccone fendente', () => { P2.digging = { kind: 'mine', t: 0.25, dur: 1 }; }],
           ['piccone impatto', () => { P2.digging = { kind: 'mine', t: 0.33, dur: 1 }; }],
-          ['bici', () => { S2.gear = 'bike'; P2.moving = true; P2.anim = 0; }], ['pattini', () => { S2.gear = 'skates'; P2.moving = true; P2.anim = 0.15; }],
+          ['bici', () => { S2.gear = 'bike'; P2.moving = true; P2.anim = 0; }], ['pattini', () => { S2.gear = 'skates'; P2.moving = true; P2.anim = 0; }], ['pattini 2', () => { S2.gear = 'skates'; P2.moving = true; P2.anim = 0.15; }],
           ['barca', 'boat'], ['motoscafo', 'motorboat'], ['pesca', 'fish'], ['volo', 'mount'],
         ];
         c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#9cc47e'; c.fillRect(0, 0, 4000, 4000);

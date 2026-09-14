@@ -874,7 +874,7 @@ export function drawPlayerAt(sx, sy) {
   const fr = (P.moving ? (Math.floor(P.anim * 7) % 2) : 0); const bob = (P.moving && fr === 1) ? -2 : 0;
   const gear = footGear();
   /* la bici è sempre quella costruita attorno all'omino seduto: lo sprite a mano era fatto per il corpo vecchio */
-  const bank = gear === 'skates' && hasSprite('vehicle:skates:' + (P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side'));
+  const bank = gear === 'skates';                                     // pattini nativi agganciati alle scarpe
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
   const ride = gear === 'bike';
   if (ride && !fb) drawBike(sx, sy + bob, P.moving);                  // profilo: tutta DIETRO l'omino seduto
@@ -884,39 +884,32 @@ export function drawPlayerAt(sx, sy) {
   else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
   else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: manubrio e ruota DAVANTI
 }
-/* PATTINI a mano ANIMATI: disegna lo sprite della banca spezzato in due (piede sinistro cols<ox,
-   destro cols>=ox); i due pattini si ALTERNANO su/giù col frame di camminata (fr), sincronizzati
-   coi piedi dell'eroe. Fermi quando non ci si muove. `y0` porta già il bob dell'eroe. */
+/* PATTINI disegnati in nativo e AGGANCIATI ALLE SCARPE del corpo (bodyArt: piedi alle righe 30-31).
+   Erano il disegno a mano del corpo vecchio raddoppiato a blocchi: grossi, staccati dai piedi
+   ("i pattini sono terribili"). Ogni scarpa diventa uno stivaletto rosso col filo bianco, sotto una
+   piastra scura e le rotelle gialle; le rotelle girano solo se ci si muove (fase dal tempo).
+   Le posizioni dei piedi sono le stesse dei due passi del corpo: il pattino segue la gamba. */
+const SKATE_FEET = {
+  down: [[[10, 14], [17, 21]], [[8, 12], [19, 23]]], up: [[[10, 14], [17, 21]], [[8, 12], [19, 23]]],
+  side: [[[10, 15], [17, 22]], [[13, 19]]],
+};
 export function drawBankSkates(sx, y0, fr) {
-  /* FASE 2: nativo — lo sprite di banca (spriteDef) resta alla sua griglia propria (un
-     formato dati a parte, non un disegno a numeri qui dentro), quindi qui basta raddoppiare
-     lo SPAZIO in cui viene proiettato: un pixel del disegno diventa un blocco 2×2 nativo. */
-  ctx.save(); ctx.translate(sx, y0); sx = 0; y0 = 0;
-  const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
-  const d = spriteDef('vehicle:skates:' + view);
-  if (!d) { ctx.restore(); return false; }
-  const ox = VEH_FRAME.ox, oy = VEH_FRAME.oy;
-  let sL = 0, nL = 0, sR = 0, nR = 0;
-  for (let r = 0; r < d.rows.length; r++) for (let c = 0; c < d.rows[r].length; c++) {
-    if (d.rows[r][c] === '.') continue; const rel = c - ox;
-    if (c < ox) { sL += rel; nL++; } else { sR += rel; nR++; }
-  }
-  const restL = nL ? sL / nL : -3.5, restR = nR ? sR / nR : 3.5;
-  const FEET = { down: [[-3.5, 2.5], [-4.5, 3.5]], up: [[-3.5, 2.5], [-4.5, 3.5]], side: [[-3.5, 4.5], [-1, 0]] };
-  const foot = P.moving ? FEET[view][fr] : [restL, restR];
-  const dxL = Math.round(foot[0] - restL) * 2, dxR = Math.round(foot[1] - restR) * 2;
-  const flip = P.dir === 'left';
-  if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
-  for (let r = 0; r < d.rows.length; r++) {
-    const row = d.rows[r];
-    for (let c = 0; c < row.length; c++) {
-      const ch = row[c]; if (ch === '.') continue;
-      const col = d.pal[ch]; if (!col) continue;
-      rect(sx - ox * 2 + c * 2 + (c < ox ? dxL : dxR), y0 - oy * 2 + r * 2, 2, 2, col);
+  const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side', flip = P.dir === 'left';
+  const ox = sx - 16, X = (x, w) => ox + (flip ? 32 - x - w : x);
+  const spin = P.moving ? Math.floor(frameTime / 90) % 2 : 0;
+  for (const [a, b] of SKATE_FEET[view][fr ? 1 : 0]) {
+    const w = b - a + 1;
+    rect(X(a, w), y0 + 29, w, 3, '#c9473f'); rect(X(a, w), y0 + 29, w, 1, '#e46a5e');      // stivaletto rosso, larga quanto la scarpa
+    rect(X(a, w), y0 + 31, w, 1, '#f2ead8');                                              // filo bianco sopra la suola
+    rect(X(a, 1), y0 + 29, 1, 3, '#8e2f29'); rect(X(b, 1), y0 + 29, 1, 3, '#8e2f29');       // fianchi in ombra: i due stivaletti restano due
+    rect(X(a, w), y0 + 32, w, 1, '#3a3a44');                                              // piastra
+    const wheels = view === 'side' ? [a - 1, Math.round((a + b) / 2) - 1, b] : [a, b - 1];
+    for (const wx of wheels) {
+      rect(X(wx, 2), y0 + 33, 2, 2, '#e0b040');
+      px(X(wx + spin, 1), y0 + 33 + spin, '#8a6a20');                                      // mozzo che gira
     }
   }
-  if (flip) ctx.restore();
-  ctx.restore(); return true;
+  return true;
 }
 /* per lo SPRITE STUDIO (/sprites): rende un mezzo (eroe + veicolo) in una direzione, statico.
    NON usato in gioco — è solo la base procedurale da rifinire a mano. */

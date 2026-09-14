@@ -5201,7 +5201,7 @@ sprites.applyLook();
     const feetY = Math.max(...W.map(p => p[1]));                     // scarpe = riga più in basso
     const wheelY = Math.min(...amb.map(p => p[1]));                  // rotelle = riga più in alto
     const feetXs = W.filter(p => p[1] === feetY).map(p => p[0]).sort((a, b) => a - b);
-    return { n: amb.length, gap: wheelY - feetY, feetC: (feetXs[0] + feetXs[feetXs.length - 1]) / 2, wheelC: (Math.min(...amb.map(p => p[0])) + Math.max(...amb.map(p => p[0]))) / 2 };
+    return { n: amb.length, gap: wheelY - feetY, feetC: (feetXs[0] + feetXs[feetXs.length - 1]) / 2, wheelC: (Math.min(...amb.map(p => p[0])) + Math.max(...amb.map(p => p[0]))) / 2, wheelSpan: Math.max(...amb.map(p => p[0])) - Math.min(...amb.map(p => p[0])) };
   };
   const d0 = shotSk('down', true, 0), d1 = shotSk('down', true, 1), sSt = shotSk('down', false, 0);
   const si0 = shotSk('side', true, 0), si1 = shotSk('side', true, 1);
@@ -5209,7 +5209,7 @@ sprites.applyLook();
   check('pattini a mano: le rotelle si disegnano (4)', d0.n === 4 && d1.n === 4);
   check('pattini a mano: ATTACCATI ai piedi (rotelle appena sotto le scarpe, ogni frame)', d0.gap >= 2 && d0.gap <= 6 && d1.gap >= 2 && d1.gap <= 6 && si0.gap >= 2 && si0.gap <= 6 && si1.gap >= 2 && si1.gap <= 6);
   check('pattini a mano: centrati sotto i piedi (fronte, entrambi i frame)', Math.abs(d0.wheelC - d0.feetC) <= 2 && Math.abs(d1.wheelC - d1.feetC) <= 2);
-  check('pattini a mano: ANIMATI, seguono i piedi che si spostano tra i frame', d0.wheelC !== d1.wheelC || si0.wheelC !== si1.wheelC);
+  check('pattini a mano: ANIMATI, seguono i piedi che si spostano tra i frame', d0.wheelSpan !== d1.wheelSpan || si0.wheelSpan !== si1.wheelSpan);   /* i piedi si aprono e si chiudono: il centro resta, l'apertura no */
   /* REGRESSIONE: drawPlayer deve passare `sy + bob` (attaccati al bob dei piedi), non `sy` liscio
      (che li staccava verticalmente). */
   const renderSrc = readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
