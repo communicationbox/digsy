@@ -380,21 +380,20 @@ function drawLandmark(type, sx, sy, time) {
 /* staccionata: parte ORIZZONTALE (assi che corrono in larghezza, per i lati sopra/sotto) e/o
    VERTICALE (assi in altezza, per i lati sinistro/destro). Un angolo ha entrambe → giunzione a L. */
 export function drawFence(sx, sy, fv, fh) {
-  /* FASE 2: nativa a piena TS (era scalata 2× disegnando su TS/2 come se fosse la vecchia
-     tile da 16px — ora usa la tile vera). */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  if (fh === undefined) fh = true;                                    // compat: default orizzontale
-  if (fh) {                                                           // assi orizzontali + montanti verticali
-    rect(sx, sy + 14, TS, 4, '#a97a4c'); rect(sx, sy + 22, TS, 4, '#8a5f38');
-    px(sx + 8, sy + 14, '#8a5f38'); px(sx + 20, sy + 24, '#6e4a2a'); // venatura del legno
-    rect(sx + 4, sy + 6, 4, 22, '#8a5f38'); px(sx + 4, sy + 6, '#c79a66'); px(sx + 6, sy + 6, '#c79a66');
-    rect(sx + 22, sy + 6, 4, 22, '#8a5f38'); px(sx + 22, sy + 6, '#c79a66'); px(sx + 24, sy + 6, '#c79a66');
+  /* STACCIONATA: pali col cappuccio, due assi con la luce sopra e l'ombra sotto, contorno scuro.
+     Toni del legno tenui: è un bordo, non deve rubare l'occhio alle creature. */
+  ctx.save(); ctx.translate(sx, sy);
+  if (fh === undefined) fh = true;
+  const L = '#3a2818', W = '#a97a4c', WL = '#c49a63', WD = '#7a5230';
+  const post = (x, y, h) => { rect(x - 1, y - 1, 7, h + 1, L); rect(x, y, 5, h, WD); rect(x, y, 2, h, W); rect(x - 1, y - 2, 7, 3, L); rect(x, y - 1, 5, 1, WL); };
+  if (fh) {
+    for (const y of [11, 20]) { rect(0, y - 1, TS, 6, L); rect(0, y, TS, 4, W); rect(0, y, TS, 1, WL); rect(0, y + 3, TS, 1, WD); }
+    post(5, 6, 23); post(22, 6, 23);
+    rect(4, 29, 9, 2, 'rgba(20,14,8,.2)'); rect(21, 29, 9, 2, 'rgba(20,14,8,.2)');
   }
-  if (fv) {                                                           // assi VERTICALI + traverse orizzontali
-    rect(sx + 14, sy, 4, TS, '#a97a4c'); rect(sx + 22, sy, 4, TS, '#8a5f38');
-    px(sx + 14, sy + 10, '#8a5f38'); px(sx + 24, sy + 20, '#6e4a2a'); // venatura del legno
-    rect(sx + 6, sy + 4, 22, 4, '#8a5f38'); px(sx + 6, sy + 4, '#c79a66'); px(sx + 6, sy + 6, '#c79a66');
-    rect(sx + 6, sy + 22, 22, 4, '#8a5f38'); px(sx + 6, sy + 22, '#c79a66'); px(sx + 6, sy + 24, '#c79a66');
+  if (fv) {
+    for (const x of [12, 20]) { rect(x - 1, 0, 6, TS, L); rect(x, 0, 4, TS, W); rect(x, 0, 1, TS, WL); rect(x + 3, 0, 1, TS, WD); }
+    post(14, 4, 8); post(14, 21, 8);
   }
   ctx.restore();
 }
@@ -410,50 +409,59 @@ export function drawFence(sx, sy, fv, fh) {
    l'arco. Chiamata una volta per cella (`side` 'l'/'r'): il lucchetto lo disegna solo la 'r'
    (altrimenti comparirebbe due volte, una per anta). */
 export function drawGate(sx, sy, side, open = true, closeT = 1) {
-  /* FASE 2: nativa a piena TS (era su TS/2 sotto uno scale(2,2)). */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const post = '#8a5f38', cap = '#c79a66', beam = '#a97a4c', beamHi = '#e0b97c';
-  const outer = side === 'l' ? sx + 2 : sx + TS - 8;       // montante sul lato ESTERNO del varco
-  rect(outer, sy - 6, 6, TS + 6, post);                     // più alto della staccionata: si vede da lontano
-  px(outer, sy - 6, cap); px(outer + 2, sy - 6, cap); px(outer + 4, sy - 6, cap);
-  rect(sx, sy - 4, TS, 6, beam);                            // architrave: le due metà si toccano al centro
-  rect(sx, sy - 4, TS, 2, beamHi);
+  /* CANCELLO: due montanti alti col cappuccio e l'architrave che li unisce; da fuori le due ante
+     si chiudono ruotando verso il centro e dove combaciano compare il lucchetto */
+  ctx.save(); ctx.translate(sx, sy);
+  const L = '#3a2818', post = '#8a5f38', cap = '#c79a66', beam = '#a97a4c', beamHi = '#e0b97c';
+  const outer = side === 'l' ? 2 : TS - 9;
+  rect(outer - 1, -8, 9, TS + 8, L); rect(outer, -7, 7, TS + 6, post); rect(outer, -7, 3, TS + 6, beam);
+  rect(outer - 2, -11, 11, 4, L); rect(outer - 1, -10, 9, 2, cap);
+  rect(0, -5, TS, 8, L); rect(0, -4, TS, 6, beam); rect(0, -4, TS, 2, beamHi); rect(0, 1, TS, 1, '#7a5230');
   if (!open) {
     const t = Math.max(0, Math.min(1, closeT));
-    const leaf = shade8(post, 1.12), edge = shade8(post, 0.8);
-    const w = Math.round((TS - 8) * t); // l'anta CRESCE dal montante verso il centro, non scende dall'alto
+    const w = Math.round((TS - 9) * t);
     if (w > 0) {
-      if (side === 'l') { rect(outer + 6, sy + 2, w, TS - 6, leaf); rect(outer + 4 + w, sy + 2, 2, TS - 6, edge); }
-      else { const x0 = outer - w; rect(x0, sy + 2, w, TS - 6, leaf); rect(x0, sy + 2, 2, TS - 6, edge); }
+      const x0 = side === 'l' ? outer + 7 : outer - w;
+      rect(x0, 4, w, TS - 8, L); rect(x0 + 1, 5, Math.max(0, w - 2), TS - 10, '#9a6a40');
+      for (let yy = 9; yy < TS - 6; yy += 7) rect(x0 + 1, yy, Math.max(0, w - 2), 1, '#7a5230');
     }
-    if (side === 'r' && t >= 1) drawGateLock(sx, sy + 12); // lucchetto dove le due ante si toccano
+    if (side === 'r' && t >= 1) drawGateLock(0, 12);
   }
   ctx.restore();
 }
 function drawGateLock(sx, sy) {
-  rect(sx - 4, sy, 8, 6, '#e0b97c'); px(sx - 4, sy - 2, '#e0b97c'); px(sx + 2, sy - 2, '#e0b97c'); // staffa
-  rect(sx - 4, sy + 6, 8, 6, '#3a2e20');                                                             // corpo
+  rect(sx - 3, sy - 3, 6, 1, '#2a2016'); rect(sx - 3, sy - 2, 1, 3, '#2a2016'); rect(sx + 2, sy - 2, 1, 3, '#2a2016');
+  rect(sx - 4, sy + 1, 9, 8, '#2a2016'); rect(sx - 3, sy + 2, 7, 6, '#c9a227'); rect(sx - 3, sy + 2, 7, 1, '#f0d470'); px(sx, sy + 4, '#2a2016');
 }
 /* STAGNO del parco (3×2): ACQUA VERA del gioco (stesse onde/riflessi del mondo) — ma è solo
    decorazione su una casella di parco, quindi NON ci si pesca. Riva scura tutt'attorno + ninfea. */
 export function drawParkPond(sx, sy, ppx, ppy, tx, ty, time) {
-  groundTile(WATER, tx, ty, sx, sy, time, 0);                         // acqua identica a quella del mondo (zona prati)
-  if (ppx === 0) rect(sx, sy, 1, TS, '#3d7f97');                       // riva scura sui lati ESTERNI del 3×2
-  if (ppx === 2) rect(sx + TS - 1, sy, 1, TS, '#3d7f97');
-  if (ppy === 0) rect(sx, sy, TS, 1, '#3d7f97');
-  if (ppy === 1) rect(sx, sy + TS - 1, TS, 1, '#3d7f97');
-  if (ppx === 1 && ppy === 0) { rect(sx + 4, sy + 8, 6, 4, '#4faa5e'); px(sx + 6, sy + 9, '#7ed08a'); px(sx + 7, sy + 8, '#e88ab0'); } // ninfea + fiorellino
+  /* STAGNO del cortile: acqua del gioco con una riva di sassi tondi tutt'attorno e una ninfea */
+  groundTile(WATER, tx, ty, sx, sy, time, 0);
+  const stones = (x, y, horiz) => {
+    for (let k = 0; k < TS; k += 7) {
+      const r = 2 + ((tx * 7 + ty * 3 + k) % 3), cx = horiz ? sx + k + 3 : x, cy = horiz ? y : sy + k + 3;
+      rect(cx - r - 1, cy - r, r * 2 + 2, r * 2 + 1, '#4a4438'); rect(cx - r, cy - r, r * 2, r * 2 - 1, '#a39c8e'); rect(cx - r, cy - r, r, 1, '#c4bdb0');
+    }
+  };
+  if (ppy === 0) stones(0, sy + 2, true);
+  if (ppy === 1) stones(0, sy + TS - 3, true);
+  if (ppx === 0) stones(sx + 2, 0, false);
+  if (ppx === 2) stones(sx + TS - 3, 0, false);
+  if (ppx === 1 && ppy === 1) { rect(sx + 8, sy + 10, 10, 5, '#2f6a3a'); rect(sx + 9, sy + 10, 8, 4, '#4faa5e'); rect(sx + 12, sy + 10, 1, 4, '#2f6a3a'); rect(sx + 14, sy + 8, 3, 3, '#e88ab0'); px(sx + 15, sy + 9, '#f2d24a'); }
 }
 /* AIUOLA (piatta): zolla di terra con fiori fitti e colorati. */
 export function drawFlowerbed(sx, sy, tx, ty) {
-  /* FASE 2: nativa — 7 fiori invece di 5 (più densità nello spazio raddoppiato), a blocchi 2×2. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  rect(sx + 6, sy + 8, 20, 20, '#6b4a2e'); rect(sx + 4, sy + 12, 24, 12, '#6b4a2e'); rect(sx + 6, sy + 10, 24, 4, '#7d5838');
-  const cols = ['#e08a8a', '#b79be6', '#f2dd7a', '#f6f2e4', '#8fc9e6'];
-  for (let i = 0; i < 7; i++) {
-    const fx = sx + 8 + Math.floor(vhash(tx, ty, 70 + i) * 16), fy = sy + 12 + Math.floor(vhash(tx, ty, 80 + i) * 12);
+  /* AIUOLA: terra smossa bordata di sassolini, piantine con le foglie e fiori di pochi colori */
+  ctx.save(); ctx.translate(sx, sy);
+  rect(3, 9, 26, 19, '#4a3420'); rect(4, 10, 24, 17, '#6b4a2e'); rect(4, 10, 24, 2, '#7d5838');
+  for (let x = 3; x < 29; x += 4) { rect(x, 27, 3, 2, '#8f887a'); rect(x + 1, 8, 3, 2, '#9a9285'); }
+  const cols = ['#e08a8a', '#f2dd7a', '#b79be6'];
+  for (let i = 0; i < 5; i++) {
+    const fx = 7 + Math.floor(vhash(tx, ty, 70 + i) * 18), fy = 14 + Math.floor(vhash(tx, ty, 80 + i) * 9);
     const cc = cols[Math.floor(vhash(tx, ty, 90 + i) * cols.length)];
-    rect(fx, fy - 2, 2, 2, cc); rect(fx - 2, fy, 2, 2, cc); rect(fx + 2, fy, 2, 2, cc); rect(fx, fy + 2, 2, 2, cc); rect(fx, fy, 2, 2, '#f2dd7a');
+    rect(fx, fy, 1, 5, '#3f7a44'); rect(fx - 2, fy + 2, 2, 1, '#4f9a48'); rect(fx + 1, fy + 3, 2, 1, '#4f9a48');
+    rect(fx - 1, fy - 2, 3, 3, cc); px(fx, fy - 1, '#fff3c8');
   }
   ctx.restore();
 }

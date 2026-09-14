@@ -1269,9 +1269,9 @@ sprites.applyLook();
     const noLockYet = seenLock(() => rnd.drawGate(40, 40, 'r', false, 0.9));
     const withLock = seenLock(() => rnd.drawGate(40, 40, 'r', false, 1));
     const lockOnlyOnL = seenLock(() => rnd.drawGate(40, 40, 'l', false, 1));
-    check('nessun lucchetto finché l\'anta non è del tutto chiusa', !noLockYet.has('#3a2e20'));
-    check('il lucchetto compare a chiusura completa (cella destra)', withLock.has('#3a2e20'));
-    check('il lucchetto NON si ridisegna dalla cella sinistra (una volta sola)', !lockOnlyOnL.has('#3a2e20'));
+    check('nessun lucchetto finché l\'anta non è del tutto chiusa', !noLockYet.has('#c9a227'));
+    check('il lucchetto compare a chiusura completa (cella destra)', withLock.has('#c9a227'));
+    check('il lucchetto NON si ridisegna dalla cella sinistra (una volta sola)', !lockOnlyOnL.has('#c9a227'));
   }
 
   /* il cortile è una scelta ESPLICITA: `S.house.yard` parte vuoto, nessuna creatura cammina

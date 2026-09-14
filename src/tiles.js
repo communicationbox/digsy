@@ -308,49 +308,57 @@ function groundBase(t, tx, ty, sx, sy, time, zi, ZP) {
       soilDetail(tx, ty, sx, sy, 'dirt', [shade8(d1, 0.82), d1, shade8(d0, 1.12)]);
       break;
     }
-    case MTN: { rect(sx, sy, TS, TS, '#9a9285'); rect(sx, sy, TS, 3, '#aaa294');
-      const mx1 = sx + 3 + Math.floor(vhash(tx, ty, 76) * 13), my1 = sy + 6 + Math.floor(vhash(tx, ty, 77) * 13);
-      const mx2 = sx + 15 + Math.floor(vhash(tx, ty, 78) * 14), my2 = sy + 16 + Math.floor(vhash(tx, ty, 79) * 13);
-      rect(mx1, my1, 2, 2, '#7f776a'); rect(mx2, my2, 2, 2, '#7f776a');
-      if (vhash(tx, ty, 80) < 0.35) rect(mx1 + 2, my1 - 2, 2, 2, '#c9c2b2'); // scaglia di roccia che coglie la luce
-      soilDetail(tx, ty, sx, sy, 'dirt', ['#7f776a', '#8f887c', '#b5ada0']); break; }
-    case FLOOR: { // lastricato: toni variabili, fughe a mattoni sfalsati, crepe rare
-      const v = vhash(tx, ty, 25), FB = biomeBuild(tx, ty).floor;
-      rect(sx, sy, TS, TS, v < 0.5 ? FB[0] : v < 0.8 ? FB[1] : FB[2]);
-      /* fughe/crepe DERIVATE dalla pietra del bioma (prima erano gialle ovunque: ardesia e
-         tegola rossa avevano lo stesso giunto color sabbia) */
-      const fj = shade8(FB[1], 0.86), fj2 = shade8(FB[1], 0.92);
-      rect(sx, sy, TS, 1, fj); rect(sx, sy, 1, TS, fj);
-      if (ty & 1) rect(sx + 16, sy, 1, TS, fj2); // giunto sfalsato a file alterne (metà del tile 32px)
-      if (vhash(tx, ty, 26) < 0.08) { const cr = shade8(FB[1], 0.8), ccx = sx + 8 + Math.floor(vhash(tx, ty, 30) * 14), ccy = sy + 8 + Math.floor(vhash(tx, ty, 31) * 14); px(ccx, ccy, cr); px(ccx + 1, ccy + 1, cr); px(ccx + 2, ccy + 2, cr); }
-      else if (vhash(tx, ty, 27) < 0.3) { const gx2 = sx + 4 + Math.floor(vhash(tx, ty, 28) * 22), gy2 = sy + 4 + Math.floor(vhash(tx, ty, 29) * 22); rect(gx2, gy2, 2, 2, shade8(FB[2], 1.05)); }
-      break;
-    }
-    case ROAD: { // strada sterrata: terra battuta chiara, orme e sassolini
-      const v = vhash(tx, ty, 34), RB = biomeBuild(tx, ty).road;
-      rect(sx, sy, TS, TS, v < 0.45 ? RB[0] : v < 0.85 ? RB[1] : RB[2]);
-      const rd = shade8(RB[1], 0.85), rl = shade8(RB[2], 1.06), rs = shade8(RB[0], 0.74);
-      rect(sx + 4 + Math.floor(vhash(tx, ty, 35) * 24), sy + 4 + Math.floor(vhash(tx, ty, 36) * 24), 2, 1, rd);
-      if (vhash(tx, ty, 37) < 0.3) { const rlx = sx + 3 + Math.floor(vhash(tx, ty, 38) * 26), rly = sy + 3 + Math.floor(vhash(tx, ty, 39) * 26); rect(rlx, rly, 2, 1, rl); }
-      if (vhash(tx, ty, 40) < 0.12) { const sox = sx + 8 + Math.floor(vhash(tx, ty, 41) * 16), soy = sy + 8 + Math.floor(vhash(tx, ty, 42) * 16); rect(sox, soy, 2, 2, rs); px(sox, soy - 1, shade8(RB[0], 0.85)); } // sasso
-      break;
-    }
-    case PARK: { // prato curato a STRISCE falciate orizzontali (continue tra i tile: niente scacchiera dura)
-      const band = ty & 1;
-      rect(sx, sy, TS, TS, band ? '#87c56d' : '#92d078');
-      rect(sx, sy + TS - 1, TS, 1, band ? '#7cba62' : '#87c56d');   // riga di falciatura fra le bande
-      const d = vhash(tx, ty, 31);
-      const gx = sx + 2 + Math.floor(vhash(tx, ty, 32) * 11), gy = sy + 3 + Math.floor(vhash(tx, ty, 33) * 10);
-      if (d < 0.13) {                                                // ciuffo d'erba
-        px(gx, gy, '#6faf58'); px(gx + 1, gy, '#6faf58'); px(gx, gy - 1, '#a9e28f'); px(gx + 2, gy - 1, '#a9e28f');
-      } else if (d < 0.21) {                                         // margherita
-        px(gx, gy - 1, '#f6f2e4'); px(gx - 1, gy, '#f6f2e4'); px(gx + 1, gy, '#f6f2e4'); px(gx, gy + 1, '#f6f2e4'); px(gx, gy, '#f2dd7a');
-      } else if (d < 0.28) {                                         // fiorellino colorato
-        const cols = ['#e08a8a', '#b79be6', '#8fc9e6'][Math.floor(vhash(tx, ty, 34) * 3)];
-        px(gx, gy - 1, cols); px(gx - 1, gy, cols); px(gx + 1, gy, cols); px(gx, gy, '#f2dd7a');
-      } else if (d < 0.31) {                                         // trifoglio
-        px(gx, gy, '#5fa04e'); px(gx + 1, gy - 1, '#5fa04e'); px(gx - 1, gy - 1, '#5fa04e'); px(gx, gy - 1, '#6faf58');
+    case MTN: {
+      /* ROCCIA di montagna: chiazze di tre grigi, qualche lastra sfaccettata con lo spigolo in
+         luce, una crepa rara. Contrasto basso: è sfondo, non deve fare rumore. */
+      patches(tx, ty, sx, sy, ['#948c7f', '#8b8376', '#9d968a'], 24, 0.25);
+      for (let k = 0; k < 2; k++) {
+        if (vhash(tx, ty, 76 + k) > 0.45) continue;
+        const x = sx + 3 + Math.floor(vhash(tx, ty, 78 + k) * 18), y = sy + 4 + Math.floor(vhash(tx, ty, 80 + k) * 18), w = 8 + Math.floor(vhash(tx, ty, 82 + k) * 6);
+        rect(x, y + 4, w, 2, '#7a7266'); rect(x, y, w, 4, '#a39c90'); rect(x, y, w, 1, '#b8b1a5');
       }
+      if (vhash(tx, ty, 84) < 0.18) { const x = sx + 5 + Math.floor(vhash(tx, ty, 85) * 20); rect(x, sy + 8, 1, 6, '#6f685c'); rect(x + 1, sy + 13, 1, 5, '#6f685c'); }
+      if (zi === 5 && vhash(tx, ty, 86) < 0.4) { const x = sx + 2 + Math.floor(vhash(tx, ty, 87) * 20); rect(x, sy + 3, 10, 3, '#eef3f6'); rect(x + 2, sy + 2, 6, 1, '#ffffff'); }   // neve nelle Lande
+      break; }
+    case FLOOR: {
+      /* LASTRICATO: lastre sfalsate come un vero selciato (le file continuano da una casella
+         all'altra, i giunti non cadono sul bordo della casella), ognuna col suo tono, un filo
+         di luce in alto e l'ombra in basso. Toni vicini: la piazza resta calma. */
+      const FB = biomeBuild(tx, ty).floor, joint = shade8(FB[1], 0.84);
+      for (let r = 0; r < 2; r++) {
+        const R = ty * 2 + r, off = ((R % 3) + 3) % 3 * 8, gx = tx * TS + off, y = sy + r * 16;
+        let start = 0;
+        while (start < TS) {
+          const slab = Math.floor((gx + start) / 24), end = Math.min(TS, start + (24 - ((gx + start) % 24)));
+          const c = FB[Math.floor(vhash(slab, R, 27) * 3)];
+          rect(sx + start, y, end - start, 16, c);
+          rect(sx + start, y, end - start, 1, shade8(c, 1.06));
+          rect(sx + start, y + 15, end - start, 1, joint);
+          if ((gx + end) % 24 === 0) rect(sx + end - 1, y, 1, 15, joint);
+          if (vhash(slab, R, 28) < 0.06) rect(sx + start + 4, y + 7, 5, 1, shade8(c, 0.88));        // crepa rara
+          start = end;
+        }
+      }
+      break;
+    }
+    case ROAD: {
+      /* STRADA sterrata: terra battuta a chiazze, qualche sassolino, e due solchi leggeri */
+      const RB = biomeBuild(tx, ty).road;
+      patches(tx, ty, sx, sy, [RB[0], RB[1], RB[2]], 34, 0.3);
+      for (let k = 0; k < 3; k++) if (vhash(tx, ty, 35 + k) < 0.5) {
+        const x = sx + 3 + Math.floor(vhash(tx, ty, 38 + k) * 26), y = sy + 3 + Math.floor(vhash(tx, ty, 41 + k) * 26);
+        rect(x, y + 1, 2, 1, shade8(RB[0], 0.72)); rect(x, y, 2, 1, shade8(RB[2], 1.08));
+      }
+      rect(sx, sy + 10, TS, 1, 'rgba(60,40,20,.08)'); rect(sx, sy + 22, TS, 1, 'rgba(60,40,20,.08)');
+      break;
+    }
+    case PARK: {
+      /* PRATO del cortile: curato, a larghe strisce di falciatura appena accennate, con ciuffi
+         radi e qualche margherita. Più calmo del prato selvatico: è casa. */
+      const band = ((ty >> 1) & 1);
+      patches(tx, ty, sx, sy, band ? ['#88c66e', '#85c26b', '#8bc971'] : ['#8dcb73', '#8ac870', '#90ce76'], 31, 0.25);
+      if (vhash(tx, ty, 32) < 0.35) tuft(sx + 4 + Math.floor(vhash(tx, ty, 33) * 22), sy + 8 + Math.floor(vhash(tx, ty, 34) * 20), '#6faf58', '#a9e28f');
+      if (vhash(tx, ty, 35) < 0.06) { const x = sx + 6 + Math.floor(vhash(tx, ty, 36) * 20), y = sy + 6 + Math.floor(vhash(tx, ty, 37) * 20); px(x, y - 1, '#f6f2e4'); px(x - 1, y, '#f6f2e4'); px(x + 1, y, '#f6f2e4'); px(x, y + 1, '#f6f2e4'); px(x, y, '#f2dd7a'); }
       break;
     }
   }
