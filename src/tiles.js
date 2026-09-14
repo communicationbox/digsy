@@ -207,6 +207,17 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
   if (isWaterT(t)) {
     for (let i = 0; i < 4; i++) if (isLandT(nb[i])) {
       side(i, 7, 'rgba(190,235,240,.22)'); side(i, 3, 'rgba(230,250,250,.35)');
+      /* RIVA mossa: la terra entra nell'acqua a linguette di profondità diversa, col bagnasciuga chiaro
+         davanti. Dritta sul bordo della casella, ogni lago era un rettangolo a gradini */
+      const lc = landColor(nb[i], ZP, zi), wet = shade8(lc, 0.86);
+      for (let k = 0; k < TS; k += 4) {
+        const d = Math.floor(vhash(tx * 4 + k * 5, ty * 4 + i * 3, 97) * 4);
+        if (!d) continue;
+        if (i === 0) { rect(sx + k, sy, 4, d, lc); rect(sx + k, sy + d - 1, 4, 1, wet); rect(sx + k, sy + d, 4, 1, 'rgba(240,252,252,.6)'); }
+        else if (i === 2) { rect(sx + k, sy + TS - d, 4, d, lc); rect(sx + k, sy + TS - d, 4, 1, wet); rect(sx + k, sy + TS - d - 1, 4, 1, 'rgba(240,252,252,.6)'); }
+        else if (i === 1) { rect(sx + TS - d, sy + k, d, 4, lc); rect(sx + TS - d, sy + k, 1, 4, wet); rect(sx + TS - d - 1, sy + k, 1, 4, 'rgba(240,252,252,.6)'); }
+        else { rect(sx, sy + k, d, 4, lc); rect(sx + d - 1, sy + k, 1, 4, wet); rect(sx + d, sy + k, 1, 4, 'rgba(240,252,252,.6)'); }
+      }
       /* schiuma che va e viene: puntini sul bordo, fase dal tempo e dalla casella.
          Il resto va riportato positivo: con coordinate negative `%` dà fino a -25 e la schiuma
          usciva dalla casella, tratteggi bianchi sulla terra che prolungavano gli angoli dell'acqua
@@ -221,7 +232,22 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
     return;
   }
   if (!isLandT(t)) return;
-  for (let i = 0; i < 4; i++) if (isWaterT(nb[i])) { side(i, 4, 'rgba(40,30,20,.16)'); side(i, 1, 'rgba(30,24,16,.30)'); }   // riva bagnata
+  for (let i = 0; i < 4; i++) if (isWaterT(nb[i])) side(i, 4, 'rgba(40,30,20,.14)');   // riva bagnata (senza il filo scuro dritto: segnava la griglia)
+  /* ANGOLI TONDI: una casella di terra con l'acqua su due lati vicini perde lo spigolo, così i laghi non
+     sono fatti di rettangoli */
+  for (let i = 0; i < 4; i++) {
+    const a = nb[i], b = nb[(i + 1) % 4];
+    if (!isWaterT(a) || !isWaterT(b)) continue;
+    const wc = waterColor(a === DEEP || b === DEEP ? DEEP : WATER, zi);
+    const corner = [[1, 0], [1, 1], [0, 1], [0, 0]][i];                   // su+destra · destra+giù · giù+sinistra · sinistra+su
+    const cx = sx + corner[0] * TS, cy = sy + corner[1] * TS, r = 11;
+    for (let yy = 0; yy < r; yy++) for (let xx = 0; xx < r; xx++) {
+      const dx = r - xx - 0.5, dy = r - yy - 0.5;
+      if (dx * dx + dy * dy <= r * r) continue;                           // dentro l'arco resta terra
+      const X = corner[0] ? cx - 1 - xx : cx + xx, Y = corner[1] ? cy - 1 - yy : cy + yy;
+      rect(X, Y, 1, 1, wc);
+    }
+  }
   if (t === SAND) {
     const SP = ZP || SEA_TILE;
     for (let i = 0; i < 4; i++) if (nb[i] === GRASS || nb[i] === FOREST) {
@@ -256,6 +282,10 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
   }
 }
 const LAND_RANK = { [SAND]: 1, [DIRT]: 2, [GRASS]: 3, [FOREST]: 4, [MTN]: 5 };
+function waterColor(t, zi) {
+  if (t === DEEP) return zi === 5 ? '#6a9abd' : zi === 4 ? '#2f5148' : '#3a7aa2';
+  return zi === 5 ? '#8abad6' : zi === 4 ? '#3a6154' : '#56b0d2';
+}
 /* il colore di fondo di un terreno di terra, per le linguette che sconfinano nel vicino */
 function landColor(t, ZP, zi) {
   const SP = ZP || SEA_TILE;
