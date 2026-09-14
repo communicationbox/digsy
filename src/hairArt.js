@@ -101,7 +101,7 @@ const DRAW = {
     side(g) {
       mass(g, 14.5, -1, 10, 10);
       for (const [x, y] of [[8, 2], [12, -1], [17, -2], [21, 0], [6, 7], [9, 10], [24, 3]]) curl(g, x, y, 2.6);
-      cut(g, sideKeep(x => x > 21 ? 5 : 7, 12, 18));
+      cut(g, sideKeep(x => x > 21 ? 5 : 6, 12, 18));
     },
   },
 

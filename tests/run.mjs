@@ -1662,13 +1662,13 @@ sprites.applyLook();
      spalle, entrambi i passi), occhi visibili con OGNI taglio. */
   let bodyAsym = 0;
   for (const dir of ['down', 'up']) for (const fr of [0, 1]) sprites.SPR[dir][fr].forEach(r => {
-    for (let c = 0; c < 32; c++) { if ((r[c] === '.') !== (r[31 - c] === '.')) bodyAsym++; if ((r[c] === 'E') !== (r[31 - c] === 'E')) bodyAsym++; }
+    for (let c = 0; c < 32; c++) { if ((r[c] === '.') !== (r[31 - c] === '.')) bodyAsym++; const eye = ch => ch === 'E' || ch === 'W'; if (eye(r[c]) !== eye(r[31 - c])) bodyAsym++;   /* il punto di luce sta dallo stesso lato in entrambi: fa parte dell'occhio */ }
   });
   check('corpo: sagoma e occhi a specchio (' + bodyAsym + ' pixel fuori)', bodyAsym === 0);
   let eyesUnder = [];
-  for (const hair of Object.keys(sprites.HAIRS)) for (const [v, xs] of [['down', [10, 11, 20, 21]], ['side', [21, 22]]]) {
+  for (const hair of Object.keys(sprites.HAIRS)) for (const [v, xs] of [['down', [11, 12, 19, 20]], ['side', [20, 21]]]) {
     const hr = sprites.HAIRS[hair][v];
-    for (const y of [9, 10, 11]) { const r = hr.find(p => p[0] === y); if (r && xs.some(x => r[1][x] !== '.')) { eyesUnder.push(hair + '/' + v); break; } }
+    for (const y of [8, 9, 10, 11]) { const r = hr.find(p => p[0] === y); if (r && xs.some(x => r[1][x] !== '.')) { eyesUnder.push(hair + '/' + v); break; } }
   }
   check('occhi mai sotto i capelli (' + [...new Set(eyesUnder)].join(' ') + ')', eyesUnder.length === 0);
   let hbad = 0;
@@ -1807,7 +1807,7 @@ sprites.applyLook();
       const drawn = []; const rec = { fillStyle: '', fillRect(x, y) { drawn.push([x, y, this.fillStyle]); }, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
       sprites.drawHero(rec, 0, 0, 'down', 0);
       const at = (x, y) => { let c = null; for (const [a, b, f] of drawn) if (a === x && b === y) c = f; return c; };
-      if (at(10, 10) !== sprites.PAL.E || at(21, 11) !== sprites.PAL.E) eyesHidden++;
+      if (at(11, 10) !== sprites.PAL.E || at(20, 11) !== sprites.PAL.E) eyesHidden++;
       if (!['down', 'side', 'up'].some(v => npcArt.accLayer(NPCS[t].look.acc, 'body', v) || npcArt.accLayer(NPCS[t].look.acc, 'face', v))) nothing++;
     }
     S.look = savedLook; sprites.applyLook();

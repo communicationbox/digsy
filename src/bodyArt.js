@@ -8,7 +8,7 @@
      con la colonna di sinistra, e la destra è 31 - x. Un test lo misura.
    - la luce è un FILO (una colonna, un paio di pixel), mai una macchia che copre mezza faccia;
    - niente dither a scacchiera;
-   - occhi alle righe 9-11, sotto ogni frangia (i capelli scendono al massimo alla riga 6 sul viso).
+   - occhi alle righe 8-11, sotto ogni frangia (i capelli scendono al massimo alla riga 6 sul viso).
    Ingombri uguali a prima — testa 0-17, busto 18-25, gambe 26-31 — così cappelli, capelli,
    vestiti (styleLook) e accessori continuano a calzare. Il contorno scuro NON sta qui: lo aggiunge
    drawHero dopo aver dato la forma ai vestiti, così segue anche la gonna e la canottiera.
@@ -22,89 +22,90 @@ const row = (g, y, x0, m, t = 1) => { for (let x = x0; x <= 31 - x0; x++) g.set(
 const pair = (g, x, y, m, tl = 1, tr = tl) => { g.set(x, y, m, tl); g.set(31 - x, y, m, tr); };
 
 /* ---------------- TESTA ---------------- */
+/* "sembra un mostriciattolo": occhi piccoli sui bordi di una faccia larga, orecchie a sventola,
+   sorriso e mascella scura. Un viso tenero ha gli occhi GRANDI e VICINI al centro, con un punto
+   di luce, e niente altro: guance appena accennate, niente bocca, mento tondo. */
 function headFront(g, face) {
   [[0, 11], [1, 9], [2, 8], [3, 7]].forEach(([y, x]) => row(g, y, x, 'F'));
-  for (let y = 4; y <= 13; y++) row(g, y, 6, 'F');
-  row(g, 14, 7, 'F'); row(g, 15, 8, 'F'); row(g, 16, 10, 'F');
-  row(g, 17, 12, 'F', 2);                                   // collo in ombra
-  for (let y = 9; y <= 11; y++) pair(g, 5, y, 'F', 1, 2);   // orecchie
-  /* luce: un filo sulla tempia sinistra e sulla cima; ombra: filo sul lato destro e sotto il mento */
-  for (let y = 4; y <= 8; y++) g.set(7, y, 'F', 0);
+  for (let y = 4; y <= 12; y++) row(g, y, 6, 'F');
+  row(g, 13, 7, 'F'); row(g, 14, 8, 'F'); row(g, 15, 10, 'F'); row(g, 16, 12, 'F');
+  row(g, 17, 13, 'F', 2);                                   // collo in ombra
+  for (let y = 4; y <= 7; y++) g.set(7, y, 'F', 0);         // filo di luce sulla tempia
   for (let x = 11; x <= 13; x++) g.set(x, 1, 'F', 0);
-  for (let y = 4; y <= 13; y++) g.set(25, y, 'F', 2);
-  g.set(24, 14, 'F', 2); g.set(23, 15, 'F', 2); g.set(8, 15, 'F', 2); g.set(10, 16, 'F', 2); g.set(21, 16, 'F', 2);
+  for (let y = 5; y <= 11; y++) g.set(25, y, 'F', 2);       // filo d'ombra sul lato destro
+  g.set(24, 13, 'F', 2); g.set(23, 14, 'F', 2); g.set(21, 15, 'F', 2);
   if (!face) return;
-  for (let y = 9; y <= 11; y++) { pair(g, 10, y, 'E'); pair(g, 11, y, 'E'); }
-  pair(g, 8, 12, 'C'); pair(g, 9, 12, 'C');                // guance
-  pair(g, 14, 13, 'F', 2); pair(g, 15, 14, 'F', 2);        // sorriso
+  for (let y = 8; y <= 11; y++) { pair(g, 11, y, 'E'); pair(g, 12, y, 'E'); }
+  g.set(12, 8, 'W', 1); g.set(20, 8, 'W', 1);               // punto di luce, stessa posizione nei due occhi
+  pair(g, 9, 12, 'C');                                      // guance: un pixel
 }
 function headSide(g) {
   g.span(0, 12, 19, 'F', { t: 1 }); g.span(1, 10, 21, 'F', { t: 1 }); g.span(2, 9, 22, 'F', { t: 1 }); g.span(3, 8, 23, 'F', { t: 1 });
-  for (let y = 4; y <= 13; y++) g.span(y, 8, 25, 'F', { t: 1 });
-  g.span(14, 9, 24, 'F', { t: 1 }); g.span(15, 10, 23, 'F', { t: 1 }); g.span(16, 13, 21, 'F', { t: 1 });
-  g.span(17, 14, 19, 'F', { t: 2 });
-  g.fillBlock(26, 10, 26, 11, 'F', 1);                     // naso
-  for (let y = 4; y <= 8; y++) g.set(9, y, 'F', 0);
+  for (let y = 4; y <= 12; y++) g.span(y, 8, 25, 'F', { t: 1 });
+  g.span(13, 9, 24, 'F', { t: 1 }); g.span(14, 10, 23, 'F', { t: 1 }); g.span(15, 12, 21, 'F', { t: 1 }); g.span(16, 14, 19, 'F', { t: 1 });
+  g.span(17, 14, 18, 'F', { t: 2 });
+  g.set(26, 10, 'F', 1);                                    // naso: un pixel
+  for (let y = 4; y <= 7; y++) g.set(9, y, 'F', 0);
   for (let x = 12; x <= 14; x++) g.set(x, 1, 'F', 0);
-  g.fillBlock(12, 9, 13, 11, 'F', 2); g.set(12, 10, 'F', 1); // orecchio
-  g.span(15, 10, 12, 'F', { t: 2 }); g.set(13, 16, 'F', 2);
-  g.fillBlock(21, 9, 22, 11, 'E');
-  g.fillBlock(20, 12, 21, 12, 'C');
-  g.set(24, 13, 'F', 2); g.set(23, 14, 'F', 2);
+  g.fillBlock(13, 9, 14, 11, 'F', 2); g.set(13, 10, 'F', 1); // orecchio piccolo
+  g.fillBlock(20, 8, 21, 11, 'E'); g.set(21, 8, 'W', 1);
+  g.set(19, 12, 'C');
 }
 
 /* ---------------- BUSTO ---------------- */
-/* braccia staccate dal busto da un pixel vuoto all'altezza delle mani: si leggono come braccia */
+/* braccia LUNGO I FIANCHI (a T sembravano artigli): manica sulla spalla, mano accanto al busto,
+   con un pixel vuoto fra mano e busto che diventa contorno */
 function torsoFront(g, back) {
   row(g, 18, 10, 'S');
-  row(g, 19, 7, 'S');
-  for (let y = 20; y <= 25; y++) row(g, y, 8, 'S');
-  for (let y = 20; y <= 21; y++) { pair(g, 6, y, 'S', 0, 2); pair(g, 7, y, 'S', 1, 2); }   // maniche
-  for (let y = 22; y <= 24; y++) { pair(g, 5, y, 'F', 0, 2); pair(g, 6, y, 'F', 1, 2); }   // avambracci e mani
-  g.set(5, 20, 'S', 0); g.set(26, 20, 'S', 2);
-  for (let y = 20; y <= 24; y++) { g.set(9, y, 'S', 0); g.set(22, y, 'S', 2); g.set(23, y, 'S', 2); }
-  row(g, 25, 8, 'S', 2);                                   // orlo in ombra
+  for (let y = 19; y <= 21; y++) row(g, y, 9, 'S');
+  for (let y = 22; y <= 25; y++) row(g, y, 10, 'S');
+  /* braccio largo 3: manica fino alla riga 22, mano sotto, staccata dal busto da una colonna */
+  for (let y = 19; y <= 22; y++) { pair(g, 6, y, 'S', 0, 2); pair(g, 7, y, 'S', 1, 2); pair(g, 8, y, 'S', 1, 2); }
+  g.set(6, 19, 'S', 0); g.clear(6, 19); g.clear(25, 19);             // spalla arrotondata
+  for (let y = 23; y <= 24; y++) { pair(g, 6, y, 'F', 0, 2); pair(g, 7, y, 'F', 1, 2); pair(g, 8, y, 'F', 1, 2); }
+  g.clear(6, 24); g.clear(25, 24);                                   // mano tonda
+  for (let y = 19; y <= 22; y++) { pair(g, 8, y, 'S', 2, 2); }       // piega fra manica e busto
+  for (let y = 19; y <= 24; y++) { g.set(10, y, 'S', 0); g.set(21, y, 'S', 2); }
+  row(g, 25, 10, 'S', 2);
   if (!back) { for (let x = 14; x <= 17; x++) g.set(x, 18, 'S', 2); return; }
-  /* di spalle: lo zaino, con la patta e le cinghie; ai lati resta la maglia (styleLook la cerca) */
-  for (let y = 18; y <= 25; y++) g.span(y, 11, 20, 'B', { lit: 0.2, dark: 0.8 });
-  g.span(18, 12, 19, 'B', { t: 0 });
-  g.span(21, 11, 20, 'B', { t: 2 }); g.fillBlock(15, 22, 16, 22, 'W', 1);
-  g.span(25, 11, 20, 'B', { t: 2 });
+  for (let y = 18; y <= 25; y++) g.span(y, 12, 19, 'B', { lit: 0.2, dark: 0.8 });
+  g.span(18, 13, 18, 'B', { t: 0 });
+  g.span(21, 12, 19, 'B', { t: 2 }); g.fillBlock(15, 22, 16, 22, 'W', 1);
+  g.span(25, 12, 19, 'B', { t: 2 });
 }
 function torsoSide(g, fr) {
-  g.span(18, 12, 21, 'S');
-  for (let y = 19; y <= 25; y++) g.span(y, 10, 22, 'S', { lit: 0.15, dark: 0.85 });
-  g.span(25, 10, 22, 'S', { t: 2 });
-  for (let y = 18; y <= 24; y++) g.span(y, 6, 9, 'B', { lit: 0.3, dark: 0.9 });   // zaino dietro
-  g.span(18, 7, 9, 'B', { t: 0 });
-  /* braccio che oscilla: avanti al passo 0, indietro al passo 1 */
-  const ax = fr ? 13 : 16, hx = fr ? 12 : 18;
-  for (let y = 19; y <= 21; y++) g.span(y, ax, ax + 3, 'S', { lit: 0.3, dark: 0.7 });
-  for (let y = 19; y <= 22; y++) g.set(ax - 1, y, 'S', 2);
-  g.fillBlock(hx, 22, hx + 2, 24, 'F', 1); g.set(hx, 22, 'F', 0); g.set(hx + 2, 24, 'F', 2);
+  g.span(18, 13, 20, 'S');
+  for (let y = 19; y <= 25; y++) g.span(y, 11, 21, 'S', { lit: 0.15, dark: 0.85 });
+  g.span(25, 11, 21, 'S', { t: 2 });
+  for (let y = 18; y <= 24; y++) g.span(y, 8, 10, 'B', { lit: 0.3, dark: 0.9 });   // zaino dietro
+  g.span(18, 8, 10, 'B', { t: 0 });
+  /* braccio lungo il fianco che oscilla appena col passo: largo 3, mano 2×2 */
+  const ax = fr ? 13 : 15;
+  for (let y = 19; y <= 23; y++) g.span(y, ax, ax + 2, 'S', { lit: 0.34, dark: 0.66 });
+  g.fillBlock(ax, 24, ax + 2, 25, 'F', 1); g.set(ax, 24, 'F', 0); g.clear(ax + 2, 25);
+  for (let y = 20; y <= 23; y++) g.set(ax - 1, y, 'S', 2);
 }
 
 /* ---------------- GAMBE ---------------- */
 function legsFront(g, fr) {
-  row(g, 26, 9, 'P');
-  const legs = fr ? [[7, 12], [19, 24]] : [[9, 14], [17, 22]];
+  row(g, 26, 10, 'P');
+  const legs = fr ? [[8, 12], [19, 23]] : [[10, 14], [17, 21]];
   for (const [a, b] of legs) {
     for (let y = 27; y <= 29; y++) g.span(y, a, b, 'P', { lit: 0.2, dark: 0.8 });
-    const s0 = a < 16 ? a - 1 : a, s1 = a < 16 ? b : b + 1;   // la punta esce verso l'esterno, a specchio
-    g.span(30, s0, s1, 'B', { lit: 0.3, dark: 0.8 });
-    g.span(31, s0, s1, 'B', { t: 2 });
+    g.span(30, a, b, 'B', { t: 1 });
+    g.span(31, a, b, 'B', { t: 2 });
   }
-  if (fr) { g.span(27, 9, 14, 'P'); g.span(27, 17, 22, 'P'); }   // attaccatura delle gambe, anche a gambe aperte
+  if (fr) { g.span(27, 10, 14, 'P'); g.span(27, 17, 21, 'P'); }
 }
 function legsSide(g, fr) {
-  g.span(26, 11, 21, 'P');
-  const legs = fr ? [[13, 18]] : [[9, 13], [18, 22]];
+  g.span(26, 12, 20, 'P');
+  const legs = fr ? [[13, 18]] : [[10, 14], [17, 21]];
   for (const [a, b] of legs) {
     for (let y = 27; y <= 29; y++) g.span(y, a, b, 'P', { lit: 0.2, dark: 0.8 });
-    g.span(30, a, b + 2, 'B', { lit: 0.3, dark: 0.8 });
-    g.span(31, a, b + 2, 'B', { t: 2 });
+    g.span(30, a, b + 1, 'B', { t: 1 });
+    g.span(31, a, b + 1, 'B', { t: 2 });
   }
-  if (!fr) g.span(27, 12, 19, 'P');
+  if (!fr) g.span(27, 13, 18, 'P');
 }
 
 /* ---------------- tutto ---------------- */

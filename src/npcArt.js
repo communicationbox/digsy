@@ -34,9 +34,9 @@ const ACC = {
       side(g) { for (let y = 18; y <= 27; y++) g.span(y, y < 20 ? 10 : 8, y < 20 ? 22 : 24, 'W', { lit: 0.3, dark: 0.8 }); g.line(21, 19, 21, 27, 1, 'W', 2); },
     },
     face: {
-      down(g) { ring(g, 10.5, 10.5); ring(g, 20.5, 10.5); g.span(10, 14, 17, 'K'); },
+      down(g) { ring(g, 11.5, 9.5); ring(g, 19.5, 9.5); g.span(9, 15, 16, 'K'); },
       up() {},
-      side(g) { ring(g, 22.5, 10.5); g.span(10, 14, 20, 'K'); },
+      side(g) { ring(g, 20.5, 9.5); g.span(9, 14, 17, 'K'); },
     },
   },
   /* Bottegaia: grembiule color crema con la tasca */
@@ -56,9 +56,9 @@ const ACC = {
     },
     face: {
       noOutline: true,   // il contorno cadrebbe DENTRO l'anello, sull'occhio
-      down(g) { mono(g, 19, 9); g.line(22, 13, 22, 15, 1, 'Y', 2); },
+      down(g) { ring(g, 19.5, 9.5, 'Y'); g.line(22, 13, 22, 16, 1, 'Y', 2); },
       up() {},
-      side(g) { mono(g, 21, 9); g.line(21, 13, 20, 15, 1, 'Y', 2); },
+      side(g) { ring(g, 20.5, 9.5, 'Y'); g.line(19, 13, 18, 16, 1, 'Y', 2); },
     },
   },
   /* Locandiera: grembiule a quadretti rossi */
@@ -77,9 +77,9 @@ const ACC = {
       side(g) { g.fillBlock(22, 20, 24, 20, 'W', 1); g.fillBlock(22, 21, 24, 21, 'K'); },
     },
     face: {
-      down(g) { g.span(13, 11, 20, 'K'); g.span(14, 12, 14, 'K'); g.span(14, 17, 19, 'K'); g.set(10, 12, 'K'); g.set(21, 12, 'K'); g.set(9, 11, 'K'); g.set(22, 11, 'K'); },
+      down(g) { g.span(13, 12, 19, 'K'); g.span(12, 10, 11, 'K'); g.span(12, 20, 21, 'K'); g.set(12, 12, 'K'); g.set(19, 12, 'K'); },   // baffi a manubrio: le punte salgono
       up() {},
-      side(g) { g.span(13, 22, 27, 'K'); g.set(22, 14, 'K'); g.set(21, 12, 'K'); g.set(20, 11, 'K'); },
+      side(g) { g.span(13, 21, 25, 'K'); g.set(20, 12, 'K'); g.set(19, 12, 'K'); },
     },
   },
   /* Falegname: grembiule di cuoio con gli attrezzi e la matita dietro l'orecchio */
@@ -117,8 +117,6 @@ const ACC = {
 function ring(g, cx, cy, m = 'K') {
   for (const [dx, dy] of [[-1, -2], [0, -2], [1, -2], [-2, -1], [2, -1], [-2, 0], [2, 0], [-2, 1], [2, 1], [-1, 2], [0, 2], [1, 2]]) g.set(Math.floor(cx) + dx + (dx > 0 ? 1 : 0), Math.floor(cy) + dy + (dy > 0 ? 1 : 0), m, 1);
 }
-/* monocolo: anello 4×4 attorno all'occhio (x0,y0 = angolo in alto a sinistra) */
-function mono(g, x0, y0) { for (let i = 0; i < 4; i++) { g.set(x0 + i, y0, 'Y', 0); g.set(x0 + i, y0 + 3, 'Y', 2); g.set(x0, y0 + i, 'Y', 0); g.set(x0 + 3, y0 + i, 'Y', 2); } }
 function bow(g, cx, cy) {
   g.fillBlock(cx - 4, cy - 1, cx - 2, cy + 1, 'R', 0); g.fillBlock(cx + 2, cy - 1, cx + 4, cy + 1, 'R', 2);
   g.fillBlock(cx - 1, cy - 1, cx + 1, cy + 1, 'R', 1); g.set(cx - 5, cy, 'R', 0); g.set(cx + 5, cy, 'R', 2);
