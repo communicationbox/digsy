@@ -714,7 +714,6 @@ export const RU = {
   'Finds': 'Находки',
   'Raw finds for the Museum': 'Необработанные находки для Музея',
   'Raw': 'Необработанное',
-  'to Museum': 'в Музей',
   'coins': 'монет',
   'Empty: go dig!': 'Пусто: идите копать!',
   'not bought yet · Shop': 'ещё не куплено · Магазин',
@@ -1171,8 +1170,8 @@ export const RU = {
   /* ---- intro: come si guadagnano le prime monete (i primi tester non lo capivano) ---- */
 
   /* ---- zaino: lasciare a terra (bottone, non trascinamento) ---- */
-  'Tap 🗑 on a find to leave it on the ground (you can pick it back up).':
-    'Нажмите 🗑 на находке, чтобы оставить её на земле (потом можно поднять).',
+  'Tap a find: below you see what it is and can leave it on the ground 🗑.': 'Нажми на находку: внизу увидишь, что это, и сможешь оставить её на земле 🗑.',
+  'take them to the Museum to identify them': 'отнеси их в Музей, чтобы опознать',
   'Leave on the ground': 'Оставить на земле',
   'Leave': 'Выйти',
   'Too far, or no way through from here': 'Слишком далеко или дороги отсюда нет',

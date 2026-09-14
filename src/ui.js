@@ -1939,6 +1939,7 @@ function renderInn() {
 /* ---------- zaino: pannello LEGGIBILE 8-bit a SCHEDE (Reperti/Oggetti/Attrezzi/DNA) --- */
 let bagOpenFlag = false;
 let bagTab = 'finds';
+let bagSel = null;   // reperto scelto nello zaino: i dettagli e "lascia a terra" stanno sotto, non su ogni casella
 export function isBagOpen() { return bagOpenFlag; }
 export function closeBag() {
   bagOpenFlag = false;
@@ -1955,24 +1956,34 @@ export function openBag(tab) {
   const framed = typeof getComputedStyle !== 'undefined' && typeof document !== 'undefined' && document.documentElement
     && (getComputedStyle(document.documentElement).getPropertyValue('--bag-frame') || '').trim() !== '';
   let h = `<div class="bag-body${framed ? ' framed' : ''}">`;
-  h += `<div class="bag-hd"><span class="bicn">🎒</span><h2>${tr('Zaino', 'Bag')}</h2><span class="cnt">${S.raw.length + S.items.length} ${tr('reperti', 'finds')}</span><button class="bag-close" id="bagX">✕</button></div>`;
+  /* ZAINO VERO: maniglia e due cinghie con la fibbia sopra la patta, tasche al posto delle schede,
+     tasca davanti coi libri ("lo zaino deve rappresentare uno zaino") */
+  h += `<div class="pack-handle"></div><div class="pack-strap l"><i></i></div><div class="pack-strap r"><i></i></div>`;
+  h += `<div class="bag-hd"><span class="bicn">🎒</span><h2>${tr('Zaino', 'Bag')}</h2><span class="cnt">${fossilCount()}/${bagCap()}</span><button class="bag-close" id="bagX">✕</button></div>`;
   h += `<div class="bag-scroll">`;
 
   const row = (ic, t1, t2, right, data, cls) => `<div class="brow ${cls || ''}" ${data || ''}><span class="bic">${ic}</span><div class="btx"><div class="bt1">${t1}</div><div class="bt2">${t2}</div></div>${right || ''}</div>`;
 
   /* ---- SCHEDA REPERTI: miniature voxel, capienza, trascina-fuori per buttare a terra ---- */
-  let secFinds = `<div class="bag-sec"><h3>${tr('Reperti', 'Finds')} <span class="cap">${fossilCount()}/${bagCap()}</span></h3><div class="bag-hint">${tr('Tocca 🗑 su un reperto per lasciarlo a terra (lo ritrovi lì).', 'Tap 🗑 on a find to leave it on the ground (you can pick it back up).')}</div><div class="bag-items">`;
-  if (S.raw.length) secFinds += `<div class="bitile" title="${esc(tr('Reperti grezzi da consegnare al Museo', 'Raw finds for the Museum'))}"><div class="pv" style="display:flex;align-items:center;justify-content:center;font-size:30px">🦴</div><div class="bnm">${tr('Grezzi', 'Raw')} ×${S.raw.length}</div><div class="biq">${tr('al Museo', 'to Museum')}</div>${dropBtn(S.raw[S.raw.length - 1].uid, 'raw')}</div>`;
+  /* caselle SOLO con l'oggetto (e il pallino della rarità): nome, valore e "lascia a terra" stanno
+     nella scheda del reperto scelto, sotto. Una scritta e un cestino su ogni casella facevano
+     dello zaino un modulo da compilare. */
+  const allFinds = [...(S.raw.length ? [{ raw: true, uid: S.raw[S.raw.length - 1].uid }] : []), ...S.items];
+  if (!allFinds.some(f => f.uid === bagSel)) bagSel = allFinds.length ? allFinds[0].uid : null;
+  let secFinds = `<div class="bag-sec"><div class="bag-hint">${tr('Tocca un reperto: sotto vedi cos\'è e puoi lasciarlo a terra 🗑.', 'Tap a find: below you see what it is and can leave it on the ground 🗑.')}</div><div class="bag-items">`;
+  if (S.raw.length) secFinds += `<button class="bitile${bagSel === allFinds[0].uid ? ' picked' : ''}" data-sel="${allFinds[0].uid}" title="${esc(tr('Reperti grezzi da consegnare al Museo', 'Raw finds for the Museum'))}"><span class="pv raw">🦴</span><span class="bq">×${S.raw.length}</span></button>`;
   secFinds += S.items.map(it =>
-    `<div class="bitile" title="${esc(partName(it.t) + ' ' + tr('di', 'of') + ' ' + spById[it.s].name + ' · ' + rarLabel(it.q) + ' · ' + it.val + ' ' + tr('monete', 'coins'))}">
+    `<button class="bitile${bagSel === it.uid ? ' picked' : ''}" data-sel="${it.uid}" title="${esc(partName(it.t) + ' ' + tr('di', 'of') + ' ' + spById[it.s].name + ' · ' + rarLabel(it.q) + ' · ' + it.val + ' ' + tr('monete', 'coins'))}">
        <span class="dot ${it.q}"></span>
        <canvas class="pv" width="40" height="40" data-pv="${it.s}|${it.t}"></canvas>
-       <div class="bnm">${partName(it.t)} ${spById[it.s].name}</div>
-       <div class="biq">${rarLabel(it.q)} · 🪙${it.val}</div>
-       ${dropBtn(it.uid, 'item')}
-     </div>`).join('');
-  if (!S.items.length && !S.raw.length) secFinds += `<div class="bag-empty">${tr('Vuoto: vai a scavare!', 'Empty: go dig!')}</div>`;
+     </button>`).join('');
+  if (!allFinds.length) secFinds += `<div class="bag-empty">${tr('Vuoto: vai a scavare!', 'Empty: go dig!')}</div>`;
   secFinds += `</div></div>`;
+  /* SCHEDA del reperto scelto */
+  let finDetail = '';
+  const selIt = S.items.find(it => it.uid === bagSel);
+  if (selIt) finDetail = `<div class="pack-detail"><span class="dot ${selIt.q}"></span><div class="pd-tx"><b>${partName(selIt.t)} ${spById[selIt.s].name}</b><span>${rarLabel(selIt.q)} · 🪙${selIt.val}</span></div>${dropBtn(selIt.uid, 'item')}</div>`;
+  else if (S.raw.length && allFinds[0] && bagSel === allFinds[0].uid) finDetail = `<div class="pack-detail"><span class="pd-ic">🦴</span><div class="pd-tx"><b>${tr('Grezzi', 'Raw')} ×${S.raw.length}</b><span>${tr('portali al Museo per identificarli', 'take them to the Museum to identify them')}</span></div>${dropBtn(S.raw[S.raw.length - 1].uid, 'raw')}</div>`;
 
   /* ---- SCHEDA OGGETTI: ATTREZZI e MEZZI hanno una sezione loro con l'elenco COMPLETO
      (quelli non ancora comprati restano in grigio: si vede a colpo d'occhio cosa manca);
@@ -2057,13 +2068,14 @@ export function openBag(tab) {
     ['letters', '✉', tr('Lettere', 'Letters'), gotL.length, secLetters],
   ];
   if (!TABS.some(t => t[0] === bagTab)) bagTab = 'finds';
-  h += `<div class="bag-tabs">` + TABS.map(([id, ic, lab, n]) =>
+  h += `<div class="bag-tabs pack-pockets">` + TABS.map(([id, ic, lab, n]) =>
     `<button class="bag-tab${bagTab === id ? ' on' : ''}" data-tab="${id}"><span class="bic">${ic}</span><span class="bt">${lab}</span>${n ? `<span class="tn">${n}</span>` : ''}</button>`).join('') + `</div>`;
   h += (TABS.find(t => t[0] === bagTab) || TABS[0])[4];
+  const detailHtml = bagTab === 'finds' ? finDetail : '';
 
   /* piede: la MAPPA per prima (si consulta di continuo), poi — staccati — i due libri.
      Traguardi e Guida stanno nel menu. */
-  h += `</div><div class="bag-foot"><button class="btn ghost" id="bagMap">🗺️ ${tr('Mappa', 'Map')}<span class="kbd-only"> (M)</span></button>
+  h += `</div>${detailHtml}<div class="bag-foot"><button class="btn ghost" id="bagMap">🗺️ ${tr('Mappa', 'Map')}<span class="kbd-only"> (M)</span></button>
     <span class="bf-sep"></span>
     <button class="btn ghost" id="bagBook">📖 ${tr('Libro', 'Book')}<span class="kbd-only"> (L)</span></button><button class="btn ghost" id="bagWonders">✨ ${tr('Meraviglie', 'Wonders')}</button></div></div>`;
 
@@ -2084,6 +2096,13 @@ export function openBag(tab) {
   const bw = document.getElementById('bagWonders'); if (bw) bw.onclick = () => { closeBag(); openWonderBook(); };
   if (box.querySelectorAll) {
     box.querySelectorAll('[data-tab]').forEach(el => el.onclick = () => { playSfx('ui'); bagTab = el.dataset.tab; openBag(); });
+    box.querySelectorAll('[data-sel]').forEach(el => el.onclick = () => { playSfx('ui'); bagSel = +el.dataset.sel; openBag(); });
+    /* LASCIA A TERRA: il cestino non aveva più nessun comando collegato (toccarlo non faceva nulla) */
+    box.querySelectorAll('[data-drop]').forEach(el => el.onclick = e => {
+      if (e && e.stopPropagation) e.stopPropagation();
+      const d = { uid: +el.dataset.drop, kind: el.dataset.dropk };
+      if (dropNeedsConfirm(d)) confirmDrop(d); else { discardToGround(d.uid, d.kind); openBag(); }
+    });
     box.querySelectorAll('[data-eat]').forEach(el => el.onclick = () => { eatSnack(); openBag(); });
     box.querySelectorAll('[data-tp]').forEach(el => el.onclick = () => { if (useTeleport()) closeBag(); else openBag(); });
     box.querySelectorAll('[data-gear]').forEach(el => el.onclick = () => { toggleGear(el.dataset.gear); openBag(); });

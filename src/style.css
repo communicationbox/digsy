@@ -94,6 +94,15 @@
   --c-win-gold:#d9a93f;     /* filo interno dorato */
   --c-win-hover:#34467a;    /* riga sotto il cursore */
   --c-soot:#0d1122;         /* contorno di tutto */
+
+  /* ZAINO — tela da esploratore, cuoio e ottone ("lo zaino deve rappresentare uno zaino") */
+  --c-pack:#b59a5e;         /* tela */
+  --c-pack-lo:#8f7846;      /* patta e tasca davanti, in ombra */
+  --c-pack-hi:#d2bb7e;      /* tasche cucite, in luce */
+  --c-pack-in:#2a2418;      /* fodera interna */
+  --c-strap:#704a2c;        /* cuoio delle cinghie */
+  --c-buckle:#c9973a;       /* fibbie */
+  --c-pack-line:#3b3222;    /* contorno dello zaino */
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1384,3 +1393,69 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 /* INTRO: "tocca per continuare" dentro la banda nera in basso, non sopra il riquadro del testo */
 #introbox #introhint{bottom:calc(3.5vh + env(safe-area-inset-bottom))}
 #introbox #introdlg{bottom:calc(12vh + 10px + env(safe-area-inset-bottom))}
+
+
+/* =====================================================================================
+   ZAINO VERO: maniglia e cinghie sopra la patta, tela cucita, tasche al posto delle schede,
+   fodera scura con le caselle, scheda del reperto scelto, tasca davanti coi libri.
+   ===================================================================================== */
+#bagbox{width:min(520px,94vw);padding-top:22px;color:var(--c-paper)}
+.pack-handle{position:absolute;top:0;left:50%;width:96px;height:34px;margin-left:-48px;z-index:1;
+  border:8px solid var(--c-strap);border-bottom:0;box-shadow:0 0 0 3px var(--c-pack-line);
+  clip-path:polygon(0 0,100% 0,100% 100%,calc(100% - 8px) 100%,calc(100% - 8px) 8px,8px 8px,8px 100%,0 100%)}
+.bag-body{position:relative;background:
+    repeating-linear-gradient(90deg,rgba(0,0,0,.035) 0 2px,transparent 2px 6px),var(--c-pack);
+  box-shadow:inset 0 0 0 3px var(--c-pack-line),inset 0 0 0 6px var(--c-pack-hi),inset 0 -10px 0 var(--c-pack-lo);
+  clip-path:polygon(0 24px,8px 24px,8px 12px,16px 12px,16px 4px,28px 4px,28px 0,calc(100% - 28px) 0,calc(100% - 28px) 4px,calc(100% - 16px) 4px,calc(100% - 16px) 12px,calc(100% - 8px) 12px,calc(100% - 8px) 24px,100% 24px,
+    100% calc(100% - 8px),calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,8px 100%,8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px))}
+/* PATTA: più scura, orlo cucito, bordo basso a gradini */
+.bag-hd{background:var(--c-pack-lo);color:var(--c-paper);padding:22px 18px 22px;margin:0;
+  box-shadow:inset 0 0 0 3px var(--c-pack-line),inset 0 -6px 0 rgba(0,0,0,.18);outline:2px dashed rgba(255,240,200,.35);outline-offset:-10px;
+  clip-path:polygon(0 0,100% 0,100% calc(100% - 10px),calc(50% + 60px) calc(100% - 10px),calc(50% + 60px) 100%,calc(50% - 60px) 100%,calc(50% - 60px) calc(100% - 10px),0 calc(100% - 10px))}
+.bag-hd h2{text-shadow:0 2px 0 var(--c-pack-line)}
+.bag-hd .cnt{opacity:1;color:var(--c-pack-hi);font-size:13px}
+.bag-close{background:var(--c-buckle);color:var(--c-pack-line);box-shadow:0 0 0 3px var(--c-pack-line),inset 0 3px 0 rgba(255,240,200,.45)}
+/* CINGHIE di cuoio che scendono sulla patta, con la fibbia */
+.pack-strap{position:absolute;top:16px;width:18px;height:92px;z-index:2;pointer-events:none;background:var(--c-strap);
+  box-shadow:0 0 0 3px var(--c-pack-line),inset 3px 0 0 rgba(255,220,170,.18)}
+.pack-strap.l{left:22%}.pack-strap.r{right:22%}
+.pack-strap i{position:absolute;left:-5px;bottom:10px;width:28px;height:18px;box-sizing:border-box;border:4px solid var(--c-buckle);box-shadow:0 0 0 2px var(--c-pack-line)}
+.bag-hd .bicn,.bag-hd h2{position:relative;z-index:3}
+/* TASCHE al posto delle schede: pezze cucite; quella aperta è scura come dentro */
+.bag-tabs.pack-pockets{gap:8px;margin:0 0 12px;position:static;background:none}
+.pack-pockets .bag-tab{background:var(--c-pack-hi);color:var(--c-pack-line);box-shadow:0 0 0 3px var(--c-pack-line);outline:2px dashed rgba(59,50,34,.35);outline-offset:-6px;padding:8px 4px 7px}
+.pack-pockets .bag-tab.on{background:var(--c-pack-in);color:var(--c-buckle);outline-color:rgba(201,151,58,.45)}
+.pack-pockets .bag-tab .tn{background:var(--c-pack-line);color:var(--c-pack-hi)}
+/* FODERA con le caselle */
+.bag-scroll{margin:0 14px;padding:12px;background:var(--c-pack-in);box-shadow:inset 0 0 0 3px var(--c-pack-line),inset 0 6px 0 rgba(0,0,0,.35)}
+.bag-hint{color:var(--c-pack-hi);opacity:.8}
+.bag-items{grid-template-columns:repeat(auto-fill,minmax(58px,1fr));gap:8px}
+button.bitile{appearance:none;border:0;font:inherit;cursor:pointer;aspect-ratio:1;padding:6px;background:rgba(255,240,200,.05);
+  box-shadow:inset 0 0 0 2px rgba(255,240,200,.12),inset 0 -3px 0 rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center}
+button.bitile:hover{background:rgba(255,240,200,.1)}
+button.bitile.picked{box-shadow:inset 0 0 0 3px var(--c-buckle),0 0 0 2px var(--c-pack-line)}
+button.bitile .pv{width:100%;height:100%;aspect-ratio:auto;background:transparent;box-shadow:none}
+button.bitile .pv.raw{display:flex;align-items:center;justify-content:center;font-size:26px}
+button.bitile .bq{position:absolute;right:4px;bottom:3px;font-size:11px;font-weight:800;color:var(--c-buckle)}
+button.bitile .dot{left:4px;top:4px;width:7px;height:7px}
+.brow{background:rgba(255,240,200,.05);box-shadow:inset 0 0 0 2px rgba(255,240,200,.12)}
+.brow .btx .bt2{color:var(--c-pack-hi)}
+.bag-sec>h3{color:var(--c-buckle);border-bottom-color:rgba(255,240,200,.14)}
+/* SCHEDA del reperto scelto: un cartellino di carta legato sotto la fodera */
+.pack-detail{display:flex;align-items:center;gap:10px;margin:10px 14px 0;padding:8px 10px;background:var(--c-parch-3);color:var(--c-pack-line);
+  box-shadow:0 0 0 3px var(--c-pack-line),inset 0 -3px 0 var(--c-parch)}
+.pack-detail .pd-tx{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;line-height:1.3}
+.pack-detail .pd-tx b{font-size:13px}.pack-detail .pd-tx span{font-size:12px;opacity:.8}
+.pack-detail .dot{position:static;width:10px;height:10px;flex:none}
+.pack-detail .bdrop{position:static;opacity:1;flex:none}
+/* TASCA DAVANTI coi libri */
+.bag-foot{margin:12px 14px 16px;padding:14px 10px 10px;background:var(--c-pack-lo);
+  box-shadow:0 0 0 3px var(--c-pack-line),inset 0 6px 0 rgba(0,0,0,.2);outline:2px dashed rgba(255,240,200,.3);outline-offset:-6px}
+.bag-foot .btn{background:var(--c-strap);color:var(--c-paper);border:0;box-shadow:0 0 0 2px var(--c-pack-line),inset 0 2px 0 rgba(255,220,170,.2)}
+button.bitile{width:100%;min-width:0}                          /* ogni casella riempie la sua cella (la scelta si stringeva) */
+.pack-strap{height:64px}                                        /* le cinghie finiscono sulla patta, non sopra le tasche */
+/* contrasto (WCAG, misurato dagli e2e): scritte e icone sullo zaino */
+.bag-hd .cnt{color:var(--c-paper)}
+.pack-pockets .bag-tab svg.pxi{color:var(--c-pack-line) !important}
+.pack-pockets .bag-tab.on svg.pxi{color:var(--c-buckle) !important}
+.bag-foot .btn svg.pxi{color:var(--c-paper) !important}

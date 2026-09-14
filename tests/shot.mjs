@@ -136,6 +136,8 @@ async function main() {
       }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'bestie' = galleria delle creature (specie e chimere, tre viste); zoom=…, res=2|4 */
     else if (${JSON.stringify(vista)} === 'bestie') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } var qb = new URLSearchParams(location.search); if(G.creatureGallery) G.creatureGallery(qb.get('zoom'), qb.get('res')); }
+    /* 'zaino' = lo zaino aperto con dentro un po' di tutto (reperti, attrezzi, ristori, mappe) */
+    else if (${JSON.stringify(vista)} === 'zaino') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.cmd) G.cmd('goditem').then(function(){ if(G.openBag) G.openBag(new URLSearchParams(location.search).get('tab') || undefined); }); }
     /* 'pose' = il personaggio in ogni posa e su ogni mezzo, nelle quattro direzioni */
     else if (${JSON.stringify(vista)} === 'pose') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('mount'); }).then(function(){ var q = new URLSearchParams(location.search); if(G.poseGallery) G.poseGallery(q.get('solo'), q.get('zoom')); }); }
     /* 'oggetti' = gli oggetti piccoli del mondo (imbocco, X, buca, relitto, ossa, raccoglibili) */
