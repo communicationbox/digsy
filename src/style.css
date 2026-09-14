@@ -83,6 +83,17 @@
   --c-deep:#241a10;         /* fondo di un pannello di legno */
   --c-deep-2:#201a14;
   --c-night:#17141f;        /* il buio dietro gli overlay */
+
+  /* MENU DEL TITOLO — finestra da gioco di ruolo 16-bit: fondo d'inchiostro a bande nette,
+     doppia cornice crema e oro, cursore a manina. Il primo tentativo in legno "sembra molto
+     banale"; prima ancora era un vetro scuro con pulsanti arrotondati da sito web. */
+  --c-win-1:#25325a;        /* banda alta della finestra */
+  --c-win-2:#212d52;
+  --c-win-3:#1d2849;        /* banda bassa: salti piccoli, si leggono come luce e non come riquadri */
+  --c-win-edge:#f1e7cf;     /* filo esterno della cornice */
+  --c-win-gold:#d9a93f;     /* filo interno dorato */
+  --c-win-hover:#34467a;    /* riga sotto il cursore */
+  --c-soot:#0d1122;         /* contorno di tutto */
 }
 
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -1234,3 +1245,112 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .arg-sub{font-size:var(--fs-note);color:#8a755a}
 .arg-su{display:flex;align-items:center;gap:var(--sp-2);margin:0 0 var(--sp-1)}
 .arg-su .btn{padding:6px 10px;font-size:12px}
+
+
+/* =====================================================================================
+   MENU DEL TITOLO: FINESTRA DA GIOCO DI RUOLO 16-BIT
+   =====================================================================================
+   Stesse regole di prima (una colonna, stessa altezza, stesso spazio fra le voci): cambia
+   l'aspetto. Finestra d'inchiostro a bande nette (niente sfumature morbide), doppia cornice a
+   pixel crema + oro, angoli a gradini. Le voci sono RIGHE del menu: la scelta si indica col
+   cursore a manina, l'azione principale è una targa dorata. Nei sottomenu il logo grande
+   sparisce e resta un'intestazione. */
+.sp-card{
+  background:linear-gradient(180deg,var(--c-win-1) 0 22%,var(--c-win-2) 22% 64%,var(--c-win-3) 64%);
+  border:0;border-radius:0;backdrop-filter:none;margin:auto;
+  box-shadow:inset 0 0 0 3px var(--c-soot),inset 0 0 0 6px var(--c-win-edge),inset 0 0 0 8px var(--c-soot),inset 0 0 0 10px var(--c-win-gold),inset 0 0 0 12px var(--c-soot),0 14px 0 rgba(0,0,0,.3);
+  clip-path:polygon(0 8px,4px 8px,4px 4px,8px 4px,8px 0,calc(100% - 8px) 0,calc(100% - 8px) 4px,calc(100% - 4px) 4px,calc(100% - 4px) 8px,100% 8px,
+    100% calc(100% - 8px),calc(100% - 4px) calc(100% - 8px),calc(100% - 4px) calc(100% - 4px),calc(100% - 8px) calc(100% - 4px),calc(100% - 8px) 100%,
+    8px 100%,8px calc(100% - 4px),4px calc(100% - 4px),4px calc(100% - 8px),0 calc(100% - 8px))}
+.sp-sub{color:var(--c-ink-2)}
+.sp-ver{color:var(--c-ink-dim)}
+
+/* VOCI: righe con il cursore */
+.sp-btn{position:relative;border-radius:0;background:transparent;color:var(--c-ink);box-shadow:inset 0 -2px 0 rgba(241,231,207,.14);
+  text-shadow:0 2px 0 var(--c-soot);transition:none}
+.sp-btn::before{content:"";position:absolute;left:10px;top:50%;width:12px;height:12px;margin-top:-6px;opacity:0;
+  background:var(--c-win-edge);
+  clip-path:polygon(0 0,4px 0,4px 2px,8px 2px,8px 4px,12px 4px,12px 8px,8px 8px,8px 10px,4px 10px,4px 12px,0 12px)}
+.sp-btn:hover,.sp-btn:focus-visible{background:var(--c-win-hover);outline:none}
+.sp-btn:hover::before,.sp-btn:focus-visible::before{opacity:1;animation:spPoint .5s steps(2) infinite}
+@keyframes spPoint{50%{transform:translateX(3px)}}
+.sp-btn:active{transform:none;background:var(--c-win-hover)}
+.sp-btn.primary{background:var(--c-win-gold);color:var(--c-soot);text-shadow:none;animation:none;
+  box-shadow:inset 0 3px 0 rgba(255,240,200,.45),inset 0 -4px 0 rgba(0,0,0,.25),0 0 0 3px var(--c-soot),0 0 0 5px var(--c-win-edge),0 0 0 7px var(--c-soot)}
+.sp-btn.primary::before{background:var(--c-soot)}
+.sp-btn.primary:hover{background:var(--c-gold-2)}
+.sp-btn.danger{color:var(--c-gold-2)}
+.sp-btn.danger:hover{background:var(--c-clay);color:var(--c-ink)}
+.sp-btn.primary svg.pxi{color:var(--c-soot) !important}
+/* riga secondaria: icona con la sua scritta */
+.sp-btn.ic{flex-direction:column;gap:3px;height:58px;border-radius:0;text-decoration:none;background:rgba(13,17,34,.35);
+  box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px rgba(241,231,207,.22)}
+.sp-btn.ic::before{display:none}
+.sp-btn.ic:hover{background:var(--c-win-hover);box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px var(--c-win-gold)}
+.sp-btn.ic .ic-lb{font-size:10px;letter-spacing:.5px;line-height:1;font-weight:700;color:var(--c-ink-2);text-shadow:none}
+.sp-iconrow{gap:var(--sp-3)}
+.sp-x{background:transparent;color:var(--c-ink);box-shadow:0 0 0 2px var(--c-win-edge);top:18px;right:18px}
+.sp-x:hover{background:var(--c-clay)}
+
+/* SOTTOMENU: niente logo gigante, intestazione dorata */
+.sp-card.sub #sp-digsy,.sp-card.sub .sp-title,.sp-card.sub .sp-sub{display:none}
+.sp-title2{display:inline-flex;align-items:center;gap:8px;align-self:center;color:var(--c-win-gold);letter-spacing:3px;
+  padding:6px 4px 8px;margin:4px 52px 8px;box-shadow:inset 0 -3px 0 var(--c-win-gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 104px)}
+.sp-card.sub{padding-top:28px}
+
+/* SALVATAGGI: schede col ritratto del personaggio */
+.sp-slot{background:rgba(13,17,34,.4);color:var(--c-ink);border:0;border-radius:0;box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px rgba(241,231,207,.22);
+  padding:8px 10px;margin:14px 4px 0;font-size:13px}
+.sp-slot small{color:var(--c-ink-dim)}
+.sp-slot .sl-pic{width:48px;height:60px;flex:none;image-rendering:pixelated;background:var(--c-win-1);box-shadow:0 0 0 2px var(--c-win-gold)}
+.sp-slot .sl-pic.vuoto{background:repeating-linear-gradient(45deg,var(--c-win-2) 0 4px,var(--c-win-3) 4px 8px)}
+.sp-slot .sl-txt{flex:1 1 auto;min-width:0;line-height:1.35}
+.sp-slot .sl-txt b{color:var(--c-gold-2)}
+.sp-slot .sp-btn.small{box-shadow:0 0 0 2px var(--c-win-edge)}
+#sp-slots{padding:0 4px 6px;max-height:none;min-height:0;flex:none;overflow:visible}   /* tre schede, sempre intere */
+
+/* IMPOSTAZIONI: le scelte sono targhe dentro la finestra */
+.sp-cfg .sp-btn{box-shadow:0 0 0 2px rgba(241,231,207,.3)}
+.sp-cfg .sp-btn::before{display:none}
+.sp-cfg .sp-btn.primary{box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px var(--c-win-edge)}
+.sp-grp h4{color:var(--c-win-gold)}
+.sp-sep{border-top:2px dashed rgba(241,231,207,.2)}
+
+/* SU COMPUTER NIENTE BARRE DI SCORRIMENTO: la finestra si allarga e le impostazioni vanno su due
+   colonne, così ci stanno intere; dove una lista resta lunga (Novità) si scorre con la rotella
+   e un velo in fondo dice che c'è altro. */
+@media (pointer:fine){
+  .sp-hall,.sp-log,.sp-keys,#sp-slots,.sp-cfg{scrollbar-width:none}
+  .sp-hall::-webkit-scrollbar,.sp-log::-webkit-scrollbar,.sp-keys::-webkit-scrollbar,#sp-slots::-webkit-scrollbar,.sp-cfg::-webkit-scrollbar{display:none;width:0;height:0}
+  .sp-log,.sp-hall,.sp-keys{-webkit-mask-image:linear-gradient(#000 calc(100% - 28px),transparent);mask-image:linear-gradient(#000 calc(100% - 28px),transparent);padding-bottom:24px}
+}
+/* SU COMPUTER LA FINESTRA HA UNA MISURA SOLA per tutte le schermate, quella delle Impostazioni
+   ("il menu deve avere una grandezza fissa, e deve essere quella dei settings"): cambiare
+   schermata non la fa più ballare. Il contenuto sta al centro; col telefono resta verticale e
+   scorre. */
+@media (pointer:fine) and (min-width:820px){
+  .sp-card,.sp-card.wide{width:min(820px,96vw);max-width:min(820px,96vw);height:min(700px,calc(100dvh - 20px));padding:28px 44px 24px;justify-content:center}
+  .sp-card.sub{justify-content:flex-start}
+  .sp-card.cfg .sp-cfg{max-width:none;display:grid;grid-template-columns:1fr 1fr;column-gap:40px;row-gap:var(--sp-3);align-items:start;overflow-y:auto}   /* se la finestra è bassa si scorre con la rotella (barra nascosta), mai tagliato */
+  .sp-card.cfg .sp-sep{display:none}
+  .sp-card > .sp-menu{flex:1 1 auto;min-height:0}
+  .sp-card:not(.sub) > .sp-menu{flex:0 0 auto}
+}
+
+/* LA SCENETTA DELL'ANGOLO (splashScene.js): cumulo di terra col cranio di tirannosauro e Digsy che
+   scava, per metà fuori dalla finestra in basso a sinistra. Ingrandita a scala intera (×3).
+   Quando c'è, il Digsy sopra il titolo non serve più: sarebbero due. Sul telefono non c'è spazio,
+   coprirebbe i pulsanti: resta il Digsy del titolo. */
+.sp-wrap{position:relative;display:flex;margin:auto;max-width:100%;max-height:100%}
+#sp-fossil{position:absolute;left:-230px;bottom:-60px;width:450px;height:300px;z-index:4;pointer-events:none;image-rendering:pixelated;
+  filter:drop-shadow(0 12px 0 rgba(0,0,0,.25))}
+@media (pointer:fine) and (min-width:1041px){ .sp-card:not(.sub) #sp-digsy{display:none} }
+.sp-wrap.sub #sp-fossil{display:none}   /* nei sottomenu coprirebbe il contenuto ("non si legge tutto") */
+@media (pointer:coarse),(max-width:1040px){#sp-fossil{display:none}}
+/* finestre basse: logo e ritratto più piccoli, così la schermata del titolo sta intera */
+@media (pointer:fine) and (max-height:820px){
+  #sp-digsy{width:90px;height:117px}
+  .sp-title{font-size:clamp(40px,7vh,64px)}
+  .sp-sub{margin:10px 0 16px}
+  .sp-card:not(.sub) > .sp-menu{gap:var(--sp-3)}
+}

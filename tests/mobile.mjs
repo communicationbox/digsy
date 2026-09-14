@@ -47,6 +47,10 @@ const SCENES = [
   ['vassoio', 'G.cmd("godfurn").catch(()=>{}).then(()=>G.enterRoom("house")).then(()=>G.openTray())'],
   ['mappa', 'G.openMap()'],
   ['libro', 'G.openBook()'],
+  /* il menu in legno: titolo, salvataggi (tre schede intere) e impostazioni */
+  ['menu', 'Promise.resolve(G.closeModal && G.closeModal(true)).then(()=>document.getElementById("menubtn").click())'],
+  ['salvataggi', 'Promise.resolve(document.getElementById("menubtn").click()).then(()=>new Promise(r=>setTimeout(r,300))).then(()=>document.getElementById("sp-saves").click())'],
+  ['impostazioni', 'Promise.resolve(document.getElementById("menubtn").click()).then(()=>new Promise(r=>setTimeout(r,300))).then(()=>document.getElementById("sp-settings").click())'],
 ];
 
 const report = [];

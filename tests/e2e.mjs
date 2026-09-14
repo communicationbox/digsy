@@ -1044,8 +1044,12 @@ const PROBE = `
       A('impostazioni: i gruppi sono tutti della stessa larghezza', wMax - wMin <= 1,
         larghezze.join('/'));
       var xMin = Math.min.apply(null, sinistre), xMax = Math.max.apply(null, sinistre);
-      A("impostazioni: i gruppi sono incolonnati, uno sotto l'altro", xMax - xMin <= 1,
-        sinistre.join('/'));
+      /* su computer largo le impostazioni stanno su DUE colonne, per starci intere senza barra
+         di scorrimento (richiesta esplicita): i gruppi si allineano su due bordi sinistri */
+      var aGriglia = getComputedStyle(box).display === 'grid';
+      var colonne = sinistre.filter(function(v, i, a){ return a.indexOf(v) === i; }).length;
+      A(aGriglia ? "impostazioni: i gruppi stanno su due colonne allineate" : "impostazioni: i gruppi sono incolonnati, uno sotto l'altro",
+        aGriglia ? colonne === 2 : xMax - xMin <= 1, sinistre.join('/'));
       /* la lingua è una fila di pulsanti, non una sottopagina */
       A('impostazioni: la lingua si cambia da qui', !!box.querySelector('[data-lang]'));
       /* niente sbordo orizzontale: è il difetto che si vede subito sul telefono */

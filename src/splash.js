@@ -1,5 +1,6 @@
 /* Splash = schermo titolo E menu pausa (ESC): Riprendi / Salva / Carica / Nuova / Musica */
-import { drawHero } from './sprites.js';
+import { drawHero, applyLook } from './sprites.js';
+import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
@@ -280,10 +281,14 @@ function startAnim() {
   if (animOn) return; animOn = true;
   const dc = document.getElementById('sp-digsy');
   const c2 = dc.getContext('2d'); c2.imageSmoothingEnabled = false;
+  const fc = document.getElementById('sp-fossil');
+  const c3 = fc && fc.getContext ? fc.getContext('2d') : null; if (c3) c3.imageSmoothingEnabled = false;
   (function anim(ts) {
     if (!on) { animOn = false; return; }
     c2.clearRect(0, 0, 40, 52);
     drawHero(c2, 4, 17, 'right', Math.floor((ts || 0) / 180) % 2);   // 17 sopra: creste e cappelli salgono fino a 14 pixel (a 2 si tagliavano)
+    /* la scenetta dell'angolo si disegna solo se si vede (su telefono è nascosta) */
+    if (c3 && fc.offsetParent !== null) drawCornerScene(c3, ts || 0, drawHero);
     requestAnimationFrame(anim);
   })(0);
 }
@@ -314,8 +319,8 @@ function buildMenu(inGame) {
     h += `<div class="sp-title2">💾 ${tr('Salvataggi', 'Saves')}</div><div id="sp-slots">`;
     for (let n = 1; n <= SLOTS; n++) {
       const d = slotInfo(n);
-      const info = d ? `${tr('Giorno', 'Day')} ${d.day} · 🪙 ${d.coins}<br><small>${d.savedAt ? new Date(d.savedAt).toLocaleString('it-IT') : ''}</small>` : '<small>— ' + tr('vuoto', 'empty') + ' —</small>';
-      h += `<div class="sp-slot"><span>Slot ${n} · ${info}</span><span class="sp-slotbtns">` +
+      const info = d ? `<b>${d.name ? esc(d.name) : 'Slot ' + n}</b><br>${tr('Giorno', 'Day')} ${d.day} · 🪙 ${d.coins}<br><small>${d.savedAt ? new Date(d.savedAt).toLocaleString('it-IT') : ''}</small>` : '<b>Slot ' + n + '</b><br><small>— ' + tr('vuoto', 'empty') + ' —</small>';
+      h += `<div class="sp-slot"><canvas class="sl-pic${d ? '' : ' vuoto'}" width="32" height="40" data-slot="${n}"></canvas><span class="sl-txt">${info}</span><span class="sp-slotbtns">` +
         (inGame ? `<button class="sp-btn small" data-save="${n}">${tr('Salva', 'Save')}</button>` : '') +
         (d ? `<button class="sp-btn small" data-n="${n}">${tr('Carica', 'Load')}</button>` : '') +
         `</span></div>`;
@@ -598,23 +603,31 @@ function buildMenu(inGame) {
     h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
     /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */
     h += `<div class="sp-iconrow">`;
-    h += `<button class="sp-btn ic" id="sp-troph" title="${tr('Trofei', 'Trophies')}">🏆</button>`;
-    h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝</button>`;
+    h += `<button class="sp-btn ic" id="sp-troph" title="${tr('Trofei', 'Trophies')}">🏆<span class="ic-lb">${tr('Trofei', 'Trophies')}</span></button>`;
+    h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝<span class="ic-lb">${tr('Novità', 'News')}</span></button>`;
     /* NIENTE VOCE "COMANDI" NEL MENU. La console (`money`, `godmode`, `goto=…`) è uno
        strumento dell'autore per provare il gioco, non una funzione da offrire: un elenco di
        cheat in bella vista invita a usarli, e una partita con le monete infinite non racconta
        più niente su come il gioco è bilanciato. Resta raggiungibile con il tasto ` per chi
        sa che c'è; la sua schermata (view 'commands') è ancora nel codice ma non ha più
        nessun pulsante che la apra. */
-    h += `<button class="sp-btn ic" id="sp-credits" title="Credits">ℹ️</button>`;
+    h += `<button class="sp-btn ic" id="sp-credits" title="Credits">ℹ️<span class="ic-lb">${tr('Crediti', 'Credits')}</span></button>`;
     /* Discord: si apre in una scheda nuova, mai al posto del gioco — una partita in corso
        non deve sparire perché si è toccata un'icona. `noopener` è d'obbligo sui link
        esterni: senza, la pagina aperta può manovrare quella che l'ha aperta. */
-    h += `<a class="sp-btn ic" id="sp-discord" href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer" title="Discord">💬</a>`;
+    h += `<a class="sp-btn ic" id="sp-discord" href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer" title="Discord">💬<span class="ic-lb">Discord</span></a>`;
     h += `</div>`;
   }
   menu.innerHTML = withIcons(h);
-  const card = document.querySelector ? document.querySelector('.sp-card') : null; if (card && card.classList) card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits');
+  const card = document.querySelector ? document.querySelector('.sp-card') : null;
+  if (card && card.classList) { card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits'); card.classList.toggle('sub', view !== 'main'); card.classList.toggle('cfg', view === 'settings'); if (card.parentNode && card.parentNode.classList) card.parentNode.classList.toggle('sub', view !== 'main'); }
+  /* ritratti dei salvataggi: il personaggio di quella partita, col suo aspetto */
+  if (view === 'saves' && menu.querySelectorAll) menu.querySelectorAll('canvas.sl-pic').forEach(cv => {
+    const d = slotInfo(+cv.dataset.slot); if (!S || !d || !d.look || !cv.getContext) return;
+    const c2 = cv.getContext('2d'); c2.imageSmoothingEnabled = false;
+    const keep = S.look; S.look = { ...keep, ...d.look }; applyLook();
+    try { drawHero(c2, 0, 8, 'down', 0); } finally { S.look = keep; applyLook(); }
+  });
   if (view === 'trophies' && menu.querySelectorAll) menu.querySelectorAll('.cupcv').forEach(cv => drawTrophy(cv, +cv.dataset.i, +cv.dataset.tier));
 
   const go = (v) => { view = v; buildMenu(inGame); };
