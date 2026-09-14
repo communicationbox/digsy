@@ -1380,3 +1380,7 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
   .sp-card:not(.sub) > .sp-menu{gap:var(--sp-3)}
 }
 @media (max-width:760px),(pointer:coarse){ .sp-btn.ic .ic-lb{font-size:9px;letter-spacing:0} }   /* "Trophies" non si taglia */
+
+/* INTRO: "tocca per continuare" dentro la banda nera in basso, non sopra il riquadro del testo */
+#introbox #introhint{bottom:calc(3.5vh + env(safe-area-inset-bottom))}
+#introbox #introdlg{bottom:calc(12vh + 10px + env(safe-area-inset-bottom))}

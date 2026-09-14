@@ -66,17 +66,20 @@ function tree(x, base, v, T, t) {
 /* personaggio a scala 1 (i pixel del gioco): la scena intera è ingrandita a scala intera */
 function hero(look, x, y, dir, fr, pose) { if (look) withLook(look, () => drawHero(null, Math.round(x - 16), Math.round(y - 32), dir, fr, false, pose)); else drawHero(null, Math.round(x - 16), Math.round(y - 32), dir, fr, false, pose); }
 function shadowAt(x, y, w) { ctx.fillStyle = 'rgba(0,0,0,.22)'; ctx.fillRect(Math.round(x - w / 2), Math.round(y - 1), Math.round(w), 2); }
+/* alone TONDO a righe di pixel (un rettangolo semitrasparente si leggeva come un vetro) */
+function glow(x, y, r, col) { for (let yy = -r; yy <= r; yy++) { const w = Math.round(Math.sqrt(r * r - yy * yy)); px(x - w, y + yy, w * 2, 1, col); } }
 function sparkle(x, y, col) { px(x, y - 2, 1, 5, col); px(x - 2, y, 5, 1, col); }
 
 /* ---------------- le cinque inquadrature (tu = tempo dall'inizio dell'inquadratura) ---------------- */
 function shotSite(W, H, t, tu) {
-  sky(W, H, ['#4a3a6e', '#7a4a78', '#b55a6a', '#e07a52', '#f2a55a', '#f7c878'], Math.round(H * 0.62));
-  sun(Math.round(W * 0.7), Math.round(H * 0.56), 14, '#ffe09a', 'rgba(255,226,150,.25)');
+  sky(W, H, ['#4a3a6e', '#7a4a78', '#b55a6a', '#e07a52', '#f2a55a', '#f7c878'], Math.round(H * 0.5));
+  sun(Math.round(W * 0.7), Math.round(H * 0.44), 14, '#ffe09a', 'rgba(255,226,150,.25)');
   for (let i = 0; i < 4; i++) { const cx = ((i * 97 + t / 120) % (W + 60)) - 30; px(cx, 12 + i * 9, 26, 3, '#f6b08a'); px(cx + 6, 10 + i * 9, 14, 2, '#f8c8a2'); }
-  hills(W, H, Math.round(H * 0.58), 6, 0.035, '#6a4a7a', 1.3, '#7e5a8c');
-  hills(W, H, Math.round(H * 0.66), 5, 0.05, '#3e4a5a', 4.1, '#4c5a6a');
-  for (let i = 0; i < 7; i++) tree(12 + i * (W / 6.5) + hash(i, 9) * 10, Math.round(H * 0.72), i, DUSK_TREE, t);
-  const gy = Math.round(H * 0.8);
+  /* il terreno sta ALTO: sotto c'è il riquadro del testo, che copriva i personaggi */
+  hills(W, H, Math.round(H * 0.46), 6, 0.035, '#6a4a7a', 1.3, '#7e5a8c');
+  hills(W, H, Math.round(H * 0.54), 5, 0.05, '#3e4a5a', 4.1, '#4c5a6a');
+  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, Math.round(H * 0.6), v, DUSK_TREE, t);   // pochi alberi, ai lati: niente muro
+  const gy = Math.round(H * 0.62);
   grass(W, H, gy, ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
   /* il campo: tenda, cassa, lanterna accesa, cumulo */
   const tx = Math.round(W * 0.18);
@@ -84,7 +87,7 @@ function shotSite(W, H, t, tu) {
   px(tx - 3, gy - 14, 6, 14, '#3a2a1a');
   px(tx + 26, gy - 8, 12, 8, '#8a5f38'); px(tx + 26, gy - 8, 12, 2, '#b07c4a'); px(tx + 31, gy - 8, 2, 8, '#5c4229');
   const fl = Math.floor(t / 200) % 2;
-  ctx.fillStyle = 'rgba(255,210,120,.18)'; ctx.fillRect(tx + 38, gy - 26, 22, 22);
+  glow(tx + 49, gy - 13, 10, 'rgba(255,210,120,.16)');
   px(tx + 47, gy - 16, 4, 6, '#2a1f14'); px(tx + 48, gy - 15, 2, 4, fl ? '#ffd27a' : '#ffe9a8');
   for (let x = 0; x < 50; x++) { const h = Math.round(Math.sin(x / 50 * Math.PI) * 9); px(W * 0.5 + x, gy - h, 1, h, x % 7 ? '#8a6440' : '#6b4a2e'); }
   /* il nonno aspetta vicino al cumulo; il piccolo arriva di corsa da destra */
@@ -137,23 +140,23 @@ function shotMemory(W, H, t, tu, creature) {
   ctx.fillStyle = 'rgba(30,20,70,.35)'; ctx.fillRect(0, 0, W, H);
 }
 function shotGive(W, H, t, tu) {
-  sky(W, H, ['#6a3a5e', '#a24a5a', '#d8664a', '#f0904a', '#f6b45a'], Math.round(H * 0.7));
-  sun(Math.round(W * 0.5), Math.round(H * 0.7), 22, '#ffd48a', 'rgba(255,212,138,.2)');
-  hills(W, H, Math.round(H * 0.68), 4, 0.05, '#4a3a5a', 0.7, '#5a4a6a');
-  const gy = Math.round(H * 0.84);
+  sky(W, H, ['#6a3a5e', '#a24a5a', '#d8664a', '#f0904a', '#f6b45a'], Math.round(H * 0.56));
+  sun(Math.round(W * 0.5), Math.round(H * 0.56), 22, '#ffd48a', 'rgba(255,212,138,.2)');
+  hills(W, H, Math.round(H * 0.54), 4, 0.05, '#4a3a5a', 0.7, '#5a4a6a');
+  const gy = Math.round(H * 0.64);
   grass(W, H, gy, ['#4a5a3a', '#6a7a4a', '#3a4a2e'], t);
   const gx = Math.round(W * 0.4), dx = Math.round(W * 0.6);
   shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'strike');
   shadowAt(dx, gy, 12); hero(null, dx, gy, 'left', 0, tu > 1400 ? 'strike' : undefined);
   /* il fossile che passa di mano e brilla */
   const k = Math.min(1, tu / 1600), fx = Math.round(gx + 10 + (dx - gx - 20) * k), fy = gy - 12 - Math.round(Math.sin(k * Math.PI) * 6);
-  ctx.fillStyle = 'rgba(255,240,180,.25)'; ctx.fillRect(fx - 7, fy - 7, 14, 14);
+  glow(fx, fy, 8, 'rgba(255,240,180,.22)'); glow(fx, fy, 5, 'rgba(255,240,180,.22)');
   px(fx - 4, fy - 1, 9, 3, '#2a1f14'); px(fx - 3, fy, 7, 1, '#f1e8d2'); px(fx - 5, fy - 2, 3, 5, '#2a1f14'); px(fx - 4, fy - 1, 1, 3, '#f1e8d2'); px(fx + 3, fy - 2, 3, 5, '#2a1f14'); px(fx + 4, fy - 1, 1, 3, '#f1e8d2');
   for (let i = 0; i < 5; i++) { const a = (t / 900 + i / 5) % 1; if (a < 0.8) sparkle(fx - 8 + hash(i, 2) * 16, fy - 2 - a * 18, i % 2 ? '#fff6c8' : '#ffe27a'); }
 }
 function shotDawn(W, H, t, tu) {
-  sky(W, H, ['#3a5a8a', '#6a8ab0', '#a8b8c8', '#f0c89a', '#f7dcaa'], Math.round(H * 0.72));
-  const sxn = Math.round(W / 2), syn = Math.round(H * 0.72) - Math.min(10, Math.round(tu / 300));
+  sky(W, H, ['#3a5a8a', '#6a8ab0', '#a8b8c8', '#f0c89a', '#f7dcaa'], Math.round(H * 0.56));
+  const sxn = Math.round(W / 2), syn = Math.round(H * 0.56) - Math.min(10, Math.round(tu / 300));
   /* raggi del sole che sorge: spicchi alternati */
   for (let i = 0; i < 10; i++) {
     if (i % 2) continue;
@@ -161,9 +164,9 @@ function shotDawn(W, H, t, tu) {
     ctx.fillStyle = 'rgba(255,236,190,.18)'; ctx.beginPath(); ctx.moveTo(sxn, syn); ctx.lineTo(sxn + Math.cos(a0) * W, syn + Math.sin(a0) * W); ctx.lineTo(sxn + Math.cos(a1) * W, syn + Math.sin(a1) * W); ctx.closePath(); ctx.fill();
   }
   sun(sxn, syn, 16, '#fff0b8', 'rgba(255,240,184,.3)');
-  hills(W, H, Math.round(H * 0.7), 5, 0.04, '#5a7a8a', 3.3, '#6a8a9a');
-  for (let i = 0; i < 6; i++) tree(8 + i * (W / 5.5) + hash(i, 13) * 12, Math.round(H * 0.8), i + 3, PRATI, t);
-  const gy = Math.round(H * 0.84);
+  hills(W, H, Math.round(H * 0.54), 5, 0.04, '#5a7a8a', 3.3, '#6a8a9a');
+  for (const [fx, v] of [[0.1, 3], [0.2, 5], [0.88, 6]]) tree(W * fx, Math.round(H * 0.62), v, PRATI, t);
+  const gy = Math.round(H * 0.64);
   grass(W, H, gy, ['#4f8f44', '#7fbf63', '#3f7a3a'], t);
   for (let b = 0; b < 3; b++) { const bx = ((t / 30) + b * 60) % (W + 20) - 10, by = H * 0.2 + b * 7 + Math.sin(t / 250 + b) * 2; px(bx - 1, by, 1, 1, '#2a2a3a'); px(bx, by - 1, 1, 1, '#2a2a3a'); px(bx + 1, by, 1, 1, '#2a2a3a'); }
   /* il piccolo, da solo, alza il piccone verso il sole */
@@ -176,7 +179,9 @@ function shotDawn(W, H, t, tu) {
 let cur = 0, typed = 0, tStart = 0, shotStart = 0, lastShot = 0, fadeT = -1e9;
 let memCreature = null;
 function drawIntro(t) {
-  const Z = Math.max(1, Math.floor(Math.min(view.W / 240, view.H / 135)));
+  /* scala INTERA scelta perché la scena sia larga circa 400 pixel di gioco: a 240 alberi e personaggi
+     riempivano mezzo schermo */
+  const Z = Math.max(1, Math.round(Math.min(view.W / 400, view.H / 225)));
   ctx.setTransform(view.PX * Z, 0, 0, view.PX * Z, 0, 0);
   ctx.imageSmoothingEnabled = false;
   const W = Math.ceil(view.W / Z), H = Math.ceil(view.H / Z);
