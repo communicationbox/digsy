@@ -506,9 +506,9 @@ export const RU = {
   'Wonders of the world': 'Чудеса света',
 
   /* ---- mappa ---- */
-  'explored ': 'исследовано ',
   'wonders ': 'чудеса ',
-  'WORLD MAP': 'КАРТА МИРА',
+  'Map of the world': 'Карта мира',
+  'Legend': 'Легенда',
   /* taglie degli abitati: sulla mappa dicono anche COSA ci si trova */
   'town': 'посёлок',
   'Hamlet': 'деревушка',

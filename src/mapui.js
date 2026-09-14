@@ -55,7 +55,15 @@ function mapShade(hex, k) {
   const r = Math.min(255, Math.round(((n >> 16) & 255) * k)), g = Math.min(255, Math.round(((n >> 8) & 255) * k)), b = Math.min(255, Math.round((n & 255) * k));
   return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 }
-function mapTerrColor(tx, ty) {
+/* CARTA DA ESPLORATORE ("la mappa deve essere una mappa"): i colori del gioco si stendono come
+   acquerello sulla pergamena — sfumati verso la carta, non pieni come pixel del mondo */
+const PARCH = [217, 195, 147];
+function onPaper(hex, k) {
+  const n = parseInt(hex.slice(1), 16), c = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v, i) => Math.round(v * (1 - k) + PARCH[i] * k));
+  return '#' + ((1 << 24) | (c[0] << 16) | (c[1] << 8) | c[2]).toString(16).slice(1);
+}
+function mapTerrColor(tx, ty) { return onPaper(mapTerrRaw(tx, ty), 0.38); }
+function mapTerrRaw(tx, ty) {
   const t = baseTerrain(tx, ty);
   if (t === 0) return '#1d3b52';                                   // acqua profonda
   if (t === 1) return '#2f6b8f';                                   // acqua
@@ -250,6 +258,8 @@ function drawMapCanvas() {
        onde nel mare aperto. Uno ogni poche tile, dalla posizione della tile (mai dallo schermo). */
     if (cell >= 3) {
       const h = Math.floor(vhash(tx, ty, 311) * 1000);
+      /* mare a tratteggio d'inchiostro: onde corte in righe sfalsate */
+      if ((t === 0 || t === 1) && (ty % 3 === 0) && ((tx + (ty % 6 === 0 ? 2 : 0)) % 4 === 0)) { c.fillStyle = 'rgba(30,50,70,.35)'; c.fillRect(X, Y + CP / 2, 2 * RES, RES); c.fillRect(X + 2 * RES, Y + CP / 2 - RES, RES, RES); }
       if (t === 4 && h % 14 === 0) { c.fillStyle = 'rgba(20,40,20,.5)'; c.fillRect(X + CP / 2 - RES, Y + RES, 2 * RES, RES); c.fillRect(X + CP / 2 - 2 * RES, Y + 2 * RES, 4 * RES, RES); c.fillRect(X + CP / 2 - RES / 2, Y + 3 * RES, RES, 2 * RES); }
       else if (t === 6 && h % 16 === 0) { c.fillStyle = 'rgba(30,24,20,.55)'; c.fillRect(X + CP / 2 - RES / 2, Y + RES, RES, RES); c.fillRect(X + CP / 2 - 1.5 * RES, Y + 2 * RES, 3 * RES, RES); c.fillRect(X + CP / 2 - 2.5 * RES, Y + 3 * RES, 5 * RES, RES); c.fillStyle = 'rgba(255,255,255,.5)'; c.fillRect(X + CP / 2 - RES / 2, Y + RES, RES, RES); }
       else if (t === 0 && h % 40 === 0) { c.fillStyle = 'rgba(140,190,220,.45)'; c.fillRect(X + RES, Y + CP / 2, 2 * RES, RES); c.fillRect(X + 3 * RES, Y + CP / 2 - RES, 2 * RES, RES); }
@@ -311,9 +321,28 @@ function drawMapCanvas() {
     mapPins.push({ x, y, r: 24 * signK, kind: 'map', rar: m.rar, tx: m.x, ty: m.y });
   }
   meStar(c, Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), x0, y0, SC, cv);  // dove sei
+  paperFinish(c, cv.width, cv.height);
   const sub = document.getElementById('mp-sub');
-  if (sub) sub.textContent = 'zoom ×' + mapZoom + ' · ' + tr('esplorato ', 'explored ') + exploredTiles().toLocaleString() +
-    ' · ' + tr('meraviglie ', 'wonders ') + (S.wonders || []).length + '/' + Object.keys(WONDERS).length;
+  if (sub) sub.textContent = tr('meraviglie ', 'wonders ') + (S.wonders || []).length + '/' + Object.keys(WONDERS).length;   // un dato solo: zoom ed esplorato non servono a leggere la carta
+}
+/* RIFINITURE DA CARTA VERA, ferme sul foglio (non scorrono con la mappa): le due pieghe, i bordi
+   bruciacchiati a gradini e la rosa dei venti nell'angolo */
+function paperFinish(c, w, h) {
+  c.fillStyle = 'rgba(80,55,25,.16)'; c.fillRect(Math.round(w / 2) - RES, 0, RES, h); c.fillRect(0, Math.round(h / 2) - RES, w, RES);
+  c.fillStyle = 'rgba(255,245,220,.18)'; c.fillRect(Math.round(w / 2), 0, RES, h); c.fillRect(0, Math.round(h / 2), w, RES);
+  for (let i = 0; i < 5; i++) {
+    const a = [0.34, 0.24, 0.16, 0.1, 0.05][i], s = (i + 1) * RES * 2;
+    c.fillStyle = `rgba(92,58,24,${a})`;
+    c.fillRect(0, i * RES * 2, w, RES * 2); c.fillRect(0, h - s, w, RES * 2); c.fillRect(i * RES * 2, 0, RES * 2, h); c.fillRect(w - s, 0, RES * 2, h);
+  }
+  /* rosa dei venti */
+  const R = 26 * RES, cx = w - R - 16 * RES, cy = R + 18 * RES, u = RES * 2;
+  c.fillStyle = 'rgba(40,28,14,.12)'; for (let yy = -R; yy <= R; yy += u) { const ww = Math.round(Math.sqrt(R * R - yy * yy) / u) * u; c.fillRect(cx - ww, cy + yy, ww * 2, u); }
+  const ray = (dx, dy, len, col) => { for (let k = 0; k < len; k += u) { const wdt = Math.max(u, Math.round((len - k) / 3 / u) * u); c.fillStyle = col; c.fillRect(cx + dx * k - (dy ? wdt / 2 : 0), cy + dy * k - (dx ? wdt / 2 : 0), dy ? wdt : u, dx ? wdt : u); } };
+  ray(0, -1, R - u, '#7a2418'); ray(0, 1, R - u, '#3a2a18'); ray(-1, 0, R * 0.7, '#3a2a18'); ray(1, 0, R * 0.7, '#3a2a18');
+  c.fillStyle = '#e8d6a8'; c.fillRect(cx - u, cy - u, u * 2, u * 2);
+  c.fillStyle = '#3a2a18'; c.font = `bold ${7 * RES}px ui-monospace, monospace`; c.textAlign = 'center'; c.textBaseline = 'bottom';
+  c.fillText('N', cx, cy - R - RES); c.textAlign = 'start'; c.textBaseline = 'alphabetic';
 }
 /* la LEGENDA disegna i segni con le stesse funzioni della mappa: una canvas per voce */
 function legendItem(kind, label) {
@@ -337,7 +366,11 @@ export function openMap() {
   mapOff = { x: 0, y: 0 };
   drawMapCanvas();
   avviaPulsazione();          // senza questa riga l'alone sta fermo: scritta e mai chiamata
-  const tt = document.getElementById('mp-title'); if (tt) tt.textContent = tr('MAPPA DEL MONDO', 'WORLD MAP');
+  const tt = document.getElementById('mp-title'); if (tt) tt.textContent = tr('Carta del mondo', 'Map of the world');
+  /* LEGENDA RIPIEGATA: un biglietto chiuso col "?". Aperta spiega tutti i segni; chiusa lascia la
+     carta a chi la sta leggendo (undici voci sempre in vista la facevano sembrare un modulo) */
+  const lb = document.getElementById('mp-legbtn'), lgn = document.getElementById('mp-legend');
+  if (lb && lgn) { lb.textContent = '? ' + tr('Legenda', 'Legend'); lb.onclick = () => { lgn.classList.toggle('open'); lb.classList.toggle('open'); }; }
   const lg = document.getElementById('mp-legend');
   if (lg) {
     /* NIENTE NOMI DI BIOMA in legenda. Erano sei voci su quattordici, cioè metà della legenda
