@@ -1706,7 +1706,8 @@ sprites.applyLook();
     const rows = sprites.HAIRS[st][dir]; if (!rows.length) continue;
     let pairs = 0, cells = 0;
     for (const [, r] of rows) for (let x = 0; x < 32; x += 2) if (r[x] !== '.' || r[x + 1] !== '.') { cells++; if (r[x] === r[x + 1]) pairs++; }
-    if (pairs / cells > 0.9 || !rows.some(([, r]) => r.includes('I'))) hBlocky++;
+    /* lo stempiato è dipinto sul cranio senza contorno (col bordo nero sembrava una cuffia) */
+    if (pairs / cells > 0.9 || (st !== 'receding' && !rows.some(([, r]) => r.includes('I')))) hBlocky++;
   }
   check('capelli nativi: contorno e niente blocchi 2×2 (' + hBlocky + ')', hBlocky === 0);
   let hatBad = 0;

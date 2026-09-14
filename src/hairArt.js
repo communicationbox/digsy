@@ -177,16 +177,29 @@ const DRAW = {
   },
 
   receding: {
+    /* senza contorno: capelli corti DIPINTI sul cranio, col bordo nero sembravano due cuffie */
+    noOutline: true,
     /* stempiato: niente in cima, ciuffi sopra le orecchie e la corona dietro */
     down(g) {
-      for (const x of [5, 24]) { g.fillBlock(x, 4, x + 2, 10, 'A', x < 10 ? 0 : 2); g.set(x + (x < 10 ? 0 : 2), 11, 'A', 2); g.set(x + (x < 10 ? 2 : 0), 3, 'A', 1); }
+      /* ai lati, DENTRO la testa: una fascia di due colonne dalla tempia alla mascella, rasata come la nuca */
+      for (const x of [6, 24]) { g.fillBlock(x, 4, x + 1, 10, 'A', x < 10 ? 1 : 2); g.set(x < 10 ? x + 2 : x - 1, 4, 'A', 1); }
+      stubble(g);
     },
     up(g) {
-      mass(g, CX, 3, 13, 11);
-      cut(g, (x, y) => y >= 5 + Math.round(Math.abs(x - CX) < 6 ? 2 - Math.abs(x - CX) * 0.3 : 0) && napeKeep(13)(x, y));
-      strands(g, [[10, 7, 12, 12], [20, 7, 19, 12]]);
+      /* di spalle: la corona dalla nuca alle orecchie, dentro la testa, con la pelle nuda in cima */
+      for (let y = 6; y <= 12; y++) { const inset = y <= 9 ? 0 : (y - 9) + 1; g.span(y, 6 + inset, 25 - inset, 'A', { lit: 0.25, dark: 0.75 }); }
+      for (let x = 9; x <= 22; x++) g.set(x, 5, 'A', 1);
+      stubble(g);
     },
-    side(g) { mass(g, 11, 3, 12, 5); cut(g, (x, y) => y >= 4); strands(g, [[10, 5, 9, 11]]); },
+    /* di profilo: una fascia che segue la NUCA dietro l'orecchio e sale fino alla tempia, cranio nudo in
+       cima. Era una macchia tonda attaccata dietro la testa ("sembra un paraorecchie") */
+    side(g) {
+      /* dentro la sagoma del cranio (come i rasati): sporgendo fuori sembrava una cuffia */
+      for (let y = 4; y <= 12; y++) g.span(y, 8, y <= 5 ? 10 : 11, 'A', { lit: 0.3, dark: 0.8 });
+      g.span(3, 9, 10, 'A', { t: 1 });
+      for (let y = 6; y <= 8; y++) g.span(y, 12, 13, 'A', { t: 2 });                 // basetta corta sopra l'orecchio
+      stubble(g);
+    },
   },
 
   meadow: {
@@ -233,11 +246,17 @@ const DRAW = {
       for (const [x, y] of [[10, -2], [15, -4], [21, -1], [6, 3], [25, 4], [13, 1], [18, 2], [9, 8], [15, 7], [21, 9], [12, 11], [19, 12]]) { g.set(x, y, 'A', 2); g.set(x + 1, y, 'A', 0); }
     },
     side(g) {
-      mass(g, 13, -6, 13, 12, 0.15);
-      for (let i = 0; i <= 9; i++) { const a = Math.PI * (0.95 + i * 0.1), x = 13 + Math.cos(a) * 11, y = 3 + Math.sin(a) * 9; curl(g, x, y, 2.6); }
-      curl(g, 2.5, 9, 2.4); curl(g, 4, 12, 2.2);
-      cut(g, (x, y) => !(x >= 18 && y >= 5) && y <= 13);
-      for (const [x, y] of [[8, -2], [13, -4], [18, -1], [5, 4], [10, 7], [13, 2]]) { g.set(x, y, 'A', 2); g.set(x + 1, y, 'A', 0); }
+      /* nuvola di riccioli: una massa più piccola e una corona di riccioli che ne esce tutt'attorno, così
+         il bordo è mosso e tondo (col solo taglio a squadra la chioma sembrava un blocco) */
+      mass(g, 12, -4, 11, 9.5, 0.15);
+      for (let i = 0; i < 14; i++) { const a = Math.PI * (0.5 + i * 0.105), x = 12 + Math.cos(a) * 10, y = 3.5 + Math.sin(a) * 8.5; curl(g, x, y, 2.8); }
+      curl(g, 18, -4, 2.6); curl(g, 21, -1, 2.4);
+      cut(g, (x, y) => {
+        const dx = (x - 25) / 9, dy = (y - 11) / 8;
+        if (y >= 3 && dx * dx + dy * dy < 1) return false;
+        return y <= 14;
+      });
+      for (const [x, y] of [[8, -2], [13, -4], [18, -1], [5, 4], [10, 7], [13, 2], [4, 9], [17, 3]]) { g.set(x, y, 'A', 2); g.set(x + 1, y, 'A', 0); }
     },
   },
 
@@ -303,6 +322,6 @@ export const HAIR_IDS = Object.keys(DRAW);
 export function buildHair(id) {
   const d = DRAW[id]; if (!d) return null;
   const out = {};
-  for (const v of ['down', 'side', 'up']) { const g = grid(); d[v](g); out[v] = finish(g); }
+  for (const v of ['down', 'side', 'up']) { const g = grid(); d[v](g); out[v] = finish(g, { noOutline: !!d.noOutline }); }
   return out;
 }
