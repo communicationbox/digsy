@@ -461,10 +461,10 @@ body:has(#cmd.on) #touch{display:none!important}
    contrario. Piccola ma sempre lì. */
 @media(max-width:760px),(pointer:coarse){
   .ed-stick{margin:-14px -14px 8px;padding:8px 14px 6px}
-  .ed-stick .prev{width:min(230px,62vw)}
+  .ed-stick .prev{width:min(190px,52vw)}   /* anteprima più alta (margine per creste e cappelli): più stretta, stessa fascia */
 }
 @media(max-height:700px){
-  .ed-stick .prev{width:min(200px,52vw)}
+  .ed-stick .prev{width:min(165px,43vw)}
 }
 .nameinput{font:700 16px ui-monospace,Menlo,monospace;padding:9px 12px;border-radius:9px;border:2px solid var(--c-line);background:#efe6d4;color:#2a2016;width:100%;text-align:center}
 .btn.wide{width:100%;justify-content:center}
