@@ -4,8 +4,9 @@
    (`S.house.yard`, elenco di `key`), non più "tutte le creature, in ogni città". */
 import { TS, spById } from './data.js';
 import { S, P } from './state.js';
-import { FOOT_DY } from './body.js';
+import { FOOT_DY, placeOnTile } from './body.js';
 import { yardRect, houseFootprint } from './world.js';
+import { COMP } from './companion.js';
 
 /* la casa ora sta DENTRO il recinto (M6: cortile tutto attorno): le creature non devono
    scegliere un bersaglio sopra il suo footprint, o ci camminerebbero sopra. Margine di 1
@@ -72,7 +73,10 @@ export function refreshVisParks() {
    render.js quanto è chiuso il battente ORA (0 = appena iniziato, 1 = del tutto chiuso). */
 let wasInsideYard = null;
 let gateCloseStart = 0;
+let closePending = 0;
 const GATE_CLOSE_MS = 450;
+/* aperto in attesa che il compagno esca (vedi checkGateClose) */
+export function gateHeldOpen() { return !!closePending || !!P.gateWalk; }
 export function gateClosingProgress() {
   if (!gateCloseStart) return 1;
   const t = (Date.now() - gateCloseStart) / GATE_CLOSE_MS;
@@ -81,17 +85,48 @@ export function gateClosingProgress() {
 function checkGateClose(yr) {
   const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
   const inside = ptx >= yr.x0 && ptx <= yr.x1 && pty >= yr.y0 && pty <= yr.y1;
-  if (wasInsideYard === true && inside === false) {
-    /* un P.dir='up' da solo durava un fotogramma: chi teneva ancora premuto un tasto lo
-       sovrascriveva subito col verso di marcia, e la svolta non si vedeva mai (segnalato:
-       "quando esce si deve girare per far capire che sta chiudendo il cancello"). Si blocca
-       il movimento per la durata dell'animazione, come fa P.digging per lo scavo — ci si
-       ferma, ci si gira, si vede il cancello chiudersi, poi si riparte. */
-    P.dir = 'up'; P.moving = false;
-    gateCloseStart = Date.now();
-    P.gateTurnUntil = gateCloseStart + GATE_CLOSE_MS;
+  /* il cancello aspetta il COMPAGNO: segue a 40px di scia, e chiudendo appena usciva Digsy lui
+     era ancora dentro e passava attraverso il cancello chiuso (segnalato con foto). Si chiude
+     quando anche lui è fuori; se resta indietro troppo a lungo (incastrato) si chiude lo stesso. */
+  if (wasInsideYard === true && inside === false) closePending = Date.now();
+  if (inside) { closePending = 0; P.gateWalk = null; }
+  const compIn = () => {
+    if (!S.companion || !COMP.init) return false;
+    const cx = Math.floor(COMP.x / TS), cy = Math.floor((COMP.y + FOOT_DY) / TS);
+    return cx >= yr.x0 && cx <= yr.x1 && cy >= yr.y0 && cy <= yr.y1;
+  };
+  if (closePending && !P.gateWalk && (!compIn() || Date.now() - closePending > 3000)) {
+    /* "animiamo l'omino che torna verso la porta": prima si RITORNA al cancello camminando (fino
+       alla casella del vialetto appena sotto), poi ci si gira e lo si chiude. Da troppo lontano
+       (compagno rimasto indietro a lungo) si chiude da dove si è, senza una camminata lunga. */
+    const spot = placeOnTile(yr.cx, yr.y1 + 1);
+    const to = { x: yr.cx * TS, y: spot.y };
+    if (Math.hypot(to.x - P.x, to.y - P.y) < TS * 4) P.gateWalk = { x: to.x, y: to.y, until: Date.now() + 2000 };
+    else startGateClose();
   }
   wasInsideYard = inside;
+}
+/* un passo della camminata di ritorno (main.js la chiama al posto dei comandi, come lo scavo) */
+export function stepGateWalk(dt) {
+  const g = P.gateWalk; if (!g) return false;
+  const dx = g.x - P.x, dy = g.y - P.y, d = Math.hypot(dx, dy);
+  if (d < 1 || Date.now() > g.until) { P.gateWalk = null; startGateClose(); return true; }
+  const step = Math.min(d, P.speed * 0.8 * dt);
+  P.x += dx / d * step; P.y += dy / d * step;
+  if (Math.abs(dx) > Math.abs(dy) * 1.3) P.dir = dx < 0 ? 'left' : 'right'; else P.dir = dy < 0 ? 'up' : 'down';
+  P.anim += dt; P.moving = true;
+  return true;
+}
+function startGateClose() {
+  closePending = 0;
+  /* un P.dir='up' da solo durava un fotogramma: chi teneva ancora premuto un tasto lo
+     sovrascriveva subito col verso di marcia, e la svolta non si vedeva mai (segnalato:
+     "quando esce si deve girare per far capire che sta chiudendo il cancello"). Si blocca
+     il movimento per la durata dell'animazione, come fa P.digging per lo scavo — ci si
+     ferma, ci si gira, si vede il cancello chiudersi, poi si riparte. */
+  P.dir = 'up'; P.moving = false;
+  gateCloseStart = Date.now();
+  P.gateTurnUntil = gateCloseStart + GATE_CLOSE_MS + 250;         // un attimo fermi a guardarlo chiuso
 }
 /* chi vive DAVVERO nel cortile ORA: SOLO chi ci hai scelto (`S.house.yard`), e SENZA il
    compagno che è "con te" (altrimenti la stessa creatura si vede due volte — nel cortile e al

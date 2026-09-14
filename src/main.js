@@ -14,7 +14,7 @@ import { updateCompass } from './compass.js';
 import { trackPlayer } from './map.js';
 import { checkWonderDiscovery, checkGateNotice } from './gameplay.js';
 import { wonderName } from './wonders.js';
-import { refreshVisParks, yardNear, updatePark } from './park.js';
+import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled } from './splash.js';
 import { keys, steerFollow } from './input.js';
@@ -111,6 +111,7 @@ if (typeof addEventListener === 'function') {
 function walk(dt) {
   let dx = 0, dy = 0, walkedToGoal = false;
   if (P.digging) { P.moving = false; stepDig(dt); clearGoal(); } // scavando non ci si muove
+  else if (P.gateWalk) { stepGateWalk(dt); clearGoal(); }        // torna al cancello per chiuderlo
   else if (P.gateTurnUntil && Date.now() < P.gateTurnUntil) { P.moving = false; P.dir = 'up'; clearGoal(); } // ci si ferma a guardare il cancello chiudersi
   else if (keys.up || keys.down || keys.left || keys.right) {
     if (keys.up) dy--; if (keys.down) dy++; if (keys.left) dx--; if (keys.right) dx++;
@@ -131,7 +132,7 @@ function walk(dt) {
     const nx = P.x + dx * spd * dt, ny = P.y + dy * spd * dt;
     if (!collide(nx, P.y)) P.x = nx; if (!collide(P.x, ny)) P.y = ny;
     P.anim += dt; P.moving = true;
-  } else if (!P.digging && !walkedToGoal) P.moving = false;
+  } else if (!P.digging && !walkedToGoal && !P.gateWalk) P.moving = false;
   /* `walkedToGoal`: senza, questo ramo azzerava P.moving a ogni frame anche mentre si
      camminava verso la meta, e il personaggio scivolava con le gambe ferme. */
 }

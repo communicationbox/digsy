@@ -14,7 +14,7 @@ import { siteRemaining, onBoat, footGear, waterTile, isMounted, PLAY_THROW, PLAY
 import { SEED, vhash } from './noise.js';
 import { drawHero, setHeroTime } from './sprites.js';
 import { GRIP } from './bodyArt.js';
-import { yardAnimals, yardNear, gateClosingProgress } from './park.js';
+import { yardAnimals, yardNear, gateClosingProgress, gateHeldOpen } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
 import { zonePools, ZONES, MUSEUM_ZONES } from './data.js';
@@ -1490,7 +1490,7 @@ export function render(time) {
      (non è ancora la meccanica di chiusura vera, quella sarà un'altra cosa). Un giro solo per
      frame, non per le due caselle del cancello. */
   const yrNow = yardRect();
-  const gateOpenNow = !yrNow || (() => {
+  const gateOpenNow = !yrNow || gateHeldOpen() || (() => {
     const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
     return ptx >= yrNow.x0 && ptx <= yrNow.x1 && pty >= yrNow.y0 && pty <= yrNow.y1;
   })();
@@ -1707,7 +1707,7 @@ export function render(time) {
    segnalano un momento fuori dal controllo diretto, per tutta la durata del fermo (vedi
    P.gateTurnUntil, impostato in park.js insieme al blocco del movimento in main.js). */
 function drawGateCutbars(W, H) {
-  if (!P.gateTurnUntil || Date.now() >= P.gateTurnUntil) return;
+  if (!P.gateWalk && (!P.gateTurnUntil || Date.now() >= P.gateTurnUntil)) return;
   const barH = Math.round(H * 0.09);
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, barH);

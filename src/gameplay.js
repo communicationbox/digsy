@@ -633,6 +633,22 @@ export function companionPlayable(ignoreTile) {
   }
   return true;
 }
+/* il punto d'arrivo libero non basta: il compagno corre in LINEA RETTA fino al cibo e poi torna
+   da Digsy, quindi anche le due strade devono essere libere. Il cibo lanciato oltre la staccionata
+   del cortile atterrava su prato libero e la creatura ci passava in mezzo (segnalato). */
+function segmentClear(x0, y0, x1, y1) {
+  const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4);
+  for (let i = 1; i <= n; i++) {           // il punto di partenza è dove si sta già
+    const k = i / n;
+    if (!passable(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k + FOOT_DY)) return false;   // i piedi: una staccionata è una casella intera
+  }
+  return true;
+}
+function throwClear(cx, cy) {
+  const near = COMP.init && Math.hypot(COMP.x - P.x, COMP.y - P.y) < TS * 4;   // appena scelto: ricompare accanto a Digsy
+  if (bodyHits(cx, cy, (px, py) => !passable(px, py))) return false;
+  return segmentClear(P.x, P.y, cx, cy) && (!near || segmentClear(COMP.x, COMP.y, cx, cy));
+}
 /* lancia l'oggetto davanti a te (con un po' di spargimento): il compagno lo insegue */
 export function playWithCompanion(ignoreTile) {
   if (!companionPlayable(ignoreTile)) return false;
@@ -648,12 +664,12 @@ export function playWithCompanion(ignoreTile) {
   for (let i = 0; i < 6 && tx == null; i++) {
     const ang = base + (Math.random() - 0.5) * 0.9, dist = 46 + Math.random() * 30;
     const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
-    if (!bodyHits(cx, cy, (px, py) => !passable(px, py))) { tx = cx; ty = cy; }
+    if (throwClear(cx, cy)) { tx = cx; ty = cy; }
   }
   for (let i = 0; i < 10 && tx == null; i++) {
     const ang = Math.random() * Math.PI * 2, dist = 18 + Math.random() * 20;
     const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
-    if (!bodyHits(cx, cy, (px, py) => !passable(px, py))) { tx = cx; ty = cy; }
+    if (throwClear(cx, cy)) { tx = cx; ty = cy; }
   }
   if (tx == null) return false; // niente spazio libero attorno: pazienza, ci si riprova
   COMP.play = { phase: 'throw', t: 0, tx, ty };

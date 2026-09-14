@@ -1264,6 +1264,14 @@ sprites.applyLook();
     P.x = p.cx * TS + 8; P.y = (p.y1 - 1) * TS + 2; park.refreshVisParks(); // dentro, come 'parco'
     check('dentro il cortile: cancello non in chiusura (progress=1, cioè fermo)', park.gateClosingProgress() === 1);
     P.dir = 'down'; P.x = p.cx * TS + 8; P.y = (p.y1 + 2) * TS + 2; park.refreshVisParks(); // uscito dal cancello
+    /* prima si TORNA al cancello camminando ("animiamo l'omino che torna verso la porta"), con
+       le barre già su e il cancello ancora aperto; arrivati ci si gira e si chiude */
+    check('uscendo: si torna camminando verso il cancello', !!P.gateWalk && park.gateHeldOpen() === true);
+    const d0w = Math.hypot(P.gateWalk.x - P.x, P.gateWalk.y - P.y);
+    park.stepGateWalk(1 / 30);
+    check('la camminata avvicina davvero e muove le gambe', P.gateWalk && Math.hypot(P.gateWalk.x - P.x, P.gateWalk.y - P.y) < d0w && P.moving === true);
+    for (let i = 0; i < 200 && P.gateWalk; i++) park.stepGateWalk(1 / 30);
+    check('arrivati al cancello la camminata finisce', !P.gateWalk && park.gateHeldOpen() === false);
     const p0 = park.gateClosingProgress();
     check('uscendo dal cancello: l\'animazione è appena partita (progress < 1)', p0 >= 0 && p0 < 1, p0);
     check('uscendo dal cancello: ci si gira a guardarlo (dir=up)', P.dir === 'up');
@@ -8113,6 +8121,43 @@ sprites.applyLook();
   for (let i = 0; i < 900 && COMP.play; i++) gp6.companionPlayTick(1 / 20); // lascia esaurire il round
   delete S.buffs.digX2;
   comp6.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
+}
+
+/* ---------- il compagno e la staccionata del cortile ----------
+   segnalati con foto: a cancello chiuso il compagno ci passava attraverso, e il cibo lanciato oltre la
+   staccionata lo faceva correre in mezzo alle assi */
+{
+  const S = state.S, P = state.P;
+  const comp8 = await import('../src/companion.js'), gp8 = await import('../src/gameplay.js');
+  const park8 = await import('../src/park.js');
+  const { COMP } = comp8;
+  const yr = world.yardRect();
+  if (yr) {
+    const keep = S.companion;
+    S.companion = S.companion || { key: 'test8', skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'raro' };
+    COMP.init = true; COMP.job = null; COMP.play = null; COMP.playCool = 0; P.gateWalk = null;
+    /* 1. il cancello aspetta: Digsy fuori, compagno ancora dentro → resta aperto, niente camminata */
+    P.x = yr.cx * TS + 8; P.y = (yr.y1 - 1) * TS + 2; park8.refreshVisParks();
+    COMP.x = P.x; COMP.y = P.y;
+    P.y = (yr.y1 + 2) * TS + 2; park8.refreshVisParks();
+    check('compagno ancora nel cortile: il cancello resta aperto e Digsy non torna indietro', park8.gateHeldOpen() === true && !P.gateWalk);
+    COMP.y = (yr.y1 + 1) * TS + 2; park8.refreshVisParks();
+    check('uscito anche il compagno: Digsy torna a chiudere', !!P.gateWalk);
+    for (let i = 0; i < 200 && P.gateWalk; i++) park8.stepGateWalk(1 / 30);
+    P.gateTurnUntil = 0;
+    /* 2. il cibo non vola oltre la staccionata: dentro, addossati al lato ovest, guardando a ovest */
+    P.x = (yr.x0 + 1) * TS + 8; P.y = (yr.y0 + 4) * TS + 2; P.dir = 'left'; COMP.x = P.x + 12; COMP.y = P.y;
+    let fuori = 0, lanci = 0;
+    for (let i = 0; i < 40; i++) {
+      COMP.play = null; COMP.playCool = 0;
+      if (!gp8.playWithCompanion(true)) continue;
+      lanci++;
+      const tx = Math.floor(COMP.play.tx / TS), ty = Math.floor((COMP.play.ty + 13) / TS);
+      if (tx <= yr.x0 || tx >= yr.x1 || ty <= yr.y0 || ty >= yr.y1) fuori++;
+    }
+    check('lanci contro la staccionata: il cibo resta nel cortile (' + fuori + '/' + lanci + ' fuori)', lanci > 0 && fuori === 0);
+    COMP.play = null; COMP.playCool = 0; S.companion = keep;
+  }
 }
 
 /* ---------- COMANDO layegg/hatchegg: depone e schiude un uovo senza dover cercare nulla ---------- */
