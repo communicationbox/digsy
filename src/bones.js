@@ -35,6 +35,11 @@ export function partParams(sp) {
     v1: 0, v2: 0, v3: 0,
   };
 }
+function mixHex(a, b, k) {
+  const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+  const m = sh => Math.round(((A >> sh) & 255) * (1 - k) + ((B >> sh) & 255) * k);
+  return '#' + ((1 << 24) | (m(16) << 16) | (m(8) << 8) | m(0)).toString(16).slice(1);
+}
 
 /* animale base: 1 testa (1-2 corni), 1 petto, 2 braccia, 2 gambe, 1 coda */
 export function baseSpec(sp) {
@@ -137,7 +142,7 @@ function skullVoxels(sp, horns, nx, ny, nz, out) {
   for (let i = i0; i < out.length; i++) out[i].p = i >= h0 ? 'corno' : 'cranio';
 }
 function fleshHead(sp, horns, nx, ny, nz, out) {
-  const pp = partParams(sp), col = spColor[sp.id] || '#c8b078';
+  const pp = partParams(sp), col = spColor[sp.id] || '#c8b078', bp = BP[sp.id] || {};
   const P = (x, y, z, c) => out.push({ x: nx + x, y: ny + y, z: nz + z, col: c || col });
   const cy = U(1);
   /* stessa forma del cranio, ma piena di pelle: la testa dell'animale VIVO deve essere
@@ -146,10 +151,12 @@ function fleshHead(sp, horns, nx, ny, nz, out) {
   const w = pp.skull === 0 ? U(3 + pp.size) : U(3);
   ovalBlock(skin, -w, 0, cy, U(1.3), U(1.2), pp.skull === 1 ? 0.35 : 0.2);
   if (pp.skull === 1) {                                        // muso lungo
-    /* muso pieno che si affusola: lungo il doppio del cranio era un bastone ("stecco") */
-    const len = w + U(3 + pp.size);
-    ovalBlock(skin, -len, -w, cy - 1, U(1.2), U(1.05), 0.4);
-    for (let x = -len + 1; x <= -w; x++) P(x, cy - U(1.2), 0, shadeHex(col, 0.62));   // linea della bocca
+    /* muso che si affusola fino a una punta tonda con la narice: lungo il doppio del cranio era un
+       tubo ("stecco") uguale per tutte le specie */
+    const len = w + U(2 + pp.size * 0.7);
+    ovalBlock(skin, -len, -w, cy - 1, U(1.05), U(0.9), 0.55);
+    for (let x = -len + R; x <= -w; x++) P(x, cy - U(1), 0, shadeHex(col, 0.62));   // linea della bocca
+    P(-len, cy, -1, shadeHex(col, 0.45)); P(-len, cy, 1, shadeHex(col, 0.45));      // narici
   } else if (pp.skull === 2) {                                 // becco giallo, a cono
     const bl = U(3 + pp.size);
     for (let i = 1; i <= bl; i++) {
@@ -160,12 +167,23 @@ function fleshHead(sp, horns, nx, ny, nz, out) {
     const cl = U(2 + pp.size);
     for (let i = 0; i <= cl; i++) { const h = U(1) + Math.min(U(2), i); for (let j = 0; j <= h; j++) P(-i, cy + U(1.2) + j, 0, shadeHex(col, 0.7)); }
   }
-  for (const s of [-1, 1]) {                                   // occhi: bianco + pupilla scura davanti
-    for (let dy = 0; dy < R; dy++) for (let dx = 0; dx < R; dx++) P(-U(0.8) + dx, cy + dy, s * U(1.3), '#f6f2e4');
-    for (let dy = 0; dy < R; dy++) P(-U(1.4), cy + dy, s * U(1.3), '#33291f');
+  /* OCCHI da animale vivo: pieni e scuri con un punto di luce in alto davanti. Il bianco con la
+     pupilla di lato dava a tutte le creature lo stesso sguardo spiritato */
+  for (const s of [-1, 1]) {
+    for (let dy = 0; dy < R; dy++) for (let dx = 0; dx < R; dx++) P(-U(1) + dx, cy + dy, s * U(1.3), '#1b1420');
+    P(-U(1), cy + R - 1, s * U(1.3) + s, '#ffffff');
   }
-  /* corna: larghe alla base, appuntite, con la punta più scura (un filo da un voxel sembrava un'antenna) */
-  const hz = horns === 2 ? [-U(1), U(1)] : [0], hlen = U(2 + pp.size);
+  if (bp.ears) {
+    /* ORECCHIE lunghe (lepri): due falde del colore della pelle con l'interno rosa, all'indietro */
+    for (const z of [-U(0.8), U(0.8)]) for (let i = 0; i < U(3.5); i++) for (let d = 0; d < R; d++)
+      P(U(0.5) + Math.floor(i / 3) + d, cy + U(1.2) + i, z, d === 0 && i > R ? mixHex(col, '#f0a8b8', 0.45) : shadeHex(col, 0.92));
+    return;
+  }
+  /* corna SOLO a chi le ha nel blueprint: prima ogni creatura ne aveva almeno una, anche mucche,
+     lucertole e pesci */
+  const nh = Math.min(horns || 0, bp.horns || 0);
+  if (!nh) return;
+  const hz = nh === 2 ? [-U(1), U(1)] : [0], hlen = U(2 + pp.size);
   for (const z of hz) for (let i = 0; i < hlen; i++) {
     const th = i < hlen * 0.35 ? 2 : i < hlen * 0.7 ? 1 : 0;
     for (let d = 0; d <= th; d++) for (let e = 0; e <= th; e++)
@@ -191,9 +209,9 @@ export const BP = {
   abissodonte: { seg: [2, 3, 2], legs: [4, 1], wings: [2, 'm'], horns: 2, neck: 1, tail: 'long', head: 0, extra: 'spikes' },
   /* PRATI */
   prato: { seg: [2, 2], legs: [4, 1], horns: 2, tail: 'short', head: 0 },
-  lepre: { seg: [1, 2], legs: [2, 2], horns: 2, tail: 'short', head: 0, tall: true },
+  lepre: { seg: [1, 2], legs: [2, 1], ears: true, tail: 'short', head: 0, tall: true },
   erbadonte: { seg: [3, 3], legs: [4, 1], horns: 1, tail: 'long', head: 1, neck: 1 },
-  rugiadino: { seg: [1], legs: [6, 1], ant: true, tail: 'none', head: 'none' },
+  rugiadino: { seg: [2, 1], legs: [6, 1], ant: true, tail: 'none', head: 'none' },
   fienotauro: { seg: [3, 2], legs: [4, 1], horns: 2, extra: 'hump', tail: 'short', head: 0 },
   spigacervo: { seg: [2, 2], legs: [4, 2], horns: 2, neck: 2, tail: 'short', head: 0 },
   grillosso: { seg: [1, 2], legs: [6, 2], ant: true, wings: [2, 'i'], tail: 'none', head: 'none' },
@@ -202,7 +220,7 @@ export const BP = {
   soleburo: { seg: [3, 3], legs: [2, 2], horns: 2, extra: 'sail', tail: 'long', head: 3, tall: true },
   /* DUNE */
   gastro: { seg: [3], legs: [0], extra: 'shell', ant: true, tail: 'short', head: 'none', wave: true },
-  pinna: { seg: [2, 2], legs: [0], tail: 'fin', head: 1, float: true },
+  pinna: { seg: [2, 3, 2], legs: [0], tail: 'fin', head: 0, float: true, extra: 'sail' },
   sabbiodonte: { seg: [3, 2], legs: [4, 1], head: 1, tail: 'long', horns: 0 },
   conchigliante: { seg: [3], legs: [4, 0], extra: 'shell', tail: 'short', head: 0, neck: 1 },
   dunavespa: { seg: [1, 1, 2], legs: [6, 1], wings: [4, 'i'], ant: true, tail: 'sting', head: 'none' },
@@ -218,7 +236,7 @@ export const BP = {
   fungorso: { seg: [3, 2], legs: [4, 0], extra: 'shell', tail: 'short', head: 0 },
   gufo: { seg: [2], legs: [2, 1], wings: [2, 'f'], head: 2, horns: 2, tail: 'fan' },
   cinervo: { seg: [2, 2], legs: [4, 2], neck: 1, horns: 2, tail: 'long', head: 1, extra: 'spikes' },
-  radicante: { seg: [1], legs: [8, 2], ant: true, tail: 'none', head: 'none' },
+  radicante: { seg: [2, 1], legs: [8, 2], ant: true, tail: 'none', head: 'none' },
   brumavolpe: { seg: [2, 1], legs: [4, 1], tail: 'long', head: 1, horns: 0 },
   ramarrospino: { seg: [2, 2, 1], legs: [4, 0], extra: 'spikes', tail: 'long', head: 1 },
   cinerarca: { seg: [2, 3], legs: [2, 2], wings: [4, 'f'], head: 2, tall: true, tail: 'fan' },
@@ -246,7 +264,7 @@ export const BP = {
   pantanarca: { seg: [2, 2, 2, 2], legs: [0], wave: true, ant: true, tail: 'sting', head: 1 },
   /* GHIACCI */
   gelodonte: { seg: [3, 3], legs: [4, 1], head: 0, tail: 'short', extra: 'spikes' },
-  brinalepre: { seg: [1, 1], legs: [2, 2], horns: 2, tail: 'short', head: 0, tall: true },
+  brinalepre: { seg: [1, 1], legs: [2, 1], ears: true, tail: 'short', head: 0, tall: true },
   nevosauro: { seg: [2, 2, 2], legs: [4, 1], extra: 'sail', tail: 'long', head: 3 },
   slavinotto: { seg: [2], legs: [4, 0], tail: 'short', head: 0, horns: 0 },
   ghiacciolupo: { seg: [2, 2], legs: [4, 2], tail: 'long', head: 1, horns: 0, extra: 'spikes' },
@@ -289,10 +307,12 @@ function segRing(cx, cy, cz, r, mode, colT, out) {
 }
 /* ZAMPA: si assottiglia dall'anca al piede, e il piede appoggia largo. A un voxel di spessore
    (com'era) una zampa a scala doppia sembrerebbe un filo di ferro. */
-function legVox(lx, cy, cz, sr, side, len, mode, colT, out) {
+function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, k === 'dark' ? 0.7 : 0.88) });
   const spesso = (x, y, z, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x + d, y, z + e * side, k); };
-  if (len >= 2) { // ZAMPONA ad arco (ragno/zanzara): esce dal fianco, sale, poi scende
+  /* la zampona ad arco è da RAGNO/insetto: data ai vertebrati dalle gambe lunghe (cervi, alci, rapaci)
+     li trasformava in trampoli da un voxel sotto un corpo sospeso */
+  if (len >= 2 && arthro) { // ZAMPONA ad arco (ragno/zanzara): esce dal fianco, sale, poi scende
     let z = cz + side * sr;
     spesso(lx, cy, z, 'bone', R);                                        // anca sul fianco
     for (let j = 1; j <= U(2); j++) { z = cz + side * (sr + j); spesso(lx, cy + j, z, 'bone', R - (j > U(1) ? 1 : 0)); }
@@ -303,7 +323,7 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out) {
     spesso(lx, attachY, cz, 'bone', R);                                  // giunzione al ventre
     for (let y = attachY; y >= 0; y--) {
       /* nella carne la coscia è piena e si assottiglia verso la caviglia; lo scheletro resta osso */
-      const th = mode === 'flesh' ? (y > attachY * 0.55 ? R + 1 : R) : R;
+      const th = mode === 'flesh' ? (y > attachY * 0.55 ? R + 2 : R + 1) : R;   // gambe piene: con un voxel e mezzo erano stecchi
       spesso(lx - (mode === 'flesh' && y > attachY * 0.55 ? 1 : 0), y, zz, y === Math.floor(attachY / 2) && mode !== 'flesh' ? 'dark' : 'bone', th);
     }
     for (let d = -1; d < R + 2; d++) for (let e = 0; e < R; e++) P(lx + d, 0, zz + e * side, mode === 'flesh' ? 'dark' : 'shade');   // piede largo
@@ -487,7 +507,10 @@ function buildFromRecipe(spec, mode, opts) {
     for (let i = 0; i < pairs; i++) {
       const si = Math.min(segs.length - 1, Math.floor(i * segs.length / pairs));
       const lx = segsX[si] - U(1) + (i % 2) * U(2);
-      for (const side of [-1, 1]) legVox(lx, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out);
+      /* i BIPEDI hanno le due gambe una avanti e una indietro: nella stessa colonna, di profilo se ne
+         vedeva una sola, un trampolo */
+      const stag = pairs === 1 ? U(1.2) : 0;
+      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, !!(r.ant || r.head === 'none' || legDef[0] >= 6));
     }
   } else if (!r.float && !noLegs) { // striscia: spuntoni ventrali attaccati al ventre
     segsX.forEach((sx, i) => { for (let d = 0; d < R; d++) {
