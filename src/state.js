@@ -1,6 +1,6 @@
 /* Stato di gioco (salvato in localStorage) + player/camera runtime */
 import { setSeed } from './noise.js';
-import { packExplored, unpackExplored } from './packmap.js';
+import { packExplored, unpackExplored, packDug, unpackDug } from './packmap.js';
 import { DEFAULT_LOOK, ROOM_PRICES, PEDESTAL_ID, STARTER_FURN_ID } from './data.js';
 
 export const SK = 'ossa_world_pixel_v1';
@@ -60,6 +60,7 @@ export function hasCheatSnapshot() { try { return !!localStorage.getItem(CHEATBA
 export function snapshotState() {
   const copia = JSON.parse(JSON.stringify(S));
   copia.explored = packExplored(S.explored);
+  copia.dug = packDug(dugSet);
   copia.v = SAVE_V;
   return copia;
 }
@@ -67,14 +68,15 @@ export function restoreState(obj) {
   /* in-place: mantiene lo STESSO riferimento S (i binding importati restano validi) */
   for (const k of Object.keys(S)) if (!(k in obj)) delete S[k];
   Object.assign(S, obj);
-  dugSet = new Set(S.dug || []);
+  S.dug = unpackDug(S.dug || []);
+  dugSet = new Set(S.dug);
   choppedSet = new Set(S.chopped || []);
   minedSet = new Set(S.mined || []);
   pickedSet = new Set(S.picked || []);
 }
 /* Versione dello SCHEMA del salvataggio (non del gioco): si alza solo quando cambia la forma
    dei dati e serve una migrazione. Permette di riconoscere save vecchi e save dal futuro. */
-export const SAVE_V = 1;
+export const SAVE_V = 2;   // 2: caselle scavate impacchettate per riga come la mappa (packDug)
 export const BAK = SK + '_bak';       // copia del salvataggio precedente (rete di sicurezza)
 export const BROKEN = SK + '_broken'; // save illeggibile messo da parte, mai buttato
 
@@ -134,7 +136,7 @@ export function save() {
     /* la mappa esplorata si salva COMPRESSA (intervalli per riga): senza, una partita
        molto esplorata supera la quota di localStorage e smette di salvarsi — proprio a chi
        ha giocato di più. In RAM resta l'oggetto veloce da consultare. */
-    const json = JSON.stringify({ ...S, explored: packExplored(S.explored) });
+    const json = JSON.stringify({ ...S, explored: packExplored(S.explored), dug: packDug(dugSet) });
     /* backup rotante: il save buono di prima resta recuperabile se questo si corrompe */
     try { const prev = localStorage.getItem(SK); if (prev) localStorage.setItem(BAK, prev); } catch (e) { /* il backup è un extra */ }
     localStorage.setItem(SK, json);
@@ -176,7 +178,7 @@ export function saveToSlot(n) {
   save();
   packSets();
   try {
-    localStorage.setItem(slotKey(n), JSON.stringify({ ...S, explored: packExplored(S.explored), v: SAVE_V, savedAt: Date.now() }));
+    localStorage.setItem(slotKey(n), JSON.stringify({ ...S, explored: packExplored(S.explored), dug: packDug(dugSet), v: SAVE_V, savedAt: Date.now() }));
     /* anche gli slot vanno sul server: sono partite a tutti gli effetti, e chi ne salva una
        sul computer si aspetta di ritrovarla sul telefono. Mai bloccare il salvataggio locale
        se la rete non va: quello è già riuscito. */
@@ -241,7 +243,7 @@ export function initState() {
   const from = S.v || 0;
   S.v = Math.max(from, SAVE_V);
   if (!S.raw) S.raw = []; if (!S.items) S.items = []; if (!S.codex) S.codex = [];
-  if (!S.donated) S.donated = []; if (!S.dug) S.dug = []; if (!S.creatures) S.creatures = [];
+  if (!S.donated) S.donated = []; S.dug = unpackDug(S.dug || []); if (!S.creatures) S.creatures = [];
   if (!S.look) S.look = { ...DEFAULT_LOOK };
   if (S.look.hairStyle === undefined) { S.look.hairStyle = DEFAULT_LOOK.hairStyle; S.look.hairColor = DEFAULT_LOOK.hairColor; }
   /* migrazione: hatOn (bool) → hatStyle ('none' | forma) */

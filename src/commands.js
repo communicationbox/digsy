@@ -3,7 +3,7 @@
    (godmode, goddna, goditem, heal, help). Aggiungerne di nuovi qui. */
 import { S, P, save, restoreState, setCheatLock, isCheatLock, dugSet, stashCheatSnapshot, readCheatSnapshot, clearCheatSnapshot } from './state.js';
 import { FOOT_DY } from './body.js';
-import { packExplored } from './packmap.js';
+import { packExplored, resetExploredPack, packDug, resetDugPack } from './packmap.js';
 import { WONDERS } from './wonders.js';
 import { allLetters } from './letters.js';
 import { TIP_IDS } from './tips.js';
@@ -310,9 +310,11 @@ export const COMMANDS = {
       /* half INTERO: con `side/2` frazionario il troncamento faceva collassare due colonne
          in una e i blocchi generati erano meno di quelli dichiarati */
       for (let i = 0; i < CHUNKS; i++) S.explored[(cx0 + (i % side) - half) + ',' + (cy0 + Math.floor(i / side) - half)] = 1;
+      resetExploredPack();                                   // riempito a mano: l'impacchettato va rifatto
       /* caselle scavate: la lista che cresce e non si svuota mai */
       for (let i = 0; i < CHUNKS; i++) { const k = (cx0 + (i % 500)) + ',' + (cy0 + Math.floor(i / 500)); dugSet.add(k); }
-      const bytes = JSON.stringify({ ...S, explored: packExplored(S.explored), dug: [...dugSet] }).length;
+      resetDugPack();
+      const bytes = JSON.stringify({ ...S, explored: packExplored(S.explored), dug: packDug(dugSet) }).length;
       measureFps(fps => {
         toast('🐞 ' + tr('Frame misurati: ', 'Measured frames: ') + fps.toFixed(0) + ' fps');
       });

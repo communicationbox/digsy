@@ -26,6 +26,7 @@ import { expireQuests, questExpiryText } from './quests.js';
 import { tutBump, tutStepId } from './tutorial.js';
 import { goalLine, goalTitle, alive, aliveTotal, milestoneReached, milestoneGift } from './goal.js';
 import { tr, actKey, keys, LANG, partName, rarLabel, seasonName, hatLabel, furnLabel } from './i18n.js';
+import { noteDug } from './packmap.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
 function availableNow2() { return { night: isNight(), season: seasonOf(S.day) }; }
@@ -209,7 +210,7 @@ export function tryDig() {
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); showTip('energy'); return; }
   beginDig(0.45, () => {
     if (!isDebug()) spendEnergy(1);
-    dugSet.add(key); S.dug.push(key);
+    dugSet.add(key); S.dug.push(key); noteDug(dugSet, key);
     const mp = mapAt(tx, ty);
     if (mp) { // la X della mappa: reperto GARANTITO della rarità comprata
       S.maps = S.maps.filter(m => m !== mp);
@@ -533,7 +534,7 @@ function mettiPausa(sec) { S.compNext = Date.now() + sec * 1000; save(); }
    si esaurisce un punto di pesca. */
 function segnaLavorata(type, tx, ty) {
   const key = tx + ',' + ty;
-  if (type === 'terra' && !dugSet.has(key)) { dugSet.add(key); S.dug.push(key); }
+  if (type === 'terra' && !dugSet.has(key)) { dugSet.add(key); S.dug.push(key); noteDug(dugSet, key); }
   else if (type === 'albero' && !choppedSet.has(key)) { choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); }
   else if (type === 'roccia' && !minedSet.has(key)) { minedSet.add(key); if (!S.mined) S.mined = []; S.mined.push(key); }
 }

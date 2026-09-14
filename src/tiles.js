@@ -199,9 +199,12 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP) {
   if (isWaterT(t)) {
     for (let i = 0; i < 4; i++) if (isLandT(nb[i])) {
       side(i, 7, 'rgba(190,235,240,.22)'); side(i, 3, 'rgba(230,250,250,.35)');
-      /* schiuma che va e viene: puntini sul bordo, fase dal tempo e dalla casella */
+      /* schiuma che va e viene: puntini sul bordo, fase dal tempo e dalla casella.
+         Il resto va riportato positivo: con coordinate negative `%` dà fino a -25 e la schiuma
+         usciva dalla casella, tratteggi bianchi sulla terra che prolungavano gli angoli dell'acqua
+         (segnalato con foto) */
       for (let k = 0; k < 5; k++) {
-        const u = 3 + ((k * 7 + tx * 3 + ty * 5) % 26), on = Math.sin(time / 520 + k * 1.7 + tx + ty) > -0.2;
+        const u = 3 + (((k * 7 + tx * 3 + ty * 5) % 26) + 26) % 26, on = Math.sin(time / 520 + k * 1.7 + tx + ty) > -0.2;
         if (!on) continue;
         if (i === 0) rect(sx + u, sy + 1, 3, 1, '#f4fbfc'); else if (i === 2) rect(sx + u, sy + TS - 2, 3, 1, '#f4fbfc');
         else if (i === 1) rect(sx + TS - 2, sy + u, 1, 3, '#f4fbfc'); else rect(sx + 1, sy + u, 1, 3, '#f4fbfc');

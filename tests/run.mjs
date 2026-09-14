@@ -4247,6 +4247,50 @@ sprites.applyLook();
   }
 }
 
+/* ---------- salvataggio a pezzi: l'autosave non rifà tutto ogni 5 secondi ----------
+   con stress=5 impacchettare mappa e scavi da capo costava 300 ms a ogni autosave ("ogni tanto tira
+   una laggata"), e gli scavi in chiaro erano 10 MB. Qui: stesso risultato del calcolo da capo dopo
+   aggiunte incrementali, formato vecchio ancora leggibile, e un milione di voci che si salva al volo. */
+{
+  const pm = await import('../src/packmap.js');
+  const set = new Set(['1,1', '2,1', '3,1', '-4,-2', '7,9']);
+  const a = pm.packDug(set);
+  set.add('4,1'); pm.noteDug(set, '4,1'); set.add('-5,-2'); pm.noteDug(set, '-5,-2'); set.add('0,50'); pm.noteDug(set, '0,50');
+  const inc = pm.packDug(set);
+  pm.resetDugPack();
+  const full = pm.packDug(set);
+  check('scavi impacchettati: le aggiunte incrementali danno lo stesso risultato del calcolo da capo', JSON.stringify(inc) === JSON.stringify(full) && JSON.stringify(a) !== JSON.stringify(inc));
+  check('scavi impacchettati: si rileggono uguali', JSON.stringify(pm.unpackDug(full).sort()) === JSON.stringify([...set].sort()));
+  check('scavi: il vecchio array si legge ancora', JSON.stringify(pm.unpackDug(['3,4', '5,6'])) === JSON.stringify(['3,4', '5,6']));
+  const ex = {}; for (let i = 0; i < 50; i++) ex[i + ',' + (i % 3)] = 1;
+  pm.packExplored(ex);
+  ex['99,1'] = 1; pm.noteExplored(ex, 99, 1);
+  const incE = pm.packExplored(ex); pm.resetExploredPack();
+  check('mappa impacchettata: incrementale uguale al calcolo da capo', JSON.stringify(incE) === JSON.stringify(pm.packExplored(ex)));
+  const big = new Set(); for (let i = 0; i < 300000; i++) big.add((i % 600) + ',' + Math.floor(i / 600));
+  pm.packDug(big);
+  big.add('601,3'); pm.noteDug(big, '601,3');
+  const t0 = performance.now(); pm.packDug(big); const dt = performance.now() - t0;
+  check('300.000 scavi: il salvataggio dopo uno scavo nuovo rifà solo la sua riga (' + dt.toFixed(1) + ' ms)', dt < 20);
+}
+
+/* ---------- la schiuma resta nella SUA casella anche a coordinate negative ----------
+   `%` in JavaScript tiene il segno: a ovest e a nord dell'origine la schiuma usciva fino a 25px dalla
+   casella d'acqua e disegnava tratteggi bianchi sulla terra accanto agli angoli (segnalato con foto) */
+{
+  const tl = await import('../src/tiles.js');
+  const wmod = await import('../src/world.js');
+  const { ctx: cq } = await import('../src/screen.js');
+  const fuori = [];
+  const ofq = cq.fillRect;
+  cq.fillRect = (x, y, w, h) => { if (x < 0 || y < 0 || x + w > TS || y + h > TS) fuori.push([x, y, w, h].join(',')); };
+  try {
+    for (const [tx, ty] of [[-7, -11], [-1, -1], [-25, 3], [4, -30], [9, 12]]) for (let tm = 0; tm < 4000; tm += 500)
+      tl.groundTile(wmod.WATER, tx, ty, 0, 0, tm, 0, [wmod.SAND, wmod.SAND, wmod.SAND, wmod.SAND]);
+  } finally { cq.fillRect = ofq; }
+  check('schiuma dell\'acqua dentro la casella anche a coordinate negative', fuori.length === 0, fuori.slice(0, 3).join(' · '));
+}
+
 /* ---------- CATALOGO DELL'ARREDO: 12 temi, sagome tutte diverse ---------- */
 {
   const fc = await import('../src/furnCatalog.js');

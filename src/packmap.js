@@ -9,28 +9,66 @@
    sola ("da 12 a 47"). Camminare produce blocchi adiacenti, quindi gli intervalli sono
    lunghi e il risparmio è enorme. Numeri in base 36 per accorciare ancora.
    Formato: { "<cy in b36>": "a-b,c,d-e" }. */
+/* IMPACCHETTATO UNA VOLTA, POI SOLO LE RIGHE TOCCATE. L'autosave gira ogni 5 secondi e rifaceva
+   tutto da capo: con stress=5 (un milione di blocchi e un milione di scavi) erano 300 ms di fermo
+   ogni 5 secondi ("ogni tanto tira una laggata"). Si tiene l'indice per riga dell'insieme già visto
+   e chi aggiunge lo dice (`noteExplored` da map.js, `noteDug` dallo scavo): al salvataggio si
+   riscrivono solo le righe cambiate. Un insieme diverso (caricamento, vanilla) si rifà da capo da
+   solo; chi riempie lo STESSO insieme a mano chiama il reset (vedi il comando stress). */
+function rowPacker() {
+  let pack = null;   // { obj, rows: Map y → Set x, out: { b36(y): "a-b,…" }, dirty: Set y }
+  const add = (rows, key) => {
+    const i = key.indexOf(',');
+    const x = +key.slice(0, i), y = +key.slice(i + 1);
+    let r = rows.get(y); if (!r) { r = new Set(); rows.set(y, r); }
+    r.add(x);
+    return y;
+  };
+  return {
+    mark(obj, key) { if (pack && pack.obj === obj) pack.dirty.add(add(pack.rows, key)); },
+    reset() { pack = null; },
+    pack(obj, source) {
+      if (pack && pack.obj === obj) {
+        for (const y of pack.dirty) pack.out[b36(y)] = packRow(pack.rows.get(y));
+        pack.dirty.clear();
+        return { ...pack.out };
+      }
+      const rows = new Map();
+      for (const k of source()) add(rows, k);
+      const out = {};
+      for (const [y, xs] of rows) out[b36(y)] = packRow(xs);
+      pack = { obj, rows, out, dirty: new Set() };
+      return { ...out };
+    },
+  };
+}
+function packRow(set) {
+  const xs = [...set].sort((a, b) => a - b), parts = [];
+  let start = xs[0], prev = xs[0];
+  for (let i = 1; i <= xs.length; i++) {
+    const v = xs[i];
+    if (v === prev + 1) { prev = v; continue; }
+    parts.push(start === prev ? b36(start) : b36(start) + '-' + b36(prev));
+    start = v; prev = v;
+  }
+  return parts.join(',');
+}
+const EXPLORED = rowPacker(), DUG = rowPacker();
+export function noteExplored(obj, cx, cy) { EXPLORED.mark(obj, cx + ',' + cy); }
+export function resetExploredPack() { EXPLORED.reset(); }
 export function packExplored(obj) {
-  const rows = new Map();
-  for (const k in (obj || {})) {
-    const i = k.indexOf(',');
-    const cx = +k.slice(0, i), cy = +k.slice(i + 1);
-    let r = rows.get(cy); if (!r) { r = []; rows.set(cy, r); }
-    r.push(cx);
-  }
-  const out = {};
-  for (const [cy, xs] of rows) {
-    xs.sort((a, b) => a - b);
-    const parts = [];
-    let start = xs[0], prev = xs[0];
-    for (let i = 1; i <= xs.length; i++) {
-      const v = xs[i];
-      if (v === prev + 1) { prev = v; continue; }
-      parts.push(start === prev ? b36(start) : b36(start) + '-' + b36(prev));
-      start = v; prev = v;
-    }
-    out[b36(cy)] = parts.join(',');
-  }
-  return out;
+  obj = obj || {};
+  return EXPLORED.pack(obj, () => Object.keys(obj));   // le chiavi solo se va rifatto: un milione costano 130 ms
+}
+/* le CASELLE SCAVATE, stesso formato per riga: erano un array di stringhe "x,y" ed erano il 97% del
+   salvataggio (10 MB su 10,4 con un milione di scavi) */
+export function noteDug(set, key) { DUG.mark(set, key); }
+export function resetDugPack() { DUG.reset(); }
+export function packDug(set) { return DUG.pack(set, () => set); }
+export function unpackDug(packed) {
+  if (Array.isArray(packed)) return packed;                 // formato vecchio
+  const o = unpackExplored(packed);
+  return Object.keys(o);
 }
 export function unpackExplored(packed) {
   const out = {};

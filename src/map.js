@@ -4,6 +4,7 @@
 import { S, P, save } from './state.js';
 import { FOOT_DY } from './body.js';
 import { TS } from './data.js';
+import { noteExplored } from './packmap.js';
 
 export const CH = 8;                       // lato del blocco di esplorazione, in tile
 export function chunkKey(cx, cy) { return cx + ',' + cy; }
@@ -17,7 +18,7 @@ export function markExplored(tx, ty, r = 1) {
   let added = 0;
   for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     const k = chunkKey(cx + dx, cy + dy);
-    if (!S.explored[k]) { S.explored[k] = 1; added++; }
+    if (!S.explored[k]) { S.explored[k] = 1; noteExplored(S.explored, cx + dx, cy + dy); added++; }
   }
   return added;
 }
@@ -29,7 +30,7 @@ export function revealArea(tx, ty, radiusTiles) {
   for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     if (dx * dx + dy * dy > r * r) continue;               // cerchio, non quadrato
     const k = chunkKey(cx + dx, cy + dy);
-    if (!S.explored[k]) { S.explored[k] = 1; added++; }
+    if (!S.explored[k]) { S.explored[k] = 1; noteExplored(S.explored, cx + dx, cy + dy); added++; }
   }
   save(); return added;
 }

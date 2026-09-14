@@ -441,7 +441,7 @@ export function drawParkPond(sx, sy, ppx, ppy, tx, ty, time) {
   groundTile(WATER, tx, ty, sx, sy, time, 0);
   const stones = (x, y, horiz) => {
     for (let k = 0; k < TS; k += 7) {
-      const r = 2 + ((tx * 7 + ty * 3 + k) % 3), cx = horiz ? sx + k + 3 : x, cy = horiz ? y : sy + k + 3;
+      const r = 2 + (((tx * 7 + ty * 3 + k) % 3) + 3) % 3, cx = horiz ? sx + k + 3 : x, cy = horiz ? y : sy + k + 3;
       rect(cx - r - 1, cy - r, r * 2 + 2, r * 2 + 1, '#4a4438'); rect(cx - r, cy - r, r * 2, r * 2 - 1, '#a39c8e'); rect(cx - r, cy - r, r, 1, '#c4bdb0');
     }
   };
