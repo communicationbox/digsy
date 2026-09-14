@@ -21,7 +21,7 @@ export function fountainArt(g, time) {
   ellipse(g, cx, cy + 2, 24, 11, LN); ellipse(g, cx, cy + 2, 23, 10, '#3f7fa8'); ellipse(g, cx, cy + 3, 21, 8, '#4d8fb5'); ellipse(g, cx + 2, cy + 5, 15, 5, '#5ca6c8');  // acqua
   const t = time / 1000;
   for (let i = 0; i < 3; i++) {                                                          // cerchi che si allargano
-    const k = (t * 0.5 + i / 3) % 1, rx = 4 + Math.round(k * 16), ry = 2 + Math.round(k * 6), a = (0.6 * (1 - k)).toFixed(2);
+    const k = (t * 0.22 + i / 3) % 1, rx = 4 + Math.round(k * 16), ry = 2 + Math.round(k * 6), a = (0.6 * (1 - k)).toFixed(2);
     for (let q = 0; q < 20; q++) { const ang = (q / 20) * Math.PI * 2; g.rect(cx + Math.round(Math.cos(ang) * rx), cy + 3 + Math.round(Math.sin(ang) * ry), 2, 1, 'rgba(210,240,250,' + a + ')'); }
   }
   for (const [x, y] of [[cx - 12, cy + 6], [cx + 10, cy + 8], [cx + 4, cy - 1]]) { g.rect(x, y, 3, 2, '#c9a227'); if (Math.floor(time / 600 + x) % 3 === 0) g.px(x, y, '#fff3a0'); }   // monetine
@@ -30,7 +30,7 @@ export function fountainArt(g, time) {
   ellipse(g, cx, cy - 18, 12, 4, LN); ellipse(g, cx, cy - 19, 11, 3, '#b8b0a2'); ellipse(g, cx, cy - 19, 8, 2, '#4d8fb5');
   g.rect(cx - 2, cy - 30, 4, 10, LN); g.rect(cx - 1, cy - 30, 2, 10, '#c9c2b4');
   /* zampilli che ricadono nella vasca */
-  const j = (time / 700) % 1;
+  const j = (time / 2200) % 1;                                                      // lento: una fontana, non un idrante
   for (const side of [-1, 1]) for (let k = 0; k < 14; k++) {
     const u = ((k / 14) + j) % 1, x = cx + side * Math.round(u * 16), y = cy - 32 + Math.round(u * u * 34);
     g.rect(x, y, 2, 2, u < 0.5 ? '#e8f6fb' : '#bfe9f4');

@@ -213,6 +213,10 @@ sprites.applyLook();
   /* i tetti ora stanno in townArt.js e lavorano in coordinate LOCALI dell'edificio (0,0 = angolo
      dell'ingombro): lo sfalsamento viene dall'indice di riga, mai dalla y dello schermo */
   const roofFn = (() => { const s = readFileSync(new URL('townArt.js', dir), 'utf8'); const a = s.indexOf('export function roof('); return a < 0 ? '' : s.slice(a, s.indexOf('export function windowBox', a)); })();
+  /* REGOLA #2: gli ALBERI sono sprite copiati con drawImage. Arrotondati al pixel di gioco intero
+     (Math.round) tremavano camminando, perché la camera scorre a frazioni: si agganciano con snap */
+  { const psrc = readFileSync(new URL('props.js', dir), 'utf8'); const a = psrc.indexOf('export function drawTree'); const body = psrc.slice(a, psrc.indexOf('\n}', a));
+    check('alberi: lo sprite si aggancia alla griglia fisica (niente tremolio camminando)', /drawImage\(spr, snap\(/.test(body) && !/drawImage\([^)]*Math\.round/.test(body)); }
   check('tetti: il materiale non usa la y dello schermo (regola #1)', roofFn.length > 0 && !/\b(sy|cam)\b/.test(roofFn));
   /* L'altra metà dello stesso guasto: il giocatore leggeva "46/60" mentre l'energia era già
      a zero, perché il refresh dell'HUD stava DOPO i `return` di grotte e interni e là sotto

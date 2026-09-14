@@ -6,10 +6,13 @@
    Le fasi delle animazioni vengono dal TEMPO o dalle coordinate TILE, mai da sx/sy. */
 import { TS, spColor } from './data.js';
 import { vhash } from './noise.js';
-import { px, rect, shadow, shade8 } from './brush.js';
+import { px, rect, shadow, shade8, snap } from './brush.js';
 import { ctx, view } from './screen.js';
 import { seaTree, zoneTree } from './tiles.js';
 import { zoneIdxAt } from './regions.js';
+import { treeSprite, treeKind, TREE_AX, TREE_AY } from './treeArt.js';
+/* abete delle Lande: verde scuro sotto la neve (la palette di zona è tutta bianca) */
+const FIR = ['#2f5a44', '#3a6a50', '#467a5c', '#528a68', '#6aa07c', '#223f30'];
 
 
 /* ---------- primitive per la natura ---------- */
@@ -26,46 +29,21 @@ function canopy(blobs, T) {
 }
 
 export function drawTree(sx, sy, time, tx, ty) {
-  /* ALBERO con la forma della sua zona: latifoglia tonda nei Prati (colori delle stagioni),
-     pino alto nei Boschi Cinerei, chioma secca a ombrello nelle Terre, salice cupo in Palude,
-     abete carico di neve nelle Lande. La casella solida resta il tronco. */
-  ctx.save(); ctx.translate(sx, sy);
-  const zi = zoneIdxAt(tx, ty), T = zoneTree(zi);
+  /* ALBERO con la forma della sua zona (treeArt.js): lo sprite si genera una volta e si copia.
+     Solo un albero su tre ondeggia, e la fase viene dal tempo e dalla casella. */
+  const zi = zoneIdxAt(tx, ty);
+  const kind = treeKind(zi), snow = zi === 5;
+  const T = snow ? FIR : zoneTree(zi);
   const sw = vhash(tx, ty, 41) < 0.35 ? Math.round(Math.sin(time / 850 + tx * 1.7 + ty * 2.3)) : 0;
-  const cx = 16, base = 30, big = vhash(tx, ty, 50) < 0.5 ? 0 : 3;
-  shadow(cx, base, 14);
-  const trunk = (h, w) => {
-    rect(cx - (w >> 1) - 1, base - h, w + 2, h, LN);
-    rect(cx - (w >> 1), base - h, w, h, '#7c4f2e'); rect(cx - (w >> 1), base - h, 2, h, '#9a6a40'); rect(cx + (w >> 1) - 2, base - h, 2, h, '#5f3c22');
-    rect(cx - (w >> 1) - 3, base - 3, w + 6, 3, LN); rect(cx - (w >> 1) - 2, base - 3, w + 4, 2, '#6a4428');                  // radici
-  };
-  if (zi === 5 || (zi === 2)) {                                    // CONIFERE: pino dei Boschi, abete innevato delle Lande
-    trunk(10, 6);
-    const snow = zi === 5, C = snow ? ['#2f5a44', '#3a6a50', '#467a5c'] : [T[0], T[1], T[3]];
-    const tiers = [[18 + big, 4], [15 + big, 13], [12, 22], [8, 30], [4, 37]];
-    tiers.forEach(([w, up], i) => {
-      const y = base - 8 - up - big, k = cx + (i > 1 ? sw : 0);
-      for (let r = 0; r < 12; r++) { const ww = Math.round(w * (r / 12)); rect(k - ww - 1, y - 12 + r, ww * 2 + 2, 1, LN); rect(k - ww, y - 12 + r, ww * 2, 1, r > 8 ? C[0] : C[1]); rect(k - ww, y - 12 + r, Math.max(1, ww >> 1), 1, C[2]); }
-      if (snow) { for (let r = 0; r < 5; r++) { const ww = Math.round(w * (r / 12)); rect(k - ww, y - 12 + r, ww * 2, 1, r < 3 ? '#ffffff' : '#dfeef4'); } rect(k - w + 2, y - 1, w * 2 - 4, 2, '#eef7fa'); }
-    });
-    if (snow) rect(cx - 12, base - 2, 24, 2, '#eef7fa');
-  } else if (zi === 4) {                                           // SALICE di palude: cupola bassa e ciocche
-    trunk(14, 6);
-    const k = cx + sw;
-    canopy([[k - 9, base - 24, 9], [k + 9, base - 24, 9], [k, base - 30, 11]], T);
-    for (let i = 0; i < 8; i++) { const x = k - 16 + i * 4 + (i % 2 ? sw : 0), len = 8 + ((i * 5) % 7); rect(x, base - 22, 2, len, T[5]); rect(x, base - 22 + len - 2, 2, 2, T[2]); }
-  } else if (zi === 3) {                                           // TERRE: acacia secca a ombrello
-    trunk(16, 5);
-    rect(cx - 1, base - 20, 2, 6, LN); rect(cx - 8, base - 22, 8, 2, LN); rect(cx + 2, base - 24, 8, 2, LN);
-    const k = cx + sw;
-    canopy([[k - 11, base - 26, 7], [k + 10, base - 28, 7], [k, base - 30, 9]], T);
-  } else {                                                          // PRATI: latifoglia tonda coi colori della stagione
-    trunk(12, 7);
-    const k = cx + sw, up = big;
-    canopy([[k - 10, base - 20 - up, 8], [k + 10, base - 20 - up, 8], [k - 5, base - 30 - up, 10], [k + 6, base - 31 - up, 9], [k, base - 38 - up, 8]], T);
-    if (vhash(tx, ty, 51) < 0.25) for (const [fx, fy] of [[-6, -26], [5, -34], [9, -22]]) { rect(k + fx, base + fy - up, 2, 2, '#c65a54'); px(k + fx, base + fy - up, '#f08a80'); }   // qualche frutto
-  }
-  ctx.restore();
+  const v = Math.floor(vhash(tx, ty, 50) * 4);
+  const spr = treeSprite(kind, v, T, sw, snow);
+  /* snap alla griglia dei pixel FISICI, non Math.round al pixel di gioco: la camera scorre a
+     frazioni e un albero arrotondato all'intero tremava camminando (REGOLE FERREE #2) */
+  if (spr) { try { ctx.drawImage(spr, snap(sx + 16 - TREE_AX), snap(sy + 30 - TREE_AY)); return; } catch (e) { /* stub dei test */ } }
+  /* ripiego senza tela (test): tronco e chioma essenziali */
+  shadow(sx + 16, sy + 30, 14);
+  rect(sx + 13, sy + 18, 6, 12, '#7c4f2e');
+  rect(sx + 2, sy - 6, 28, 24, T[1]); rect(sx + 4, sy - 8, 20, 6, T[3]);
 }
 export function drawBoulder(sx, sy, tx = 0, ty = 0) {
   /* MASSO arrotondato con le facce, crepe e muschio: diverso per casella */
