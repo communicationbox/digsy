@@ -750,6 +750,49 @@ function vehSpriteScale(id) {
   vehFit.set(id, k);
   return k;
 }
+/* MEZZI DISEGNATI A MANO, IN NATIVO. Bici, motoscafo e pattini sono disegni dello Sprite Studio
+   a mezza scala: raddoppiati avevano i pixel grossi il doppio di Digsy e del mondo. Qui il disegno
+   a mano resta la base, e se ne ricava la versione a piena risoluzione:
+     · Scale2x (l'ingrandimento da pixel art): smussa le diagonali senza inventare forme nuove;
+     · un filo di luce sui pixel con il vuoto sopra e un'ombra su quelli con il vuoto sotto,
+       lo stesso trattamento di tutto il resto — ma solo sui colori chiari, i contorni restano netti.
+   Si genera una volta per vista e si tiene in cache. */
+const vehNativeCache = new Map();
+function vehNative(id) {
+  if (vehNativeCache.has(id)) return vehNativeCache.get(id);
+  let out = null;
+  try {
+    const d = spriteDef(id);
+    if (d && typeof document !== 'undefined') {
+      const W = d.w, H = d.rows.length, at = (x, y) => (x < 0 || y < 0 || x >= W || y >= H) ? '.' : (d.rows[y][x] || '.');
+      const W2 = W * 2, H2 = H * 2, big = new Array(W2 * H2).fill('.');
+      for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+        const P0 = at(x, y), A = at(x, y - 1), B = at(x + 1, y), C = at(x - 1, y), D = at(x, y + 1);
+        big[y * 2 * W2 + x * 2] = (C === A && C !== D && A !== B) ? A : P0;
+        big[y * 2 * W2 + x * 2 + 1] = (A === B && A !== C && B !== D) ? B : P0;
+        big[(y * 2 + 1) * W2 + x * 2] = (D === C && D !== B && C !== A) ? C : P0;
+        big[(y * 2 + 1) * W2 + x * 2 + 1] = (B === D && B !== A && D !== C) ? D : P0;
+      }
+      const cv = document.createElement('canvas'); cv.width = W2; cv.height = H2;
+      const c = cv.getContext && cv.getContext('2d');
+      if (c && c.fillRect && c !== ctx) {                              // tela vera e distinta (nei test la tela finta è sempre la stessa)
+        const luma = hex => { const n = parseInt(hex.slice(1), 16); return 0.3 * ((n >> 16) & 255) + 0.59 * ((n >> 8) & 255) + 0.11 * (n & 255); };
+        for (let y = 0; y < H2; y++) for (let x = 0; x < W2; x++) {
+          const ch = big[y * W2 + x]; if (ch === '.') continue;
+          let col = d.pal[ch]; if (!col) continue;
+          if (luma(col) > 70) {
+            if (y > 0 && big[(y - 1) * W2 + x] === '.') col = shade8(col, 1.18);
+            else if (y < H2 - 1 && big[(y + 1) * W2 + x] === '.') col = shade8(col, 0.78);
+          }
+          c.fillStyle = col; c.fillRect(x, y, 1, 1);
+        }
+        out = { cv, ax: d.ax * 2, ay: d.ay * 2 };
+      }
+    }
+  } catch (e) { out = null; }
+  vehNativeCache.set(id, out);
+  return out;
+}
 function bankVeh(kind, sx, y0) {
   const view = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
   const id = 'vehicle:' + kind + ':' + view;
@@ -758,7 +801,12 @@ function bankVeh(kind, sx, y0) {
   const flip = P.dir === 'left';
   ctx.save();
   if (flip) { ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
-  if (k !== 1) { ctx.translate(sx, y0); ctx.scale(k, k); drawSprite({ rect }, id, 0, 0); }
+  if (k !== 1) {
+    /* sprite a mezza scala: la versione NATIVA ricavata dal disegno a mano (vehNative) */
+    const nv = vehNative(id);
+    if (nv) { try { ctx.drawImage(nv.cv, snap(sx - nv.ax), snap(y0 - nv.ay)); ctx.restore(); return true; } catch (e) { /* stub dei test */ } }
+    ctx.translate(sx, y0); ctx.scale(k, k); drawSprite({ rect }, id, 0, 0);
+  }
   else drawSprite({ rect }, id, sx, y0);
   ctx.restore();
   return true;
