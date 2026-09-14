@@ -19,11 +19,12 @@ const W = 32;
 const TONES = {
   H: ['L', 'H', 'h'], J: ['J', 'J', 'J'], G: ['Y', 'G', 'g'], Y: ['Y', 'Y', 'G'],
   W: ['W', 'W', 'V'], Q: ['Q', 'Q', 'q'], R: ['R', 'R', 'r'], D: ['W', 'D', 'd'], K: ['K', 'K', 'K'],
-  A: ['M', 'A', 'a'],   // capelli (hairArt.js): luce, base, ombra del colore scelto
+  A: ['M', 'A', 'a'],
+  B: ['B', 'B', 'b'],   // cuoio (grembiule del falegname, npcArt.js)   // capelli (hairArt.js): luce, base, ombra del colore scelto
 };
 /* contorno per materiale (vince il primo trovato in quest'ordine: il più scuro) */
-const OUTLINE_ORDER = ['H', 'J', 'A', 'G', 'Y', 'R', 'Q', 'D', 'W'];
-const OUTLINE = { H: 'J', J: 'K', A: 'I', G: 'j', Y: 'j', R: 'r', Q: 'q', D: 'd', W: 'v' };
+const OUTLINE_ORDER = ['H', 'J', 'A', 'B', 'G', 'Y', 'R', 'Q', 'D', 'W'];
+const OUTLINE = { H: 'J', J: 'K', A: 'I', B: 'K', G: 'j', Y: 'j', R: 'r', Q: 'q', D: 'd', W: 'v' };
 
 /* arrotondamento SIMMETRICO: un mezzo pixel va verso il centro della testa (15.5), non sempre a
    destra — con Math.round le due metà di una forma centrata non erano più una lo specchio dell'altra */

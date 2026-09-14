@@ -116,13 +116,13 @@ export function nearMentorInt() {
 
 /* NPC per mestiere: look (usato con drawHero) e nome */
 export const NPCS = {
-  lab: { name: ['Prof. Ossidiana', 'Prof. Obsidian'], look: { hat: '#6e7bb2', hatStyle: 'none', shirt: '#6e7bb2', pants: '#3a3f52', skin: '#e3b98a', hairStyle: 'curly', hairColor: '#9a9a9a' } },
-  store: { name: ['Bottegaia Ambra', 'Shopkeeper Amber'], look: { hat: '#d8973c', hatStyle: 'none', shirt: '#c98a2e', pants: '#6b5137', skin: '#c9995f', hairStyle: 'long', hairColor: '#6e4a2a' } },
-  museum: { name: ['Curatore Basalto', 'Curator Basalt'], look: { hat: '#6f5a94', hatStyle: 'none', shirt: '#6f5a94', pants: '#3d5f4a', skin: '#f3cfa0', hairStyle: 'receding', hairColor: '#9a9a9a' } },
-  inn: { name: ['Locandiera Papavera', 'Innkeeper Poppy'], look: { hat: '#c65a54', hatStyle: 'none', shirt: '#c65a54', pants: '#8a5f38', skin: '#e3b98a', hairStyle: 'long', hairColor: '#b5622e' } },
-  barber: { name: ['Barbiere Figaro', 'Barber Figaro'], look: { hat: '#5a86c8', hatStyle: 'none', shirt: '#5a86c8', pants: '#33291f', skin: '#a3744a', hairStyle: 'punk', hairColor: '#33291f' } },
-  furniture: { name: ['Falegname Ettore', 'Carpenter Hector'], look: { hat: '#5f7a52', hatStyle: 'none', shirt: '#5f7a52', pants: '#6b5137', skin: '#d9a877', hairStyle: 'short', hairColor: '#8a5a2a' } },
-  tailor: { name: ['Sarta Ortensia', 'Tailor Hortense'], look: { hat: '#e08aa8', hatStyle: 'none', shirt: '#e08aa8', pants: '#5a6a8a', skin: '#f3cfa0', hairStyle: 'curly', hairColor: '#caa25a' } },
+  lab: { name: ['Prof. Ossidiana', 'Prof. Obsidian'], look: { acc: 'lab', hat: '#6e7bb2', hatStyle: 'none', shirt: '#6e7bb2', pants: '#3a3f52', skin: '#e3b98a', hairStyle: 'curly', hairColor: '#9a9a9a' } },
+  store: { name: ['Bottegaia Ambra', 'Shopkeeper Amber'], look: { acc: 'store', hat: '#d8973c', hatStyle: 'none', shirt: '#c98a2e', pants: '#6b5137', skin: '#c9995f', hairStyle: 'long', hairColor: '#6e4a2a' } },
+  museum: { name: ['Curatore Basalto', 'Curator Basalt'], look: { acc: 'museum', hat: '#6f5a94', hatStyle: 'none', shirt: '#6f5a94', pants: '#3d5f4a', skin: '#f3cfa0', hairStyle: 'receding', hairColor: '#9a9a9a' } },
+  inn: { name: ['Locandiera Papavera', 'Innkeeper Poppy'], look: { acc: 'inn', hat: '#c65a54', hatStyle: 'none', shirt: '#c65a54', pants: '#8a5f38', skin: '#e3b98a', hairStyle: 'long', hairColor: '#b5622e' } },
+  barber: { name: ['Barbiere Figaro', 'Barber Figaro'], look: { acc: 'barber', hat: '#5a86c8', hatStyle: 'none', shirt: '#5a86c8', pants: '#33291f', skin: '#a3744a', hairStyle: 'punk', hairColor: '#33291f' } },
+  furniture: { name: ['Falegname Ettore', 'Carpenter Hector'], look: { acc: 'furniture', hat: '#5f7a52', hatStyle: 'none', shirt: '#5f7a52', pants: '#6b5137', skin: '#d9a877', hairStyle: 'short', hairColor: '#8a5a2a' } },
+  tailor: { name: ['Sarta Ortensia', 'Tailor Hortense'], look: { acc: 'tailor', hat: '#e08aa8', hatStyle: 'none', shirt: '#e08aa8', pants: '#5a6a8a', skin: '#f3cfa0', hairStyle: 'curly', hairColor: '#caa25a' } },
 };
 export function npcName(type) { const n = (NPCS[type] || NPCS.store).name; return tr(n[0], n[1]); }
 

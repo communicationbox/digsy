@@ -1779,6 +1779,28 @@ sprites.applyLook();
     }
   }
   check('niente pelle fra cappello e capelli (' + gaps + (gaps ? ': ' + gapAt.slice(0, 4).join(' ') : '') + ')', gaps === 0);
+  /* segni di mestiere: ogni NPC ne ha uno, si disegna in tutte le viste e non copre MAI gli occhi
+     (occhiali e monocolo girano attorno all'occhio, non sopra) */
+  {
+    const { NPCS } = await import('../src/interior.js');
+    const npcArt = await import('../src/npcArt.js');
+    const types = Object.keys(NPCS);
+    check('ogni NPC ha il suo segno di mestiere', types.every(t => npcArt.ACC_IDS.includes(NPCS[t].look.acc)));
+    let eyesHidden = 0, nothing = 0;
+    const savedLook = S.look;
+    for (const t of types) {
+      S.look = { ...savedLook, ...NPCS[t].look }; sprites.applyLook();
+      const drawn = []; const rec = { fillStyle: '', fillRect(x, y) { drawn.push([x, y, this.fillStyle]); }, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
+      sprites.drawHero(rec, 0, 0, 'down', 0);
+      const at = (x, y) => { let c = null; for (const [a, b, f] of drawn) if (a === x && b === y) c = f; return c; };
+      if (at(10, 10) !== sprites.PAL.E || at(21, 11) !== sprites.PAL.E) eyesHidden++;
+      if (!['down', 'side', 'up'].some(v => npcArt.accLayer(NPCS[t].look.acc, 'body', v) || npcArt.accLayer(NPCS[t].look.acc, 'face', v))) nothing++;
+    }
+    S.look = savedLook; sprites.applyLook();
+    check('segni di mestiere: disegnati e mai sopra gli occhi (' + eyesHidden + ' coperti, ' + nothing + ' vuoti)', eyesHidden === 0 && nothing === 0);
+    S.look = { ...savedLook }; sprites.applyLook();
+    check('il giocatore non ha segni di mestiere', !S.look.acc);
+  }
   S.look.hairStyle = 'short'; S.look.hatStyle = 'explorer'; sprites.applyLook();
 }
 

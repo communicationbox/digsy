@@ -8,7 +8,7 @@ import { tr } from './i18n.js';
 let active = false;
 export function introActive() { return active; }
 
-const GRANDPA = { hat: '#6e4a2a', shirt: '#7a6a52', pants: '#5c4630', skin: '#e3b98a', hairStyle: 'short', hairColor: '#eae6da', hatStyle: 'explorer', eyeColor: '#33291f' };
+const GRANDPA = { acc: 'grandpa', hat: '#6e4a2a', shirt: '#7a6a52', pants: '#5c4630', skin: '#e3b98a', hairStyle: 'short', hairColor: '#eae6da', hatStyle: 'explorer', eyeColor: '#33291f' };
 function withLook(look, fn) { const saved = S.look; S.look = look; applyLook(); fn(); S.look = saved; applyLook(); }
 const px = (x, y, w, h, c) => { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); };
 

@@ -3,6 +3,7 @@ import { ctx } from './screen.js';
 import { S } from './state.js';
 import { buildHat, hatCrown, HAT_IDS } from './hatArt.js';
 import { buildHair, HAIR_IDS } from './hairArt.js';
+import { accLayer } from './npcArt.js';
 
 /* H/S/P/F (+ombre h/s/p/f) e A/a (capelli) vengono aggiornati da applyLook() */
 export const PAL = {
@@ -232,10 +233,14 @@ export function drawHero(tctx, x, y, dir, frame, noHat) {
   blit(styleLook(SPR[key][frame], c.shirt, c.pants), x, y, flip, tctx);
   if (c.shOv) blitPairs(c.shOv, x, y, flip, tctx);
   if (c.ptOv) blitPairs(c.ptOv, x, y, flip, tctx);
+  /* segno di mestiere (solo i personaggi che lo hanno nel look): sul corpo sotto i capelli, sul viso sopra */
+  const acc = S.look.acc, accBody = acc && accLayer(acc, 'body', key), accFace = acc && accLayer(acc, 'face', key);
+  if (accBody) blitPairs(accBody, x, y, flip, tctx);
   const hs = HAIRS[S.look.hairStyle] || HAIRS.none;
   const hat = !noHat ? HATS[S.look.hatStyle] : null;
   const crown = hat ? HAT_CROWN[S.look.hatStyle] : -1;
   blitPairs(hat ? hairUnderHat(S.look.hairStyle, S.look.hatStyle, key, hs[key], hat[key], crown) : hs[key], x, y, flip, tctx);
+  if (accFace) blitPairs(accFace, x, y, flip, tctx);
   if (hat) blitPairs(hat[key], x, y, flip, tctx);
   /* GLITTER del cappello PLATINO: qualche scintilla brillante sulla forma (twinkle dal tempo). */
   if (hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0) {
