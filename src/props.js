@@ -11,6 +11,7 @@ import { ctx, view } from './screen.js';
 import { seaTree, zoneTree } from './tiles.js';
 import { zoneIdxAt } from './regions.js';
 import { treeSprite, treeKind, TREE_AX, TREE_AY } from './treeArt.js';
+import { HOLES, holeRuns } from './holeArt.js';
 /* abete delle Lande: verde scuro sotto la neve (la palette di zona è tutta bianca) */
 const FIR = ['#2f5a44', '#3a6a50', '#467a5c', '#528a68', '#6aa07c', '#223f30'];
 
@@ -118,13 +119,13 @@ export function drawShell(sx, sy, ripe) {
   ctx.restore();
 }
 export function drawHole(sx, sy, tx = 0, ty = 0) {
-  /* BUCA scavata: incavo scuro ovale e la terra smossa ammucchiata sul bordo */
-  ctx.save(); ctx.translate(sx, sy);
-  const cx = 16, cy = 20, side = vhash(tx, ty, 104) < 0.5 ? -1 : 1;
-  for (let y = -6; y <= 6; y++) { const w = Math.round(11 * Math.sqrt(1 - (y * y) / 42)); rect(cx - w, cy + y, w * 2, 1, y < -3 ? '#8a6448' : y < 0 ? '#5a3f28' : '#3a291a'); }
-  for (let y = -3; y <= 3; y++) { const w = Math.round(6 * Math.sqrt(1 - (y * y) / 12)); rect(cx - w, cy + y + 1, w * 2, 1, '#2a1d12'); }
-  for (let y = -3; y <= 2; y++) { const w = Math.round(5 * Math.sqrt(1 - (y * y) / 10)); rect(cx + side * 12 - w, cy + 5 + y, w * 2, 1, y < 0 ? '#a07a54' : '#7d5838'); }
-  px(cx + side * 10, cy + 3, '#b8906a');
+  /* BUCA scavata: una delle dieci forme di holeArt, scelta per casella, specchiata e spostata
+     di qualche pixel, così un campo scavato non è un timbro ripetuto */
+  const i = Math.floor(vhash(tx, ty, 104) * HOLES.length) % HOLES.length;
+  const flip = vhash(tx, ty, 105) < 0.5;
+  const ox = Math.round((vhash(tx, ty, 106) - 0.5) * 6), oy = Math.round((vhash(tx, ty, 107) - 0.5) * 4);
+  ctx.save(); ctx.translate(sx + ox, sy + oy);
+  for (const [x, y, w, c] of holeRuns(i, flip)) rect(x, y, w, 1, c);
   ctx.restore();
 }
 /* OGGETTI di superficie: sprite VERI riconoscibili (non quadrati), FERMI (niente rimbalzo).

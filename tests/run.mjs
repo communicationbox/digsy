@@ -4878,6 +4878,18 @@ sprites.applyLook();
     const holeF = frame(land[0], land[1]);
     if (!had) state.dugSet.delete(holeKey);
     check('buca: la casella già scavata si vede', only(holeF, plain, '#2a1d12'));
+    /* dieci forme di buca, non un timbro: sagome tutte diverse, dentro la casella, e un campo scavato
+       le usa tutte */
+    {
+      const ha = await import('../src/holeArt.js');
+      const sig = i => ha.holeRuns(i, false).map(r => r.join(':')).join('|');
+      const sigs = ha.HOLES.map((_, i) => sig(i));
+      check('buche: 10 forme tutte diverse', ha.HOLES.length === 10 && new Set(sigs).size === 10);
+      check('buche: nessun pixel fuori dalla casella', ha.HOLES.every((_, i) => [false, true].every(f => ha.holeRuns(i, f).every(([x, y, w]) => x >= 0 && x + w <= 32 && y >= 0 && y < 32))));
+      const { vhash: vh } = await import('../src/noise.js');
+      const used = new Set(); for (let t = 0; t < 400; t++) used.add(Math.floor(vh(t, t * 3, 104) * 10) % 10);
+      check('buche: in un campo scavato compaiono tutte le forme', used.size === 10);
+    }
   }
 
   /* ---- ROBA A TERRA E CHIMERE DEL PARCO: due liste che il render disegna a parte ---- */

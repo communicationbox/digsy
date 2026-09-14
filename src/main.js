@@ -505,9 +505,9 @@ if (typeof window !== 'undefined') {
         document.body.appendChild(snap2);
         return true;
       }),
-      smallGallery: () => Promise.all([import('./render.js'), import('./props.js'), import('./tiles.js'), import('./world.js'), import('./screen.js')]).then(([r, pr, tl, w, sc]) => {
+      smallGallery: () => Promise.all([import('./render.js'), import('./props.js'), import('./tiles.js'), import('./world.js'), import('./screen.js'), import('./noise.js')]).then(([r, pr, tl, w, sc, noiseMod]) => {
         const c = sc.ctx, items = [
-          ['imbocco', (x, y) => r.drawCaveEntrance(x, y, 1000), w.MTN], ['X tesoro', (x, y) => r.drawXmark(x, y, 400), w.GRASS], ['buca', (x, y) => pr.drawHole(x, y, 3, 4), w.GRASS],
+          ['imbocco', (x, y) => r.drawCaveEntrance(x, y, 1000), w.MTN], ['X tesoro', (x, y) => r.drawXmark(x, y, 400), w.GRASS], ['buca', (x, y) => pr.drawHole(x, y, 3, 4), w.GRASS], ...Array.from({ length: 10 }, (_, k) => ['buca ' + (k + 1), (x, y) => { for (let t = 0; t < 400; t++) if (Math.floor(noiseMod.vhash(t, k * 7, 104) * 10) % 10 === k) return pr.drawHole(x, y, t, k * 7); }, w.DIRT]),
           ['relitto', (x, y) => r.drawWreck(x, y, 1000, 2, 2), w.WATER], ['masso', (x, y) => pr.drawBoulder(x, y, 1, 1), w.DIRT], ['masso 2', (x, y) => pr.drawBoulder(x, y, 2, 5), w.GRASS], ['sito ossa', (x, y) => r.drawSite(x, y, 2, 1000, 1, 1), w.SAND], ['cranio sepolto', (x, y) => r.drawBonePart(x, y, 'cranio', 1000, 1, 1), w.DIRT],
           ['fiore maturo', (x, y) => pr.drawFlower(x, y, 1, 1, true), w.GRASS], ['conchiglia', (x, y) => pr.drawShell(x, y, true), w.SAND], ['fungo maturo', (x, y) => pr.drawMushroom(x, y, 1000, 1, 1, true), w.FOREST],
           ['canne mature', (x, y) => pr.drawReed(x, y, 1000, 1, 1, true), w.GRASS], ['fiore', (x, y) => pr.drawFlower(x, y, 1, 1, false), w.GRASS], ['ambra', (x, y) => pr.drawPickup('ambra', x, y, 1000, 1, 1), w.GRASS],
