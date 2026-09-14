@@ -1227,63 +1227,105 @@ export function drawMotorboat(sx, sy, noHero) {
   }
   ctx.restore();
 }
-/* animazione di scavo/abbattimento/spacco: due colpi, schegge a tema.
-   L'attrezzo sta NELLE MANI: il corpo prende la posa (braccia alzate / colpo in avanti, bodyArt)
-   e il manico parte dal punto in cui la mano stringe (GRIP). Prima l'omino teneva le braccia
-   lungo i fianchi e pala, accetta e piccone galleggiavano accanto alla testa. */
-function toolLine(ox, oy, flip, x0, y0, x1, y1, w, col, colL) {
-  const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
-  for (let i = 0; i <= n; i++) {
-    const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
-    for (let k = 0; k < w; k++) { const xx = x + k; px(ox + (flip ? 31 - xx : xx), oy + y, k === 0 && colL ? colL : col); }
+/* animazione di scavo/abbattimento/spacco: due colpi per azione, ognuno in tre tempi —
+   CARICA (attrezzo alzato), FENDENTE (a metà strada), IMPATTO (schegge, lampo).
+   L'attrezzo sta NELLE MANI (pose 'lift'/'strike' di bodyArt, presa GRIP) e il personaggio resta
+   girato verso quello che colpisce: prima, di spalle, si voltava sempre verso lo schermo anche
+   se l'albero o il masso erano dietro ("se sono di spalle si gira sempre di fronte"). */
+const TOOL_OUT = '#241a12';
+function tpx(ox, oy, flip, x, y, col) { rect(ox + (flip ? 31 - Math.round(x) : Math.round(x)), oy + Math.round(y), 1, 1, col); }
+/* manico di legno, spesso 2, con fascia di presa più scura sotto la mano */
+function toolHandle(ox, oy, flip, gx, gy, hx, hy) {
+  const n = Math.max(1, Math.round(Math.hypot(hx - gx, hy - gy)));
+  const dx = (hx - gx) / n, dy = (hy - gy) / n, nx = -dy, ny = dx;
+  for (let i = -2; i <= n; i++) {
+    const x = gx + dx * i, y = gy + dy * i;
+    tpx(ox, oy, flip, x + nx * 1.5, y + ny * 1.5, TOOL_OUT); tpx(ox, oy, flip, x - nx * 1.5, y - ny * 1.5, TOOL_OUT);
+    const grip = i < 3;
+    tpx(ox, oy, flip, x + nx * 0.5, y + ny * 0.5, grip ? '#5c4229' : '#b07c4a'); tpx(ox, oy, flip, x - nx * 0.5, y - ny * 0.5, grip ? '#4a3420' : '#8a5f38');
   }
+  return { dx, dy, nx, ny };
 }
-function toolRect(ox, oy, flip, x, y, w, h, col) { rect(ox + (flip ? 32 - x - w : x), oy + y, w, h, col); }
-/* testa dell'attrezzo attorno a (hx, hy), orientata: dirx/diry = verso in cui "punta" il manico */
-function toolHead(ox, oy, flip, kind, hx, hy, down) {
-  const OUT = '#2a2016';
-  if (kind === 'dig') {                                        // PALA: lama larga a cucchiaio
-    const y = down ? hy : hy - 7;
-    toolRect(ox, oy, flip, hx - 5, y - 1, 12, 9, OUT); toolRect(ox, oy, flip, hx - 4, y, 10, 7, '#b8b0a2');
-    toolRect(ox, oy, flip, hx - 4, y, 10, 1, '#d7d0c2'); toolRect(ox, oy, flip, hx + 4, y + 1, 2, 6, '#8f887b');
-  } else if (kind === 'chop') {                                // ACCETTA: cuneo di ferro sul manico
-    toolRect(ox, oy, flip, hx - 1, hy - 4, 8, 8, OUT); toolRect(ox, oy, flip, hx, hy - 3, 6, 6, '#b5622e');
-    toolRect(ox, oy, flip, hx + 4, hy - 3, 2, 6, '#dfe3e6'); toolRect(ox, oy, flip, hx, hy - 3, 4, 1, '#d98a4a');   // ruggine col filo d'acciaio: non si confonde con la pala
-  } else {                                                     // PICCONE: testa lunga a doppia punta
-    toolRect(ox, oy, flip, hx - 8, hy - 2, 17, 4, OUT); toolRect(ox, oy, flip, hx - 7, hy - 1, 15, 2, '#9a9285');
-    toolRect(ox, oy, flip, hx - 7, hy - 1, 15, 1, '#c9c2b2'); toolRect(ox, oy, flip, hx - 9, hy, 1, 2, OUT); toolRect(ox, oy, flip, hx + 9, hy, 1, 2, OUT);
+/* testa dell'attrezzo in (hx, hy), orientata col manico (dx, dy) e la sua perpendicolare (nx, ny) */
+function toolHeadAt(ox, oy, flip, kind, hx, hy, v, target) {
+  const { dx, dy } = v;
+  /* la LAMA guarda il bersaglio: fra le due perpendicolari al manico si prende quella rivolta verso
+     ciò che si colpisce ("occhio alla direzione della lama") */
+  let { nx, ny } = v;
+  if (target && nx * target[0] + ny * target[1] < 0) { nx = -nx; ny = -ny; }
+  const pts = [];
+  if (kind === 'mine') {
+    /* PICCONE: lama curva a due punte, perpendicolare al manico, che si piega verso di esso */
+    for (let s2 = -8; s2 <= 8; s2 += 0.5) {
+      const bend = -(s2 * s2) * 0.045, th = Math.abs(s2) > 6 ? 0.5 : 1.5;
+      for (let t = -th; t <= th; t += 0.5) pts.push([hx + nx * s2 + dx * (bend + t), hy + ny * s2 + dy * (bend + t), Math.abs(s2) > 6.5 ? '#6f685c' : t < 0 ? '#d7d0c2' : '#9a9285']);
+    }
+    for (let t = -2; t <= 2; t += 0.5) for (let w = -1.5; w <= 1.5; w += 0.5) pts.push([hx + dx * t + nx * w, hy + dy * t + ny * w, '#7f776a']);   // occhio del manico
+  } else if (kind === 'chop') {
+    /* ACCETTA: cuneo color ruggine con il filo d'acciaio verso il bersaglio */
+    for (let s2 = 0; s2 <= 6; s2 += 0.5) for (let t = -2.5; t <= 2.5; t += 0.5) {
+      const w = 2.5 + s2 * 0.35; if (Math.abs(t) > w) continue;
+      pts.push([hx + nx * s2 + dx * t, hy + ny * s2 + dy * t, s2 > 5 ? '#dfe3e6' : s2 < 1 ? '#8a4a24' : '#b5622e']);
+    }
+  } else {
+    /* PALA: lama larga a cucchiaio in fondo al manico */
+    for (let t = 0; t <= 7; t += 0.5) for (let w = -4; w <= 4; w += 0.5) {
+      const ww = t > 5 ? 4 - (t - 5) * 1.2 : 4; if (Math.abs(w) > ww) continue;
+      pts.push([hx + dx * t + nx * w, hy + dy * t + ny * w, t < 1.5 ? '#d7d0c2' : Math.abs(w) > ww - 1 ? '#8f887b' : '#b8b0a2']);
+    }
   }
+  const key = new Map(pts.map(([x, y, c]) => [Math.round(x) + ',' + Math.round(y), c]));
+  for (const k of key.keys()) { const [x, y] = k.split(',').map(Number); for (const [ex, ey] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!key.has((x + ex) + ',' + (y + ey))) tpx(ox, oy, flip, x + ex, y + ey, TOOL_OUT); }
+  for (const [k, c] of key) { const [x, y] = k.split(',').map(Number); tpx(ox, oy, flip, x, y, c); }
 }
 function drawDigging(sx, sy) {
   ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const d = P.digging, kind = d.kind || 'dig';
   const ph = d.t / d.dur;
-  const struck = Math.floor(ph * 4) % 2 === 1;              // due colpi per scavata
-  const pose = struck ? 'strike' : 'lift';
-  const dir = kind === 'dig' ? 'down' : (P.dir === 'up' ? 'down' : P.dir);
-  const view = dir === 'down' ? 'down' : 'side', flip = dir === 'left';
-  const ox = sx - 16, oy = sy + (struck ? 2 : 0);
-  const [gx, gy] = GRIP[pose][view];
-  const WOOD = '#8a5f38', WOODL = '#b07c4a';
-  /* manico: dalla presa verso la testa dell'attrezzo */
+  const u = (ph * 2) % 1;                                   // fase del colpo in corso (due per azione)
+  const stage = u < 0.42 ? 'carica' : u < 0.58 ? 'fendente' : 'impatto';
+  const dir = P.dir;                                        // resta girato verso il bersaglio, anche di spalle
+  const view = dir === 'up' ? 'up' : dir === 'down' ? 'down' : 'side', flip = dir === 'left';
+  const pose = stage === 'carica' ? 'lift' : 'strike';
+  const bob = stage === 'carica' ? -1 : stage === 'impatto' ? 2 : 0;
+  const ox = sx - 16, oy = sy + bob;
+  const [gx, gy] = GRIP[pose][view === 'up' ? 'down' : view];
+  /* dove sta la testa dell'attrezzo in ogni tempo (coordinate dello sprite) */
   let hx, hy;
-  if (view === 'down') { if (struck) { hx = gx - 0.5; hy = gy + 8; } else { hx = gx + 3; hy = gy - 16; } }
-  else { if (struck) { hx = gx + 6; hy = gy + 8; } else { hx = gx + 4; hy = gy - 13; } }
-  const back = false;                                          // sempre DAVANTI: dietro la testa il manico spariva e l'attrezzo tornava a galleggiare
-  const handle = () => toolLine(ox, oy, flip, gx, gy, hx, hy, 2, WOOD, WOODL);
-  const head = () => toolHead(ox, oy, flip, kind, Math.round(hx), Math.round(hy), struck);
-  if (back) { handle(); head(); }
+  if (view === 'side') {
+    if (stage === 'carica') { hx = gx - 5; hy = gy - 18; }        // alzato sopra la testa
+    else if (stage === 'fendente') { hx = gx + 11; hy = gy - 6; }  // a metà arco, davanti
+    else { hx = gx + 7; hy = gy + 9; }                            // piantato davanti ai piedi
+  } else if (view === 'down') {
+    if (stage === 'carica') { hx = gx + 2; hy = gy - 17; }
+    else if (stage === 'fendente') { hx = gx + 1; hy = gy + 2; }
+    else { hx = gx; hy = gy + 10; }
+  } else {                                                          // di spalle: colpisce verso l'alto dello schermo
+    if (stage === 'carica') { hx = gx + 6; hy = gy - 10; }          // sulla spalla, spunta accanto alla testa
+    else if (stage === 'fendente') { hx = gx - 3; hy = gy - 28; }   // sopra il cappello
+    else { hx = gx - 6; hy = gy - 23; }
+  }
+  const target = view === 'side' ? [1, 0] : view === 'down' ? [0, 1] : [0, -1];   // coordinate dello sprite (a sinistra si specchia)
+  const tool = () => { const v = toolHandle(ox, oy, flip, gx, gy, hx, hy); toolHeadAt(ox, oy, flip, kind, hx, hy, v, target); };
+  const behind = view === 'up';                                    // di spalle l'attrezzo sta davanti a lui, cioè dietro sullo schermo
+  if (behind) tool();
   drawHero(null, ox, oy, dir, 0, false, pose);
-  if (!back) { handle(); head(); }
-  if (struck) {  // schegge / terra sul punto colpito
-    const t2 = (ph * 4) % 1;
-    const fx = kind === 'dig' ? 0 : (P.dir === 'left' ? -28 : P.dir === 'right' ? 28 : 0);
-    const fy = kind === 'dig' ? 8 : (P.dir === 'up' ? -24 : P.dir === 'down' ? 24 : 0);
-    const OX = [-14, -8, -4, 4, 10, 16], H = [10, 14, 8, 12, 14, 8];
+  if (!behind) tool();
+  if (stage === 'impatto') {
+    const t2 = (u - 0.58) / 0.42;
+    const fx = view === 'side' ? (flip ? -(hx - 16) : hx - 16) : view === 'down' ? 0 : -6;
+    const fy = view === 'up' ? -24 : view === 'down' ? 14 : 12;
+    const bx = sx + fx, by = sy + 12 + fy;
+    if (t2 < 0.25) {                                               // lampo dell'impatto
+      const L = kind === 'mine' ? '#fff6c8' : '#f4ead8';
+      rect(bx - 1, by - 4, 2, 8, L); rect(bx - 4, by - 1, 8, 2, L); px(bx, by, '#ffffff');
+    }
+    const OX = [-12, -7, -3, 3, 8, 12], H = [9, 13, 7, 11, 13, 8];
     const CC = kind === 'chop' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c', '#b98d59']
-      : kind === 'mine' ? ['#9a9285', '#b8b0a2', '#7f776a', '#9a9285', '#b8b0a2', '#7f776a']
+      : kind === 'mine' ? ['#9a9285', '#c9c2b2', '#7f776a', '#9a9285', '#c9c2b2', '#7f776a']
       : ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42', '#c9a06a'];
-    for (let i = 0; i < 6; i++) px(Math.round(sx + fx + OX[i] * (0.4 + t2)), Math.round(sy + 20 + fy - Math.sin(Math.PI * t2) * H[i]), CC[i]);
+    for (let i = 0; i < 6; i++) rect(Math.round(bx + OX[i] * (0.3 + t2)), Math.round(by - Math.sin(Math.PI * t2) * H[i]), 2, 2, CC[i]);
+    if (kind === 'mine' && t2 < 0.5) for (const [a2, b2] of [[-5, -6], [6, -5], [-2, -9]]) px(Math.round(bx + a2 * (1 + t2 * 2)), Math.round(by + b2 * (1 + t2)), '#ffe27a');   // scintille
   }
   ctx.restore();
 }
@@ -1362,7 +1404,7 @@ function drawCaveScene(time) {
   shadow(px0, py0 + 32, 12);
   if (CAVE.digging) {                                  // stesso colpo di piccone del mondo: attrezzo in mano
     const sd = P.digging, sdir = P.dir;
-    P.digging = { kind: 'mine', t: CAVE.digging.t, dur: CAVE.digging.dur }; P.dir = 'down';
+    P.digging = { kind: 'mine', t: CAVE.digging.t, dur: CAVE.digging.dur }; P.dir = CAVE.dir || 'down';
     try { drawDigging(px0, py0); } finally { P.digging = sd; P.dir = sdir; }
   }
   else drawHero(null, px0 - 16, py0, CAVE.dir, fr);

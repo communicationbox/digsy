@@ -478,8 +478,10 @@ if (typeof window !== 'undefined') {
         const dirs = ['down', 'right', 'up', 'left'];
         const poses = [
           ['cammina 1', () => { P2.moving = true; P2.anim = 0; }], ['cammina 2', () => { P2.moving = true; P2.anim = 0.15; }],
-          ['scava su', () => { P2.digging = { kind: 'dig', t: 0.05, dur: 1 }; }], ['scava giù', () => { P2.digging = { kind: 'dig', t: 0.3, dur: 1 }; }],
-          ['accetta', () => { P2.digging = { kind: 'chop', t: 0.05, dur: 1 }; }], ['piccone', () => { P2.digging = { kind: 'mine', t: 0.3, dur: 1 }; }],
+          ['scava su', () => { P2.digging = { kind: 'dig', t: 0.05, dur: 1 }; }], ['scava giù', () => { P2.digging = { kind: 'dig', t: 0.35, dur: 1 }; }],
+          ['accetta', () => { P2.digging = { kind: 'chop', t: 0.05, dur: 1 }; }], ['accetta colpo', () => { P2.digging = { kind: 'chop', t: 0.35, dur: 1 }; }],
+          ['piccone carica', () => { P2.digging = { kind: 'mine', t: 0.1, dur: 1 }; }], ['piccone fendente', () => { P2.digging = { kind: 'mine', t: 0.25, dur: 1 }; }],
+          ['piccone impatto', () => { P2.digging = { kind: 'mine', t: 0.33, dur: 1 }; }],
           ['bici', () => { S2.gear = 'bike'; P2.moving = true; P2.anim = 0; }], ['pattini', () => { S2.gear = 'skates'; P2.moving = true; P2.anim = 0.15; }],
           ['barca', 'boat'], ['motoscafo', 'motorboat'], ['pesca', 'fish'], ['volo', 'mount'],
         ];
@@ -508,7 +510,22 @@ if (typeof window !== 'undefined') {
       /* galleria delle CREATURE: specie risvegliate e chimere nelle tre viste, alla risoluzione del
          parco (res 2) e a quella della cavalcatura (res 4) */
       creatureGallery: (zoom, res) => Promise.all([import('./render.js'), import('./screen.js'), import('./data.js')]).then(([r, sc, dt]) => {
-        const c = sc.ctx, sp = dt.SPECIES, pick = [0, 7, 13, 22, 31, 38, 44, 52, 59].map(i => sp[i % sp.length].id);
+        const c = sc.ctx, sp = dt.ALL_SPECIES || dt.SPECIES;
+        if (res === 'tutte') {                                  // tutte le specie di profilo, col nome
+          c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#8fbf6a'; c.fillRect(0, 0, 4000, 4000);
+          const K2 = (sc.view.PX || sc.view.K) * (+zoom || 1); c.setTransform(K2, 0, 0, K2, 0, 0); c.imageSmoothingEnabled = false;
+          sp.forEach((s1, i) => {
+            const cv = r.creatureSprite({ c: { skull: s1.id, torso: s1.id, leg: s1.id, q: 'raro' } }, 'side');
+            const x = 4 + (i % 11) * 52, y = 10 + Math.floor(i / 11) * 52;
+            if (cv) c.drawImage(cv, x, y + 40 - cv.height);
+            c.fillStyle = '#000'; c.font = '5px monospace'; c.fillText(s1.id.slice(0, 11), x, y + 48);
+          });
+          const src0 = document.getElementById('cv'), sn = document.createElement('canvas');
+          sn.width = src0.width; sn.height = src0.height; sn.getContext('2d').drawImage(src0, 0, 0);
+          sn.style.cssText = 'position:fixed;left:0;top:0;width:' + src0.style.width + ';height:' + src0.style.height + ';z-index:9999;image-rendering:pixelated';
+          document.body.appendChild(sn); return true;
+        }
+        const pick = [0, 7, 13, 22, 31, 38, 44, 52, 59].map(i => sp[i % sp.length].id);
         const list = pick.map(id => ({ c: { skull: id, torso: id, leg: id, q: 'raro' } }));
         for (let i = 0; i < 4; i++) list.push({ c: { skull: pick[i], torso: pick[(i + 3) % pick.length], leg: pick[(i + 6) % pick.length], q: 'raro' } });
         c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#8fbf6a'; c.fillRect(0, 0, 4000, 4000);
