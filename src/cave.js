@@ -27,15 +27,67 @@ export const CAVE = {
    in basso c'è una CAMERA sgombra 5×5 (mai incastrati all'uscita). */
 /* cache per grotta: il disegno chiede i vicini di ogni casella (bordi, pareti, detriti) e il
    rumore costa; la forma della grotta dipende solo dal seme, quindi si calcola una volta */
-let solidCache = new Map(), solidSeed = -1;
+/* NESSUNA ZONA CHIUSA. Il pavimento nasce da un rumore, e l'unica garanzia era la camera
+   d'ingresso: se il rumore la circondava di roccia si restava chiusi dentro (segnalato con foto:
+   "è stata generata una grotta chiusa all'ingresso"). Ora, una volta per grotta, si cercano le
+   zone di pavimento separate e da quella dell'ingresso si scava un corridoio verso ognuna, lungo
+   il percorso che attraversa meno roccia. Tutto il pavimento è raggiungibile, giacimenti compresi. */
+let grid = null, gridSeed = -1;
+function rawSolid(cx, cy) {
+  if (cx < 1 || cy < 1 || cx >= CAVE.w - 1 || cy >= CAVE.h - 1) return true;
+  if (cy >= CAVE.h - 6 && Math.abs(cx - (CAVE.w >> 1)) <= 2) return false;   // camera d'ingresso
+  return fbm((cx + CAVE.seed) * 0.16, (cy + CAVE.seed * 1.3) * 0.16, 3) > 0.62;
+}
+function buildGrid() {
+  const W = CAVE.w, H = CAVE.h, N = W * H;
+  const g = new Uint8Array(N);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) g[y * W + x] = rawSolid(x, y) ? 1 : 0;
+  /* zone di pavimento (4 vicini) */
+  const comp = new Int32Array(N).fill(-1), comps = [];
+  for (let i = 0; i < N; i++) {
+    if (g[i] || comp[i] >= 0) continue;
+    const id = comps.length, list = [i]; comp[i] = id;
+    for (let q = 0; q < list.length; q++) {
+      const j = list[q], x = j % W, y = (j / W) | 0;
+      for (const n of [x > 0 ? j - 1 : -1, x < W - 1 ? j + 1 : -1, y > 0 ? j - W : -1, y < H - 1 ? j + W : -1]) {
+        if (n >= 0 && !g[n] && comp[n] < 0) { comp[n] = id; list.push(n); }
+      }
+    }
+    comps.push(list);
+  }
+  const start = comp[(H - 2) * W + (W >> 1)];
+  if (start < 0) return g;
+  const joined = new Uint8Array(comps.length); joined[start] = 1;
+  const inSet = new Uint8Array(N); for (const j of comps[start]) inSet[j] = 1;
+  /* Dijkstra dall'insieme già collegato: pavimento costa 1, roccia 5 (si scava il meno possibile) */
+  const dist = new Float64Array(N), prev = new Int32Array(N);
+  for (let round = 1; round < comps.length; round++) {
+    dist.fill(Infinity); prev.fill(-1);
+    const heap = [];
+    const push = (d, j) => { heap.push([d, j]); let k = heap.length - 1; while (k > 0) { const p2 = (k - 1) >> 1; if (heap[p2][0] <= heap[k][0]) break; [heap[p2], heap[k]] = [heap[k], heap[p2]]; k = p2; } };
+    const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; let k = 0; for (;;) { const a = 2 * k + 1, b = a + 1; let m = k; if (a < heap.length && heap[a][0] < heap[m][0]) m = a; if (b < heap.length && heap[b][0] < heap[m][0]) m = b; if (m === k) break; [heap[m], heap[k]] = [heap[k], heap[m]]; k = m; } } return top; };
+    for (let j = 0; j < N; j++) if (inSet[j]) { dist[j] = 0; push(0, j); }
+    let hit = -1;
+    while (heap.length) {
+      const [d, j] = pop(); if (d > dist[j]) continue;
+      if (!g[j] && comp[j] >= 0 && !joined[comp[j]]) { hit = j; break; }
+      const x = j % W, y = (j / W) | 0;
+      for (const n of [x > 1 ? j - 1 : -1, x < W - 2 ? j + 1 : -1, y > 1 ? j - W : -1, y < H - 2 ? j + W : -1]) {
+        if (n < 0) continue;
+        const nd = d + (g[n] ? 5 : 1);
+        if (nd < dist[n]) { dist[n] = nd; prev[n] = j; push(nd, n); }
+      }
+    }
+    if (hit < 0) break;
+    for (let j = hit; j >= 0 && !inSet[j]; j = prev[j]) { g[j] = 0; inSet[j] = 1; }      // il corridoio
+    const c2 = comp[hit]; joined[c2] = 1; for (const j of comps[c2]) inSet[j] = 1;
+  }
+  return g;
+}
 export function caveSolid(cx, cy) {
   if (cx < 1 || cy < 1 || cx >= CAVE.w - 1 || cy >= CAVE.h - 1) return true;
-  const midx = CAVE.w >> 1;
-  if (cy >= CAVE.h - 6 && Math.abs(cx - midx) <= 2) return false; // camera d'ingresso 5 di larghezza
-  if (solidSeed !== CAVE.seed) { solidCache = new Map(); solidSeed = CAVE.seed; }
-  const k = cx * 4096 + cy; let v = solidCache.get(k);
-  if (v === undefined) { v = fbm((cx + CAVE.seed) * 0.16, (cy + CAVE.seed * 1.3) * 0.16, 3) > 0.62; solidCache.set(k, v); }
-  return v;
+  if (gridSeed !== CAVE.seed || !grid) { grid = buildGrid(); gridSeed = CAVE.seed; }
+  return grid[cy * CAVE.w + cx] === 1;
 }
 /* giacimento di fossili: RARO e sparso (affioramento luminoso da scavare) */
 export function caveNodeAt(cx, cy) {

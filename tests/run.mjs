@@ -304,6 +304,33 @@ sprites.applyLook();
     !/\.st-coins\{[^}]*height/.test(narrow) && !/\.st-coins\{[^}]*font-size:1[0-4]px/.test(narrow));
 }
 
+/* ---------- nessuna grotta chiusa: tutto il pavimento si raggiunge dall'ingresso ---------- */
+{
+  /* Segnalato con foto: "è stata generata una grotta chiusa all'ingresso". Il rumore aveva
+     circondato di roccia la camera d'ingresso. Su tanti semi: flood fill dall'ingresso, ogni
+     casella di pavimento e ogni giacimento devono essere raggiungibili. */
+  const cave = await import('../src/cave.js');
+  const C = cave.CAVE, keepSeed = C.seed;
+  let bad = 0, badNode = 0, tot = 0, semi = 0;
+  for (let seed = 1; seed <= 400; seed += 7) {
+    C.seed = seed; semi++;
+    const W = C.w, H = C.h, seen = new Uint8Array(W * H), q = [(H - 2) * W + (W >> 1)]; seen[q[0]] = 1;
+    for (let i = 0; i < q.length; i++) {
+      const j = q[i], x = j % W, y = (j / W) | 0;
+      for (const [nx, ny] of [[x - 1, y], [x + 1, y], [x, y - 1], [x, y + 1]]) {
+        const n = ny * W + nx; if (nx < 0 || ny < 0 || nx >= W || ny >= H || seen[n] || cave.caveSolid(nx, ny)) continue;
+        seen[n] = 1; q.push(n);
+      }
+    }
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (!cave.caveSolid(x, y)) {
+      tot++; if (!seen[y * W + x]) { bad++; if (cave.caveNodeAt(x, y)) badNode++; }
+    }
+  }
+  C.seed = keepSeed;
+  check('grotte: tutto il pavimento raggiungibile dall\'ingresso (' + semi + ' semi, ' + bad + '/' + tot + ' isolate)', bad === 0);
+  check('grotte: nessun giacimento irraggiungibile', badNode === 0);
+}
+
 /* ---------- dalla grotta si esce anche col solo mouse ---------- */
 {
   /* Segnalato da un giocatore: con il solo mouse non si usciva. Per uscire bisogna
