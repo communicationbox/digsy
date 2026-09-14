@@ -4,7 +4,7 @@ import { S } from './state.js';
 import { buildHat, hatCrown, HAT_IDS } from './hatArt.js';
 import { buildHair, HAIR_IDS } from './hairArt.js';
 import { accLayer } from './npcArt.js';
-import { buildBody, outlineRows } from './bodyArt.js';
+import { buildBody, buildPoses, outlineRows } from './bodyArt.js';
 
 /* H/S/P/F (+ombre h/s/p/f) e A/a (capelli) vengono aggiornati da applyLook() */
 export const PAL = {
@@ -47,6 +47,8 @@ export function applyLook() {
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
 /* corpo disegnato in nativo da bodyArt.js (testa 0-17, busto 18-25, gambe 26-31, due passi) */
 export const SPR = buildBody();
+/* pose con le braccia che tengono qualcosa (attrezzi, manubrio): drawHero(…, pose) */
+export const POSES = buildPoses();
 
 /* ---------- cappelli: disegnati in nativo da hatArt.js (forme, luce, un solo contorno) ---------- */
 export const HATS = Object.fromEntries(HAT_IDS.map(id => [id, buildHat(id)]));
@@ -209,14 +211,15 @@ function hairUnderHat(hairId, hatId, view, hair, hat, crown) {
 }
 
 /* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
-export function drawHero(tctx, x, y, dir, frame, noHat) {
+export function drawHero(tctx, x, y, dir, frame, noHat, pose) {
   /* niente più ctx.scale(2,2) qui: il corpo è ORA disegnato nativamente a 32×26,
      non più 16×13 raddoppiato meccanicamente — vero dettaglio, non blocchi 2×2. */
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const flip = dir === 'left';
   const c = heroClothes(S.look, key, frame);
-  const bodyRows = styleLook(SPR[key][frame], c.shirt, c.pants);
-  const ok = key + frame + c.shirt + c.pants;
+  const src = (pose && POSES[pose]) ? POSES[pose][key][frame ? 1 : 0] : SPR[key][frame];
+  const bodyRows = styleLook(src, c.shirt, c.pants);
+  const ok = key + frame + c.shirt + c.pants + (pose || '');
   let rim = BODY_RIM.get(ok); if (!rim) { rim = outlineRows(bodyRows); BODY_RIM.set(ok, rim); }
   blitPairs(rim, x, y, flip, tctx);                        // contorno: segue la sagoma già vestita
   blit(bodyRows, x, y, flip, tctx);

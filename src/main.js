@@ -470,6 +470,41 @@ if (typeof window !== 'undefined') {
         document.body.appendChild(cv2); return true;
       }),
       /* gli oggetti piccoli del mondo tutti insieme, sul loro terreno, per giudicarli a colpo d'occhio */
+      /* galleria delle POSE del personaggio: camminata, scavo, accetta, piccone, bici, pattini,
+         barca, motoscafo, pesca, volo — nelle quattro direzioni, dal codice vero del gioco */
+      poseGallery: (solo, zoom) => Promise.all([import('./render.js'), import('./screen.js'), import('./state.js')]).then(([r, sc, st]) => {
+        const c = sc.ctx, P2 = st.P, S2 = st.S, saved = { ...P2 }, sg = S2.gear, stools = { ...S2.tools }, smount = S2.mounted;
+        S2.tools.bike = S2.tools.skates = true;
+        const dirs = ['down', 'right', 'up', 'left'];
+        const poses = [
+          ['cammina 1', () => { P2.moving = true; P2.anim = 0; }], ['cammina 2', () => { P2.moving = true; P2.anim = 0.15; }],
+          ['scava su', () => { P2.digging = { kind: 'dig', t: 0.05, dur: 1 }; }], ['scava giù', () => { P2.digging = { kind: 'dig', t: 0.3, dur: 1 }; }],
+          ['accetta', () => { P2.digging = { kind: 'chop', t: 0.05, dur: 1 }; }], ['piccone', () => { P2.digging = { kind: 'mine', t: 0.3, dur: 1 }; }],
+          ['bici', () => { S2.gear = 'bike'; P2.moving = true; P2.anim = 0; }], ['pattini', () => { S2.gear = 'skates'; P2.moving = true; P2.anim = 0.15; }],
+          ['barca', 'boat'], ['motoscafo', 'motorboat'], ['pesca', 'fish'], ['volo', 'mount'],
+        ];
+        c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#9cc47e'; c.fillRect(0, 0, 4000, 4000);
+        const K = (sc.view.PX || sc.view.K) * (+zoom || 1); c.setTransform(K, 0, 0, K, 0, 0);
+        const pick = solo ? poses.filter(p => solo.split(',').includes(p[0])) : poses;
+        pick.forEach(([nm, f], i) => dirs.forEach((d, j) => {
+          const x = 60 + j * 56, y = 24 + i * 58;
+          Object.assign(P2, saved, { dir: d, moving: false, anim: 0, digging: null }); S2.gear = null; S2.mounted = false;
+          if (j === 0) { c.fillStyle = '#000'; c.font = '7px monospace'; c.fillText(nm, 2, y + 20); }
+          try {
+            if (typeof f === 'function') { f(); r.drawPlayerAt(x + 20, y); }
+            else if (f === 'boat') r.drawBoat(x + 20, y);
+            else if (f === 'motorboat') r.drawMotorboat(x + 20, y);
+            else if (f === 'fish') { P2.digging = { kind: 'fish', t: 0.3, dur: 1 }; r.drawBoat(x + 20, y); }
+            else if (f === 'mount') r.drawFlyingMount(x + 20, y + 4);
+          } catch (e) { c.fillStyle = '#f00'; c.font = '5px monospace'; c.fillText(e.message.slice(0, 30), x, y); }
+        }));
+        Object.assign(P2, saved); S2.gear = sg; S2.tools = stools; S2.mounted = smount;
+        const src = document.getElementById('cv'), snap2 = document.createElement('canvas');
+        snap2.width = src.width; snap2.height = src.height; snap2.getContext('2d').drawImage(src, 0, 0);
+        snap2.style.cssText = 'position:fixed;left:0;top:0;width:' + src.style.width + ';height:' + src.style.height + ';z-index:9999;image-rendering:pixelated';
+        document.body.appendChild(snap2);
+        return true;
+      }),
       smallGallery: () => Promise.all([import('./render.js'), import('./props.js'), import('./tiles.js'), import('./world.js'), import('./screen.js')]).then(([r, pr, tl, w, sc]) => {
         const c = sc.ctx, items = [
           ['imbocco', (x, y) => r.drawCaveEntrance(x, y, 1000), w.MTN], ['X tesoro', (x, y) => r.drawXmark(x, y, 400), w.GRASS], ['buca', (x, y) => pr.drawHole(x, y, 3, 4), w.GRASS],

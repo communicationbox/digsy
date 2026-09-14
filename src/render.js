@@ -13,6 +13,7 @@ import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile, isMounted, PLAY_THROW, PLAY_CATCH, PLAY_PERFECT, boneSiteDug } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
 import { drawHero, setHeroTime } from './sprites.js';
+import { GRIP } from './bodyArt.js';
 import { yardAnimals, yardNear, gateClosingProgress } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
@@ -811,8 +812,10 @@ function bankVeh(kind, sx, y0) {
   ctx.restore();
   return true;
 }
-function drawPlayer() {
-  const sx = snap(P.x - cam.x), sy = snap(P.y - cam.y);
+function drawPlayer() { drawPlayerAt(snap(P.x - cam.x), snap(P.y - cam.y)); }
+/* il giocatore in un punto dello schermo, con tutto il suo stato (mezzo, scavo, volo): usato dal
+   ciclo e dalla galleria delle pose (npm run shot -- pose) */
+export function drawPlayerAt(sx, sy) {
   if (isMounted()) { drawFlyingMount(sx, sy); return; }                              // cavalcatura volante di grotta
   if (onBoat()) { (S.tools.motorboat ? drawMotorboat : drawBoat)(sx, sy); return; } // barca/motoscafo (la banca è dentro)
   shadow(sx, sy + 32, 14);
@@ -820,14 +823,16 @@ function drawPlayer() {
   drawPlatinumAura(sx, sy);                                             // AURA dorata glitterata: premio del PLATINO
   const fr = (P.moving ? (Math.floor(P.anim * 7) % 2) : 0); const bob = (P.moving && fr === 1) ? -2 : 0;
   const gear = footGear();
-  const bank = gear && hasSprite('vehicle:' + gear + ':' + (P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side'));
+  /* la bici è sempre quella costruita attorno all'omino seduto: lo sprite a mano era fatto per il corpo vecchio */
+  const bank = gear === 'skates' && hasSprite('vehicle:skates:' + (P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side'));
   const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
-  if (gear === 'bike' && !fb && !bank) drawBike(sx, sy + bob, P.moving); // profilo procedurale: DIETRO l'eroe
-  drawHero(null, sx - 16, sy + bob, P.dir, fr);
+  const ride = gear === 'bike';
+  if (ride && !fb) drawBike(sx, sy + bob, P.moving);                  // profilo: tutta DIETRO l'omino seduto
+  if (ride && fb) drawBikeFB(sx, sy + bob, P.moving, P.dir, 'behind');
+  drawHero(null, sx - 16, sy + bob, P.dir, fr, false, ride ? 'ride' : undefined);
   if (bank && gear === 'skates') drawBankSkates(sx, sy + bob, fr);    // pattini a mano ANIMATI, ATTACCATI ai piedi (bob incluso; l'animazione è orizzontale, non si annulla col bob)
-  else if (bank) bankVeh(gear, sx, sy + bob);                        // disegno a mano di bici (SOPRA l'eroe)
   else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
-  else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: DAVANTI (manubrio/ruota visibili)
+  else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: manubrio e ruota DAVANTI
 }
 /* PATTINI a mano ANIMATI: disegna lo sprite della banca spezzato in due (piede sinistro cols<ox,
    destro cols>=ox); i due pattini si ALTERNANO su/giù col frame di camminata (fr), sincronizzati
@@ -876,7 +881,7 @@ export function drawVehiclePreview(kind, sx, sy, dir) {
     if (kind === 'boat') { hero(sx - 16, sy - 10); drawBoat(sx, sy, true); }
     else if (kind === 'motorboat') { hero(sx - 16, sy - 8); drawMotorboat(sx, sy, true); }
     else if (kind === 'mount') { try { drawFlyingMount(sx, sy); } catch (e) { /* preview */ } }
-    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); hero(sx - 16, sy); if (fb) drawBikeFB(sx, sy, false, dir); }
+    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); else drawBikeFB(sx, sy, false, dir, 'behind'); try { drawHero(null, sx - 16, sy, dir, 0, false, 'ride'); } catch (e) { /* preview */ } if (fb) drawBikeFB(sx, sy, false, dir); }
     else if (kind === 'skates') { hero(sx - 16, sy); drawSkates(sx, sy, 0); }
   } finally { P.dir = sd; P.moving = sm; P.digging = sg; }
 }
@@ -913,38 +918,58 @@ function bikeWheel(wx, wy, rx, ry, moving) {
   px(Math.round(wx + Math.cos(ang) * (rx - 1)), Math.round(wy + Math.sin(ang) * (ry - 1)), '#c9c2b2');
   px(Math.round(wx - Math.cos(ang) * (rx - 1)), Math.round(wy - Math.sin(ang) * (ry - 1)), '#c9c2b2');
 }
-/* bicicletta di PROFILO (sinistra/destra): due ruote, telaio rosso, sella e manubrio. Centrata sotto l'eroe. */
-export function drawBike(sx, sy, moving) {
-  /* FASE 2: nativo — telaio a doppio spessore (non 1px), sella con imbottitura, manubrio
-     con manopola distinta. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx - 2, wy = sy + 30;                                             // centro sotto il corpo
-  bikeWheel(cx - 12, wy, 6.4, 6.4, moving); bikeWheel(cx + 12, wy, 6.4, 6.4, moving);
-  rect(cx - 10, wy, 22, 2, '#c94f4a'); rect(cx - 10, wy, 22, 1, shade8('#c94f4a', 1.2)); // barra inferiore, con filo di luce sopra
-  for (let i = 0; i < 10; i++) { px(cx - 10 + i, wy - i, '#d1655f'); px(cx + 10 - i, wy - i, '#d1655f'); } // telaio a V
-  rect(cx - 1, wy - 12, 2, 12, '#c94f4a'); rect(cx - 1, wy - 12, 1, 12, shade8('#c94f4a', 1.2)); // reggisella
-  rect(cx - 8, wy - 14, 10, 2, '#33291f'); rect(cx - 8, wy - 14, 10, 1, shade8('#33291f', 1.6)); // sella con imbottitura
-  rect(cx + 10, wy - 14, 2, 12, '#7a6a58'); rect(cx + 8, wy - 14, 6, 2, '#33291f'); px(cx + 8, wy - 14, shade8('#33291f', 1.6)); // sterzo + manubrio con manopola
-  ctx.restore();
-}
-/* bici di FRONTE (giù) / RETRO (su): disegnata DAVANTI all'eroe così si vede.
-   Fronte: manubrio largo + ruota di taglio tra i piedi. Retro: sella/catarifrangente + ruota. */
-export function drawBikeFB(sx, sy, moving, dir) {
-  /* FASE 2: nativo — manopole distinte, portapacchi con due assi visibili. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx - 2, wy = sy + 32;
-  bikeWheel(cx, wy, 3.2, 7.2, moving);                                         // ruota di taglio (ovale stretto)
-  rect(cx, wy - 10, 2, 8, '#c94f4a');                                           // forcella/telaio verticale
-  if (dir === 'down') { // FRONTE: manubrio a T con le due manopole
-    rect(cx - 10, sy + 18, 22, 2, '#33291f'); rect(cx - 10, sy + 16, 2, 2, '#33291f'); rect(cx + 8, sy + 16, 2, 2, '#33291f');
-    px(cx, sy + 20, '#7a6a58');                                               // piantone
-    rect(cx - 6, wy - 2, 2, 2, '#33291f'); rect(cx + 4, wy - 2, 2, 2, '#33291f');             // pedali
-  } else {              // RETRO: sella + catarifrangente rosso, portapacchi
-    rect(cx - 4, sy + 16, 10, 2, '#5c4229'); rect(cx - 2, sy + 18, 6, 2, '#3a2a18');
-    rect(cx - 6, sy + 16, 1, 8, '#7a6a58'); rect(cx + 5, sy + 16, 1, 8, '#7a6a58'); // portapacchi: due assi
-    rect(cx - 1, wy - 10, 2, 2, '#c94f4a'); rect(cx - 1, wy - 8, 2, 2, '#f2c53d');                     // catarifrangente
+/* BICI costruita ATTORNO all'omino seduto (posa 'ride' di bodyArt): sella sotto il sedere, pedale
+   sotto la scarpa, manopole dove stanno le mani. Prima la bici era più piccola del corpo e l'omino
+   ci stava in piedi dentro, con le gambe che passavano attraverso il telaio.
+   Coordinate dello sprite (0..31, lo stesso spazio di drawHero), `flip` per la sinistra. */
+function bikeSeg(ox, oy, flip, x0, y0, x1, y1, col, w = 2) {
+  const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
+    rect(ox + (flip ? 32 - x - w : x), oy + y, w, w, col);
   }
-  ctx.restore();
+}
+function bikeRing(ox, oy, flip, cx, cy, rx, ry, moving) {
+  const X = x => ox + (flip ? 31 - x : x);
+  for (let a = 0; a < 28; a++) { const t = a * Math.PI / 14; rect(X(Math.round(cx + Math.cos(t) * rx)), oy + Math.round(cy + Math.sin(t) * ry), 2, 2, '#2a2016'); }
+  const ang = moving ? frameTime / 70 : Math.PI / 4;
+  for (const k of [0, Math.PI / 2]) {
+    px(X(Math.round(cx + Math.cos(ang + k) * (rx - 2))), oy + Math.round(cy + Math.sin(ang + k) * (ry - 2)), '#c9c2b2');
+    px(X(Math.round(cx - Math.cos(ang + k) * (rx - 2))), oy + Math.round(cy - Math.sin(ang + k) * (ry - 2)), '#c9c2b2');
+  }
+  rect(X(Math.round(cx)), oy + Math.round(cy), 1, 1, '#9a9285');
+}
+/* bicicletta di PROFILO: tutta DIETRO l'omino (gambe e mani ci stanno sopra) */
+export function drawBike(sx, sy, moving) {
+  const flip = P.dir === 'left', ox = sx - 16, oy = sy;
+  const R = '#c94f4a', RL = '#d1655f';
+  bikeRing(ox, oy, flip, 5, 27, 6, 6, moving); bikeRing(ox, oy, flip, 27, 27, 6, 6, moving);
+  bikeSeg(ox, oy, flip, 5, 27, 17, 28, R);              // fodero basso
+  bikeSeg(ox, oy, flip, 5, 27, 13, 24, R);              // fodero alto
+  bikeSeg(ox, oy, flip, 13, 23, 17, 28, RL);            // piantone
+  bikeSeg(ox, oy, flip, 14, 22, 24, 20, RL);            // canna
+  bikeSeg(ox, oy, flip, 17, 28, 24, 21, R);             // obliquo
+  bikeSeg(ox, oy, flip, 24, 19, 27, 27, '#7a6a58');     // forcella
+  bikeSeg(ox, oy, flip, 23, 17, 27, 17, '#33291f');     // manubrio
+  bikeSeg(ox, oy, flip, 10, 22, 15, 22, '#33291f');     // sella
+  rect(ox + (flip ? 31 - 18 : 16), oy + 28, 2, 2, '#33291f');   // movimento centrale e pedale
+}
+/* bici di FRONTE (giù) / di SPALLE (su). Di fronte: manopole sotto le mani (prima dell'omino),
+   manubrio e ruota davanti a lui (dopo). Di spalle: ruota posteriore e catarifrangente davanti. */
+export function drawBikeFB(sx, sy, moving, dir, layer) {
+  const ox = sx - 16, oy = sy;
+  if (dir === 'down') {
+    if (layer === 'behind') { rect(ox + 3, oy + 17, 4, 3, '#33291f'); rect(ox + 25, oy + 17, 4, 3, '#33291f'); return; }
+    rect(ox + 7, oy + 18, 18, 2, '#33291f'); rect(ox + 7, oy + 18, 18, 1, '#5a4d40');     // manubrio fra le mani
+    rect(ox + 15, oy + 20, 2, 6, '#c94f4a');                                              // forcella
+    bikeRing(ox, oy, false, 15.5, 28, 2, 5, moving);
+    rect(ox + 11, oy + 30, 3, 2, '#33291f'); rect(ox + 18, oy + 30, 3, 2, '#33291f');      // pedali
+    return;
+  }
+  if (layer === 'behind') { rect(ox + 4, oy + 17, 24, 2, '#33291f'); return; }            // manubrio nascosto dietro
+  bikeRing(ox, oy, false, 15.5, 28, 2, 5, moving);
+  rect(ox + 13, oy + 23, 6, 2, '#5c4229'); rect(ox + 15, oy + 25, 2, 2, '#c94f4a');         // parafango
+  rect(ox + 15, oy + 26, 2, 2, '#f2c53d');                                                  // catarifrangente
 }
 /* in barca: scafo che ondeggia, NIENTE camminata, scia quando ti muovi; pesca con lenza */
 /* CAVALCATURA VOLANTE (grotta leggendario): fossile alato con l'eroe in groppa, in volo sopra
@@ -1067,7 +1092,8 @@ export function drawBoat(sx, sy, noHero) {
     rect(sx + bx, y0 + 26 + by, 2, 2, '#bfe9f4');
   }
   /* eroe a bordo PRIMA dello scafo: le gambe restano NASCOSTE dentro la barca (niente piedi sporgenti) */
-  if (!noHero) drawHero(null, sx - 16, y0 - 10, P.dir, 0);
+  const fishing = (P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish';
+  if (!noHero) drawHero(null, sx - 16, y0 - 10, P.dir, 0, false, fishing ? 'lift' : undefined);   // pescando: mano alta sopra il bordo, la canna in mano
   if (!bankVeh('boat', sx, y0)) {                                     // scafo: disegno a mano se c'è, altrimenti procedurale
     if (P.dir === 'up' || P.dir === 'down') drawBoatFB(sx, y0, P.dir === 'up'); // fronte/retro: scafo di prua/poppa
     else {
@@ -1090,8 +1116,11 @@ export function drawBoat(sx, sy, noHero) {
   }
   if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') { // lenza + galleggiante con cerchi
     const d2 = P.dir === 'left' ? -1 : 1;
-    rect(sx + d2 * 14, y0 - 12, 2, 4, '#8a5f38'); px(sx + d2 * 16, y0 - 14, '#8a5f38'); // canna
-    for (let i = 1; i < 5; i++) px(sx + d2 * (16 + i * 2), y0 - 14 + i * 4, '#e8e2d0');   // filo
+    /* canna che parte dalla mano (GRIP della posa 'lift', sopra il bordo della barca) e sale in avanti */
+    const [gx, gy] = GRIP.lift.side, hx0 = sx - 16 + (d2 < 0 ? 31 - gx : gx), hy0 = y0 - 10 + gy;
+    for (let i = 0; i <= 8; i++) rect(hx0 + d2 * i, hy0 - Math.round(i * 1.4), 2, 1, '#8a5f38');
+    const tipX = hx0 + d2 * 8, tipY = hy0 - 11;
+    for (let i = 1; i < 6; i++) px(tipX + d2 * i, tipY + i * 3, '#e8e2d0');                // filo
     const bx2 = sx + d2 * 26, by2 = y0 + 6 + Math.round(Math.sin(frameTime / 260) * 2);
     px(bx2, by2, '#c65a54'); px(bx2, by2 - 2, '#f6efdd');                            // galleggiante
     const r2 = Math.floor((P.digging.t / P.digging.dur) * 3) + 1;                    // cerchi nell'acqua
@@ -1150,58 +1179,63 @@ export function drawMotorboat(sx, sy, noHero) {
   }
   ctx.restore();
 }
-/* animazione di scavo/abbattimento/spacco: due colpi, schegge a tema */
+/* animazione di scavo/abbattimento/spacco: due colpi, schegge a tema.
+   L'attrezzo sta NELLE MANI: il corpo prende la posa (braccia alzate / colpo in avanti, bodyArt)
+   e il manico parte dal punto in cui la mano stringe (GRIP). Prima l'omino teneva le braccia
+   lungo i fianchi e pala, accetta e piccone galleggiavano accanto alla testa. */
+function toolLine(ox, oy, flip, x0, y0, x1, y1, w, col, colL) {
+  const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
+  for (let i = 0; i <= n; i++) {
+    const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
+    for (let k = 0; k < w; k++) { const xx = x + k; px(ox + (flip ? 31 - xx : xx), oy + y, k === 0 && colL ? colL : col); }
+  }
+}
+function toolRect(ox, oy, flip, x, y, w, h, col) { rect(ox + (flip ? 32 - x - w : x), oy + y, w, h, col); }
+/* testa dell'attrezzo attorno a (hx, hy), orientata: dirx/diry = verso in cui "punta" il manico */
+function toolHead(ox, oy, flip, kind, hx, hy, down) {
+  const OUT = '#2a2016';
+  if (kind === 'dig') {                                        // PALA: lama larga a cucchiaio
+    const y = down ? hy : hy - 7;
+    toolRect(ox, oy, flip, hx - 5, y - 1, 12, 9, OUT); toolRect(ox, oy, flip, hx - 4, y, 10, 7, '#b8b0a2');
+    toolRect(ox, oy, flip, hx - 4, y, 10, 1, '#d7d0c2'); toolRect(ox, oy, flip, hx + 4, y + 1, 2, 6, '#8f887b');
+  } else if (kind === 'chop') {                                // ACCETTA: cuneo di ferro sul manico
+    toolRect(ox, oy, flip, hx - 1, hy - 4, 8, 8, OUT); toolRect(ox, oy, flip, hx, hy - 3, 6, 6, '#b5622e');
+    toolRect(ox, oy, flip, hx + 4, hy - 3, 2, 6, '#dfe3e6'); toolRect(ox, oy, flip, hx, hy - 3, 4, 1, '#d98a4a');   // ruggine col filo d'acciaio: non si confonde con la pala
+  } else {                                                     // PICCONE: testa lunga a doppia punta
+    toolRect(ox, oy, flip, hx - 8, hy - 2, 17, 4, OUT); toolRect(ox, oy, flip, hx - 7, hy - 1, 15, 2, '#9a9285');
+    toolRect(ox, oy, flip, hx - 7, hy - 1, 15, 1, '#c9c2b2'); toolRect(ox, oy, flip, hx - 9, hy, 1, 2, OUT); toolRect(ox, oy, flip, hx + 9, hy, 1, 2, OUT);
+  }
+}
 function drawDigging(sx, sy) {
-  /* FASE 2: nativa — drawHero è già nativo (niente più contro-scala 0.5), attrezzo/schegge
-     con posizioni e ampiezze raddoppiate. */
   ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const d = P.digging, kind = d.kind || 'dig';
   const ph = d.t / d.dur;
   const struck = Math.floor(ph * 4) % 2 === 1;              // due colpi per scavata
-  if (kind === 'dig') {
-    drawHero(null, sx - 16, sy + (struck ? 2 : 0), 'down', 0); // chino sul colpo
-    if (!struck) { // PALA alzata: manico + lama LARGA a cucchiaio (≠ piccone)
-      rect(sx + 10, sy - 10, 4, 16, '#8a5f38');                                   // manico
-      rect(sx + 4, sy - 18, 16, 8, '#b8b0a2'); rect(sx + 6, sy - 10, 12, 2, '#9a9285'); // lama larga
-      px(sx + 4, sy - 18, '#d7d0c2'); px(sx + 18, sy - 18, '#d7d0c2');            // bordi lucidi
-    } else {       // PALA piantata: lama larga a spatola tra i piedi
-      rect(sx + 6, sy + 6, 4, 14, '#8a5f38');                                   // manico
-      rect(sx, sy + 20, 16, 6, '#b8b0a2'); rect(sx + 2, sy + 26, 12, 2, '#9a9285'); px(sx + 6, sy + 28, '#7f776a');
-    }
-    if (struck) {  // terra che schizza AI PIEDI
-      const t2 = (ph * 4) % 1;
-      const OX = [-14, -8, -4, 4, 10, 16], H = [10, 14, 8, 12, 14, 8];
-      const CC = ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42', '#c9a06a'];
-      for (let i = 0; i < 6; i++) px(Math.round(sx + OX[i] * (0.4 + t2)), Math.round(sy + 28 - Math.sin(Math.PI * t2) * H[i]), CC[i]);
-    }
-    ctx.restore(); return;
-  }
-  /* accetta/piccone: colpo LATERALE verso la tile che guardi, schegge a tema */
-  const dx2 = P.dir === 'left' ? -1 : 1;
-  drawHero(null, sx - 16, sy + (struck ? 2 : 0), P.dir === 'up' ? 'down' : P.dir, 0);
-  const headCol = kind === 'chop' ? '#b5622e' : '#9a9285';
-  if (!struck) { // attrezzo alzato dietro la testa
-    rect(sx + dx2 * 10, sy - 8, 4, 14, '#8a5f38');
-    if (kind === 'chop') { // ACCETTA: testa a cuneo compatta
-      rect(sx + dx2 * 6, sy - 12, 10, 6, headCol); px(sx + dx2 * 6, sy - 12, '#d98a4a');
-    } else {               // PICCONE: testa lunga a DOPPIA PUNTA (≠ pala/accetta)
-      rect(sx + dx2 * 4, sy - 12, 16, 2, headCol);
-      px(sx + dx2 * 4, sy - 10, headCol); px(sx + dx2 * 18, sy - 10, headCol);
-      px(sx + dx2 * 4, sy - 14, '#b8b0a2'); px(sx + dx2 * 18, sy - 14, '#b8b0a2');
-    }
-  } else {       // colpo in diagonale verso il bersaglio
-    for (let i = 0; i < 5; i++) px(sx + dx2 * (4 + i * 2), sy + 4 + i * 2, '#8a5f38');
-    if (kind === 'chop') rect(sx + dx2 * 14 - 2, sy + 14, 8, 6, headCol);
-    else { rect(sx + dx2 * 12, sy + 14, 12, 2, headCol); px(sx + dx2 * 12, sy + 16, headCol); px(sx + dx2 * 22, sy + 16, headCol); } // piccone a doppia punta
-  }
-  if (struck) {  // schegge sulla tile davanti
-    const fx = P.dir === 'left' ? -28 : P.dir === 'right' ? 28 : 0;
-    const fy = P.dir === 'up' ? -24 : P.dir === 'down' ? 24 : 0;
+  const pose = struck ? 'strike' : 'lift';
+  const dir = kind === 'dig' ? 'down' : (P.dir === 'up' ? 'down' : P.dir);
+  const view = dir === 'down' ? 'down' : 'side', flip = dir === 'left';
+  const ox = sx - 16, oy = sy + (struck ? 2 : 0);
+  const [gx, gy] = GRIP[pose][view];
+  const WOOD = '#8a5f38', WOODL = '#b07c4a';
+  /* manico: dalla presa verso la testa dell'attrezzo */
+  let hx, hy;
+  if (view === 'down') { if (struck) { hx = gx - 0.5; hy = gy + 8; } else { hx = gx + 3; hy = gy - 16; } }
+  else { if (struck) { hx = gx + 6; hy = gy + 8; } else { hx = gx + 4; hy = gy - 13; } }
+  const back = false;                                          // sempre DAVANTI: dietro la testa il manico spariva e l'attrezzo tornava a galleggiare
+  const handle = () => toolLine(ox, oy, flip, gx, gy, hx, hy, 2, WOOD, WOODL);
+  const head = () => toolHead(ox, oy, flip, kind, Math.round(hx), Math.round(hy), struck);
+  if (back) { handle(); head(); }
+  drawHero(null, ox, oy, dir, 0, false, pose);
+  if (!back) { handle(); head(); }
+  if (struck) {  // schegge / terra sul punto colpito
     const t2 = (ph * 4) % 1;
-    const OX = [-10, -4, 2, 8, 12], H = [10, 14, 8, 12, 10];
-    const CC = kind === 'chop' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c']
-      : ['#9a9285', '#b8b0a2', '#7f776a', '#9a9285', '#b8b0a2'];
-    for (let i = 0; i < 5; i++) px(Math.round(sx + fx + OX[i] * (0.4 + t2)), Math.round(sy + 20 + fy - Math.sin(Math.PI * t2) * H[i]), CC[i]);
+    const fx = kind === 'dig' ? 0 : (P.dir === 'left' ? -28 : P.dir === 'right' ? 28 : 0);
+    const fy = kind === 'dig' ? 8 : (P.dir === 'up' ? -24 : P.dir === 'down' ? 24 : 0);
+    const OX = [-14, -8, -4, 4, 10, 16], H = [10, 14, 8, 12, 14, 8];
+    const CC = kind === 'chop' ? ['#8a5f38', '#b98d59', '#4e7a3d', '#8a5f38', '#619a4c', '#b98d59']
+      : kind === 'mine' ? ['#9a9285', '#b8b0a2', '#7f776a', '#9a9285', '#b8b0a2', '#7f776a']
+      : ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59', '#8a6a42', '#c9a06a'];
+    for (let i = 0; i < 6; i++) px(Math.round(sx + fx + OX[i] * (0.4 + t2)), Math.round(sy + 20 + fy - Math.sin(Math.PI * t2) * H[i]), CC[i]);
   }
   ctx.restore();
 }
@@ -1278,7 +1312,11 @@ function drawCaveScene(time) {
   const fr = CAVE.moving ? (Math.floor(CAVE.anim * 7) % 2) : 0;
   const px0 = snap(CAVE.x), py0 = snap(CAVE.y);
   shadow(px0, py0 + 32, 12);
-  if (CAVE.digging) { const st = Math.floor((CAVE.digging.t / CAVE.digging.dur) * 4) % 2; drawHero(null, px0 - 16, py0 + st * 2, 'down', 0); rect(px0 + 8, py0 + (st ? 20 : 12), 4, 12, '#8a5f38'); rect(px0 + 4, py0 + (st ? 16 : 8), 12, 6, '#9a9285'); }
+  if (CAVE.digging) {                                  // stesso colpo di piccone del mondo: attrezzo in mano
+    const sd = P.digging, sdir = P.dir;
+    P.digging = { kind: 'mine', t: CAVE.digging.t, dur: CAVE.digging.dur }; P.dir = 'down';
+    try { drawDigging(px0, py0); } finally { P.digging = sd; P.dir = sdir; }
+  }
   else drawHero(null, px0 - 16, py0, CAVE.dir, fr);
   /* USCITA — un pezzo di MONDO ESTERNO oltre l'imbocco.
      Prima l'uscita era una linguetta di 4 pixel sull'ultima riga: con il solo mouse non

@@ -134,6 +134,8 @@ async function main() {
       (luce && G.cmd ? G.cmd('goditem') : Promise.resolve()).then(function(){ return G.cmd('goto=' + (new URLSearchParams(location.search).get('zona') || 'prati')); }).then(function(){
         if (luce === '2') { window.__digsyNoDark = true; if (G.caveAt) return G.caveAt(0.5, 0.45); }
       }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'pose' = il personaggio in ogni posa e su ogni mezzo, nelle quattro direzioni */
+    else if (${JSON.stringify(vista)} === 'pose') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.cmd) G.cmd('goditem').then(function(){ var q = new URLSearchParams(location.search); if(G.poseGallery) G.poseGallery(q.get('solo'), q.get('zoom')); }); }
     /* 'oggetti' = gli oggetti piccoli del mondo (imbocco, X, buca, relitto, ossa, raccoglibili) */
     else if (${JSON.stringify(vista)} === 'oggetti') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.smallGallery) G.smallGallery(); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
