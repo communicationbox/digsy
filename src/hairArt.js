@@ -105,8 +105,12 @@ const DRAW = {
     },
     side(g) {
       mass(g, 14.5, -2, 20, 10.5);
-      cut(g, (x, y) => x > 16 ? y <= (x > 22 ? 4 : 6) : (y < 19 || (x + y) % 3 !== 0));
-      strands(g, [[14, -1, 22, 3], [10, 3, 8, 18], [13, 4, 12, 18]]);
+      /* di profilo i capelli lunghi cadono DIETRO l'orecchio: prima scendevano a muro fino alla
+         colonna 16, a un passo dall'occhio, e la frangia finiva dritta lasciando una colonna di
+         fronte che sembrava un bozzo. Ora la frangia sale in diagonale verso la fronte e la
+         tenda sta dietro l'orecchio (colonne 13-14) */
+      cut(g, (x, y) => x > 16 ? y <= (x > 21 ? 4 : x > 19 ? 5 : 6) : x > 12 ? y <= 7 + (16 - x) : (y < 19 || (x + y) % 3 !== 0));
+      strands(g, [[14, -1, 22, 3], [10, 3, 8, 18], [12, 4, 11, 18]]);
     },
   },
 

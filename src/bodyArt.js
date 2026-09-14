@@ -78,7 +78,10 @@ function headFront(g, face) {
 }
 function headSide(g) {
   g.span(0, 12, 19, 'F', { t: 1 }); g.span(1, 10, 21, 'F', { t: 1 }); g.span(2, 9, 22, 'F', { t: 1 }); g.span(3, 8, 23, 'F', { t: 1 });
-  for (let y = 4; y <= 12; y++) g.span(y, 8, 25, 'F', { t: 1 });
+  /* fronte che scende arrotondata verso l'occhio: con la colonna 25 dritta da riga 4 la fronte
+     sporgeva a spigolo sotto la frangia ("ha un bozzo sulla fronte") */
+  g.span(4, 8, 24, 'F', { t: 1 }); g.span(5, 8, 24, 'F', { t: 1 }); g.span(6, 8, 24, 'F', { t: 1 });
+  for (let y = 7; y <= 12; y++) g.span(y, 8, 25, 'F', { t: 1 });
   g.span(13, 9, 24, 'F', { t: 1 }); g.span(14, 10, 23, 'F', { t: 1 }); g.span(15, 12, 21, 'F', { t: 1 }); g.span(16, 14, 19, 'F', { t: 1 });
   g.span(17, 14, 18, 'F', { t: 2 });
   g.set(26, 10, 'F', 1);                                    // naso: un pixel
