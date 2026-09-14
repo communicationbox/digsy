@@ -147,8 +147,8 @@ export function wireSync() {
   /* scollegati da un altro dispositivo: si continua a giocare, ma si dice che da qui in poi
      la partita resta su questo telefono/computer e non sale più */
   setKickedHandler(() => {
-    toast('☁️ ' + tr('Entrato altrove: qui la partita resta in locale.',
-      'Signed in elsewhere: this game stays local.'));
+    toast('☁️ ' + tr('Entrato altrove: partita solo qui.',
+      'Signed in elsewhere: game kept here.'));
   });
   /* Chiudendo la scheda l'ultimo salvataggio è ancora in attesa dei 4 secondi di quiete:
      `pagehide` è l'unico evento affidabile anche su iOS, dove `beforeunload` spesso non
@@ -182,8 +182,8 @@ let avvisato = false;
 function onKickedNotice() {
   if (avvisato) return;                 // non un toast a ogni cambio di scheda
   avvisato = true;
-  toast('☁️ ' + tr('Entrato altrove: qui la partita resta in locale.',
-    'Signed in elsewhere: this game stays local.'));
+  toast('☁️ ' + tr('Entrato altrove: partita solo qui.',
+    'Signed in elsewhere: game kept here.'));
 }
 
 export function payload() {

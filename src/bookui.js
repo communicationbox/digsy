@@ -139,7 +139,7 @@ function bookPageHtml(sp, pageNo) {
       ${known && awake ? `<button class="bk-flip3d" data-fs="${sp.id}">▶ ${tr('Vivo', 'Alive')}</button>` : ''}
     </div>
     <div class="bk-name">${known ? sp.name : '? ? ?'} ${rarSpan(sp.r)}</div>
-    <div class="bk-desc">${known ? descFor(sp) : tr('Ossa non ancora ricostruite. Scava nelle ', 'Bones not yet reconstructed. Dig in the ') + zoneName(z.id) + tr(' e porta i reperti al Laboratorio per identificarli.', ' and take your finds to the Laboratory.')}</div>
+    <div class="bk-desc">${known ? descFor(sp) : tr('Ancora da ricostruire. Scava nelle ', 'Not rebuilt yet. Dig in ') + zoneName(z.id) + tr(' e porta i reperti al Museo.', ' and bring finds to the Museum.')}</div>
     <div class="bk-foot">
       <div class="bk-meta">
         <span>🗺️ ${zoneName(z.id)}</span>
@@ -170,7 +170,7 @@ export function openBook(page) {
   bookPage = Math.max(0, Math.min(bookPage, maxPage));
   if (!visible.length) {
     pagesEl.innerHTML = withIcons(`<div class="bkpage"><div class="bk-name" style="margin-top:40px">${tr('Il libro è vuoto', 'The book is empty')}</div>
-      <div class="bk-desc" style="text-align:center">${tr('Visita il <b>Museo</b> della zona,<br>poi scava per riempire le pagine.', 'Visit the zone\'s <b>Museum</b>,<br>then dig to fill the pages.')}</div></div>`);
+      <div class="bk-desc" style="text-align:center">${tr('Visita il <b>Museo</b> della zona,<br>poi scava.', 'Visit the zone\'s <b>Museum</b>,<br>then dig.')}</div></div>`);
     navEl.innerHTML = '';
   } else {
     let ph = ''; for (let i = 0; i < pp; i++) ph += bookPageHtml(visible[bookPage * pp + i], bookPage * pp + i + 1);

@@ -117,7 +117,7 @@ export function enterCave(seed, wx, wy) {
   if (!S.book.grotta) {
     S.book.grotta = true; save();
     if (typeof document !== 'undefined') import('./ui.js').then(u => {
-      u.showBanner('🕳️ ' + tr('NUOVA ALA: GROTTE PROFONDE', 'NEW WING: DEEP CAVES') + '<br><span style="font-size:.8em">' + tr('il Museo ha una sala per i fossili di grotta', 'the Museum now has a room for cave fossils') + '</span>');
+      u.showBanner('🕳️ ' + tr('NUOVA ALA: GROTTE PROFONDE', 'NEW WING: DEEP CAVES') + '<br><span style="font-size:.8em">' + tr('il Museo ha una sala per le grotte', 'the Museum has a cave room') + '</span>');
     });
   }
   setBiomeMood('grotta'); // musica avventurosa da grotta (crossfade)
@@ -195,7 +195,7 @@ export function stepCave(dt) {
     if (Math.random() < 0.55) {
       const raw = makeCaveRaw(Math.hypot(CAVE.wx, CAVE.wy)); S.raw.push(raw);
       addXp((XP_BY_RAR[raw.q] || 4) + 4); // i fossili di grotta valgono un po' di più
-      playSfx('found'); toast('💎 ' + tr('Fossile di grotta! (raro — da identificare)', 'Cave fossil! (rare — needs identifying)'));
+      playSfx('found'); toast('💎 ' + tr('Fossile di grotta! (da identificare)', 'Cave fossil! (to identify)'));
       save(); return raw;
     }
     playSfx('mine'); toast(tr('…solo cristallo spento', '…just a dull crystal'));
@@ -265,7 +265,7 @@ export function checkCaveEnter(caveEntranceAt) {
     if (!(P.moving && P.dir === 'up') && !goalIsTile(tx, ty)) return;
     /* senza piccone non si entra: il masso davanti va spaccato, e serve per staccare i
        cristalli là dentro (in debug si passa comunque) */
-    if (!S.tools.pick && !isDebug()) { toast('⛏️ ' + tr('Serve il piccone per entrare (Negozio)', 'You need the pickaxe to get in (Shop)')); CAVE.justLeft = true; return; }
+    if (!S.tools.pick && !isDebug()) { toast('⛏️ ' + tr('Serve il piccone (Negozio)', 'Needs the pickaxe (Shop)')); CAVE.justLeft = true; return; }
     enterCave(vhash(tx, ty, 91) * 1000, tx, ty);
   } else CAVE.justLeft = false;
 }

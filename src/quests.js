@@ -40,8 +40,8 @@ export function expireQuests(day) {
 export function questExpiryText(lost) {
   if (!lost) return '';
   return '📋 ' + (lost === 1
-    ? tr('La missione del cartello è scaduta a fine giornata', 'Your board mission expired at day\'s end')
-    : lost + tr(' missioni del cartello sono scadute a fine giornata', ' board missions expired at day\'s end'));
+    ? tr('Scaduta una missione del cartello', 'A board mission expired')
+    : lost + tr(' missioni del cartello scadute', ' board missions expired'));
 }
 
 /* offerte del cartello: deterministiche per (città, giorno) — 4 richieste */

@@ -65,9 +65,9 @@ export const STEP_IDS = STEPS.map(s => s.id);
    La freccia a schermo dice DOVE, quindi il testo non deve descrivere anche il posto. */
 const TEXT = {
   pick: () => [tr('Raccogli le cose che luccicano', 'Pick up the shiny things'),
-    tr('Seguile con la freccia e premi {act}. Ti servono 15 monete.', 'Follow the arrow and press {act}. You need 15 coins.')],
+    tr('Segui la freccia e premi {act}. Servono 15 monete.', 'Follow the arrow and press {act}. You need 15 coins.')],
   shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
-    tr('Vendi tutto quello che hai raccolto, poi compra la pala 🪏.', 'Sell everything you gathered, then buy the spade 🪏.')],
+    tr('Vendi tutto, poi compra la pala 🪏.', 'Sell everything, then buy the spade 🪏.')],
   armchair: () => [tr('Arreda casa tua', 'Furnish your home'),
     tr('Piazza la poltrona qui in Sala con {act}.', 'Place the armchair here in the Living room with {act}.')],
   dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),

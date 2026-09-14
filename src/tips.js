@@ -7,17 +7,17 @@ import { tr, keys } from './i18n.js';
 
 /* id → [titolo, testo]. L'ordine è quello della Guida. */
 export const TIPS = {
-  dig: () => [tr('Scavare', 'Digging'), tr('{act} scava sotto i piedi: 1 ⚡ a colpo. Le caselle si esauriscono: spostati.', '{act} digs under your feet: 1 ⚡ each. Tiles run out: move on.')],
-  raw: () => [tr('Reperti grezzi', 'Raw finds'), tr('I grezzi non si vendono: il <b>Museo</b> li identifica e ti rende i doppioni.', 'Raw finds can\'t be sold: the <b>Museum</b> identifies them and returns duplicates.')],
-  energy: () => [tr('Energia', 'Energy'), tr('Senza ⚡ non scavi: dormi alla <b>Locanda</b> (gratis) o mangia uno spuntino (+15 ⚡).', 'No ⚡, no digging: sleep at the <b>Inn</b> (free) or eat a snack (+15 ⚡).')],
-  bagfull: () => [tr('Zaino pieno', 'Bag full'), tr('Zaino pieno? I reperti restano <b>a terra</b> ({act} per riprenderli). Il Negozio vende zaini più grandi.', 'Bag full? Finds stay <b>on the ground</b> ({act} to pick up). The Shop sells bigger bags.')],
-  water: () => [tr('Acqua', 'Water'), tr('Con la <b>barca</b> (Negozio) entri in acqua e navighi. {act} sull\'acqua per pescare.', 'With a <b>boat</b> (Shop) you sail by walking into water. {act} on water to fish.')],
-  cave: () => [tr('Grotte', 'Caves'), tr('Serve il <b>piccone</b> per aprire le grotte e staccare i cristalli: dentro, 6 specie uniche.', 'The <b>pickaxe</b> opens caves and breaks crystals: 6 unique species inside.')],
-  wonder: () => [tr('Meraviglie', 'Wonders'), tr('18 meraviglie, 3 per bioma: ognuna fa un dono e poi riposa qualche giorno. Gli archi collegano.', '18 wonders, 3 per biome: each gives a gift, then rests a few days. Arches link them.')],
-  map: () => [tr('Mappa', 'Map'), tr('La mappa{key:M} si svela camminando. Tocca un segno per sapere cos\'è.', 'The map{key:M} fills in as you walk. Tap a pin to see what it is.')],
-  dna: () => [tr('DNA e chimere', 'DNA and chimeras'), tr('Teca completa (5 pezzi) = <b>fialetta DNA</b>. Con <b>2</b> il Lab risveglia la specie. Le chimere nascono da DUE creature.', 'Full case (5 pieces) = <b>DNA vial</b>. <b>2</b> let the Lab awaken the species. Chimeras come from TWO creatures.')],
-  quest: () => [tr('Missioni', 'Missions'), tr('Il cartello in città ha le richieste del giorno: monete ed esperienza.', 'The town board has today\'s requests: coins and experience.')],
-  night: () => [tr('Notte e stagioni', 'Night and seasons'), tr('Un giorno = 20 minuti. Di notte la <b>torcia</b> allarga la luce. Stagione nuova ogni 3 giorni.', 'A day = 20 minutes. At night the <b>torch</b> widens your light. New season every 3 days.')],
+  dig: () => [tr('Scavare', 'Digging'), tr('{act} scava: 1 ⚡. Le caselle finiscono: spostati.', '{act} digs: 1 ⚡. Tiles run out: move on.')],
+  raw: () => [tr('Reperti grezzi', 'Raw finds'), tr('I grezzi vanno al <b>Museo</b>: li identifica.', 'Raw finds go to the <b>Museum</b> to be identified.')],
+  energy: () => [tr('Energia', 'Energy'), tr('Senza ⚡: dormi alla <b>Locanda</b> o mangia un ristoro (+15 ⚡).', 'No ⚡: sleep at the <b>Inn</b> or eat a snack (+15 ⚡).')],
+  bagfull: () => [tr('Zaino pieno', 'Bag full'), tr('Zaino pieno: i reperti restano <b>a terra</b>. Zaini più grandi al Negozio.', 'Bag full: finds stay <b>on the ground</b>. Bigger bags at the Shop.')],
+  water: () => [tr('Acqua', 'Water'), tr('<b>Barca</b> (Negozio): entra in acqua. {act} per pescare.', '<b>Boat</b> (Shop): walk into water. {act} to fish.')],
+  cave: () => [tr('Grotte', 'Caves'), tr('Il <b>piccone</b> apre le grotte: 6 specie uniche.', 'The <b>pickaxe</b> opens caves: 6 unique species.')],
+  wonder: () => [tr('Meraviglie', 'Wonders'), tr('Ogni meraviglia fa un dono, poi riposa qualche giorno.', 'Each wonder gives a gift, then rests a few days.')],
+  map: () => [tr('Mappa', 'Map'), tr('La mappa{key:M} si svela camminando.', 'The map{key:M} fills in as you walk.')],
+  dna: () => [tr('DNA e chimere', 'DNA and chimeras'), tr('5 pezzi = <b>fialetta DNA</b>. <b>2</b> fialette = specie viva al Lab.', '5 pieces = <b>DNA vial</b>. <b>2</b> vials = species alive at the Lab.')],
+  quest: () => [tr('Missioni', 'Missions'), tr('Il cartello 📋 dà missioni: monete ed XP.', 'The board 📋 gives missions: coins and XP.')],
+  night: () => [tr('Notte e stagioni', 'Night and seasons'), tr('Un giorno = 20 minuti. Di notte serve la <b>torcia</b>.', 'A day = 20 minutes. At night use the <b>torch</b>.')],
 };
 export const TIP_IDS = Object.keys(TIPS);
 export function tipSeen(id) { return !!(S.tips || {})[id]; }

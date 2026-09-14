@@ -172,13 +172,13 @@ export function signInError(code) {
          Scritta qui, la si confronta con la Console in due secondi. */
       return tr('Questo indirizzo non è autorizzato da Google: ', 'This address is not authorised with Google: ')
         + (typeof location !== 'undefined' ? location.origin : '?')
-        + tr('. È una configurazione da sistemare, non dipende da te.', '. That is a setup problem, not something you did.');
+        + tr(', non dipende da te.', ', not something you did.');
     case 'unverified':
-      return tr('Google non ha confermato l\'accesso. Riprova.', 'Google did not confirm the sign-in. Try again.');
+      return tr('Accesso non confermato. Riprova.', 'Sign-in not confirmed. Try again.');
     case 'not_logged':
     case 'offline':
-      return tr('Nessuna rete: la partita resta salvata su questo dispositivo.',
-        'No connection: your game stays saved on this device.');
+      return tr('Nessuna rete: partita salvata su questo dispositivo.',
+        'Offline: game saved on this device.');
     default:
       return tr('Accesso non riuscito', 'Sign-in failed') + (code ? ' (' + code + ')' : '');
   }
@@ -196,7 +196,7 @@ export async function openAccount() {
   if (!loginOriginAllowed()) return;
   const ok = await loadGoogle();
   if (!ok || !window.google || !window.google.accounts) {
-    acc.msg = tr('Google non raggiungibile. Riprova più tardi.', 'Google is unreachable. Try again later.');
+    acc.msg = tr('Google non risponde. Riprova dopo.', 'Google not responding. Try later.');
     buildMenu(inGameMode); return;
   }
   const holder = document.getElementById('sp-gbtn'); if (!holder) return;
@@ -238,8 +238,8 @@ export function wireAccountButtons(redraw) {
   if (da) da.onclick = async () => {
     /* cancella l'account, NON la partita su questo dispositivo: chi se ne va non deve
        ritrovarsi il gioco azzerato */
-    if (!confirm(tr('Cancello l\'account e i salvataggi online? Qui la partita resta.',
-      'Delete account and online saves? This device keeps its game.'))) return;
+    if (!confirm(tr('Cancello account e salvataggi online? Qui resta.',
+      'Delete account and online saves? This device keeps it.'))) return;
     await acc.mod.removeAccount(); acc.user = null; redraw();
   };
 }
@@ -331,10 +331,10 @@ function buildMenu(inGame) {
        nessuno e ci si contava sopra sbagliando. */
     if (cloudEnabled()) {
       h += `<div class="sp-note">${acc.user
-        ? tr('Salvati anche sul server: li ritrovi ovunque.',
-          'Also on the server: available on every device.')
-        : tr('Salvati solo qui. Entra con Google per averli ovunque.',
-          'Saved here only. Sign in with Google to get them anywhere.')}</div>`;
+        ? tr('Anche online: li ritrovi ovunque.',
+          'Also online: available everywhere.')
+        : tr('Solo qui. Entra con Google per averli ovunque.',
+          'Only here. Sign in with Google for everywhere.')}</div>`;
     }
     /* LE STATISTICHE HANNO UNA SCHERMATA LORO, raggiunta da qui.
        Messe in fondo a questa, dodici righe schiacciavano i tre slot fino a farli sparire:
@@ -368,9 +368,9 @@ function buildMenu(inGame) {
       /* niente invito e non è iOS: o è già installata, o il browser non sa farlo. In ogni
          caso si spiega, invece di lasciare una schermata vuota. */
       h += `<div class="sp-hint2">${pwa.installata
-        ? tr('Il gioco è già installato su questo dispositivo.', 'The game is already installed on this device.')
-        : tr('Menu del browser → <b>Installa</b> o <b>Aggiungi a Home</b>.',
-          'Browser menu → <b>Install</b> or <b>Add to Home screen</b>.')}</div>`;
+        ? tr('Già installato.', 'Already installed.')
+        : tr('Menu → <b>Installa</b> o <b>Aggiungi a Home</b>.',
+          'Menu → <b>Install</b> or <b>Add to Home screen</b>.')}</div>`;
     }
     h += `</div></div>` + backBar();
   } else if (view === 'stats') {
@@ -441,9 +441,9 @@ function buildMenu(inGame) {
           ['tap', tr('Tocca dove andare', 'Tap to move')],
         ], pf.touch)
         + `<div class="sp-hint2">${
-          pf.touch === 'float' ? tr('La leva nasce dove appoggi il dito.', 'The stick appears where you put your finger.')
+          pf.touch === 'float' ? tr('La leva appare dove tocchi.', 'The stick appears where you touch.')
             : pf.touch === 'tap' ? tr('Tocchi un punto e Digsy ci cammina.', 'Tap a spot and Digsy walks there.')
-              : tr('La leva resta sempre nello stesso angolo.', 'The stick stays in the same corner.')}</div>`
+              : tr('La leva sta sempre nell\'angolo.', 'The stick stays in the corner.')}</div>`
         + riga(tr('Mano', 'Hand'), seg('data-hand', [
           ['right', tr('Destra', 'Right')], ['left', tr('Sinistra', 'Left')],
         ], pf.hand || 'right')));
@@ -455,17 +455,17 @@ function buildMenu(inGame) {
           ['keys', tr('Solo tastiera', 'Keyboard only')],
         ], pf.mouse || 'tap')
         + `<div class="sp-hint2">${
-          pf.mouse === 'follow' ? tr('Tieni premuto e Digsy va verso il puntatore.', 'Hold the button and Digsy walks towards the pointer.')
-            : pf.mouse === 'keys' ? tr('Ci si muove con WASD o le frecce.', 'You move with WASD or the arrow keys.')
-              : tr('Clicchi un punto e Digsy ci cammina.', 'Click a spot and Digsy walks there.')}</div>`
-        + `<div class="sp-hint2">${tr('Il tasto destro fa quello che fa <kbd>E</kbd>.', 'The right mouse button does what <kbd>E</kbd> does.')}</div>`);
+          pf.mouse === 'follow' ? tr('Tieni premuto: Digsy segue il puntatore.', 'Hold: Digsy follows the pointer.')
+            : pf.mouse === 'keys' ? tr('WASD o frecce.', 'WASD or arrows.')
+              : tr('Clicca un punto: Digsy ci va.', 'Click a spot: Digsy walks there.')}</div>`
+        + `<div class="sp-hint2">${tr('Tasto destro = <kbd>E</kbd>.', 'Right click = <kbd>E</kbd>.')}</div>`);
     }
 
     /* SCHERMO: le due cose che si vedono mentre si gioca */
     h += grp('✨ ' + tr('A schermo', 'On screen'),
       riga(tr('Segnalino della meta', 'Destination marker'), sw('sp-marker', pf.marker))
       + riga(tr('Suggerimenti', 'Tips'), sw('sp-tips', pf.tips))
-      + `<div class="sp-hint2">${tr('Spiegazioni alla prima volta. Rileggile nella Guida (zaino → ❔).', 'First-time explanations. Reread them in the Guide (bag → ❔).')}</div>`);
+      + `<div class="sp-hint2">${tr('Spiegazioni la prima volta (Guida: zaino → ❔).', 'First-time hints (Guide: bag → ❔).')}</div>`);
 
     /* AGGIORNAMENTO. Stava nei Credits, dove nessuno lo cerca: sul telefono non esiste il
        "ricarica senza cache" e si gioca per giorni a una versione superata. La versione è
@@ -476,14 +476,14 @@ function buildMenu(inGame) {
         `<button class="sp-btn small" id="sp-install">🏠 ${pwa.installata ? tr('Fatto', 'Done') : tr('Come', 'How')}</button>`)
       + riga(tr('Aggiorna il gioco', 'Update the game'),
         `<button class="sp-btn small" id="sp-refresh">⟳ ${VERSION}</button>`)
-      + `<div class="sp-hint2">${tr('Riscarica il gioco. Il salvataggio resta dov\'è.', 'Downloads the game again. Your save stays where it is.')}</div>`);
+      + `<div class="sp-hint2">${tr('Ricarica il gioco. Il salvataggio resta.', 'Reload the game. Your save stays.')}</div>`);
 
     /* STATISTICHE ANONIME in fondo a tutto: il battito si spegne da qui. Raccogliere quanto
        si gioca è utile a chi il gioco lo fa provare, ma dev'essere una cosa che si può dire
        di no — e che si legge in chiaro, non nascosta in fondo a una pagina di condizioni. */
     h += grp('📊 ' + tr('Statistiche anonime', 'Anonymous stats'),
       riga(tr('Manda come sta andando', 'Send how it is going'), sw('sp-beat', battitoAcceso()))
-      + `<div class="sp-hint2">${tr('Tempo di gioco e progressi, <b>anonimi</b>: nessun nome né email.', 'Play time and progress, <b>anonymous</b>: no name or email.')}</div>`);
+      + `<div class="sp-hint2">${tr('Tempo e progressi, <b>anonimi</b>.', 'Play time and progress, <b>anonymous</b>.')}</div>`);
 
     h += `</div>` + backBar();
   } else if (view === 'trophies') {
@@ -518,7 +518,7 @@ function buildMenu(inGame) {
        comandi si scoprivano solo scrivendo `help` dentro la console stessa — cioè
        sapendo già che esisteva. */
     h += `<div class="sp-title3">${tr('Console', 'Console')} <kbd>\\</kbd></div>`;
-    h += `<div class="sp-note" style="max-width:none"><kbd>\\</kbd> ${tr('apre la console dei cheat: il salvataggio resta congelato finché non scrivi <b>vanilla</b>.', 'opens the cheat console: saving stays frozen until you type <b>vanilla</b>.')}</div>`;
+    h += `<div class="sp-note" style="max-width:none"><kbd>\\</kbd> ${tr('apre i cheat: salvataggio fermo finché non scrivi <b>vanilla</b>.', 'opens cheats: saving paused until you type <b>vanilla</b>.')}</div>`;
     h += `<div class="sp-cmds">` + commandHelp().map(t => {
       const i = t.indexOf('—');
       const name = i > 0 ? t.slice(0, i).trim() : t;
@@ -546,7 +546,7 @@ function buildMenu(inGame) {
       if (acc.conflict) {
         /* DUE PARTITE DIVERSE: non si sceglie per lui. Si mostrano le due con quello che
            riconosce (giorno, monete, reperti) e decide. */
-        h += `<p class="sp-acc-warn">${tr('Qui e sul server ci sono due partite diverse. Quale tieni?', 'This device and the server differ. Which game do you keep?')}</p>`;
+        h += `<p class="sp-acc-warn">${tr('Qui e online due partite diverse. Quale tieni?', 'Two different games here and online. Which one?')}</p>`;
         h += `<button class="sp-btn" id="sp-keeplocal">${tr('questa', 'this one')} · ${acc.localSum}</button>`;
         h += `<button class="sp-btn" id="sp-keepremote">${tr('quella salvata', 'the saved one')} · ${acc.remoteSum}</button>`;
       } else {
@@ -557,10 +557,10 @@ function buildMenu(inGame) {
       /* itch e altre origini non autorizzate: il login Google qui dà solo l'errore di Google.
          Lo si DICE e si offre il link al sito vero, dove funziona. Intanto si gioca in locale. */
       const home = loginHomeUrl();
-      h += `<p class="sp-acc-st">${tr('Su itch.io l\'accesso Google non è possibile: la partita resta su questo dispositivo.', 'Google sign-in isn\'t possible on itch.io: your game stays on this device.')}</p>`;
-      h += `<p class="sp-acc-note"><a href="${esc(home)}" target="_blank" rel="noopener">${tr('Apri il gioco su digsy.dev-box.it per il salvataggio in cloud', 'Open the game on digsy.dev-box.it for cloud save')}</a></p>`;
+      h += `<p class="sp-acc-st">${tr('Su itch.io niente accesso Google: partita solo qui.', 'No Google sign-in on itch.io: game kept here.')}</p>`;
+      h += `<p class="sp-acc-note"><a href="${esc(home)}" target="_blank" rel="noopener">${tr('Salvataggio online su digsy.dev-box.it', 'Online saves on digsy.dev-box.it')}</a></p>`;
     } else {
-      h += `<p class="sp-acc-st">${tr('Entra e ritrovi la partita su telefono e computer.', 'Sign in to play the same game on phone and computer.')}</p>`;
+      h += `<p class="sp-acc-st">${tr('Entra: stessa partita su telefono e computer.', 'Sign in: same game on phone and computer.')}</p>`;
       h += `<div id="sp-gbtn"></div>`;
       h += `<p class="sp-acc-note" id="sp-accmsg">${acc.msg || ''}</p>`;
     }

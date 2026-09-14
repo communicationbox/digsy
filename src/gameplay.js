@@ -234,7 +234,7 @@ export function tryDig() {
       const primoGarantito = tutStepId() === 'dig';
       if (primoGarantito || Math.random() < ch) {
         const raw = makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty));
-        if (addFossil(raw, tx, ty)) { toast(tr('Reperto grezzo trovato! (da identificare)', 'Raw find unearthed! (needs identifying)')); showTip('raw'); }
+        if (addFossil(raw, tx, ty)) { toast(tr('Reperto grezzo! (da identificare)', 'Raw find! (to identify)')); showTip('raw'); }
         playSfx('found');
       } else { toast(tr('…solo terra', '…just dirt')); playSfx('dig'); }
       if (S.shovel === 0 && S.shovelWarn) { S.shovelWarn = false; toast('🪏 ' + tr('La pala fortunata si è consumata', 'The lucky shovel wore out')); }
@@ -251,14 +251,14 @@ export function tryDig() {
 /* scala ×2.3-2.5 per gradino, come gli upgrade di Stardew (2000→5000→10000→25000) */
 export const TOOL_COST = { spade: 15, shovel: 45, axe: 90, pick: 200, boat: 460, skates: 130, bike: 500, motorboat: 1100, torch: 110, compass: 70 };
 const TOOL_MSG = {
-  spade: () => '🪏 ' + tr('Pala: ora puoi scavare la terra ', 'Spade: now you can dig the ground ') + actKey(),
+  spade: () => '🪏 ' + tr('Pala: ora puoi scavare ', 'Spade: now you can dig ') + actKey(),
   axe: () => '🪓 ' + tr('Accetta: abbatti gli alberi ', 'Hatchet: chop trees ') + actKey(),
-  pick: () => '⛏️ ' + tr('Piccone: spacca massi e guglie ', 'Pickaxe: break boulders and spires ') + actKey(),
-  boat: () => '⛵ ' + tr('Barca: cammina verso l\'acqua e salpa! (E per pescare)', 'Boat: walk onto water and sail! (E to fish)'),
+  pick: () => '⛏️ ' + tr('Piccone: spacca massi ', 'Pickaxe: breaks boulders ') + actKey(),
+  boat: () => '⛵ ' + tr('Barca: entra in acqua per salire', 'Boat: walk into water to board'),
   skates: () => '🛼 ' + tr('Pattini: corri al doppio della velocità', 'Skates: move at double speed'),
   bike: () => '🚲 ' + tr('Bicicletta: velocità tripla a piedi', 'Bicycle: triple speed on foot'),
   motorboat: () => '🚤 ' + tr('Motoscafo: velocità tripla sull\'acqua', 'Motorboat: triple speed on water'),
-  torch: () => '🔦 ' + tr('Torcia: alone di luce più ampio (notte e grotte)', 'Torch: wider light halo (night and caves)'),
+  torch: () => '🔦 ' + tr('Torcia: più luce al buio', 'Torch: more light in the dark'),
 };
 export function buyTool(t) {
   const cost = TOOL_COST[t]; if (cost === undefined) return false;
@@ -285,7 +285,7 @@ export function gearActive(g) { return (g === 'boat' || g === 'motorboat') ? boa
 export function activeGear() { return S.gear || null; }
 export function toggleGear(g) {
   if (!S.tools[g] || !GEARS.includes(g)) return false;   // i natanti non si attivano a mano
-  if (onBoat()) { toast('⛵ ' + tr('Sei in acqua: prima torna a riva', 'You are on the water: get back to shore first')); return false; }
+  if (onBoat()) { toast('⛵ ' + tr('Prima torna a riva', 'Get back to shore first')); return false; }
   S.gear = S.gear === g ? null : g;
   playSfx('click'); save(); updateHUD(); return true;
 }
@@ -454,12 +454,12 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
 }
 export function tryChop() {
   return harvestDeco(CHOPPABLE, 'axe', choppedSet, S.chopped, 'albero', 'chop',
-    '🌲 ' + tr('Tra le radici: un reperto! (da identificare)', 'Among the roots: a find! (needs identifying)'),
+    '🌲 ' + tr('Tra le radici: un reperto!', 'In the roots: a find!'),
     '🪓 ' + tr('Serve l\'accetta (Negozio)', 'You need the hatchet (Shop)'));
 }
 export function tryMine() {
   return harvestDeco(MINEABLE, 'pick', minedSet, S.mined, 'roccia', 'mine',
-    '⛰️ ' + tr('Dentro la roccia: un reperto! (da identificare)', 'Inside the rock: a find! (needs identifying)'),
+    '⛰️ ' + tr('Nella roccia: un reperto!', 'In the rock: a find!'),
     '⛏️ ' + tr('Serve il piccone (Negozio)', 'You need the pickaxe (Shop)'));
 }
 
@@ -479,13 +479,13 @@ export function tryFish() {
     const fishCh = Math.min(0.85, 0.4 * companionYieldMul('acqua')); // compagno Pescatore: più abboccate
     const raw = Math.random() < fishCh ? makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, 'acqua') : null;
     if (raw) {
-      if (addFossil(raw, tx, ty)) toast('🎣 ' + tr('Un fossile acquatico! (da identificare)', 'An aquatic fossil! (needs identifying)'));
+      if (addFossil(raw, tx, ty)) toast('🎣 ' + tr('Fossile acquatico!', 'Aquatic fossil!'));
       playSfx('found');
     } else {
       /* indizio, non frustrazione: se qui c'è una specie notturna, il gioco lo lascia capire */
       const hint = !isNight() && (zonePools[zoneAt(tx, ty).id] || []).some(sp => sp.src === 'acqua' && sp.when && sp.when.night);
       toast('🎣 ' + (hint && Math.random() < 0.5
-        ? tr('…niente. Di notte, però, qui l\'acqua si muove diversamente', '…nothing. At night, though, this water stirs differently')
+        ? tr('…niente. Di notte qui l\'acqua cambia', '…nothing. At night the water changes here')
         : tr('…non abbocca niente', '…nothing bites')));
       playSfx('fish');
     }
@@ -686,8 +686,8 @@ function finishCompanionCatch(auto) {
   addBuff('digX2', perfect ? 3 : 1);
   playSfx(perfect ? 'found' : 'click');
   toast('🐾 ' + (perfect
-    ? tr('Preso al volo! Prossimi 3 scavi con più probabilità di reperto', 'Caught it perfectly! Better odds on your next 3 digs')
-    : tr('Bel riporto! Prossimo scavo con più probabilità', 'Nice fetch! Better odds on your next dig')));
+    ? tr('Preso! 3 scavi più fortunati', 'Caught! 3 luckier digs')
+    : tr('Bel riporto! 1 scavo più fortunato', 'Nice fetch! 1 luckier dig')));
   pl.phase = 'return'; pl.t = 0;
 }
 /* E durante la finestra di cattura: SEMPRE prioritario su ogni altra azione (chiamato in cima
@@ -746,7 +746,7 @@ function landingSpot() {
 }
 export function toggleMount() {
   if (CAVE.active || INT.active) { toast('🕳️ ' + tr('Qui non si vola: scendi e cammina', 'No flying here: get down and walk')); return false; }
-  if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario per volare', 'You need a legendary cave companion to fly')); return false; }
+  if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario', 'Needs a legendary cave companion')); return false; }
   if (S.mounted) {                          // sto per SCENDERE: serve una casella CALPESTABILE
     const spot = landingSpot();
     if (!spot) { toast('🐾 ' + tr('Qui non si scende: cerca un punto libero', "Can't land here: find open ground")); playSfx('nope'); return false; }
@@ -812,7 +812,7 @@ export function shipToMuseum() {
   if (S.coins < cost && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + cost); return false; }
   if (!isDebug()) S.coins -= cost;
   addToMuseumJob(S.day + 1); // spedizione: pronti DOMANI (o quando arriva, se c'è già un lotto)
-  playSfx('coin'); toast('📮 ' + tr('Spediti al Museo! Pronti domani, li ritiri lì.', 'Shipped to the Museum! Ready tomorrow, collect them there.'));
+  playSfx('coin'); toast('📮 ' + tr('Spediti! Ritiro domani al Museo', 'Shipped! Pick up tomorrow at the Museum'));
   save(); updateHUD();
   return true;
 }
@@ -958,7 +958,7 @@ export function siteRarWeights(dist) {
 export function digSite() {
   const s = nearbySite(); if (!s) return;
   const rem = siteRemaining(s);
-  if (rem <= 0) { toast(tr('Sito esaurito: solo ossa sbriciolate', 'Site exhausted: only crumbled bones')); return; }
+  if (rem <= 0) { toast(tr('Sito esaurito', 'Site dug out')); return; }
   if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
   if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.55, () => {
@@ -1166,12 +1166,12 @@ export function act() {
      come premere E un attimo troppo presto. Senza questo un E impaziente durante l'inseguimento
      apriva il pannello del compagno SOPRA al round ancora in corso. */
   if (COMP.play) return;
-  if (isMounted()) { toast('🐾 ' + tr('In volo non si scava: scendi dallo zaino', "Can't dig while flying: land from the bag")); return; } // la cavalcatura serve solo a spostarsi
+  if (isMounted()) { toast('🐾 ' + tr('In volo non si scava', "No digging while flying")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
-    if (r === 'nopick') toast('⛏️ ' + tr('Serve il piccone per staccare i cristalli (Negozio)', 'You need the pickaxe to break the crystals (Shop)'));
+    if (r === 'nopick') toast('⛏️ ' + tr('Serve il piccone (Negozio)', 'Needs the pickaxe (Shop)'));
     else if (r === 'noenergy') toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn'));
-    else if (r === 'bagfull') { toast('🎒 ' + tr('Zaino pieno: il cristallo resta qui, torna a prenderlo', 'Bag full: the crystal stays here, come back for it')); playSfx('nope'); }
+    else if (r === 'bagfull') { toast('🎒 ' + tr('Zaino pieno: il cristallo resta qui', 'Bag full: the crystal stays here')); playSfx('nope'); }
     else if (r === false) toast(tr('Avvicinati a un giacimento luminoso', 'Get close to a glowing deposit'));
     return;
   }
@@ -1203,7 +1203,7 @@ export function act() {
       else if (cell.itemId) {
         /* quello appeso sta una casella più in su: si tocca da sotto, stando al muro */
         const pgy = cell.wall ? cell.gy - 1 : cell.gy;
-        if (pickUpFurniture(cell.room, cell.gx, pgy)) toast('🎨 ' + furnLabel(cell.itemId) + ' ' + keys(tr('in mano: cammina e {act} per ripiazzarlo', 'in hand: walk and {act} to place it')));
+        if (pickUpFurniture(cell.room, cell.gx, pgy)) toast('🎨 ' + furnLabel(cell.itemId) + ' ' + keys(tr('in mano: {act} per posarlo', 'in hand: {act} to place it')));
       } else if (cell.unlocked) openFurnitureTray(cell.room, cell.gx, cell.gy);
     }
     return;
@@ -1258,7 +1258,7 @@ export function useWonder(lm) {
   const give = (rar, src, n, msg) => {
     let got = 0;
     for (let i = 0; i < n; i++) { const raw = makeRaw(zid, dist, rar, src); if (addFossil(raw, lm.x, lm.y)) got++; }
-    playSfx('found'); return msg + (got < n ? tr(' (zaino pieno: il resto è a terra)', ' (bag full: the rest is on the ground)') : '');
+    playSfx('found'); return msg + (got < n ? tr(' (zaino pieno: resto a terra)', ' (bag full: rest on the ground)') : '');
   };
   let out = null;
   switch (t) {
@@ -1286,7 +1286,7 @@ export function useWonder(lm) {
       out = '🧊 ' + tr('Liberi ', 'You free ') + partName(part) + tr(' di ', ' of ') + sp.name + tr(' dal ghiaccio!', ' from the ice!');
       break;
     }
-    case 'mushring': addBuff('digX2', 10); out = '🍄 ' + tr('Spore fortunate: 10 scavi con più probabilità di reperto', 'Lucky spores: 10 digs with better odds of a find'); playSfx('found'); break;
+    case 'mushring': addBuff('digX2', 10); out = '🍄 ' + tr('Spore fortunate: 10 scavi più fortunati', 'Lucky spores: 10 luckier digs'); playSfx('found'); break;
     case 'totem': addBuff('xpX2', 10); out = '🗿 ' + tr('Benedizione: 10 scavi con XP doppia', 'Blessing: 10 digs with double XP'); playSfx('found'); break;
     case 'willow': out = 'sleep'; break;                 // gestito da chi chiama (dorme)
     case 'menhir': case 'icespire': out = 'reveal'; break; // rivelazione mappa (vedi ui/map)
@@ -1379,7 +1379,7 @@ export function museumCollect() {
   }
   /* se qualcosa è rimasto al museo la commessa resta aperta: si torna a ritirarlo */
   S.museumJob = left.length ? { items: left, ready: S.day, prepOk } : null;
-  if (left.length) toast('🎒 ' + tr('Zaino pieno: ', 'Bag full: ') + left.length + tr(' pezzi restano al Museo, torna a ritirarli', ' pieces stay at the Museum, come back for them'));
+  if (left.length) toast('🎒 ' + tr('Zaino pieno: ', 'Bag full: ') + left.length + tr(' pezzi restano al Museo', ' pieces wait at the Museum'));
   /* proposta di RESTAURO: solo se il lotto aveva ≥ PREP_RARE_MIN raro+, sul MIGLIORE doppione
      raro+ che ti è tornato (quello che poi vendi). Uno solo, e si può saltare (lo decide la UI). */
   let prepCand = null;
@@ -1395,7 +1395,7 @@ export function sleepBlocked() { return !canSleep(); }
 /* dormire di GIORNO → ci si sveglia di NOTTE (stesso giorno);
    dormire di NOTTE → alba del giorno dopo. Poi va passata una metà sveglio. */
 export function restInn() {
-  if (!canSleep()) { toast(tr('Prima devi passare sveglio almeno mezza giornata', 'Spend at least half a day awake first')); return false; }
+  if (!canSleep()) { toast(tr('Troppo presto per dormire', 'Too soon to sleep')); return false; }
   const night = isNight();
   if (night) { S.day++; S.tod = 0.02; }   // notte → alba del giorno dopo
   else { S.tod = 0.60; }                   // giorno → notte fonda dello stesso giorno
@@ -1421,7 +1421,7 @@ export function sleepAtHome(room) {
   if (!restInn()) return false;
   S.restFree = bonus;
   if (bonus) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + bonus + tr(' fatiche non costano energia', ' efforts cost no energy'));
-  else toast('😴 ' + tr('Hai dormito, ma la stanza è spoglia: nessun riposo in più', 'You slept, but the room is bare: no extra rest'));
+  else toast('😴 ' + tr('Dormito. Stanza spoglia: niente bonus', 'Slept. Bare room: no bonus'));
   save(); updateHUD();
   return true;
 }
@@ -1440,7 +1440,7 @@ export function snackPrice() { snackDayReset(); return SNACK_BASE + SNACK_STEP *
 export function buyEnergy() {
   snackDayReset();
   if (snacksLeftToday() <= 0 && !isDebug()) {
-    toast(tr('Il fornaio ha finito i ristori per oggi: torna domani', 'The baker is out of snacks for today: come back tomorrow'));
+    toast(tr('Ristori finiti: torna domani', 'Snacks sold out: come back tomorrow'));
     return;
   }
   const cost = snackPrice();
@@ -1449,7 +1449,7 @@ export function buyEnergy() {
   playSfx('coin');
   S.snacks = (S.snacks || 0) + 1;
   /* non è energia subito: lo si mangia dallo zaino. Il tasto passa da {key:} — sul telefono non esiste */
-  toast('🍞 ' + keys(tr('Ristoro nello zaino{key:I}: +15 ⚡ quando lo mangi', 'Snack in your bag{key:I}: +15 ⚡ when you eat it')));
+  toast('🍞 ' + keys(tr('Ristoro nello zaino{key:I}: +15 ⚡', 'Snack in your bag{key:I}: +15 ⚡')));
   save(); updateHUD();
 }
 export function eatSnack() {

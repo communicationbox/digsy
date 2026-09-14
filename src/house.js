@@ -173,7 +173,7 @@ export function buyFurniture(id, price) {
   if (S.coins < costo && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + costo); return false; }
   if (!isDebug()) S.coins -= costo;
   S.furnOwned.push(id);
-  playSfx('coin'); toast('🎨 ' + tr('Comprato! È nel vassoio: piazzalo in casa', 'Bought! It\'s in your tray: place it at home'));
+  playSfx('coin'); toast('🎨 ' + tr('Comprato! È nel vassoio', 'Bought! It\'s in your tray'));
   save(); updateHUD();
   return true;
 }

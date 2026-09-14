@@ -134,7 +134,7 @@ addEventListener('keydown', e => {
      vassoio invece di farti uscire dalla stanza col mobile ancora a mezz'aria */
   const inCasa = INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null;
   if ((e.key === 'r' || e.key === 'R') && inCasa && isHolding() && !isModalOpen()) {
-    if (!rotateHold()) { toast('🎨 ' + tr('Questo pezzo è uguale da ogni lato: non si gira', 'This piece looks the same from every side: it does not turn')); e.preventDefault(); return; }
+    if (!rotateHold()) { toast('🎨 ' + tr('Questo pezzo non si gira', 'This piece doesn\'t rotate')); e.preventDefault(); return; }
     /* girato, un pezzo lungo può sbordare dal muro: si riaccosta invece di diventare rosso */
     const hv = holdItem(), t = hv && hv.gx != null ? clampFurn(hv.itemId, hv.rot, hv.gx, hv.gy) : null;
     if (t) setHoldTarget(t.gx, t.gy);
@@ -339,7 +339,7 @@ if (cv && cv.addEventListener) {
       const mosso = Math.hypot(e.clientX - downX, e.clientY - downY) > 6;
       if (tipo === 'preso' && !mosso) {
         playSfx('ui');
-        toast('🎨 ' + keyText(isTouch() ? tr('Selezionato: tocca ↻ per ruotare, poi tocca dove posarlo', 'Selected: tap ↻ to rotate, then tap where to place it')
+        toast('🎨 ' + keyText(isTouch() ? tr('↻ ruota · tocca dove posarlo', '↻ rotate · tap to place')
           : tr('↻ o R ruota, clic per posare', '↻ or R rotates, click to place')));
         return;
       }
@@ -377,7 +377,7 @@ if (cv && cv.addEventListener) {
     const gtx = Math.floor(w.x / TS), gty = Math.floor(w.y / TS);
     const path = findPath(stx, sty, gtx, gty, sc.blocked, sc.maxLen);
     if (path) setGoal(w.x, w.y - FOOT_DY, path);      // i PIEDI vanno sulla casella toccata
-    else toast('🚶 ' + tr('Troppo lontano, o non c\'è strada da qui', 'Too far, or no way through from here'));
+    else toast('🚶 ' + tr('Troppo lontano o senza strada', 'Too far or no path'));
   });
   /* toccare il joystick o premere un tasto annulla la meta: il comando diretto ha la
      precedenza, sempre (niente personaggio che continua per conto suo) */

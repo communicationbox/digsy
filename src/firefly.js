@@ -95,8 +95,8 @@ export function tryCatchFireflies() {
       /* premio a tema: le lucciole ti GUIDANO a una mappa verso un fossile leggendario */
       const m = r && r.prizeMap;
       if (toast) toast('✨ ' + (m
-        ? tr('Le lucciole ti guidano: una mappa verso un fossile leggendario! ', 'The fireflies guide you: a map to a legendary fossil! ') + '🗺️ ' + dirTo(m.x, m.y)
-        : tr('Missione completata: hai preso le lucciole!', 'Quest complete: you caught the fireflies!')));
+        ? tr('Le lucciole ti portano una mappa leggendaria! ', 'The fireflies bring a legendary map! ') + '🗺️ ' + dirTo(m.x, m.y)
+        : tr('Lucciole prese!', 'Fireflies caught!')));
     }
     save();
   }

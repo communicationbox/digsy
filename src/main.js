@@ -173,9 +173,9 @@ function loop(ts) {
          corso lo leggeva come una perdita di dati, non come una regola del gioco. */
       { const t = questExpiryText(expireQuests(S.day)); if (t) toast(t); }
       /* commissione scaduta: lo si dice, non si scopre tornando al museo */
-      if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
+      if (pruneExpired(S.day)) toast(tr('🏛️ Commissione scaduta', '🏛️ Commission expired'));
       /* l'uovo è pronto: lo si dice appena il giorno scatta, non si scopre tornando al Lab */
-      if (eggReady(S.day)) toast(tr('🥚 Un uovo sta per schiudersi: torna al Lab!', '🥚 An egg is hatching: back to the Lab!'));
+      if (eggReady(S.day)) toast(tr('🥚 Uovo quasi pronto: torna al Lab!', '🥚 Egg almost ready: back to the Lab!'));
     }
     if (CAVE.active) { // dentro una grotta: area buia esplorabile
       updateCave(dt, keys, P.speed * gearSpeedMul() * (P.speedMul || 1));

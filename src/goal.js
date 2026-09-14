@@ -58,8 +58,8 @@ export function milestoneGift(n) {
   if (n === 5) return tr('Si è riempito lo stagno.', 'The pond has filled.');
   if (n === 15) return tr('Cespugli e sassi lungo il recinto.', 'Bushes and rocks along the fence.');
   if (n === 30) return tr('Sono spuntate le aiuole fiorite.', 'Flower beds have come up.');
-  if (n === 50) return tr('Alberi in ogni angolo: è un bosco, ormai.', 'Trees in every corner: it is a wood by now.');
-  if (n === aliveTotal()) return tr('Non ne manca nessuna. Il mondo del nonno cammina di nuovo.', 'Not one is missing. Your grandparent\'s world walks again.');
+  if (n === 50) return tr('Alberi ovunque: è un bosco.', 'Trees everywhere: it\'s a forest.');
+  if (n === aliveTotal()) return tr('Tutte! Il mondo del nonno cammina di nuovo.', 'All of them! Grandpa\'s world walks again.');
   return '';
 }
 /* la riga che dice DOVE PORTA tutto questo. Serve dall'inizio: senza, "0 / 66" è un contatore
@@ -81,8 +81,8 @@ export function goalTitle() { return tr('Riportate in vita', 'Brought back to li
 export function goalHint(st) {
   if (goalDone(st)) return tr('Tutte. Il mondo del nonno cammina di nuovo.', 'All of them. Your grandparent\'s world walks again.');
   if (alive(st) === 0) {
-    return tr('Completa una teca al Museo, poi risveglia la specie al Lab.',
-      'Complete a Museum case, then awaken the species at the Lab.');
+    return tr('Teca completa al Museo, poi risveglio al Lab.',
+      'Full case at the Museum, then awaken at the Lab.');
   }
   const m = toNextMilestone(st);
   return m === 1
