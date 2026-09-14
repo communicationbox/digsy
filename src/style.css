@@ -696,7 +696,7 @@ body:has(#cmd.on) #touch{display:none!important}
 .sp-title em{display:block;font-style:normal;color:var(--c-amber);font-size:.5em;letter-spacing:14px;margin-top:2px;
   text-shadow:0 2px 0 var(--c-clay-sh),0 4px 0 var(--c-dark)}
 .sp-sub{color:#b9c6ce;font-size:12px;letter-spacing:4px;margin:14px 0 22px;text-transform:uppercase}
-#sp-digsy{width:120px;height:108px;image-rendering:pixelated}
+#sp-digsy{width:120px;height:156px;image-rendering:pixelated}
 /* menu del titolo */
 /* GAP fra i pulsanti: 10px erano pochi. Su un menu che si tocca col pollice, due bersagli
    quasi attaccati si sbagliano — e qui i vicini sono cose come "Nuova partita" accanto a

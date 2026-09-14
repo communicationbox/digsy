@@ -282,8 +282,8 @@ function startAnim() {
   const c2 = dc.getContext('2d'); c2.imageSmoothingEnabled = false;
   (function anim(ts) {
     if (!on) { animOn = false; return; }
-    c2.clearRect(0, 0, 40, 36);
-    drawHero(c2, 4, 2, 'right', Math.floor((ts || 0) / 180) % 2);
+    c2.clearRect(0, 0, 40, 52);
+    drawHero(c2, 4, 17, 'right', Math.floor((ts || 0) / 180) % 2);   // 17 sopra: creste e cappelli salgono fino a 14 pixel (a 2 si tagliavano)
     requestAnimationFrame(anim);
   })(0);
 }
