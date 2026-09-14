@@ -2211,11 +2211,11 @@ sprites.applyLook();
       && cm18.rewardParts(off18).every(p => typeof p === 'string' && p.length));
     check('e restano leggibili anche in fila (compatibilità)', cm18.rewardText(off18).includes('·'));
     check('il pannello li impila', /pn-prizes/.test(usrc18));
-    /* MOBILE: il bottone di una riga va SOTTO, largo. A destra strozzava il testo in una
-       colonna di tre parole e la riga diventava alta il doppio. */
+    /* MOBILE: coi testi corti il bottone resta a destra (sotto e largo, il Negozio non finiva mai),
+       ma con un'area di tocco da dito e il testo che può andare a capo */
     const css18 = fs18.readFileSync('src/style.css', 'utf8');
-    check('su telefono i bottoni delle righe vanno a tutta larghezza',
-      /\.row \.rt \.btn\{width:100%/.test(css18.replace(/\s+/g, m => m.includes('\n') ? '\n' : ' ')));
+    check('su telefono i bottoni delle righe restano a destra, grandi da toccare',
+      /\.row \.rt\{margin-left:auto/.test(css18) && /\.row \.rt \.btn\{min-height:40px/.test(css18));
   }
 
   /* le NOTE DI VERSIONE sono testo di gioco: i segnaposto dei tasti vanno risolti anche lì.

@@ -552,7 +552,7 @@ export function openFurnitureTray(room, gx, gy) {
       } else {
         /* in una ricerca globale si dice anche DI CHE SCHEDA è: il pezzo trovato va riconosciuto */
         const dove = (trayQuery && (trayGlobal || trayTab === 'tutti')) ? ' · ' + (trayTabOf(id) === 'zona' ? tr('stile di zona', 'zone style') : furnThemeLabel(trayTabOf(id))) : '';
-        l += `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}${dove}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi in mano', 'Pick it up')}</button></div></div>`;
+        l += `<div class="row"><canvas class="pv" width="44" height="40" data-fpv="${id}"></canvas><div><div class="nm">${furnLabel(id)}</div><div class="sub">${furnSizeLabel(id)}${dove}</div></div><div class="rt"><button class="btn amber" data-place="${id}">${tr('Prendi', 'Take')}</button></div></div>`;
       }
     }
     lista.innerHTML = withIcons(l); hydratePv(lista);

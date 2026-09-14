@@ -31,8 +31,7 @@ function enterCheat() {
   if (isCheatLock()) return;
   stashCheatSnapshot();               // snapshot pre-cheat PERSISTITO (solo la prima volta)
   setCheatLock(true);
-  toast('🐞 ' + tr('Comandi attivi: giochi e SALVI normalmente. `vanilla` annulla i cheat e torna a com\'era.',
-                   'Commands on: you play and SAVE normally. `vanilla` undoes the cheats and restores how it was.'));
+  toast('🐞 ' + tr('Cheat attivi · `vanilla` per tornare com\'era', 'Cheats on · `vanilla` to undo'));
 }
 function exitCheat() {
   const snap = readCheatSnapshot();

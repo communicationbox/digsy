@@ -242,12 +242,14 @@ kbd + .pxi{margin-left:2px}
 .pn-stat .k{font-size:12px;font-weight:700;color:var(--c-wood-2);min-width:0}
 .pn-stat .k small{display:block;font-size:10px;font-weight:400;color:#8a755a;margin-top:1px}
 .pn-stat .v{font-size:15px;font-weight:800;color:#6b4a22;flex:none;font-variant-numeric:tabular-nums}
-/* MOBILE: il bottone di una riga va SOTTO, largo. Restando a destra strozzava il testo in una
-   colonna di tre parole e la riga diventava alta il doppio (visto in foto su telefono). */
+/* MOBILE: coi testi ridotti a due-tre parole il bottone torna A DESTRA della riga. Sotto e largo
+   quanto il pannello, ogni articolo del Negozio diventava alto il doppio e la lista non finiva
+   mai. Se il testo è davvero lungo la riga va a capo da sola. */
 @media(max-width:520px),(pointer:coarse){
-  .row{flex-wrap:wrap}
-  .row .rt{margin-left:0;width:100%;text-align:left}
-  .row .rt .btn{width:100%;justify-content:center}
+  .row{flex-wrap:nowrap}
+  .row > div:not(.rt){flex:1 1 auto;min-width:0}
+  .row .rt{margin-left:auto;flex:none}
+  .row .rt .btn{min-height:40px;min-width:72px;justify-content:center}
 }
 
 /* TUTORIAL = LA NOTA DEL NONNO.
@@ -1543,3 +1545,5 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
   repeating-linear-gradient(90deg,#1e1a14 0 1px,transparent 1px 8px) 0 6px/100% 6px no-repeat,
   linear-gradient(#e3b24e,#e3b24e) 0 4px/100% 10px no-repeat,
   repeating-linear-gradient(0deg,rgba(200,90,120,.25) 0 6px,transparent 6px 12px),repeating-linear-gradient(90deg,rgba(200,90,120,.25) 0 6px,transparent 6px 12px),#f0dce2}
+/* carta del mondo su telefono stretto: il contatore delle meraviglie finiva SOTTO il cartiglio del titolo */
+@media(max-width:520px){ #mp-sub{position:static;display:block;text-align:center;margin:4px 0 0} .mp-hd{flex-direction:column;align-items:center} }

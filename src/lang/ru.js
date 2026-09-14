@@ -13,6 +13,7 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "Cheats on · `vanilla` to undo": "Читы включены · `vanilla` — отменить",
   "Signed in elsewhere: game kept here.": "Вход с другого устройства: игра сохранена здесь.",
   "Not rebuilt yet. Dig in ": "Ещё не восстановлен. Копай в ",
   " and bring finds to the Museum.": " и неси находки в Музей.",
@@ -233,8 +234,7 @@ export const RU = {
   'Cave': 'Пещера',
 
   /* ---- console dei comandi ---- */
-  'Commands on: you play and SAVE normally. `vanilla` undoes the cheats and restores how it was.':
-    'Команды включены: игра идёт и СОХРАНЯЕТСЯ как обычно. `vanilla` отменяет читы и возвращает как было.',
+
   'Dig site': 'Место раскопок',
   'Wreck (E to search)': 'Обломки (E — обыскать)',
   'Coins: ': 'Монеты: ',
@@ -1542,7 +1542,7 @@ export const RU = {
 
 
 
-  'Pick it up': 'Взять в руки',
+  'Take': 'Взять',
   'Drag it where you want · ↻ to rotate': 'Перетащи куда хочешь · ↻ чтобы повернуть',
 
 
