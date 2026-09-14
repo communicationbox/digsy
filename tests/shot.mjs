@@ -121,7 +121,7 @@ async function main() {
       if(G.cmd) G.cmd('godmode').then(function(){ return G.debug(false); }).then(function(){ if(G.openWonderBook) G.openWonderBook(new URLSearchParams(location.search).get('tipo') || 'oasis'); }); }
     /* 'museo-sala' = la galleria camminabile (pos=atrio|sala|grotte), con le teche piene */
     else if (${JSON.stringify(vista)} === 'museo-sala') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
-      if(G.cmd) G.cmd('godmode').then(function(){ return G.debug(false); }).then(function(){ return G.enterRoom('museum'); }).then(function(){
+      if(G.cmd) G.cmd('godmode').then(function(){ return G.cmd('godamber'); }).then(function(){ return G.debug(false); }).then(function(){ return G.enterRoom('museum'); }).then(function(){
         var pos = new URLSearchParams(location.search).get('pos') || 'sala';
         var xy = pos === 'atrio' ? [30, 55] : pos === 'grotte' ? [30, 9] : pos === 'targa' ? [15, 44] : [15, 52];
         return G.intPos(xy[0], xy[1]);

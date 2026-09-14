@@ -101,7 +101,7 @@ export function drawCaseBack(g, bx, by, col, full, time) {
   g.rect(bx + 12, Y + 1, 8, 2, '#fff3c8');
 }
 export function drawCaseFront(g, bx, by, rarCol, full, time, amber) {
-  const X = bx - 8, Y = by - 54, W = 48, H = 64, gold = full ? '#e8c34a' : '#a8842a', goldL = full ? '#fff0a0' : '#d8b23c';
+  const X = bx - 8, Y = by - 54, W = 48, H = 64, gold = amber ? '#e0873a' : full ? '#e8c34a' : '#a8842a', goldL = amber ? '#ffc27a' : full ? '#fff0a0' : '#d8b23c';   // la teca d'ambra ha il telaio arancio
   /* vetro: riflessi diagonali */
   for (let i = 0; i < 12; i++) g.rect(X + W - 14 - i * 2, Y + 4 + i * 3, 2, 3, 'rgba(255,255,255,.16)');
   g.rect(X + 4, Y + 4, 2, H - 10, 'rgba(255,255,255,.12)');
@@ -113,7 +113,7 @@ export function drawCaseFront(g, bx, by, rarCol, full, time, amber) {
   g.rect(bx + 4, by + 22, 24, 8, '#241a10'); g.rect(bx + 5, by + 23, 22, 6, '#3a3a44'); g.rect(bx + 7, by + 25, 18, 2, rarCol);
   if (amber) {
     /* TECA D'AMBRA: vetro caldo e scintille arancio, si riconosce da lontano in mezzo alle altre */
-    g.rect(X + 3, Y + 3, W - 6, H - 6, 'rgba(255,170,60,.16)');
+    g.rect(X + 3, Y + 3, W - 6, H - 6, 'rgba(255,160,50,.26)');
     const ta = Math.floor(time / 300) % 4;
     for (const [sx, sy, k] of [[X + 8, Y + 14, 0], [X + W - 9, Y + 30, 1], [X + 14, Y + H - 14, 2], [X + W - 14, Y + 8, 3]]) if (k === ta) { g.rect(sx - 2, sy, 5, 1, '#ffb347'); g.rect(sx, sy - 2, 1, 5, '#ffb347'); g.px(sx, sy, '#fff4d0'); }
   }

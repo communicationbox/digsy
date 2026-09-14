@@ -278,6 +278,14 @@ export const COMMANDS = {
     } },
   goddna: { type: 'action', cheat: true, help: 'goddna — DNA di tutte le specie, infinito',
     run: () => { giveAllDna(); return '🧬 ' + tr('DNA infinito per tutte le specie', 'Infinite DNA for all species'); } },
+  /* AMBRA: riempie la teca d'ambra di metà delle specie con la teca completa (per vederle accanto alle altre) */
+  godamber: { aliases: ['ambra', 'amber'], type: 'action', cheat: true, help: "godamber — teca d'ambra a metà delle specie complete",
+    run: () => {
+      if (!S.amber) S.amber = {}; if (!S.amberDone) S.amberDone = [];
+      const full = Object.keys(S.museum || {}).filter(id => (S.museum[id] || []).length === PARTS.length);
+      full.forEach((id, i) => { if (i % 2) return; S.amber[id] = PARTS.map(p => p.id); if (!S.amberDone.includes(id)) S.amberDone.push(id); });
+      return '✨ ' + tr("Teche d'ambra: ", 'Amber cases: ') + S.amberDone.length;
+    } },
   goditem: { type: 'action', cheat: true, help: 'goditem — ogni pezzo di ogni specie, identificato',
     run: () => { giveAllItems(); return '🦴 ' + tr('Tutti i fossili nello zaino', 'All fossils in your bag'); } },
   godfurn: { aliases: ['furniture', 'arredo'], type: 'action', cheat: true,
