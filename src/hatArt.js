@@ -389,15 +389,22 @@ export function buildHat(id) {
 }
 
 /* fin dove il cappello copre la testa: sopra questa riga i capelli non si disegnano.
-   È l'ultima riga in cui il cappello, di fronte, copre il centro della fronte (colonne 10..21);
-   chi lascia vedere i capelli (coroncine, maschera, occhialoni) lo dichiara a mano. */
+   È l'ultima riga in cui il cappello copre il centro della testa (colonne 10..21), presa nella vista
+   dove finisce PIÙ IN ALTO: la soglia vale per tutte e tre le viste, e presa di fronte (dove la tesa
+   è più spessa) di profilo lasciava una riga di pelle fra la tesa e i capelli (segnalato con foto).
+   Dove il cappello scende di più, i capelli sotto restano coperti dal cappello stesso, disegnato dopo.
+   Chi lascia vedere i capelli (coroncine, maschera, occhialoni) lo dichiara a mano. */
 const CROWN_OVERRIDE = { flowercrown: -2, laurelGold: -2, snorkel: -1, gogglesGold: -1, hood: 17 };
 export function hatCrown(id, hat) {
   if (id in CROWN_OVERRIDE) return CROWN_OVERRIDE[id];
-  let last = -1;
-  for (const [y, r] of hat.down) {
-    let cov = 0; for (let x = 10; x <= 21; x++) if (r[x] !== '.') cov++;
-    if (cov >= 10 && y > last) last = y;
+  let crown = Infinity;
+  for (const v of ['down', 'side', 'up']) {
+    let last = -1;
+    for (const [y, r] of hat[v]) {
+      let cov = 0; for (let x = 10; x <= 21; x++) if (r[x] !== '.') cov++;
+      if (cov >= 10 && y > last) last = y;
+    }
+    crown = Math.min(crown, last);
   }
-  return last;
+  return crown;
 }

@@ -1753,6 +1753,22 @@ sprites.applyLook();
     }
   }
   check('capelli mai sopra la corona del cappello', clip === 0);
+  /* niente riga di pelle fra la tesa e i capelli (segnalato con foto, di profilo): subito sotto il
+     cappello, dove il taglio ha capelli, deve vedersi capello e non la testa nuda */
+  let gaps = 0; const gapAt = [];
+  for (const hst of Object.keys(sprites.HATS)) for (const hair of Object.keys(sprites.HAIRS)) {
+    if (hair === 'none' || hst === 'hood') continue;   // il cappuccio incornicia il viso: la pelle lì è voluta
+    S.look.hatStyle = hst; S.look.hairStyle = hair; sprites.applyLook();
+    for (const [dir, v] of [['down', 'down'], ['up', 'up'], ['right', 'side']]) {
+      const hat = sprites.HATS[hst][v]; let B = -99;
+      for (const [y, r] of hat) { let cov = 0; for (let x = 10; x <= 21; x++) if (r[x] !== '.') cov++; if (cov >= 10) B = Math.max(B, y); }
+      const hr = sprites.HAIRS[hair][v].find(([y]) => y === B + 1); if (!hr) continue;
+      const px2 = {}; const rec = { fillStyle: '', fillRect(x, y) { px2[x + ',' + y] = this.fillStyle; }, clearRect() {}, save() {}, restore() {}, translate() {}, scale() {} };
+      sprites.drawHero(rec, 0, 0, dir, 0);
+      for (let x = 10; x <= 21; x++) if (hr[1][x] !== '.' && px2[x + ',' + (B + 1)] === sprites.PAL.F) { gaps++; gapAt.push(hst + '/' + hair + '/' + v); break; }
+    }
+  }
+  check('niente pelle fra cappello e capelli (' + gaps + (gaps ? ': ' + gapAt.slice(0, 4).join(' ') : '') + ')', gaps === 0);
   S.look.hairStyle = 'short'; S.look.hatStyle = 'explorer'; sprites.applyLook();
 }
 
