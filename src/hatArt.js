@@ -20,9 +20,7 @@ const TONES = {
   H: ['L', 'H', 'h'], J: ['J', 'J', 'J'], G: ['Y', 'G', 'g'], Y: ['Y', 'Y', 'G'],
   W: ['W', 'W', 'V'], Q: ['Q', 'Q', 'q'], R: ['R', 'R', 'r'], D: ['W', 'D', 'd'], K: ['K', 'K', 'K'],
   A: ['M', 'A', 'a'],
-  B: ['B', 'B', 'b'],
-  /* corpo (bodyArt.js): pelle, maglia, pantaloni, occhi, guance */
-  F: ['N', 'F', 'f'], S: ['T', 'S', 's'], P: ['U', 'P', 'p'], E: ['E', 'E', 'E'], C: ['c', 'c', 'c'],   // cuoio (grembiule del falegname, npcArt.js)   // capelli (hairArt.js): luce, base, ombra del colore scelto
+  B: ['B', 'B', 'b'],   // cuoio (grembiule del falegname, npcArt.js)   // capelli (hairArt.js): luce, base, ombra del colore scelto
 };
 /* contorno per materiale (vince il primo trovato in quest'ordine: il più scuro) */
 const OUTLINE_ORDER = ['H', 'J', 'A', 'B', 'G', 'Y', 'R', 'Q', 'D', 'W'];

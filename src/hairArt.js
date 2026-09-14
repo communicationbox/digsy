@@ -40,9 +40,7 @@ const frontKeep = (fr, sideLen = 9, x0 = 7, x1 = 24) => (x, y) => (x >= x0 && x 
 /* colonna riflessa sulla metà sinistra: le frange disegnate con m(x) restano simmetriche */
 const m = x => Math.min(x, 31 - x);
 /* profilo: il viso sta a destra di fx; dietro si scende fino a back */
-/* davanti a fx comanda l'attaccatura; fra fx-5 e fx c'è l'ORECCHIO (colonne 12-13 del corpo): lì i
-   capelli si fermano alla tempia; dietro scendono fino a back */
-const sideKeep = (fr, back = 11, fx = 15) => (x, y) => x > fx ? y <= fr(x) : x > 11 ? y <= Math.min(back, 7) : y <= back;
+const sideKeep = (fr, back = 11, fx = 15) => (x, y) => x > fx ? y <= fr(x) : y <= back;
 
 const DRAW = {
   none: { down() {}, side() {}, up() {} },
@@ -60,7 +58,7 @@ const DRAW = {
     },
     side(g) {
       mass(g, 15, -2, 11, 10.5);
-      cut(g, (x, y) => sideKeep(x => x > 21 ? 4 : 5, 11, 16)(x, y) && !(y > 7 && x < 7 + (y - 7)));
+      cut(g, (x, y) => sideKeep(x => x > 22 ? 4 : x > 18 ? 5 : 8, 11, 17)(x, y) && !(y > 7 && x < 7 + (y - 7)));
       strands(g, [[14, -1, 22, 3], [11, 1, 9, 9], [16, 2, 18, 6]]);
     },
   },

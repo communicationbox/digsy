@@ -4,7 +4,6 @@ import { S } from './state.js';
 import { buildHat, hatCrown, HAT_IDS } from './hatArt.js';
 import { buildHair, HAIR_IDS } from './hairArt.js';
 import { accLayer } from './npcArt.js';
-import { buildBody, outlineRows } from './bodyArt.js';
 
 /* H/S/P/F (+ombre h/s/p/f) e A/a (capelli) vengono aggiornati da applyLook() */
 export const PAL = {
@@ -19,7 +18,7 @@ export const PAL = {
   'G': '#e8b93c', 'g': '#a8842a', 'Y': '#f8dd82', 'R': '#c65a54', 'D': '#8fe7dd', 'Q': '#5fa04e',
   /* contorni e ombre dei cappelli nativi: J contorno del colore scelto (applyLook), j contorno
      dell'oro, V/v ombra e contorno del bianco, q/r/d ombre di alloro, gemma e vetro */
-  'J': '#6e3a24', 'I': '#3a2616', 'X': '#2e2219', 'c': '#e89a8a', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
+  'J': '#6e3a24', 'I': '#3a2616', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
 };
 /* schiarisce/scurisce un hex, CLAMPATO (k>1 senza clamp sfora il byte e il colore vira, es.
    arancio→verde: bug reale trovato e corretto qui, non solo nell'esperimento HD abbandonato) */
@@ -29,24 +28,41 @@ export function shade(hex, k) {
   const r = cl(((n >> 16) & 255) * k), g = cl(((n >> 8) & 255) * k), b = cl((n & 255) * k);
   return '#' + ((1 << 24) | (r << 16) | (g << 8) | b).toString(16).slice(1);
 }
-function mix(a, b, k) {
-  const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
-  const ch = sh => Math.round(((A >> sh) & 255) * (1 - k) + ((B >> sh) & 255) * k);
-  return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
-}
 export function applyLook() {
   const L = S.look;
   PAL.H = L.hat; PAL.h = shade(L.hat, 0.65); PAL.L = shade(L.hat, 1.45); PAL.J = shade(L.hat, 0.38);
   PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.65); PAL.T = shade(L.shirt, 1.42);
   PAL.P = L.pants; PAL.p = shade(L.pants, 0.68); PAL.U = shade(L.pants, 1.4);
-  PAL.F = L.skin; PAL.f = shade(L.skin, 0.78); PAL.N = shade(L.skin, 1.18); PAL.c = mix(L.skin, '#e0605a', 0.38);
+  PAL.F = L.skin; PAL.f = shade(L.skin, 0.78); PAL.N = shade(L.skin, 1.3);
   PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48); PAL.I = shade(L.hairColor, 0.4);
   PAL.E = L.eyeColor || '#33291f';
 }
 
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
-/* corpo disegnato in nativo da bodyArt.js (testa 0-17, busto 18-25, gambe 26-31, due passi) */
-export const SPR = buildBody();
+/* Tornati al corpo "vecchio" su richiesta esplicita: due tentativi di ridisegno
+   nativo a 32×26 non hanno convinto (il primo con difetti reali di simmetria/
+   dither, il secondo con gli occhi ancora mal posizionati sotto la frangia dei
+   capelli). Questo è il disegno storico (quello mai criticato in questa sessione,
+   commit 3b3ef55) raddoppiato MECCANICAMENTE — ogni pixel diventa un blocco 2×2 —
+   non ridisegnato: stessa scala del mondo (TS=32), stesso identico aspetto di
+   sempre, senza inventare proporzioni nuove che rischiano di sbagliare di nuovo. */
+const bDown = ["..........FFFFFFFFFFFF..........", "..........FFFFFFFFFFFF..........", "........NNFFFFFFFFFFFFFF........", "........NNFFFFFFFFFFFFFF........", "......FFNNFFFFFFFFFFFFFFFF......", "......FFNNFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFEEFFFFFFFFEEFFFF......", "......FFFFEEFFFFFFFFEEFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "........FFffFFFFFFFFffFF........", "........FFffFFFFFFFFffFF........", "........KKFFFFFFFFFFFFKK........", "........KKFFFFFFFFFFFFKK........", "........SSTTSSSSSSSSSSss........", "........SSTTSSSSSSSSSSss........", "......SSSSTTSSSSSSSSSSssss......", "......SSSSTTSSSSSSSSSSssss......", "......SSSSssSSSSSSSSssSSSS......", "......SSSSssSSSSSSSSssSSSS......", "......SSSSSSSSSSSSSSSSSSSS......", "......SSSSSSSSSSSSSSSSSSSS......"];
+/* retro: nuca + zaino */
+const bUp = ["..........FFFFFFFFFFFF..........", "..........FFFFFFFFFFFF..........", "........NNFFFFFFFFFFFFFF........", "........NNFFFFFFFFFFFFFF........", "......FFNNFFFFFFFFFFFFFFFF......", "......FFNNFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFFFFFFFFFFFFFFFFFFF......", "......FFffFFFFFFFFFFFFffFF......", "......FFffFFFFFFFFFFFFffFF......", "........KKFFFFFFFFFFFFKK........", "........KKFFFFFFFFFFFFKK........", "........SSBBBBBBBBBBBBSS........", "........SSBBBBBBBBBBBBSS........", "......SSSSBBBBBBBBBBBBSSSS......", "......SSSSBBBBBBBBBBBBSSSS......", "......SSSSBBbbbbbbbbBBSSSS......", "......SSSSBBbbbbbbbbBBSSSS......", "......SSSSBBBBBBBBBBBBSSSS......", "......SSSSBBBBBBBBBBBBSSSS......"];
+/* profilo (guarda a destra; flip per sinistra): occhio singolo, naso */
+const bSide = ["..........FFFFFFFFFFFF..........", "..........FFFFFFFFFFFF..........", "........NNFFFFFFFFFFFFFF........", "........NNFFFFFFFFFFFFFF........", "........NNFFFFFFFFFFFFFFFF......", "........NNFFFFFFFFFFFFFFFF......", "........FFFFFFFFFFFFFFFFFF......", "........FFFFFFFFFFFFFFFFFF......", "........FFFFFFFFFFFFFFFFFF......", "........FFFFFFFFFFFFFFFFFF......", "........FFFFFFFFFFFFFFEEFFff....", "........FFFFFFFFFFFFFFEEFFff....", "........FFFFFFFFFFFFFFFFFF......", "........FFFFFFFFFFFFFFFFFF......", "........FFffFFFFFFFFFFFFff......", "........FFffFFFFFFFFFFFFff......", "..........KKFFFFFFFFFFKK........", "..........KKFFFFFFFFFFKK........", "..........SSTTSSSSSSSSSSSS......", "..........SSTTSSSSSSSSSSSS......", "........SSSSTTSSSSSSSSSSSSSS....", "........SSSSTTSSSSSSSSSSSSSS....", "........SSssSSSSSSSSSSSSSSSS....", "........SSssSSSSSSSSSSSSSSSS....", "........SSSSSSSSSSSSSSSSSSSS....", "........SSSSSSSSSSSSSSSSSSSS...."];
+/* gambe fronte/retro (aperte/chiuse): U = luce sul davanti della coscia sinistra */
+const lA = ["........UUPPPP....PPppPP........", "........UUPPPP....PPppPP........", "........PPPPPP....PPppPP........", "........PPPPPP....PPppPP........", "........WWWW........WWWW........", "........WWWW........WWWW........"];
+const lB = ["........UUPPPP....PPppPP........", "........UUPPPP....PPppPP........", "......PPPPPP........PPppPP......", "......PPPPPP........PPppPP......", "......WWWW............WWWW......", "......WWWW............WWWW......"];
+/* gambe profilo: falcata (avanti/dietro) e passaggio (unite) */
+const lsA = ["..........UUPPPP....PPppPP......", "..........UUPPPP....PPppPP......", "........PPPPPP........PPppPP....", "........PPPPPP........PPppPP....", "........WWWW............WWWW....", "........WWWW............WWWW...."];
+const lsB = ["............UUPPPPPPppPP........", "............UUPPPPPPppPP........", "............PPPPPPPPppPP........", "............PPPPPPPPppPP........", "............WWWWWWWW............", "............WWWWWWWW............"];
+
+export const SPR = {
+  down: [bDown.concat(lA), bDown.concat(lB)],
+  up: [bUp.concat(lA), bUp.concat(lB)],
+  side: [bSide.concat(lsA), bSide.concat(lsB)],
+};
 
 /* ---------- cappelli: disegnati in nativo da hatArt.js (forme, luce, un solo contorno) ---------- */
 export const HATS = Object.fromEntries(HAT_IDS.map(id => [id, buildHat(id)]));
@@ -190,7 +206,6 @@ export function heroClothes(look, view, frame) {
    cappello (un riccio più largo di una cuffia), il bordo tagliato prende il contorno — senza,
    sporgeva una fetta piatta senza bordo. Calcolato una volta per combinazione. */
 const UNDER_HAT = new Map();
-const BODY_RIM = new Map();
 function hairUnderHat(hairId, hatId, view, hair, hat, crown) {
   const k = hairId + '|' + hatId + '|' + view;
   let out = UNDER_HAT.get(k);
@@ -215,11 +230,7 @@ export function drawHero(tctx, x, y, dir, frame, noHat) {
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
   const flip = dir === 'left';
   const c = heroClothes(S.look, key, frame);
-  const bodyRows = styleLook(SPR[key][frame], c.shirt, c.pants);
-  const ok = key + frame + c.shirt + c.pants;
-  let rim = BODY_RIM.get(ok); if (!rim) { rim = outlineRows(bodyRows); BODY_RIM.set(ok, rim); }
-  blitPairs(rim, x, y, flip, tctx);                        // contorno: segue la sagoma già vestita
-  blit(bodyRows, x, y, flip, tctx);
+  blit(styleLook(SPR[key][frame], c.shirt, c.pants), x, y, flip, tctx);
   if (c.shOv) blitPairs(c.shOv, x, y, flip, tctx);
   if (c.ptOv) blitPairs(c.ptOv, x, y, flip, tctx);
   /* segno di mestiere (solo i personaggi che lo hanno nel look): sul corpo sotto i capelli, sul viso sopra */
