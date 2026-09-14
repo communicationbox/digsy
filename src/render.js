@@ -8,7 +8,7 @@ export { BRUSH };
 import { S, P, cam, dugSet } from './state.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
-import { COMP, companionDrawObj, companionType, companionSpec, companionHelps, companionLightBonus } from './companion.js';
+import { COMP, companionDrawObj, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile, isMounted, PLAY_THROW, PLAY_CATCH, PLAY_PERFECT, boneSiteDug } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
@@ -222,17 +222,6 @@ function drawStatue(sx, sy, time) {
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {
   ctx.save(); ctx.translate(sx, sy); mailboxArt(BRUSH); ctx.restore();
-}
-/* glifo del TIPO del compagno sopra la sua testa (sempre visibile → il potere è "attivo"):
-   un diamantino 8-bit col colore-tema del tipo e nucleo chiaro per staccare dallo sfondo */
-const GLYPH_COL = { terra: ['#b07a3c', '#e6c48a'], acqua: ['#3f9bdc', '#bfe6ff'], albero: ['#5fae4a', '#c8f0b0'], roccia: ['#9aa2ad', '#e2e7ef'], grotta: ['#e0a83c', '#ffe6a6'] };
-function drawCompanionGlyph(type, cx, cy, time) {
-  if (!type) return;
-  /* FASE 2: nativa, blocchi 2×2 al posto del singolo pixel scalato meccanicamente. */
-  const y = cy + (Math.sin(time / 300) < 0 ? -2 : 0);
-  const [c, hi] = GLYPH_COL[type] || GLYPH_COL.terra;
-  rect(cx - 1, y - 2, 2, 2, c); rect(cx - 2, y, 2, 2, c); rect(cx + 2, y, 2, 2, c); rect(cx - 1, y + 2, 2, 2, c); // diamante
-  rect(cx - 1, y, 2, 2, hi);                                                                                     // nucleo chiaro
 }
 /* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — sedere/coda fuori dall'acqua
    che si tuffa e riemerge, zampe palmate che remano, increspature e bollicine. Sostituisce il
@@ -515,7 +504,7 @@ export function creatureSprite(a, view, opts) {
       const [h, d] = proj(v);
       const gx = pad + (h - mnh), gy = pad + (mxy - v.y), k = gx + ',' + gy;
       const cur = buf.get(k);
-      if (!cur || d > cur.d) buf.set(k, { d, col: v.col || '#c8b078', eye: v.k === 'eye' });
+      if (!cur || d > cur.d) buf.set(k, { d, col: v.col || '#c8b078', eye: v.k === 'eye', nearWing: !!v.wing && view === 'side' && v.z > 0 });
     }
     const at = (x, y) => buf.get(x + ',' + y);
     /* altezza del corpo per il ventre chiaro: dall'alto al basso della sagoma, per colonna */
@@ -557,6 +546,19 @@ export function creatureSprite(a, view, opts) {
       g.fillStyle = shade8(buf.get(x + ',' + y).col, 0.3); g.fillRect(nx * S2, ny * S2, S2, S2);
     }
     for (const [x, y, col] of cells) { g.fillStyle = col; g.fillRect(x * S2, y * S2, S2, S2); }
+    /* ALA VICINA a parte (solo cavalcatura, di profilo): si ridisegna SOPRA il pilota, altrimenti l'ala
+       che sta dalla nostra parte sembrava dietro l'omino */
+    if (o.wingFlap != null && view === 'side') {
+      const fcv = document.createElement('canvas'); fcv.width = cw * S2; fcv.height = ch * S2;
+      const fg = fcv.getContext('2d'), near = new Set();
+      for (const [x, y] of cells) if (buf.get(x + ',' + y).nearWing) near.add(x + ',' + y);
+      for (const k of near) { const [x, y] = k.split(',').map(Number); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        const nk = (x + dx) + ',' + (y + dy); if (near.has(nk)) continue;
+        fg.fillStyle = shade8(buf.get(k).col, 0.3); fg.fillRect((x + dx) * S2, (y + dy) * S2, S2, S2);
+      } }
+      for (const [x, y, col] of cells) if (near.has(x + ',' + y)) { fg.fillStyle = col; fg.fillRect(x * S2, y * S2, S2, S2); }
+      cv._front = near.size ? fcv : null;
+    }
     const grid = {}; for (const k of buf.keys()) grid[k] = 1;
     const cellsXY = cells.map(([x, y]) => [x, y]);
     cv._ax = (spanH / 2 + pad) * S2; // ancoraggio orizzontale (centro)
@@ -1063,6 +1065,14 @@ export function drawFlyingMount(sx, sy) {
   seatHero(sx, backTop - 24, P.dir);
   /* SELLA: i due lembi di cuoio che scendono ai fianchi, davanti al cavaliere */
   for (const s2 of [-1, 1]) { const x = s2 < 0 ? sx - 13 : sx + 8; rect(x, backTop - 1, 5, 8, '#20160f'); rect(x + 1, backTop, 3, 6, '#8a5f38'); rect(x + 1, backTop, 3, 1, '#b07c4a'); }
+  /* l'ala dalla nostra parte passa DAVANTI al pilota */
+  if (cv && cv._front) {
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    const x0 = snap(sx - (cv._ax || cvW / 2));
+    if (P.dir !== 'left') { ctx.save(); ctx.translate(x0 + cvW, snap(top)); ctx.scale(-1, 1); ctx.drawImage(cv._front, 0, 0); ctx.restore(); }
+    else ctx.drawImage(cv._front, x0, snap(top));
+    ctx.imageSmoothingEnabled = sm;
+  }
   if (P.moving) { const tx = sx - dir * 22, ty = backTop + 16, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2 * 2, ty, 'rgba(224,206,255,.6)'); px(tx - w2 * 2, ty + 4, 'rgba(198,178,236,.4)'); }
 }
 /* barca vista di PRUA/POPPA (su/giù): scafo compatto e più stretto del profilo. `up`=si allontana. */
@@ -1700,7 +1710,7 @@ export function render(time) {
        FOOT_DY). Veniva disegnato con la base sull'ancora, cioè 26px sopra i suoi piedi veri —
        un resto del mondo a 16px: stando dietro a Digsy davanti a una porta sembrava dentro la
        casa, sulla facciata o sul tetto (segnalato con foto: "il buddy si compenetra"). */
-    const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y + FOOT_DY - cam.y), ctype = companionType(companionSpec());
+    const cxs = snap(COMP.x - cam.x), cys = snap(COMP.y + FOOT_DY - cam.y);
     /* se il player va in barca il compagno lo segue sull'acqua: deve NUOTARE, non camminare */
     const cswim = waterTile(Math.floor(COMP.x / TS), Math.floor((COMP.y + FOOT_DY) / TS));
     /* chiave di profondità: la STESSA di Digsy (ancora + una casella), così i due si ordinano
@@ -1713,7 +1723,6 @@ export function render(time) {
         if (working) { const ph = 1 - j.t / 1.3; if (Math.floor(ph * 4) % 2 === 1) lx = Math.round(Math.sin(Math.PI * ((ph * 4) % 1)) * 6) * (j.wx >= COMP.x ? 1 : -1); }
         drawCreature(compObj, cxs - 16 + lx, cys - 26, cswim);
       }
-      drawCompanionGlyph(ctype, cxs, cys - 32, time);
       drawCompanionWork(cxs, cys, time, compObj);
       drawCompanionPlay(cxs, cys, cam, time);
     } });

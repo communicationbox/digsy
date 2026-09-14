@@ -313,7 +313,7 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out) {
    cavalcatura in volo le batte costruendo quattro pose dello STESSO modello */
 const FLAP_LIFT = [3, 1, -2, 1];
 function wingVox(x0, topY, n, type, mode, colT, out, flap) {
-  const P = (x, y, z, k, cmul) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, cmul || 1.12) });
+  const P = (x, y, z, k, cmul) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, cmul || 1.12), wing: 1 });
   const pairs = Math.max(1, Math.round(n / 2));
   for (let w = 0; w < pairs; w++) for (const dir of [-1, 1]) {
     const wx = x0 + w * U(3), span = type === 'm' ? U(10 - w * 3) : U(5 - w);   // la membrana è un'ala VERA: più larga del corpo
@@ -505,7 +505,10 @@ function buildFromRecipe(spec, mode, opts) {
   }
   const tWing = out.length;
   if (!wings && opts && opts.addWings) wings = opts.addWings;          // cavalcatura: vola anche se la chimera non ha braccia alate
-  if (wings) { wingVox(segsX[0], topYs[0], wings[0], wings[1], mode, colT, out, opts && opts.wingFlap); tagFrom(tWing, 'zampa'); }
+  /* le ali a membrana nascono a METÀ del corpo (dove siede il pilota e dove sta il baricentro), non sul
+     primo segmento: attaccate davanti, l'ala vicina copriva la faccia di chi cavalca */
+  const wi = wings && wings[1] === 'm' && segsX.length > 1 ? Math.floor(segsX.length / 2) : 0;
+  if (wings) { wingVox(segsX[wi], topYs[wi], wings[0], wings[1], mode, colT, out, opts && opts.wingFlap); tagFrom(tWing, 'zampa'); }
   /* collo + teste (ogni testa con lo stile della SUA specie), raccordati */
   const tNeck = out.length;
   const neck = r.neck || 0;
