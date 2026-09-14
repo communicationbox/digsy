@@ -32,9 +32,9 @@ Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende i
 | Comando | Cheat | Effetto |
 |---|:---:|---|
 | `godmode` | ✔ | Sblocca e completa **tutto** (`goditem`+`goddna`+cosmetici+museo+libro+risvegli), infinito, ×5, **volo** (alias `god`) |
-| `godamber` | teca d'ambra accesa a metà delle specie con la teca completa (per vederle al Museo) |
 | `goditem` | ✔ | Ogni pezzo di ogni specie identificato + attrezzi + mezzi + mappe |
 | `goddna` | ✔ | DNA infinito per tutte le specie |
+| `godamber` | ✔ | Teca d'ambra accesa a metà delle specie con la teca completa (alias `ambra`) |
 | `godfurn` | ✔ | Ogni mobile di ogni zona nel vassoio, gratis (alias `furniture`, `arredo`) |
 | `godletters` | ✔ | Tutte le lettere del nonno, finale compreso (alias `letters`, `lettere`) |
 | `achall` | ✖ | Sblocca tutti i traguardi (alias `achievements`, `traguardi`) |
