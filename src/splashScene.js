@@ -73,51 +73,87 @@ function ribs(c) {
   }
 }
 
-/* la scena intera; drawHero viene da fuori (sprites.js), così questo modulo resta disegno puro */
+/* ZOLLE che coprono il cranio: una si stacca a ogni colpo */
+const CLODS = [[90, 49, 20, 14], [72, 42, 22, 16], [53, 38, 22, 17], [34, 40, 22, 18], [19, 46, 18, 15], [58, 55, 34, 10]];   // grandi e sovrapposte: all'inizio il cranio è quasi tutto sotto terra
+function clod(c, x, y, w, h, k) {
+  for (let yy = 0; yy < h; yy++) for (let xx = 0; xx < w; xx++) {
+    const e = ((xx - w / 2) / (w / 2)) ** 2 + ((yy - h / 2) / (h / 2)) ** 2; if (e > 1) continue;
+    c.fillStyle = e > 0.72 ? OUT : yy < h * 0.35 ? D1 : (hash(xx * 31 + yy, k + 50) < 0.12 ? D4 : D2); c.fillRect(x - (w >> 1) + xx, y - (h >> 1) + yy, 1, 1);
+  }
+}
+/* piccone in mano: manico dalla mano alla testa curva */
+function pick(c, hx, hy, tx, ty) {
+  const n = Math.max(1, Math.max(Math.abs(tx - hx), Math.abs(ty - hy)));
+  for (const pass of [0, 1]) for (let i = 0; i <= n; i++) {
+    const x = Math.round(hx + (tx - hx) * i / n), y = Math.round(hy + (ty - hy) * i / n);
+    c.fillStyle = pass ? '#b07c4a' : OUT; c.fillRect(x - (pass ? 0 : 1), y - (pass ? 0 : 1), pass ? 1 : 3, pass ? 1 : 3);
+  }
+  const ang = Math.atan2(ty - hy, tx - hx), nx = -Math.sin(ang), ny = Math.cos(ang);
+  for (const pass of [0, 1]) for (let s2 = -6; s2 <= 6; s2++) {
+    const bend = -(s2 * s2) * 0.06, x = Math.round(tx + nx * s2 + Math.cos(ang) * bend), y = Math.round(ty + ny * s2 + Math.sin(ang) * bend);
+    c.fillStyle = pass ? (Math.abs(s2) > 4 ? '#7f776a' : '#c9c2b2') : OUT; c.fillRect(x - (pass ? 0 : 1), y - (pass ? 0 : 1), pass ? 1 : 3, pass ? 1 : 3);
+  }
+}
+const CYCLE = 13000, STRIKE = 1100, NSTRIKES = CLODS.length;
+
+/* la scena intera; drawHero viene da fuori (sprites.js), così questo modulo resta disegno puro.
+   Un CICLO: sei colpi (ognuno stacca una zolla dal cranio e fa rotolare sassi giù dal cumulo),
+   poi Digsy saltella contento col cranio liberato che luccica, poi la terra torna e si ricomincia. */
 export function drawCornerScene(c, t, drawHero) {
   c.clearRect(0, 0, SCENE_W, SCENE_H);
+  const ct = t % CYCLE, digEnd = NSTRIKES * STRIKE, joyEnd = digEnd + 3200;
+  const hits = ct < digEnd ? Math.floor(ct / STRIKE) : NSTRIKES;              // zolle già staccate
   mound(c);
   ribs(c);
-  skull(c, t);
-  /* DIGSY sopra il cumulo, a destra del cranio, che picchia verso sinistra: carica e colpo */
-  const beat = (t / 900) % 1, strike = beat > 0.6;
-  const hx = 100, hy = moundTop(116) - 31 + (strike ? 2 : 0);   // i piedi (riga 31 dello sprite) sul bordo della terra
-  /* piccone: manico dalla mano alla testa, a sinistra del personaggio */
-  const handX = strike ? hx + 16 - 10 : hx + 16 - 7, handY = strike ? hy + 22 : hy + 15;
-  const headX = strike ? handX - 12 : handX - 2, headY = strike ? handY + 6 : handY - 14;
-  drawHero(c, hx, hy, 'left', 0, false, strike ? 'strike' : 'lift');
-  const n = Math.max(Math.abs(headX - handX), Math.abs(headY - handY));
-  for (let i = 0; i <= n; i++) {
-    const x = Math.round(handX + (headX - handX) * i / n), y = Math.round(handY + (headY - handY) * i / n);
-    c.fillStyle = OUT; c.fillRect(x - 1, y - 1, 3, 3);
+  skull(c, ct > digEnd ? t : -1e9);                                           // luccica solo quando è libero
+  /* zolle ancora sopra; nel ritorno tornano giù a gradini */
+  for (let i = 0; i < NSTRIKES; i++) {
+    const back = ct > joyEnd ? Math.floor((ct - joyEnd) / ((CYCLE - joyEnd) / NSTRIKES)) : -1;
+    if (i >= hits || i <= back) { const [x, y, w, h] = CLODS[i]; clod(c, x, y, w, h, i); }
   }
-  for (let i = 0; i <= n; i++) {
-    const x = Math.round(handX + (headX - handX) * i / n), y = Math.round(handY + (headY - handY) * i / n);
-    c.fillStyle = '#b07c4a'; c.fillRect(x, y, 1, 1);
-  }
-  const ang = Math.atan2(headY - handY, headX - handX), nx = -Math.sin(ang), ny = Math.cos(ang);
-  for (let s = -6; s <= 6; s++) {
-    const bend = -(s * s) * 0.06;
-    const x = Math.round(headX + nx * s + Math.cos(ang) * bend), y = Math.round(headY + ny * s + Math.sin(ang) * bend);
-    c.fillStyle = OUT; c.fillRect(x - 1, y - 1, 3, 3);
-  }
-  for (let s = -6; s <= 6; s++) {
-    const bend = -(s * s) * 0.06;
-    const x = Math.round(headX + nx * s + Math.cos(ang) * bend), y = Math.round(headY + ny * s + Math.sin(ang) * bend);
-    c.fillStyle = Math.abs(s) > 4 ? '#7f776a' : '#c9c2b2'; c.fillRect(x, y, 1, 1);
-  }
-  /* COLPO: polvere e sassolini che rotolano via verso sinistra, fuori dalla finestra */
-  if (strike) {
-    const u = (beat - 0.6) / 0.4;
-    for (let i = 0; i < 7; i++) {
-      const dx = -Math.round((6 + hash(i, 11) * 30) * u), dy = Math.round(-Math.sin(Math.PI * Math.min(1, u * 1.4)) * (4 + hash(i, 12) * 10) + u * u * 14);
-      const x = headX - 4 + dx, y = headY + 2 + dy;
-      c.fillStyle = i % 3 ? D1 : PEB2; c.fillRect(x, y, 2, 2);
+  const hx = 100, base = moundTop(116) - 31;
+  if (ct < digEnd) {
+    const u = (ct % STRIKE) / STRIKE;
+    const stage = u < 0.5 ? 'carica' : u < 0.62 ? 'fendente' : 'impatto';
+    const hy = base + (stage === 'impatto' ? 2 : stage === 'carica' ? -1 : 0);
+    /* il piccone ha una LUNGHEZZA sola e colpisce sempre il muso, accanto a Digsy: la zolla lontana
+       la fa saltare la crepa che corre lungo l'osso (un manico lungo quanto il cranio era una spada) */
+    const handX = hx + (stage === 'carica' ? 9 : stage === 'fendente' ? 6 : 5), handY = hy + (stage === 'carica' ? 14 : stage === 'fendente' ? 17 : 22);
+    const head = stage === 'carica' ? [handX + 2, handY - 15] : stage === 'fendente' ? [handX - 12, handY - 8] : [handX - 11, handY + 5];
+    drawHero(c, hx, hy, 'left', 0, false, stage === 'carica' ? 'lift' : 'strike');
+    pick(c, handX, handY, head[0], head[1]);
+    if (stage === 'impatto') {
+      const k = (u - 0.62) / 0.38;
+      if (k < 0.25) { c.fillStyle = '#fff6c8'; c.fillRect(head[0] - 6, head[1] - 1, 5, 3); c.fillRect(head[0] - 5, head[1] - 3, 3, 7); }
+      /* la zolla che si stacca vola via e i sassi rotolano giù dal cumulo, rimbalzando */
+      const [cx0, cy0, cw, ch] = CLODS[Math.floor(ct / STRIKE)];
+      /* CREPA luminosa che corre sull'osso dal punto colpito alla zolla */
+      const cr = Math.min(1, k * 2.5), ex = head[0] + (cx0 - head[0]) * cr, ey = head[1] + (cy0 - head[1]) * cr;
+      const steps = Math.max(1, Math.round(Math.abs(ex - head[0])));
+      for (let i = 0; i <= steps; i++) { const x = Math.round(head[0] + (ex - head[0]) * i / steps), y = Math.round(head[1] + (ey - head[1]) * i / steps + ((i >> 1) % 2)); c.fillStyle = k < 0.5 ? '#fff6c8' : B3; c.fillRect(x, y, 1, 1); }
+      if (k > 0.35) { const k2 = (k - 0.35) / 0.65; clod(c, Math.round(cx0 - k2 * 26), Math.round(cy0 - Math.sin(Math.PI * Math.min(1, k2 * 1.3)) * 12 + k2 * k2 * 30), Math.max(3, cw - Math.round(k2 * 8)), Math.max(3, ch - Math.round(k2 * 6)), 9); }
+      for (let i = 0; i < 6; i++) {
+        const sx = cx0 - Math.round((10 + hash(i, 21) * 50) * k), ground = moundTop(Math.max(0, Math.min(SCENE_W - 1, sx))) - 2;
+        const sy = Math.min(ground, Math.round(cy0 - Math.abs(Math.sin(k * Math.PI * (1.5 + hash(i, 22)))) * (10 + hash(i, 23) * 8) * (1 - k) + k * 40));
+        c.fillStyle = OUT; c.fillRect(sx - 1, sy - 1, 4, 4); c.fillStyle = i % 2 ? PEB2 : D1; c.fillRect(sx, sy, 2, 2);
+      }
+      for (let i = 0; i < 16; i++) {                                          // polvere a puntini che si allarga e si dirada
+        if (hash(i, 41) < k * 0.9) continue;
+        const ang = hash(i, 42) * Math.PI * 2, r = 3 + k * (8 + hash(i, 43) * 10);
+        c.fillStyle = i % 3 ? '#e6d6b2' : '#c9b48c'; c.fillRect(Math.round(cx0 + Math.cos(ang) * r), Math.round(cy0 - 3 + Math.sin(ang) * r * 0.6 - k * 5), 1, 1);
+      }
     }
-    if (u < 0.3) { c.fillStyle = '#fff6c8'; c.fillRect(headX - 5, headY - 1, 3, 3); }
-    for (let i = 0; i < 4; i++) {                                     // nuvoletta di polvere
-      const r = Math.round(2 + u * 6), x = headX - 6 - i * 4, y = headY + 4 - Math.round(u * 4) - i;
-      c.fillStyle = `rgba(214,196,160,${(0.55 * (1 - u)).toFixed(2)})`; c.fillRect(x - r, y - 1, r * 2, 3);
+  } else if (ct < joyEnd) {
+    /* CRANIO LIBERATO: saltelli di gioia e stelline */
+    const j = (ct - digEnd) / 3200, hop = Math.abs(Math.sin(j * Math.PI * 4)) * 8;
+    drawHero(c, hx, base - Math.round(hop), 'left', Math.floor(j * 8) % 2, false, 'lift');
+    pick(c, hx + 9, base - Math.round(hop) + 14, hx + 11, base - Math.round(hop) - 1);
+    for (let i = 0; i < 6; i++) {
+      const ph = (j * 3 + i / 6) % 1, sx = 20 + Math.round(hash(i, 31) * 80), sy = 34 - Math.round(ph * 18);
+      if (ph > 0.8) continue;
+      c.fillStyle = i % 2 ? '#fff6c8' : '#ffe27a'; c.fillRect(sx, sy - 2, 1, 5); c.fillRect(sx - 2, sy, 5, 1);
     }
+  } else {
+    drawHero(c, hx, base, 'left', 0, false);
   }
 }
