@@ -955,66 +955,97 @@ export function drawSkates(sx, sy, fr) {
   }
   ctx.restore();
 }
-/* rotella di una bici (anello + mozzo + 2 raggi che girano se in movimento) */
-function bikeWheel(wx, wy, rx, ry, moving) {
-  for (let a = 0; a < 12; a++) px(Math.round(wx + Math.cos(a * Math.PI / 6) * rx), Math.round(wy + Math.sin(a * Math.PI / 6) * ry), '#2a2016');
-  px(wx, wy, '#9a9285');
-  const ang = moving ? frameTime / 70 : Math.PI / 4;
-  px(Math.round(wx + Math.cos(ang) * (rx - 1)), Math.round(wy + Math.sin(ang) * (ry - 1)), '#c9c2b2');
-  px(Math.round(wx - Math.cos(ang) * (rx - 1)), Math.round(wy - Math.sin(ang) * (ry - 1)), '#c9c2b2');
-}
-/* BICI costruita ATTORNO all'omino seduto (posa 'ride' di bodyArt): sella sotto il sedere, pedale
-   sotto la scarpa, manopole dove stanno le mani. Prima la bici era più piccola del corpo e l'omino
-   ci stava in piedi dentro, con le gambe che passavano attraverso il telaio.
-   Coordinate dello sprite (0..31, lo stesso spazio di drawHero), `flip` per la sinistra. */
-function bikeSeg(ox, oy, flip, x0, y0, x1, y1, col, w = 2) {
-  const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
-  for (let i = 0; i <= n; i++) {
-    const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
-    rect(ox + (flip ? 32 - x - w : x), oy + y, w, w, col);
-  }
-}
-function bikeRing(ox, oy, flip, cx, cy, rx, ry, moving) {
+/* BICICLETTA disegnata a celle col contorno scuro sulla sagoma (come il motoscafo): gomme spesse con
+   la luce sul battistrada, cerchio in metallo, otto raggi che girano, telaio rosso a tubi col filo
+   di luce, sella, corona con la catena, pedivella che gira col pedale, manubrio con le manopole e un
+   cestino di vimini davanti. Era fatta di anelli da un pixel e una linea rossa ("la bici è la più
+   indietro"). Coordinate dello sprite (0..31, stesso spazio di drawHero); `flip` per la sinistra. */
+const BK = { tire: '#2a2622', tread: '#4d463e', rim: '#c3cad0', spoke: '#8f989e', hub: '#6d757b', red: '#c94f4a', redHi: '#e27a70', redDk: '#8e3530',
+  seat: '#2f2722', seatHi: '#4a4038', metal: '#9aa2a8', chain: '#5a5550', grip: '#3a2f28', bask: '#c89b5a', baskDk: '#9a7040', baskHi: '#e2bf82', out: '#1d1612' };
+function bikePaint(ox, oy, flip, cells) {
+  const has = new Set(cells.map(([x, y]) => x + ',' + y));
   const X = x => ox + (flip ? 31 - x : x);
-  for (let a = 0; a < 28; a++) { const t = a * Math.PI / 14; rect(X(Math.round(cx + Math.cos(t) * rx)), oy + Math.round(cy + Math.sin(t) * ry), 2, 2, '#2a2016'); }
-  const ang = moving ? frameTime / 70 : Math.PI / 4;
-  for (const k of [0, Math.PI / 2]) {
-    px(X(Math.round(cx + Math.cos(ang + k) * (rx - 2))), oy + Math.round(cy + Math.sin(ang + k) * (ry - 2)), '#c9c2b2');
-    px(X(Math.round(cx - Math.cos(ang + k) * (rx - 2))), oy + Math.round(cy - Math.sin(ang + k) * (ry - 2)), '#c9c2b2');
-  }
-  rect(X(Math.round(cx)), oy + Math.round(cy), 1, 1, '#9a9285');
+  for (const [x, y] of cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
+    if (!has.has((x + dx) + ',' + (y + dy))) rect(X(x + dx), oy + y + dy, 1, 1, BK.out);
+  for (const [x, y, c] of cells) rect(X(x), oy + y, 1, 1, c);
 }
-/* bicicletta di PROFILO: tutta DIETRO l'omino (gambe e mani ci stanno sopra) */
+function bikeCellsSide(moving) {
+  const m = new Map(), put = (x, y, c) => m.set(Math.round(x) + ',' + Math.round(y), [Math.round(x), Math.round(y), c]);
+  const ang = moving ? frameTime / 90 : 0.4;
+  const wheel = (cx, cy) => {
+    for (let a = 0; a < 64; a++) {
+      const t = a * Math.PI / 32, c = Math.cos(t), sn = Math.sin(t);
+      put(cx + c * 6.5, cy + sn * 6.5, c < -0.3 && sn < -0.2 ? BK.tread : BK.tire);
+      put(cx + c * 5.6, cy + sn * 5.6, BK.tire);
+    }
+    for (let a = 0; a < 48; a++) { const t = a * Math.PI / 24; put(cx + Math.cos(t) * 4.7, cy + Math.sin(t) * 4.7, BK.rim); }
+    /* quattro raggi soli: coi pixel fitti la ruota diventava un disco grigio pieno */
+    for (let k = 0; k < 2; k++) { const t = ang + k * Math.PI / 2; for (let r = 1; r <= 3; r++) { put(cx + Math.cos(t) * r, cy + Math.sin(t) * r, BK.spoke); put(cx - Math.cos(t) * r, cy - Math.sin(t) * r, BK.spoke); } }
+    put(cx, cy, BK.hub); put(cx + 1, cy, BK.hub);
+  };
+  const tube = (x0, y0, x1, y1) => {
+    const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+    for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; put(x, y, BK.redHi); put(x, y + 1, BK.red); put(x + 0.5, y + 1.5, BK.redDk); }
+  };
+  wheel(5, 27); wheel(27, 27);
+  /* catena dalla corona al mozzo dietro */
+  for (let x = 6; x <= 16; x += 2) { put(x, 26, BK.chain); put(x + 1, 29, BK.chain); }
+  tube(5, 26, 17, 27);                                  // fodero basso
+  tube(5, 26, 13, 21);                                  // fodero alto
+  tube(13, 20, 17, 27);                                 // piantone
+  tube(13, 20, 24, 18);                                 // canna
+  tube(17, 27, 24, 19);                                 // obliquo
+  for (let y = 18; y <= 27; y++) { put(24 + (y - 18) * 0.33, y, BK.metal); }   // forcella
+  /* corona e pedivella che gira col pedale */
+  for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; put(17 + Math.cos(t) * 2, 27.5 + Math.sin(t) * 2, BK.metal); }
+  const cr = moving ? frameTime / 130 : 1.2, px2 = 17 + Math.cos(cr) * 3.5, py2 = 27.5 + Math.sin(cr) * 3.5;
+  for (let i = 0; i <= 3; i++) put(17 + (px2 - 17) * i / 3, 27.5 + (py2 - 27.5) * i / 3, BK.metal);
+  put(px2 - 1, py2, BK.grip); put(px2, py2, BK.grip); put(px2 + 1, py2, BK.grip);
+  /* sella sul piantone */
+  put(13, 19, BK.metal);
+  for (let x = 10; x <= 15; x++) { put(x, 18, x < 12 ? BK.seatHi : BK.seat); put(x, 17, x > 10 && x < 15 ? BK.seat : BK.seat); }
+  /* attacco, manubrio e manopola */
+  put(24, 17, BK.metal); put(24, 16, BK.metal); put(25, 15, BK.metal); put(26, 15, BK.grip); put(27, 15, BK.grip);
+  /* cestino di vimini davanti al manubrio, con una margherita */
+  for (let y = 17; y <= 21; y++) for (let x = 27; x <= 31; x++) put(x, y, (x + y) % 2 ? BK.bask : BK.baskDk);
+  for (let x = 26; x <= 31; x++) put(x, 16, BK.baskHi);
+  put(29, 15, '#f6f2e4'); put(30, 14, '#f6f2e4'); put(28, 14, '#f6f2e4'); put(29, 13, '#f6f2e4'); put(29, 14, '#f2c53d');
+  return [...m.values()];
+}
 export function drawBike(sx, sy, moving) {
-  const flip = P.dir === 'left', ox = sx - 16, oy = sy;
-  const R = '#c94f4a', RL = '#d1655f';
-  bikeRing(ox, oy, flip, 5, 27, 6, 6, moving); bikeRing(ox, oy, flip, 27, 27, 6, 6, moving);
-  bikeSeg(ox, oy, flip, 5, 27, 17, 28, R);              // fodero basso
-  bikeSeg(ox, oy, flip, 5, 27, 13, 24, R);              // fodero alto
-  bikeSeg(ox, oy, flip, 13, 23, 17, 28, RL);            // piantone
-  bikeSeg(ox, oy, flip, 14, 22, 24, 20, RL);            // canna
-  bikeSeg(ox, oy, flip, 17, 28, 24, 21, R);             // obliquo
-  bikeSeg(ox, oy, flip, 24, 19, 27, 27, '#7a6a58');     // forcella
-  bikeSeg(ox, oy, flip, 23, 17, 27, 17, '#33291f');     // manubrio
-  bikeSeg(ox, oy, flip, 10, 22, 15, 22, '#33291f');     // sella
-  rect(ox + (flip ? 31 - 18 : 16), oy + 28, 2, 2, '#33291f');   // movimento centrale e pedale
+  bikePaint(sx - 16, sy, P.dir === 'left', bikeCellsSide(moving));
 }
 /* bici di FRONTE (giù) / di SPALLE (su). Di fronte: manopole sotto le mani (prima dell'omino),
-   manubrio e ruota davanti a lui (dopo). Di spalle: ruota posteriore e catarifrangente davanti. */
+   manubrio, cestino e ruota davanti a lui (dopo). Di spalle: ruota dietro, parafango, catarifrangente. */
 export function drawBikeFB(sx, sy, moving, dir, layer) {
   const ox = sx - 16, oy = sy;
+  const m = new Map(), put = (x, y, c) => m.set(x + ',' + y, [x, y, c]);
+  const tire = (top, bottom) => {
+    const spin = moving ? Math.floor(frameTime / 90) % 3 : 0;
+    for (let y = top; y <= bottom; y++) for (let x = 14; x <= 17; x++) {
+      const edge = x === 14 || x === 17;
+      put(x, y, edge ? BK.tire : ((y + spin) % 3 === 0 ? BK.tread : BK.tire));
+    }
+    for (let y = top + 1; y < bottom; y++) put(15, y, y % 2 ? BK.rim : BK.spoke);
+  };
   if (dir === 'down') {
-    if (layer === 'behind') { rect(ox + 3, oy + 17, 4, 3, '#33291f'); rect(ox + 25, oy + 17, 4, 3, '#33291f'); return; }
-    rect(ox + 7, oy + 18, 18, 2, '#33291f'); rect(ox + 7, oy + 18, 18, 1, '#5a4d40');     // manubrio fra le mani
-    rect(ox + 15, oy + 20, 2, 6, '#c94f4a');                                              // forcella
-    bikeRing(ox, oy, false, 15.5, 28, 2, 5, moving);
-    rect(ox + 11, oy + 30, 3, 2, '#33291f'); rect(ox + 18, oy + 30, 3, 2, '#33291f');      // pedali
+    if (layer === 'behind') { for (const gx of [3, 25]) for (let x = gx; x < gx + 4; x++) for (let y = 17; y <= 18; y++) put(x, y, BK.grip); bikePaint(ox, oy, false, [...m.values()]); return; }
+    for (let x = 6; x <= 25; x++) { put(x, 18, BK.metal); put(x, 19, x > 6 && x < 25 ? BK.hub : BK.metal); }
+    for (let y = 19; y <= 25; y++) { put(15, y, BK.red); put(16, y, BK.redDk); }
+    tire(24, 32);
+    /* cestino davanti, sotto il manubrio */
+    for (let y = 20; y <= 24; y++) for (let x = 11; x <= 20; x++) put(x, y, (x + y) % 2 ? BK.bask : BK.baskDk);
+    for (let x = 10; x <= 21; x++) put(x, 20, BK.baskHi);
+    put(13, 19, '#f6f2e4'); put(14, 18, '#f6f2e4'); put(12, 18, '#f6f2e4'); put(13, 17, '#f6f2e4'); put(13, 18, '#f2c53d');
+    bikePaint(ox, oy, false, [...m.values()]);
+    for (const [x, y] of [[10, 30], [20, 30]]) { rect(ox + x, oy + y, 3, 2, BK.out); rect(ox + x, oy + y, 3, 1, BK.grip); }   // pedali
     return;
   }
-  if (layer === 'behind') { rect(ox + 4, oy + 17, 24, 2, '#33291f'); return; }            // manubrio nascosto dietro
-  bikeRing(ox, oy, false, 15.5, 28, 2, 5, moving);
-  rect(ox + 13, oy + 23, 6, 2, '#5c4229'); rect(ox + 15, oy + 25, 2, 2, '#c94f4a');         // parafango
-  rect(ox + 15, oy + 26, 2, 2, '#f2c53d');                                                  // catarifrangente
+  if (layer === 'behind') { for (let x = 4; x <= 27; x++) { put(x, 17, BK.metal); put(x, 18, BK.hub); } bikePaint(ox, oy, false, [...m.values()]); return; }
+  tire(23, 32);
+  for (let y = 21; y <= 24; y++) for (let x = 13; x <= 18; x++) put(x, y, y === 21 ? BK.redHi : y === 24 ? BK.redDk : BK.red);   // parafango
+  put(15, 25, '#f2c53d'); put(16, 25, '#f2c53d'); put(15, 26, '#e0873a'); put(16, 26, '#e0873a');               // catarifrangente
+  bikePaint(ox, oy, false, [...m.values()]);
 }
 /* in barca: scafo che ondeggia, NIENTE camminata, scia quando ti muovi; pesca con lenza */
 /* CAVALCATURA VOLANTE (grotta leggendario): fossile alato con l'eroe in groppa, in volo sopra
