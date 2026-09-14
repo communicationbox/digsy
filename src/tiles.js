@@ -172,12 +172,20 @@ export function soilDetail(tx, ty, sx, sy, kind, pal) {
 /* CHIAZZE: il tono di un terreno segue un rumore largo qualche casella, diviso in quattro
    quarti di casella. Prima ogni casella tirava a sorte il suo tono e il mondo sembrava una
    scacchiera; così le zone più chiare e più scure si allargano morbide e la griglia sparisce. */
+/* chiazze di tono del terreno. A quadranti da 16 pixel le macchie avevano i bordi a gradini larghi
+   quanto mezza casella e il prato si leggeva a quadretti: ora il tono di fondo copre la casella e le
+   chiazze si posano a celle da 8 pixel, con un pixel di rumore sul bordo (fase dalle coordinate) */
 function patches(tx, ty, sx, sy, cols, salt, scale) {
-  const H = TS >> 1;
-  for (let q = 0; q < 4; q++) {
-    const qx = q & 1, qy = q >> 1;
-    const n = smooth((tx + qx * 0.5) * scale, (ty + qy * 0.5) * scale, salt);
-    rect(sx + qx * H, sy + qy * H, H, H, cols[n < 0.36 ? 2 : n < 0.64 ? 0 : 1]);
+  const Q = TS >> 2;
+  rect(sx, sy, TS, TS, cols[0]);
+  for (let cy = 0; cy < 4; cy++) for (let cx = 0; cx < 4; cx++) {
+    const n = smooth((tx + cx * 0.25) * scale, (ty + cy * 0.25) * scale, salt);
+    if (n >= 0.36 && n < 0.64) continue;
+    const c = cols[n < 0.36 ? 2 : 1];
+    const jx = (vhash(tx * 4 + cx, ty * 4 + cy, salt + 7) * 3) | 0, jy = (vhash(tx * 4 + cx, ty * 4 + cy, salt + 9) * 3) | 0;
+    rect(sx + cx * Q, sy + cy * Q, Q, Q, c);
+    if (jx === 1 && cx > 0) rect(sx + cx * Q - 1, sy + cy * Q + 2, 1, Q - 4, c);   // mai fuori dalla casella
+    if (jy === 1 && cy > 0) rect(sx + cx * Q + 2, sy + cy * Q - 1, Q - 4, 1, c);
   }
 }
 /* ciuffo d'erba: tre fili di altezza diversa, lato in ombra e punta in luce */
@@ -190,7 +198,7 @@ const isLandT = t => t === SAND || t === GRASS || t === FOREST || t === DIRT || 
 /* BORDI fra terreni (nb = tipi dei vicini [su, destra, giù, sinistra]): riva bagnata e schiuma
    dove la terra tocca l'acqua, erba che sconfina sulla sabbia, ombra al limite del bosco.
    Senza, ogni terreno finiva di netto sul bordo della casella e il mondo era a quadretti. */
-function tileEdges(t, tx, ty, sx, sy, time, nb, ZP) {
+function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
   if (!nb) return;
   const side = (i, band, col) => {
     if (i === 0) rect(sx, sy, TS, band, col); else if (i === 1) rect(sx + TS - band, sy, band, TS, col);
@@ -227,11 +235,40 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP) {
   } else if (t === GRASS) {
     for (let i = 0; i < 4; i++) if (nb[i] === FOREST) side(i, 3, 'rgba(20,40,20,.18)');
   }
+  /* BORDI FRASTAGLIATI fra tutti gli altri terreni di terra: prima prato, bosco, terra e roccia
+     finivano di netto sul bordo della casella e il mondo si leggeva a scalini da 32 pixel (visto nelle
+     foto dei biomi). Il terreno "più alto" (roccia > bosco > prato > terra) sconfina nel vicino a
+     linguette di 4 pixel di profondità diversa, con un filo più scuro sul fronte; lo disegna chi le
+     riceve, quindi ogni confine si disegna una volta sola. Fase dalle coordinate della casella. */
+  const rank = LAND_RANK[t] || 0;
+  for (let i = 0; i < 4; i++) {
+    const n = nb[i];
+    if (!isLandT(n) || n === t || (t === SAND && (n === GRASS || n === FOREST))) continue;
+    if ((LAND_RANK[n] || 0) <= rank) continue;
+    const c = landColor(n, ZP, zi), cd = shade8(c, 0.82);
+    for (let k = 0; k < TS; k += 4) {
+      const d = 1 + Math.floor(vhash(tx * 4 + k * 3, ty * 4 + i * 7, 93) * 6);
+      if (i === 0) { rect(sx + k, sy, 4, d, c); rect(sx + k, sy + d, 4, 1, cd); }
+      else if (i === 2) { rect(sx + k, sy + TS - d, 4, d, c); rect(sx + k, sy + TS - d - 1, 4, 1, cd); }
+      else if (i === 1) { rect(sx + TS - d, sy + k, d, 4, c); rect(sx + TS - d - 1, sy + k, 1, 4, cd); }
+      else { rect(sx, sy + k, d, 4, c); rect(sx + d, sy + k, 1, 4, cd); }
+    }
+  }
+}
+const LAND_RANK = { [SAND]: 1, [DIRT]: 2, [GRASS]: 3, [FOREST]: 4, [MTN]: 5 };
+/* il colore di fondo di un terreno di terra, per le linguette che sconfinano nel vicino */
+function landColor(t, ZP, zi) {
+  const SP = ZP || SEA_TILE;
+  if (t === GRASS) return SP.g[0];
+  if (t === FOREST) return SP.f[0];
+  if (t === DIRT) return ZP ? ZP.dirt[0] : '#c9a06a';
+  if (t === MTN) return '#948c7f';
+  return zi === 1 ? '#e9d9a8' : zi === 5 ? '#d7dee3' : '#e6cf96';
 }
 export function groundTile(t, tx, ty, sx, sy, time, zi, nb) {
   const ZP = ZONE_TILES[zi] || null;
   groundBase(t, tx, ty, sx, sy, time, zi, ZP);
-  tileEdges(t, tx, ty, sx, sy, time, nb, ZP);
+  tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi);
 }
 /* increspature sull'acqua: pochi archetti chiari per casella, che si accendono e si spengono */
 function ripples(tx, ty, sx, sy, time, light) {
