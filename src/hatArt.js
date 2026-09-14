@@ -115,6 +115,24 @@ function finish(g, opt = {}) {
   return [...out.entries()].sort((a, b) => a[0] - b[0]);
 }
 
+/* testa del cappuccio: cupola tonda e stoffa che scende ai lati del viso fino alle spalle */
+function hoodHead(g, cx, rx, [x0, x1]) {
+  g.dome(cx, -4, 6, rx, 'H', { top: 0.15 });
+  for (let y = 7; y <= 16; y++) g.span(y, x0, x1, 'H', { lit: 0.22, dark: 0.78 });
+}
+/* mantellina corta: copre solo le spalle (sotto si vede la maglia), orlo a punte morbide e una piega */
+function hoodCape(g, x0, x1) {
+  for (let y = 17; y <= 19; y++) g.span(y, x0 - (y - 17), x1 + (y - 17), 'H', { lit: 0.2, dark: 0.8 });
+  for (let x = x0 - 2; x <= x1 + 2; x++) if (((x - x0 + 2) % 5) < 3) g.set(x, 20, 'H', 2);
+  for (let y = 18; y <= 20; y++) { g.set(x0 + 3, y, 'H', 2); g.set(x1 - 3, y, 'H', 2); }
+}
+function carve(g, inside) { for (let y = -4; y <= 23; y++) for (let x = 0; x < 32; x++) if (inside(x, y)) g.clear(x, y); }
+/* bordo interno dell'apertura in ombra: la stoffa ha spessore */
+function rim(g, inside) {
+  for (let y = -4; y <= 23; y++) for (let x = 0; x < 32; x++)
+    if (g.get(x, y) && !inside(x, y) && (inside(x + 1, y) || inside(x - 1, y) || inside(x, y + 1) || inside(x, y - 1))) g.set(x, y, 'H', 2);
+}
+
 function santa(g, cx, s) {
   for (let y = 2; y >= -7; y--) {
     const k = 2 - y, w = 9.5 - k * 0.95, c = cx + s * k * k * 0.085;
@@ -163,29 +181,31 @@ const DRAW = {
     side(g) { g.dome(SX - 1, -2, 4, 10, 'H', { top: 0.7 }); g.span(4, 7, 25, 'H', { t: 2 }); for (const [x, y] of [[12, 0], [18, 2], [21, -1]]) g.set(x, y, 'W', 1); g.ball(6, 3, 1.6, 'H'); g.line(5, 4, 2, 9, 2, 'H', 1); g.line(6, 5, 5, 10, 2, 'H', 2); },
   },
   hood: {
+    /* "sembra un casco da faraone": finiva al mento, dritto come un elmo. Un cappuccio si riconosce
+       dall'apertura TONDA attorno al viso, dalla stoffa che si allarga sulle spalle e dalla punta
+       molle che ricade dietro. */
     down(g) {
-      g.dome(CX, -4, 8, 13, 'H', { top: 0.3 });
-      for (let y = 9; y <= 18; y++) g.span(y, 2, 29, 'H', { lit: 0.2, dark: 0.8 });
-      g.span(19, 4, 27, 'H', { t: 2 });
-      /* apertura del viso: ovale, col bordo interno in ombra e il buio sotto la fronte */
-      const open = (x, y) => y >= 3 && y <= 19 && x >= 8 && x <= 23 && !(y === 3 && (x < 11 || x > 20)) && !(y === 4 && (x < 9 || x > 22));
-      for (let y = 2; y <= 20; y++) for (let x = 0; x < 32; x++) if (open(x, y)) g.clear(x, y);
-      for (let y = 2; y <= 19; y++) for (let x = 1; x < 31; x++) if (!open(x, y) && g.get(x, y) && (open(x + 1, y) || open(x - 1, y) || open(x, y + 1))) g.set(x, y, 'H', 2);
-      g.span(3, 11, 20, 'J'); g.span(4, 9, 22, 'J'); g.set(8, 5, 'J'); g.set(23, 5, 'J');
+      hoodHead(g, CX, 11.5, [4, 27]);
+      hoodCape(g, 5, 26);
+      carve(g, (x, y) => ((x - CX) / 8.2) ** 2 + ((y - 9.5) / 8) ** 2 < 1 && y <= 16);
+      rim(g, (x, y) => ((x - CX) / 8.2) ** 2 + ((y - 9.5) / 8) ** 2 < 1 && y <= 16);
+      g.span(2, 12, 19, 'J'); g.span(3, 10, 21, 'J'); g.set(9, 4, 'J'); g.set(22, 4, 'J');    // buio sotto la stoffa
+      g.set(15, 17, 'Y', 0); g.set(16, 17, 'Y', 1); g.set(15, 18, 'Y', 2); g.set(16, 18, 'Y', 2);  // fermaglio
     },
     up(g) {
-      g.dome(CX, -4, 8, 13, 'H', { top: 0.3 });
-      for (let y = 9; y <= 18; y++) g.span(y, 2, 29, 'H', { lit: 0.2, dark: 0.8 });
-      g.span(19, 5, 26, 'H', { t: 2 }); g.span(20, 10, 21, 'H', { t: 2 }); g.span(21, 13, 18, 'H', { t: 2 }); g.span(22, 15, 16, 'H', { t: 2 });
-      g.line(15.5, -2, 15.5, 19, 1, 'H', 2);
+      hoodHead(g, CX, 11.5, [4, 27]);
+      hoodCape(g, 5, 26);
+      /* la punta: dalla nuca scende a goccia sulla schiena */
+      for (let y = 6; y <= 22; y++) { const w = Math.max(0.5, 3.5 - Math.max(0, y - 13) * 0.38); g.span(y, CX - w, CX + w, 'H', { lit: 0.3, dark: 0.65 }); g.set(Math.round(CX - w) - 1, y, 'H', 2); }
     },
     side(g) {
-      g.dome(SX - 1, -4, 8, 12.5, 'H', { top: 0.3 });
-      for (let y = 9; y <= 18; y++) g.span(y, 3, 22, 'H', { lit: 0.2, dark: 0.8 });
-      for (let y = 19; y <= 22; y++) g.span(y, 3 + (y - 19), 9 - 2 * (y - 19) + 3, 'H', { t: 2 });
-      for (let y = 4; y <= 20; y++) for (let x = 21; x <= 31; x++) if (!(y === 4 && x < 23)) g.clear(x, y);
-      for (let y = 5; y <= 18; y++) g.set(20, y, 'H', 2);
-      g.span(4, 21, 22, 'J'); g.set(21, 5, 'J');
+      hoodHead(g, SX - 1.5, 11, [5, 21]);
+      hoodCape(g, 7, 24);
+      const face = (x, y) => ((x - 25) / 7) ** 2 + ((y - 9.5) / 8) ** 2 < 1 && y <= 17;
+      carve(g, face); rim(g, face);
+      g.span(3, 21, 24, 'J'); g.set(19, 5, 'J'); g.set(19, 6, 'J');
+      /* la punta ricade dietro la nuca */
+      g.line(6, 2, 2, 8, 3, 'H', 1); g.line(2, 8, 1, 13, 2, 'H', 2); g.set(1, 14, 'H', 2);
     },
   },
   snorkel: {
