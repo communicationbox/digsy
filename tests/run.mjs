@@ -6979,6 +6979,33 @@ sprites.applyLook();
   check('i trofei si disegnano tutti, vinti e non', bad === '', bad);
 }
 
+/* ---------- GROTTE: le decorazioni hanno un motivo per stare dove stanno ---------- */
+{
+  /* "tante cose messe lì a caso senza senso": ora funghi, stalagmiti e pozze nascono solo contro
+     una parete (sotto le stalattiti, nelle zone umide). In mezzo al pavimento aperto: niente. */
+  const ca = await import('../src/caveArt.js');
+  const open = { solid: () => false, nodeNear: () => false, nearEntrance: () => false };
+  const wallAbove = { solid: (x, y) => y === 99, nodeNear: () => false, nearEntrance: () => false };
+  const FUNGO = '#6fe0c8', STALAG = '#4a4239', POZZA = '#2c3c48';
+  let aCaso = 0, conMotivo = 0;
+  for (let tx = 0; tx < 300; tx++) {
+    const cols = new Set();
+    const g = { rect: (x, y, w, h, c) => cols.add(c), px: (x, y, c) => cols.add(c) };
+    ca.caveFloor(g, tx, 40, 0, 0, open, 1000);
+    if (cols.has(FUNGO) || cols.has(STALAG) || cols.has(POZZA)) aCaso++;
+    const cols2 = new Set();
+    const g2 = { rect: (x, y, w, h, c) => cols2.add(c), px: (x, y, c) => cols2.add(c) };
+    ca.caveFloor(g2, tx, 100, 0, 0, wallAbove, 1000);
+    if (cols2.has(FUNGO) || cols2.has(STALAG) || cols2.has(POZZA)) conMotivo++;
+  }
+  check('grotta: in mezzo al pavimento aperto niente funghi, stalagmiti o pozze', aCaso === 0, aCaso + ' caselle');
+  check('grotta: contro le pareti invece compaiono', conMotivo > 20, conMotivo + ' caselle');
+  let viola = 0;
+  const gw = { rect: (x, y, w, h, c) => { if (/^#(2c2942|33304a|7a72ad|3d3960|6d64a4|4a4378)$/i.test(c)) viola++; }, px() {} };
+  for (let tx = 0; tx < 50; tx++) ca.caveWall(gw, tx, 5, 0, 0, { solid: (x, y) => y !== 6, nodeNear: () => true, nearEntrance: () => false }, 500);
+  check('grotta: niente più pareti viola', viola === 0, viola + '');
+}
+
 /* ---------- MERAVIGLIE: tutte e 18 devono disegnarsi ---------- */
 {
   const wa = await import('../src/wonderart.js');

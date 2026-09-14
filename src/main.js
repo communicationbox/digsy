@@ -397,6 +397,8 @@ if (typeof window !== 'undefined') {
          sulla prima tile del bioma — e da lì l'inquadratura è quella che è: serve poter spostare
          la camera di qualche tile per comporre la scena. */
       player: () => P,
+      /* porta Digsy in un punto della grotta aperta (frazioni della larghezza/altezza), sul pavimento */
+      caveAt: (fx, fy) => import('./cave.js').then(m => { const C = m.CAVE; let tx = Math.floor(C.w * fx), ty = Math.floor(C.h * fy); for (let r = 0; r < 20; r++) { let hit = null; for (let dy = -r; dy <= r && !hit; dy++) for (let dx = -r; dx <= r && !hit; dx++) if (!m.caveSolid(tx + dx, ty + dy) && !m.caveSolid(tx + dx, ty + dy + 1)) hit = [tx + dx, ty + dy]; if (hit) { C.x = hit[0] * 32 + 16; C.y = hit[1] * 32 - 10; break; } } return true; }),
       reveal: (r) => import('./map.js').then(m => m.revealArea(Math.floor(P.x / TS), Math.floor(P.y / TS), r)),
       townHere: () => import('./world.js').then(w => w.townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS))),
       /* `godmode` accende anche la modalità debug, e con quella l'HUD mostra ∞ e il tag 🐞:

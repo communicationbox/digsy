@@ -25,12 +25,17 @@ export const CAVE = {
 
 /* muro (roccia) deterministico: bordo pieno + caverne da noise. Attorno all'ingresso
    in basso c'è una CAMERA sgombra 5×5 (mai incastrati all'uscita). */
+/* cache per grotta: il disegno chiede i vicini di ogni casella (bordi, pareti, detriti) e il
+   rumore costa; la forma della grotta dipende solo dal seme, quindi si calcola una volta */
+let solidCache = new Map(), solidSeed = -1;
 export function caveSolid(cx, cy) {
   if (cx < 1 || cy < 1 || cx >= CAVE.w - 1 || cy >= CAVE.h - 1) return true;
   const midx = CAVE.w >> 1;
   if (cy >= CAVE.h - 6 && Math.abs(cx - midx) <= 2) return false; // camera d'ingresso 5 di larghezza
-  const n = fbm((cx + CAVE.seed) * 0.16, (cy + CAVE.seed * 1.3) * 0.16, 3);
-  return n > 0.62;
+  if (solidSeed !== CAVE.seed) { solidCache = new Map(); solidSeed = CAVE.seed; }
+  const k = cx * 4096 + cy; let v = solidCache.get(k);
+  if (v === undefined) { v = fbm((cx + CAVE.seed) * 0.16, (cy + CAVE.seed * 1.3) * 0.16, 3) > 0.62; solidCache.set(k, v); }
+  return v;
 }
 /* giacimento di fossili: RARO e sparso (affioramento luminoso da scavare) */
 export function caveNodeAt(cx, cy) {

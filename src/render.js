@@ -1163,6 +1163,12 @@ function drawCompassIndicator(time) {
 }
 
 /* ---------- GROTTA: area buia esplorabile, camera che segue, solo alone attorno al player ---------- */
+/* quello che il disegno della grotta deve sapere, senza importare la logica dentro caveArt */
+const CAVE_INFO = {
+  solid: (x, y) => caveSolid(x, y),
+  nodeNear: (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (caveNodeAt(x + dx, y + dy) && !caveNodeDone(x + dx, y + dy)) return true; return false; },
+  nearEntrance: (x, y) => y >= CAVE.h - 9 && Math.abs(x - (CAVE.w >> 1)) <= 4,
+};
 function drawCaveScene(time) {
   const W = view.W, H = view.H, rw = CAVE.w * TS, rh = CAVE.h * TS;
   /* La camera la calcola caveCam(), NON questa funzione: la formula era copiata qui e le due
@@ -1177,9 +1183,10 @@ function drawCaveScene(time) {
   const pcx = Math.floor(CAVE.x / TS), pcy = Math.floor((CAVE.y + FOOT_DY) / TS);
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
-    /* disegno in caveArt.js: pareti in 3/4 con faccia e cresta, pavimento a lastre */
-    if (caveSolid(tx, ty)) caveWall(BRUSH, tx, ty, sx, sy, { above: !caveSolid(tx, ty - 1), below: !caveSolid(tx, ty + 1), left: !caveSolid(tx - 1, ty), right: !caveSolid(tx + 1, ty) });
-    else caveFloor(BRUSH, tx, ty, sx, sy, time, caveSolid(tx, ty - 1));
+    /* disegno in caveArt.js: roccia con cresta, bordi e parete a strati; pavimento con le
+       decorazioni dove hanno senso (sotto le stalattiti, contro le pareti, nelle zone umide) */
+    if (caveSolid(tx, ty)) caveWall(BRUSH, tx, ty, sx, sy, CAVE_INFO, time);
+    else caveFloor(BRUSH, tx, ty, sx, sy, CAVE_INFO, time);
   }
   /* ORME sul pavimento (aiutano a ritrovare la strada), più sbiadite col tempo */
   for (const f of CAVE.trail) {
@@ -1212,10 +1219,11 @@ function drawCaveScene(time) {
   rect(ex - gw / 2, rh + 10, gw, 2, '#82ad60');
   for (let i = 0; i < gw; i += 6) px(ex - gw / 2 + i + 2, rh + 16 + ((i / 6) & 1) * 5, '#87b566');
   /* stipiti di roccia ai lati del varco, così il passaggio si legge come un'apertura */
-  rect(ex - gw / 2 - TS, rh - 2, TS, CAVE_FOOT + 2, '#2c2942');
-  rect(ex + gw / 2, rh - 2, TS, CAVE_FOOT + 2, '#2c2942');
-  rect(ex - gw / 2 - TS, rh - 2, TS, 3, '#3d3960');
-  rect(ex + gw / 2, rh - 2, TS, 3, '#3d3960');
+  rect(ex - gw / 2 - TS, rh - 2, TS, CAVE_FOOT + 2, '#4a4239');
+  rect(ex + gw / 2, rh - 2, TS, CAVE_FOOT + 2, '#4a4239');
+  rect(ex - gw / 2 - TS, rh - 2, TS, 3, '#6d6356');
+  rect(ex + gw / 2, rh - 2, TS, 3, '#6d6356');
+  rect(ex - gw / 2 - 1, rh - 2, 1, CAVE_FOOT + 2, '#15110d'); rect(ex + gw / 2, rh - 2, 1, CAVE_FOOT + 2, '#15110d');
   /* alone di luce diurna che risale dentro la grotta: è il richiamo che dice "di qua si esce" */
   for (let i = 0; i < 5; i++) {
     ctx.fillStyle = 'rgba(240,232,190,' + (0.05 + i * 0.045) + ')';
@@ -1230,7 +1238,9 @@ function drawCaveScene(time) {
   /* a quarti di casella (non caselle intere): il cerchio di luce resta a gradini 8-bit ma non
      è più fatto di quadrotti grandi quanto Digsy */
   const HC = TS >> 1;
-  for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) for (let q = 0; q < 4; q++) {
+  /* `__digsyNoDark` esiste solo per le foto di prova (npm run shot): spegne il buio per guardare il disegno */
+  const noDark = typeof window !== 'undefined' && window.__digsyNoDark;
+  if (!noDark) for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) for (let q = 0; q < 4; q++) {
     const sx = tx * TS + (q & 1) * HC, sy = ty * TS + (q >> 1) * HC;
     const tR = caveR;
     const d = (Math.hypot(sx + HC / 2 - CAVE.x, sy + HC / 2 - (CAVE.y + 16)) / TS) / tR;
