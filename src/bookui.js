@@ -170,7 +170,7 @@ export function openBook(page) {
   bookPage = Math.max(0, Math.min(bookPage, maxPage));
   if (!visible.length) {
     pagesEl.innerHTML = withIcons(`<div class="bkpage"><div class="bk-name" style="margin-top:40px">${tr('Il libro è vuoto', 'The book is empty')}</div>
-      <div class="bk-desc" style="text-align:center">${tr('Visita il <b>Museo</b> di una zona per indicizzarne i fossili,<br>poi scava e identifica per completare le pagine.', 'Visit a zone\'s <b>Museum</b> to index its fossils,<br>then dig and identify to complete the pages.')}</div></div>`);
+      <div class="bk-desc" style="text-align:center">${tr('Visita il <b>Museo</b> della zona,<br>poi scava per riempire le pagine.', 'Visit the zone\'s <b>Museum</b>,<br>then dig to fill the pages.')}</div></div>`);
     navEl.innerHTML = '';
   } else {
     let ph = ''; for (let i = 0; i < pp; i++) ph += bookPageHtml(visible[bookPage * pp + i], bookPage * pp + i + 1);

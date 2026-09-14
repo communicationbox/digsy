@@ -32,14 +32,31 @@ const ARMS = {
   ride:   { down: [[[8, 20], [5, 18]], [[23, 20], [26, 18]]], side: [[[16, 20], [24, 17]]] },    // mani sul manubrio
 };
 export const GRIP = { lift: { down: [23, 16], side: [23, 15] }, strike: { down: [15.5, 23], side: [26, 22] }, ride: { down: [5, 18], side: [25, 17] } };
-function arm(g, [x0, y0], [x1, y1]) {
+/* `sleeve` = quanta parte del braccio copre la manica (0 canottiera, .45 maglietta, 1 maniche lunghe);
+   `cuff` = colore del polsino in fondo alla manica lunga */
+function arm(g, [x0, y0], [x1, y1], sl = SLEEVE.tshirt) {
   const n = Math.max(1, Math.round(Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0))));
   for (let i = 0; i <= n - 2; i++) {
     const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
-    for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) g.set(x + dx, y + dy, 'S', dx < 0 ? 0 : dx > 0 ? 2 : 1);
+    const skin = i > 0 && i / (n - 1) > sl.len, cuff = !skin && sl.cuff && i === n - 2;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) {
+      const t = dx < 0 ? 0 : dx > 0 ? 2 : 1;
+      if (skin) g.set(x + dx, y + dy, 'F', t);
+      else if (cuff) g.set(x + dx, y + dy, sl.cuff[0], sl.cuff[1]);
+      else g.set(x + dx, y + dy, 'S', t);
+    }
   }
   for (let dx = -1; dx <= 1; dx++) for (let dy = 0; dy <= 1; dy++) g.set(x1 + dx, y1 + dy, 'F', dy === 0 && dx < 1 ? 0 : 1);
 }
+/* MAGLIE disegnate sul corpo (erano quattro ritocchi di un paio di pixel: "praticamente identiche").
+   Si riconoscono dalla SAGOMA prima che dai dettagli: maniche corte, braccia nude, polsini bianchi,
+   cappuccio. */
+export const SLEEVE = {
+  tshirt: { len: 0.45 },
+  tank:   { len: -1 },
+  shirt:  { len: 1, cuff: ['W', 1] },
+  hoodie: { len: 1, cuff: ['S', 2] },
+};
 
 /* ---------------- TESTA ---------------- */
 /* "sembra un mostriciattolo": occhi piccoli sui bordi di una faccia larga, orecchie a sventola,
@@ -75,7 +92,8 @@ function headSide(g) {
 /* ---------------- BUSTO ---------------- */
 /* braccia LUNGO I FIANCHI (a T sembravano artigli): manica sulla spalla, mano accanto al busto,
    con un pixel vuoto fra mano e busto che diventa contorno */
-function torsoFront(g, back, pose) {
+function torsoFront(g, back, pose, shirt = 'tshirt') {
+  const sl = SLEEVE[shirt] || SLEEVE.tshirt;
   row(g, 18, 10, 'S');
   for (let y = 19; y <= 21; y++) row(g, y, 9, 'S');
   for (let y = 22; y <= 25; y++) row(g, y, 10, 'S');
@@ -87,25 +105,83 @@ function torsoFront(g, back, pose) {
   for (let y = 19; y <= 22; y++) { pair(g, 8, y, 'S', 2, 2); }       // piega fra manica e busto
   for (let y = 19; y <= 24; y++) { g.set(10, y, 'S', 0); g.set(21, y, 'S', 2); }
   row(g, 25, 10, 'S', 2);
-  if (pose && ARMS[pose]) { for (let y = 19; y <= 24; y++) for (const x of [5, 6, 7, 8, 23, 24, 25, 26]) g.clear(x, y); for (const [a, b] of ARMS[pose].down) arm(g, a, b); }
-  if (!back) { for (let x = 14; x <= 17; x++) g.set(x, 18, 'S', 2); return; }
+  if (pose && ARMS[pose]) {
+    for (let y = 19; y <= 24; y++) for (const x of [5, 6, 7, 8, 23, 24, 25, 26]) g.clear(x, y);
+    for (const [a, b] of ARMS[pose].down) arm(g, a, b, sl);
+  } else if (shirt === 'tshirt') {                                  // manica corta: orlo in ombra, avambraccio nudo
+    for (let y = 21; y <= 22; y++) { pair(g, 6, y, 'F', 0, 2); pair(g, 7, y, 'F', 1, 2); pair(g, 8, y, 'F', 2, 2); }
+    pair(g, 6, 20, 'S', 2); pair(g, 7, 20, 'S', 2); pair(g, 8, 20, 'S', 2);
+  } else if (shirt === 'tank') {                                     // braccia e spalle nude
+    for (let y = 19; y <= 22; y++) { pair(g, 6, y, 'F', 0, 2); pair(g, 7, y, 'F', 1, 2); pair(g, 8, y, 'F', 2, 2); }
+    g.clear(6, 19); g.clear(25, 19);
+  } else if (sl.cuff) {                                              // polsino in fondo alla manica lunga
+    pair(g, 6, 22, sl.cuff[0], sl.cuff[1]); pair(g, 7, 22, sl.cuff[0], sl.cuff[1]); pair(g, 8, 22, sl.cuff[0], sl.cuff[1]);
+  }
+  if (shirt === 'tank') {                                            // giromanica e scollo profondi, bretelline
+    pair(g, 9, 19, 'F', 2); pair(g, 9, 20, 'F', 2); pair(g, 10, 18, 'F', 1);
+  }
+  if (!back) {
+    if (shirt === 'tank') {
+      for (let x = 13; x <= 18; x++) g.set(x, 18, 'F', 1);
+      for (let x = 14; x <= 17; x++) g.set(x, 19, 'F', 1);
+      pair(g, 11, 18, 'S', 0); pair(g, 12, 18, 'S', 1);             // bretelline, filo di luce fuori
+    } else if (shirt === 'shirt') {
+      pair(g, 12, 18, 'W', 1); pair(g, 13, 18, 'W', 1); pair(g, 14, 19, 'W', 1);   // colletto a punte
+      pair(g, 14, 18, 'F', 1); pair(g, 15, 18, 'F', 1); pair(g, 15, 19, 'F', 2);   // scollo aperto
+      for (let y = 20; y <= 24; y++) { g.set(15, y, 'S', 2); g.set(16, y, 'S', 0); } // abbottonatura
+      g.set(15, 21, 'W', 2); g.set(15, 23, 'W', 2);                               // bottoni
+      g.set(11, 20, 'S', 2); g.set(12, 20, 'S', 2); g.set(13, 20, 'S', 2); g.set(11, 21, 'S', 2); g.set(13, 21, 'S', 2); // taschino
+      row(g, 25, 10, 'B', 2); g.set(15, 25, 'Y', 1); g.set(16, 25, 'Y', 1);        // cintura con fibbia
+    } else if (shirt === 'hoodie') {
+      pair(g, 10, 17, 'S', 2); pair(g, 11, 17, 'S', 1); pair(g, 12, 17, 'S', 2);   // cappuccio attorno al collo
+      row(g, 18, 10, 'S', 0); for (let x = 14; x <= 17; x++) g.set(x, 18, 'S', 2);
+      for (let y = 19; y <= 21; y++) pair(g, 14, y, 'W', 1);                       // cordini
+      for (let x = 12; x <= 19; x++) g.set(x, 22, 'S', 2);                        // tasca a marsupio
+      for (let y = 23; y <= 24; y++) { pair(g, 12, y, 'S', 2); for (let x = 13; x <= 18; x++) g.set(x, y, 'S', 1); }
+      row(g, 25, 10, 'S', 2); for (let x = 11; x <= 20; x += 2) g.set(x, 25, 'S', 1); // elastico a coste
+    } else {
+      for (let x = 13; x <= 18; x++) g.set(x, 18, 'S', 2);                        // girocollo
+      for (let x = 14; x <= 17; x++) g.set(x, 18, 'F', 1);
+    }
+    return;
+  }
+  if (shirt === 'hoodie') {                                          // di spalle: il cappuccio ricade sullo zaino
+    for (let y = 18; y <= 25; y++) g.span(y, 12, 19, 'B', { lit: 0.2, dark: 0.8 });
+    g.span(21, 12, 19, 'B', { t: 2 }); g.fillBlock(15, 22, 16, 22, 'W', 1); g.span(25, 12, 19, 'B', { t: 2 });
+    g.span(17, 11, 20, 'S', { t: 2 }); g.span(18, 11, 20, 'S', { lit: 0.3, dark: 0.7 }); g.span(19, 12, 19, 'S', { lit: 0.3, dark: 0.7 });
+    g.span(20, 13, 18, 'S', { t: 2 });
+    return;
+  }
   for (let y = 18; y <= 25; y++) g.span(y, 12, 19, 'B', { lit: 0.2, dark: 0.8 });
   g.span(18, 13, 18, 'B', { t: 0 });
   g.span(21, 12, 19, 'B', { t: 2 }); g.fillBlock(15, 22, 16, 22, 'W', 1);
   g.span(25, 12, 19, 'B', { t: 2 });
+  if (shirt === 'shirt') { pair(g, 11, 18, 'W', 1); pair(g, 10, 25, 'B', 2); pair(g, 11, 25, 'B', 2); } // colletto e cintura dietro
 }
-function torsoSide(g, fr, pose) {
+function torsoSide(g, fr, pose, shirt = 'tshirt') {
+  const sl = SLEEVE[shirt] || SLEEVE.tshirt;
   g.span(18, 13, 20, 'S');
   for (let y = 19; y <= 25; y++) g.span(y, 11, 21, 'S', { lit: 0.15, dark: 0.85 });
   g.span(25, 11, 21, 'S', { t: 2 });
+  if (shirt === 'tank') { g.span(18, 17, 20, 'F', { t: 1 }); g.set(20, 19, 'F', 1); g.set(21, 19, 'F', 2); }
+  if (shirt === 'shirt') { g.set(19, 18, 'W', 1); g.set(20, 18, 'W', 1); g.set(21, 19, 'W', 1); g.span(25, 11, 21, 'B', { t: 2 }); g.set(19, 25, 'Y', 1); }
+  if (shirt === 'hoodie') {
+    g.fillBlock(11, 16, 13, 17, 'S', 1); g.set(11, 16, 'S', 0); g.set(13, 17, 'S', 2); g.span(18, 11, 20, 'S', { t: 0 }); // cappuccio sulla nuca
+    for (let y = 19; y <= 21; y++) g.set(20, y, 'W', 1);
+    g.span(22, 16, 21, 'S', { t: 2 }); g.set(16, 23, 'S', 2);
+    for (let x = 12; x <= 21; x += 2) g.set(x, 25, 'S', 1);
+  }
   for (let y = 18; y <= 24; y++) g.span(y, 8, 10, 'B', { lit: 0.3, dark: 0.9 });   // zaino dietro
   g.span(18, 8, 10, 'B', { t: 0 });
-  if (pose && ARMS[pose]) { for (const [a, b] of ARMS[pose].side) arm(g, a, b); return; }
+  if (pose && ARMS[pose]) { for (const [a, b] of ARMS[pose].side) arm(g, a, b, sl); return; }
   /* braccio lungo il fianco che oscilla appena col passo: largo 3, mano 2×2 */
   const ax = fr ? 13 : 15;
-  for (let y = 19; y <= 23; y++) g.span(y, ax, ax + 2, 'S', { lit: 0.34, dark: 0.66 });
+  const skinFrom = shirt === 'tank' ? 19 : shirt === 'tshirt' ? 22 : 99;
+  for (let y = 19; y <= 23; y++) g.span(y, ax, ax + 2, y >= skinFrom ? 'F' : 'S', { lit: 0.34, dark: 0.66 });
+  if (shirt === 'tshirt') g.span(21, ax, ax + 2, 'S', { t: 2 });
+  if (sl.cuff) g.span(23, ax, ax + 2, sl.cuff[0], { t: sl.cuff[1] });
   g.fillBlock(ax, 24, ax + 2, 25, 'F', 1); g.set(ax, 24, 'F', 0); g.clear(ax + 2, 25);
-  for (let y = 20; y <= 23; y++) g.set(ax - 1, y, 'S', 2);
+  for (let y = 20; y <= 23; y++) g.set(ax - 1, y, shirt === 'tank' ? 'F' : 'S', 2);
 }
 
 /* ---------------- GAMBE ---------------- */
@@ -143,24 +219,24 @@ function toRows(g) {
   for (const [y, r] of finish(g, { noOutline: true })) if (y >= 0 && y < 32) rows[y] = r;
   return rows;
 }
-export function buildBody() {
+export function buildBody(shirt) {
   const out = { down: [], up: [], side: [] };
   for (const fr of [0, 1]) {
-    let g = grid(); headFront(g, true); torsoFront(g, false); legsFront(g, fr); out.down.push(toRows(g));
-    g = grid(); headFront(g, false); torsoFront(g, true); legsFront(g, fr); out.up.push(toRows(g));
-    g = grid(); headSide(g); torsoSide(g, fr); legsSide(g, fr); out.side.push(toRows(g));
+    let g = grid(); headFront(g, true); torsoFront(g, false, null, shirt); legsFront(g, fr); out.down.push(toRows(g));
+    g = grid(); headFront(g, false); torsoFront(g, true, null, shirt); legsFront(g, fr); out.up.push(toRows(g));
+    g = grid(); headSide(g); torsoSide(g, fr, null, shirt); legsSide(g, fr); out.side.push(toRows(g));
   }
   return out;
 }
 /* pose: { lift|strike|ride: { down:[passo0, passo1], up:[…], side:[…] } } */
-export function buildPoses() {
+export function buildPoses(shirt) {
   const out = {};
   for (const pose of Object.keys(ARMS)) {
     out[pose] = { down: [], up: [], side: [] };
     for (const fr of [0, 1]) {
-      let g = grid(); headFront(g, true); torsoFront(g, false, pose); legsFront(g, pose === 'ride' ? 0 : fr); out[pose].down.push(toRows(g));
-      g = grid(); headFront(g, false); torsoFront(g, true, pose); legsFront(g, pose === 'ride' ? 0 : fr); out[pose].up.push(toRows(g));
-      g = grid(); headSide(g); torsoSide(g, fr, pose); legsSide(g, fr, pose); out[pose].side.push(toRows(g));
+      let g = grid(); headFront(g, true); torsoFront(g, false, pose, shirt); legsFront(g, pose === 'ride' ? 0 : fr); out[pose].down.push(toRows(g));
+      g = grid(); headFront(g, false); torsoFront(g, true, pose, shirt); legsFront(g, pose === 'ride' ? 0 : fr); out[pose].up.push(toRows(g));
+      g = grid(); headSide(g); torsoSide(g, fr, pose, shirt); legsSide(g, fr, pose); out[pose].side.push(toRows(g));
     }
   }
   return out;

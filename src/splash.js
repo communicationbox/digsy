@@ -238,8 +238,8 @@ export function wireAccountButtons(redraw) {
   if (da) da.onclick = async () => {
     /* cancella l'account, NON la partita su questo dispositivo: chi se ne va non deve
        ritrovarsi il gioco azzerato */
-    if (!confirm(tr('Cancello account e partite salvate sul server? La partita su questo dispositivo resta.',
-      'Delete your account and the games saved on the server? The game on this device stays.'))) return;
+    if (!confirm(tr('Cancello l\'account e i salvataggi online? Qui la partita resta.',
+      'Delete account and online saves? This device keeps its game.'))) return;
     await acc.mod.removeAccount(); acc.user = null; redraw();
   };
 }
@@ -331,10 +331,10 @@ function buildMenu(inGame) {
        nessuno e ci si contava sopra sbagliando. */
     if (cloudEnabled()) {
       h += `<div class="sp-note">${acc.user
-        ? tr('Questi salvataggi sono anche sul server: li ritrovi su ogni dispositivo.',
-          'These games are on the server too: you will find them on every device.')
-        : tr('Questi salvataggi restano su questo dispositivo. Entra con Google per ritrovarli ovunque.',
-          'These games stay on this device. Sign in with Google to find them anywhere.')}</div>`;
+        ? tr('Salvati anche sul server: li ritrovi ovunque.',
+          'Also on the server: available on every device.')
+        : tr('Salvati solo qui. Entra con Google per averli ovunque.',
+          'Saved here only. Sign in with Google to get them anywhere.')}</div>`;
     }
     /* LE STATISTICHE HANNO UNA SCHERMATA LORO, raggiunta da qui.
        Messe in fondo a questa, dodici righe schiacciavano i tre slot fino a farli sparire:
@@ -348,15 +348,15 @@ function buildMenu(inGame) {
     h += closeX();
     h += `<div class="sp-title2">🏠 ${tr('Installa Digsy', 'Install Digsy')}</div>`;
     h += `<div class="sp-cfg"><div class="sp-grp">`;
-    h += `<div class="sp-hint2">${tr('Con l\'icona sulla schermata il gioco si apre a tutto schermo e funziona <b>anche senza rete</b>: il mondo e il salvataggio stanno nel tuo dispositivo.', 'With the icon on your home screen the game opens full-screen and works <b>even offline</b>: the world and your save live on your device.')}</div>`;
+    h += `<div class="sp-hint2">${tr('A tutto schermo e <b>anche senza rete</b>.', 'Full-screen and <b>works offline</b>.')}</div>`;
     if (pwa.ios) {
       /* iOS non ha l'invito automatico: si può solo spiegare. E se si sta usando Chrome (o
          un altro browser), il primo passo è aprire il gioco in Safari — su iPhone è l'unico
          che sa installare, per una regola di Apple, non per una mancanza del gioco. */
       if (pwa.iosAltroBrowser) {
         h += `<div class="sp-hint2"><b>${tr('Su iPhone serve Safari.', 'On iPhone you need Safari.')}</b> `
-          + tr('È una regola di Apple: gli altri browser non possono installare. Apri <b>digsy.dev-box.it</b> in Safari e torna qui.',
-            'It is an Apple rule: other browsers cannot install. Open <b>digsy.dev-box.it</b> in Safari and come back here.') + `</div>`;
+          + tr('Regola Apple: su iPhone installa solo Safari. Apri <b>digsy.dev-box.it</b> lì.',
+            'Apple rule: on iPhone only Safari installs. Open <b>digsy.dev-box.it</b> there.') + `</div>`;
       }
       h += `<div class="sp-hint2">${pwa.iosAltroBrowser ? tr('Poi, in Safari:', 'Then, in Safari:') + '<br>' : ''}`
         + `1. ${tr('tocca <b>Condividi</b> in basso', 'tap <b>Share</b> at the bottom')}<br>`
@@ -369,8 +369,8 @@ function buildMenu(inGame) {
          caso si spiega, invece di lasciare una schermata vuota. */
       h += `<div class="sp-hint2">${pwa.installata
         ? tr('Il gioco è già installato su questo dispositivo.', 'The game is already installed on this device.')
-        : tr('Cerca <b>Installa</b> o <b>Aggiungi a schermata Home</b> nel menu del browser (i tre puntini in alto).',
-          'Look for <b>Install</b> or <b>Add to Home screen</b> in your browser menu (the three dots at the top).')}</div>`;
+        : tr('Menu del browser → <b>Installa</b> o <b>Aggiungi a Home</b>.',
+          'Browser menu → <b>Install</b> or <b>Add to Home screen</b>.')}</div>`;
     }
     h += `</div></div>` + backBar();
   } else if (view === 'stats') {
@@ -465,7 +465,7 @@ function buildMenu(inGame) {
     h += grp('✨ ' + tr('A schermo', 'On screen'),
       riga(tr('Segnalino della meta', 'Destination marker'), sw('sp-marker', pf.marker))
       + riga(tr('Suggerimenti', 'Tips'), sw('sp-tips', pf.tips))
-      + `<div class="sp-hint2">${tr('I riquadri che spiegano una meccanica la prima volta. Restano nella Guida (zaino → ❔).', 'The boxes explaining a mechanic the first time. They stay in the Guide (bag → ❔).')}</div>`);
+      + `<div class="sp-hint2">${tr('Spiegazioni alla prima volta. Rileggile nella Guida (zaino → ❔).', 'First-time explanations. Reread them in the Guide (bag → ❔).')}</div>`);
 
     /* AGGIORNAMENTO. Stava nei Credits, dove nessuno lo cerca: sul telefono non esiste il
        "ricarica senza cache" e si gioca per giorni a una versione superata. La versione è
@@ -483,7 +483,7 @@ function buildMenu(inGame) {
        di no — e che si legge in chiaro, non nascosta in fondo a una pagina di condizioni. */
     h += grp('📊 ' + tr('Statistiche anonime', 'Anonymous stats'),
       riga(tr('Manda come sta andando', 'Send how it is going'), sw('sp-beat', battitoAcceso()))
-      + `<div class="sp-hint2">${tr('Quanto hai giocato e a che giorno sei arrivato, per capire dove il gioco annoia. <b>Niente</b> che dica chi sei: nessun nome, nessuna email, nessun indirizzo.', 'How long you played and how far you got, to see where the game drags. <b>Nothing</b> that says who you are: no name, no email, no address.')}</div>`);
+      + `<div class="sp-hint2">${tr('Tempo di gioco e progressi, <b>anonimi</b>: nessun nome né email.', 'Play time and progress, <b>anonymous</b>: no name or email.')}</div>`);
 
     h += `</div>` + backBar();
   } else if (view === 'trophies') {
@@ -518,7 +518,7 @@ function buildMenu(inGame) {
        comandi si scoprivano solo scrivendo `help` dentro la console stessa — cioè
        sapendo già che esisteva. */
     h += `<div class="sp-title3">${tr('Console', 'Console')} <kbd>\\</kbd></div>`;
-    h += `<div class="sp-note" style="max-width:none"><kbd>\\</kbd> ${tr('apre la console: scrivi un comando e invio. Servono a provare il gioco: attivano i «cheat» e il salvataggio resta congelato finché non scrivi <b>vanilla</b>.', 'opens the console: type a command and hit enter. They are for testing: they turn on cheats and saving stays frozen until you type <b>vanilla</b>.')}</div>`;
+    h += `<div class="sp-note" style="max-width:none"><kbd>\\</kbd> ${tr('apre la console dei cheat: il salvataggio resta congelato finché non scrivi <b>vanilla</b>.', 'opens the cheat console: saving stays frozen until you type <b>vanilla</b>.')}</div>`;
     h += `<div class="sp-cmds">` + commandHelp().map(t => {
       const i = t.indexOf('—');
       const name = i > 0 ? t.slice(0, i).trim() : t;
@@ -546,7 +546,7 @@ function buildMenu(inGame) {
       if (acc.conflict) {
         /* DUE PARTITE DIVERSE: non si sceglie per lui. Si mostrano le due con quello che
            riconosce (giorno, monete, reperti) e decide. */
-        h += `<p class="sp-acc-warn">${tr('Su questo dispositivo e sul server ci sono due partite diverse. Quale tieni?', 'This device and the server have two different games. Which one do you keep?')}</p>`;
+        h += `<p class="sp-acc-warn">${tr('Qui e sul server ci sono due partite diverse. Quale tieni?', 'This device and the server differ. Which game do you keep?')}</p>`;
         h += `<button class="sp-btn" id="sp-keeplocal">${tr('questa', 'this one')} · ${acc.localSum}</button>`;
         h += `<button class="sp-btn" id="sp-keepremote">${tr('quella salvata', 'the saved one')} · ${acc.remoteSum}</button>`;
       } else {
@@ -557,10 +557,10 @@ function buildMenu(inGame) {
       /* itch e altre origini non autorizzate: il login Google qui dà solo l'errore di Google.
          Lo si DICE e si offre il link al sito vero, dove funziona. Intanto si gioca in locale. */
       const home = loginHomeUrl();
-      h += `<p class="sp-acc-st">${tr('Qui il gioco è incorporato (itch.io), e Google non permette l\'accesso da un indirizzo diverso dal sito. La partita resta salvata su questo dispositivo.', 'Here the game is embedded (itch.io), and Google won\'t allow sign-in from an address other than the site. Your game stays saved on this device.')}</p>`;
+      h += `<p class="sp-acc-st">${tr('Su itch.io l\'accesso Google non è possibile: la partita resta su questo dispositivo.', 'Google sign-in isn\'t possible on itch.io: your game stays on this device.')}</p>`;
       h += `<p class="sp-acc-note"><a href="${esc(home)}" target="_blank" rel="noopener">${tr('Apri il gioco su digsy.dev-box.it per il salvataggio in cloud', 'Open the game on digsy.dev-box.it for cloud save')}</a></p>`;
     } else {
-      h += `<p class="sp-acc-st">${tr('Entra e ritrovi la stessa partita sul telefono e sul computer. Il salvataggio viene copiato su digsy.dev-box.it.', 'Sign in and find the same game on your phone and computer. Your save is copied to digsy.dev-box.it.')}</p>`;
+      h += `<p class="sp-acc-st">${tr('Entra e ritrovi la partita su telefono e computer.', 'Sign in to play the same game on phone and computer.')}</p>`;
       h += `<div id="sp-gbtn"></div>`;
       h += `<p class="sp-acc-note" id="sp-accmsg">${acc.msg || ''}</p>`;
     }

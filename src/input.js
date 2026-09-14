@@ -340,7 +340,7 @@ if (cv && cv.addEventListener) {
       if (tipo === 'preso' && !mosso) {
         playSfx('ui');
         toast('🎨 ' + keyText(isTouch() ? tr('Selezionato: tocca ↻ per ruotare, poi tocca dove posarlo', 'Selected: tap ↻ to rotate, then tap where to place it')
-          : tr('Selezionato: clicca ↻ (o R) per ruotare, poi clicca dove posarlo', 'Selected: click ↻ (or R) to rotate, then click where to place it')));
+          : tr('↻ o R ruota, clic per posare', '↻ or R rotates, click to place')));
         return;
       }
       if (isHolding()) {

@@ -5108,7 +5108,7 @@ sprites.applyLook();
     const keepCre = S.creatures;
     S.creatures = [];
     const noComp = panel(() => ui.openCompanionPicker());
-    check('Compagno: senza chimere spiega come ottenerne una', noComp.includes('Nessuna chimera'));
+    check('Compagno: senza chimere spiega come ottenerne una', noComp.includes('nessuna creatura'));
     S.creatures = [{ uid: 77, name: 'Provolone', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
     const withComp = panel(() => ui.openCompanionPicker());
     check('Compagno: con una chimera la si può scegliere', withComp.includes('Provolone') && withComp.includes('data-comp'));

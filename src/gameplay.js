@@ -352,7 +352,7 @@ export function goHome() {
      portale di ritorno (S.returnPortal, sopra). */
   enterInterior({ type: 'house', doorx: S.home.x, doory: S.home.y }, null);
   playSfx('found');
-  toast('🏠 ' + tr('Teletrasportato nel corridoio di casa: un portale ti riporta indietro', "Teleported to your home's hallway: a portal will take you back"));
+  toast('🏠 ' + tr('Sei a casa: il portale ti riporta indietro', "You're home: the portal takes you back"));
   /* teletrasportarsi salta il cancello a piedi: da fuori resta chiuso a chiave (S.gateLocked,
      persistente) finché non si trova un modo per riaprirlo. Il tono NON si dice qui (si è
      ancora nel corridoio, il cancello non si vede) — arriva quando ci si arriva davvero
@@ -732,7 +732,7 @@ export function toggleMount() {
   if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario per volare', 'You need a legendary cave companion to fly')); return false; }
   if (S.mounted) {                          // sto per SCENDERE: serve una casella CALPESTABILE
     const spot = landingSpot();
-    if (!spot) { toast('🐾 ' + tr('Non puoi scendere qui: sorvola un punto libero (niente rocce, alberi, montagne)', "Can't land here: fly over open ground (no rocks, trees, mountains)")); playSfx('nope'); return false; }
+    if (!spot) { toast('🐾 ' + tr('Qui non si scende: cerca un punto libero', "Can't land here: find open ground")); playSfx('nope'); return false; }
     P.x = spot.x; P.y = spot.y;             // atterra sul punto libero più vicino
   }
   S.mounted = !S.mounted;

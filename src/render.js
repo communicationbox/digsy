@@ -1075,7 +1075,9 @@ export function drawFlyingMount(sx, sy) {
   /* la cavalcatura è la creatura costruita a RISOLUZIONE 4: grande il doppio del compagno a terra,
      con i pixel della stessa misura del mondo. Alla taglia del parco l'omino seduto era grande
      quanto lei e la copriva ("qualche problema di sprite la cavalcatura ce l'ha"). */
-  const mopts = { noLegs: true, res: 4 };
+  /* a 4 volava un bestione largo mezzo schermo ("troppo grosso quando vola"): a 3 resta più grande
+     del cavaliere senza coprire la scena */
+  const mopts = { noLegs: true, res: 3 };
   const cv = creatureSprite(obj, view, mopts);
   const cvW = cv ? cv.width : 56, cvH = cv ? cv.height : 36;
   const bob = Math.round(Math.sin(frameTime / 300) * 3);
@@ -1085,7 +1087,9 @@ export function drawFlyingMount(sx, sy) {
   const flap = Math.sin(frameTime / 130);
   shadow(sx, sy + 36, 18);
   const wingRootY = backTop + 6;
-  if (view === 'side') voxWing(sx - dir * 4, wingRootY, -dir, flap, base);
+  /* di profilo l'ala lontana sta dietro il corpo e quella vicina DAVANTI: disegnate entrambe dietro,
+     il corpo le copriva tutte e due ("di fianco non si vedono le ali") */
+  if (view === 'side') voxWing(sx - dir * 2, wingRootY - 3, -dir, -flap, shade8(base, 0.8));
   else { voxWing(sx - 14, wingRootY, -1, flap, base); voxWing(sx + 14, wingRootY, 1, flap, base); }
   if (cv) {
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
@@ -1094,6 +1098,7 @@ export function drawFlyingMount(sx, sy) {
     else ctx.drawImage(cv, x0, snap(top));
     ctx.imageSmoothingEnabled = sm;
   }
+  if (view === 'side') voxWing(sx - dir * 9, wingRootY + 2, -dir, flap, base);
   /* CAVALIERE seduto: vita sulla sella, mani avanti (posa 'ride') */
   seatHero(sx, backTop - 24, P.dir);
   /* SELLA: i due lembi di cuoio che scendono ai fianchi, DAVANTI al cavaliere (sotto di lui la

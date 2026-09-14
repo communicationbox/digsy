@@ -241,9 +241,9 @@ function stepCut(dt) {
         CUT.queue = [CUT.line];               // la frase detta camminando resta finché non clicchi
         CUT.queue = CUT.queue.concat(fin
           ? [tr('Hai riempito ogni sala del mio museo. Ogni singola sala.', 'You filled every room of my museum. Every single one.'),
-             tr('Tuo nonno mi lasciò un\'ultima busta, da aprire solo a quel punto.', 'Your grandparent left me one last envelope, to be opened only then.'),
+             tr('Tuo nonno mi lasciò un\'ultima busta per te.', 'Your grandparent left one last envelope for you.'),
              tr('Credo sia arrivato il momento. Siediti: leggila con calma.', 'I believe the moment has come. Sit down: read it slowly.')]
-          : [tr('Questa la lasciò tuo nonno, anni fa. Disse: "dagliela quando avrà riempito la sala".', 'Your grandparent left this years ago. They said: "give it to them once the room is full".'),
+          : [tr('Me la lasciò tuo nonno: "dagliela a sala piena".', 'Your grandparent left this: "give it when the room is full".'),
              tr('Io ho solo mantenuto la promessa. Il resto è scritto lì dentro.', 'I only kept the promise. The rest is written in there.')]);
         CUT.thanksLine = fin ? tr('…grazie, nonno.', '…thank you, Grandpa.') : tr('La leggo subito!', 'I\'ll read it right away!');
         CUT.line = CUT.queue[0];
@@ -258,8 +258,8 @@ function stepCut(dt) {
          coda: si passa alla successiva SOLO col click (i bambini leggono piano). */
       CUT.queue = [CUT.line, tr('Ecco le pagine del Libro di ', 'Here are the Book pages of ') + zoneName(CUT.zone.id) + tr('. Custodiscile bene.', '. Keep them safe.')];
       if (first) { // SPIEGONE solo al primissimo museo: DNA + porta i grezzi
-        CUT.queue.push(tr('Studio i fossili interi e ne ricavo il DNA: così le creature tornano a vivere.', 'I study whole fossils and extract their DNA: that is how creatures come back to life.'));
-        CUT.queue.push(tr('Se trovi un reperto che non riconosci, portamelo al bancone: lo identifico io.', 'If you find something you can\'t recognize, bring it to my desk: I\'ll identify it.'));
+        CUT.queue.push(tr('Dal DNA dei fossili riporto in vita le creature.', 'From fossil DNA I bring creatures back to life.'));
+        CUT.queue.push(tr('Un reperto misterioso? Portalo al bancone.', 'A mystery find? Bring it to my desk.'));
         CUT.thanksLine = tr('Ne ho già uno nello zaino: arrivo!', "I've got one in my bag already: coming!");
         S.museumIntroSeen = true;
         if (!S.npcSeen) S.npcSeen = {}; S.npcSeen.museum = true; // evita il doppio tutorial al bancone

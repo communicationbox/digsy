@@ -69,11 +69,11 @@ const TEXT = {
   shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
     tr('Vendi tutto quello che hai raccolto, poi compra la pala 🪏.', 'Sell everything you gathered, then buy the spade 🪏.')],
   armchair: () => [tr('Arreda casa tua', 'Furnish your home'),
-    tr('Hai già una poltrona nel vassoio: piazzala qui in Sala con {act}.', 'You already have an armchair in your tray: place it here in the Living room with {act}.')],
+    tr('Piazza la poltrona qui in Sala con {act}.', 'Place the armchair here in the Living room with {act}.')],
   dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),
-    tr('Sull\'erba, premi {act}. In piazza è lastricato e non si può.', 'On the grass, press {act}. The plaza is paved and cannot be dug.')],
+    tr('Sull\'erba, premi {act}. In piazza non si scava.', 'On the grass, press {act}. No digging on the plaza.')],
   museum: () => [tr('Porta i reperti al Museo', 'Take your finds to the Museum'),
-    tr('Il Curatore ti dirà che creature sono. Adesso ti aspetta.', 'The Curator will tell you what creatures they are. He is waiting for you now.')],
+    tr('Il Curatore ti aspetta per identificarli.', 'The Curator is waiting to identify them.')],
 };
 export function tutTitle(id) { return TEXT[id] ? TEXT[id]()[0] : id; }
 export function tutHint(id) { return TEXT[id] ? TEXT[id]()[1].replace(/\{act\}/g, actKey()) : ''; }
@@ -206,8 +206,8 @@ export function bldPurpose(type) { return PURPOSE[type] ? PURPOSE[type]() : ''; 
    una porta murata. */
 export function museumOpen() { return !tutActive() || tutStepId() === 'museum'; }
 export function museumClosedText() {
-  return tr('Il Curatore è di là a catalogare: torna quando hai qualcosa da mostrargli.',
-    'The Curator is in the back cataloguing: come back when you have something to show him.');
+  return tr('Il Curatore cataloga: torna con un reperto.',
+    'The Curator is cataloguing: come back with a find.');
 }
 
 export function tutSkip() { const t = st(); t.done = true; t.skipped = true; save(); return true; }

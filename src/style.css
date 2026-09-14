@@ -1477,7 +1477,9 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
 #mp-title{display:inline-block;background:var(--c-line-2);color:var(--c-paper);padding:5px 22px;font-size:15px;letter-spacing:2px;
   box-shadow:0 0 0 3px var(--c-deep);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
 #mp-sub{position:absolute;left:14px;top:18px;margin:0;color:var(--c-line-3)}
-.mp-x{position:absolute;right:12px;top:8px;width:36px;height:36px;border-radius:50%;background:#9a2a22;color:var(--c-paper);box-shadow:0 0 0 3px #5a140f,inset 0 3px 0 rgba(255,200,180,.3)}
+/* la ✕ della carta è quella di tutte le altre finestre (niente sigillo rosso: sembrava la X del tesoro) */
+.mp-x{position:absolute;right:12px;top:8px;width:34px;height:34px;border-radius:8px;border:2px solid var(--c-line);background:var(--c-ink);color:var(--c-wood);box-shadow:0 0 0 3px var(--c-deep);font-size:16px}
+.mp-x .pxi{width:16px;height:16px}
 #mapcv{box-shadow:0 0 0 2px rgba(92,58,24,.5)}
 .mp-zoom button{border-radius:50%;background:var(--c-parch-2);color:var(--c-line-3);box-shadow:0 0 0 2px var(--c-line-3)}
 .mp-legbtn{align-self:flex-start;margin:6px 12px 8px;font:800 13px ui-monospace,monospace;background:transparent;color:var(--c-line-3);border:0;

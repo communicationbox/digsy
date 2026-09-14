@@ -174,7 +174,7 @@ function loop(ts) {
       /* commissione scaduta: lo si dice, non si scopre tornando al museo */
       if (pruneExpired(S.day)) toast(tr('🏛️ La commissione del Museo è scaduta', '🏛️ The Museum commission has expired'));
       /* l'uovo è pronto: lo si dice appena il giorno scatta, non si scopre tornando al Lab */
-      if (eggReady(S.day)) toast(tr('🥚 Un uovo si è schiuso… quasi: torna al Laboratorio per vederlo!', '🥚 An egg is about to hatch… head back to the Laboratory to see it!'));
+      if (eggReady(S.day)) toast(tr('🥚 Un uovo sta per schiudersi: torna al Lab!', '🥚 An egg is hatching: back to the Lab!'));
     }
     if (CAVE.active) { // dentro una grotta: area buia esplorabile
       updateCave(dt, keys, P.speed * gearSpeedMul() * (P.speedMul || 1));
@@ -226,8 +226,8 @@ function boot() {
   setSaveErrorHandler(name => {
     const full = /quota|QuotaExceeded/i.test(name || '');
     toast('⚠️ ' + (full
-      ? tr('Spazio esaurito: il gioco NON sta salvando! Libera spazio nel browser.', 'Storage full: the game is NOT saving! Free some browser storage.')
-      : tr('Il browser blocca i salvataggi (navigazione privata?): i progressi non verranno salvati.', 'Your browser blocks saving (private mode?): progress will not be kept.')));
+      ? tr('Spazio pieno: NON sto salvando!', 'Storage full: NOT saving!')
+      : tr('Salvataggi bloccati (navigazione privata?)', 'Saving blocked (private mode?)')));
   });
   const loaded = initState();
   /* PARCO CHE RENDE (idle.js): quanto tempo VERO è passato dall'ultimo salvataggio, calcolato
@@ -472,8 +472,10 @@ if (typeof window !== 'undefined') {
       /* gli oggetti piccoli del mondo tutti insieme, sul loro terreno, per giudicarli a colpo d'occhio */
       /* galleria delle POSE del personaggio: camminata, scavo, accetta, piccone, bici, pattini,
          barca, motoscafo, pesca, volo — nelle quattro direzioni, dal codice vero del gioco */
-      poseGallery: (solo, zoom) => Promise.all([import('./render.js'), import('./screen.js'), import('./state.js')]).then(([r, sc, st]) => {
-        const c = sc.ctx, P2 = st.P, S2 = st.S, saved = { ...P2 }, sg = S2.gear, stools = { ...S2.tools }, smount = S2.mounted;
+      poseGallery: (solo, zoom, shirt) => Promise.all([import('./render.js'), import('./screen.js'), import('./state.js')]).then(([r, sc, st]) => {
+        const c = sc.ctx, P2 = st.P, S2 = st.S, saved = { ...P2 }, sg = S2.gear;
+        if (shirt) S2.look.shirtStyle = shirt;
+        const stools = { ...S2.tools }, smount = S2.mounted;
         S2.tools.bike = S2.tools.skates = true;
         const dirs = ['down', 'right', 'up', 'left'];
         const poses = [

@@ -65,9 +65,9 @@ function dangerAt(tool, cx, cy) {
 
 /* istruzione dell'attrezzo scelto — tr() LETTERALI (così i18n riconosce le stringhe) */
 function stepText(t) {
-  if (t === 'scalpello') return tr('Scalpello: trascina sulla ROCCIA scura per staccarla — non toccare il fossile chiaro', 'Chisel: drag on the dark ROCK to chip it away — don\'t touch the pale fossil');
-  if (t === 'spatola') return tr('Spatola: trascina sul fossile per pulirlo — non insistere sull\'osso già pulito', 'Spatula: drag on the fossil to clean it — don\'t keep scraping bone that\'s already clean');
-  return tr('Pennello: trascina per spolverare — il fossile chiaro appare nella roccia', 'Brush: drag to dust it off — the pale fossil appears in the rock');
+  if (t === 'scalpello') return tr('Scalpello: trascina sulla roccia scura, non sul fossile', 'Chisel: drag on dark rock, not the fossil');
+  if (t === 'spatola') return tr('Spatola: pulisci il fossile, senza insistere', 'Spatula: clean the fossil, don\'t overdo it');
+  return tr('Pennello: trascina per spolverare', 'Brush: drag to dust off');
 }
 /* maschera dell'OSSO per cella: dove la proiezione voxel del pezzo ha pixel (sfondo trasparente) */
 function boneMaskFor(item, cvw, cvh) {

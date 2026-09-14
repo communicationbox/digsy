@@ -69,8 +69,8 @@ export function goalEnd() {
      composta a runtime, il traduttore non la troverebbe mai e la voce russa resterebbe orfana
      (è successo scrivendo questa riga). Si spezza in due pezzi letterali, come altrove. */
   return tr('Riportale tutte e ', 'Bring back all ') + aliveTotal()
-    + tr(' e il parco sarà il mondo che il nonno poteva solo disegnare.',
-      ' and the park becomes the world your grandparent could only draw.');
+    + tr(' e il parco prenderà vita.',
+      ' and the park comes alive.');
 }
 
 /* la riga che dice lo scopo. Sta qui e non nelle schermate perché va scritta UNA volta: tre
@@ -81,8 +81,8 @@ export function goalTitle() { return tr('Riportate in vita', 'Brought back to li
 export function goalHint(st) {
   if (goalDone(st)) return tr('Tutte. Il mondo del nonno cammina di nuovo.', 'All of them. Your grandparent\'s world walks again.');
   if (alive(st) === 0) {
-    return tr('Completa una teca al Museo e risveglia la specie al Laboratorio: tornerà a camminare nel parco.',
-      'Complete a case at the Museum and awaken the species at the Laboratory: it will walk the park again.');
+    return tr('Completa una teca al Museo, poi risveglia la specie al Lab.',
+      'Complete a Museum case, then awaken the species at the Lab.');
   }
   const m = toNextMilestone(st);
   return m === 1
