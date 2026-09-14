@@ -35,6 +35,7 @@ src/interiors.js    le 6 stanze a tema, galleria del museo, NPC (npcPose/drawNpc
 src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete, fondi), comodità
 src/wonderNative.js tutte e 18 le meraviglie disegnate in NATIVO a 32px (gli sprite dello Studio restano in banca come riserva)
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
+src/hatArt.js       cappelli disegnati in NATIVO a 32px: forme (cupola, tesa, fascia, cono), luce e un solo contorno (puro)
 src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)
 src/caveArt.js      grotte: pareti in 3/4, pavimento a lastre con pozze e funghi luminosi, giacimenti (puro)
 src/decoArt.js      arredo urbano e ritrovamenti: fontana, panchine, lampioni, bacheca, statua, posta, ossa (puro)

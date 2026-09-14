@@ -1680,11 +1680,22 @@ sprites.applyLook();
   let hatBad = 0;
   for (const st of Object.keys(sprites.HATS)) for (const dir of ['down', 'side', 'up']) {
     for (const [y, r] of sprites.HATS[st][dir]) {
-      if (y < -8 || y > 40 || r.length !== 32) hatBad++; // fino a righe sopra la testa (raddoppiate)
+      if (y < -14 || y > 40 || r.length !== 32) hatBad++; // corna, piume e pompon salgono sopra la testa
       for (const ch of r) if (!(ch in sprites.PAL)) hatBad++;
     }
   }
   check('overlay cappelli validi (3 forme × 3 direzioni)', hatBad === 0);
+  /* "i cappelli fanno un po' schifo": erano mappe a 16 colonne raddoppiate a blocchi 2×2. Ora
+     sono disegnati in nativo: ogni vista ha il suo contorno e NON è fatta di coppie di pixel. */
+  let blocky = 0, noRim = 0;
+  for (const st of Object.keys(sprites.HATS)) for (const dir of ['down', 'side', 'up']) {
+    const rows = sprites.HATS[st][dir];
+    if (!rows.some(([, r]) => /[Jjvqrd]/.test(r))) noRim++;
+    let pairs = 0, cells = 0;
+    for (const [, r] of rows) for (let x = 0; x < 32; x += 2) if (r[x] !== '.' || r[x + 1] !== '.') { cells++; if (r[x] === r[x + 1]) pairs++; }
+    if (cells && pairs / cells > 0.9) blocky++;
+  }
+  check('cappelli nativi: contorno in ogni vista, niente blocchi 2×2 (' + blocky + ' a blocchi, ' + noRim + ' senza contorno)', blocky === 0 && noRim === 0);
   const { HAT_STYLES } = await import('../src/data.js');
   check('forme cappello coerenti coi dati', HAT_STYLES.length === 3 && HAT_STYLES.every(s => s.id in sprites.HATS));
   check('shade #ffffff 0.5 = #808080', sprites.shade('#ffffff', 0.5) === '#808080');
