@@ -533,7 +533,7 @@ export function creatureSprite(a, view, opts) {
         continue;
       }
       const up = at(x, y - 1), dn = at(x, y + 1), lf = at(x - 1, y), rt = at(x + 1, y);
-      const DJ = 2;                                            // salto di profondità = parte davanti a un'altra
+      const DJ = (o.res || 2) + (view === 'side' ? 0 : 2);   // salto di profondità = parte davanti a un'altra (di fronte i segmenti del corpo fanno gradini, non parti)
       let t = 0.5 + (p.d - mnd) / dr * 0.12;                   // le parti più vicine un filo più chiare
       if (!up || up.d < p.d - DJ) t += 0.32;                   // bordo in alto: prende luce
       if (!dn || dn.d < p.d - DJ) t -= 0.3;                    // bordo in basso: ombra
