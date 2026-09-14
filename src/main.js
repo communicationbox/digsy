@@ -487,8 +487,8 @@ if (typeof window !== 'undefined') {
         const K = (sc.view.PX || sc.view.K) * (+zoom || 1); c.setTransform(K, 0, 0, K, 0, 0);
         const pick = solo ? poses.filter(p => solo.split(',').includes(p[0])) : poses;
         pick.forEach(([nm, f], i) => dirs.forEach((d, j) => {
-          const x = 60 + j * 56, y = 24 + i * 58;
-          Object.assign(P2, saved, { dir: d, moving: false, anim: 0, digging: null }); S2.gear = null; S2.mounted = false;
+          const x = 70 + j * 80, y = 60 + i * 70;
+          Object.assign(P2, saved, { dir: d, moving: false, anim: 0, digging: null }); S2.gear = null; S2.mounted = f === 'mount' ? smount : false;
           if (j === 0) { c.fillStyle = '#000'; c.font = '7px monospace'; c.fillText(nm, 2, y + 20); }
           try {
             if (typeof f === 'function') { f(); r.drawPlayerAt(x + 20, y); }
@@ -499,6 +499,26 @@ if (typeof window !== 'undefined') {
           } catch (e) { c.fillStyle = '#f00'; c.font = '5px monospace'; c.fillText(e.message.slice(0, 30), x, y); }
         }));
         Object.assign(P2, saved); S2.gear = sg; S2.tools = stools; S2.mounted = smount;
+        const src = document.getElementById('cv'), snap2 = document.createElement('canvas');
+        snap2.width = src.width; snap2.height = src.height; snap2.getContext('2d').drawImage(src, 0, 0);
+        snap2.style.cssText = 'position:fixed;left:0;top:0;width:' + src.style.width + ';height:' + src.style.height + ';z-index:9999;image-rendering:pixelated';
+        document.body.appendChild(snap2);
+        return true;
+      }),
+      /* galleria delle CREATURE: specie risvegliate e chimere nelle tre viste, alla risoluzione del
+         parco (res 2) e a quella della cavalcatura (res 4) */
+      creatureGallery: (zoom, res) => Promise.all([import('./render.js'), import('./screen.js'), import('./data.js')]).then(([r, sc, dt]) => {
+        const c = sc.ctx, sp = dt.SPECIES, pick = [0, 7, 13, 22, 31, 38, 44, 52, 59].map(i => sp[i % sp.length].id);
+        const list = pick.map(id => ({ c: { skull: id, torso: id, leg: id, q: 'raro' } }));
+        for (let i = 0; i < 4; i++) list.push({ c: { skull: pick[i], torso: pick[(i + 3) % pick.length], leg: pick[(i + 6) % pick.length], q: 'raro' } });
+        c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#8fbf6a'; c.fillRect(0, 0, 4000, 4000);
+        const K = (sc.view.PX || sc.view.K) * (+zoom || 1); c.setTransform(K, 0, 0, K, 0, 0); c.imageSmoothingEnabled = false;
+        const R2 = +res || 2, cell = R2 > 2 ? 90 : 48;
+        list.forEach((a, i) => ['side', 'front', 'back'].forEach((v, j) => {
+          const cv = r.creatureSprite(a, v, R2 > 2 ? { res: R2 } : undefined);
+          const x = 4 + ((i % 4) * 3 + j) * cell, y = 4 + Math.floor(i / 4) * cell;
+          if (cv) c.drawImage(cv, x, y);
+        }));
         const src = document.getElementById('cv'), snap2 = document.createElement('canvas');
         snap2.width = src.width; snap2.height = src.height; snap2.getContext('2d').drawImage(src, 0, 0);
         snap2.style.cssText = 'position:fixed;left:0;top:0;width:' + src.style.width + ';height:' + src.style.height + ';z-index:9999;image-rendering:pixelated';

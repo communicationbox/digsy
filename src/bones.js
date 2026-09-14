@@ -63,8 +63,15 @@ export function clampSpec(spec) {
    tonde, e gli arti possono assottigliarsi verso la punta invece di essere bastoncini da un
    voxel. Chi disegna qui ragiona in voxel fini; chi scrive un blueprint continua a ragionare
    in unità intere. */
-export const R = 2;
+export let R = 2;
 const U = n => Math.round(n * R);
+/* risoluzione per UNA costruzione (opts.res): la cavalcatura si costruisce a 4, così è grande il
+   doppio con i pixel della stessa misura del mondo. Tutto il resto resta a 2. */
+function atRes(opts, fn) {
+  const res = opts && opts.res; if (!res || res === R) return fn();
+  const prev = R; R = res;
+  try { return fn(); } finally { R = prev; }
+}
 
 /* ---------- crani e teste (condivisi) ---------- */
 /* mattone del cranio a SEZIONE OVALE: a risoluzione doppia una scatola squadrata si vede
@@ -555,5 +562,5 @@ export function composedPartsVox(spId, parts) {
   return vox;
 }
 
-export function buildVoxels(rawSpec, opts) { return buildFromRecipe(clampSpec(rawSpec), 'skel', opts); }
-export function buildFleshVoxels(rawSpec, opts) { return buildFromRecipe(clampSpec(rawSpec), 'flesh', opts); }
+export function buildVoxels(rawSpec, opts) { return atRes(opts, () => buildFromRecipe(clampSpec(rawSpec), 'skel', opts)); }
+export function buildFleshVoxels(rawSpec, opts) { return atRes(opts, () => buildFromRecipe(clampSpec(rawSpec), 'flesh', opts)); }

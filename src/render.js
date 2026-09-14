@@ -469,15 +469,20 @@ export function drawFlowerbed(sx, sy, tx, ty) {
 /* chimera del parco: forma guidata dai parametri delle specie (taglia, becco/corni, ali, coda, serpente) */
 /* creatura del parco = proiezione laterale dello STESSO modello voxel VIVO (come libro/museo),
    con CONTORNO scuro così stacca dallo sfondo (anche verde su verde). Cache per composizione. */
+function mixHex(a, b, k) {
+  const A = parseInt(a.slice(1), 16), B = parseInt(b.slice(1), 16);
+  const ch = sh => Math.round(((A >> sh) & 255) * (1 - k) + ((B >> sh) & 255) * k);
+  return '#' + ((1 << 24) | (ch(16) << 16) | (ch(8) << 8) | ch(0)).toString(16).slice(1);
+}
 let sniffAt = -9e9, sniffKey = '', sniffBest = null;   // memoria del "fiuto" (vedi sopra)
 const creCache = new Map();
 /* sprite della creatura in una VISTA: 'side' (di profilo, X orizzontale · Z profondità),
    'front'/'back' (di fronte/spalle, Z orizzontale · X profondità → head-on, più stretto).
    Front mostra gli occhi, back no: così muovendosi in su/giù il compagno "gira". */
-function creatureSprite(a, view, opts) {
+export function creatureSprite(a, view, opts) {
   view = view || 'side';
   const o = opts || {};
-  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap ? '|f' + o.wingFlap : '');
+  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.res ? '|r' + o.res : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap ? '|f' + o.wingFlap : '');
   let cv = creCache.get(key); if (cv !== undefined) return cv;
   cv = null;
   try {
@@ -501,20 +506,65 @@ function creatureSprite(a, view, opts) {
     const S2 = 1;
     cv = document.createElement('canvas'); cv.width = cw * S2; cv.height = ch * S2;
     const g = cv.getContext('2d');
-    const grid = {}; const cells = [];
-    for (const v of vox.slice().sort((p, q) => (proj(p)[1]) - (proj(q)[1]))) {  // lontano→vicino
+    /* BUFFER di profondità: per ogni pixel il voxel più VICINO (colore, profondità, tipo).
+       Da qui si ricava tutto il resto — prima ogni voxel veniva dipinto col suo tono a bande di
+       profondità, e la creatura usciva piatta: niente luce, ventre come la schiena, zampe e testa
+       fuse col corpo in un'unica macchia. */
+    const buf = new Map();
+    for (const v of vox) {
       const [h, d] = proj(v);
-      const gx = pad + (h - mnh), gy = pad + (mxy - v.y);
-      const zt = (d - mnd) / dr;
-      let col = v.k === 'eye' ? (view === 'back' ? (v.col || '#c8b078') : '#201a14') : (v.col || '#c8b078'); // di spalle niente occhi
-      if (col !== '#201a14' && v.col) col = zt < 0.34 ? shade8(v.col, 0.7) : zt < 0.67 ? v.col : shade8(v.col, 1.18);
-      grid[gx + ',' + gy] = 1; cells.push([gx, gy, col]);
+      const gx = pad + (h - mnh), gy = pad + (mxy - v.y), k = gx + ',' + gy;
+      const cur = buf.get(k);
+      if (!cur || d > cur.d) buf.set(k, { d, col: v.col || '#c8b078', eye: v.k === 'eye' });
     }
-    /* contorno scuro attorno alla silhouette */
-    g.fillStyle = '#20160f';
-    for (const k in grid) { const [gx, gy] = k.split(',').map(Number); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nk = (gx + dx) + ',' + (gy + dy); if (!grid[nk]) g.fillRect((gx + dx) * S2, (gy + dy) * S2, S2, S2); } }
-    for (const [gx, gy, col] of cells) { g.fillStyle = col; g.fillRect(gx * S2, gy * S2, S2, S2); }
+    const at = (x, y) => buf.get(x + ',' + y);
+    /* altezza del corpo per il ventre chiaro: dall'alto al basso della sagoma, per colonna */
+    const colTop = {}, colBot = {};
+    for (const k of buf.keys()) { const [x, y] = k.split(',').map(Number); colTop[x] = Math.min(colTop[x] ?? 9e9, y); colBot[x] = Math.max(colBot[x] ?? -9e9, y); }
+    const sid = String(a.c.torso || ''), hsh = [...sid].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
+    const pattern = hsh % 3;                                   // 0 niente · 1 macchie · 2 strisce sul dorso
+    const cells = [];
+    for (const [k, p] of buf) {
+      const [x, y] = k.split(',').map(Number);
+      if (p.eye) {
+        if (view === 'back') { cells.push([x, y, shade8(p.col, 0.9)]); continue; }
+        const up = at(x, y - 1), lf = at(x - 1, y);
+        cells.push([x, y, (up && up.eye) || (lf && lf.eye) ? '#1a1410' : '#f6f0e0']);   // punto di luce in alto a sinistra dell'occhio
+        continue;
+      }
+      const up = at(x, y - 1), dn = at(x, y + 1), lf = at(x - 1, y), rt = at(x + 1, y);
+      const DJ = 2;                                            // salto di profondità = parte davanti a un'altra
+      let t = 0.5 + (p.d - mnd) / dr * 0.12;                   // le parti più vicine un filo più chiare
+      if (!up || up.d < p.d - DJ) t += 0.32;                   // bordo in alto: prende luce
+      if (!dn || dn.d < p.d - DJ) t -= 0.3;                    // bordo in basso: ombra
+      if (!lf) t += 0.1;
+      if (!rt) t -= 0.12;
+      let col = p.col;
+      const bh = Math.max(1, colBot[x] - colTop[x]), vy = (y - colTop[x]) / bh;
+      if (vy > 0.62 && bh > 6) col = mixHex(col, '#f4e8cc', 0.28);                 // ventre più chiaro
+      if (pattern === 1 && vy < 0.45 && ((x * 7 + y * 13 + hsh) % 11) === 0) t -= 0.28;   // macchie sul dorso
+      if (pattern === 2 && vy < 0.5 && ((x + (hsh & 7)) % 5) === 0) t -= 0.2;          // strisce
+      /* linea interna: il vicino DIETRO è molto più lontano → si scurisce il bordo di chi sta dietro */
+      for (const nb of [up, dn, lf, rt]) if (nb && nb.d > p.d + DJ + 1) { t = Math.min(t, 0.12); break; }
+      const f = t > 0.78 ? 1.2 : t > 0.52 ? 1.0 : t > 0.28 ? 0.82 : t > 0.08 ? 0.66 : 0.52;
+      cells.push([x, y, shade8(col, f)]);
+    }
+    /* contorno: scuro, ma del colore di chi lo tocca (non un nero uniforme) */
+    const seen = new Set();
+    for (const [x, y] of cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const nx = x + dx, ny = y + dy, nk = nx + ',' + ny;
+      if (buf.has(nk) || seen.has(nk)) continue; seen.add(nk);
+      g.fillStyle = shade8(buf.get(x + ',' + y).col, 0.3); g.fillRect(nx * S2, ny * S2, S2, S2);
+    }
+    for (const [x, y, col] of cells) { g.fillStyle = col; g.fillRect(x * S2, y * S2, S2, S2); }
+    const grid = {}; for (const k of buf.keys()) grid[k] = 1;
+    const cellsXY = cells.map(([x, y]) => [x, y]);
     cv._ax = (spanH / 2 + pad) * S2; // ancoraggio orizzontale (centro)
+    /* cima della schiena vicino al centro del corpo (per sella e cavaliere): si scartano teste e
+       colli, cercando la colonna più bassa fra le tre centrali */
+    let back = -1; const mid = Math.round(spanH / 2 + pad);
+    for (let dx = -2; dx <= 2; dx++) { const tpy = colTop[mid + dx]; if (tpy !== undefined && tpy > back) back = tpy; }
+    cv._back = back < 0 ? 0 : back;
   } catch (e) { cv = null; /* stub nei test */ }
   creCache.set(key, cv); return cv;
 }
@@ -984,8 +1034,8 @@ export function drawBikeFB(sx, sy, moving, dir, layer) {
 function seatHero(sx, topY, dir) {
   /* FASE 2: drawFlyingMount è ora nativa anche lei (niente più 2x ambiente da annullare):
      chiamata diretta, stessa unità di misura di tutto il resto. */
-  ctx.save(); ctx.beginPath(); ctx.rect(sx - 20, topY - 16, 40, 40); ctx.clip();
-  drawHero(null, sx - 16, topY, dir, 0);
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 24, topY - 20, 48, 46); ctx.clip();   // sotto la vita non si vede: le gambe stanno ai lati della sella
+  drawHero(null, sx - 16, topY, dir, 0, false, 'ride');
   ctx.restore();
 }
 /* ALA in stile VOXEL: colonne PIENE a ventaglio (niente membrana liscia coi buchi), 3 toni +
@@ -1029,35 +1079,33 @@ export function drawFlyingMount(sx, sy) {
   const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
   /* la creatura del mount = STESSO Abissodonte, zampe raccolte (noLegs). Le ali le disegno in stile
      voxel dietro il corpo (attaccate al dorso), così restano coerenti e visibili in ogni vista. */
-  const mopts = { noLegs: true };
+  /* la cavalcatura è la creatura costruita a RISOLUZIONE 4: grande il doppio del compagno a terra,
+     con i pixel della stessa misura del mondo. Alla taglia del parco l'omino seduto era grande
+     quanto lei e la copriva ("qualche problema di sprite la cavalcatura ce l'ha"). */
+  const mopts = { noLegs: true, res: 4 };
   const cv = creatureSprite(obj, view, mopts);
-  const cvH = cv ? cv.height : 32;                            // creatureSprite è già in pixel nativi (fuori ambito)
-  const bob = Math.round(Math.sin(frameTime / 300) * 4);
-  const creatureY = sy - 12 - bob;                           // in volo, staccata da terra (fondo = creatureY+28)
-  const backTop = Math.round(creatureY + 28 - cvH);          // cima della schiena su schermo
-  const bellyY = creatureY + 24;                             // sotto la pancia (dove si raccolgono le zampe)
-  const flap = Math.sin(frameTime / 130);                    // battito (fase dal TEMPO)
-  shadow(sx, sy + 34, 12);                                   // ombra a terra: dà l'altezza
-  /* ALI (stile voxel) DIETRO il corpo → sembrano attaccate al dorso, spuntano da sotto l'eroe */
-  const wingRootY = backTop + 12;
-  if (view === 'side') voxWing(sx - dir * 6, wingRootY, -dir, flap, base);          // una grande ala, si apre verso la coda
-  else { voxWing(sx - 10, wingRootY, -1, flap, base); voxWing(sx + 10, wingRootY, 1, flap, base); } // due ali ai lati
-  /* GAMBE PIEGATE sotto la pancia (raccolte in volo): coscia + piede rivolto in dentro, con volume */
-  const leg = (hx, s) => {
-    rect(hx, bellyY - 4, 4, 6, LEG); px(hx + (s > 0 ? 2 : 0), bellyY - 6, LEGD);
-    rect(hx + (s > 0 ? -2 : 2), bellyY, 4, 4, LEG); px(hx + (s > 0 ? -2 : 4), bellyY + 2, LEGD);
-    px(hx + (s > 0 ? 0 : 3), bellyY - 3, shade8(LEG, 1.2));
-  };
-  if (view === 'side') { leg(sx - 8, -1); leg(sx + 4, 1); }
-  else { leg(sx - 10, -1); leg(sx + 6, 1); }
-  /* la CREATURA VERA senza zampe (uguale all'animale base), SOPRA le radici delle ali (attaccate) */
-  if (obj) drawCreature(obj, sx - 16, creatureY, false, true, mopts);
-  /* SELLA: prolunga il dorso (stesso colore) sotto l'eroe → nessun pixel vuoto fra busto e creatura */
-  rect(sx - 12, backTop - 2, 24, 10, base); rect(sx - 12, backTop - 2, 24, 2, shade8(base, 1.2));
-  rect(sx - 12, backTop + 6, 24, 2, shade8(base, 0.7));
-  px(sx - 14, backTop, '#20160f'); px(sx - 14, backTop + 2, '#20160f'); px(sx + 12, backTop, '#20160f'); px(sx + 12, backTop + 2, '#20160f');
-  /* EROE ben SEDUTO sulla schiena: busto+testa, gambe in sella (tagliate dal clip) */
-  seatHero(sx, backTop - 12, P.dir);
+  const cvW = cv ? cv.width : 56, cvH = cv ? cv.height : 36;
+  const bob = Math.round(Math.sin(frameTime / 300) * 3);
+  const bottom = sy + 30 - bob;
+  const top = bottom - cvH;
+  const backTop = cv ? top + cv._back : top + 10;
+  const flap = Math.sin(frameTime / 130);
+  shadow(sx, sy + 36, 18);
+  const wingRootY = backTop + 6;
+  if (view === 'side') voxWing(sx - dir * 4, wingRootY, -dir, flap, base);
+  else { voxWing(sx - 14, wingRootY, -1, flap, base); voxWing(sx + 14, wingRootY, 1, flap, base); }
+  if (cv) {
+    const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+    const x0 = snap(sx - (cv._ax || cvW / 2));
+    if (P.dir !== 'left' && view === 'side') { ctx.save(); ctx.translate(x0 + cvW, snap(top)); ctx.scale(-1, 1); ctx.drawImage(cv, 0, 0); ctx.restore(); }
+    else ctx.drawImage(cv, x0, snap(top));
+    ctx.imageSmoothingEnabled = sm;
+  }
+  /* CAVALIERE seduto: vita sulla sella, mani avanti (posa 'ride') */
+  seatHero(sx, backTop - 24, P.dir);
+  /* SELLA: i due lembi di cuoio che scendono ai fianchi, DAVANTI al cavaliere (sotto di lui la
+     sella non si vedrebbe) */
+  for (const s2 of [-1, 1]) { const x = s2 < 0 ? sx - 13 : sx + 8; rect(x, backTop - 1, 5, 8, '#20160f'); rect(x + 1, backTop, 3, 6, '#8a5f38'); rect(x + 1, backTop, 3, 1, '#b07c4a'); }
   if (P.moving) { const tx = sx - dir * 22, ty = backTop + 16, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2 * 2, ty, 'rgba(224,206,255,.6)'); px(tx - w2 * 2, ty + 4, 'rgba(198,178,236,.4)'); }
   ctx.restore();
 }
