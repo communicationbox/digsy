@@ -1074,7 +1074,7 @@ export function drawFlyingMount(sx, sy) {
   const dir = P.dir === 'left' ? -1 : 1;
   const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
   const flap = Math.floor(frameTime / 140) % 4;
-  const mo = f => ({ noLegs: true, res: 3, addWings: [2, 'm'], wingFlap: f });
+  const mo = f => ({ res: 3, addWings: [2, 'm'], wingFlap: f });   // con le zampe: senza, di fronte e di spalle era un disco
   const cv = obj ? creatureSprite(obj, view, mo(flap)) : null;
   /* il DORSO si misura sulla posa a ali distese, sempre la stessa: le punte che salgono cambiano
      l'altezza della sagoma, e il pilota misurato su ogni posa saltellava col battito */
