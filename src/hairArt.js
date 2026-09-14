@@ -89,28 +89,49 @@ const DRAW = {
   },
 
   long: {
+    /* LUNGO rifatto ("sistemiamo questi capelli"): era un casco con due tende dritte che coprivano le
+       spalle, di lato una fetta tagliata in diagonale, di spalle una campana a festoni.
+       Ora: frangia a tendina aperta al centro, due ciocche morbide che incorniciano il viso e si
+       posano sulle spalle con la punta verso fuori; di lato la chioma cade dietro l'orecchio e si
+       apre in fondo; di spalle scende a U con tre punte morbide. */
     down(g) {
-      mass(g, CX, -2, 19, 11);
+      mass(g, CX, -2, 7, 11, 0.2);
       cut(g, (x, y) => {
-        if (x >= 8 && x <= 23) return y <= ((x >= 13 && x <= 18) ? 4 : 5);
-        if (y > 18) return false;
-        return y < 17 || (m(x) + y) % 3 !== 0;      // punte sfrangiate
+        if (x < 7 || x > 24) return y <= 7;
+        const k = m(x);
+        return y <= (k <= 9 ? 6 : k <= 11 ? 5 : k <= 13 ? 4 : 3);   // tendina: più corta al centro
       });
-      strands(g, [[13, -1, 9, 5], [18, -1, 22, 5], [6, 6, 6, 17], [25, 6, 25, 17]]);
+      for (let y = 6; y <= 18; y++) {
+        const out = y >= 16 ? 1 : 0;                                    // la punta si apre appena sulla spalla
+        const x0 = 5 - out, x1 = (y <= 12 ? 8 : y <= 15 ? 7 : 6) - out;
+        if (y === 18) { g.span(y, x0, x0 + 1, 'A', { t: 1 }); g.span(y, 31 - x0 - 1, 31 - x0, 'A', { t: 1 }); continue; }
+        g.span(y, x0, x1, 'A', { lit: 0.4, dark: 0.75 });
+        g.span(y, 31 - x1, 31 - x0, 'A', { lit: 0.25, dark: 0.6 });
+      }
+      strands(g, [[14, -1, 10, 5], [17, -1, 21, 5], [9, 1, 7, 7], [22, 1, 24, 7], [6, 8, 5, 16], [25, 8, 26, 16]]);
+      shine(g, [[8, 1], [9, 0], [10, 0], [11, -1], [12, -1]]);
     },
     up(g) {
-      mass(g, CX, -2, 20, 11);
-      cut(g, (x, y) => y < 19 || (m(x) + y) % 3 !== 0);
-      strands(g, [[15, 0, 12, 18], [16, 0, 19, 18], [10, 3, 8, 17], [21, 3, 23, 17]]);
+      mass(g, CX, -2, 6, 11, 0.2);
+      for (let y = 5; y <= 17; y++) {                                  // cade dritta quanto la testa, si stringe solo in fondo
+        const inset = y <= 15 ? 0 : (y - 15) * 2;
+        g.span(y, 5 + inset, 26 - inset, 'A', { lit: 0.3, dark: 0.72 });
+      }
+      for (const x0 of [9, 14, 21]) g.span(18, x0, x0 + (x0 === 14 ? 3 : 1), 'A', { t: 2 });   // tre punte morbide
+      strands(g, [[15, 0, 13, 17], [16, 0, 18, 17], [11, 2, 9, 16], [20, 2, 22, 16], [7, 5, 7, 15], [24, 5, 24, 15], [13, 6, 12, 16], [19, 6, 20, 16]]);
+      shine(g, [[8, 2], [9, 1], [10, 0], [11, 0], [12, -1], [13, -1]]);
     },
     side(g) {
-      mass(g, 14.5, -2, 20, 10.5);
-      /* di profilo i capelli lunghi cadono DIETRO l'orecchio: prima scendevano a muro fino alla
-         colonna 16, a un passo dall'occhio, e la frangia finiva dritta lasciando una colonna di
-         fronte che sembrava un bozzo. Ora la frangia sale in diagonale verso la fronte e la
-         tenda sta dietro l'orecchio (colonne 13-14) */
-      cut(g, (x, y) => x > 16 ? y <= (x > 21 ? 4 : x > 19 ? 5 : 6) : x > 12 ? y <= 7 + (16 - x) : (y < 19 || (x + y) % 3 !== 0));
-      strands(g, [[14, -1, 22, 3], [10, 3, 8, 18], [12, 4, 11, 18]]);
+      mass(g, 15, -2, 8, 10.5, 0.2);
+      /* il viso resta libero davanti all'orecchio (colonne 13-14, righe 9-11): frangia in diagonale
+         verso la fronte, tempia fino a riga 7, dietro l'orecchio la chioma scende */
+      cut(g, (x, y) => x > 16 ? y <= (x > 21 ? 4 : x > 19 ? 5 : 6) : x > 12 ? y <= 7 : true);
+      for (let y = 9; y <= 18; y++) {
+        const x0 = y <= 15 ? 6 : 7, x1 = y <= 12 ? 12 : y <= 15 ? 11 : y <= 17 ? 10 : 9;
+        g.span(y, x0, x1, 'A', { lit: 0.3, dark: 0.7 });
+      }
+      strands(g, [[15, -1, 22, 3], [12, 0, 9, 8], [8, 4, 6, 17], [11, 8, 9, 17]]);
+      shine(g, [[9, 1], [10, 0], [11, -1], [12, -1], [13, -1]]);
     },
   },
 
@@ -253,6 +274,8 @@ const DRAW = {
   },
 };
 
+/* riflesso: una fila di pixel in luce che segue la curva della chioma (solo dove ci sono capelli) */
+function shine(g, pts) { for (const [x, y] of pts) { const c = g.get(x, y); if (c && c.m === 'A') g.set(x, y, 'A', 0); } }
 /* grana dei rasati: puntini scuri sparsi dentro la massa */
 function stubble(g) {
   for (const [y, row] of g.rows) row.forEach((c, x) => { if (c && c.m === 'A' && c.t !== 0) { let h = Math.imul(x + 17, 374761393) ^ Math.imul(y + 31, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); if (((h ^ (h >>> 16)) >>> 0) % 5 === 0) g.set(x, y, 'A', 2); } });   // a caso ma fisso: niente righe
