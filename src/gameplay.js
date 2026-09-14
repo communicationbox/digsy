@@ -97,9 +97,14 @@ export function makeRaw(zoneId, dist, forceRar, src = 'terra') {
     sp = pickNeeded(cand.length ? cand : pool) || pool[0] || zPool[0];
   }
   notePity(sp.r);                             // aggiorna i contatori di sfortuna
-  const part = pickPart(sp.id);
+  /* PEZZO D'AMBRA: solo per le specie con la teca GIÀ completa, così arriva quando la prima
+     collezione di quella specie è finita e i suoi doppioni smetterebbero di servire */
+  const amber = (S.museum && (S.museum[sp.id] || []).length === PARTS.length) && Math.random() < (AMBER_CHANCE[sp.r] || 0.1);
+  const part = amber ? pickAmberPart(sp.id) : pickPart(sp.id);
   const val = Math.max(2, Math.round(7 * ptById[part].mult * RAR.find(r => r.id === sp.r).mult * (1 + (dist || 0) / 900)));
-  return { uid: S.uid++, s: sp.id, t: part, q: sp.r, val };
+  const it = { uid: S.uid++, s: sp.id, t: part, q: sp.r, val: amber ? val * 3 : val };
+  if (amber) it.amber = true;
+  return it;
 }
 
 /* ---------- PITY TIMER e ANTI-DOPPIONE ----------
@@ -108,6 +113,20 @@ export function makeRaw(zoneId, dist, forceRar, src = 'terra') {
    1) rarità garantita dopo N scavi sfortunati (Genshin/Hearthstone);
    2) a parità di rarità si pesca prima ciò che ti MANCA (Hearthstone no-duplicate). */
 export const PITY = { raro: 30, eccezionale: 90, leggendario: 280 };
+/* AMBRA: la seconda collezione, a lungo termine. Ogni specie con la teca completa ha una seconda
+   fila di cinque pezzi d'ambra da trovare; completarla accende la teca d'oro e paga bene. */
+/* più rara la specie, più facile che il suo pezzo sia d'ambra: le leggendarie escono di rado, e con
+   la stessa probabilità di tutte la loro teca d'ambra chiedeva da sola decine di ore (misurato con
+   `node tests/pacing.mjs`) */
+export const AMBER_CHANCE = { comune: 0.10, raro: 0.18, eccezionale: 0.3, leggendario: 0.5 };
+export function amberCount(spId) { return ((S.amber || {})[spId] || []).length; }
+export function amberReward(spId) { const r = (spById[spId] || {}).r; return { comune: 60, raro: 120, eccezionale: 220, leggendario: 400 }[r] || 60; }
+function pickAmberPart(spId) {
+  const have = new Set([...((S.amber || {})[spId] || []), ...S.raw.filter(it => it.s === spId && it.amber).map(it => it.t)]);
+  const miss = PARTS.filter(p => !have.has(p.id));
+  const pool = miss.length && Math.random() < 0.75 ? miss : PARTS;
+  return pool[Math.floor(Math.random() * pool.length)].id;
+}
 function pityCount(q) { return (S.pity || {})[q] || 0; }
 function pityRar() {
   if (pityCount('leggendario') >= PITY.leggendario) return 'leggendario';
@@ -1358,9 +1377,20 @@ export function museumJobReady() { return !!S.museumJob && (isDebug() || S.day >
 export function museumCollect() {
   if (!museumJobReady()) return null;
   const prepOk = !!S.museumJob.prepOk;
-  const back = [], shown = [], vials = [], left = [];
+  const back = [], shown = [], vials = [], left = [], amberShown = [], amberDone = [];
   for (const it of S.museumJob.items) {
     if (!S.codex.includes(it.s)) S.codex.push(it.s); // identificato in ogni caso
+    if (it.amber) {
+      /* pezzo d'AMBRA: va nella seconda fila della teca; se c'è già torna a te (vale il triplo) */
+      const am = (S.amber || (S.amber = {}))[it.s] || (S.amber[it.s] = []);
+      if (am.includes(it.t)) { if (bagFull()) { left.push(it); continue; } S.items.push(it); back.push(it); continue; }
+      am.push(it.t); amberShown.push(it);
+      if (am.length === PARTS.length && !S.amberDone.includes(it.s)) {
+        S.amberDone.push(it.s); amberDone.push(it.s);
+        S.coins += amberReward(it.s); gainXp(60);
+      }
+      continue;
+    }
     const col = S.museum[it.s] || (S.museum[it.s] = []);
     if (col.includes(it.t)) {
       /* doppione: torna a te — ma solo se ci sta. Depositare svuota lo zaino (i pezzi in
@@ -1385,7 +1415,7 @@ export function museumCollect() {
   let prepCand = null;
   if (prepOk) prepCand = back.filter(it => RARE_PLUS.includes(it.q) && it.prep == null).sort((a, b) => (b.val || 0) - (a.val || 0))[0] || null;
   save(); updateHUD();
-  return { back, shown, vials, left, prepCand };
+  return { back, shown, vials, left, prepCand, amberShown, amberDone };
 }
 /* Sonno alternato: metà-giornata = giorno [0,0.5) o notte [0.5,1). halfIndex monotòno crescente. */
 function curHalf() { return S.day * 2 + (isNight() ? 1 : 0); }

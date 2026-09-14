@@ -17,6 +17,7 @@ export const TIPS = {
   map: () => [tr('Mappa', 'Map'), tr('La mappa{key:M} si svela camminando.', 'The map{key:M} fills in as you walk.')],
   dna: () => [tr('DNA e chimere', 'DNA and chimeras'), tr('5 pezzi = <b>fialetta DNA</b>. <b>2</b> fialette = specie viva al Lab.', '5 pieces = <b>DNA vial</b>. <b>2</b> vials = species alive at the Lab.')],
   quest: () => [tr('Missioni', 'Missions'), tr('Il cartello 📋 dà missioni: monete ed XP.', 'The board 📋 gives missions: coins and XP.')],
+  amber: () => [tr('Ambra', 'Amber'), tr('Con la teca completa arrivano i pezzi <b>d\'ambra</b> ✨: una seconda teca da riempire.', 'Once a case is full, <b>amber</b> pieces ✨ appear: a second case to fill.')],
   night: () => [tr('Notte e stagioni', 'Night and seasons'), tr('Un giorno = 20 minuti. Di notte serve la <b>torcia</b>.', 'A day = 20 minutes. At night use the <b>torch</b>.')],
 };
 export const TIP_IDS = Object.keys(TIPS);

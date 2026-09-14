@@ -208,7 +208,7 @@ export function drawMuseumGallery(time) {
     if (cv) ctx.drawImage(cv, bx - 20, by - 50);
     else { rect(bx + 13, by - 30, 6, 6, 'rgba(255,255,255,.12)'); rect(bx + 15, by - 22, 2, 10, 'rgba(255,255,255,.12)'); }   // sagoma vuota: qui manca ancora tutto
     const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r] || '#b8b0a2';
-    drawCaseFront(BRUSH, bx, by, rc, full, time);
+    drawCaseFront(BRUSH, bx, by, rc, full, time, (S.amberDone || []).includes(pd.sp.id));
   };
   /* pianta in vaso come funzione (fronde alte: il pg passa dietro) */
   const drawPlant = (pxo) => {

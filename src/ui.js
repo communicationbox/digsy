@@ -12,7 +12,7 @@ import { weatherAt, weatherLabel } from './weather.js';
 import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
-import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal } from './gameplay.js';
+import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal , amberReward } from './gameplay.js';
 import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
@@ -1252,7 +1252,7 @@ export function rarSpan(q) { return `<span class="rar ${q}">${rarLabel(q)}</span
 function itemRow(it, rightHTML) {
   const sp = spById[it.s];
   /* miniatura = proiezione 2D del VERO pezzo voxel (hydratePv la disegna dopo l'innerHTML) */
-  return `<div class="row"><canvas class="pv" width="36" height="30" data-pv="${it.s}|${it.t}"></canvas><div><div class="nm">${partName(it.t)} ${tr('di', 'of')} ${sp.name} ${sp.emoji}</div><div class="sub">${rarSpan(it.q)} · ${tr('valore', 'value')} 🪙 ${it.val}</div></div><div class="rt">${rightHTML || ''}</div></div>`;
+  return `<div class="row"><canvas class="pv" width="36" height="30" data-pv="${it.s}|${it.t}"></canvas><div><div class="nm">${it.amber ? '✨ ' : ''}${partName(it.t)} ${tr('di', 'of')} ${sp.name} ${sp.emoji}</div><div class="sub">${rarSpan(it.q)} · ${tr('valore', 'value')} 🪙 ${it.val}</div></div><div class="rt">${rightHTML || ''}</div></div>`;
 }
 function hydratePv(root) {
   const r = root || mBody;
@@ -1790,6 +1790,7 @@ function renderMuseum() {
     h += '<div class="letter" style="padding:2px 4px">';
     h += `<div class="pn-stat"><span class="k">${tr('Specie scoperte', 'Species discovered')}</span><span class="v">${S.codex.length}/${ALL_SPECIES.length}</span></div>`;
     h += `<div class="pn-stat"><span class="k">${tr('Teche complete', 'Complete cases')}</span><span class="v">${complete}/${ALL_SPECIES.length}</span></div>`;
+    h += `<div class="pn-stat"><span class="k">✨ ${tr('Teche d\'ambra', 'Amber cases')}</span><span class="v">${(S.amberDone || []).length}/${ALL_SPECIES.length}</span></div>`;
     h += `<div class="pn-stat"><span class="k">${tr('Sale del Museo', 'Museum rooms')}`
       + (prossima ? `<small>${tr('più vicina: ', 'closest: ')}${zoneName(prossima.id)} ${prossima.have}/${prossima.need}</small>`
         : `<small>${tr('tutte piene', 'all filled')}</small>`)
@@ -1807,7 +1808,9 @@ function renderMuseum() {
   };
   const col = document.getElementById('mucol'); if (col) col.onclick = () => {
     const r = museumCollect(); if (!r) return;
-    for (const spId of r.vials) toast('🧬 ' + tr('Teca completa! Fialetta DNA di ', 'Case complete! DNA vial of ') + spById[spId].name);
+    for (const spId of r.vials) { toast('🧬 ' + tr('Teca completa! Fialetta DNA di ', 'Case complete! DNA vial of ') + spById[spId].name); showTip('amber'); }
+    if (r.amberShown.length) toast('✨ ' + tr('Ambra esposta: ', 'Amber on display: ') + r.amberShown.length);
+    for (const spId of r.amberDone) toast('✨ ' + tr('Teca d\'ambra! ', 'Amber case! ') + spById[spId].name + ' +🪙' + amberReward(spId));
     let keep = `<div class="bighead" style="margin-top:10px">${tr('Restituiti a te', 'Returned to you')} (${r.back.length})</div>` + (r.back.length ? r.back.map(it => itemRow(it)).join('') : `<div class="center muted">${tr('Niente doppioni: tutto esposto!', 'No duplicates: everything on display!')}</div>`) +
       `<div class="center muted" style="margin-top:4px">🏛️ ${tr('Nuovi pezzi esposti', 'New pieces displayed')}: ${r.shown.length}</div>`;
     /* PROPOSTA di RESTAURO del Curatore: sul MIGLIOR doppione raro+ tornato, e SKIPPABILE */
@@ -1963,7 +1966,7 @@ export function openBag(tab) {
   let secFinds = `<div class="bag-sec"><div class="bag-hint">${tr('Tocca un reperto', 'Tap a find')}</div><div class="bag-items">`;
   if (S.raw.length) secFinds += `<button class="bitile${bagSel === allFinds[0].uid ? ' picked' : ''}" data-sel="${allFinds[0].uid}" title="${esc(tr('Reperti grezzi da consegnare al Museo', 'Raw finds for the Museum'))}"><span class="pv raw">🦴</span><span class="bq">×${S.raw.length}</span></button>`;
   secFinds += S.items.map(it =>
-    `<button class="bitile${bagSel === it.uid ? ' picked' : ''}" data-sel="${it.uid}" title="${esc(partName(it.t) + ' ' + tr('di', 'of') + ' ' + spById[it.s].name + ' · ' + rarLabel(it.q) + ' · ' + it.val + ' ' + tr('monete', 'coins'))}">
+    `<button class="bitile${bagSel === it.uid ? ' picked' : ''}${it.amber ? ' amber' : ''}" data-sel="${it.uid}" title="${esc(partName(it.t) + ' ' + tr('di', 'of') + ' ' + spById[it.s].name + ' · ' + rarLabel(it.q) + ' · ' + it.val + ' ' + tr('monete', 'coins'))}">
        <span class="dot ${it.q}"></span>
        <canvas class="pv" width="40" height="40" data-pv="${it.s}|${it.t}"></canvas>
      </button>`).join('');

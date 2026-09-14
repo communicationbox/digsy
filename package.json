@@ -19,7 +19,8 @@
     "avatar": "node tests/avatar.mjs",
     "deploy": "node tests/deploy.mjs",
     "tester": "node tests/tester.mjs",
-    "mobile": "node tests/mobile.mjs"
+    "mobile": "node tests/mobile.mjs",
+    "pacing": "node tests/pacing.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"

@@ -34,7 +34,7 @@ export function fresh() {
   return {
     seed: (Math.random() * 1e9) | 0, coins: 0, energy: 30, maxEnergy: 30, day: 1,
     raw: [], items: [], codex: [], donated: [], dug: [], creatures: [],
-    uid: 1, px: 0, py: 0, started: false, lastTown: null, tod: 0.25, book: {}, sites: {}, awakened: [], museum: {},
+    uid: 1, px: 0, py: 0, started: false, lastTown: null, tod: 0.25, book: {}, sites: {}, awakened: [], museum: {}, amber: {}, amberDone: [],
     look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false, mounted: false,
     idleAt: Date.now(),
   };
@@ -273,6 +273,8 @@ export function initState() {
      bloccato dall'esterno"). Persistente: non è un'animazione, è uno stato del salvataggio. */
   if (S.gateLocked === undefined) S.gateLocked = false;
   if (!S.dna) S.dna = {}; // DNA per specie in FIALETTE INTERE
+  if (!S.amber) S.amber = {};          // pezzi d'AMBRA esposti per specie (la seconda collezione)
+  if (!S.amberDone) S.amberDone = [];  // teche d'ambra complete
   if (S.vials) { for (const id of S.vials) S.dna[id] = (S.dna[id] || 0) + 1; delete S.vials; } // migrazione vecchia
   /* migrazione mezze→intere: i vecchi save avevano dna in mezze dosi (2 = 1 fialetta) */
   if (!S.dnaV2) { for (const id in S.dna) S.dna[id] = Math.round((S.dna[id] || 0) / 2); S.dnaV2 = true; }

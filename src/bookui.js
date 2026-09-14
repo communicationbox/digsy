@@ -150,6 +150,7 @@ function bookPageHtml(sp, pageNo) {
           ? `<span class="bk-donetag">🏛️ ✓ ${tr('Completo', 'Complete')}</span>`
           : `<span title="${tr('Ossa consegnate al Museo', 'Bones handed to the Museum')}">🏛️ ${tr('Ossa', 'Bones')}: ${gathered}/${PARTS.length}</span>`) : ''}
         ${awake ? `<span>💫 ${tr('Risvegliato', 'Awakened')}</span>` : ''}
+        ${complete ? `<span class="bk-amber">✨ ${tr('Ambra', 'Amber')}: ${((S.amber || {})[sp.id] || []).length}/${PARTS.length}</span>` : ''}
       </div>
       <div class="bk-pageno">— ${pageNo} —</div>
     </div>

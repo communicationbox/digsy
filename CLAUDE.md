@@ -399,6 +399,17 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 - **Cosmetici tematici disegnati a mano** (editor `/editor`): overlay HATS con righe da **-3**
   (svettano sopra la testa) e accenti W/K; anteprima sarto con +4px di headroom.
 
+## La seconda collezione: l'AMBRA (per le 30 ore)
+Misurato con `npm run pacing` (simulatore di ritmo: usa makeRaw, pity, anti-doppione e livelli VERI,
+più un modello di tempo dichiarato e prudente): la prima collezione — 330 pezzi, 66 risvegli — finiva
+in ~15 ore di gioco. Da lì i doppioni servivano solo a far monete. I **pezzi d'ambra** (`it.amber`,
+`AMBER_CHANCE` per rarità in gameplay.js) escono SOLO per le specie con la teca già completa, vanno in
+una seconda fila (`S.amber[sp]`), e cinque su cinque accendono la **teca d'ambra** (`S.amberDone`,
+vetro caldo con scintille in `drawCaseFront`) e pagano `amberReward`. Nello zaino hanno la cornice
+arancio, nel Libro il contatore ✨ n/5. Col simulatore: prima teca d'ambra ~3 h, metà ~18 h, tutte
+~43 h. Le leggendarie hanno la probabilità più alta: con quella di tutte chiedevano da sole decine
+di ore. Se si tocca un numero di rarità, drop o energia, si rilancia `npm run pacing` e si guarda.
+
 ## Arredare la casa serve a qualcosa (e si vede)
 Ogni pezzo dichiara **dove vive** (`place`: floor · rug · wall · paper · ground) e **quanto
 occupa** (`w`/`h` in caselle, scambiate ruotando). Prima erano tutti 1×1 e un letto era grande

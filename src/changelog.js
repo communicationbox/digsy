@@ -1,6 +1,21 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.98.0', it: [
+      'AMBRA: completata una teca, cominciano a uscire i pezzi d\'ambra ✨ di quella specie. Cinque su cinque accendono la teca d\'ambra al Museo e pagano bene: la collezione continua per decine di ore',
+      'CREATURE più belle: occhi vivi, corna solo a chi le ha, musi affusolati, orecchie alle lepri, gambe piene',
+      'MEZZI: bici nuova (gomme, raggi che girano, cestino), cavalcatura con le zampe',
+      'CAPELLI: stempiato e afro rifatti',
+      'MENO TESTO ovunque: pannelli senza spiegazioni lunghe, bottoni a portata di dito su telefono',
+    ], en: [
+      'AMBER: once a case is complete, amber ✨ pieces of that species start to appear. Five of five light up the amber case at the Museum and pay well: the collection goes on for dozens of hours',
+      'NICER creatures: lively eyes, horns only where they belong, tapered snouts, hare ears, sturdy legs',
+      'VEHICLES: new bicycle (tyres, spinning spokes, basket), mount with legs',
+      'HAIR: receding and afro redone',
+      'LESS TEXT everywhere: panels without long explanations, finger-sized buttons on phones',
+    ],
+  },
+  {
     v: 'v0.97.0', it: [
       'CITTÀ VIVE: il palo del barbiere gira, i comignoli fumano (verde al Lab), le tende hanno la frangia nel vento, l\'insegna della locanda dondola, l\'antenna del Lab lampeggia, gli stendardi del Museo si muovono e un riflesso scorre sull\'oro; davanti alla Bottega d\'arredo una sedia a dondolo che dondola',
       'CASA: una Monstera in regalo nel vassoio, per tutti; si trova anche nel catalogo del Giardino interno',

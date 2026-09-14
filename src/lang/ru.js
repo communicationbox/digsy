@@ -13,6 +13,11 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "Amber": "Янтарь",
+  "Once a case is full, <b>amber</b> pieces ✨ appear: a second case to fill.": "Когда витрина полна, появляются <b>янтарные</b> части ✨: вторая витрина для сбора.",
+  "Amber cases": "Янтарные витрины",
+  "Amber on display: ": "Янтарь в витрине: ",
+  "Amber case! ": "Янтарная витрина! ",
   "Cheats on · `vanilla` to undo": "Читы включены · `vanilla` — отменить",
   "Signed in elsewhere: game kept here.": "Вход с другого устройства: игра сохранена здесь.",
   "Not rebuilt yet. Dig in ": "Ещё не восстановлен. Копай в ",

@@ -4248,6 +4248,36 @@ sprites.applyLook();
   }
 }
 
+/* ---------- AMBRA: la seconda collezione ----------
+   arriva solo per le specie con la teca completa, riempie una seconda fila di cinque pezzi e al
+   completamento paga e accende la teca d'oro */
+{
+  const S = state.S;
+  const gpA = await import('../src/gameplay.js');
+  const dA = await import('../src/data.js');
+  const keep = { museum: S.museum, amber: S.amber, amberDone: S.amberDone, raw: S.raw, items: S.items, coins: S.coins, museumJob: S.museumJob, codex: S.codex };
+  const sp = dA.zonePools.prati.find(x => x.r === 'comune');
+  S.museum = {}; S.amber = {}; S.amberDone = []; S.raw = []; S.items = [];
+  let early = 0;
+  for (let i = 0; i < 300; i++) { const r = gpA.makeRaw('prati', 100); if (r && r.amber) early++; }
+  check('ambra: mai prima di aver completato la teca', early === 0, early + ' pezzi');
+  for (const z of dA.zonePools.prati) S.museum[z.id] = dA.PARTS.map(p => p.id);
+  let amb = 0;
+  const seen = new Set();
+  for (let i = 0; i < 600; i++) { const r = gpA.makeRaw('prati', 100); if (r && r.amber) { amb++; if (r.s === sp.id) seen.add(r.t); } }
+  check('ambra: con la teca completa esce davvero, non troppo spesso (' + amb + '/600)', amb > 40 && amb < 160);
+  check('ambra: vale il triplo', (() => { for (let i = 0; i < 400; i++) { const r = gpA.makeRaw('prati', 100); if (r && r.amber) return r.val >= 6; } return false; })());
+  S.coins = 0;
+  S.museumJob = { items: dA.PARTS.map((p, i) => ({ uid: 90000 + i, s: sp.id, t: p.id, q: sp.r, val: 9, amber: true })), ready: 0 };
+  const res = gpA.museumCollect();
+  check('ambra al Museo: cinque pezzi riempiono la teca d\'ambra e pagano', res && res.amberShown.length === 5 && S.amberDone.includes(sp.id) && S.coins >= gpA.amberReward(sp.id));
+  check('ambra: nella teca normale non si mescola', (S.museum[sp.id] || []).length === dA.PARTS.length && (S.amber[sp.id] || []).length === dA.PARTS.length);
+  S.museumJob = { items: [{ uid: 90100, s: sp.id, t: dA.PARTS[0].id, q: sp.r, val: 27, amber: true }], ready: 0 };
+  const res2 = gpA.museumCollect();
+  check('ambra doppione: torna nello zaino da vendere', res2.back.length === 1 && S.items.some(it => it.uid === 90100));
+  Object.assign(S, keep);
+}
+
 /* ---------- il compagno non cammina in colonna con Digsy ----------
    andando su o giù la scia lo metteva esattamente dietro (o davanti) e una creatura alta, o una che
    vola sollevata da terra, gli si disegnava sopra ("ogni tanto si sovrappone", con foto) */
