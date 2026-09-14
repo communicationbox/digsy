@@ -115,10 +115,16 @@ const DRAW = {
       for (const [x, yt] of [[13.5, -7], [15.5, -9], [17.5, -7]]) spike(g, x, 1, x + (x - 15.5) * 0.3, yt, 2.2);
       g.fillBlock(13, 1, 18, 14, 'A', 1); strands(g, [[15, 1, 15, 14]]);
     },
+    /* di profilo la cresta è una PINNA che segue la curva della testa dalla fronte alla nuca, con
+       punte che salgono all'indietro, più alte al centro. Prima era un pettine basso e piatto sopra
+       la testa: di fianco non si capiva che fosse una cresta ("la cresta di fianco non si vede bene") */
     side(g) {
-      for (const [x, yt] of [[9, -4], [13, -8], [17, -9], [21, -7]]) spike(g, x, 1, x - 2, yt, 3);
-      g.fillBlock(6, 0, 22, 2, 'A', 1);
-      for (let x = 8; x <= 12; x++) g.set(x, 4 + (x % 2), 'A', 2);
+      const base = [[22, 2], [20, 0], [17, -1], [14, -1], [11, 0], [9, 2], [8, 5], [8, 8]];
+      for (let i = 0; i < base.length - 1; i++) {
+        const [x0, y0] = base[i], [x1, y1] = base[i + 1], n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+        for (let k = 0; k <= n; k++) { const x = x0 + (x1 - x0) * k / n, y = y0 + (y1 - y0) * k / n; g.fillBlock(Math.round(x) - 1, Math.round(y), Math.round(x) + 1, Math.round(y) + 2, 'A', 1); }
+      }
+      for (const [x, yb, dx, h] of [[21, 1, -2, 6], [18, 0, -3, 9], [14, -1, -3, 11], [11, 0, -3, 9], [8, 3, -3, 6]]) spike(g, x, yb, x + dx, yb - h, 2.4);
     },
   },
 

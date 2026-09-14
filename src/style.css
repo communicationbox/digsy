@@ -479,7 +479,7 @@ body:has(#cmd.on) #touch{display:none!important}
 #bk-close{color:var(--c-deep-2)}
 .st .x .pxi,.bag-close .pxi,.sw.swx .pxi,#bk-close .pxi{width:16px;height:16px}
 .swrow{display:flex;gap:7px;flex-wrap:wrap;margin:4px 0 10px}
-.prev{width:360px;max-width:100%;aspect-ratio:30/11;height:auto;image-rendering:pixelated;background:#bcd8a8;border:2px solid var(--c-line);border-radius:8px}
+.prev{width:360px;max-width:100%;aspect-ratio:20/9;height:auto;image-rendering:pixelated;background:#bcd8a8;border:2px solid var(--c-line);border-radius:8px}
 /* miniatura voxel del pezzo (zaino/negozio/museo) */
 .pv{width:44px;height:37px;image-rendering:pixelated;background:#15120d;border:2px solid var(--c-line);border-radius:7px;flex:none}
 

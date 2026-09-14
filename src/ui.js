@@ -2141,7 +2141,7 @@ document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
 
 /* ---------- look: anteprima + swatch condivisi da editor/barbiere/sartoria ---------- */
 function previewHtml() {
-  return `<div class="center" style="padding:6px"><canvas id="prevCv" width="120" height="44" class="prev"></canvas></div>`;
+  return `<div class="center" style="padding:6px"><canvas id="prevCv" width="120" height="54" class="prev"></canvas></div>`;
 }
 let prevRaf = 0;
 /* riquadro NATURALE su cui sono tarate le posizioni qui sotto (personaggio ora 32×32
@@ -2149,7 +2149,7 @@ let prevRaf = 0;
    questa taglia, e TUTTE le anteprime (editor compreso) la usano: la canvas appiccicosa
    dell'editor era 60×22, cioè metà, quindi il personaggio veniva disegnato a scala 0,5 — su
    mezzo pixel — e poi ingrandito dal CSS. Era l'unica immagine sfuocata del gioco. */
-const PREV_REF_W = 120, PREV_REF_H = 44;
+const PREV_REF_W = 120, PREV_REF_H = 54;
 export function drawPreview(noHat) {
   if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(prevRaf);
   const pc = document.getElementById('prevCv'); if (!pc) return;
@@ -2158,9 +2158,9 @@ export function drawPreview(noHat) {
   const paint = (fr, bob) => {
     c2.setTransform(scale, 0, 0, scale, 0, 0);
     c2.clearRect(0, 0, PREV_REF_W, PREV_REF_H);
-    drawHero(c2, 4, 8 + bob, 'down', fr, noHat);   // +8 in alto: spazio per cappelli che svettano
-    drawHero(c2, 44, 8 + bob, 'right', fr, noHat);
-    drawHero(c2, 84, 8 + bob, 'up', fr, noHat);
+    drawHero(c2, 4, 17 + bob, 'down', fr, noHat);   // +17 in alto: creste, corna e pompon salgono fino a 14 pixel sopra la testa (a +8 si tagliavano)
+    drawHero(c2, 44, 17 + bob, 'right', fr, noHat);
+    drawHero(c2, 84, 17 + bob, 'up', fr, noHat);
   };
   paint(0, 0); // primo frame subito (e unico nei test, dove rAF è uno stub)
   if (typeof requestAnimationFrame !== 'function') return;
@@ -2351,7 +2351,7 @@ export function openEditor(onDone) {
      veniva disegnato a scala 0,5 — mezzo pixel — e poi il CSS lo ingrandiva a 360px. Il
      risultato era l'unica immagine SFUOCATA di tutto il gioco (segnalato con foto). La
      canvas ora è 1:1 col disegno e l'ingrandimento è intero (360 = 120×3). */
-  let h = '<div class="ed-stick"><canvas id="prevCv" width="120" height="44" class="prev"></canvas></div>';
+  let h = '<div class="ed-stick"><canvas id="prevCv" width="120" height="54" class="prev"></canvas></div>';
   h += `<div class="edcol">`;
   h += `<div class="bighead">${tr('Nome', 'Name')}</div>`;
   h += `<input id="pgname" class="nameinput" maxlength="14" value="${(S.name || '').replace(/["<>&]/g, '')}" placeholder="${tr('Nome', 'Name')}">`;
