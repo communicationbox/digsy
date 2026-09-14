@@ -1354,3 +1354,29 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
   .sp-sub{margin:10px 0 16px}
   .sp-card:not(.sub) > .sp-menu{gap:var(--sp-3)}
 }
+
+/* TELEFONO: la doppia cornice è disegnata DENTRO la finestra (12px), quindi il margine interno
+   deve superarla — con 12px le scritte toccavano l'oro ("deve rimanere un po' di padding interno
+   anche da mobile, la leggibilità è importante"). La riga sotto il logo si stringe per starci. */
+@media (max-width:760px),(pointer:coarse){
+  .sp-card{padding:30px 26px 22px}
+  .sp-card.wide{padding:30px 22px 20px}
+  .sp-sub{letter-spacing:2px;font-size:11px}
+  .sp-btn{max-width:calc(100vw - 96px)}
+  .sp-iconrow{max-width:calc(100vw - 96px)}
+  .sp-x{top:16px;right:16px}
+}
+@media (max-width:760px),(pointer:coarse){
+  /* la schermata principale scorre in verticale se non ci sta (telefono): mai icone tagliate */
+  .sp-card:not(.sub){overflow-y:auto;justify-content:flex-start}
+  .sp-card:not(.sub) > .sp-menu{flex:none}
+  /* titolo del sottomenu a sinistra, lontano dalla X */
+  .sp-card.sub .sp-title2{align-self:flex-start;margin:4px 60px 10px 0;max-width:calc(100% - 60px)}
+}
+@media (max-height:700px) and ((max-width:760px) or (pointer:coarse)){
+  #sp-digsy{width:72px;height:94px}
+  .sp-title{font-size:40px}
+  .sp-sub{margin:8px 0 14px}
+  .sp-card:not(.sub) > .sp-menu{gap:var(--sp-3)}
+}
+@media (max-width:760px),(pointer:coarse){ .sp-btn.ic .ic-lb{font-size:9px;letter-spacing:0} }   /* "Trophies" non si taglia */

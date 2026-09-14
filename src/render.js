@@ -1468,9 +1468,13 @@ export function render(time) {
   /* camera ancorata alla griglia dei pixel FISICI (passi da 1/K): scroll fluido, niente scatti */
   cam.x = Math.round((P.x - W / 2) * view.PX) / view.PX;
   cam.y = Math.round((P.y - H / 2) * view.PX) / view.PX;
-  const tx0 = Math.floor(cam.x / TS) - 1, ty0 = Math.floor(cam.y / TS) - 1;
+  /* MARGINE attorno allo schermo: alberi, lampioni ed edifici sono più alti o larghi della loro
+     casella, e raccolti solo sulle caselle in vista comparivano DI COLPO al bordo ("voglio evitare
+     il pop up delle strutture, devono precaricarsi prima di entrare nel monitor"). Si raccolgono
+     anche 2 caselle a sinistra/destra/sopra e 3 sotto (le chiome salgono di due caselle). */
+  const tx0 = Math.floor(cam.x / TS) - 3, ty0 = Math.floor(cam.y / TS) - 3;
   const LMARG = 6; // margine per le MERAVIGLIE (fino a 9 tile di larghezza e ~70px di altezza)
-  const tx1 = tx0 + VW + 2, ty1 = ty0 + VH + 2;
+  const tx1 = tx0 + VW + 6, ty1 = ty0 + VH + 7;
   ctx.clearRect(0, 0, W, H);
   // UNICA passata tile: disegna il terreno E raccoglie le entità (townInfo 1× per tile)
   const ents = [];
@@ -1498,7 +1502,8 @@ export function render(time) {
     if (!ti && !yd) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */
     if (!ti && !yd && hf && tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) {
-      if (tx === hf.x0 && ty === hf.y0) ents.push({ y: (hf.y1 + 1) * TS - cam.y, f: () => drawHouse(hf, sx, sy) });
+      /* dalla PRIMA casella visibile, non dall'angolo: con l'angolo fuori schermo la casa non c'era */
+      if (tx === Math.max(hf.x0, tx0) && ty === Math.max(hf.y0, ty0)) { const hsx = hf.x0 * TS - cam.x, hsy = hf.y0 * TS - cam.y; ents.push({ y: (hf.y1 + 1) * TS - cam.y, f: () => drawHouse(hf, hsx, hsy) }); }
       continue;
     }
     /* entità */
@@ -1509,7 +1514,7 @@ export function render(time) {
         ents.push({ y: ey, f: () => drawTownDeco(d, sx, sy, time) });
         if (d.type === 'lamp') lampGlows.push({ x: sx + 8, y: sy + 2 });
       }
-      else if (ti.building && tx === ti.building.x0 && ty === ti.building.y0) { const b = ti.building; ents.push({ y: (b.y1 + 1) * TS - cam.y, f: () => drawBuilding(b, b.x0 * TS - cam.x, b.y0 * TS - cam.y) }); }
+      else if (ti.building && tx === Math.max(ti.building.x0, tx0) && ty === Math.max(ti.building.y0, ty0)) { const b = ti.building; ents.push({ y: (b.y1 + 1) * TS - cam.y, f: () => drawBuilding(b, b.x0 * TS - cam.x, b.y0 * TS - cam.y) }); }
       continue;
     }
     if (yd) {                                                           // CORTILE: stesso arredo/staccionata del vecchio parco cittadino
