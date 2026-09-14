@@ -394,6 +394,7 @@ export function openModal() {
   modalLocked = false;                 // il blocco vale solo per l'editor, che lo rimette subito dopo
   const x = document.getElementById('m-close'); if (x) x.style.display = '';
   modalOpen = true; buildingModal = ''; modal.classList.add('on'); setPrompt(null);
+  if (modal.dataset) delete modal.dataset.theme;   // il tema lo rimette openBuilding, solo per le botteghe
   syncModalCoins();
 }
 export function closeModal(force) {
@@ -1430,6 +1431,7 @@ export function openBuilding(b) {
   else if (b.type === 'tailor') renderTailor();
   else renderInn();
   openModal();
+  if (modal.dataset) modal.dataset.theme = b.type;   // ogni bottega col suo materiale sull'intestazione
   buildingModal = b.type; buildingCoins0 = S.coins; // openModal l'ha azzerato: lo impostiamo dopo
 }
 

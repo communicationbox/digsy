@@ -1511,3 +1511,33 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
 .bk-meta span{background:none;border:0;box-shadow:none;border-radius:0;padding:2px 8px;position:relative}
 .bk-meta span+span::before{content:"·";position:absolute;left:-2px;color:#b09a74}
 .bk-name{font-size:24px}
+
+/* =====================================================================================
+   PANNELLI DELLE BOTTEGHE: ogni mestiere col suo materiale sull'intestazione, il titolo sempre
+   su una targhetta di carta (si legge su qualunque disegno). Il corpo resta carta chiara.
+   ===================================================================================== */
+#modal[data-theme] .sheet{border-radius:0;border-width:0;box-shadow:0 0 0 4px var(--c-deep),0 12px 0 rgba(0,0,0,.3)}
+#modal[data-theme] .st{padding:30px 14px 12px;border-bottom:4px solid var(--c-deep)}
+#modal[data-theme] .st h2{background:var(--c-ink);padding:5px 12px;box-shadow:0 0 0 3px var(--c-deep)}
+#modal[data-theme] .st .st-coins,#modal[data-theme] .st .x{box-shadow:0 0 0 3px var(--c-deep)}
+/* Negozio: tenda a righe con gli smerli */
+#modal[data-theme="store"] .st{background:
+  radial-gradient(circle at 12px 0,transparent 11px,var(--c-deep) 11px 13px,transparent 13px) 0 18px/24px 14px repeat-x,
+  repeating-linear-gradient(90deg,#c9473f 0 24px,#f3ecda 24px 48px) 0 0/100% 24px no-repeat,#e7d9b6}
+/* Museo: marmo e targa dorata */
+#modal[data-theme="museum"] .st{background:
+  linear-gradient(90deg,transparent 0 12%,rgba(0,0,0,.08) 12% 13%,transparent 13% 87%,rgba(0,0,0,.08) 87% 88%,transparent 88%),
+  repeating-linear-gradient(115deg,#ece7dc 0 18px,#e1dbcd 18px 22px,#ece7dc 22px 40px),#ece7dc}
+#modal[data-theme="museum"] .st h2{background:var(--c-gold-2);color:var(--c-dark)}
+/* Laboratorio: lavagna con la cornice di legno */
+#modal[data-theme="lab"] .st{background:#2f4a3a;box-shadow:inset 0 0 0 6px #7a5234}
+#modal[data-theme="lab"] .st::after{content:"H₂O  +  DNA";position:absolute;left:18px;top:8px;font-size:10px;letter-spacing:2px;color:rgba(243,236,218,.5)}
+/* Locanda e Bottega d'arredo: insegna di legno a doghe */
+#modal[data-theme="inn"] .st,#modal[data-theme="furniture"] .st{background:repeating-linear-gradient(180deg,#8a5f38 0 10px,#6e4a2a 10px 12px)}
+/* Barbiere: le righe del palo */
+#modal[data-theme="barber"] .st{background:repeating-linear-gradient(135deg,#c9473f 0 14px,#f3ecda 14px 28px,#3d6fb0 28px 42px,#f3ecda 42px 56px)}
+/* Sartoria: stoffa a quadretti e il metro da sarto */
+#modal[data-theme="tailor"] .st{background:
+  repeating-linear-gradient(90deg,#1e1a14 0 1px,transparent 1px 8px) 0 6px/100% 6px no-repeat,
+  linear-gradient(#e3b24e,#e3b24e) 0 4px/100% 10px no-repeat,
+  repeating-linear-gradient(0deg,rgba(200,90,120,.25) 0 6px,transparent 6px 12px),repeating-linear-gradient(90deg,rgba(200,90,120,.25) 0 6px,transparent 6px 12px),#f0dce2}
