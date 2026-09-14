@@ -143,8 +143,9 @@ export const LOOKS = {
 export const LOOK_LABELS = { hat: 'Cappello', shirt: 'Maglia', pants: 'Pantaloni', skin: 'Pelle' };
 
 export const HAIR_STYLES = [
-  { id: 'none', label: 'Rasato' },
-  { id: 'short', label: 'Corto' },
+  { id: 'none', label: 'Rasato a zero' },
+  { id: 'buzz', label: 'Rasati' },
+  { id: 'short', label: 'Caschetto' },
   { id: 'long', label: 'Lungo' },
   { id: 'curly', label: 'Riccio' },
   { id: 'punk', label: 'Punk' },

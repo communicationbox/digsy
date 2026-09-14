@@ -1679,7 +1679,7 @@ sprites.applyLook();
     }
   }
   check('overlay capelli validi (4 stili × 3 direzioni)', hbad === 0);
-  check('stili/colori capelli coerenti coi dati (6 stili, 12 colori)', HAIR_STYLES.length === 6 && HAIR_STYLES.every(s => s.id in sprites.HAIRS) && HAIR_COLORS.length === 12);
+  check('stili/colori capelli coerenti coi dati (7 stili, 12 colori)', HAIR_STYLES.length === 7 && HAIR_STYLES.every(s => s.id in sprites.HAIRS) && HAIR_COLORS.length === 12);
   /* fronte/retro: la SAGOMA dei capelli è centrata sulla testa (specchio c↔31-c). Si guarda la
      sagoma e non il colore: luce a sinistra e ombra a destra sono volute. Le eccezioni sono tagli
      asimmetrici per disegno (la Duna è spazzata dal vento da un lato). */

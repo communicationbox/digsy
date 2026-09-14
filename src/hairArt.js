@@ -47,6 +47,29 @@ const sideKeep = (fr, back = 11, fx = 15) => (x, y) => x > fx ? y <= fr(x) : x >
 const DRAW = {
   none: { down() {}, side() {}, up() {} },
 
+  buzz: {
+    /* RASATI: capelli cortissimi DIPINTI SUL CRANIO (non a zero): stanno dentro la sagoma della
+       testa, un filo alle tempie, la nuca piena. Grana a puntini sparsi del tono scuro, così si
+       legge "capelli rasati" e non "cuffia". */
+    down(g) {
+      [[0, 11], [1, 9], [2, 8]].forEach(([y, x]) => g.span(y, x, 31 - x, 'A', { lit: 0.3, dark: 0.75 }));
+      g.span(3, 7, 9, 'A', { t: 1 }); g.span(3, 22, 24, 'A', { t: 2 });
+      for (let y = 4; y <= 7; y++) { g.span(y, 6, 7, 'A', { t: 1 }); g.span(y, 24, 25, 'A', { t: 2 }); }
+      stubble(g);
+    },
+    up(g) {
+      [[0, 11], [1, 9], [2, 8], [3, 7]].forEach(([y, x]) => g.span(y, x, 31 - x, 'A', { lit: 0.3, dark: 0.75 }));
+      for (let y = 4; y <= 11; y++) g.span(y, y > 9 ? 8 : 6, y > 9 ? 23 : 25, 'A', { lit: 0.25, dark: 0.75 });
+      stubble(g);
+    },
+    side(g) {
+      g.span(0, 12, 19, 'A'); g.span(1, 10, 20, 'A'); g.span(2, 9, 19, 'A'); g.span(3, 8, 17, 'A');
+      for (let y = 4; y <= 11; y++) g.span(y, 8, y < 7 ? 12 : 11, 'A', { lit: 0.3, dark: 0.8 });
+      g.span(4, 15, 16, 'A', { t: 2 }); g.span(5, 15, 16, 'A', { t: 2 });   // basetta corta
+      stubble(g);
+    },
+  },
+
   short: {
     down(g) {
       mass(g, CX, -2, 9, 11);
@@ -226,6 +249,10 @@ const DRAW = {
   },
 };
 
+/* grana dei rasati: puntini scuri sparsi dentro la massa */
+function stubble(g) {
+  for (const [y, row] of g.rows) row.forEach((c, x) => { if (c && c.m === 'A' && c.t !== 0) { let h = Math.imul(x + 17, 374761393) ^ Math.imul(y + 31, 668265263); h = Math.imul(h ^ (h >>> 13), 1274126177); if (((h ^ (h >>> 16)) >>> 0) % 5 === 0) g.set(x, y, 'A', 2); } });   // a caso ma fisso: niente righe
+}
 /* germoglio: gambo e due foglioline verdi */
 function sprout(g, x, y, s) {
   g.set(x, y, 'Q', 1); g.set(x, y - 1, 'Q', 1); g.set(x + s, y - 2, 'Q', 2);

@@ -80,7 +80,7 @@ const LOOKL = {
 export function lookLabel(k) { const e = LOOKL[k]; return e ? lab(e) : k; }
 
 const HAIRL = {
-  none: ['Rasato', 'Shaved'], short: ['Corto', 'Short'], long: ['Lungo', 'Long'],
+  none: ['Rasato a zero', 'Shaved bald'], buzz: ['Rasati', 'Buzz cut'], short: ['Caschetto', 'Bob'], long: ['Lungo', 'Long'],
   curly: ['Riccio', 'Curly'], punk: ['Punk', 'Punk'], receding: ['Stempiato', 'Balding'],
   meadow: ['Germogli', 'Sprouts'], dunespike: ['Duna', 'Dune'], afro: ['Boschivo', 'Woodland'],
   ember: ['Fiamma', 'Ember'], algae: ['Alghe', 'Algae'], frost: ['Gelo', 'Frost'],

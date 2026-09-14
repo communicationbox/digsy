@@ -799,7 +799,7 @@ export const RU = {
   'Barber': 'Парикмахерская', 'Tailor': 'Ателье',
   'spring': 'весна', 'summer': 'лето', 'autumn': 'осень', 'winter': 'зима',
   'Hat': 'Шляпа', 'Shirt': 'Рубашка', 'Pants': 'Штаны', 'Skin': 'Кожа',
-  'Shaved': 'Налысо', 'Short': 'Короткие', 'Long': 'Длинные', 'Curly': 'Кудрявые',
+  'Shaved bald': 'Налысо', 'Buzz cut': 'Ёжик', 'Bob': 'Каре', 'Long': 'Длинные', 'Curly': 'Кудрявые',
   'Punk': 'Панк', 'Balding': 'С залысинами', 'Sprouts': 'Ростки', 'Dune': 'Дюна',
   'Woodland': 'Лесная', 'Ember': 'Пламя', 'Algae': 'Водоросли', 'Frost': 'Иней',
   'Explorer': 'Исследователь', 'Cap': 'Кепка', 'Beanie': 'Шапочка', 'Viking': 'Викинг',
