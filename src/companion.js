@@ -116,7 +116,16 @@ export function updateCompanion(dt, mounted) {
   const t = trailPointBehind(FOLLOW_PX);
   /* scia troppo corta (Digsy fermo o appena arrivato): si resta dove si è, invece di
      avvicinarsi fino a sovrapporsi a lui */
-  const tx = t ? t.x : COMP.x, ty = t ? t.y : COMP.y;
+  let tx = t ? t.x : COMP.x, ty = t ? t.y : COMP.y;
+  /* ANDANDO SU O GIÙ la scia mette il compagno in colonna con Digsy: una creatura alta (o una che
+     vola, sollevata da terra) gli finiva sopra la testa o davanti al corpo ("ogni tanto si
+     sovrappone", con foto). In verticale si segue la scia spostati di lato di mezza casella e
+     poco più, dalla parte dove già si sta; se lì c'è un ostacolo si resta in colonna. */
+  if (t && Math.abs(P.y - t.y) > Math.abs(P.x - t.x) * 1.5) {
+    const side = COMP.x < P.x - 2 ? -1 : 1, sx2 = tx + side * 22;
+    if (!compBlocked(sx2, ty)) tx = sx2;
+    else if (!compBlocked(tx - side * 22, ty)) tx -= side * 22;
+  }
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
   /* segue SEMPRE, con passo min(d, velocità): tocca il bersaglio senza scavalcarlo. La vecchia
      deadzone `d > 2` faceva stop-and-go attorno al bersaglio mentre il player camminava → la

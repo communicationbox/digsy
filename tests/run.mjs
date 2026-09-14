@@ -4247,6 +4247,30 @@ sprites.applyLook();
   }
 }
 
+/* ---------- il compagno non cammina in colonna con Digsy ----------
+   andando su o giù la scia lo metteva esattamente dietro (o davanti) e una creatura alta, o una che
+   vola sollevata da terra, gli si disegnava sopra ("ogni tanto si sovrappone", con foto) */
+{
+  const S = state.S, P = state.P;
+  const comp9 = await import('../src/companion.js');
+  const { COMP } = comp9;
+  let spot = null;
+  for (let r = 0; r < 300 && !spot; r++) for (let x = -r; x <= r && !spot; x++) {
+    const y = r;
+    let free = true;
+    for (let dy = -8; dy <= 2 && free; dy++) for (let dx = -2; dx <= 2 && free; dx++) if (world.isSolidTile(x + dx, y + dy) || world.townInfo(x + dx, y + dy) || world.baseTerrain(x + dx, y + dy) === world.WATER || world.baseTerrain(x + dx, y + dy) === world.DEEP) free = false;
+    if (free) spot = [x, y];
+  }
+  const keep = S.companion;
+  S.companion = S.companion || { key: 'test9', skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'raro' };
+  comp9.resetCompanionTrail(); COMP.job = null; COMP.play = null;
+  P.x = spot[0] * TS + 16; P.y = spot[1] * TS;
+  comp9.updateCompanion(1 / 30, false);
+  for (let i = 0; i < 150; i++) { P.y -= 1.2; comp9.updateCompanion(1 / 30, false); }
+  check('camminando in su il compagno segue di lato, non in colonna (' + Math.round(COMP.x - P.x) + 'px)', Math.abs(COMP.x - P.x) >= 14);
+  S.companion = keep; comp9.resetCompanionTrail();
+}
+
 /* ---------- salvataggio a pezzi: l'autosave non rifà tutto ogni 5 secondi ----------
    con stress=5 impacchettare mappa e scavi da capo costava 300 ms a ogni autosave ("ogni tanto tira
    una laggata"), e gli scavi in chiaro erano 10 MB. Qui: stesso risultato del calcolo da capo dopo

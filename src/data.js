@@ -117,6 +117,8 @@ export const ALL_SPECIES = SPECIES.concat(CAVE_SPECIES);
 zonePools[CAVE_ZONE.id] = CAVE_SPECIES;
 
 export const spColor = Object.fromEntries(SPECIES.concat(CAVE_SPECIES).map((s, i) => [s.id, hsl2hex((i * 137.5) % 360, 42, 64)]));
+/* il drago di cristallo delle grotte (la cavalcatura) ha il suo colore scelto: indaco notte, non il lilla del giro dei colori */
+spColor.abissodonte = '#4e64b4';
 
 /* OGGETTI di superficie (NON fossili): si raccolgono a vista con E in overworld e si vendono
    al Negozio per pochi 🪙 (i primi soldi). Rarità implicita = valore. [id, it, en, val] */

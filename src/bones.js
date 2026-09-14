@@ -186,7 +186,9 @@ export const BP = {
   stalattodonte: { seg: [3, 3], legs: [4, 2], horns: 2, tail: 'club', head: 0, extra: 'spikes', tall: true },
   pipistrosso: { seg: [2], legs: [2, 1], wings: [2, 'm'], horns: 1, tail: 'short', head: 0 },
   cristallugo: { seg: [2, 2], legs: [4, 1], horns: 2, tail: 'fin', head: 3, extra: 'spikes' },
-  abissodonte: { seg: [3, 3, 3], legs: [4, 2], horns: 2, neck: 1, tail: 'long', head: 1, extra: 'sail', tall: true },
+  /* il leggendario delle grotte è la CAVALCATURA volante: un drago di cristallo a quattro zampe con le ali a
+     membrana, cornetti e cresta di punte (era un tubo a tre segmenti con la vela: "quello rosa è proprio brutto") */
+  abissodonte: { seg: [2, 3, 2], legs: [4, 1], wings: [2, 'm'], horns: 2, neck: 1, tail: 'long', head: 0, extra: 'spikes' },
   /* PRATI */
   prato: { seg: [2, 2], legs: [4, 1], horns: 2, tail: 'short', head: 0 },
   lepre: { seg: [1, 2], legs: [2, 2], horns: 2, tail: 'short', head: 0, tall: true },
@@ -307,11 +309,14 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out) {
     for (let d = -1; d < R + 2; d++) for (let e = 0; e < R; e++) P(lx + d, 0, zz + e * side, mode === 'flesh' ? 'dark' : 'shade');   // piede largo
   }
 }
-function wingVox(x0, topY, n, type, mode, colT, out) {
+/* `flap` (opzionale, 0..3: su, metà, giù, metà) alza o abbassa le punte delle ali a membrana: la
+   cavalcatura in volo le batte costruendo quattro pose dello STESSO modello */
+const FLAP_LIFT = [3, 1, -2, 1];
+function wingVox(x0, topY, n, type, mode, colT, out, flap) {
   const P = (x, y, z, k, cmul) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, cmul || 1.12) });
   const pairs = Math.max(1, Math.round(n / 2));
   for (let w = 0; w < pairs; w++) for (const dir of [-1, 1]) {
-    const wx = x0 + w * U(3), span = U(5 - w);
+    const wx = x0 + w * U(3), span = type === 'm' ? U(10 - w * 3) : U(5 - w);   // la membrana è un'ala VERA: più larga del corpo
     for (let d = 0; d < R; d++) P(wx + d, topY, dir, 'bone', 1);          // radice dell'ala sul dorso
     for (let i = 1; i <= span; i++) {
       const y = topY + Math.min(U(3), Math.round(i / 2));
@@ -321,10 +326,19 @@ function wingVox(x0, topY, n, type, mode, colT, out) {
       } else if (type === 'f') {                                          // piume: penne di lunghezze diverse
         const pen = U(1) + (i % (R * 2) === 0 ? U(1) : 0);
         for (let j = 0; j <= pen; j++) P(wx + j, y - Math.floor(j / 2), dir * i, j ? 'shade' : 'bone', j % 2 ? 0.9 : 1.12);
-      } else {                                                            // membrana tesa fra le dita
-        P(wx, y, dir * i, 'bone', 1);
-        const dita = i % U(2) === 0;
-        for (let j = 1; j <= U(2); j++) P(wx + j, y - Math.floor(j / 2), dir * i, dita ? 'bone' : 'shade', dita ? 1 : 1.12);
+      } else {
+        /* MEMBRANA da drago/pipistrello: il braccio sale verso la punta (le ali si vedono anche di
+           profilo, sopra il dorso), la membrana è larga alla radice e si stringe, e il bordo
+           d'uscita rientra fra un dito e l'altro. Era una striscia larga due voxel con le dita:
+           "le ali sono dei triangoli buttati lì a caso". */
+        const k = i / span, lift = flap == null ? 1 : FLAP_LIFT[((flap % 4) + 4) % 4];
+        const yb = topY + Math.round(k * U(3) + k * k * U(lift * 2));
+        const dita = i % U(3) === 0 || i === span;
+        const chord = Math.max(R, Math.round(U(5) * (1 - k * 0.6)) - (dita ? 0 : R));
+        P(wx, yb, dir * i, 'bone', 0.62);
+        /* la membrana scende all'indietro (si vede anche di fronte, non solo di taglio) ed è più chiara del
+           corpo con le dita scure: sopra la schiena dello stesso colore non si distingueva */
+        for (let j = 1; j <= chord; j++) P(wx + j, yb - Math.round(j * 0.7), dir * i, dita && j < chord ? 'bone' : 'shade', dita && j < chord ? 0.62 : 1.38);
       }
     }
   }
@@ -490,7 +504,8 @@ function buildFromRecipe(spec, mode, opts) {
     if (wsp) wings = [Math.min(4, Math.max(2, spec.arms.length)), BP[wsp.id].wings[1]];
   }
   const tWing = out.length;
-  if (wings) { wingVox(segsX[0], topYs[0], wings[0], wings[1], mode, colT, out); tagFrom(tWing, 'zampa'); }
+  if (!wings && opts && opts.addWings) wings = opts.addWings;          // cavalcatura: vola anche se la chimera non ha braccia alate
+  if (wings) { wingVox(segsX[0], topYs[0], wings[0], wings[1], mode, colT, out, opts && opts.wingFlap); tagFrom(tWing, 'zampa'); }
   /* collo + teste (ogni testa con lo stile della SUA specie), raccordati */
   const tNeck = out.length;
   const neck = r.neck || 0;

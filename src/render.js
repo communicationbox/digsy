@@ -1031,66 +1031,27 @@ function seatHero(sx, topY, dir) {
   drawHero(null, sx - 16, topY, dir, 0, false, 'ride');
   ctx.restore();
 }
-/* ALA in stile VOXEL: colonne PIENE a ventaglio (niente membrana liscia coi buchi), 3 toni +
-   contorno scuro come la creatura, così è coerente e ATTACCATA al dorso. `out`=+1/-1 il verso in
-   cui si apre; `flap` -1..1 il battito (fase dal TEMPO). */
-function voxWing(rx, ry, out, flap, base) {
-  /* FASE 2: nativa (drawFlyingMount è nativa, questa cella cresce di conseguenza: raggio
-     raddoppiato, 14 colonne invece di 7, così l'ala copre lo stesso spazio reale di prima). */
-  const M = base, L = shade8(base, 1.22), Dk = shade8(base, 0.66), LN = '#20160f';
-  const n = 14, cells = [];
-  for (let i = 0; i <= n; i++) {
-    const cx = rx + out * i;
-    const rise = Math.round(i * 1.35) + Math.round(flap * 4 * (i / n));   // il bordo d'attacco sale/scende
-    const top = ry - rise, bot = ry + 4 - Math.round(i * 0.4);
-    for (let y = top; y <= bot; y++) cells.push([cx, y, y === top ? L : (y === bot ? Dk : M)]);
-  }
-  const set = new Set(cells.map(c => c[0] + ',' + c[1]));                 // contorno scuro attorno alla sagoma
-  for (const [cx, cy] of cells) for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k = (cx + ox) + ',' + (cy + oy); if (!set.has(k)) px(cx + ox, cy + oy, LN); }
-  for (const [cx, cy, col] of cells) px(cx, cy, col);
-}
+/* CAVALCATURA VOLANTE = la STESSA creatura voxel del compagno (libro, parco, cortile), costruita a
+   risoluzione 3 senza zampe e con le ali DEL MODELLO che battono: quattro pose di `wingFlap`, in
+   cache. Prima le ali erano triangoli disegnati a parte sopra la creatura ("buttati lì a caso"), e
+   un drago disegnato a mano non c'entrava niente con gli altri animali del gioco. */
 export function drawFlyingMount(sx, sy) {
-  /* FASE 2: nativa, niente più wrapper 2x. drawCreature resta FUORI ambito (non ridisegnata):
-     riceve un'ancora in pixel nativi e si scala già da sola internamente, quindi va chiamata
-     diretta (né controscala né raddoppio) — esattamente come seatHero chiama drawHero. */
-  ctx.save();
-  const mview = P.dir === 'up' ? 'up' : P.dir === 'down' ? 'down' : 'side';
-  if (hasSprite('vehicle:mount:' + mview)) {
-    shadow(sx, sy + 34, 12);
-    const flip = P.dir === 'left';
-    if (flip) { ctx.save(); ctx.translate(sx * 2, 0); ctx.scale(-1, 1); }
-    drawSprite({ rect }, 'vehicle:mount:' + mview, sx, sy);
-    if (flip) ctx.restore();
-    ctx.restore(); return;
-  }
   const obj = companionDrawObj();
-  if (obj) obj.face = P.dir;                                  // STESSA creatura del parco/libro, ruota col player
-  const spec = companionSpec();
-  const base = (spec && spColor[spec.torso]) || '#8a6ab0';
-  const LEG = shade8(base, 0.6), LEGD = shade8(base, 0.4);
+  if (obj) obj.face = P.dir;
   const dir = P.dir === 'left' ? -1 : 1;
   const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
-  /* la creatura del mount = STESSO Abissodonte, zampe raccolte (noLegs). Le ali le disegno in stile
-     voxel dietro il corpo (attaccate al dorso), così restano coerenti e visibili in ogni vista. */
-  /* la cavalcatura è la creatura costruita a RISOLUZIONE 4: grande il doppio del compagno a terra,
-     con i pixel della stessa misura del mondo. Alla taglia del parco l'omino seduto era grande
-     quanto lei e la copriva ("qualche problema di sprite la cavalcatura ce l'ha"). */
-  /* a 4 volava un bestione largo mezzo schermo ("troppo grosso quando vola"): a 3 resta più grande
-     del cavaliere senza coprire la scena */
-  const mopts = { noLegs: true, res: 3 };
-  const cv = creatureSprite(obj, view, mopts);
+  const flap = Math.floor(frameTime / 140) % 4;
+  const mo = f => ({ noLegs: true, res: 3, addWings: [2, 'm'], wingFlap: f });
+  const cv = obj ? creatureSprite(obj, view, mo(flap)) : null;
+  /* il DORSO si misura sulla posa a ali distese, sempre la stessa: le punte che salgono cambiano
+     l'altezza della sagoma, e il pilota misurato su ogni posa saltellava col battito */
+  const rest = obj ? creatureSprite(obj, view, mo(1)) : null;
   const cvW = cv ? cv.width : 56, cvH = cv ? cv.height : 36;
-  const bob = Math.round(Math.sin(frameTime / 300) * 3);
-  const bottom = sy + 30 - bob;
+  const bob = Math.round(Math.sin(frameTime / 420) * 1.5);            // pilota e drago salgono e scendono INSIEME, piano
+  const bottom = sy + 30 + bob;
   const top = bottom - cvH;
-  const backTop = cv ? top + cv._back : top + 10;
-  const flap = Math.sin(frameTime / 130);
-  shadow(sx, sy + 36, 18);
-  const wingRootY = backTop + 6;
-  /* di profilo l'ala lontana sta dietro il corpo e quella vicina DAVANTI: disegnate entrambe dietro,
-     il corpo le copriva tutte e due ("di fianco non si vedono le ali") */
-  if (view === 'side') voxWing(sx - dir * 2, wingRootY - 3, -dir, -flap, shade8(base, 0.8));
-  else { voxWing(sx - 14, wingRootY, -1, flap, base); voxWing(sx + 14, wingRootY, 1, flap, base); }
+  const backTop = rest ? bottom - rest.height + rest._back : top + 10;
+  shadow(sx, sy + 40, 18);
   if (cv) {
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
     const x0 = snap(sx - (cv._ax || cvW / 2));
@@ -1098,14 +1059,11 @@ export function drawFlyingMount(sx, sy) {
     else ctx.drawImage(cv, x0, snap(top));
     ctx.imageSmoothingEnabled = sm;
   }
-  if (view === 'side') voxWing(sx - dir * 9, wingRootY + 2, -dir, flap, base);
   /* CAVALIERE seduto: vita sulla sella, mani avanti (posa 'ride') */
   seatHero(sx, backTop - 24, P.dir);
-  /* SELLA: i due lembi di cuoio che scendono ai fianchi, DAVANTI al cavaliere (sotto di lui la
-     sella non si vedrebbe) */
+  /* SELLA: i due lembi di cuoio che scendono ai fianchi, davanti al cavaliere */
   for (const s2 of [-1, 1]) { const x = s2 < 0 ? sx - 13 : sx + 8; rect(x, backTop - 1, 5, 8, '#20160f'); rect(x + 1, backTop, 3, 6, '#8a5f38'); rect(x + 1, backTop, 3, 1, '#b07c4a'); }
   if (P.moving) { const tx = sx - dir * 22, ty = backTop + 16, w2 = Math.floor(frameTime / 120) % 3; px(tx + w2 * 2, ty, 'rgba(224,206,255,.6)'); px(tx - w2 * 2, ty + 4, 'rgba(198,178,236,.4)'); }
-  ctx.restore();
 }
 /* barca vista di PRUA/POPPA (su/giù): scafo compatto e più stretto del profilo. `up`=si allontana. */
 export function drawBoatFB(sx, y0, up) {
@@ -1730,7 +1688,10 @@ export function render(time) {
     const gx = snap(goalMark.x - cam.x), gy = snap(goalMark.y - cam.y + FOOT_DY);
     ents.push({ y: -9e9, f: () => drawGoalMark(gx, gy, time) });
   }
-  ents.push({ y: P.y - cam.y + TS, f: drawPlayer });
+  /* IN VOLO si sta SOPRA a tutto: ordinato coi piedi come a terra, passando davanti a una casa la
+     cavalcatura spariva dietro il tetto e sembrava attraversarla ("con il volo passo in mezzo agli
+     oggetti e agli edifici"). L'ombra resta a terra, quindi si capisce dove si sorvola. */
+  ents.push({ y: isMounted() ? 9e8 : P.y - cam.y + TS, f: drawPlayer });
   /* COMPAGNO: chimera/risvegliato che insegue il player — MA non quando lo si cavalca (in volo
      il compagno È la cavalcatura sotto l'eroe: disegnarlo anche qui lo sdoppiava) */
   const compObj = companionDrawObj();
