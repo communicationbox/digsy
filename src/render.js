@@ -990,19 +990,19 @@ export function drawFlyingMount(sx, sy) {
 }
 /* barca vista di PRUA/POPPA (su/giù): scafo compatto e più stretto del profilo. `up`=si allontana. */
 export function drawBoatFB(sx, y0, up) {
-  /* FASE 2: nativo (chiamata da drawBoat, ora anche lei nativa) — bordo con filo di luce
-     vero oltre allo scafo, non solo due tinte piatte. */
-  /* IL BORDO ARRIVA ALLA VITA. Con il personaggio ridisegnato a 32px le gambe finiscono più
-     in alto di prima: lo scafo che partiva da +16 ne lasciava scoperti quattro pixel e si
-     vedevano i polpacci spuntare dallo scafo (segnalato con foto). Ed è largo quanto il
-     personaggio, non meno: di prua un busto più largo della barca sembra seduto sull'acqua. */
-  rect(sx - 14, y0 + 12, 30, 16, '#8a5f38'); rect(sx - 14, y0 + 12, 30, 4, '#a97a4c'); // scafo
-  rect(sx - 14, y0 + 16, 4, 10, shade8('#8a5f38', 1.15)); rect(sx + 12, y0 + 16, 4, 10, shade8('#8a5f38', 0.75)); // fiancata con volume
-  px(sx - 16, y0 + 16, '#8a5f38'); px(sx + 16, y0 + 16, '#8a5f38');
-  rect(sx - 12, y0 + 28, 26, 2, '#5c4229');
-  if (up) { rect(sx - 5, y0 + 10, 12, 2, '#a97a4c'); px(sx, y0 + 8, '#a97a4c'); }   // prua a punta in alto (si allontana)
-  else { rect(sx - 8, y0 + 28, 18, 2, '#8a5f38'); rect(sx - 5, y0 + 30, 12, 2, '#5c4229'); px(sx, y0 + 32, '#5c4229'); } // poppa verso di noi
-  px(sx - 10, y0 + 34, '#bfe9f4'); px(sx + 8, y0 + 34, '#bfe9f4');                  // riflesso
+  /* di prua o di poppa: scafo a U largo quanto il personaggio, bordo alla vita (le gambe restano
+     nascoste), contorno scuro, punta verso l'alto se si allontana e poppa piatta se viene verso di noi */
+  const L = '#2a1a10';
+  for (let y = 12; y < 30; y++) {
+    const u = (y - 12) / 18, w = Math.round(16 - Math.pow(u, 2.2) * 9);
+    rect(sx - w - 1, y0 + y, w * 2 + 2, 1, L);
+    rect(sx - w, y0 + y, w * 2, 1, y < 14 ? '#c49a63' : '#8a5f38');
+    rect(sx - w, y0 + y, 3, 1, '#a97a4c'); rect(sx + w - 3, y0 + y, 3, 1, '#6e4a2e');
+    if (y === 19 || y === 24) rect(sx - w + 2, y0 + y, w * 2 - 4, 1, '#6e4a2e');
+  }
+  if (up) { for (let k = 0; k < 5; k++) { rect(sx - 4 + k, y0 + 11 - k, 8 - k * 2, 1, L); rect(sx - 3 + k, y0 + 11 - k, Math.max(1, 6 - k * 2), 1, '#c49a63'); } }
+  else { rect(sx - 10, y0 + 12, 20, 3, L); rect(sx - 9, y0 + 12, 18, 2, '#a97a4c'); }
+  ctx.fillStyle = 'rgba(200,235,245,.55)'; ctx.fillRect(sx - 16, y0 + 28, 32, 1); ctx.fillRect(sx - 10, y0 + 31, 20, 1);
 }
 export function drawBoat(sx, sy, noHero) {
   /* FASE 2: nativo — niente più contro-scala per l'eroe (drawHero è già nativa, qui non
@@ -1023,13 +1023,21 @@ export function drawBoat(sx, sy, noHero) {
   if (!bankVeh('boat', sx, y0)) {                                     // scafo: disegno a mano se c'è, altrimenti procedurale
     if (P.dir === 'up' || P.dir === 'down') drawBoatFB(sx, y0, P.dir === 'up'); // fronte/retro: scafo di prua/poppa
     else {
-      /* scafo di legno di PROFILO (laterali) con prua e bordo chiaro (copre le gambe → l'eroe ci "siede") */
-      rect(sx - 20, y0 + 12, 40, 16, '#8a5f38'); rect(sx - 20, y0 + 12, 40, 4, '#a97a4c');
-      rect(sx - 20, y0 + 16, 6, 12, shade8('#8a5f38', 1.15)); rect(sx + 14, y0 + 16, 6, 12, shade8('#8a5f38', 0.7)); // fiancata: luce a prua / ombra a poppa
-      rect(sx - 6, y0 + 24, 12, 2, shade8('#8a5f38', 0.85)); // linea di galleggiamento
-      px(sx - 22, y0 + 15, '#8a5f38'); px(sx + 20, y0 + 15, '#8a5f38');
-      rect(sx - 16, y0 + 28, 32, 2, '#5c4229'); rect(sx - 16, y0 + 28, 32, 1, shade8('#5c4229', 1.3)); // bordo di poppa con un filo di luce
-      px(sx - 12, y0 + 32, '#bfe9f4'); px(sx + 10, y0 + 32, '#bfe9f4'); // riflesso sull'acqua
+      /* scafo di PROFILO: chiglia curva con la prua che sale, fasciame a tre corsi, bordo chiaro
+         alla vita di Digsy, remo appoggiato, contorno scuro e la linea dell'acqua */
+      const d = P.dir === 'left' ? -1 : 1, L = '#2a1a10';
+      rect(sx - 18, y0 + 13, 36, 13, '#8a5f38');                          // corpo pieno: le gambe restano sempre coperte
+      for (let x = -22; x <= 22; x++) {
+        const u = (x * d + 22) / 44, top = y0 + 12 - Math.round(Math.max(0, u - 0.72) * 22), bot = y0 + 27 - Math.round(Math.pow(Math.abs(x) / 22, 3) * 9);
+        rect(sx + x, top - 1, 1, bot - top + 2, L);
+        rect(sx + x, top, 1, bot - top, '#8a5f38');
+        rect(sx + x, top, 1, 2, '#c49a63');
+        for (const k of [6, 11]) if (top + k < bot) rect(sx + x, top + k, 1, 1, '#6e4a2e');
+        if (bot - 3 > top) rect(sx + x, bot - 3, 1, 3, '#6e4a2e');
+      }
+      rect(sx - 10 * d - 2, y0 + 8, 3, 18, L); rect(sx - 10 * d - 1, y0 + 9, 1, 16, '#b07c4a');     // remo
+      rect(sx - 10 * d - 3, y0 + 22, 5, 6, L); rect(sx - 10 * d - 2, y0 + 23, 3, 4, '#a97a4c');
+      ctx.fillStyle = 'rgba(200,235,245,.55)'; ctx.fillRect(sx - 20, y0 + 26, 40, 1); ctx.fillRect(sx - 14, y0 + 29, 28, 1);
     }
   }
   if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') { // lenza + galleggiante con cerchi

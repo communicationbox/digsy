@@ -46,18 +46,37 @@ export function drawTree(sx, sy, time, tx, ty) {
   rect(sx + 2, sy - 6, 28, 24, T[1]); rect(sx + 4, sy - 8, 20, 6, T[3]);
 }
 export function drawBoulder(sx, sy, tx = 0, ty = 0) {
-  /* MASSO arrotondato con le facce, crepe e muschio: diverso per casella */
+  /* MASSO spigoloso: sagoma a poligono irregolare, faccia di sopra piatta e chiara, facce di
+     lato in ombra, una crepa di traverso. La versione tonda con la crepa al centro sembrava un
+     sedere (segnalato con foto): niente rotondità simmetriche e niente segni verticali in mezzo. */
   ctx.save(); ctx.translate(sx, sy);
-  const cx = 16, base = 27; shadow(cx, base, 13);
-  const a = vhash(tx, ty, 81);
-  ellipseF(cx, base - 10, 14, 11, LN);
-  ellipseF(cx, base - 10, 13, 10, '#8a8378');
-  ellipseF(cx - 2, base - 13, 10, 7, '#9f988b');
-  ellipseF(cx - 5, base - 16, 5, 3, '#bdb6a8');
-  rect(cx - 7, base - 18, 3, 1, '#d6d0c2');
-  ellipseF(cx + 5, base - 5, 7, 4, '#6f685c');
-  rect(cx - 3 + Math.round(a * 6), base - 12, 1, 6, '#5f584e'); rect(cx - 2 + Math.round(a * 6), base - 7, 3, 1, '#5f584e');   // crepa
-  if (vhash(tx, ty, 83) < 0.6) { rect(cx - 10, base - 6, 6, 3, '#6f8a52'); rect(cx - 9, base - 7, 4, 1, '#8aa86a'); }             // muschio
+  const v = vhash(tx, ty, 81), flip = v < 0.5 ? 1 : -1;
+  shadow(16, 27, 13);
+  /* sagoma: per ogni riga, bordo sinistro e destro presi da una spezzata irregolare */
+  const L = [[-12, 26], [-13, 20], [-10, 12], [-5, 7], [3, 6], [9, 9], [13, 16], [12, 24], [8, 27]];
+  const left = y => { let best = -12; for (const [x, yy] of L) if (x < 0 && Math.abs(yy - y) < 5) best = Math.min(best, x); return best; };
+  const edgeAt = (y, side) => {
+    const pts = side < 0 ? [[-8, 6], [-11, 10], [-13, 17], [-12, 24], [-9, 27]] : [[4, 5], [10, 8], [13, 15], [12, 22], [8, 27]];
+    for (let k = 0; k < pts.length - 1; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1]; if (y >= y0 && y <= y1) return Math.round(x0 + (x1 - x0) * ((y - y0) / Math.max(1, y1 - y0))); }
+    return side < 0 ? -8 : 4;
+  };
+  for (let y = 5; y <= 27; y++) {
+    const xl = 16 + flip * edgeAt(y, -flip) * -flip, xr = 16 + flip * edgeAt(y, flip) * flip;
+    const a0 = Math.min(16 + edgeAt(y, -1) * (flip), 16 + edgeAt(y, 1) * (flip)), a1 = Math.max(16 + edgeAt(y, -1) * (flip), 16 + edgeAt(y, 1) * (flip));
+    const x0 = Math.min(a0, a1), x1 = Math.max(a0, a1);
+    rect(x0 - 1, y, x1 - x0 + 2, 1, LN);
+    const topFace = y < 13, w = x1 - x0;
+    rect(x0, y, w, 1, topFace ? '#b3ab9d' : '#8f887b');                                     // faccia di sopra chiara, fianco medio
+    if (!topFace) { rect(flip > 0 ? x1 - Math.round(w * 0.38) : x0, y, Math.round(w * 0.38), 1, '#6f685d'); }   // fianco in ombra
+    if (y === 12) rect(x0, y, w, 1, '#d0c9bb');                                              // spigolo fra le facce
+  }
+  const cx = 16 + flip * 3;                                                                   // crepa di traverso, fuori centro
+  for (let k = 0; k < 7; k++) px(cx + flip * k, 15 + k, '#55504a');
+  if (vhash(tx, ty, 83) < 0.45) { rect(4, 22, 7, 4, '#6f8a52'); rect(5, 21, 4, 1, '#8aa86a'); }                                 // muschio
+  if (vhash(tx, ty, 84) < 0.4) {                                                                                                // sassolino accanto
+    const qx = flip > 0 ? 27 : 4;
+    rect(qx - 3, 23, 7, 5, LN); rect(qx - 2, 23, 5, 3, '#a39c90'); rect(qx - 2, 23, 5, 1, '#c4bdb0');
+  }
   ctx.restore();
 }
 /* FIORE — versione scenografica (piatta, a terra) e versione MATURA (alta, azzurra, col
