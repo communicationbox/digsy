@@ -36,6 +36,7 @@ src/house.js        casa del giocatore: stanze, arredo (strati, ingombro, parete
 src/wonderNative.js tutte e 18 le meraviglie disegnate in NATIVO a 32px (gli sprite dello Studio restano in banca come riserva)
 src/furnArt.js      disegno NATIVO dell'arredo e del fondo della stanza (modulo puro, come wonderart)
 src/hatArt.js       cappelli disegnati in NATIVO a 32px: forme (cupola, tesa, fascia, cono), luce e un solo contorno (puro)
+src/bodyArt.js      corpo del personaggio in NATIVO: testa con viso, braccia, scarpe, a specchio; contorno dopo i vestiti (puro)
 src/hairArt.js      capelli disegnati in NATIVO: massa + attaccatura ritagliata, ciocche, riccioli, punte (puro, usa grid di hatArt)
 src/npcArt.js       segni di mestiere degli NPC (look.acc): camice/occhiali, grembiuli, baffi, papillon+monocolo, metro (puro)
 src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)

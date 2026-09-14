@@ -1657,6 +1657,20 @@ sprites.applyLook();
     rows.forEach(r => { if (r.length !== 32) bad++; for (const ch of r) if (!(ch in sprites.PAL)) bad++; });
   }
   check('6 varianti sprite 32x32 con chiavi valide', bad === 0);
+  /* corpo nativo: i ridisegni precedenti erano stati scartati per occhi non speculari, gambe storte e
+     occhi sepolti sotto la frangia. Qui si misura: sagoma e occhi a specchio esatto (di fronte e di
+     spalle, entrambi i passi), occhi visibili con OGNI taglio. */
+  let bodyAsym = 0;
+  for (const dir of ['down', 'up']) for (const fr of [0, 1]) sprites.SPR[dir][fr].forEach(r => {
+    for (let c = 0; c < 32; c++) { if ((r[c] === '.') !== (r[31 - c] === '.')) bodyAsym++; if ((r[c] === 'E') !== (r[31 - c] === 'E')) bodyAsym++; }
+  });
+  check('corpo: sagoma e occhi a specchio (' + bodyAsym + ' pixel fuori)', bodyAsym === 0);
+  let eyesUnder = [];
+  for (const hair of Object.keys(sprites.HAIRS)) for (const [v, xs] of [['down', [10, 11, 20, 21]], ['side', [21, 22]]]) {
+    const hr = sprites.HAIRS[hair][v];
+    for (const y of [9, 10, 11]) { const r = hr.find(p => p[0] === y); if (r && xs.some(x => r[1][x] !== '.')) { eyesUnder.push(hair + '/' + v); break; } }
+  }
+  check('occhi mai sotto i capelli (' + [...new Set(eyesUnder)].join(' ') + ')', eyesUnder.length === 0);
   let hbad = 0;
   for (const st of Object.keys(sprites.HAIRS)) for (const dir of ['down', 'side', 'up']) {
     for (const [y, r] of sprites.HAIRS[st][dir]) {
@@ -5164,7 +5178,7 @@ sprites.applyLook();
   sctx.translate = (dx, dy) => { tx += dx * scX; ty += dy * scY; };
   sctx.scale = (a, b) => { scX *= a; scY *= b; };
   let W = [], amb = [];
-  sctx.fillRect = (x, y) => { const X = Math.round(tx + x * scX), Y = Math.round(ty + y * scY); if (sctx.fillStyle === '#f2ead8') W.push([X, Y]); if (sctx.fillStyle === '#e0b040') amb.push([X, Y]); };
+  sctx.fillRect = (x, y) => { const X = Math.round(tx + x * scX), Y = Math.round(ty + y * scY); if (sctx.fillStyle === sprMod.PAL.b) W.push([X, Y]); /* scarpe: la suola */ if (sctx.fillStyle === '#e0b040') amb.push([X, Y]); };
   const SX = 100;
   const shotSk = (dir, moving, fr) => {
     P.dir = dir; P.moving = moving; W = []; amb = []; tx = 0; ty = 0; scX = 1; scY = 1; tstack = [];
