@@ -4861,7 +4861,7 @@ sprites.applyLook();
     const moto = frame(wreck.x, wreck.y);
     check('barca: scafo di legno con bordo chiaro sull\'acqua', only(boat, swimming, '#a97a4c'));
     check('barca: pescando compaiono canna, filo e galleggiante', only(fish, boat, '#e8e2d0'));
-    check('motoscafo: scafo bianco con banda azzurra (e non quello di legno)', only(moto, boat, '#eef2f4') && moto.has('#3d8ba0'));
+    check('motoscafo: scafo bianco con banda azzurra (e non quello di legno)', only(moto, boat, '#f4f7f8') && moto.has('#2f95ad'));
     check('relitto: lo scafo spezzato affiora davvero dal mare', only(boat, plain, '#5a4430'));
     S.tools.boat = false; S.tools.motorboat = false; P.moving = false;
   }

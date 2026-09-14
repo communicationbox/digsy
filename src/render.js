@@ -1174,53 +1174,167 @@ export function drawBoat(sx, sy, noHero) {
   }
   ctx.restore();
 }
-/* motoscafo di PRUA/POPPA (su/giù): scafo bianco compatto + parabrezza/motore secondo il verso. */
-export function drawMotorboatFB(sx, y0, up) {
-  /* FASE 2: nativo — scafo con volume laterale, non solo scafo+banda piatti. */
-  rect(sx - 14, y0 + 12, 30, 14, '#eef2f4'); rect(sx - 14, y0 + 22, 30, 4, '#3d8ba0'); // scafo + banda (bordo alla vita)
-  rect(sx - 14, y0 + 14, 4, 10, shade8('#eef2f4', 0.92)); rect(sx + 12, y0 + 14, 4, 10, shade8('#eef2f4', 0.85)); // fiancata con volume
-  px(sx - 16, y0 + 16, '#eef2f4'); px(sx + 16, y0 + 16, '#eef2f4');
-  rect(sx - 12, y0 + 26, 26, 2, '#2b6274');
-  /* il MOTORE è a POPPA: si vede quando ti ALLONTANI (di spalle), non quando vieni verso l'utente */
-  if (up) { rect(sx - 4, y0 + 26, 10, 6, '#33291f'); px(sx, y0 + 32, '#20323f'); }  // di spalle: motore fuoribordo verso di noi
-  else { rect(sx - 4, y0 + 24, 10, 4, '#bfe9f4'); rect(sx - 4, y0 + 24, 10, 2, '#8fd0e6'); rect(sx - 4, y0 + 28, 10, 2, '#eef2f4'); px(sx, y0 + 30, '#eef2f4'); } // di fronte: parabrezza + prua verso di noi
-  px(sx - 8, y0 + 32, '#bfe9f4'); px(sx + 6, y0 + 32, '#bfe9f4');
+/* MOTOSCAFO disegnato a celle: si raccolgono i pixel in una mappa, si aggiunge UN contorno scuro
+   attorno alla sagoma e si stende riga per riga a tratti dello stesso colore. Era fatto di cinque
+   rettangoli piatti senza bordo: una saponetta bianca con un blocco nero attaccato. */
+const MB = {
+  out: '#17252d', white: '#f4f7f8', whiteMid: '#dfe7ea', whiteDk: '#b9c6cc', stripe: '#2f95ad', stripeDk: '#1d5f72',
+  bottom: '#2b4b5e', bottomDk: '#1f3746', glass: '#8fd3e8', glassHi: '#e6f8ff', glassDk: '#5aa9c2', frame: '#3b4a52',
+  cowl: '#3c444b', cowlHi: '#6f7a82', cowlDk: '#262c31', accent: '#d8553f', chrome: '#c9d2d6', foam: '#f2fbfd', foamDk: '#bfe6f1',
+};
+function cellPainter() {
+  const m = new Map();
+  const put = (x, y, c) => m.set(x + ',' + y, [x, y, c]);
+  const paint = () => {
+    const rows = new Map();
+    const has = (x, y) => m.has(x + ',' + y);
+    const add = (x, y, c) => { if (!rows.has(y)) rows.set(y, new Map()); rows.get(y).set(x, c); };
+    for (const [x, y] of m.values()) {
+      for (const [ox, oy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!has(x + ox, y + oy)) add(x + ox, y + oy, MB.out);
+    }
+    for (const [x, y, c] of m.values()) add(x, y, c);
+    for (const [y, r] of rows) {
+      const xs = [...r.keys()].sort((a2, b2) => a2 - b2);
+      let i = 0;
+      while (i < xs.length) {
+        let j = i; const c = r.get(xs[i]);
+        while (j + 1 < xs.length && xs[j + 1] === xs[j] + 1 && r.get(xs[j + 1]) === c) j++;
+        rect(xs[i], y, xs[j] - xs[i] + 1, 1, c);
+        i = j + 1;
+      }
+    }
+  };
+  return { put, paint };
 }
-/* MOTOSCAFO: scafo bianco/azzurro affusolato, parabrezza, motore fuoribordo, SCIA di spruzzi */
-export function drawMotorboat(sx, sy, noHero) {
-  /* FASE 2: nativo — niente più contro-scala per l'eroe. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const bob = Math.round(Math.sin(frameTime / 300) * 2.4);
-  const y0 = sy + bob;
-  /* scia di spruzzi più marcata dietro (in movimento) */
-  if (P.moving) {
-    const bx = P.dir === 'left' ? 24 : P.dir === 'right' ? -24 : 0;
-    const by = P.dir === 'up' ? 24 : P.dir === 'down' ? -24 : 0;
-    const w2 = Math.floor(frameTime / 90) % 3;
-    for (let i = 0; i < 3; i++) { rect(sx + bx - 6 + i * 6 - w2 * 2, y0 + 28 + by, 2, 2, '#e8f6fb'); rect(sx + bx - 4 + i * 6 + w2 * 2, y0 + 32 + by, 2, 2, '#bfe9f4'); }
-  }
-  /* eroe al timone PRIMA dello scafo: gambe nascoste dentro (niente piedi sporgenti) */
-  if (!noHero) drawHero(null, sx - 16, y0 - 8, P.dir, 0);
-  if (!bankVeh('motorboat', sx, y0)) {                                // scafo: disegno a mano se c'è, altrimenti procedurale
-    if (P.dir === 'up' || P.dir === 'down') drawMotorboatFB(sx, y0, P.dir === 'up'); // fronte/retro
-    else {
-      /* scafo affusolato (bianco con banda azzurra) + prua appuntita (copre le gambe) — laterali */
-      rect(sx - 20, y0 + 12, 40, 14, '#eef2f4'); rect(sx - 20, y0 + 22, 40, 4, '#3d8ba0'); // banda (bordo alla vita)
-      px(sx - 24, y0 + 18, '#eef2f4'); px(sx - 22, y0 + 15, '#eef2f4');                    // prua sinistra
-      px(sx + 22, y0 + 18, '#eef2f4'); px(sx + 20, y0 + 15, '#eef2f4');                    // poppa
-      rect(sx - 18, y0 + 26, 36, 2, '#2b6274');
-      rect(sx - 4, y0 + 8, 10, 8, '#bfe9f4'); rect(sx - 4, y0 + 8, 10, 2, '#8fd0e6');       // parabrezza + console
-      rect(sx - 6, y0 + 14, 14, 2, '#9aa3a8');
-      const md = P.dir === 'left' ? 1 : -1;                                               // motore fuoribordo dietro
-      rect(sx + md * 18, y0 + 14, 4, 10, '#33291f'); px(sx + md * 18, y0 + 24, '#20323f');
-      px(sx - 12, y0 + 30, '#bfe9f4'); px(sx + 10, y0 + 30, '#bfe9f4');                     // riflesso
+/* motoscafo di PRUA (verso di noi) o di POPPA (si allontana, motore in vista) */
+export function drawMotorboatFB(sx, y0, up) {
+  if (up) rect(sx - 11, y0 + 15, 22, 11, MB.white); else rect(sx - 8, y0 + 15, 16, 10, MB.white); // corpo pieno: le gambe restano coperte
+  const g = cellPainter();
+  const TOP = 14, BOT = up ? 27 : 29;
+  for (let y = TOP; y <= BOT; y++) {
+    const v = (y - TOP) / (BOT - TOP);
+    const w = up ? Math.round(17 - Math.pow(v, 3) * 6) : Math.round(17 - Math.pow(v, 1.5) * 14);
+    for (let x = -w; x < w; x++) {
+      const side = x < -w + 3 ? 0 : x >= w - 3 ? 2 : 1;
+      let c = side === 0 ? MB.white : side === 2 ? MB.whiteDk : MB.whiteMid;
+      if (y === TOP) c = MB.chrome;                                    // bordo del ponte
+      else if (y === TOP + 1) c = side === 2 ? MB.whiteMid : MB.white;
+      else if (y === TOP + 6 || y === TOP + 7) c = y === TOP + 6 ? MB.stripe : MB.stripeDk;
+      else if (y >= BOT - 3) c = side === 2 ? MB.bottomDk : MB.bottom;
+      if (!up && x >= -1 && x <= 0 && y > TOP + 1 && y < BOT - 3 && c !== MB.stripe && c !== MB.stripeDk) c = MB.whiteDk; // spigolo della prua
+      g.put(sx + x, y0 + y, c);
     }
   }
-  if ((P.dir === 'left' || P.dir === 'right') && P.digging && P.digging.kind === 'fish') {
-    const d2 = P.dir === 'left' ? -1 : 1;
-    rect(sx + d2 * 16, y0 - 10, 2, 4, '#8a5f38');
-    for (let i = 1; i < 5; i++) px(sx + d2 * (18 + i * 2), y0 - 12 + i * 4, '#e8e2d0');
-    const bx2 = sx + d2 * 28, by2 = y0 + 8 + Math.round(Math.sin(frameTime / 260) * 2);
+  if (up) {
+    /* POPPA: specchio piatto con il fuoribordo al centro, luce di via e scaletta */
+    for (let y = 11; y <= 22; y++) for (let x = -5; x < 5; x++) {
+      const c = y === 11 ? MB.cowlHi : y === 14 ? MB.accent : x < -3 ? MB.cowlHi : x >= 3 ? MB.cowlDk : MB.cowl;
+      g.put(sx + x, y0 + y, c);
+    }
+    for (let y = 23; y <= 31; y++) for (let x = -1; x < 1; x++) g.put(sx + x, y0 + y, y === 31 ? MB.chrome : MB.cowlDk);
+    for (let x = -4; x < 4; x++) g.put(sx + x, y0 + 30, MB.chrome);   // elica
+    g.put(sx - 14, y0 + TOP + 2, MB.accent); g.put(sx + 13, y0 + TOP + 2, '#7bd66a');
+    for (let y = 16; y <= 20; y += 2) for (let x = 9; x < 12; x++) g.put(sx + x, y0 + y, MB.chrome);
+  } else {
+    /* PRUA: parabrezza a trapezio davanti al pilota, con il riflesso in diagonale */
+    for (let y = 10; y <= 13; y++) {                                  // basso: sotto il mento, non sul viso
+      const w = 12 + (y - 10);
+      for (let x = -w; x < w; x++) {
+        let c = (y === 10 || x === -w || x === w - 1) ? MB.frame : MB.glass;
+        if (c === MB.glass && (x - (y - 10)) >= -8 && (x - (y - 10)) <= -6) c = MB.glassHi;
+        if (c === MB.glass && y === 13) c = MB.glassDk;
+        g.put(sx + x, y0 + y, c);
+      }
+    }
+    g.put(sx - 1, y0 + 30, MB.whiteDk); g.put(sx, y0 + 30, MB.whiteDk);
+  }
+  g.paint();
+}
+/* MOTOSCAFO: scafo bianco affusolato con la prua che sale, fascia azzurra, carena scura,
+   parabrezza inclinato, fuoribordo con la calandra, schiuma a prua e scia a poppa */
+export function drawMotorboat(sx, sy, noHero) {
+  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
+  const bob = Math.round(Math.sin(frameTime / 300) * 2);
+  const y0 = sy + bob;
+  const side = P.dir === 'left' || P.dir === 'right';
+  const d = P.dir === 'left' ? -1 : 1;
+  const w2 = Math.floor(frameTime / 110) % 4;                         // fase della schiuma: solo dal tempo
+  /* scia DIETRO lo scafo (in movimento): due strisce di schiuma che si allargano */
+  if (P.moving) {
+    if (side) {
+      for (let i = 0; i < 4; i++) {
+        const x = -d * (30 + i * 7 + w2), spread = 1 + i;
+        rect(x, y0 + 25 - spread, 4 - (i > 2 ? 1 : 0), 1, i % 2 ? MB.foamDk : MB.foam);
+        rect(x - d * 2, y0 + 27 + spread, 4, 1, MB.foamDk);
+      }
+    } else {
+      const by = P.dir === 'up' ? 1 : -1;
+      for (let i = 0; i < 3; i++) {
+        const y = y0 + (by > 0 ? 32 + i * 4 : 8 - i * 4) + (w2 % 2);
+        rect(-10 - i * 3, y, 4, 1, MB.foam); rect(7 + i * 3, y, 4, 1, MB.foam);
+        rect(-2, y + 1, 4, 1, MB.foamDk);
+      }
+    }
+  }
+  /* eroe al timone PRIMA dello scafo: gambe nascoste dentro; pescando la mano tiene la canna */
+  const fishing = side && P.digging && P.digging.kind === 'fish';
+  if (!noHero) drawHero(null, sx - 16, y0 - 8, P.dir, 0, false, fishing ? 'lift' : undefined);
+  /* il disegno in banca (vehicle:motorboat:*) resta come riserva, come per la bici: era piatto e senza
+     contorno, e vinceva sempre su questo ("miglioriamo il motoscafo?") */
+  {
+    if (!side) drawMotorboatFB(sx, y0, P.dir === 'up');
+    else {
+      rect(-18, y0 + 15, 28, 8, MB.white);                           // corpo pieno: le gambe restano coperte
+      const g = cellPainter();
+      for (let x = -24; x <= 26; x++) {
+        const u = (x + 24) / 50;                                       // 0 poppa, 1 prua (disegno verso destra)
+        const top = 14 - Math.round(Math.max(0, u - 0.55) * 11);
+        const bot = 26 - Math.round(Math.pow(Math.max(0, u - 0.5) * 2, 1.7) * 13);
+        if (bot < top + 1) continue;
+        for (let y = top; y <= bot; y++) {
+          let c = MB.white;
+          const k = y - top, fromBot = bot - y;
+          if (k === 0) c = MB.chrome;                                  // bordo del ponte
+          else if (k === 1) c = MB.whiteMid;
+          else if (y === 19 || y === 20) c = y === 19 ? MB.stripe : MB.stripeDk;   // fascia dritta sulla fiancata
+          else if (fromBot <= 2 && y >= 22) c = fromBot === 0 ? MB.bottomDk : MB.bottom;
+          else if (k >= 2 && y > 20) c = MB.whiteDk;
+          if (u < 0.02) c = k === 0 ? MB.chrome : MB.whiteDk;           // specchio di poppa in ombra
+          g.put(d * x - (d < 0 ? 1 : 0), y0 + y, c);
+        }
+      }
+      /* parabrezza inclinato all'indietro, davanti al pilota */
+      for (let y = 9; y <= 13; y++) {
+        const x0 = 9 - Math.round((13 - y) * 0.8), x1 = x0 + 4;
+        for (let x = x0; x <= x1; x++) {
+          let c = (x === x1 || y === 9) ? MB.frame : MB.glass;
+          if (c === MB.glass && x === x0 + 1) c = MB.glassHi;
+          g.put(d * x - (d < 0 ? 1 : 0), y0 + y, c);
+        }
+      }
+      /* fuoribordo a poppa: calandra arrotondata con la riga rossa, gambo, elica */
+      for (let y = 10; y <= 18; y++) {
+        const round = (y === 10) ? 1 : 0;
+        for (let x = -30 + round; x <= -25 - round; x++) {
+          let c = x === -30 || y === 11 ? MB.cowlHi : x === -25 ? MB.cowlDk : MB.cowl;
+          if (y === 14) c = MB.accent;
+          g.put(d * x - (d < 0 ? 1 : 0), y0 + y, c);
+        }
+      }
+      for (let y = 19; y <= 28; y++) for (let x = -29; x <= -28; x++) g.put(d * x - (d < 0 ? 1 : 0), y0 + y, MB.cowlDk);
+      for (let y = 25; y <= 28; y++) g.put(d * -30 - (d < 0 ? 1 : 0), y0 + y, MB.chrome);
+      g.paint();
+      /* schiuma che si apre sulla prua (in movimento), linea dell'acqua */
+      if (P.moving) for (let i = 0; i < 3; i++) { const fx = d * (25 + i * 2 + (w2 % 2)); rect(fx, y0 + 24 - i * 2, 2, 1, i ? MB.foamDk : MB.foam); }
+      ctx.fillStyle = 'rgba(200,235,245,.55)'; ctx.fillRect(-22, y0 + 27, 44, 1); ctx.fillRect(-15, y0 + 30, 30, 1);
+    }
+  }
+  if (fishing) {
+    const [gx, gy] = GRIP.lift.side, hx0 = sx - 16 + (d < 0 ? 31 - gx : gx), hy0 = y0 - 8 + gy;
+    for (let i = 0; i <= 8; i++) rect(hx0 + d * i, hy0 - Math.round(i * 1.4), 2, 1, '#8a5f38');
+    const tipX = hx0 + d * 8, tipY = hy0 - 11;
+    for (let i = 1; i < 6; i++) px(tipX + d * i, tipY + i * 3, '#e8e2d0');
+    const bx2 = sx + d * 34, by2 = y0 + 8 + Math.round(Math.sin(frameTime / 260) * 2);
     px(bx2, by2, '#c65a54'); px(bx2, by2 - 2, '#f6efdd');
   }
   ctx.restore();
