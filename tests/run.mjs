@@ -6979,6 +6979,27 @@ sprites.applyLook();
   check('i trofei si disegnano tutti, vinti e non', bad === '', bad);
 }
 
+/* ---------- MOBILE: il mondo non deve essere ingrandito fino a tagliare le scene ---------- */
+{
+  /* la formula dello zoom era nata con le caselle da 16px: con le caselle a 32 e il minimo fermo
+     a 2, un telefono mostrava CINQUE caselle e stanze, botteghe e museo uscivano tagliati
+     (visto con un test vero su iPhone e Pixel emulati). */
+  const scr = await import('../src/screen.js');
+  const { TS: TS2 } = await import('../src/data.js');
+  const iw = globalThis.innerWidth, ih = globalThis.innerHeight, dp = globalThis.devicePixelRatio;
+  const bad = [];
+  for (const [w, h, d] of [[320, 568, 2], [390, 664, 3], [412, 839, 2.625], [750, 342, 3], [1280, 800, 2], [1920, 1080, 1]]) {
+    globalThis.innerWidth = w; globalThis.innerHeight = h; globalThis.devicePixelRatio = d;
+    scr.fit();
+    const tilesShort = Math.min(scr.view.W, scr.view.H) / TS2;
+    if (tilesShort < 9) bad.push(w + 'x' + h + ': ' + tilesShort.toFixed(1) + ' caselle');
+    if (w < 700 && scr.view.W < 10 * TS2) bad.push(w + 'x' + h + ': la stanza (10 caselle) non entra');
+    if (scr.view.PX !== scr.view.K * Math.max(1, Math.round(d))) bad.push(w + 'x' + h + ': PX sbagliato');
+  }
+  globalThis.innerWidth = iw; globalThis.innerHeight = ih; globalThis.devicePixelRatio = dp; scr.fit();
+  check('mobile: sul lato corto entrano almeno 9 caselle, e la stanza intera su un telefono', bad.length === 0, bad.join(' | '));
+}
+
 /* ---------- GROTTE: le decorazioni hanno un motivo per stare dove stanno ---------- */
 {
   /* "tante cose messe lì a caso senza senso": ora funghi, stalagmiti e pozze nascono solo contro
@@ -7854,8 +7875,8 @@ sprites.applyLook();
   {
     const rnd = await import('../src/render.js');
     const scr = await import('../src/screen.js');
-    const K0 = scr.view.K, W0 = scr.view.W;
-    scr.view.K = 4; scr.view.W = 400;
+    const K0 = scr.view.K, W0 = scr.view.W, PX0 = scr.view.PX;
+    scr.view.K = 4; scr.view.PX = 4; scr.view.W = 400;   // PX = pixel fisici per pixel di gioco (qui densità 1)
     const passo = 1 / scr.view.K;
     const a = rnd.plateBox(100, 100, 40, 16);
     const b = rnd.plateBox(100 + passo, 100 + passo, 40, 16);
@@ -7867,7 +7888,7 @@ sprites.applyLook();
     /* mezzo pixel fisico NON deve muovere la targa: se la seguisse, vibrerebbe al contrario */
     const c = rnd.plateBox(100 + passo / 4, 100, 40, 16);
     check('sotto il mezzo pixel fisico la targa sta ferma', c.bx === a.bx);
-    scr.view.K = K0; scr.view.W = W0;
+    scr.view.K = K0; scr.view.PX = PX0; scr.view.W = W0;
   }
   {
     const fs6 = await import('node:fs');

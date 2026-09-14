@@ -6,7 +6,7 @@
    frazioni di pixel fa vibrare le strutture (vedi REGOLE FERREE in CLAUDE.md). */
 import { ctx, view } from './screen.js';
 
-export function snap(v) { return Math.round(v * view.K) / view.K; }
+export function snap(v) { const k = view.PX || view.K; return Math.round(v * k) / k; }   // griglia dei pixel FISICI
 export function px(x, y, c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
 export function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
 /* ombra di contatto: ellisse schiacciata, sempre della stessa forma (PIXELART.md regola 5) */

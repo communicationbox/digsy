@@ -5,7 +5,7 @@ export const cv = document.getElementById('cv');
 export const ctx = cv.getContext('2d');
 
 /* risoluzione interna derivata dalla finestra, ricalcolata a ogni resize */
-export const view = { K: 3, VW: 17, VH: 13, W: 17 * TS, H: 13 * TS };
+export const view = { K: 3, PX: 3, VW: 17, VH: 13, W: 17 * TS, H: 13 * TS };
 
 /* INGOMBRO DELL'HUD in pixel di GIOCO. La barra in alto sta sopra la canvas: dove la camera
    si ferma al bordo della mappa (grotte, galleria del museo) il giocatore continua a salire
@@ -30,12 +30,19 @@ export function hudPad() {
 }
 
 export function fit() {
-  // zoom: ~13 tile sull'asse più corto → funziona in landscape e in portrait (mobile)
-  const K = Math.max(2, Math.min(6, Math.round(Math.min(innerWidth, innerHeight) / (13 * TS))));
-  view.K = K;
+  /* ZOOM: ~13 caselle sull'asse più corto. La formula era nata con le caselle da 16px: con le
+     caselle a 32 e il minimo fermo a 2, su un telefono si vedevano CINQUE caselle e le stanze,
+     le botteghe e il museo uscivano dallo schermo tagliati (segnalato da mobile). Ora il minimo
+     è 1: un telefono in verticale mostra 10-12 caselle, un desktop resta a 2-3.
+     K = pixel CSS per pixel di gioco (serve all'HUD e ai tocchi); PX = pixel FISICI per pixel
+     di gioco (K × densità dello schermo): la tela è costruita a PX, così a scala 1 su uno
+     schermo a densità 3 il disegno resta nitido e agganciato ai pixel veri (REGOLE FERREE #2). */
+  const K = Math.max(1, Math.min(6, Math.round(Math.min(innerWidth, innerHeight) / (13 * TS))));
+  const dpr = (typeof devicePixelRatio === 'number' && devicePixelRatio > 0) ? Math.max(1, Math.round(devicePixelRatio)) : 1;
+  view.K = K; view.PX = K * dpr;
   view.W = Math.ceil(innerWidth / K); view.H = Math.ceil(innerHeight / K);
   view.VW = Math.ceil(view.W / TS); view.VH = Math.ceil(view.H / TS);
-  cv.width = view.W * K; cv.height = view.H * K;
+  cv.width = view.W * view.PX; cv.height = view.H * view.PX;
   cv.style.width = (view.W * K) + 'px'; cv.style.height = (view.H * K) + 'px';
-  ctx.setTransform(K, 0, 0, K, 0, 0); ctx.imageSmoothingEnabled = false;
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0); ctx.imageSmoothingEnabled = false;
 }

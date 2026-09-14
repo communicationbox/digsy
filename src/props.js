@@ -342,7 +342,7 @@ export function drawHay(sx, sy, tx = 0, ty = 0) {
    SOPRA chi parla, resta DENTRO lo schermo e MAI sotto la HUD in alto (topSafe da view.K). */
 export function drawSayBalloon(sx, sy, text) {
   ctx.save();
-  ctx.setTransform(view.K, 0, 0, view.K, 0, 0); // schermo puro
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0); // schermo puro
   ctx.font = '600 6px ui-monospace, Menlo, monospace';
   ctx.textBaseline = 'top';
   const measure = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * 3.6; };

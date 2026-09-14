@@ -1248,7 +1248,7 @@ function drawCaveScene(time) {
      hanno finito per divergere (il tocco puntava dove il disegno non guardava). Una sola. */
   const cam2 = caveCam();
   const camx = snap(cam2.x), camy = snap(cam2.y);
-  ctx.setTransform(view.K, 0, 0, view.K, 0, 0);
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
   ctx.fillStyle = '#0a0a10'; ctx.fillRect(0, 0, W, H);
   ctx.save(); ctx.translate(-camx, -camy);
   const t0x = Math.max(0, Math.floor(camx / TS) - 1), t1x = Math.min(CAVE.w, Math.ceil((camx + W) / TS) + 1);
@@ -1345,8 +1345,8 @@ export function render(time) {
   setNight(darknessAt(S.tod || 0));
   setSeason(updateSeasonPalette(S.day || 1, S.tod || 0));   // transizione GRADUALE tra stagioni
   /* camera ancorata alla griglia dei pixel FISICI (passi da 1/K): scroll fluido, niente scatti */
-  cam.x = Math.round((P.x - W / 2) * view.K) / view.K;
-  cam.y = Math.round((P.y - H / 2) * view.K) / view.K;
+  cam.x = Math.round((P.x - W / 2) * view.PX) / view.PX;
+  cam.y = Math.round((P.y - H / 2) * view.PX) / view.PX;
   const tx0 = Math.floor(cam.x / TS) - 1, ty0 = Math.floor(cam.y / TS) - 1;
   const LMARG = 6; // margine per le MERAVIGLIE (fino a 9 tile di larghezza e ~70px di altezza)
   const tx1 = tx0 + VW + 2, ty1 = ty0 + VH + 2;

@@ -546,6 +546,16 @@ poi dire che è fatto. E quando si trova un difetto visivo, aggiungere anche una
 e2e (larghezze uguali, spazi uniformi, stessa altezza): la foto la si guarda una volta, la
 misura resta.
 
+## Provare davvero su telefono
+`npm run build && npm run mobile` apre il gioco in **telefoni emulati con Playwright** (iPhone SE,
+iPhone 13 in verticale e in orizzontale, Pixel 7, col tocco), conferma il personaggio, salta
+l'intro, attraversa le scene e fotografa in `.shots/mobile/`, segnalando cosa esce dallo schermo.
+Serve perché gli e2e girano in Chrome headless, che su macOS non scende sotto ~500px: lo zoom
+sbagliato su telefono (5 caselle visibili invece di 13, stanze tagliate) lì non si vedeva.
+Playwright NON è una dipendenza: `npm i -g playwright` o `PLAYWRIGHT_PATH=…/playwright/index.mjs`.
+Lo zoom sta in `fit()` (screen.js): `view.K` = pixel CSS per pixel di gioco (minimo 1),
+`view.PX` = pixel FISICI (K × densità): la tela e `snap()` lavorano su PX.
+
 ## Coerenza visiva (design system)
 I valori dell'interfaccia stanno in `:root` (in cima a `src/style.css`): colori (`--c-ink`,
 `--c-line`, `--c-gold`, `--c-amber`, `--c-teal`, `--c-clay`), spazi in scala di 4

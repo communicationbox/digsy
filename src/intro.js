@@ -82,7 +82,7 @@ function digsite(bx, by) {
 function tree(x, base) { px(x - 1, base - 10, 3, 10, '#6e4a2a'); px(x - 6, base - 22, 14, 12, '#4e8d3f'); px(x - 4, base - 26, 10, 6, '#5fa04e'); px(x - 4, base - 24, 10, 2, '#7ec069'); }
 
 function drawScene(t) {
-  ctx.setTransform(view.K, 0, 0, view.K, 0, 0);
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
   const W = view.W, H = view.H, gy = Math.round(H * 0.68), DY = Math.round(H * 0.05);
   /* ZOOM INTERO 2× (mai frazionario: lo scaling frazionario spacca i pixel in
      "quadratini staccati"). Centrato sull'azione; il baloon si disegna FUORI dallo zoom. */
@@ -158,7 +158,7 @@ function drawScene(t) {
      converto la posizione dello speaker da coord-zoom a coord-schermo. */
   const spX = line.s === 'G' ? gpx : dpx, spY = (line.s === 'G' ? gpy : dpy) - 14;
   const scrX = ZCX + (spX - ZCX) * Z, scrY = ZCY + (spY - ZCY) * Z;
-  ctx.setTransform(view.K, 0, 0, view.K, 0, 0); // esci dallo zoom
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0); // esci dallo zoom
   drawBalloon(scrX, scrY, textFull, typedStr());
 }
 

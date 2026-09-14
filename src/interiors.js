@@ -13,7 +13,7 @@ import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATR
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
 import { EMAP, iconPaths } from './icons.js';
-import { SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps } from './shopArt.js';
+import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps } from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
 import { composedPartsVox, shadeHex } from './bones.js';
 import { zoneName } from './i18n.js';
@@ -334,16 +334,24 @@ export function interiorCam() {
   /* la casa (atrio o una sua stanza, house.js) è una scena PICCOLA come i 6 interni a
      mestiere: nessuna camera che scorre, sta tutta centrata sullo schermo. */
   if (INT.b && INT.b.type === 'house') { const o = houseOrigin(W, H); return { x: -o.ox, y: -o.oy }; }
-  return { x: -Math.floor((W - rw) / 2), y: -Math.floor((H - rh) / 2) };
+  return { x: -Math.floor((W - rw) / 2), y: -sceneTop(H, SHOP_TOP, rh, 4) };
 }
 /* dove sta, sullo schermo, la scena della casa attiva: centrata tenendo conto di TUTTO il
    disegno (la faccia del muro di fondo sale oltre la stanza). interiorCam usa questo stesso
    punto, altrimenti un tocco finirebbe qualche pixel più in là di dove si vede. */
+/* CENTRATURA VERTICALE di una scena piccola: nello spazio SOTTO la barra dell'HUD, quando ci
+   sta. Centrata su tutto lo schermo, su un telefono in orizzontale la parte alta (le porte
+   dell'atrio, il bancone) finiva sotto i tag. Se non ci sta, si centra su tutto lo schermo. */
+export function sceneTop(H, top, h, bottom) {
+  const pad = hudPad(), tot = top + h + bottom;
+  if (tot <= H - pad) return pad + Math.floor((H - pad - tot) / 2) + top;
+  return Math.floor((H - tot) / 2) + top;
+}
 export function houseOrigin(W, H) {
   const atrio = INT.houseRoom == null;
   const rw = (atrio ? CORR_W : ROOM_TILE_W) * TS, rh = (atrio ? CORR_H : ROOM_TILE_H) * TS;
-  const shift = atrio ? sceneShift(ATRIO_TOP, ATRIO_BOTTOM) : sceneShift(ROOM_TOP, ROOM_BOTTOM);
-  return { ox: Math.floor((W - rw) / 2), oy: Math.floor((H - rh) / 2) + shift };
+  const oy = atrio ? sceneTop(H, ATRIO_TOP, rh, ATRIO_BOTTOM) : sceneTop(H, ROOM_TOP, rh, ROOM_BOTTOM);
+  return { ox: Math.floor((W - rw) / 2), oy };
 }
 /* ATRIO: l'ingresso di casa. Parete di fondo vera (cornice, intonaco, zoccolo a pannelli,
    battiscopa) con le porte della Sala e della Cucina, le porte del Bagno e della Camera nei
@@ -537,12 +545,12 @@ export function drawHouseRooms(time) {
 }
 export function drawInteriorScene(time) {
   const W = view.W, H = view.H;
-  ctx.setTransform(view.K, 0, 0, view.K, 0, 0);
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
   ctx.fillStyle = '#12100c'; ctx.fillRect(0, 0, W, H); // fuori: buio
   if (INT.b && INT.b.type === 'museum') { drawMuseumGallery(time); return; } // galleria con camera
   if (INT.b && INT.b.type === 'house') { drawHouseRooms(time); return; }     // atrio o una stanza (scene separate)
   const rw = INT.w * TS, rh = INT.h * TS;
-  const ox = Math.floor((W - rw) / 2), oy = Math.floor((H - rh) / 2);
+  const ox = Math.floor((W - rw) / 2), oy = sceneTop(H, SHOP_TOP, rh, 4);   // stesso punto di interiorCam
   ctx.save(); ctx.translate(ox, oy);
   const type = INT.b ? INT.b.type : 'store';
   /* BOTTEGA (shopArt.js): lo stesso guscio della casa con i materiali del mestiere, il
