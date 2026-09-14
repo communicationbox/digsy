@@ -414,7 +414,7 @@ export function openQuestBoard() {
   const tw = townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS));
   const [cx, cy] = (tw ? tw.key : '0,0').split(',').map(Number);
   const offers = boardOffers(cx, cy, S.day);
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Le richieste del giorno degli abitanti. Ne puoi tenere ', "Today's requests from the townsfolk. You can hold ")}${MAX_ACTIVE}${tr(' alla volta, scadono a sera.', " at a time, they expire at night.")}</div>`;
+  let h = '';
   const act = activeQuests();
   if (act.length) {
     h += `<div class="bighead">${tr('Le tue missioni', 'Your missions')} (${act.length}/${MAX_ACTIVE})</div>`;
@@ -463,12 +463,12 @@ export function openQuestBoard() {
 /* CASSETTA DELLA POSTA (borghi e paesi): spedisci i grezzi al Museo a pagamento, pronti domani */
 export function openMailbox() {
   const n = (S.raw || []).length, cost = n * MAIL_COST, busy = !!S.museumJob;
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Spedisci i reperti grezzi al Museo senza andarci: 🪙 ', 'Ship your raw finds to the Museum without going there: 🪙 ') + MAIL_COST + tr(" l'uno, pronti DOMANI. Poi li ritiri al Museo (doppioni indietro, pezzi nuovi in teca).", ' each, ready TOMORROW. Then collect them at the Museum (duplicates back, new pieces on display).')}</div>`;
+  let h = '';
   if (!n) h += `<div class="row"><span class="em">📭</span><div><div class="nm">${tr('Non hai reperti grezzi', 'No raw finds')}</div><div class="sub">${tr('Scava, poi torna a spedire.', 'Dig first, then come back to ship.')}</div></div></div>`;
   else {
     const can = S.coins >= cost || isDebug();
     h += `<div class="row"><span class="em">📦</span><div><div class="nm">${n} ${tr('reperti grezzi', 'raw finds')}</div><div class="sub">${tr('costo', 'cost')} 🪙 ${cost} · ${tr('pronti domani', 'ready tomorrow')}</div></div><div class="rt"><button class="btn ${can ? 'amber' : 'ghost'}" ${can ? '' : 'disabled'} data-ship="1">${tr('Spedisci', 'Ship')} 🪙 ${cost}</button></div></div>`;
-    if (busy) h += `<div class="muted center" style="margin-top:6px">${tr('Si aggiungono al lotto già in lavorazione.', "They'll be added to the batch already in progress.")}</div>`;
+    if (busy) h += `<div class="muted center" style="margin-top:6px">${tr('Si aggiungono al lotto in corso.', 'Added to the current batch.')}</div>`;
     if (!can) h += `<div class="muted center" style="margin-top:6px">${tr('Servono 🪙 ', 'You need 🪙 ') + cost}</div>`;
   }
   mTitle.innerHTML = withIcons('📮 ' + tr('Cassetta della posta', 'Mailbox'));
@@ -523,9 +523,9 @@ export function openFurnitureTray(room, gx, gy) {
   if (conta('fondi')) schede.push(['fondi', tr('Fondo stanza', 'Room backdrop'), conta('fondi')]);
   for (const t of FURN_THEMES) if (conta(t.id)) schede.push([t.id, furnThemeLabel(t.id), conta(t.id)]);
   if (!schede.some(sc => sc[0] === trayTab)) trayTab = 'tutti';
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Prendi un pezzo dal vassoio e trascinalo. I quadri vanno a parete.', 'Take a piece from the tray and drag it. Wall pieces go on the wall.')}</div>`;
+  let h = '';
   if (!tutti.length) {
-    h += `<div class="center muted">${tr('Vassoio vuoto: i mobili si comprano alla Bottega d\'arredo.', 'Tray empty: buy furniture at the Furniture shop.')}</div>`;
+    h += `<div class="center muted">${tr('Vuoto: compra alla Bottega d\'arredo.', 'Empty: shop at the Furniture store.')}</div>`;
     mTitle.innerHTML = withIcons('🎨 ' + tr('Vassoio arredo', 'Furniture tray'));
     mBody.innerHTML = withIcons(h); openModal();
     return;
@@ -596,8 +596,7 @@ function furnSizeLabel(id) {
 export function openBed(room, gx, gy) {
   const c = roomComfort(room), gratis = restFreeFor(room);
   const LIV = [[' spoglia', ' bare'], [' accogliente', ' cosy'], [' curata', ' well kept'], [' da rivista', ' picture perfect']][c.level];
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Dormi per rifare l\'energia: stanza curata, riposo migliore.', 'Sleep to refill energy: nicer room, better rest.')}</div>`;
-  h += `<div class="row"><span class="em">🛏️</span><div><div class="nm">${roomName(room)}: ${tr('comodità', 'comfort')} ${c.score}/${COMFORT_MAX} ·${tr(LIV[0], LIV[1])}</div><div class="sub">${gratis ? tr('dormendo qui le prossime ', 'sleeping here your next ') + gratis + tr(' fatiche non costano energia', ' efforts cost no energy') : tr('così com\'è, dormire rifà solo l\'energia', 'as it is, sleeping only refills energy')}</div></div></div>`;
+  let h = `<div class="row"><span class="em">🛏️</span><div><div class="nm">${roomName(room)}: ${tr('comodità', 'comfort')} ${c.score}/${COMFORT_MAX} ·${tr(LIV[0], LIV[1])}</div><div class="sub">${gratis ? tr('dormendo qui le prossime ', 'sleeping here your next ') + gratis + tr(' fatiche non costano energia', ' efforts cost no energy') : tr('rifà l\'energia', 'refills energy')}</div></div></div>`;
   /* COSA MANCA, detto per nome: un punteggio senza la lista è un giudizio, non un consiglio */
   const ha = k => c.bits.some(b => b.k === k);
   const manca = [];
@@ -610,7 +609,6 @@ export function openBed(room, gx, gy) {
   if (manca.length) h += `<div class="row"><span class="em">🎨</span><div><div class="nm">${tr('Per stare più comodi', 'To make it comfier')}</div><div class="sub">${manca.join(' · ')}</div></div></div>`;
   const dorme = canSleep();
   h += `<div class="row"><div class="btn2">${dorme ? `<button class="btn amber" data-sleep="1">😴 ${tr('Dormi', 'Sleep')}</button>` : `<button class="btn ghost" disabled>😴 ${tr('Non hai ancora sonno', 'Not sleepy yet')}</button>`}<button class="btn ghost" data-bedmove="1">🎨 ${tr('Sposta il letto', 'Move the bed')}</button></div></div>`;
-  if (!dorme) h += `<div class="center muted">${tr('Si dorme dopo almeno mezza giornata sveglio.', 'You can sleep after at least half a day awake.')}</div>`;
   mTitle.innerHTML = withIcons('🛏️ ' + furnLabel(furnAt(room, gx, gy).itemId));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-sleep]').forEach(b => b.onclick = () => { if (sleepAtHome(room)) closeModal(); });
@@ -638,8 +636,8 @@ export function openPedestal(room, gx, gy) {
     mBody.querySelectorAll('[data-ped-remove]').forEach(b => b.onclick = () => { removeFurnitureAt(room, gx, gy); closeModal(); });
   } else {
     const cands = pedestalCandidates();
-    let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli lo scheletro da esporre (serve un pezzo al Museo).', "Pick a skeleton to display (needs a piece at the Museum).")}</div>`;
-    if (!cands.length) h += `<div class="center muted">${tr('Non hai ancora consegnato nulla al Museo.', "You haven't delivered anything to the Museum yet.")}</div>`;
+    let h = '';
+    if (!cands.length) h += `<div class="center muted">${tr('Niente al Museo, per ora.', 'Nothing at the Museum yet.')}</div>`;
     else h += cands.map(id => {
       const sp = spById[id], parts = S.museum[id] || [];
       return `<div class="row"><span class="em">${sp.emoji}</span><div><div class="nm">${sp.name}</div><div class="sub">${parts.length}/${PARTS.length}</div></div><div class="rt"><button class="btn amber" data-ped-pick="${id}">${tr('Esponi', 'Display')}</button></div></div>`;
@@ -684,7 +682,7 @@ export function openLetters() {
   letterBack = false;
   const all = allLetters();
   const got = all.filter(id => hasLetter(id));
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Riempi una sala del Museo: il Curatore ti dà la lettera del nonno.', 'Fill a Museum room: the Curator gives you Grandpa\'s letter.')} ${got.length}/${all.length}</div>`;
+  let h = `<div class="muted" style="margin-bottom:8px">✉ ${got.length}/${all.length}</div>`;
   h += all.map(id => hasLetter(id)
     ? `<div class="row" data-letter="${id}" style="cursor:pointer"><span class="em">✉</span><div><div class="nm">${letterTitle(id)}</div><div class="sub">${tr('tocca per rileggerla', 'tap to read it again')}</div></div></div>`
     : `<div class="row" style="opacity:.5"><span class="em">·</span><div><div class="nm">? ? ?</div><div class="sub">${id === 'finale' ? tr('quando avrai tutte le altre', 'once you have all the others') : tr('riempi la sala di ', 'fill the room of ') + zoneName(id)}</div></div></div>`).join('');
@@ -886,7 +884,6 @@ export function showTip(id) {
   if (!markTip(id)) return false;
   let h = `<div class="tipbox"><div class="tip-t">${tipTitle(id)}</div><div class="tip-b">${tipText(id)}</div></div>`;
   h += `<div class="center" style="margin-top:10px"><button class="btn amber" id="tipOk">${tr('Ho capito', 'Got it')}</button></div>`;
-  h += `<div class="muted center" style="margin-top:6px;font-size:11px">${tr('Lo ritrovi nella Guida (zaino → ❔)', 'You can find it again in the Guide (bag → ❔)')}</div>`;
   mTitle.innerHTML = withIcons('💡 ' + tr('Suggerimento', 'Tip'));
   mBody.innerHTML = withIcons(h); openModal(); playSfx('ui');
   const b = document.getElementById('tipOk'); if (b) b.onclick = () => closeModal();
@@ -894,7 +891,7 @@ export function showTip(id) {
 }
 /* GUIDA: tutti i suggerimenti, anche quelli non ancora incontrati */
 export function openGuide() {
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('I punti grigi li scoprirai giocando.', 'Greyed ones unlock as you play.')} ${tipsSeenCount()}/${TIP_IDS.length}</div>`;
+  let h = `<div class="muted" style="margin-bottom:8px">💡 ${tipsSeenCount()}/${TIP_IDS.length}</div>`;
   h += TIP_IDS.map(id => `<div class="row${tipSeen(id) ? '' : ' miss'}"><span class="em">${tipSeen(id) ? '💡' : '·'}</span><div><div class="nm">${tipTitle(id)}</div><div class="sub">${tipText(id)}</div></div></div>`).join('');
   /* i comandi si scrivono per il dispositivo che si ha in mano: tastiera o schermo */
   h += isTouch()
@@ -904,9 +901,9 @@ export function openGuide() {
      deve poterselo riprendere. Sta qui e non in un menu suo: la Guida è già il posto dove si
      torna quando non si è capito qualcosa. */
   h += `<div class="sp-sep"></div><div class="row"><span class="em">🎓</span><div><div class="nm">${tr('Tutorial d\'apertura', 'Opening tutorial')}</div>
-    <div class="sub">${tutActive() ? tr('In corso: la lista degli obiettivi è in alto a sinistra.', 'In progress: the objective list is at the top left.')
-      : tutSkipped() ? tr('Saltato. Ripartendo tornano gli obiettivi.', 'Skipped. Restart to see the goals again.')
-        : tr('Finito. Puoi rifarlo quando vuoi.', 'Finished. You can redo it whenever you like.')}</div></div>
+    <div class="sub">${tutActive() ? tr('In corso', 'In progress')
+      : tutSkipped() ? tr('Saltato', 'Skipped')
+        : tr('Finito', 'Finished')}</div></div>
     <div class="rt"><button class="btn ghost" id="tutAgain">${tr('Rifai', 'Redo')}</button></div></div>`;
   mTitle.innerHTML = withIcons('❔ ' + tr('Guida', 'Guide'));
   mBody.innerHTML = withIcons(h); openModal();
@@ -916,8 +913,8 @@ export function openGuide() {
 export function openQuests() {
   ensureQuests(S.day);
   const act = activeQuests();
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scadono a sera. Consegna al cartello.', "Expire at night. Deliver at the board.")}</div>`;
-  if (!act.length) h += `<div class="center muted">${tr('Nessuna missione attiva. Cerca il cartello 📋 in città!', 'No active missions. Find the town board 📋!')}</div>`;
+  let h = '';
+  if (!act.length) h += `<div class="center muted">${tr('Nessuna missione: cerca il cartello 📋', 'No missions: find the board 📋')}</div>`;
   else for (const q of act) { const have = questHave(q); h += `<div class="row"><span class="em">📋</span><div><div class="nm">${giverName(q.giver)}: ${questText(q)}</div><div class="sub">${have}/${q.n} · ${tr('premio', 'reward')} ${questRewardText(q)}${canComplete(q) ? ' · ✓ ' + tr('pronta', 'ready') : ''}</div></div></div>`; }
   mTitle.innerHTML = withIcons('📋 ' + tr('Le tue missioni', 'Your missions'));
   mBody.innerHTML = withIcons(h); openModal();
@@ -952,7 +949,7 @@ function abilLabel(spec) {
     /* dice anche i LIMITI, non solo il potere: è lento, metà delle volte torna a mani vuote e
        non fa livellare. Scritto solo "raccoglie da solo e ti porta i fossili" sembrava un
        secondo giocatore al posto tuo, ed è la cosa che poi si scopre di persona e delude. */
-    : ' · 🐾 ' + tr('raccoglie da solo: lento, spesso a vuoto, niente XP', 'gathers on its own: slow, often nothing, no XP');
+    : ' · 🐾 ' + tr('raccoglie da solo, piano', 'gathers slowly on its own');
   return base;
 }
 /* Nel cortile si scelgono DUE cose per ogni creatura: chi ti segue nel mondo (compagno, come
@@ -963,8 +960,8 @@ export function openCompanionPicker() {
   ensureHouseState();
   const cands = companionCandidates(), cur = companionSpec();
   const yard = new Set(S.house.yard || []);
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Chi ti segue (forza per TIPO e RARITÀ) e chi resta in cortile.', 'Who follows you (power by TYPE and RARITY) and who stays in the yard.')}</div>`;
-  if (!cands.length) h += `<div class="center muted">${tr('Ancora nessuna creatura: risveglia una specie al Lab!', 'No creatures yet: awaken a species at the Lab!')}</div>`;
+  let h = '';
+  if (!cands.length) h += `<div class="center muted">${tr('Nessuna creatura: risvegliane una al Lab', 'No creatures: awaken one at the Lab')}</div>`;
   else {
     h += `<div class="cmp-solo${cur ? '' : ' on'}"><span class="em">🚫</span>`
       + `<div class="cmp-h"><span class="cmp-n">${tr('Nessun compagno', 'No companion')}</span></div>`
@@ -1020,20 +1017,19 @@ export function openHudGuide() {
   const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
   const zd = ZONE_DESC[z.id] || ['', ''];
   const rowg = (ic, k, v) => `<div class="row"><span class="em">${ic}</span><div><div class="nm">${k}</div><div class="sub">${v}</div></div></div>`;
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Cosa vuol dire quello che vedi in alto:', 'What the top bar means:')}</div>`;
-  h += rowg('🪙', tr('Monete', 'Coins') + ': ' + S.coins, tr('Servono per comprare attrezzi, mappe e cosmetici.', 'Used to buy tools, maps and cosmetics.'));
-  h += rowg('⚡', tr('Energia', 'Energy') + ': ' + S.energy + '/' + S.maxEnergy, tr('Ogni scavo costa 1. Dormi alla Locanda per rifarla.', 'Each dig costs 1. Sleep at the Inn to refill.'));
-  h += rowg('📅', tr('Giorno', 'Day') + ': ' + S.day + ' · ' + hh + ':' + mm, tr('Il tempo scorre mentre giochi; l\'alba è alle 06:00.', 'Time passes as you play; dawn is at 06:00.'));
-  h += rowg(SEASONS[seasonOf(S.day)].icon, tr('Stagione', 'Season') + ': ' + seasonName(seasonOf(S.day)), tr('Cambia ogni 3 giorni e ricolora il mondo.', 'Changes every 3 days and recolors the world.'));
+  let h = '';
+  h += rowg('🪙', tr('Monete', 'Coins') + ': ' + S.coins, tr('attrezzi, mappe, vestiti', 'tools, maps, clothes'));
+  h += rowg('⚡', tr('Energia', 'Energy') + ': ' + S.energy + '/' + S.maxEnergy, tr('1 a scavo · dormi per rifarla', '1 per dig · sleep to refill'));
+  h += rowg('📅', tr('Giorno', 'Day') + ': ' + S.day + ' · ' + hh + ':' + mm, tr('alba alle 06:00', 'dawn at 06:00'));
+  h += rowg(SEASONS[seasonOf(S.day)].icon, tr('Stagione', 'Season') + ': ' + seasonName(seasonOf(S.day)), tr('ogni 3 giorni', 'every 3 days'));
   h += rowg(z.icon, tr('Zona', 'Zone') + ': ' + zoneName(z.id), tr(zd[0], zd[1]));
   const wl = weatherLabel(weatherAt(z.id, S.day));
-  h += rowg('🌦️', tr('Meteo', 'Weather') + ': ' + (wl || tr('Sereno', 'Clear')), tr('Cambia ogni giorno; la pioggia rende più fruttuoso lo scavo.', 'Changes daily; rain makes digging more rewarding.'));
-  h += rowg('🎓', tr('Livello archeologo', 'Archaeologist level') + ': ' + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(), tr('Sale con reperti e missioni: più energia, scavo rapido, più rari.', 'Rises with finds and missions: more energy, faster digs, more rares.'));
+  h += rowg('🌦️', tr('Meteo', 'Weather') + ': ' + (wl || tr('Sereno', 'Clear')), tr('pioggia = più reperti', 'rain = more finds'));
+  h += rowg('🎓', tr('Livello archeologo', 'Archaeologist level') + ': ' + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(), tr('più energia, più rari', 'more energy, more rares'));
   const nq = activeQuests().length;
-  h += rowg('📋', tr('Missioni', 'Missions') + ': ' + nq + '/3', tr('Al cartello 📋 in città (Q per rivederle). Scadono a sera.', 'At the town board 📋 (Q to review). Expire at night.'));
+  h += rowg('📋', tr('Missioni', 'Missions') + ': ' + nq + '/3', tr('cartello 📋 · scadono a sera', 'board 📋 · expire at night'));
   const cs = companionSpec();
-  h += rowg('🐾', tr('Compagno', 'Companion') + ': ' + (cs ? cs.name : tr('nessuno', 'none')), cs ? abilLabel(cs) : tr('Scegline uno dal parco delle città grandi.', 'Choose one at the park in big cities.'));
-  h += `<div class="muted" style="margin-top:8px">${tr('WASD muovi · <b>E</b> agisci · <b>I</b> zaino · <b>L</b> libro · <b>Q</b> missioni', 'WASD move · <b>E</b> act · <b>I</b> bag · <b>L</b> book · <b>Q</b> missions')}</div>`;
+  h += rowg('🐾', tr('Compagno', 'Companion') + ': ' + (cs ? cs.name : tr('nessuno', 'none')), cs ? abilLabel(cs) : tr('scegline uno in cortile', 'pick one in your yard'));
   mTitle.innerHTML = withIcons('❔ ' + tr('Guida rapida', 'Quick guide'));
   mBody.innerHTML = withIcons(h); openModal();
 }
@@ -1046,7 +1042,6 @@ export function openMentor() {
   let h = `<div class="xpwrap"><div class="xphead"><b>${tr('Livello', 'Level')} ${lv}</b><span>XP ${xp}/${nx}</span></div><div class="xpbar"><i style="width:${pct}%"></i></div></div>`;
   h += `<div class="row" style="background:#f1e6cc"><span class="em">🎯</span><div><div class="nm">${tr('Ti mancano ', 'You need ')}<b>${need} XP</b>${tr(' per il livello ', ' for level ')}${lv + 1}</div><div class="sub">${tr('circa ', 'about ')}${Math.max(1, Math.ceil(need / 5))}${tr(' reperti comuni', ' common finds')}</div></div></div>`;
   h += `<div class="row"><span class="em">🎁</span><div><div class="nm">${tr('Al livello ', 'At level ')}${lv + 1}</div><div class="sub">+5 ⚡ ${tr('energia max', 'max energy')} · ${tr('scavo', 'dig')} ×${digDurationMul(lv + 1).toFixed(2)} · ${tr('rari', 'rares')} ×${rareBonus(lv + 1).toFixed(2)}</div></div></div>`;
-  h += `<div class="muted" style="margin-top:6px">${tr('XP scavando (più raro = più XP) e con le missioni.', 'XP from digging (rarer = more XP) and missions.')}</div>`;
   mTitle.innerHTML = withIcons('🎓 ' + tr('Maestro Scavatore', 'Master Digger'));
   mBody.innerHTML = withIcons(h); openModal();
 }
@@ -1436,21 +1431,21 @@ export function openBuilding(b) {
 }
 
 function renderLab() {
-  let h = `<div class="muted" style="margin-bottom:10px">${tr('Qui si risvegliano specie e chimere. I grezzi vanno al <b>Museo</b>.', 'Species and chimeras awaken here. Raw finds go to the <b>Museum</b>.')}</div>`;
+  let h = '';
   /* FUSIONE DEI DOPPIONI: dà uno scopo ai pezzi ripetuti quando le monete non servono più */
   {
     const groups = fusibleGroups(S.items);
     h += `<div class="bighead">${tr('Fondi i doppioni', 'Fuse duplicates')}</div>`;
-    h += `<div class="muted" style="margin-bottom:8px">${tr('<b>3 pezzi uguali</b> → <b>1 pezzo più raro</b>, stessa parte e zona. Gratis.', '<b>3 identical pieces</b> → <b>1 rarer piece</b>, same part and zone. Free.')}</div>`;
+    h += `<div class="muted" style="margin-bottom:8px">${tr('<b>3 uguali</b> → <b>1 più raro</b>', '<b>3 identical</b> → <b>1 rarer</b>')}</div>`;
     if (!groups.length) {
-      h += `<div class="center muted" style="margin-bottom:10px">${tr('Nessun gruppo da 3 pezzi uguali, per ora.', 'No group of 3 identical pieces yet.')}</div>`;
+      h += `<div class="center muted" style="margin-bottom:10px">${tr('Nessun tris, per ora.', 'No sets of 3 yet.')}</div>`;
     } else {
       h += groups.map(g => {
         const sp = spById[g.spId];
         const up = nextRarity(g.q);
         const mine = (S.museum[g.spId] || []).includes(g.part);
         /* avviso onesto: se quel pezzo non è ancora in vetrina, fonderlo ti toglie la teca */
-        const warn = mine ? '' : `<div class="sub" style="color:var(--c-clay-sh)">${tr('non ancora esposto al Museo', 'not yet on display at the Museum')}</div>`;
+        const warn = mine ? '' : `<div class="sub" style="color:var(--c-clay-sh)">${tr('non ancora al Museo', 'not at the Museum yet')}</div>`;
         return `<div class="row"><canvas class="pv" width="36" height="30" data-pv="${g.spId}|${g.part}"></canvas>
           <div><div class="nm">${partName(g.part)} ${tr('di', 'of')} ${sp ? sp.name : g.spId} ×${g.uids.length}</div>
           <div class="sub">${rarSpan(g.q)} → ${rarSpan(up)} · ${tr('stessa zona', 'same zone')}: ${zoneName(sp ? sp.zone : '')}</div>${warn}</div>
@@ -1482,7 +1477,7 @@ function renderLab() {
          spento e il primo avviso che si vede è "scegli due genitori diversi" — vero ma inutile
          come prima impressione, quando basta un default sensato */
       const optC2 = S.creatures.map((c, i) => `<option value="${c.uid}"${i === 1 ? ' selected' : ''}>${c.name} (${rarLabel(c.q)})</option>`).join('');
-      h += `<div class="muted" style="margin-bottom:6px">${tr('Scegli genitori e parti. L\'uovo mangia', 'Pick parents and parts. The egg eats')} ${EGG_FOOD} ${tr('doppioni (più rari = più sorprese) e matura in', 'duplicates (rarer = more surprises) and hatches in')} ${EGG_DAYS} ${tr('giorni.', 'days to hatch.')}</div>`;
+      h += `<div class="muted" style="margin-bottom:6px">🦴 ${EGG_FOOD} ${tr('doppioni', 'duplicates')} · ⏳ ${EGG_DAYS} ${tr('giorni', 'days')}</div>`;
       h += `<div class="row" style="flex-wrap:wrap;gap:6px">
         <select id="selP1" class="sel">${optC}</select><select id="selP2" class="sel">${optC2}</select></div>`;
       h += `<div class="row" style="flex-wrap:wrap;gap:6px">
@@ -1494,10 +1489,10 @@ function renderLab() {
     }
   }
   h += `<hr class="hr"><div class="bighead">${tr('Risveglia una specie', 'Awaken a species')}</div>`;
-  h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('<b>2 fialette DNA</b> della stessa specie la riportano <b>VIVA</b>. Risvegliate', '<b>2 DNA vials</b> of one species bring it back <b>ALIVE</b>. Awakened')}: ${S.awakened.length}/${ALL_SPECIES.length}</div>`;
+  h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('<b>2 fialette</b> = specie <b>VIVA</b> · Risvegliate', '<b>2 vials</b> = species <b>ALIVE</b> · Awakened')}: ${S.awakened.length}/${ALL_SPECIES.length}</div>`;
   /* in debug il DNA è infinito: elenca i fossili SCOPERTI (non tutti e 60) ancora da risvegliare */
   const ready = ALL_SPECIES.filter(s => !S.awakened.includes(s.id) && (isDebug() ? S.codex.includes(s.id) : awakenReady(s.id)));
-  if (!ready.length) h += `<div class="center muted">${isDebug() ? tr('Scopri qualche fossile e potrai risvegliarlo.', 'Discover some fossils to awaken them.') : tr('Nessuna fialetta DNA nello zaino.', 'No DNA vials in your bag.')}</div>`;
+  if (!ready.length) h += `<div class="center muted">${isDebug() ? tr('Scopri qualche fossile e potrai risvegliarlo.', 'Discover some fossils to awaken them.') : tr('Nessuna fialetta DNA.', 'No DNA vials.')}</div>`;
   else ready.forEach(s => h += `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name}</div><div class="sub">${tr('Fialetta DNA pronta', 'DNA vial ready')}</div></div><div class="rt"><button class="btn amber" data-awaken="${s.id}">${tr('Risveglia', 'Awaken')}</button></div></div>`);
   if (isDebug()) h += `<hr class="hr"><div class="bighead">🐞 ${tr('Debug', 'Debug')}</div><div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Spawna tutti i fossili', 'Spawn all fossils')}</div><div class="sub">${tr('Ogni pezzo di tutte le 60 specie, identificato', 'Every piece of all 60 species, identified')}</div></div><div class="rt"><button class="btn clay" id="dbgSpawn">${tr('Spawna', 'Spawn')}</button></div></div>`;
   h += `<hr class="hr"><div class="bighead">${tr('Libro dei Fossili', 'Fossil Book')}</div>`;
@@ -1607,7 +1602,7 @@ function renderFurnTab() {
    quanti ne sono in vetrina oggi, e lo sconto dove c'è */
 function renderFurnTopics(z) {
   const casa = ZONE_THEME[z.id];
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Scegli un tema. Quello di zona è completo e costa ¼ in meno.', 'Pick a theme. The local one is complete and ¼ cheaper.')}</div>`;
+  let h = '';
   const zonaSet = FURN_SETS[z.id] || [];
   const posseduti = ids => ids.filter(id => (S.furnOwned || []).includes(id)).length;
   const card = (topic, icona, nome, ids, esempio, extra) =>
@@ -1638,7 +1633,7 @@ function furnRow(id, prezzo, attr) {
    (carta da parati e pavimento cambiano una stanza più di ogni mobile e costano meno) */
 function renderZoneSet(z) {
   const items = FURN_SETS[z.id] || [];
-  let h = `<div class="muted" style="margin:6px 0 10px">${tr('Set di zona: tuo per sempre, lo piazzi dal vassoio.', "Local set: yours forever, place it from the tray.")}</div>`;
+  let h = '';
   const fondi = items.filter(it => furnPlace(it.id) === 'paper' || furnPlace(it.id) === 'ground');
   const mobili = items.filter(it => !fondi.includes(it));
   if (fondi.length) h += `<div class="bighead">${tr('FONDO DELLA STANZA', 'ROOM BACKDROP')}</div>` + fondi.map(it => furnRow(it.id, it.cost, 'data-furn')).join('');
@@ -1651,8 +1646,8 @@ function renderThemeItems(z, theme) {
   const tot = FURN_CATALOG.filter(f => f.theme === theme).length;
   const casa = ZONE_THEME[z.id] === theme;
   let h = `<div class="muted" style="margin:6px 0 10px">${casa
-    ? tr('Tema di zona: tutto disponibile, ¼ in meno.', 'Local theme: everything in stock, ¼ cheaper.')
-    : tr('In vetrina oggi', 'On display today') + ': ' + ids.length + '/' + tot + ' — ' + tr('domani ne arrivano altri.', 'more arrive tomorrow.')}</div>`;
+    ? tr('Tutto disponibile · −25%', 'Everything in stock · −25%')
+    : tr('Oggi', 'Today') + ' ' + ids.length + '/' + tot}</div>`;
   return h + ids.map(id => furnRow(id, catalogPrice(id, z.id), 'data-cfurn')).join('');
 }
 function wireFurnTab() {
@@ -1669,8 +1664,8 @@ function renderStoreGoods() {
      PER pagarla), solo i NUOVI acquisti si bloccano. */
   const tutBuy = tutActive() && tutStepId() === 'shop' && !S.tools.spade;
   const lockOther = tutBuy ? ' disabled' : '';
-  let h = `<div class="muted" style="margin-bottom:10px">${tr('Compro solo reperti <b>identificati</b>.', 'I only buy <b>identified</b> finds.')}</div>`;
-  if (!S.items.length) h += `<div class="center muted">${tr('Non hai reperti identificati da vendere.', 'No identified finds to sell.')}</div>`;
+  let h = '';
+  if (!S.items.length) h += `<div class="center muted">${S.raw.length ? tr('I grezzi vanno prima al Museo.', 'Raw finds go to the Museum first.') : tr('Niente da vendere.', 'Nothing to sell.')}</div>`;
   else {
     /* MERCATO: la richiesta cambia per specie ogni giorno — si vede PRIMA di vendere, non si
        scopre alla cassa (regola: ogni testo dice cosa fa davvero). */
@@ -1691,29 +1686,29 @@ function renderStoreGoods() {
     /* il prezzo sale a ogni ristoro della giornata: va scritto, non scoperto alla cassa */
     const left = snacksLeftToday(), cost = snackPrice();
     const sub = left > 0
-      ? tr('Ne restano ', 'Left today: ') + left + tr(' oggi · il prezzo sale a ogni ristoro', ' · the price rises with each one')
-      : tr('Esauriti per oggi: il fornaio ne rifà domani', 'Sold out for today: the baker bakes more tomorrow');
+      ? tr('oggi ancora ', 'left today: ') + left
+      : tr('finiti: domani', 'sold out: tomorrow');
     const btn = left > 0 ? `<button class="btn amber" id="buyEn"${lockOther}>🪙 ${cost}</button>` : `<button class="btn" disabled>${tr('Esauriti', 'Sold out')}</button>`;
     /* non è energia istantanea: finisce nello zaino e la mangi tu quando serve */
-    const keep = tr('Va nello zaino: +15 ⚡ quando lo mangi', 'Goes in your bag: +15 ⚡ when you eat it');
+    const keep = tr('+15 ⚡, dallo zaino', '+15 ⚡, from your bag');
     h += `<hr class="hr"><div class="row"><span class="em">🍞</span><div><div class="nm">${tr('Ristoro', 'Snack')}</div><div class="sub">${keep}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
   }
-  h += `<div class="row"><span class="em">📜</span><div><div class="nm">${tr('Pergamena di ritorno', 'Return scroll')}${S.teleports > 0 ? ` ×${S.teleports}` : ''}</div><div class="sub">${tr('Dallo zaino: teletrasporto alla città più vicina', 'From your bag: teleport to the nearest city')}</div></div><div class="rt"><button class="btn amber" id="buyTp"${lockOther}>🪙 ${TELEPORT_COST}</button></div></div>`;
+  h += `<div class="row"><span class="em">📜</span><div><div class="nm">${tr('Pergamena di ritorno', 'Return scroll')}${S.teleports > 0 ? ` ×${S.teleports}` : ''}</div><div class="sub">${tr('ti porta alla città più vicina', 'takes you to the nearest city')}</div></div><div class="rt"><button class="btn amber" id="buyTp"${lockOther}>🪙 ${TELEPORT_COST}</button></div></div>`;
   { const nb = nextBagCost(), nextCap = BAG_CAPS[bagLevel() + 1];
     h += `<div class="row"><span class="em">🎒</span><div><div class="nm">${tr('Zaino più grande', 'Bigger bag')}</div><div class="sub">${tr('Capienza fossili', 'Fossil capacity')}: ${fossilCount()}/${bagCap()}${nb != null ? ' → ' + nextCap : ' · ' + tr('al massimo', 'maxed')}</div></div><div class="rt">${nb != null ? `<button class="btn amber" id="buyBag"${lockOther}>🪙 ${nb}</button>` : ''}</div></div>`; }
   /* mappe del tesoro: X lontana → scavo garantito della rarità comprata */
-  h += `<div class="bighead">🗺️ ${tr('Mappe del tesoro', 'Treasure maps')}</div><div class="muted" style="margin-bottom:6px">${tr('Una X lontana, un reperto garantito. Più raro = più lontano.', 'A distant X, a guaranteed find. Rarer = farther.')}</div>`;
+  h += `<div class="bighead">🗺️ ${tr('Mappe del tesoro', 'Treasure maps')}</div>`;
   for (const r of ['raro', 'eccezionale', 'leggendario']) {
-    h += `<div class="row"><span class="em">🗺️</span><div><div class="nm">${tr('Mappa', 'Map')} — ${rarLabel(r)}</div><div class="sub">${MAP_DIST[r][0]}–${MAP_DIST[r][1]} ${tr('passi', 'steps')}</div></div><div class="rt"><button class="btn amber" data-map="${r}"${lockOther}>🪙 ${MAP_COST[r]}</button></div></div>`;
+    h += `<div class="row"><span class="em">🗺️</span><div><div class="nm">${tr('Mappa', 'Map')} — ${rarLabel(r)}</div><div class="sub">${tr('1 reperto sicuro', '1 sure find')} · ${MAP_DIST[r][0]}–${MAP_DIST[r][1]} ${tr('passi', 'steps')}</div></div><div class="rt"><button class="btn amber" data-map="${r}"${lockOther}>🪙 ${MAP_COST[r]}</button></div></div>`;
   }
   /* attrezzi del mestiere: la pala LAMPEGGIA durante il passo "shop", tutto il resto è spento */
   h += `<div class="bighead">🧰 ${tr('Attrezzi', 'Tools')}</div>`;
   const TOOLS_UI = [
-    ['spade', '🪏', tr('Pala', 'Spade'), tr('Indispensabile per scavare la terra', 'Essential to dig the ground')],
-    ['shovel', '🪏', tr('Pala fortunata', 'Lucky shovel'), tr('60 scavi col drop aumentato', '60 digs with boosted drops') + (S.shovel > 0 ? ` · ${tr('cariche', 'charges')}: ${S.shovel}` : '')],
-    ['axe', '🪓', tr('Accetta', 'Hatchet'), tr('Abbatti gli alberi: alcuni fossili vivono lì', 'Chop trees: some fossils live there')],
-    ['pick', '⛏️', tr('Piccone', 'Pickaxe'), tr('Spacca massi e guglie: fossili di roccia', 'Break boulders and spires: rock fossils')],
-    ['boat', '⛵', tr('Barca', 'Boat'), tr('Naviga ovunque e PESCA i fossili acquatici', 'Sail anywhere and FISH aquatic fossils')],
+    ['spade', '🪏', tr('Pala', 'Spade'), tr('per scavare', 'to dig')],
+    ['shovel', '🪏', tr('Pala fortunata', 'Lucky shovel'), tr('60 scavi fortunati', '60 lucky digs') + (S.shovel > 0 ? ` · ${tr('cariche', 'charges')}: ${S.shovel}` : '')],
+    ['axe', '🪓', tr('Accetta', 'Hatchet'), tr('fossili negli alberi', 'fossils in trees')],
+    ['pick', '⛏️', tr('Piccone', 'Pickaxe'), tr('fossili nelle rocce', 'fossils in rocks')],
+    ['boat', '⛵', tr('Barca', 'Boat'), tr('naviga e pesca fossili', 'sail and fish fossils')],
   ];
   for (const [id, em, nm, sub] of TOOLS_UI) {
     const owned = id !== 'shovel' && S.tools[id];
@@ -1723,11 +1718,11 @@ function renderStoreGoods() {
   /* mezzi di trasporto + torcia */
   h += `<div class="bighead">🛼 ${tr('Mezzi & luce', 'Vehicles & light')}</div>`;
   const GEAR_UI = [
-    ['skates', '🛼', tr('Pattini', 'Skates'), tr('Velocità ×2 a piedi', 'Speed ×2 on foot')],
-    ['bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('Velocità ×3 a piedi', 'Speed ×3 on foot')],
-    ['motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('Velocità ×3 sull\'acqua (serve la barca)', 'Speed ×3 on water (needs the boat)')],
-    ['torch', '🔦', tr('Torcia', 'Torch'), tr('Alone di luce più ampio di notte e in grotta', 'Wider light halo at night and in caves')],
-    ['compass', '🧭', tr('Bussola', 'Compass'), tr('Guida verso la città più vicina (attivabile dallo zaino)', 'Points to the nearest town (toggle from the bag)')],
+    ['skates', '🛼', tr('Pattini', 'Skates'), tr('×2 a piedi', '×2 on foot')],
+    ['bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('×3 a piedi', '×3 on foot')],
+    ['motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('×3 in acqua (serve la barca)', '×3 on water (needs boat)')],
+    ['torch', '🔦', tr('Torcia', 'Torch'), tr('più luce al buio', 'more light in the dark')],
+    ['compass', '🧭', tr('Bussola', 'Compass'), tr('punta alla città', 'points to town')],
   ];
   for (const [id, em, nm, sub] of GEAR_UI) {
     const owned = !!S.tools[id];
@@ -1803,14 +1798,11 @@ function renderMuseum() {
     h += `<div class="center" style="margin-top:10px"><button class="btn ghost" id="mbook">📖 ${tr('Libro dei Fossili', 'Fossil Book')}</button></div>`;
     /* la spiegazione delle sale SOLO finché non ne hai chiusa una: serve a capire la regola, e
        chi ha già una lettera in mano l'ha capita. Da lì in poi è rumore permanente. */
-    if (roomsDone() === 0) {
-      h += `<div class="muted" style="margin-top:8px;font-size:11px">${tr('Sala piena (un pezzo per specie) = lettera del nonno.', 'Full room (one piece per species) = Grandpa\'s letter.')}</div>`;
-    }
   }
   mBody.innerHTML = withIcons(h); hydratePv();
   mBody.querySelectorAll('[data-mtab]').forEach(b => b.onclick = () => { museumTab = b.dataset.mtab; renderMuseum(); });
   const dep = document.getElementById('mudep'); if (dep) dep.onclick = () => {
-    if (museumDeposit()) toast('🏛️ ' + (museumJobReady() ? tr('Consegnati! Pronti da ritirare', 'Handed in! Ready to collect') : tr('Consegnati! Torna domani per il ritiro', 'Handed in! Come back tomorrow to collect')));
+    if (museumDeposit()) toast('🏛️ ' + (museumJobReady() ? tr('Consegnati! Pronti da ritirare', 'Handed in! Ready to collect') : tr('Consegnati! Ritiro domani', 'Handed in! Pick up tomorrow')));
     renderMuseum();
   };
   const col = document.getElementById('mucol'); if (col) col.onclick = () => {
@@ -1869,7 +1861,6 @@ function commissionBlock() {
     /* la regola ("una alla volta, se scade non perdi niente") sta SOTTO la riga e in piccolo,
        non dentro il blocco: infilata lì spingeva il bottone in una colonna di tre parole e su
        telefono la riga diventava alta il doppio (visto in foto). */
-    h += `<div class="muted" style="margin:-2px 0 6px;font-size:11px">${tr('Una alla volta. Se scade, ne arriva un\'altra.', 'One at a time. If it expires, a new one comes.')}</div>`;
   }
   return h;
 }
@@ -1914,7 +1905,7 @@ export function openExhibit(spId) {
   let h = `<div class="center" style="padding:4px"><canvas id="exhCv" width="220" height="165" style="width:100%;max-width:320px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px;touch-action:none;cursor:grab" title="${tr('Trascina per ruotare', 'Drag to rotate')}"></canvas></div>`;
   h += `<div class="row"><div class="nm">${rarSpan(sp.r)} · ${zone ? zone.icon + ' ' + zoneName(zone.id) : ''}</div></div>`;
   h += `<div class="row"><div class="sub">${tr('Pezzi esposti', 'Pieces on display')}: ${parts.length}/${PARTS.length} — ${PARTS.map(pt => (parts.includes(pt.id) ? '✓ ' : '· ') + partName(pt.id)).join(' · ')}</div></div>`;
-  if (parts.length === PARTS.length) h += `<div class="row" style="background:#f1e6cc"><div class="sub">🧬 ${tr('Teca completa: DNA disponibile al banco del Curatore', 'Case complete: DNA available at the Curator\'s desk')} ${dnaBadge(spId)}</div></div>`;
+  if (parts.length === PARTS.length) h += `<div class="row" style="background:#f1e6cc"><div class="sub">🧬 ${tr('Teca completa: DNA al banco', 'Case complete: DNA at the desk')} ${dnaBadge(spId)}</div></div>`;
   h += `<div class="muted" style="margin-top:6px">${descFor(sp)}</div>`;
   mBody.innerHTML = withIcons(h); openModal();
   const cv = document.getElementById('exhCv');
@@ -1926,12 +1917,9 @@ export function openExhibit(spId) {
 function renderInn() {
   const night = isNight();
   const can = canSleep();
-  const desc = night
-    ? tr('È notte: dormendo ti sveglierai all\'alba del giorno dopo.', "It's night: sleeping wakes you at dawn of the next day.")
-    : tr('È giorno: dormendo ti sveglierai a notte fonda.', "It's daytime: sleeping wakes you deep at night.");
   const label = night ? tr("Dormi fino all'alba 🌙", 'Sleep until dawn 🌙') : tr('Dormi fino a notte 🌙', 'Sleep until night 🌙');
-  const blockMsg = can ? '' : `<div class="row" style="background:#f1ddc0"><div class="sub">${tr('Troppo presto: resta sveglio mezza giornata.', "Too soon: stay awake half a day.")}</div></div>`;
-  mBody.innerHTML = withIcons(`<div class="center"><div style="font-size:40px">🛏️</div><div class="muted" style="margin:10px 0">${desc}</div>
+  const blockMsg = can ? '' : `<div class="row" style="background:#f1ddc0"><div class="sub">${tr('Troppo presto per dormire', 'Too soon to sleep')}</div></div>`;
+  mBody.innerHTML = withIcons(`<div class="center"><div style="font-size:40px">🛏️</div>
     <div class="row" style="justify-content:center"><div class="nm">${tr('Energia', 'Energy')}: ${S.energy}/${S.maxEnergy} · ${tr('Giorno', 'Day')} ${S.day}</div></div>
     ${blockMsg}
     <button class="btn" id="rest" style="margin-top:6px" ${can ? '' : 'disabled'}>${label}</button></div>`);
@@ -1972,7 +1960,7 @@ export function openBag(tab) {
      dello zaino un modulo da compilare. */
   const allFinds = [...(S.raw.length ? [{ raw: true, uid: S.raw[S.raw.length - 1].uid }] : []), ...S.items];
   if (!allFinds.some(f => f.uid === bagSel)) bagSel = allFinds.length ? allFinds[0].uid : null;
-  let secFinds = `<div class="bag-sec"><div class="bag-hint">${tr('Tocca un reperto per vederlo o lasciarlo 🗑.', 'Tap a find to see it or drop it 🗑.')}</div><div class="bag-items">`;
+  let secFinds = `<div class="bag-sec"><div class="bag-hint">${tr('Tocca un reperto', 'Tap a find')}</div><div class="bag-items">`;
   if (S.raw.length) secFinds += `<button class="bitile${bagSel === allFinds[0].uid ? ' picked' : ''}" data-sel="${allFinds[0].uid}" title="${esc(tr('Reperti grezzi da consegnare al Museo', 'Raw finds for the Museum'))}"><span class="pv raw">🦴</span><span class="bq">×${S.raw.length}</span></button>`;
   secFinds += S.items.map(it =>
     `<button class="bitile${bagSel === it.uid ? ' picked' : ''}" data-sel="${it.uid}" title="${esc(partName(it.t) + ' ' + tr('di', 'of') + ' ' + spById[it.s].name + ' · ' + rarLabel(it.q) + ' · ' + it.val + ' ' + tr('monete', 'coins'))}">
@@ -1985,7 +1973,7 @@ export function openBag(tab) {
   let finDetail = '';
   const selIt = S.items.find(it => it.uid === bagSel);
   if (selIt) finDetail = `<div class="pack-detail"><span class="dot ${selIt.q}"></span><div class="pd-tx"><b>${partName(selIt.t)} ${spById[selIt.s].name}</b><span>${rarLabel(selIt.q)} · 🪙${selIt.val}</span></div>${dropBtn(selIt.uid, 'item')}</div>`;
-  else if (S.raw.length && allFinds[0] && bagSel === allFinds[0].uid) finDetail = `<div class="pack-detail"><span class="pd-ic">🦴</span><div class="pd-tx"><b>${tr('Grezzi', 'Raw')} ×${S.raw.length}</b><span>${tr('portali al Museo per identificarli', 'take them to the Museum to identify them')}</span></div>${dropBtn(S.raw[S.raw.length - 1].uid, 'raw')}</div>`;
+  else if (S.raw.length && allFinds[0] && bagSel === allFinds[0].uid) finDetail = `<div class="pack-detail"><span class="pd-ic">🦴</span><div class="pd-tx"><b>${tr('Grezzi', 'Raw')} ×${S.raw.length}</b><span>${tr('vanno al Museo', 'for the Museum')}</span></div>${dropBtn(S.raw[S.raw.length - 1].uid, 'raw')}</div>`;
 
   /* ---- SCHEDA OGGETTI: ATTREZZI e MEZZI hanno una sezione loro con l'elenco COMPLETO
      (quelli non ancora comprati restano in grigio: si vede a colpo d'occhio cosa manca);
@@ -2018,12 +2006,12 @@ export function openBag(tab) {
   const vehicles = [
     gearRow('skates', '🛼', tr('Pattini', 'Skates'), tr('velocità ×2 a piedi', 'speed ×2 on foot')),
     gearRow('bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('velocità ×3 a piedi', 'speed ×3 on foot')),
-    boatRow('boat', '⛵', tr('Barca', 'Boat'), tr('sali da solo entrando in acqua · E per pescare', 'you board it automatically · E to fish')),
-    boatRow('motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('sostituisce la barca, ×3 sull\'acqua', 'replaces the boat, ×3 on water')),
+    boatRow('boat', '⛵', tr('Barca', 'Boat'), tr('entra in acqua per salire', 'walk into water to board')),
+    boatRow('motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('×3 in acqua', '×3 on water')),
   ];
   /* cavalcatura volante: solo se il compagno è un grotta LEGGENDARIO (in grotta non si vola) */
   if (companionRides()) { const fly = isMounted();
-    vehicles.push(row('🐾', tr('Cavalcatura volante', 'Flying mount'), tr('sorvoli la mappa · in grotta no', 'fly over the map · not in caves'),
+    vehicles.push(row('🐾', tr('Cavalcatura volante', 'Flying mount'), tr('voli sulla mappa', 'fly over the map'),
       `<button class="bbtn${fly ? ' on' : ''}" data-mount="1">${fly ? tr('In volo', 'Flying') : tr('Cavalca', 'Ride')}</button>`, '', 'click' + (fly ? ' on' : '')));
   }
   const nTools = [S.tools.spade, S.tools.axe, S.tools.pick, S.tools.torch, S.tools.compass].filter(Boolean).length;
@@ -2046,7 +2034,7 @@ export function openBag(tab) {
   if (isDebug()) secDna += `<div class="bag-sec"><h3>${tr('DNA', 'DNA')}</h3><div class="bag-list">` +
     row('🧬', '🐞 DEBUG', tr('DNA infinito: risvegli gratis al Lab', 'Infinite DNA: free awakenings at the Lab'), '<span class="bqt">∞</span>') + `</div></div>`;
   else if (dnaIds.length) secDna += `<div class="bag-sec"><h3>${tr('DNA', 'DNA')}</h3><div class="bag-list">` +
-    dnaIds.map(id => row('🧬', spById[id].name, tr('fialette · al Lab: 2 risvegliano la specie', 'vials · at the Lab: 2 awaken the species'), `<span class="bqt">×${S.dna[id]}</span>`)).join('') + `</div></div>`;
+    dnaIds.map(id => row('🧬', spById[id].name, tr('fialette · 2 = risveglio al Lab', 'vials · 2 = awaken at Lab'), `<span class="bqt">×${S.dna[id]}</span>`)).join('') + `</div></div>`;
   const cr = [];
   if (S.museumJob) cr.push(row('🏛️', tr('Al museo', 'At the museum') + ' ×' + S.museumJob.items.length, tr('ritiro dal giorno ', 'pickup from day ') + S.museumJob.ready));
   cr.push(...S.creatures.map(c => row('🐾', c.name + ' · ' + rarLabel(c.q), spById[c.skull].name + ' / ' + spById[c.torso].name + ' / ' + spById[c.leg].name)));
@@ -2058,7 +2046,7 @@ export function openBag(tab) {
   /* ---- SCHEDA LETTERE: l'arco narrativo sta nello ZAINO, non nel menu di sistema ---- */
   const allL = allLetters(), gotL = allL.filter(id => hasLetter(id));
   let secLetters = `<div class="bag-sec"><h3>✉ ${tr('Lettere del nonno', "Grandpa's letters")} <span class="cap">${gotL.length}/${allL.length}</span></h3>`;
-  secLetters += `<div class="bag-hint">${tr('Riempi una sala del Museo: il Curatore ti dà la lettera del nonno.', 'Fill a Museum room: the Curator gives you Grandpa\'s letter.')}</div><div class="bag-list">`;
+  secLetters += `<div class="bag-list">`;
   secLetters += allL.map(id => hasLetter(id)
     ? row('✉', letterTitle(id), tr('tocca per rileggerla', 'tap to read it again'), '', `data-letter="${id}"`, 'click')
     : row('·', '? ? ?', id === 'finale' ? tr('quando avrai tutte le altre', 'once you have all the others') : tr('riempi la sala di ', 'fill the room of ') + zoneName(id), '', '', 'miss')).join('');
@@ -2139,7 +2127,7 @@ function confirmDrop(d) {
   const nm = d.kind === 'good' ? (goodName(it.id) + ((it.n || 1) > 1 ? ' ×' + it.n : ''))
     : (partName(it.t) + ' ' + tr('di', 'of') + ' ' + (spById[it.s] ? spById[it.s].name : '?'));
   mTitle.innerHTML = withIcons('🎒 ' + tr('Lasciare a terra?', 'Leave it on the ground?'));
-  mBody.innerHTML = withIcons(`<div class="row"><div><div class="nm">${nm}</div><div class="sub">${it.q ? rarSpan(it.q) + ' · ' : ''}${tr('resta per terra: lo riprendi con E', 'it stays on the ground: pick it up with E')}</div></div></div>
+  mBody.innerHTML = withIcons(`<div class="row"><div><div class="nm">${nm}</div><div class="sub">${it.q ? rarSpan(it.q) + ' · ' : ''}${tr('puoi riprenderlo dopo', 'you can pick it up later')}</div></div></div>
     <div class="center" style="margin-top:10px;display:flex;gap:10px;justify-content:center">
       <button class="btn ghost" id="dropNo">${tr('Annulla', 'Cancel')}</button>
       <button class="btn amber" id="dropYes">${tr('Lascia a terra', 'Drop it')}</button></div>`);
@@ -2329,8 +2317,7 @@ function wireConfirm(fields, rerender) {
 }
 function renderBarber() {
   beginLook();
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Prova tutti i tagli che vuoi: paghi 🪙 ', 'Try any haircut you like: pay 🪙 ')}${SERVICE_COST} ${tr('a modifica, solo alla conferma. ✨ = taglio speciale.', 'per change, on confirm. ✨ = special cut.')}</div>`;
-  h += previewHtml();
+  let h = previewHtml();
   h += `<div class="bighead">${tr('Taglio', 'Haircut')}</div>` + styleRow('hairStyle', hairStylesAvail());
   h += `<div class="bighead">${tr('Colore', 'Color')}</div>` + swatchRow('hairColor', HAIR_COLORS);
   h += confirmBar(['hairStyle', 'hairColor']);
@@ -2338,8 +2325,7 @@ function renderBarber() {
 }
 function renderTailor() {
   beginLook();
-  let h = `<div class="muted" style="margin-bottom:8px">${tr('Prova quello che vuoi: paghi 🪙 ', 'Try anything you like: pay 🪙 ')}${SERVICE_COST} ${tr('a capo, solo alla conferma. ✨ = speciale. Togliere il cappello è gratis.', 'per item, on confirm. ✨ = special. Removing the hat is free.')}</div>`;
-  h += previewHtml();
+  let h = previewHtml();
   h += hatSection();
   h += `<div class="bighead">${lookLabel('shirt')}</div>` + styleRow('shirtStyle', SHIRT_STYLES) + swatchRow('shirt', LOOKS.shirt);
   h += `<div class="bighead">${lookLabel('pants')}</div>` + styleRow('pantsStyle', PANTS_STYLES) + swatchRow('pants', LOOKS.pants);

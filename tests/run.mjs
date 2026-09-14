@@ -2201,8 +2201,8 @@ sprites.applyLook();
     for (const [che, cosa] of [['lo scopo', 'goalTitle()'], ['le sale', 'roomsDone()'], ['le teche', 'Complete cases']]) {
       check(`${che} sta nella scheda dei progressi`, corpo18.indexOf(cosa) > iProg);
     }
-    /* la spiegazione delle sale sparisce appena ne chiudi una: serve a capire, non per sempre */
-    check('la spiegazione delle sale è temporanea', /roomsDone\(\) === 0/.test(corpo18));
+    /* niente spiegazione murata sotto i numeri: le sale si leggono dal contatore ("gli utenti non leggono") */
+    check('nessuna spiegazione delle sale sotto i progressi', !/lettera del nonno/.test(corpo18.slice(iProg)));
     /* i PREMI di una commissione si contano a colpo d'occhio: uno per riga, non in fila */
     const cm18 = await import('../src/commission.js');
     const off18 = cm18.offerFor(5);
@@ -5184,7 +5184,7 @@ sprites.applyLook();
     const keepCre = S.creatures;
     S.creatures = [];
     const noComp = panel(() => ui.openCompanionPicker());
-    check('Compagno: senza chimere spiega come ottenerne una', noComp.includes('nessuna creatura'));
+    check('Compagno: senza chimere spiega come ottenerne una', /nessuna creatura/i.test(noComp));
     S.creatures = [{ uid: 77, name: 'Provolone', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' }];
     const withComp = panel(() => ui.openCompanionPicker());
     check('Compagno: con una chimera la si può scegliere', withComp.includes('Provolone') && withComp.includes('data-comp'));
@@ -8476,6 +8476,8 @@ sprites.applyLook();
 
   /* niente chiavi morte: una voce che non esiste più nel codice è solo peso */
   const dead = Object.keys(RU).filter(k => !en.has(k));
+  /* DIGSY_I18N_DUMP=file: scrive le voci mancanti e quelle morte, per aggiornare il dizionario in blocco */
+  if (process.env.DIGSY_I18N_DUMP) fsR.writeFileSync(process.env.DIGSY_I18N_DUMP, JSON.stringify({ missing, dead }, null, 1));
   check('nessuna voce del dizionario è orfana', dead.length === 0, dead.slice(0, 3).map(x => JSON.stringify(x)).join(' '));
 
   /* il russo è davvero in cirillico (non inglese copiato) */
