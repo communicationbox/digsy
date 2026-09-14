@@ -134,6 +134,8 @@ async function main() {
       (luce && G.cmd ? G.cmd('goditem') : Promise.resolve()).then(function(){ return G.cmd('goto=' + (new URLSearchParams(location.search).get('zona') || 'prati')); }).then(function(){
         if (luce === '2') { window.__digsyNoDark = true; if (G.caveAt) return G.caveAt(0.5, 0.45); }
       }).then(function(){ if(G.frame) G.frame(1000); }); }
+    /* 'oggetti' = gli oggetti piccoli del mondo (imbocco, X, buca, relitto, ossa, raccoglibili) */
+    else if (${JSON.stringify(vista)} === 'oggetti') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.smallGallery) G.smallGallery(); }
     else if (${JSON.stringify(vista)} === 'lab-room-empty') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.enterRoom) G.enterRoom('lab').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'casa' = la Sala ARREDATA: fondo comprato (carta da parati + pavimento) e un pezzo per

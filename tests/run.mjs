@@ -4754,7 +4754,7 @@ sprites.applyLook();
     check('barca: scafo di legno con bordo chiaro sull\'acqua', only(boat, swimming, '#a97a4c'));
     check('barca: pescando compaiono canna, filo e galleggiante', only(fish, boat, '#e8e2d0'));
     check('motoscafo: scafo bianco con banda azzurra (e non quello di legno)', only(moto, boat, '#eef2f4') && moto.has('#3d8ba0'));
-    check('relitto: lo scafo spezzato affiora davvero dal mare', only(boat, plain, '#4a382a'));
+    check('relitto: lo scafo spezzato affiora davvero dal mare', only(boat, plain, '#5a4430'));
     S.tools.boat = false; S.tools.motorboat = false; P.moving = false;
   }
 
@@ -4763,21 +4763,21 @@ sprites.applyLook();
     const siteFar = frame(site.x + 60, site.y + 60);        // fuori vista: il sito non c'entra
     check('sito di scavo: ossa che affiorano dal montarolo', only(plain, siteFar, '#ece5d2'));
     const caveF = frame(cave[0], cave[1]);
-    check('imbocco di grotta: arco buio nella roccia', only(caveF, plain, '#15131a'));
+    check('imbocco di grotta: arco buio nella roccia', only(caveF, plain, '#08070b'));
     const lmF = frame(willow.x, willow.y);
     check('meraviglia: il salice della palude è dipinto per intero', only(lmF, plain, '#86b552'));
     /* X del tesoro: si paga fino a 🪙480 per una mappa, se la X non si vede è denaro buttato */
     S.maps = [{ x: land[0] + 1, y: land[1], rar: 'raro', uid: 991 }];
     const xF = frame(land[0], land[1]);
     S.maps = [];
-    check('X del tesoro: croce rossa dipinta a terra', only(xF, plain, '#b8402e'));
+    check('X del tesoro: croce rossa dipinta a terra', only(xF, plain, '#c24a34'));
     /* buca dello scavo: senza, una casella esaurita è indistinguibile da una intatta */
     const holeKey = land[0] + ',' + land[1];
     const had = state.dugSet.has(holeKey);
     state.dugSet.add(holeKey);
     const holeF = frame(land[0], land[1]);
     if (!had) state.dugSet.delete(holeKey);
-    check('buca: la casella già scavata si vede', only(holeF, plain, '#4d371f'));
+    check('buca: la casella già scavata si vede', only(holeF, plain, '#2a1d12'));
   }
 
   /* ---- ROBA A TERRA E CHIMERE DEL PARCO: due liste che il render disegna a parte ---- */
@@ -4877,7 +4877,7 @@ sprites.applyLook();
        dal mondo (le usano anche le pagine di prova /sprites) */
     const direct = [
       ['drawRedspire', '#b05e3e'], ['drawOrecrystal', '#eaf6fa'],
-      ['drawIcecrystal', '#9fd4e6'], ['drawHay', '#c9a227'], ['drawHole', '#6d4f30'],
+      ['drawIcecrystal', '#9fd4e6'], ['drawHay', '#c9a227'], ['drawHole', '#2a1d12'],
     ];
     let dOk = true, dBad = '';
     for (const [fn, col] of direct) { const s = spy(() => props[fn](0, 0)); if (!s.has(col)) { dOk = false; dBad += fn + ' '; } }

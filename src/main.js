@@ -140,6 +140,7 @@ let last = 0, hudAcc = 0;
 function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
+  if (typeof window !== 'undefined' && window.__digsyFreeze) { requestAnimationFrame(loop); return; } // solo le foto di prova: tela ferma
   if (!isModalOpen() && !splashActive() && !isTossOpen()) {
     steerFollow();                  // col mouse tenuto premuto si va verso il puntatore
     /* HUD: va rinfrescato in QUALSIASI scena. Stava dopo i `return` di grotte e interni,
@@ -467,6 +468,29 @@ if (typeof window !== 'undefined') {
         });
         cv2.style.cssText = 'position:fixed;left:0;top:0;z-index:9999;image-rendering:pixelated';
         document.body.appendChild(cv2); return true;
+      }),
+      /* gli oggetti piccoli del mondo tutti insieme, sul loro terreno, per giudicarli a colpo d'occhio */
+      smallGallery: () => Promise.all([import('./render.js'), import('./props.js'), import('./tiles.js'), import('./world.js'), import('./screen.js')]).then(([r, pr, tl, w, sc]) => {
+        const c = sc.ctx, items = [
+          ['imbocco', (x, y) => r.drawCaveEntrance(x, y, 1000), w.MTN], ['X tesoro', (x, y) => r.drawXmark(x, y, 400), w.GRASS], ['buca', (x, y) => pr.drawHole(x, y, 3, 4), w.GRASS],
+          ['relitto', (x, y) => r.drawWreck(x, y, 1000, 2, 2), w.WATER], ['sito ossa', (x, y) => r.drawSite(x, y, 2, 1000, 1, 1), w.SAND], ['cranio sepolto', (x, y) => r.drawBonePart(x, y, 'cranio', 1000, 1, 1), w.DIRT],
+          ['fiore maturo', (x, y) => pr.drawFlower(x, y, 1, 1, true), w.GRASS], ['conchiglia', (x, y) => pr.drawShell(x, y, true), w.SAND], ['fungo maturo', (x, y) => pr.drawMushroom(x, y, 1000, 1, 1, true), w.FOREST],
+          ['canne mature', (x, y) => pr.drawReed(x, y, 1000, 1, 1, true), w.GRASS], ['fiore', (x, y) => pr.drawFlower(x, y, 1, 1, false), w.GRASS], ['ambra', (x, y) => pr.drawPickup('ambra', x, y, 1000, 1, 1), w.GRASS],
+        ];
+        c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#d8c49a'; c.fillRect(0, 0, 4000, 4000);
+        c.setTransform(sc.view.K * 2, 0, 0, sc.view.K * 2, 0, 0);
+        items.forEach(([nm, f, ter], i) => {
+          const x = 8 + (i % 4) * 56, y = 20 + Math.floor(i / 4) * 64;
+          try { for (let ty = 0; ty < 2; ty++) for (let tx = -1; tx < 1; tx++) tl.groundTile(ter, tx + i * 3, ty, x + 12 + tx * 32 + 16, y + ty * 32 - 16, 1000, 0);
+          f(x + 12, y); } catch (e) { c.setTransform(1, 0, 0, 1, 0, 0); c.fillStyle = '#f00'; c.font = '12px monospace'; c.fillText(nm + ': ' + e.message, 10, 60 + i * 14); c.setTransform(sc.view.K * 2, 0, 0, sc.view.K * 2, 0, 0); }
+          c.fillStyle = '#000'; c.font = '5px monospace'; c.fillText(nm, x, y - 12);
+        });
+        /* copia subito quello che è stato disegnato: il ciclo del gioco ridisegna la tela */
+        const src = document.getElementById('cv'), snap2 = document.createElement('canvas');
+        snap2.width = src.width; snap2.height = src.height; snap2.getContext('2d').drawImage(src, 0, 0);
+        snap2.style.cssText = 'position:fixed;left:0;top:0;width:' + src.style.width + ';height:' + src.style.height + ';z-index:9999;image-rendering:pixelated';
+        document.body.appendChild(snap2);
+        return true;
       }),
       wonderGallery: (t) => Promise.all([import('./wonderart.js'), import('./wonders.js'), import('./brush.js'), import('./spritebank.js')]).then(([wa, wd, br, sb]) => {
         const ids = Object.keys(wd.WONDERS), cols = 3, cw = 360, ch = 330;

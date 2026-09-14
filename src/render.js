@@ -147,6 +147,8 @@ export function drawBonePart(sx, sy, part, time, tx, ty) {
   const ph = ((tx || 0) * 7 + (ty || 0) * 13);
   const boneC = '#ece5d2', boneD = '#cbbfa4', boneL = shade8('#ece5d2', 1.15), dark = '#3a3128';
   shadow(sx + 16, sy + 26, 12);
+  /* un'ombra scura sotto ogni osso (spostata di un pixel): stacca dalla terra smossa senza aggiungere dettagli */
+  rect(sx + 6, sy + 24, 20, 2, 'rgba(20,12,6,.35)');
   if (part === 'cranio') {
     rect(sx + 8, sy + 12, 16, 12, boneC); rect(sx + 4, sy + 16, 6, 6, boneC);       // cranio ovale + muso
     rect(sx + 10, sy + 14, 6, 2, boneL);                                            // quarto tono: luce sulla fronte
@@ -172,23 +174,21 @@ export function drawBonePart(sx, sy, part, time, tx, ty) {
 }
 /* RELITTO in mare: scafo spezzato e albero pendente che affiorano dall'acqua (bob leggero) */
 export function drawWreck(sx, sy, time, tx, ty) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  /* FASE 2: nativa — assi dello scafo con quarto tono, vela con più stracci. */
-  const ph = ((tx || 0) * 7 + (ty || 0) * 13); // fase STABILE per casella (mai sx)
-  const bob = Math.round(Math.sin(time / 500 + ph) * 2);
-  const y = sy + bob;
-  // scafo scuro inclinato
-  rect(sx + 2, y + 12, 26, 10, '#4a382a'); rect(sx + 2, y + 12, 26, 2, '#6a5038');
-  rect(sx + 4, y + 10, 22, 2, '#5c4630'); rect(sx + 2, y + 22, 26, 2, '#2f2418');
-  for (let i = 0; i < 4; i++) px(sx + 6 + i * 6, y + 16, '#2f2418');            // fasciame (assi)
-  rect(sx + 4, y + 20, 20, 1, shade8('#4a382a', 0.75));                        // quarto tono: ombra bassa dello scafo
-  // buco nello scafo
-  rect(sx + 18, y + 16, 6, 6, '#20323f');
-  // albero maestro pendente + vela strappata
-  rect(sx + 8, y - 8, 2, 20, '#6a5038'); rect(sx + 8, y - 10, 2, 2, '#8a6a4a');
-  rect(sx + 10, y - 6, 8, 8, '#c9bfa6'); px(sx + 14, y - 2, '#a89a78'); px(sx + 16, y, '#a89a78'); // vela lacera
-  // increspature attorno
-  ctx.fillStyle = 'rgba(200,235,245,.35)'; ctx.fillRect(sx - 2, y + 24, 8, 2); ctx.fillRect(sx + 24, y + 22, 8, 2);
+  /* RELITTO: prua spezzata di fasciame che affiora, albero inclinato con lo straccio della vela,
+     acqua che gli gira attorno. Dondola appena (fase dal tempo e dalla casella). */
+  ctx.save(); ctx.translate(sx, sy);
+  const ph = ((tx || 0) * 7 + (ty || 0) * 13);
+  const y = Math.round(Math.sin(time / 700 + ph) * 1);
+  const L = '#1e1610';
+  ctx.fillStyle = 'rgba(210,240,248,.35)'; ctx.fillRect(0, 22 + y, 32, 2); ctx.fillRect(4, 25 + y, 24, 1);
+  for (let r = 0; r < 4; r++) {                                               // fasciame spezzato e inclinato: la prua esce, il resto è sott'acqua
+    const w = 22 - r * 4, x0 = 4 + r * 2, yy = 8 + r * 4 + y;
+    for (let k = 0; k < w; k++) { const dy = Math.round(k * 0.18); rect(x0 + k, yy + dy - 1, 1, 4, L); rect(x0 + k, yy + dy, 1, 2, r % 2 ? '#6a5038' : '#5a4430'); px(x0 + k, yy + dy, '#8a6a4a'); }
+    rect(x0 + w - 2, yy + Math.round(w * 0.18) - 2, 3, 5, L);                    // estremità rotta
+  }
+  ctx.fillStyle = 'rgba(90,170,200,.55)'; ctx.fillRect(0, 20 + y, 32, 10);        // la metà sott'acqua si vede appena
+  for (let k = 0; k < 22; k++) { const x = 9 + Math.round(k * 0.25), yy = 14 - k + y; rect(x - 1, yy, 4, 1, L); rect(x, yy, 2, 1, '#7a5c40'); }   // albero pendente
+  rect(12, -5 + y, 10, 9, L); rect(13, -4 + y, 8, 7, '#c9bfa6'); rect(13, -4 + y, 2, 7, '#e0d8c4'); rect(17, 1 + y, 4, 2, '#a89a78');                  // vela strappata
   ctx.restore();
 }
 function drawTownDeco(d, sx, sy, time) {
@@ -579,27 +579,36 @@ function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
 
 /* imbocco di grotta sulla montagna: arco scuro nella roccia, con qualche scintillio */
 export function drawCaveEntrance(sx, sy, time) {
-  /* FASE 2: nativa — roccia con quarto tono in più, cristalli più leggibili. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  shadow(sx + 16, sy + 30, 16);
-  rect(sx + 2, sy + 4, 28, 28, '#6b6560'); rect(sx + 2, sy + 4, 28, 4, '#837c74');   // roccia
-  rect(sx + 2, sy + 4, 4, 28, shade8('#6b6560', 1.3)); rect(sx + 26, sy + 4, 4, 28, shade8('#6b6560', 0.65)); // volume: luce sx / ombra dx
-  rect(sx + 6, sy + 10, 20, 22, '#15131a'); rect(sx + 8, sy + 8, 16, 4, '#242030');  // arco buio
-  px(sx + 6, sy + 6, '#7f776a'); px(sx + 24, sy + 6, '#7f776a');
-  px(sx + 6, sy + 12, '#2a2530'); px(sx + 24, sy + 12, '#1a1620'); // alone dell'arco: sinistra un filo di luce riflessa, destra buio pieno
-  rect(sx + 4, sy + 6, 2, 8, shade8('#6b6560', 1.15)); // quarto tono: scaglia di roccia in luce
-  if (Math.floor(time / 500) % 2) { px(sx + 12, sy + 18, '#6fd6e0'); px(sx + 18, sy + 22, '#6fd6e0'); } // cristalli dentro
+  /* IMBOCCO: sperone di roccia con la bocca buia ad arco, stalattiti sul bordo, sassi ai piedi
+     e un luccichio di cristallo in fondo. Stessa pietra della grotta, così si capisce che è lei. */
+  ctx.save(); ctx.translate(sx, sy);
+  shadow(16, 30, 16);
+  const L = '#15110d';
+  for (let y = -6; y < 30; y++) {                                           // sagoma della roccia, più larga alla base
+    const u = (y + 6) / 36, w = Math.round(9 + u * 7 + Math.sin(y * 0.9) * 1);
+    rect(16 - w - 1, y, w * 2 + 2, 1, L); rect(16 - w, y, w * 2, 1, y < 2 ? '#8a7f70' : '#6e6358'); rect(16 - w, y, 3, 1, '#8a7f70'); rect(16 + w - 3, y, 3, 1, '#4a4239');
+  }
+  for (const [x, y, r] of [[9, 2, 3], [22, 4, 3], [15, -2, 2]]) { rect(x - r, y, r * 2, 2, '#4a4239'); rect(x - r + 1, y - r + 1, r * 2 - 2, r, '#8a7f70'); }
+  for (let y = 10; y < 30; y++) {                                           // bocca ad arco, buio più fitto in fondo
+    const w = Math.round(8 * Math.sqrt(Math.max(0, 1 - ((y - 10 - 10) / 12) ** 2 * (y < 20 ? 1 : 0))));
+    if (w <= 0) continue;
+    rect(16 - w - 1, y, w * 2 + 2, 1, '#2e2720'); rect(16 - w, y, w * 2, 1, y < 16 ? '#0e0c12' : '#08070b');
+  }
+  for (const x of [11, 16, 21]) { rect(x - 1, 10, 3, 2, '#4a4239'); px(x, 12, '#4a4239'); }
+  if (Math.floor(time / 700) % 3 === 0) { px(14, 24, '#a6ecf2'); px(19, 21, '#6fd6e0'); }
+  for (const [x, r] of [[3, 3], [28, 2], [8, 2]]) { rect(x - r, 28, r * 2 + 1, r + 1, L); rect(x - r, 27, r * 2, r, '#6e6358'); }
   ctx.restore();
 }
 /* X della mappa del tesoro: dipinta sul terreno, scintilla che lampeggia */
-function drawXmark(sx, sy, time) {
-  /* FASE 2: nativa — tratti più spessi (2px), scintille più ampie. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  for (let i = 0; i < 8; i++) {
-    rect(sx + 8 + i * 2, sy + 8 + i * 2, 2, 2, '#b8402e'); rect(sx + 8 + i * 2, sy + 10 + i * 2, 2, 2, '#8e2f22');
-    rect(sx + 22 - i * 2, sy + 8 + i * 2, 2, 2, '#b8402e'); rect(sx + 22 - i * 2, sy + 10 + i * 2, 2, 2, '#8e2f22');
+export function drawXmark(sx, sy, time) {
+  /* X del tesoro dipinta a terra: due pennellate rosse, ruvide ai bordi, e un luccichio raro */
+  ctx.save(); ctx.translate(sx, sy);
+  for (let i = 0; i < 16; i++) {
+    const j = (i * 7) % 3 === 0 ? 1 : 0;
+    rect(7 + i, 7 + i + j, 4, 3, '#6e2418'); rect(8 + i, 7 + i, 2, 2, '#c24a34');
+    rect(22 - i, 7 + i + j, 4, 3, '#6e2418'); rect(23 - i, 7 + i, 2, 2, '#c24a34');
   }
-  if (Math.floor(time / 400) % 2) { px(sx + 16, sy + 2, '#ffe98a'); px(sx + 4, sy + 24, '#ffe98a'); }
+  if (Math.floor(time / 1600) % 4 === 0) { px(16, 3, '#fff3b0'); px(15, 4, '#ffe98a'); px(17, 4, '#ffe98a'); }
   ctx.restore();
 }
 /* PORTALE DI RITORNO (goHome): riporta dove eri, a uso singolo. Sta in mezzo all'atrio.

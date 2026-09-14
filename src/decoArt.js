@@ -126,9 +126,10 @@ export function siteArt(g, remaining, time, phase) {
   shadowE(g, 16, 28, 14, 3);
   ellipse(g, 16, 23, 15, 8, LN); ellipse(g, 16, 22, 14, 7, '#a8824e'); ellipse(g, 14, 19, 10, 4, '#c9a06a'); ellipse(g, 12, 17, 5, 2, '#dcbc88');
   const C = remaining > 0 ? '#ece5d2' : '#b8b0a2', S = remaining > 0 ? '#c3b79a' : '#8f887a';
-  for (let i = 0; i < 4; i++) {                                                                                                     // costole ad arco
-    const x = 5 + i * 5;
-    for (let k = 0; k < 9; k++) { const y = 20 - Math.round(Math.sin((k / 8) * Math.PI) * 9) - i; g.rect(x + k * 0.6 | 0, y, 3, 2, LN); g.rect((x + k * 0.6 | 0), y, 2, 1, C); }
+  for (let i = 0; i < 3; i++) {                                                                  // tre costole ad arco, larghe e pulite
+    const x0 = 5 + i * 5;
+    for (let k = 0; k <= 10; k++) { const x = x0 + k, y = 21 - Math.round(Math.sin((k / 10) * Math.PI) * (8 - i)); g.rect(x, y, 2, 3, LN); }
+    for (let k = 0; k <= 10; k++) { const x = x0 + k, y = 21 - Math.round(Math.sin((k / 10) * Math.PI) * (8 - i)); g.rect(x, y, 2, 2, C); }
   }
   g.rect(19, 10, 11, 10, LN); g.rect(20, 11, 9, 8, C); g.rect(20, 11, 9, 2, '#fbf6ea'); g.rect(20, 17, 9, 2, S);                   // cranio
   g.rect(22, 13, 2, 2, '#2e2618'); g.rect(26, 13, 2, 2, '#2e2618');

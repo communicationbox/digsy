@@ -99,13 +99,13 @@ export function drawShell(sx, sy, ripe) {
   ctx.restore();
 }
 export function drawHole(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, cy = sy + 20;
-  ctx.fillStyle = '#6d4f30'; ctx.fillRect(cx - 10, cy - 6, 20, 12);
-  ctx.fillStyle = '#4d371f'; rect(cx - 8, cy - 4, 2, 2, '#4d371f'); rect(cx + 6, cy - 4, 2, 2, '#4d371f'); rect(cx - 1, cy + 2, 2, 2, '#4d371f');
-  rect(cx - 10 + Math.floor(vhash(tx, ty, 104) * 6), cy - 6, 3, 1, '#8a6448'); // orlo chiaro: dove la terra è stata smossa da poco
-  rect(cx + 6 - Math.floor(vhash(tx, ty, 105) * 6), cy + 4, 3, 2, '#3a291a'); // fondo più scuro, non piatto
-  rect(cx - 3, cy - 1, 6, 2, shade8('#4d371f', 0.75)); // profondità: incavo scuro al centro, non un ovale uniforme
+  /* BUCA scavata: incavo scuro ovale e la terra smossa ammucchiata sul bordo */
+  ctx.save(); ctx.translate(sx, sy);
+  const cx = 16, cy = 20, side = vhash(tx, ty, 104) < 0.5 ? -1 : 1;
+  for (let y = -6; y <= 6; y++) { const w = Math.round(11 * Math.sqrt(1 - (y * y) / 42)); rect(cx - w, cy + y, w * 2, 1, y < -3 ? '#8a6448' : y < 0 ? '#5a3f28' : '#3a291a'); }
+  for (let y = -3; y <= 3; y++) { const w = Math.round(6 * Math.sqrt(1 - (y * y) / 12)); rect(cx - w, cy + y + 1, w * 2, 1, '#2a1d12'); }
+  for (let y = -3; y <= 2; y++) { const w = Math.round(5 * Math.sqrt(1 - (y * y) / 10)); rect(cx + side * 12 - w, cy + 5 + y, w * 2, 1, y < 0 ? '#a07a54' : '#7d5838'); }
+  px(cx + side * 10, cy + 3, '#b8906a');
   ctx.restore();
 }
 /* OGGETTI di superficie: sprite VERI riconoscibili (non quadrati), FERMI (niente rimbalzo).
