@@ -1,7 +1,7 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.98.5', it: [
+    v: 'v0.98.6', it: [
       'COCCOLE: un animaletto in ogni bottega — gatto al Negozio, cane alla Locanda, topolino al Laboratorio, pappagallo dal Barbiere, coniglietto in Sartoria, scoiattolo alla Bottega d\'arredo. Cuoricini, e la prima coccola del giorno regala 1 ⚡',
       'RISVEGLIO: una scena tutta sua (lo scheletro brilla, un lampo, l\'animale salta fuori) e la specie va da sola nel tuo giardino',
       'MAPPA: bottone "Teletrasporto a casa" sotto la carta',

@@ -254,6 +254,32 @@ export function drawStoreProps(g, rw, rh, time) {
   g.rect(sx - 17, 14, 11, 14, '#2a2016'); g.rect(sx - 16, 16, 9, 10, lf ? '#f2c53d' : '#e8862e'); g.rect(sx - 15, 17, 2, 8, '#fff3c8');
   g.rect(sx - 18, 13, 13, 2, '#5a5248'); g.rect(sx - 18, 27, 13, 2, '#5a5248');
 }
+/* ANIMALETTI TONDI. Fatti a rettangoli sembravano scatole con le orecchie ("gli animali sono molto
+   squadrati"): qui si posano OVALI e linee spesse in una mappa di celle, e alla fine un solo contorno
+   morbido gira attorno alla sagoma intera — come il coniglietto, che era l'unico riuscito. */
+function critter(g, outline) {
+  const m = new Map();
+  const put = (x, y, c) => m.set(x + ',' + y, [x, y, c]);
+  return {
+    put,
+    oval(cx, cy, rx, ry, col) {
+      for (let y = Math.floor(cy - ry); y <= Math.ceil(cy + ry); y++) for (let x = Math.floor(cx - rx); x <= Math.ceil(cx + rx); x++) {
+        const u = (x - cx) / rx, v = (y - cy) / ry;
+        if (u * u + v * v <= 1.04) put(x, y, typeof col === 'function' ? col(u, v) : col);
+      }
+    },
+    line(x0, y0, x1, y1, w, col) {
+      const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
+      for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; this.oval(Math.round(x), Math.round(y), w / 2, w / 2, col); }
+    },
+    paint() {
+      for (const [x, y] of m.values()) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!m.has((x + dx) + ',' + (y + dy))) g.px(x + dx, y + dy, outline);
+      for (const [x, y, c] of m.values()) g.px(x, y, c);
+    },
+  };
+}
+/* luce in alto a sinistra, ombra in basso a destra, su tre toni */
+const tone3 = (L, M, D) => (u, v) => (v < -0.35 && u < 0.35 ? L : u + v > 0.75 ? D : M);
 /* CUORICINI che salgono e svaniscono sopra un animale coccolato (fase dal tempo della reazione) */
 function hearts(g, x, y, pet) {
   const k = 1 - pet.t / 2.6;
@@ -281,25 +307,31 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
   box(g, 60, 106, 30, 28, '#8a5f38'); g.rect(64, 112, 22, 2, '#5c4229'); g.rect(64, 122, 22, 2, '#5c4229');
   g.rect(28, 120, 22, 16, '#6b5238'); g.rect(29, 121, 20, 15, '#d8b58a'); g.rect(31, 117, 16, 5, '#6b5238'); g.rect(32, 118, 14, 3, '#c9a06a'); g.rect(33, 126, 12, 1, '#b8955f');
   for (let i = 0; i < 4; i++) g.px(34 + i * 3, 116 - (i % 2), '#e8c34a');
-  const tail = (Math.floor((time || 0) / 800) % 2) * 2;
-  g.rect(62, 96, 24, 12, '#2a2016'); g.rect(63, 97, 22, 10, '#e08a2c'); g.rect(63, 97, 22, 2, '#f2a84e');
-  g.rect(56, 92, 13, 11, '#2a2016'); g.rect(57, 93, 11, 9, '#e08a2c');
-  g.rect(57, 90, 3, 3, '#2a2016'); g.rect(65, 90, 3, 3, '#2a2016'); g.px(58, 91, '#e8a0b8'); g.px(66, 91, '#e8a0b8');
-  for (const s of [69, 74, 79]) g.rect(s, 98, 2, 8, '#b5652a');
-  const petCat = pet && pet.kind === 'gatto';
-  if (petCat) {
-    /* coccolato: apre gli occhi a mezzaluna, le orecchie si drizzano, la coda si alza e ondeggia, fa le fusa */
-    g.rect(57, 88, 3, 3, '#2a2016'); g.rect(65, 88, 3, 3, '#2a2016'); g.px(58, 89, '#e8a0b8'); g.px(66, 89, '#e8a0b8');
-    g.rect(59, 96, 2, 1, '#2a2016'); g.rect(64, 96, 2, 1, '#2a2016'); g.px(60, 95, '#2a2016'); g.px(65, 95, '#2a2016');
-    const sw = Math.floor(pet.t * 6) % 2;
-    g.rect(84, 92 + sw, 3, 12, '#2a2016'); g.rect(85, 93 + sw, 1, 10, '#e08a2c'); g.rect(86, 90 + sw * 2, 4, 3, '#2a2016'); g.rect(87, 91 + sw * 2, 2, 1, '#e08a2c');
-    /* baffi attaccati alle guance (fremono con le fusa), non più due trattini staccati dal muso */
-    const wh = Math.floor(pet.t * 6) % 2, WC = '#fff6e6';
-    for (const [x, y] of [[55, 98], [54, 98], [53, 97], [52, 97 - wh], [55, 100], [54, 100], [53, 101], [52, 101 + wh]]) g.px(x, y, WC);   // due baffi sottili che si aprono a ventaglio dal muso
-    hearts(g, 66, 86, pet);
-  } else {
-    g.rect(59, 97, 3, 1, '#2a2016'); g.px(64, 99, '#e8a0b8');
-    g.rect(84, 102 + tail, 10, 3, '#2a2016'); g.rect(85, 103 + tail, 8, 1, '#e08a2c');
+  /* GATTO acciambellato sulla cassa: pagnotta tonda a righe, coda arrotolata davanti alle zampe. Coccolato
+     alza la testa, apre gli occhi, drizza la coda che ondeggia e muove i baffi */
+  {
+    const petCat = pet && pet.kind === 'gatto';
+    const OR = '#e08a2c', ORL = '#f4ad5a', ORD = '#b8662a', OUT = '#4a2e1a';
+    const c = critter(g, OUT);
+    const lift = petCat ? 3 : 0, sw = petCat ? Math.floor(pet.t * 6) % 2 : 0;
+    c.oval(76, 101, 14, 6.5, tone3(ORL, OR, ORD));                                        // corpo
+    if (petCat) c.line(89, 99, 92 + sw, 88, 3, OR);                                       // coda alzata che ondeggia
+    else c.line(88, 104, 70, 107, 3, OR);                                                  // coda arrotolata davanti
+    c.oval(61, 98 - lift, 6.5, 5.5, tone3(ORL, OR, ORD));                                 // testa
+    for (const ex of [57, 64]) { c.put(ex, 92 - lift, OR); c.put(ex + 1, 92 - lift, OR); c.put(ex, 91 - lift, OR); c.put(ex + (ex < 60 ? 0 : 1), 90 - lift, OR); }   // orecchie a punta
+    c.paint();
+    for (const x of [72, 77, 82]) { g.px(x, 96, ORD); g.px(x, 97, ORD); g.px(x + 1, 98, ORD); }                                   // righe sulla schiena
+    g.px(57, 91 - lift, '#e8a0b8'); g.px(65, 91 - lift, '#e8a0b8');
+    g.rect(58, 100 - lift, 6, 3, '#f7d8b0');                                                                                    // muso chiaro
+    g.px(60, 100 - lift, '#e07a8a');                                                                                             // nasino
+    if (petCat) {
+      g.rect(58, 96 - lift, 2, 2, '#2a1e18'); g.rect(63, 96 - lift, 2, 2, '#2a1e18'); g.px(58, 96 - lift, '#ffffff'); g.px(63, 96 - lift, '#ffffff');
+      const WC = '#fff6e6', wh = Math.floor(pet.t * 6) % 2;
+      for (const [x, y] of [[54, 100], [53, 100], [52, 99 - wh], [54, 102], [53, 102], [52, 103 + wh]]) g.px(x, y - lift, WC);
+      hearts(g, 66, 84, pet);
+    } else {
+      g.px(58, 97, '#2a1e18'); g.px(59, 98, '#2a1e18'); g.px(63, 98, '#2a1e18'); g.px(64, 97, '#2a1e18');                         // occhi chiusi a mezzaluna
+    }
   }
   /* botti con mele (228..296 × 92..136) */
   g.shadow(262, 136, 34);
@@ -364,32 +396,31 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   g.rect(rx, ry, 76, 40, '#5c2a26'); g.rect(rx + 1, ry + 1, 74, 38, '#a8453c'); g.rect(rx + 4, ry + 4, 68, 32, '#d8b23c'); g.rect(rx + 5, ry + 5, 66, 30, '#8a3a32');
   for (let k = 0; k < 6; k++) { g.rect(cx - k * 2, ry + 9 + k * 2, k * 4 + 1, 2, '#e0a24a'); g.rect(cx - k * 2, ry + 29 - k * 2, k * 4 + 1, 2, '#e0a24a'); }
   for (let i = 2; i < 74; i += 3) { g.px(rx + i, ry - 1, '#e8dcc0'); g.px(rx + i, ry + 40, '#e8dcc0'); }
-  /* CANE che dorme nell'angolo, acciambellato col muso sulle zampe (la schiena respira) */
-  const br = Math.floor(t / 700) % 2;
-  const g0 = g;
-  { const g = { shade8: g0.shade8, rect: (x, y, w, h, c) => g0.rect(x + 10, y, w, h, c), px: (x, y, c) => g0.px(x + 10, y, c), shadow: (x, y, r) => g0.shadow(x + 10, y, r) };
-  g.shadow(40, 196, 20);
-  g.rect(27, 181 - br, 30, 15 + br, '#2a2016');
-  g.rect(28, 182 - br, 28, 13 + br, '#b8834a');
-  g.rect(30, 182 - br, 22, 3, '#d4a064');                       // luce sulla schiena
-  g.rect(40, 188, 10, 5, '#e8c89a');                            // pancia chiara
-  g.rect(55, 184, 7, 5, '#2a2016'); g.rect(56, 185, 5, 3, '#b8834a'); g.rect(59, 182, 3, 3, '#2a2016'); g.px(60, 183, '#d4a064'); // coda arricciata
-  g.rect(15, 185, 16, 12, '#2a2016'); g.rect(16, 186, 14, 10, '#c9955a');                  // testa
-  g.rect(12, 190, 7, 6, '#2a2016'); g.rect(13, 191, 5, 4, '#e8c89a'); g.px(12, 191, '#2a2016'); // muso e naso
-  g.rect(24, 184, 6, 10, '#2a2016'); g.rect(25, 185, 4, 8, '#6e4a2a');                     // orecchio che ricade
-  const petDog = pet && pet.kind === 'cane';
-  if (petDog) {
-    /* coccolato: occhi aperti e lucidi, lingua fuori, la coda scodinzola veloce */
-    g.rect(19, 188, 3, 3, '#2a2016'); g.px(19, 188, '#ffffff');
-    g.rect(14, 194, 3, 3, '#2a2016'); g.rect(15, 195, 1, 2, '#e8607a');
-    const wg = Math.floor(pet.t * 10) % 2;
-    g.rect(55, 184, 7, 5, '#b8834a'); g.rect(56 + wg * 2, 176 + wg, 3, 8, '#2a2016'); g.rect(57 + wg * 2, 177 + wg, 1, 6, '#d4a064');
-    hearts(g, 22, 178, pet);
-  } else {
-    g.rect(19, 189, 4, 1, '#2a2016');                                                      // occhio chiuso
-    if (Math.floor(t / 1400) % 2) { g.px(12, 180, '#f3ecda'); g.px(10, 177, '#f3ecda'); g.px(13, 175, '#f3ecda'); } // zzz
-  }
-  g.rect(14, 196, 12, 3, '#2a2016'); g.rect(15, 196, 4, 2, '#e8c89a'); g.rect(21, 196, 4, 2, '#e8c89a'); // zampe davanti
+  /* CANE acciambellato davanti al camino: corpo tondo che respira, testa appoggiata sulle zampe, orecchio
+     morbido che ricade, coda arricciata. Coccolato alza la testa, apre gli occhi, lingua fuori, scodinzola */
+  {
+    const petDog = pet && pet.kind === 'cane';
+    const B = '#c08a50', BL = '#dcaa70', BD = '#936434', OUT = '#4a3020', CR = '#f0d6ac';
+    const br = Math.floor(t / 700) % 2, lift = petDog ? 4 : 0, wg = petDog ? Math.floor(pet.t * 10) % 2 : 0;
+    g.shadow(46, 200, 20);
+    const c = critter(g, OUT);
+    c.oval(50, 191 - br * 0.5, 15, 7 + br * 0.5, tone3(BL, B, BD));                          // corpo
+    if (petDog) c.line(64, 188, 68 + wg * 2, 180 - wg, 3, B); else c.line(63, 192, 67, 186, 3, B);   // coda
+    c.oval(30, 192 - lift, 8, 6.5, tone3(BL, B, BD));                                        // testa
+    c.oval(23, 195 - lift, 4.5, 3.5, CR);                                                     // muso
+    c.oval(34, 192 - lift, 3, 5.5, BD);                                                       // orecchio che ricade
+    c.oval(26, 199, 4, 2, CR); c.oval(35, 199, 4, 2, CR);                                     // zampe davanti
+    c.paint();
+    g.rect(44, 194, 10, 3, CR);                                                               // pancia chiara
+    g.px(19, 194 - lift, '#2a1e18'); g.px(20, 194 - lift, '#2a1e18');                         // tartufo
+    if (petDog) {
+      g.rect(27, 189 - lift, 2, 2, '#2a1e18'); g.px(27, 189 - lift, '#ffffff');
+      g.rect(21, 198 - lift, 2, 3, '#e8607a');
+      hearts(g, 32, 176, pet);
+    } else {
+      g.px(26, 191, '#2a1e18'); g.px(27, 192, '#2a1e18'); g.px(28, 192, '#2a1e18');          // occhio chiuso
+      if (Math.floor(t / 1400) % 2) { g.px(22, 182, '#f3ecda'); g.px(20, 179, '#f3ecda'); g.px(23, 177, '#f3ecda'); }   // zzz
+    }
   }
   /* tavoli con tovaglia, sgabelli, boccali e candela (28..96 e 224..292 × 96..136) */
   for (const ox of [30, 226]) {
@@ -481,19 +512,18 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
     g.shadow(40, 204, 12);
     g.rect(38, 170, 3, 34, '#2a1e14'); g.rect(39, 171, 1, 32, '#8a5f38'); g.rect(30, 202, 20, 3, '#2a1e14'); g.rect(31, 202, 18, 2, '#6e4a2e');
     g.rect(28, 168, 24, 3, '#2a1e14'); g.rect(29, 168, 22, 2, '#a97a4c');
-    const bob = pp ? (Math.floor(pet.t * 8) % 2) : (Math.floor(t / 900) % 2);
-    if (pp) {                                            // ali aperte
-      const fl = Math.floor(pet.t * 10) % 2;
-      g.rect(26, 150 - fl * 3, 9, 12, '#2a2016'); g.rect(27, 151 - fl * 3, 7, 10, '#4fae5a'); g.rect(27, 158 - fl * 3, 7, 3, '#e0873a');
-      g.rect(45, 150 - fl * 3, 9, 12, '#2a2016'); g.rect(46, 151 - fl * 3, 7, 10, '#4fae5a'); g.rect(46, 158 - fl * 3, 7, 3, '#5a86c8');
-    }
-    g.rect(34, 152 + bob, 12, 17, '#2a2016'); g.rect(35, 153 + bob, 10, 15, '#3f9a4a'); g.rect(35, 153 + bob, 10, 3, '#6ac46e');
-    g.rect(37, 160 + bob, 6, 6, '#e8c34a');                                   // petto giallo
-    g.rect(35, 144 + bob, 11, 10, '#2a2016'); g.rect(36, 145 + bob, 9, 8, '#d8453c'); g.rect(36, 145 + bob, 9, 2, '#f06a5a');
-    g.rect(44, 148 + bob, 4, 4, '#2a2016'); g.rect(45, 149 + bob, 2, 2, '#e8dcc0');    // becco ricurvo
-    g.px(41, 147 + bob, pp ? '#1a120a' : '#1a120a'); g.px(42, 147 + bob, '#ffffff');
-    g.rect(37, 169, 6, 3, '#2a2016'); g.rect(38, 167 + bob, 4, 3, '#2f7a3a');       // coda
-    if (pp) { for (let i = 0; i < 3; i++) if ((Math.floor(pet.t * 5) + i) % 3 === 0) g.rect(52 + i * 4, 142 - i * 3, 2, 2, '#f3ecda'); hearts(g, 40, 140, pet); }
+    const bob = pp ? (Math.floor(pet.t * 8) % 2) : (Math.floor(t / 900) % 2), fl = pp ? Math.floor(pet.t * 10) % 2 : 0;
+    const c = critter(g, '#2a2420');
+    if (pp) { c.oval(30, 156 - fl * 2, 5, 8, (u, v) => v > 0.4 ? '#e0873a' : '#4fae5a'); c.oval(50, 156 - fl * 2, 5, 8, (u, v) => v > 0.4 ? '#5a86c8' : '#4fae5a'); }
+    c.line(40, 165 + bob, 39, 172, 4, '#2f8a3a');                                             // coda
+    c.oval(40, 158 + bob, 6, 9, tone3('#6ac46e', '#3f9a4a', '#2f7a3a'));                     // corpo
+    c.oval(41, 148 + bob, 6, 5.5, tone3('#f06a5a', '#d8453c', '#a8302a'));                   // testa
+    c.oval(47, 150 + bob, 2.5, 2.5, '#e8dcc0');                                               // becco ricurvo
+    c.paint();
+    g.rect(37, 159 + bob, 6, 5, '#e8c34a'); g.rect(38, 158 + bob, 4, 1, '#e8c34a');           // petto giallo
+    g.rect(43, 146 + bob, 2, 2, '#1a120a'); g.px(43, 146 + bob, '#ffffff');
+    g.px(48, 152 + bob, '#8f887a');
+    if (pp) { for (let i = 0; i < 3; i++) if ((Math.floor(pet.t * 5) + i) % 3 === 0) g.rect(52 + i * 4, 142 - i * 3, 2, 2, '#f3ecda'); hearts(g, 40, 136, pet); }
   }
 }
 
@@ -696,24 +726,27 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   g.rect(203, 159, 8, 1, '#8f887a'); g.rect(211, 171, 8, 1, '#8f887a');
   /* TANA del topolino nel battiscopa, con gli occhietti che brillano nel buio */
   g.rect(22, 194, 16, 12, '#2a2016'); g.rect(24, 196, 12, 10, '#140e0a'); g.rect(23, 193, 14, 2, '#6f685c');
+  const mouseAt = (mx, my, up, face) => {                                        // topolino tondo: corpo a goccia, orecchie rotonde, coda a filo
+    const c = critter(g, '#3a3430');
+    c.line(mx + 5 * face, my + 3, mx + 12 * face, my + 4, 1.4, '#c0a8a0');
+    c.oval(mx, my, 6, 4.5 + up, tone3('#b8b0a6', '#9a9288', '#7a7268'));
+    c.oval(mx - 6 * face, my - 2 - up, 4, 3.2, tone3('#b8b0a6', '#9a9288', '#7a7268'));
+    for (const e of [-1, 1]) c.oval(mx - 4 * face + e * 2, my - 6 - up, 2.2, 2.2, '#9a9288');
+    c.paint();
+    g.px(mx - 4 * face - 2, my - 6 - up, '#e0a8b0'); g.px(mx - 4 * face + 2, my - 6 - up, '#e0a8b0');
+    g.px(mx - 7 * face, my - 3 - up, '#1a120a'); g.px(mx - 10 * face, my - 2 - up, '#e07a8a');
+  };
   const petMouse = pet && pet.kind === 'topo';
   if (petMouse) {
     /* coccolato: esce, si alza sulle zampine e sgranocchia un pezzo di formaggio */
     const nib = Math.floor(pet.t * 8) % 2;
-    g.rect(38, 192, 10, 12, '#2a2016'); g.rect(39, 193, 8, 10, '#8a8278'); g.rect(40, 197, 6, 5, '#b8b0a4');
-    g.rect(37, 188 + nib, 3, 3, '#2a2016'); g.rect(46, 188 + nib, 3, 3, '#2a2016'); g.px(38, 189 + nib, '#e0a8b0'); g.px(47, 189 + nib, '#e0a8b0');
-    g.px(41, 195, '#1a120a'); g.px(44, 195, '#1a120a'); g.px(42, 197 + nib, '#e0a8b0');
-    g.rect(40, 199, 6, 4, '#2a2016'); g.rect(41, 200, 4, 2, '#f2c53d'); g.px(42, 200, '#c9a227');
-    g.rect(47, 202, 6, 1, '#a09080'); g.px(53, 201, '#a09080');
-    hearts(g, 43, 186, pet);
+    mouseAt(46, 198, 1 + nib, 1);
+    g.rect(37, 197, 6, 5, '#2a2016'); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
+    hearts(g, 43, 184, pet);
   } else if (Math.floor(t / 2200) % 3 !== 2) { g.px(27, 200, '#f2d080'); g.px(31, 200, '#f2d080'); }
   /* topolino che attraversa lungo il muro basso */
   const rt = (t / 1000) % 14;
-  if (rt < 2.2 && !petMouse) {
-    const x = Math.round(36 + (rt / 2.2) * 240);
-    g.rect(x, 198, 12, 7, '#2a2016'); g.rect(x + 1, 199, 10, 5, '#8a8278'); g.rect(x + 9, 197, 5, 5, '#2a2016'); g.rect(x + 10, 198, 3, 3, '#8a8278');
-    g.px(x + 10, 196, '#e0a8b0'); g.px(x + 12, 199, '#1a120a'); g.rect(x - 6, 202, 6, 1, '#a09080');
-  }
+  if (rt < 2.2 && !petMouse) mouseAt(Math.round(36 + (rt / 2.2) * 240), 200, 0, -1);
 }
 
 /* le finestre di ogni mestiere (x del vetro): dove non c'è nulla appeso */
@@ -805,12 +838,17 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
     g.shadow(38, 206, 16);
     g.rect(24, 190, 28, 16, '#2a1e14'); g.rect(25, 191, 26, 14, '#8a5f38'); g.rect(25, 189, 26, 4, '#2a1e14'); g.rect(26, 190, 24, 2, '#dcb880'); g.rect(33, 190, 10, 2, '#c49a63');
     const up = ps ? 3 : 0, tw = Math.floor((ps ? pet.t * 8 : t / 700)) % 2;
-    g.rect(40, 164 - up - tw, 12, 20, '#2a2016'); g.rect(41, 165 - up - tw, 10, 18, '#c96a2e'); g.rect(44, 167 - up - tw, 6, 14, '#e0873a');   // coda a pennacchio
-    g.rect(30, 176 - up, 13, 14, '#2a2016'); g.rect(31, 177 - up, 11, 12, '#b55a26'); g.rect(33, 181 - up, 6, 7, '#f0c89a');                     // corpo e pancia
-    g.rect(28, 168 - up, 11, 10, '#2a2016'); g.rect(29, 169 - up, 9, 8, '#b55a26'); g.rect(30, 166 - up, 3, 3, '#2a2016'); g.rect(35, 166 - up, 3, 3, '#2a2016');
-    g.px(31, 172 - up, '#1a120a'); g.px(35, 172 - up, '#1a120a'); g.px(28, 174 - up, '#2a2016');
-    const ax = ps ? 31 + (Math.floor(pet.t * 6) % 2) : 33;
-    g.rect(ax, 182 - up, 5, 5, '#2a2016'); g.rect(ax + 1, 183 - up, 3, 3, '#a8742e'); g.rect(ax + 1, 182 - up, 3, 1, '#5c4229');                    // ghianda
-    if (ps) hearts(g, 36, 158, pet);
+    const c = critter(g, '#3a2418');
+    c.oval(46, 174 - up - tw, 6, 11, tone3('#f0a060', '#d0742e', '#a8561e'));               // coda a pennacchio
+    c.oval(48, 164 - up - tw, 4, 4, '#d0742e');                                               // ricciolo in cima
+    c.oval(36, 182 - up, 6.5, 7, tone3('#d8803a', '#b55a26', '#8a4218'));                   // corpo
+    c.oval(31, 172 - up, 5.5, 5, tone3('#d8803a', '#b55a26', '#8a4218'));                   // testa
+    c.oval(28, 167 - up, 1.6, 2.2, '#b55a26'); c.oval(33, 166 - up, 1.6, 2.2, '#b55a26');     // orecchie
+    c.paint();
+    g.rect(34, 181 - up, 5, 7, '#f2d2a8');                                                    // pancia chiara
+    g.rect(29, 171 - up, 2, 2, '#1a120a'); g.px(29, 171 - up, '#ffffff'); g.px(26, 174 - up, '#3a2418');
+    const ax = ps ? 31 + (Math.floor(pet.t * 6) % 2) : 32;
+    const a = critter(g, '#3a2418'); a.oval(ax + 2, 183 - up, 2.5, 3, '#b8843a'); a.paint(); g.rect(ax, 180 - up, 5, 2, '#6e4a2e');   // ghianda
+    if (ps) hearts(g, 36, 156, pet);
   }
 }
