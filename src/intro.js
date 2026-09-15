@@ -30,7 +30,7 @@ function withLook(look, fn) { const saved = S.look; S.look = look; applyLook(); 
  * detto da chi ha diritto di chiederlo (nessuno le ha mai riviste vive → riportarle indietro). */
 const LINES = [
   { s: 'G', it: 'Eccoti, {n}! Vieni qui vicino a me: la terra oggi ha un segreto da mostrarci.', en: 'There you are, {n}! Come close to me: the earth has a secret to show us today.', shot: 1 },
-  { s: 'G', it: 'Piano, col pennello… eccolo. È l\'osso di una creatura vissuta tantissimo tempo fa.', en: 'Gently, with the brush… there it is. The bone of a creature that lived a very long time ago.', shot: 2 },
+  { s: 'G', it: 'Piano con la pala… eccolo. È l\'osso di una creatura vissuta tantissimo tempo fa.', en: 'Gently with the spade… there it is. The bone of a creature that lived a very long time ago.', shot: 2 },
   { s: 'G', it: 'Ho passato la vita a cercarle. E ho sempre sognato di vederne una viva, anche una sola.', en: 'I spent my life looking for them. And I always dreamed of seeing one alive, even just one.', shot: 3 },
   { s: 'G', it: 'Questo è per te, {n}. Io ormai sono stanco… ma tu hai tutta la strada davanti.', en: 'This is for you, {n}. I\'m tired now… but you have the whole road ahead of you.', shot: 4 },
   { s: 'D', it: 'Te lo prometto, nonno: le riporterò a casa. Tutte quante.', en: 'I promise, Grandpa: I\'ll bring them home. Every single one.', shot: 5 },
@@ -105,35 +105,67 @@ function shotSite(W, H, t, tu) {
   const arrive = Math.min(1, tu / 1800), dx = Math.round(W + 20 - (W + 20 - W * 0.62) * (1 - (1 - arrive) ** 2));
   shadowAt(dx, gy, 12); hero(null, dx, gy - (arrive < 1 ? Math.abs(Math.sin(t / 90)) * 2 : 0), 'left', arrive < 1 ? Math.floor(t / 120) % 2 : 0);
 }
-function shotBone(W, H, t) {
-  /* SEZIONE DEL TERRENO: in cima l'erba, sotto gli strati e dentro il cranio */
-  sky(W, H, ['#f2a55a', '#f7c878'], Math.round(H * 0.18));
-  const gy = Math.round(H * 0.2);
-  grass(W, H, gy, ['#5a8a44', '#7aaa5a', '#4a7a3a'], t);
-  const layers = ['#8a6440', '#7a5634', '#6b4a2e', '#5a3c24', '#4a3120'];
-  layers.forEach((c, i) => { const y0 = gy + 6 + i * Math.round((H - gy) / 5); for (let x = 0; x < W; x++) px(x, y0 + Math.round(Math.sin(x * 0.07 + i) * 2), 1, H, c); });
-  for (let i = 0; i < 40; i++) { const x = hash(i, 5) * W, y = gy + 12 + hash(i, 6) * (H - gy); px(x, y, 2 + (hash(i, 7) * 3 | 0), 2, i % 3 ? '#9a9285' : '#3a2a1a'); }
-  /* il cranio al centro, luce che scende */
-  const sx = Math.round(W / 2 - 55), sy = Math.round(H * 0.58 - 45);
-  /* LA BUCA: dall'erba si scende fino al cranio, pareti in ombra e fondo di terra smossa. La luce
-     del tramonto entra da lì — prima era una colonna chiara in mezzo alla terra piena, cioè una
-     luce che non veniva da nessuna parte */
-  const pitTop = gy + 2, pitBot = sy + 30;
+/* SECONDA INQUADRATURA — il nonno e il piccolo INTERI, in ginocchio sul bordo della buca, e
+   sotto di loro la terra in sezione col cranio. Prima si vedevano solo le gambe tagliate dalla
+   banda nera: due bastoncini marroni di cui non si capiva niente (segnalato con foto). Il nonno
+   dà un colpo di pala, la zolla salta via e scopre un pezzo dell'osso. */
+const HIT = 1000;                         // quando la pala arriva sulla zolla (ms dall'inizio)
+function shotBone(W, H, t, tu) {
+  sky(W, H, ['#e0894a', '#f2a55a', '#f7c878', '#f9dca0'], Math.round(H * 0.3));
+  sun(Math.round(W * 0.14), Math.round(H * 0.3), 13, '#ffe09a', 'rgba(255,226,150,.25)');
+  hills(W, H, Math.round(H * 0.34), 4, 0.045, '#c49a76', 2.6, '#d6ac86');   // colline chiare: dietro di loro, non un muro
+  const gy = Math.round(H * 0.44);
+  grass(W, H, gy, ['#4a7a3a', '#6a9a4a', '#3a5a2e'], t);
+  /* la terra in sezione, sotto il prato */
+  const layers = ['#8a6440', '#7a5634', '#6b4a2e', '#5a3c24'];
+  layers.forEach((c, i) => { const y0 = gy + 8 + i * Math.round((H - gy) / 4); for (let x = 0; x < W; x++) px(x, y0 + Math.round(Math.sin(x * 0.07 + i) * 2), 1, H, c); });
+  for (let i = 0; i < 26; i++) { const x = hash(i, 5) * W, y = gy + 14 + hash(i, 6) * (H - gy); px(x, y, 2 + (hash(i, 7) * 2 | 0), 2, i % 3 ? '#9a9285' : '#3a2a1a'); }
+  /* LA BUCA e il cranio, in mezzo ai due */
+  const sx = Math.round(W / 2 - 55), sy = Math.round(H * 0.6) - 42;
+  const pitTop = gy + 2, pitBot = sy + 26;
   for (let y = pitTop; y <= pitBot; y++) {
-    const k = (y - pitTop) / (pitBot - pitTop), x0 = Math.round(sx + 6 + k * 14), x1 = Math.round(sx + 110 - k * 10);
+    const k = (y - pitTop) / (pitBot - pitTop), x0 = Math.round(sx + 10 + k * 12), x1 = Math.round(sx + 104 - k * 8);
     px(x0, y, x1 - x0, 1, '#a57e52');
     px(x0 - 2, y, 2, 1, '#4a3120'); px(x1, y, 2, 1, '#3a2616');
   }
-  px(sx + 4, pitTop - 1, 108, 2, '#6b4a2e');
-  ctx.fillStyle = 'rgba(255,230,160,.12)';
-  for (let i = 0; i < 3; i++) ctx.fillRect(Math.round(sx + 26 + i * 8), pitTop, 40 - i * 10, pitBot - pitTop);
+  px(sx + 8, pitTop - 1, 98, 2, '#6b4a2e');
   drawBuriedSkull(ctx, t, sx, sy);
-  /* il PENNELLO del nonno, col manico che risale fuori dalla buca fino alla sua mano */
-  const bx = Math.round(W / 2 + 10 + Math.sin(t / 180) * 14), by = sy + 22;
-  px(bx - 1, pitTop - 8, 3, by - pitTop + 6, '#6e4a2a'); px(bx - 3, by - 3, 7, 5, '#e8d29a'); px(bx - 3, by + 1, 7, 2, '#c9a06a');
-  px(bx - 3, pitTop - 12, 7, 5, '#e3b98a'); px(bx - 4, pitTop - 16, 9, 4, '#7a6a52');     // mano e manica
-  for (let i = 0; i < 8; i++) { const a = (t / 400 + i / 8) % 1; px(bx - 10 + hash(i, 1) * 20 + Math.sin(t / 180) * 6 * a, by + 2 - a * 16, 1, 1, `rgba(236,220,180,${(1 - a).toFixed(2)})`); }
-  if (Math.floor(t / 500) % 3 === 0) sparkle(sx + 48, sy + 40, '#fff6c8');
+  const hit = tu >= HIT;
+  if (!hit) {          // la zolla che copre ancora l'osso
+    for (let y = sy + 18; y <= sy + 46; y++) { const w = Math.round(46 - Math.abs(y - sy - 30) * 0.7); px(W / 2 - w, y, w * 2, 1, y < sy + 22 ? '#8a6440' : '#6b4a2e'); }
+    for (let i = 0; i < 14; i++) px(W / 2 - 42 + hash(i, 9) * 84, sy + 20 + hash(i, 10) * 24, 2, 2, '#4a3120');
+  } else {             // zolle che schizzano e polvere
+    const a2 = Math.min(1, (tu - HIT) / 900);
+    for (let i = 0; i < 9; i++) {
+      const dir = i % 2 ? 1 : -1, sp = 20 + hash(i, 13) * 34;
+      const cx2 = W / 2 + dir * sp * a2 * 1.8, cy2 = sy + 20 - 46 * a2 + 80 * a2 * a2;
+      if (cy2 < pitBot + 8) px(cx2, cy2, 3 - (i % 2), 3 - (i % 2), i % 3 ? '#6b4a2e' : '#8a6440');
+    }
+    for (let i = 0; i < 10; i++) { const d = (a2 * 1.4 + i / 10) % 1; px(W / 2 - 34 + hash(i, 14) * 68, sy + 22 - d * 20, 1, 1, `rgba(214,190,150,${(1 - d).toFixed(2)})`); }
+    if (a2 < 0.3) sparkle(sx + 48, sy + 30, '#fff6c8');
+  }
+  /* I DUE, interi, uno per lato della buca */
+  const gx = Math.round(W / 2 - 46), dx = Math.round(W / 2 + 46);
+  shadowAt(gx, gy, 14); shadowAt(dx, gy, 12);
+  hero(GRANDPA, gx, gy, 'right', 0, hit && tu < HIT + 400 ? 'strike' : 'lift');
+  hero(null, dx, gy, 'left', 0, hit ? 'strike' : 0);
+  /* LA PALA nelle mani del nonno: si alza, colpisce la zolla, poi si rialza con la terra sopra */
+  const kIn = Math.min(1, tu / HIT), up = hit ? Math.min(1, (tu - HIT) / 700) : 0;
+  const hx = gx + 13, hy = gy - 20;                                   // le mani
+  const tipY = Math.round(hy - 14 + (sy + 16 - (hy - 14)) * (kIn * kIn) - up * 22);
+  const tipX = Math.round(hx + 6 + (W / 2 - 6 - hx) * kIn);
+  /* UN manico solo, dalle mani fino al collo della lama (prima erano due tratti che non si
+     toccavano e la lama sembrava staccata) */
+  const nx = tipX, ny = tipY - 2, steps = Math.max(8, Math.round(Math.hypot(nx - hx, ny - hy) / 2));
+  for (let i = 0; i <= steps; i++) {
+    const k2 = i / steps, mx = Math.round(hx + (nx - hx) * k2), my = Math.round(hy + (ny - hy) * k2);
+    px(mx, my, 3, 3, '#8a5f38'); px(mx, my, 3, 1, '#a87a4a');
+  }
+  px(tipX - 2, tipY - 2, 5, 3, '#7f8890');                                          // collo
+  px(tipX - 8, tipY, 17, 12, '#2a2b2e');                                          // contorno scuro: la lama si stacca dalla terra
+  px(tipX - 7, tipY + 1, 15, 9, '#b9c2c9'); px(tipX - 7, tipY + 8, 15, 2, '#7f8890');  // lama
+  px(tipX - 6, tipY + 2, 4, 6, '#d8dee3'); px(tipX + 5, tipY + 1, 3, 9, '#8f9aa3');
+  if (hit && up > 0.15) { px(tipX - 6, tipY + 10, 13, 4, '#6b4a2e'); px(tipX - 4, tipY + 11, 9, 2, '#8a6440'); }
 }
 function shotMemory(W, H, t, tu, creature) {
   /* IL RICORDO: notte di luna, tinta viola; una creatura VIVA passa sopra il suo scheletro */
@@ -210,7 +242,7 @@ function drawIntro(t) {
   if (line.shot !== lastShot) { lastShot = line.shot; shotStart = t; fadeT = t; }
   const tu = t - shotStart;
   if (line.shot === 1) shotSite(W, H, t, tu);
-  else if (line.shot === 2) shotBone(W, H, t);
+  else if (line.shot === 2) shotBone(W, H, t, tu);
   else if (line.shot === 3) shotMemory(W, H, t, tu, memCreature);
   else if (line.shot === 4) shotGive(W, H, t, tu);
   else shotDawn(W, H, t, tu);
@@ -228,12 +260,13 @@ function drawIntro(t) {
 
 /* una battuta disegnata a comando, per la foto (`npm run shot -- intro … "battuta=3"`): in headless
    requestAnimationFrame non avanza, quindi l'intro vera resterebbe al primo fotogramma */
-export function drawIntroLine(i, t) { cur = Math.max(0, Math.min(LINES.length - 1, i)); lastShot = LINES[cur].shot; shotStart = 0; fadeT = -1e9; drawIntro(t); }
+let frozen = false, frozenT = 0;
+export function drawIntroLine(i, t) { frozen = true; frozenT = t; cur = Math.max(0, Math.min(LINES.length - 1, i)); lastShot = LINES[cur].shot; shotStart = 0; fadeT = -1e9; drawIntro(t); }
 
 export function playIntro(onDone) {
   const finish = () => { active = false; try { removeEventListener('resize', fit); box.remove(); document.body.classList.remove('introing'); } catch (e) { /* ok */ } if (onDone) onDone(); };
   if (typeof document === 'undefined' || !document.createElement) { if (onDone) onDone(); return; }
-  active = true; fit(); document.body.classList.add('introing');
+  active = true; frozen = false; fit(); document.body.classList.add('introing');
   const box = document.createElement('div'); box.id = 'introbox';
   box.innerHTML = `<div class="introbar top"></div><div class="introbar bot"></div>
     <div id="introtap"></div>
@@ -271,7 +304,7 @@ export function playIntro(onDone) {
     if (!active) return;
     const t = ts || now();
     if (typed < textFull.length) { typed = Math.min(textFull.length, Math.floor((t - tStart) / 22)); if (textEl) textEl.textContent = textFull.slice(0, typed); }
-    drawIntro(t);
+    drawIntro(frozen ? frozenT : t);   // foto: drawIntroLine congela il quadro sul momento chiesto
     requestAnimationFrame(frame);
   }
   showLine(); requestAnimationFrame(frame);

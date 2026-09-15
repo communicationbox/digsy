@@ -14,7 +14,7 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
   "There you are, {n}! Come close to me: the earth has a secret to show us today.": "Вот и ты, {n}! Подойди ко мне поближе: сегодня земля хочет показать нам секрет.",
-  "Gently, with the brush… there it is. The bone of a creature that lived a very long time ago.": "Осторожно, кисточкой… вот она. Кость существа, жившего очень-очень давно.",
+  "Gently with the spade… there it is. The bone of a creature that lived a very long time ago.": "Осторожно лопатой… вот она. Кость существа, жившего очень-очень давно.",
   "I spent my life looking for them. And I always dreamed of seeing one alive, even just one.": "Я всю жизнь их искал. И всегда мечтал увидеть хоть одно живым, хотя бы одно.",
   "This is for you, {n}. I'm tired now… but you have the whole road ahead of you.": "Это тебе, {n}. Я уже устал… а у тебя впереди вся дорога.",
   "I promise, Grandpa: I'll bring them home. Every single one.": "Обещаю, дедушка: я верну их домой. Всех до одного.",
