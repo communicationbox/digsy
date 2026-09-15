@@ -1,0 +1,13 @@
+{
+  "name": "digsy-world-desktop",
+  "productName": "Digsy World",
+  "version": "0.98.3",
+  "description": "Digsy World — cozy pixel-art digging game",
+  "author": "Marco Giacobazzi",
+  "main": "main.cjs",
+  "private": true,
+  "devDependencies": {
+    "@electron/packager": "^18.3.6",
+    "electron": "^33.2.1"
+  }
+}
