@@ -1501,7 +1501,7 @@ sprites.applyLook();
 
   S6.museum = {};
   check(`le sale sono ${D6.MUSEUM_ZONES.length}, quante le lettere del nonno`,
-    L.roomsTotal() === D6.MUSEUM_ZONES.length && L.allLetters().length === D6.MUSEUM_ZONES.length + 1);
+    L.roomsTotal() === D6.MUSEUM_ZONES.length && L.allLetters().length === D6.MUSEUM_ZONES.length + 2);   // + la statua e il finale
   check('museo vuoto: nessuna sala piena', L.roomsDone() === 0);
   check('a museo vuoto la sala più vicina è comunque indicata',
     !!L.nextRoom() && L.nextRoom().have === 0 && L.nextRoom().manca > 0);
@@ -2262,9 +2262,10 @@ sprites.applyLook();
     check('e non finisce in mezzo a una strada', sopraStrada === 0);
     /* la targa si apre e dice le due cose: chi era lui, e a che punto sei TU */
     {
-      const ui15 = ui, S15 = state.S;
+      const ui15 = ui, S15 = state.S, lettersMod15 = await import('../src/letters.js');
       let crash = null;
-      try { ui15.openStatue(); } catch (e) { crash = e.message; }
+      /* la prima apertura consegna la lettera nascosta; la seconda mostra la targa */
+      try { ui15.openStatue(); check('la prima volta la statua dà la lettera nascosta', lettersMod15.hasLetter('statua')); ui15.openStatue(); } catch (e) { crash = e.message; }
       check('la targa si apre senza crash', crash === null, crash || '');
       const html15 = document.getElementById('m-body').innerHTML;
       check('la targa parla del nonno', /nessuno ricordava|no one remembered/i.test(html15));
@@ -6499,7 +6500,7 @@ sprites.applyLook();
   check('tutte le sale piene → arriva il finale', lt.pendingLetter() === 'finale' && lt.letterBody('finale').length >= 4);
   lt.giveLetter('finale');
   check('dopo il finale non resta nulla da consegnare', lt.pendingLetter() === null);
-  check('ogni ala ha la sua lettera', lt.allLetters().length === MZ.length + 1 && MZ.every(z => lt.letterTitle(z.id) !== z.id));
+  check('ogni ala ha la sua lettera, più quella nascosta nella statua', lt.allLetters().length === MZ.length + 2 && lt.allLetters()[0] === 'statua' && MZ.every(z => lt.letterTitle(z.id) !== z.id));
   /* pannello di rilettura */
   ui.openLetters();
   const lh = document.getElementById('m-body').innerHTML;

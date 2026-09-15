@@ -13,6 +13,13 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "Amber cases: ": "Янтарные витрины: ",
+  "look at the statue by the Museum": "осмотри статую у Музея",
+  "Hidden in the stone": "Спрятано в камне",
+  "If you found this envelope, you looked at the statue up close. I knew you would.": "Если ты нашёл этот конверт, значит, рассмотрел статую вблизи. Я знал.",
+  "The Museum is right here: bring it every bone, even the one that looks like a stone.": "Музей совсем рядом: неси туда каждую кость, даже ту, что похожа на камень.",
+  "A letter from me is waiting in every room. I left you one for each zone.": "В каждом зале тебя ждёт моё письмо. Я оставил по одному на каждую зону.",
+  "Good luck, little archaeologist.": "Удачи, маленький археолог.",
   "Amber": "Янтарь",
   "Once a case is full, <b>amber</b> pieces ✨ appear: a second case to fill.": "Когда витрина полна, появляются <b>янтарные</b> части ✨: вторая витрина для сбора.",
   "Amber cases": "Янтарные витрины",

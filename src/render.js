@@ -31,6 +31,7 @@ import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
+import { hasLetter } from './letters.js';
 import { caveWall, caveFloor, caveCrystal } from './caveArt.js';
 import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, mailboxArt, siteArt } from './decoArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
@@ -217,7 +218,7 @@ function drawBoard(sx, sy, time) {
    con cui parlare per sbaglio. La targa manda un riflesso ogni tanto: dice "qui c'è da leggere"
    senza scriverlo. */
 function drawStatue(sx, sy, time) {
-  ctx.save(); ctx.translate(sx, sy); statueArt(BRUSH, time); ctx.restore();
+  ctx.save(); ctx.translate(sx, sy); statueArt(BRUSH, time, !hasLetter('statua')); ctx.restore();
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {

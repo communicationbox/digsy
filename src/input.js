@@ -1,12 +1,13 @@
 /* Input: tastiera (WASD/frecce, E/spazio, I, Esc) + touch (joystick, tasto A) + console (\) */
 import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare, isTossOpen, tossPress, tossAbort, isSkeletonFitOpen, skeletonFitSkip } from './ui.js';
 import { FOOT_DY } from './body.js';
-import { setGoal, clearGoal, screenToWorld, inReach } from './tapmove.js';
+import { setGoal, clearGoal, screenToWorld, inReach, hasGoal } from './tapmove.js';
 import { findPath, fits } from './path.js';
-import { tileBlocked, toggleMount, companionRides, tapFurnitureAt } from './gameplay.js';
+import { tileBlocked, toggleMount, companionRides, tapFurnitureAt, nearbyStatue } from './gameplay.js';
+import { townInfo } from './world.js';
 import { interiorCam } from './interiors.js';
 import { CAVE, caveSolid, caveCam } from './cave.js';
-import { toast, refreshFurnHold } from './ui.js';
+import { toast, refreshFurnHold, openStatue } from './ui.js';
 import { tr } from './i18n.js';
 import { TS } from './data.js';
 import { P } from './state.js';
@@ -366,6 +367,17 @@ if (cv && cv.addEventListener) {
     if (INT.active && INT.b && INT.b.type === 'house' && INT.houseRoom != null) {
       if (tapFurnitureAt(Math.floor(w.x / TS), Math.floor(w.y / TS))) return;
     }
+    /* STATUA DEL NONNO: toccarla la apre (da vicino) o ci porta Digsy e la apre all'arrivo. Dietro la
+       targa c'è la prima lettera: deve bastare un clic, senza sapere del tasto azione */
+    if (!INT.active && !CAVE.active) {
+      const st = tappedStatue(Math.floor(w.x / TS), Math.floor(w.y / TS));
+      if (st) {
+        const ftx = Math.floor(P.x / TS), fty = Math.floor((P.y + FOOT_DY) / TS);
+        if (Math.max(Math.abs(ftx - st.x), Math.abs(fty - st.y)) <= 1) { openStatue(); return; }
+        const path = findPath(ftx, fty, st.x, st.y + 1, sc.blocked, sc.maxLen);
+        if (path) { setGoal(st.x * TS + TS / 2, (st.y + 1) * TS + TS / 2 - FOOT_DY, path); goalStatue = true; return; }
+      }
+    }
     if (!tapToMoveOn()) return;
     if (sc.reach && !sc.reach(w.x, w.y)) return;
     /* La casella di PARTENZA è dove stanno i piedi ora (P.y è l'ancora alta, i piedi +13).
@@ -463,3 +475,16 @@ ab.addEventListener('touchstart', e => { e.preventDefault(); abTouched = true; a
 ab.addEventListener('touchend', e => { e.preventDefault(); ab.classList.remove('press'); if (abTouched && !isModalOpen() && !splashActive()) act(); abTouched = false; }, { passive: false });
 ab.addEventListener('touchcancel', () => { abTouched = false; ab.classList.remove('press'); });
 ab.addEventListener('click', () => { if (!isModalOpen() && !splashActive()) act(); }); // mouse/desktop
+
+/* la statua toccata (la casella della statua o quella sopra, dove si disegna la testa) */
+function tappedStatue(tx, ty) {
+  for (const y of [ty, ty + 1]) { const ti = townInfo(tx, y); if (ti && ti.deco && ti.deco.type === 'statue') return { x: tx, y }; }
+  return null;
+}
+/* arrivati davanti alla statua dopo averla toccata da lontano: si apre da sola */
+let goalStatue = false;
+export function checkStatueArrival() {
+  if (!goalStatue || hasGoal()) return;
+  goalStatue = false;
+  if (!isModalOpen() && nearbyStatue()) openStatue();
+}

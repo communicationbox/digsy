@@ -8,6 +8,21 @@ import { tr } from './i18n.js';
 
 /* it/en: testo della lettera. `t` = titolo, `b` = corpo (righe). */
 export const LETTERS = {
+  /* LA PRIMA LETTERA è nascosta nella statua del nonno accanto al Museo: le sette delle sale arrivano
+     dopo ore, e senza questa per tutta la prima parte l'arco del nonno restava muto */
+  statua: {
+    t: ['Nascosta nella pietra', 'Hidden in the stone'],
+    b: [
+      ['Se hai trovato questa busta, hai guardato la statua da vicino. Lo sapevo.',
+       'Qui accanto c\'è il Museo: portaci ogni osso, anche quello che sembra un sasso.',
+       'In ogni sala ti aspetta una mia lettera. Te le ho lasciate una per zona.',
+       'Buona fortuna, piccolo archeologo.'],
+      ['If you found this envelope, you looked at the statue up close. I knew you would.',
+       'The Museum is right here: bring it every bone, even the one that looks like a stone.',
+       'A letter from me is waiting in every room. I left you one for each zone.',
+       'Good luck, little archaeologist.'],
+    ],
+  },
   prati: {
     t: ['Dove tutto è cominciato', 'Where it all began'],
     b: [
@@ -172,4 +187,4 @@ export function giveLetter(id) {
   S.letters.push(id); save();
   return true;
 }
-export function allLetters() { return MUSEUM_ZONES.map(z => z.id).concat(['finale']); }
+export function allLetters() { return ['statua'].concat(MUSEUM_ZONES.map(z => z.id), ['finale']); }

@@ -17,7 +17,7 @@ import { wonderName } from './wonders.js';
 import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled } from './splash.js';
-import { keys, steerFollow } from './input.js';
+import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
@@ -188,6 +188,7 @@ function loop(ts) {
       render(ts); requestAnimationFrame(loop); return;
     }
     walk(dt);
+    checkStatueArrival();            // toccata la statua da lontano: si apre all'arrivo
     companionWorkTick(dt);  // raccoglitore leggendario: se lavora, guida lui il movimento
     companionPlayTick(dt);  // "gioca col compagno": lancio, corsa, finestra di cattura
     updateCompanion(dt, isMounted());    // in volo resta incollato; a terra insegue il player

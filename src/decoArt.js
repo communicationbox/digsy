@@ -87,13 +87,19 @@ export function boardArt(g, time) {
 }
 
 /* STATUA DEL NONNO: tutta pietra, così si legge come monumento e non come un personaggio */
-export function statueArt(g, time) {
+export function statueArt(g, time, envelope) {
   const D = '#3e3a34', P1 = '#7d766a', P2 = '#9a9384', P3 = '#b6ae9d', P4 = '#cfc7b4';
   shadowE(g, 16, 30, 15, 3);
   g.rect(1, 22, 30, 10, D); g.rect(2, 23, 28, 8, P1); g.rect(2, 23, 28, 2, P3);                                                    // gradino
   g.rect(6, 12, 20, 12, D); g.rect(7, 12, 18, 11, P2); g.rect(7, 12, 18, 2, P4); g.rect(22, 14, 3, 9, P1);                         // plinto
   g.rect(9, 16, 14, 5, '#6b5a2a'); g.rect(10, 17, 12, 3, '#c9a24a'); g.rect(10, 17, 12, 1, '#e8c86a');                             // targa
   if (Math.floor(time / 520) % 4 === 0) g.rect(11, 17, 3, 1, '#fff8e0');
+  /* la BUSTA del nonno infilata dietro la targa, finché non la prendi: un angolo di carta che spunta e
+     brilla, così la statua chiama il clic senza scriverlo */
+  if (envelope) {
+    g.rect(22, 18, 7, 5, D); g.rect(23, 19, 5, 3, '#f3ecda'); g.px(25, 20, '#c65a54');
+    if (Math.floor(time / 380) % 3 === 0) { g.rect(28, 15, 1, 3, '#fff3a0'); g.rect(27, 16, 3, 1, '#fff3a0'); }
+  }
   /* il nonno: cappotto lungo che si allarga in fondo, spalle, braccio sulla pala, barba a
      punta e cappello da esploratore a tesa larga */
   for (let y = -10; y < 12; y++) { const w = 12 + Math.round(((y + 10) / 22) * 6); g.rect(16 - (w >> 1) - 1, y, w + 2, 1, D); g.rect(16 - (w >> 1), y, w, 1, y < -6 ? P3 : P2); g.rect(16 - (w >> 1), y, 3, 1, P3); g.rect(16 + (w >> 1) - 3, y, 3, 1, P1); }

@@ -21,7 +21,7 @@ import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, o
 import { drawFurnThumb, furnRotatable } from './furnArt.js';
 import { FURN_CATALOG, FURN_THEMES, ZONE_THEME } from './furnCatalog.js';
 import { catalogToday, catalogPrice } from './furnShop.js';
-import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom } from './letters.js';
+import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, nextRoom, giveLetter } from './letters.js';
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
 import { TIPS, TIP_IDS, tipSeen, markTip, tipTitle, tipText, tipsSeenCount } from './tips.js';
@@ -685,7 +685,7 @@ export function openLetters() {
   let h = `<div class="muted" style="margin-bottom:8px">✉ ${got.length}/${all.length}</div>`;
   h += all.map(id => hasLetter(id)
     ? `<div class="row" data-letter="${id}" style="cursor:pointer"><span class="em">✉</span><div><div class="nm">${letterTitle(id)}</div><div class="sub">${tr('tocca per rileggerla', 'tap to read it again')}</div></div></div>`
-    : `<div class="row" style="opacity:.5"><span class="em">·</span><div><div class="nm">? ? ?</div><div class="sub">${id === 'finale' ? tr('quando avrai tutte le altre', 'once you have all the others') : tr('riempi la sala di ', 'fill the room of ') + zoneName(id)}</div></div></div>`).join('');
+    : `<div class="row" style="opacity:.5"><span class="em">·</span><div><div class="nm">? ? ?</div><div class="sub">${id === 'finale' ? tr('quando avrai tutte le altre', 'once you have all the others') : id === 'statua' ? tr('guarda la statua vicino al Museo', 'look at the statue by the Museum') : tr('riempi la sala di ', 'fill the room of ') + zoneName(id)}</div></div></div>`).join('');
   mTitle.innerHTML = withIcons('✉ ' + tr('Lettere del nonno', "Grandpa's letters"));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-letter]').forEach(el => el.onclick = () => openLetter(el.dataset.letter));
@@ -695,6 +695,8 @@ export function openLetters() {
    dice chi era lui; sotto, a che punto sei TU — lo stesso conteggio del cancello del parco e del
    banco del Curatore, mai riscritto a mano (goal.js). */
 export function openStatue() {
+  /* la prima volta, dietro la targa c'è la busta del nonno */
+  if (!hasLetter('statua')) { giveLetter('statua'); playSfx('found'); openLetter('statua', false); return; }
   mTitle.innerHTML = withIcons('🗿 ' + tr('Monumento al vecchio archeologo', 'Monument to the old archaeologist'));
   let h = `<div class="letter"><div class="lt-h">${tr('Targa incisa', 'Engraved plaque')}</div>
     <p>${tr('Trovò ciò che nessuno ricordava.', 'He found what no one remembered.')}</p>
@@ -703,7 +705,9 @@ export function openStatue() {
   h += `<div class="row" style="background:#f6e7c4"><span class="em">🧬</span><div>
     <div class="nm">${goalTitle()}: ${goalLine()}</div>
     <div class="sub">${alive() ? goalHint() : goalEnd()}</div></div></div>`;
+  h += `<div class="center" style="margin-top:8px"><button class="btn ghost" id="stLetter">✉ ${letterTitle('statua')}</button></div>`;
   mBody.innerHTML = withIcons(h); openModal();
+  const sl = document.getElementById('stLetter'); if (sl) sl.onclick = () => openLetter('statua', false);
 }
 /* MERAVIGLIA: pannello con nome, descrizione, la riga del nonno e il dono (col riposo).
    Ogni testo dice sempre se è pronta o quanti giorni mancano: niente cooldown misteriosi. */
@@ -2052,7 +2056,7 @@ export function openBag(tab) {
   secLetters += `<div class="bag-list">`;
   secLetters += allL.map(id => hasLetter(id)
     ? row('✉', letterTitle(id), tr('tocca per rileggerla', 'tap to read it again'), '', `data-letter="${id}"`, 'click')
-    : row('·', '? ? ?', id === 'finale' ? tr('quando avrai tutte le altre', 'once you have all the others') : tr('riempi la sala di ', 'fill the room of ') + zoneName(id), '', '', 'miss')).join('');
+    : row('·', '? ? ?', id === 'finale' ? tr('quando avrai tutte le altre', 'once you have all the others') : id === 'statua' ? tr('guarda la statua vicino al Museo', 'look at the statue by the Museum') : tr('riempi la sala di ', 'fill the room of ') + zoneName(id), '', '', 'miss')).join('');
   secLetters += `</div></div>`;
   const TABS = [
     ['finds', '🦴', tr('Reperti', 'Finds'), S.raw.length + S.items.length, secFinds],

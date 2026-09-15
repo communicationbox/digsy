@@ -1,7 +1,8 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.98.1', it: [
+    v: 'v0.98.2', it: [
+      'LETTERA NASCOSTA: la prima lettera del nonno è infilata dietro la targa della sua statua, accanto al Museo. Basta toccarla',
       'MONDO: terreni senza quadretti, bordi frastagliati fra prato, bosco, terra e roccia, rive e laghi con gli angoli tondi',
       'AMBRA: completata una teca, cominciano a uscire i pezzi d\'ambra ✨ di quella specie. Cinque su cinque accendono la teca d\'ambra al Museo e pagano bene: la collezione continua per decine di ore',
       'CREATURE più belle: occhi vivi, corna solo a chi le ha, musi affusolati, orecchie alle lepri, gambe piene',
@@ -9,6 +10,7 @@ export const CHANGELOG = [
       'CAPELLI: stempiato e afro rifatti',
       'MENO TESTO ovunque: pannelli senza spiegazioni lunghe, bottoni a portata di dito su telefono',
     ], en: [
+      'HIDDEN LETTER: Grandpa\'s first letter is tucked behind the plaque of his statue, next to the Museum. Just tap it',
       'WORLD: no more grid squares, ragged edges between grass, forest, dirt and rock, shores and lakes with rounded corners',
       'AMBER: once a case is complete, amber ✨ pieces of that species start to appear. Five of five light up the amber case at the Museum and pay well: the collection goes on for dozens of hours',
       'NICER creatures: lively eyes, horns only where they belong, tapered snouts, hare ears, sturdy legs',
