@@ -98,12 +98,15 @@ function campBack(W, H, t, gy, ora) {
   const tx = Math.round(W * 0.18);
   for (let y = 0; y < 24; y++) { const w = Math.round(y * 0.9); px(tx - w, gy - 24 + y, w * 2, 1, y < 2 ? '#e8d6a8' : '#c9b07a'); px(tx - w, gy - 24 + y, 2, 1, '#8a7048'); }
   px(tx - 5, gy - 14, 10, 14, '#2a1f14');                                   // l'apertura della tenda
-  if (night) {                                                              // IL PICCOLO DORME dentro la tenda
-    px(tx - 4, gy - 5, 9, 5, '#5a86c8'); px(tx - 4, gy - 5, 9, 1, '#7aa2e0');      // coperta
-    px(tx - 1, gy - 9, 5, 5, '#e3b98a'); px(tx - 1, gy - 9, 5, 2, '#8a6a3a');      // testa e capelli
-    px(tx, gy - 7, 1, 1, '#2a1f14'); px(tx + 2, gy - 7, 1, 1, '#2a1f14');          // occhi chiusi
-    const zz = Math.floor(t / 900) % 3;                                            // zzz che salgono
-    for (let i = 0; i <= zz; i++) { const zx = tx + 6 + i * 4, zy = gy - 12 - i * 5; px(zx, zy, 4, 1, '#cfd6ff'); px(zx, zy + 3, 4, 1, '#cfd6ff'); px(zx + 1, zy + 1, 2, 2, '#cfd6ff'); }
+  if (night) {                        // IL PICCOLO DORME dentro la tenda: solo il fagotto sotto la
+    px(tx - 4, gy - 6, 9, 6, '#4a6ea8'); px(tx - 4, gy - 6, 9, 1, '#6b8fc8');      // coperta, al buio
+    px(tx - 4, gy - 3, 9, 1, '#3a5684');
+    const zz = Math.floor(t / 900) % 3;                                            // e le ZZZ che escono
+    for (let i = 0; i <= zz; i++) {
+      const zx = tx + 9 + i * 7, zy = gy - 20 - i * 10, w = 8 - i * 2;   // tre Z, sempre più piccole
+      px(zx, zy, w, 1, '#cfd6ff'); px(zx, zy + w - 1, w, 1, '#cfd6ff');
+      for (let k = 1; k < w - 1; k++) px(zx + w - 1 - k, zy + k, 1, 1, '#cfd6ff');
+    }
   }
   px(tx + 26, gy - 8, 12, 8, '#8a5f38'); px(tx + 26, gy - 8, 12, 2, '#b07c4a'); px(tx + 31, gy - 8, 2, 8, '#5c4229');
   const fl = Math.floor(t / 200) % 2, lx = tx + 46;
@@ -163,6 +166,17 @@ function miniSkull(x, y) {
   for (let dy = 4; dy <= 9; dy++) for (let dx = 7; dx <= 13; dx++) if (((dx - 10) / 3.2) ** 2 + ((dy - 6.5) / 2.8) ** 2 <= 1) dot(dx, dy, '#2a2118');   // occhiaia
   dot(30, 8, '#2a2118'); dot(31, 8, '#2a2118');                                    // narice
   for (let i = 0; i < 6; i++) { px(x + 24 + i * 3, y + 12, 2, 3, B1); px(x + 24 + i * 3, y + 14, 2, 1, OUTC); }   // denti
+}
+/* IL TESCHIETTO che il nonno mette in mano al piccolo: 22 × 9. Quello della buca (46 px) in mano
+   a un bambino alto 32 sembrava un cocomero. */
+function tinySkull(x, y) {
+  const OUTC = '#3a2f20', B1 = '#efe4c8', B2 = '#d9c9a4';
+  px(x + 1, y + 1, 9, 6, B2); px(x + 1, y + 1, 9, 2, B1);              // cranio
+  px(x + 10, y + 3, 9, 4, B2); px(x + 10, y + 3, 9, 1, B1);            // muso
+  px(x, y, 11, 1, OUTC); px(x, y + 7, 11, 1, OUTC); px(x, y + 1, 1, 6, OUTC);
+  px(x + 10, y + 2, 10, 1, OUTC); px(x + 10, y + 7, 10, 1, OUTC); px(x + 19, y + 3, 1, 4, OUTC);
+  px(x + 3, y + 3, 3, 3, '#2a2118');                                    // occhiaia
+  for (let i = 0; i < 3; i++) px(x + 12 + i * 3, y + 7, 2, 2, B1);      // denti
 }
 function shotBone(W, H, t, tu) {
   const gy = Math.round(H * 0.42);
@@ -243,13 +257,15 @@ function shotGive(W, H, t, tu) {
   for (let i = 0; i < 3; i++) px(fx - 4 + i * 3, gy - 3, 2, 1, (Math.floor(t / 300) + i) % 2 ? '#e8873a' : '#c9502a');
   for (let i = 0; i < 5; i++) { const a2 = (t / 1100 + i / 5) % 1; px(fx - 1 + Math.sin(t / 400 + i * 1.4) * 4, gy - 6 - a2 * 26, 2, 2, `rgba(200,200,190,${(0.5 - a2 * 0.5).toFixed(2)})`); }
   /* i due attorno al fuoco, vicini abbastanza da passarsi il fossile */
-  const gx = fx - 26, dx = fx + 26;
+  const gx = fx - 28, dx = fx + 28;   // lo spazio per passarsi il teschietto
   shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'strike');
   shadowAt(dx, gy, 12); hero(null, dx, gy, 'left', 0, tu > 1400 ? 'strike' : undefined);
   /* il fossile che passa di mano e brilla */
-  const k = Math.min(1, tu / 1600), hxf = Math.round(gx + 13 + (dx - gx - 26) * k), hyf = gy - 14 - Math.round(Math.sin(k * Math.PI) * 3);
-  px(hxf - 4, hyf - 1, 9, 3, '#2a1f14'); px(hxf - 3, hyf, 7, 1, '#f1e8d2'); px(hxf - 5, hyf - 2, 3, 5, '#2a1f14'); px(hxf - 4, hyf - 1, 1, 3, '#f1e8d2'); px(hxf + 3, hyf - 2, 3, 5, '#2a1f14'); px(hxf + 4, hyf - 1, 1, 3, '#f1e8d2');
-  for (let i = 0; i < 5; i++) { const a2 = (t / 900 + i / 5) % 1; if (a2 < 0.8) sparkle(hxf - 8 + hash(i, 2) * 16, hyf - 2 - a2 * 18, i % 2 ? '#fff6c8' : '#ffe27a'); }
+  /* IL TESCHIO trovato nella buca passa dalle mani del nonno a quelle del piccolo: è lo stesso
+     disegno di ieri sera, non un ossicino qualsiasi */
+  const k = Math.min(1, tu / 1600), hxf = Math.round(gx + 12 + (dx - gx - 34) * k), hyf = gy - 14 - Math.round(Math.sin(k * Math.PI) * 3);
+  tinySkull(hxf, hyf);
+  for (let i = 0; i < 5; i++) { const a2 = (t / 900 + i / 5) % 1; if (a2 < 0.8) sparkle(hxf + 2 + hash(i, 2) * 18, hyf - 3 - a2 * 14, i % 2 ? '#fff6c8' : '#ffe27a'); }
 }
 /* ---------------- regia ---------------- */
 let cur = 0, typed = 0, tStart = 0, shotStart = 0, lastShot = 0, fadeT = -1e9;
