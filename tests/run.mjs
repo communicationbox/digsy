@@ -8126,7 +8126,20 @@ sprites.applyLook();
   check('saltato: sparisce e non spunta niente', !tut.tutActive() && tut.tutSkipped() && tut.tutChecked(0) === false);
   tut.tutRestart();
   check('rifatto dalla Guida: riparte dal primo passo', tut.tutActive() && tut.tutStepId() === 'bed' && !tut.tutSkipped());
+
+  /* LA SCHEDA SI RICHIUDE: su un telefono aperta copre un terzo dello schermo, e chi ha letto
+     il passo vuole vedere il gioco. La scelta sta nelle preferenze, fuori dal salvataggio. */
   {
+    const prefs = await import('../src/prefs.js');
+    S.tut = null; ui.updateHUD();
+    const box = document.getElementById('tutbox');
+    check('aperta, la scheda dice cosa fare', /tut-how/.test(box.innerHTML));
+    prefs.setPref('tutSmall', true); ui.updateHUD();
+    check('richiusa, resta il titolo del passo', !/tut-how/.test(box.innerHTML) && /tut-obj/.test(box.innerHTML));
+    check('e i quadratini restano visibili', /tut-pips/.test(box.innerHTML));
+    prefs.setPref('tutSmall', false); ui.updateHUD();
+    check('riaperta, torna la spiegazione', /tut-how/.test(box.innerHTML));
+  }  {
     const fs5 = await import('node:fs');
     const usrc = fs5.readFileSync('src/ui.js', 'utf8');
     check('la Guida ha il pulsante per rifare il tutorial', /tutAgain/.test(usrc) && /tutRestart/.test(usrc));

@@ -32,7 +32,7 @@ import { wonderName, wonderDesc, wonderGrandpa, wonderPower, wonderCd, wonderSta
 import { CAVE, caveNodeReach, exitCave, nearCaveExit } from './cave.js';
 import { baseSpec, buildVoxels, buildFleshVoxels, partVoxels, composedPartsVox, shadeHex, BP } from './bones.js';
 import { isDebug } from './debug.js';
-import { tipsOn, joystickOn, leftHanded } from './prefs.js';
+import { tipsOn, joystickOn, leftHanded, tutSmall, setPref} from './prefs.js';
 import { fusibleGroups, nextRarity } from './fuse.js';
 import { projectVox } from './voxview.js';
 import { openMap, closeMap, isMapOpen, revealMap, mapZoomBy, mapReset } from './mapui.js';
@@ -100,11 +100,13 @@ function syncTutorial() {
   const cur = tutIndex(), id = tutStepId(), p = tutProgress();
   /* i quadratini dicono a che punto sei senza scrivere l'elenco di tutto quello che non hai
      ancora fatto: quello faceva sembrare il tutorial più lungo di quanto è */
+  const small = tutSmall();
   let h = '<div class="tut-top"><span class="tut-pips">'
     + STEP_IDS.map((sid, i) => `<i class="${tutChecked(i) ? 'ok' : i === cur ? 'on' : ''}"></i>`).join('')
-    + `</span><button class="tut-skip" id="tut-skip" type="button">${tr('salta', 'skip')}</button></div>`;
+    + `</span><button class="tut-fold" id="tut-fold" type="button" title="${small ? tr('apri', 'open') : tr('chiudi', 'fold')}">${small ? '▸' : '▾'}</button>`
+    + `<button class="tut-skip" id="tut-skip" type="button">${tr('salta', 'skip')}</button></div>`;
   h += `<div class="tut-main"><span class="tut-ic">${TUT_ICON[id] || '📜'}</span><div>`
-    + `<div class="tut-obj">${tutTitle(id)}</div><div class="tut-how">${tutHint(id)}</div></div></div>`;
+    + `<div class="tut-obj">${tutTitle(id)}</div>${small ? '' : `<div class="tut-how">${tutHint(id)}</div>`}</div></div>`;
   /* la barra solo quando c'è davvero qualcosa da contare: un "1 su 1" è rumore */
   if (p.need > 1) {
     const pc = Math.max(3, Math.min(100, Math.round(p.have / p.need * 100)));
@@ -112,8 +114,14 @@ function syncTutorial() {
   }
   box.innerHTML = withIcons(h);
   box.style.display = '';
+  box.classList[small ? 'add' : 'remove']('small');
+  const fold = document.getElementById('tut-fold');
+  /* toccare la scheda (o la freccina) la richiude: resta il titolo del passo e i quadratini,
+     e sul telefono torna visibile il gioco. La scelta si ricorda (prefs, fuori dal salvataggio). */
+  if (fold) fold.onclick = (e) => { e.stopPropagation(); setPref('tutSmall', !small); syncTutorial(); };
+  box.onclick = () => { setPref('tutSmall', !tutSmall()); syncTutorial(); };
   const sk = document.getElementById('tut-skip');
-  if (sk) sk.onclick = () => { tutSkip(); updateHUD(); toast('🎓 ' + tr('Tutorial saltato. Puoi rifarlo dalla Guida.', 'Tutorial skipped. You can redo it from the Guide.')); };
+  if (sk) sk.onclick = (e) => { e.stopPropagation(); tutSkip(); updateHUD(); toast('🎓 ' + tr('Tutorial saltato. Puoi rifarlo dalla Guida.', 'Tutorial skipped. You can redo it from the Guide.')); };
 }
 /* la splash copre lo schermo: sotto non deve restare acceso niente */
 function splashOpen() {

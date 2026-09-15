@@ -282,6 +282,13 @@ kbd + .pxi{margin-left:2px}
 #tutbox .tut-pips i.on{background:var(--c-amber);box-shadow:inset 0 0 0 1px var(--c-amber-sh)}
 #tutbox .tut-skip{background:none;border:0;color:#6b4a22;font:inherit;font-size:var(--fs-note);
   cursor:pointer;padding:2px 4px;text-decoration:underline}
+/* la freccina che richiude la scheda: aperta occupa un terzo di un telefono, e chi ha letto
+   il passo vuole vedere il gioco. Richiusa restano i quadratini e il titolo. */
+#tutbox .tut-fold{background:none;border:0;color:#6b4a22;font:inherit;cursor:pointer;
+  padding:2px 6px;margin-left:auto;line-height:1}
+#tutbox.small{padding-bottom:var(--sp-2)}
+#tutbox.small .tut-main{align-items:center}
+#tutbox.small .tut-obj{font-size:var(--fs-sm)}
 #tutbox .tut-skip:hover{color:#3b2f1e}
 
 #tutbox .tut-main{display:flex;gap:var(--sp-3);align-items:flex-start}
