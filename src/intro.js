@@ -59,6 +59,7 @@ function grass(W, H, y, cols, t) {
 }
 const PRATI = ['#3f7a3a', '#4f8f44', '#62a651', '#7fbf63', '#9fd07a', '#2e5a2c'];
 const DUSK_TREE = ['#2e3a3a', '#3a4848', '#465656', '#526464', '#607272', '#222c2c'];
+const NIGHT_TREE = ['#1a2230', '#222c3c', '#2a3648', '#324054', '#3a4a60', '#141a26'];
 function tree(x, base, v, T, t) {
   const cv = treeSprite('broad', v, T, Math.floor(t / 900 + v) % 2 ? 1 : 0, false);
   if (cv) ctx.drawImage(cv, Math.round(x - TREE_AX), Math.round(base - TREE_AY));
@@ -71,126 +72,160 @@ function glow(x, y, r, col) { for (let yy = -r; yy <= r; yy++) { const w = Math.
 function sparkle(x, y, col) { px(x, y - 2, 1, 5, col); px(x - 2, y, 5, 1, col); }
 
 /* ---------------- le cinque inquadrature (tu = tempo dall'inizio dell'inquadratura) ---------------- */
-function shotSite(W, H, t, tu) {
-  sky(W, H, ['#4a3a6e', '#7a4a78', '#b55a6a', '#e07a52', '#f2a55a', '#f7c878'], Math.round(H * 0.5));
-  sun(Math.round(W * 0.7), Math.round(H * 0.44), 14, '#ffe09a', 'rgba(255,226,150,.25)');
-  for (let i = 0; i < 4; i++) { const cx = ((i * 97 + t / 120) % (W + 60)) - 30; px(cx, 12 + i * 9, 26, 3, '#f6b08a'); px(cx + 6, 10 + i * 9, 14, 2, '#f8c8a2'); }
-  /* il terreno sta ALTO: sotto c'è il riquadro del testo, che copriva i personaggi */
-  hills(W, H, Math.round(H * 0.46), 6, 0.035, '#6a4a7a', 1.3, '#7e5a8c');
-  hills(W, H, Math.round(H * 0.54), 5, 0.05, '#3e4a5a', 4.1, '#4c5a6a');
-  const gy = Math.round(H * 0.62);
-  /* la base del tronco SULL'ERBA (gy): prima stava a 0,6 e gli alberi galleggiavano sopra il prato */
-  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, gy + 2, v, DUSK_TREE, t);   // pochi alberi, ai lati: niente muro
-  grass(W, H, gy, ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
-  /* il campo: tenda, cassa, lanterna accesa, cumulo */
+/* LO SFONDO DEL CAMPO — cielo, colline, alberi, prato e la tenda col baule e la lanterna.
+   Lo usano la PRIMA e la SECONDA inquadratura: è lo stesso posto, visto da più vicino. Prima la
+   seconda scena aveva un fondo tutto suo e sembrava un altro mondo (segnalato). */
+function campBack(W, H, t, gy, night) {
+  if (night) {
+    sky(W, H, ['#0e0f28', '#151a3c', '#1e2650', '#28325e', '#333d6a'], gy);
+    for (let i = 0; i < 70; i++) { const x = hash(i, 11) * W, y = hash(i, 12) * gy * 0.92; if (Math.floor(t / 500 + i) % 6) px(x, y, 1, 1, i % 4 ? '#cfc8ff' : '#fff6c8'); }
+    sun(Math.round(W * 0.74), Math.round(gy * 0.36), 12, '#efe6c8', 'rgba(239,230,200,.10)');
+    px(Math.round(W * 0.74) + 3, Math.round(gy * 0.36) - 5, 4, 3, '#d6cba8');
+  } else {
+    sky(W, H, ['#4a3a6e', '#7a4a78', '#b55a6a', '#e07a52', '#f2a55a', '#f7c878'], gy);   // il cielo arriva fino al prato: niente striscia nera
+    sun(Math.round(W * 0.7), Math.round(gy * 0.72), 14, '#ffe09a', 'rgba(255,226,150,.25)');
+    for (let i = 0; i < 4; i++) { const cx = ((i * 97 + t / 120) % (W + 60)) - 30; px(cx, 12 + i * 9, 26, 3, '#f6b08a'); px(cx + 6, 10 + i * 9, 14, 2, '#f8c8a2'); }
+  }
+  hills(W, H, Math.round(gy - 26), 6, 0.035, night ? '#241e44' : '#6a4a7a', 1.3, night ? '#302852' : '#7e5a8c');
+  hills(W, H, Math.round(gy - 13), 5, 0.05, night ? '#1b2038' : '#3e4a5a', 4.1, night ? '#262c4c' : '#4c5a6a');
+  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, gy + 2, v, night ? NIGHT_TREE : DUSK_TREE, t);
+  grass(W, H, gy, night ? ['#24352a', '#2e4434', '#1c2a22'] : ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
   const tx = Math.round(W * 0.18);
   for (let y = 0; y < 24; y++) { const w = Math.round(y * 0.9); px(tx - w, gy - 24 + y, w * 2, 1, y < 2 ? '#e8d6a8' : '#c9b07a'); px(tx - w, gy - 24 + y, 2, 1, '#8a7048'); }
   px(tx - 3, gy - 14, 6, 14, '#3a2a1a');
   px(tx + 26, gy - 8, 12, 8, '#8a5f38'); px(tx + 26, gy - 8, 12, 2, '#b07c4a'); px(tx + 31, gy - 8, 2, 8, '#5c4229');
-  const fl = Math.floor(t / 200) % 2;
-  /* la lanterna è APPESA a un palo piantato accanto alla cassa: prima c'erano solo il vetro e
-     l'alone, sospesi a mezz'aria sopra il prato */
-  const lx = tx + 46;
-  px(lx, gy - 26, 2, 26, '#5c4229'); px(lx + 2, gy - 26, 1, 26, '#3e2c1c');         // palo
-  px(lx, gy - 26, 9, 2, '#5c4229'); px(lx + 7, gy - 24, 1, 2, '#2a1f14');            // braccio e gancio
-  /* la luce si vede dove CADE: una chiazza calda sull'erba sotto la lanterna (un alone tondo a
-     mezz'aria, sopra le colline viola, diventava un disco grigio) */
+  const fl = Math.floor(t / 200) % 2, lx = tx + 46;
+  px(lx, gy - 26, 2, 26, '#5c4229'); px(lx + 2, gy - 26, 1, 26, '#3e2c1c');
+  px(lx, gy - 26, 9, 2, '#5c4229'); px(lx + 7, gy - 24, 1, 2, '#2a1f14');
   px(lx + 1, gy, 15, 1, '#8a9a52'); px(lx + 3, gy + 1, 11, 1, '#7a8a4a');
   px(lx + 5, gy - 22, 6, 1, '#2a1f14'); px(lx + 5, gy - 21, 6, 6, '#2a1f14'); px(lx + 5, gy - 15, 6, 1, '#2a1f14');
   px(lx + 6, gy - 20, 4, 4, fl ? '#ffd27a' : '#ffe9a8'); px(lx + 7, gy - 19, 2, 2, '#fff6d8');
-  for (let x = 0; x < 50; x++) { const h = Math.round(Math.sin(x / 50 * Math.PI) * 9); px(W * 0.5 + x, gy - h, 1, h, x % 7 ? '#8a6440' : '#6b4a2e'); }
-  /* il nonno aspetta vicino al cumulo; il piccolo arriva di corsa da destra */
+}
+function shotSite(W, H, t, tu) {
+  const gy = Math.round(H * 0.62);
+  campBack(W, H, t, gy);
+  for (let x = 0; x < 50; x++) { const h = Math.round(Math.sin(x / 50 * Math.PI) * 9); px(W * 0.5 + x, gy - h, 1, h, x % 7 ? '#8a6440' : '#6b4a2e'); }   // cumulo di terra
   const gx = Math.round(W * 0.46);
-  shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', Math.floor(t / 600) % 2 ? 0 : 0);
+  shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0);
   const arrive = Math.min(1, tu / 1800), dx = Math.round(W + 20 - (W + 20 - W * 0.62) * (1 - (1 - arrive) ** 2));
   shadowAt(dx, gy, 12); hero(null, dx, gy - (arrive < 1 ? Math.abs(Math.sin(t / 90)) * 2 : 0), 'left', arrive < 1 ? Math.floor(t / 120) % 2 : 0);
 }
-/* SECONDA INQUADRATURA — il nonno e il piccolo INTERI, in ginocchio sul bordo della buca, e
-   sotto di loro la terra in sezione col cranio. Prima si vedevano solo le gambe tagliate dalla
-   banda nera: due bastoncini marroni di cui non si capiva niente (segnalato con foto). Il nonno
-   dà un colpo di pala, la zolla salta via e scopre un pezzo dell'osso. */
-const HIT = 1000;                         // quando la pala arriva sulla zolla (ms dall'inizio)
-function shotBone(W, H, t, tu) {
-  sky(W, H, ['#e0894a', '#f2a55a', '#f7c878', '#f9dca0'], Math.round(H * 0.3));
-  sun(Math.round(W * 0.14), Math.round(H * 0.3), 13, '#ffe09a', 'rgba(255,226,150,.25)');
-  hills(W, H, Math.round(H * 0.34), 4, 0.045, '#c49a76', 2.6, '#d6ac86');   // colline chiare: dietro di loro, non un muro
-  const gy = Math.round(H * 0.44);
-  grass(W, H, gy, ['#4a7a3a', '#6a9a4a', '#3a5a2e'], t);
-  /* la terra in sezione, sotto il prato */
-  const layers = ['#8a6440', '#7a5634', '#6b4a2e', '#5a3c24'];
-  layers.forEach((c, i) => { const y0 = gy + 8 + i * Math.round((H - gy) / 4); for (let x = 0; x < W; x++) px(x, y0 + Math.round(Math.sin(x * 0.07 + i) * 2), 1, H, c); });
-  for (let i = 0; i < 26; i++) { const x = hash(i, 5) * W, y = gy + 14 + hash(i, 6) * (H - gy); px(x, y, 2 + (hash(i, 7) * 2 | 0), 2, i % 3 ? '#9a9285' : '#3a2a1a'); }
-  /* LA BUCA e il cranio, in mezzo ai due */
-  const sx = Math.round(W / 2 - 55), sy = Math.round(H * 0.6) - 42;
-  const pitTop = gy + 2, pitBot = sy + 26;
-  for (let y = pitTop; y <= pitBot; y++) {
-    const k = (y - pitTop) / (pitBot - pitTop), x0 = Math.round(sx + 10 + k * 12), x1 = Math.round(sx + 104 - k * 8);
-    px(x0, y, x1 - x0, 1, '#a57e52');
-    px(x0 - 2, y, 2, 1, '#4a3120'); px(x1, y, 2, 1, '#3a2616');
-  }
-  px(sx + 8, pitTop - 1, 98, 2, '#6b4a2e');
-  drawBuriedSkull(ctx, t, sx, sy);
-  const hit = tu >= HIT;
-  if (!hit) {          // la zolla che copre ancora l'osso
-    for (let y = sy + 18; y <= sy + 46; y++) { const w = Math.round(46 - Math.abs(y - sy - 30) * 0.7); px(W / 2 - w, y, w * 2, 1, y < sy + 22 ? '#8a6440' : '#6b4a2e'); }
-    for (let i = 0; i < 14; i++) px(W / 2 - 42 + hash(i, 9) * 84, sy + 20 + hash(i, 10) * 24, 2, 2, '#4a3120');
-  } else {             // zolle che schizzano e polvere
-    const a2 = Math.min(1, (tu - HIT) / 900);
-    for (let i = 0; i < 9; i++) {
-      const dir = i % 2 ? 1 : -1, sp = 20 + hash(i, 13) * 34;
-      const cx2 = W / 2 + dir * sp * a2 * 1.8, cy2 = sy + 20 - 46 * a2 + 80 * a2 * a2;
-      if (cy2 < pitBot + 8) px(cx2, cy2, 3 - (i % 2), 3 - (i % 2), i % 3 ? '#6b4a2e' : '#8a6440');
-    }
-    for (let i = 0; i < 10; i++) { const d = (a2 * 1.4 + i / 10) % 1; px(W / 2 - 34 + hash(i, 14) * 68, sy + 22 - d * 20, 1, 1, `rgba(214,190,150,${(1 - d).toFixed(2)})`); }
-    if (a2 < 0.3) sparkle(sx + 48, sy + 30, '#fff6c8');
-  }
-  /* I DUE, interi, uno per lato della buca */
-  const gx = Math.round(W / 2 - 46), dx = Math.round(W / 2 + 46);
-  shadowAt(gx, gy, 14); shadowAt(dx, gy, 12);
-  hero(GRANDPA, gx, gy, 'right', 0, hit && tu < HIT + 400 ? 'strike' : 'lift');
-  hero(null, dx, gy, 'left', 0, hit ? 'strike' : 0);
-  /* LA PALA nelle mani del nonno: si alza, colpisce la zolla, poi si rialza con la terra sopra */
-  const kIn = Math.min(1, tu / HIT), up = hit ? Math.min(1, (tu - HIT) / 700) : 0;
-  const hx = gx + 13, hy = gy - 20;                                   // le mani
-  const tipY = Math.round(hy - 14 + (sy + 16 - (hy - 14)) * (kIn * kIn) - up * 22);
-  const tipX = Math.round(hx + 6 + (W / 2 - 6 - hx) * kIn);
-  /* UN manico solo, dalle mani fino al collo della lama (prima erano due tratti che non si
-     toccavano e la lama sembrava staccata) */
-  const nx = tipX, ny = tipY - 2, steps = Math.max(8, Math.round(Math.hypot(nx - hx, ny - hy) / 2));
-  for (let i = 0; i <= steps; i++) {
-    const k2 = i / steps, mx = Math.round(hx + (nx - hx) * k2), my = Math.round(hy + (ny - hy) * k2);
-    px(mx, my, 3, 3, '#8a5f38'); px(mx, my, 3, 1, '#a87a4a');
-  }
-  px(tipX - 2, tipY - 2, 5, 3, '#7f8890');                                          // collo
-  px(tipX - 8, tipY, 17, 12, '#2a2b2e');                                          // contorno scuro: la lama si stacca dalla terra
-  px(tipX - 7, tipY + 1, 15, 9, '#b9c2c9'); px(tipX - 7, tipY + 8, 15, 2, '#7f8890');  // lama
-  px(tipX - 6, tipY + 2, 4, 6, '#d8dee3'); px(tipX + 5, tipY + 1, 3, 9, '#8f9aa3');
-  if (hit && up > 0.15) { px(tipX - 6, tipY + 10, 13, 4, '#6b4a2e'); px(tipX - 4, tipY + 11, 9, 2, '#8a6440'); }
+/* SECONDA INQUADRATURA — lo STESSO campo della prima, visto da vicino: i due chinati su una buca
+   scavata nel prato, e dentro il cranio. La buca ha il bordo di zolla erbosa e una forma
+   irregolare: uno scavo non è un ovale perfetto. */
+const HIT = 1000;
+/* raggio della buca a un dato angolo: un ovale sgualcito, sempre uguale (niente random a ogni
+   fotogramma, o la buca tremerebbe) */
+function pitR(ang, rx, ry) {
+  const w = 1 + Math.sin(ang * 3 + 0.7) * 0.09 + Math.sin(ang * 5 + 2.1) * 0.06 + Math.sin(ang * 2 - 1.2) * 0.05;
+  return { x: rx * w, y: ry * w };
 }
+function pitFill(cx, cy, rx, ry, col) {
+  for (let y = -ry - 4; y <= ry + 4; y++) for (let x = -rx - 6; x <= rx + 6; x++) {
+    const ang = Math.atan2(y, x), r = pitR(ang, rx, ry);
+    if ((x * x) / (r.x * r.x) + (y * y) / (r.y * r.y) > 1) continue;
+    px(cx + x, cy + y, 1, 1, typeof col === 'function' ? col(x, y) : col);
+  }
+}
+/* IL FOSSILE nella buca, in piccolo (46 × 16). Il cranio della schermata del titolo è largo
+   110 px: dentro la buca riempiva tutto e sembrava un pesce in una vasca. */
+function miniSkull(x, y) {
+  const OUTC = '#3a2f20', B1 = '#efe4c8', B2 = '#d9c9a4', B3 = '#b7a682';
+  const dot = (dx, dy, c) => px(x + dx, y + dy, 1, 1, c);
+  for (let dy = 0; dy < 16; dy++) for (let dx = 0; dx < 46; dx++) {
+    const cran = ((dx - 13) / 14) ** 2 + ((dy - 8) / 7.5) ** 2 <= 1;
+    const snout = dx >= 22 && dx <= 44 && dy >= 5 + (dx - 22) * 0.12 && dy <= 13 - (dx - 22) * 0.06;
+    if (!cran && !snout) continue;
+    const top = dy <= 3, bot = dy >= 12;
+    dot(dx, dy, top ? B1 : bot ? B3 : B2);
+  }
+  for (let dy = -1; dy < 17; dy++) for (let dx = -1; dx < 47; dx++) {   // contorno
+    const inside = (ddx, ddy) => {
+      const cran = ((ddx - 13) / 14) ** 2 + ((ddy - 8) / 7.5) ** 2 <= 1;
+      const snout = ddx >= 22 && ddx <= 44 && ddy >= 5 + (ddx - 22) * 0.12 && ddy <= 13 - (ddx - 22) * 0.06;
+      return cran || snout;
+    };
+    if (inside(dx, dy)) continue;
+    if (inside(dx + 1, dy) || inside(dx - 1, dy) || inside(dx, dy + 1) || inside(dx, dy - 1)) dot(dx, dy, OUTC);
+  }
+  for (let dy = 4; dy <= 9; dy++) for (let dx = 7; dx <= 13; dx++) if (((dx - 10) / 3.2) ** 2 + ((dy - 6.5) / 2.8) ** 2 <= 1) dot(dx, dy, '#2a2118');   // occhiaia
+  dot(30, 8, '#2a2118'); dot(31, 8, '#2a2118');                                    // narice
+  for (let i = 0; i < 6; i++) { px(x + 24 + i * 3, y + 12, 2, 3, B1); px(x + 24 + i * 3, y + 14, 2, 1, OUTC); }   // denti
+}
+function shotBone(W, H, t, tu) {
+  const gy = Math.round(H * 0.42);
+  campBack(W, H, t, gy);
+  const cx = Math.round(W / 2), cy = Math.round(H * 0.56), rx = 64, ry = 22;   // più larga del cranio: il fondo scuro si vede tutt'intorno
+  /* due mucchietti di terra buttata fuori, ai lati della buca */
+  for (const mx of [cx - rx - 12, cx + rx + 10]) for (let x = -14; x <= 14; x++) { const h = Math.round(Math.cos(x / 14 * 1.5) * 8); if (h > 0) px(mx + x, cy - ry - h + 4, 1, h + 3, (x + h) % 5 ? '#7a5634' : '#8a6440'); }
+  pitFill(cx, cy, rx + 3, ry + 3, (x, y) => (y < -1 ? '#3a5a2e' : '#4a6a3a'));            // zolla erbosa del bordo
+  pitFill(cx, cy, rx, ry, (x, y) => {
+    const k = (y + ry) / (2 * ry);
+    return k < 0.22 ? '#2e1e12' : k < 0.5 ? '#4a3120' : k < 0.8 ? '#6b4a2e' : '#8a6440';
+  });
+  for (let i = 0; i < 14; i++) px(cx - rx + hash(i, 5) * rx * 2, cy - ry + 2 + hash(i, 6) * ry, 2, 1, '#3a2616');
+  const sx = cx - 23, sy = cy - 4, hit = tu >= HIT, scoperto = hit ? 15 : 6;   // quanto ne emerge dalla terra
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 2, sy - 1, 50, scoperto); ctx.clip();
+  miniSkull(sx, sy);
+  ctx.restore();
+  for (let x = -26; x <= 26; x += 2) px(cx + x, sy + scoperto - 1, 2, 2, (x % 6) ? '#6b4a2e' : '#5a3c24');   // la terra che ancora lo copre
+  if (hit) {
+    const a2 = Math.min(1, (tu - HIT) / 900);
+    for (let i = 0; i < 10; i++) {
+      const dir = i % 2 ? 1 : -1, sp = 14 + hash(i, 13) * 26;
+      const zx = cx + dir * sp * a2 * 1.6, zy = sy - 24 * a2 + 56 * a2 * a2;
+      if (zy < cy + ry) px(zx, zy, 3 - (i % 2), 3 - (i % 2), i % 3 ? '#6b4a2e' : '#8a6440');
+    }
+    for (let i = 0; i < 12; i++) { const d = (a2 * 1.3 + i / 12) % 1; px(cx - 30 + hash(i, 14) * 60, sy - d * 16, 1, 1, `rgba(214,190,150,${(1 - d).toFixed(2)})`); }
+    if (a2 < 0.35) sparkle(cx + 4, sy + 2, '#fff6c8');
+  }
+  const gx = cx - rx + 2, dx = cx + rx - 2, hy = cy - ry - 3;
+  shadowAt(gx, hy, 14); shadowAt(dx, hy, 12);
+  hero(GRANDPA, gx, hy, 'right', 0, 'strike');            // il nonno indica e guida
+  hero(null, dx, hy, 'left', 0, 'strike');                // il piccolo scava: la pala è SUA
+  /* LA PALA NELLE MANI DEL PICCOLO — è lui che scava (il nonno gli dice "piano con la pala").
+     Lunghezza FISSA: due pose, alzata e affondata nella terra; niente manico interpolato che si
+     allunga mentre scende. */
+  const hxk = dx - 11, hyk = hy - 13;   // la mano del piccolo nella posa 'strike'
+  const ang = hit ? 2.5 : 2.2;                             // radianti: 0 = a destra, cresce in giù
+  const L = 36, ex = Math.round(hxk + Math.cos(ang) * L), ey = Math.round(hyk + Math.sin(ang) * L);
+  for (let i = 0; i <= L; i++) {                           // manico
+    const mx = Math.round(hxk + Math.cos(ang) * i), my = Math.round(hyk + Math.sin(ang) * i);
+    px(mx, my, 3, 3, '#6e4a2a'); px(mx, my, 2, 2, '#8a5f38');
+  }
+  px(ex - 8, ey - 2, 16, 11, '#2a2b2e');                   // lama col contorno
+  px(ex - 7, ey - 1, 14, 9, '#b9c2c9'); px(ex - 6, ey, 4, 6, '#d8dee3'); px(ex + 3, ey - 1, 3, 9, '#8f9aa3');
+  if (hit) { px(ex - 7, ey + 6, 14, 4, '#6b4a2e'); px(ex - 5, ey + 7, 9, 2, '#8a6440'); }   // terra sulla lama
+}
+/* TERZA INQUADRATURA — "ho sempre sognato di vederne una viva". Lo STESSO campo, di notte: il
+   nonno sta in piedi accanto al fuoco col fossile appena trovato ai suoi piedi, e nel cielo passa
+   la creatura che sogna, trasparente come un pensiero. Prima c'era uno scheletro gigante a terra
+   e la creatura fuori dall'inquadratura: non si capiva cosa fosse (segnalato). */
 function shotMemory(W, H, t, tu, creature) {
-  /* IL RICORDO: notte di luna, tinta viola; una creatura VIVA passa sopra il suo scheletro */
-  sky(W, H, ['#120f24', '#1a1634', '#241e44', '#2e2652'], Math.round(H * 0.75));
-  for (let i = 0; i < 60; i++) { const x = hash(i, 11) * W, y = hash(i, 12) * H * 0.6; if (Math.floor(t / 400 + i) % 5) px(x, y, 1, 1, i % 4 ? '#cfc8ff' : '#fff6c8'); }
-  sun(Math.round(W * 0.22), Math.round(H * 0.24), 12, '#efe6c8', 'rgba(239,230,200,.12)');
-  px(Math.round(W * 0.22) + 3, Math.round(H * 0.24) - 5, 4, 3, '#d6cba8');
-  hills(W, H, Math.round(H * 0.7), 5, 0.04, '#231c3e', 2.2, '#302852');
-  const gy = Math.round(H * 0.82);
-  px(0, gy, W, H - gy, '#1a1530'); px(0, gy, W, 1, '#3a3266');
-  /* lo scheletro a terra, fantasma */
-  ctx.globalAlpha = 0.55; drawBuriedSkull(ctx, t, Math.round(W * 0.5 - 55), gy - 62); ctx.globalAlpha = 1;
-  /* la creatura: sagoma viva col bordo di luna, cammina lenta da sinistra a destra */
+  const gy = Math.round(H * 0.62);
+  campBack(W, H, t, gy, true);
+  /* IL SOGNO nel cielo: la creatura viva, trasparente, attraversa lenta sopra le colline */
   if (creature) {
-    const k = Math.min(1, tu / 9000), cx = Math.round(-creature.width + (W + creature.width) * k * 0.9 + W * 0.05);
-    const cy = gy - creature.height + 4 + Math.round(Math.abs(Math.sin(t / 320)) * 1.5);
-    ctx.save(); ctx.globalAlpha = 0.9;
+    const k = ((tu / 11000) % 1), cx = Math.round(-creature.width + (W + creature.width * 2) * k);
+    const cy = Math.round(gy * 0.3 + Math.sin(t / 900) * 4);
+    ctx.save(); ctx.globalAlpha = 0.34;
     ctx.translate(cx + creature.width, cy); ctx.scale(-1, 1); ctx.drawImage(creature, 0, 0);
     ctx.restore();
-    ctx.fillStyle = 'rgba(40,30,80,.45)'; ctx.fillRect(cx, cy, creature.width, creature.height);   // velo notturno
+    for (let i = 0; i < 6; i++) { const sx2 = cx + (i * 37) % creature.width, sy2 = cy + (i * 23) % creature.height; if (Math.floor(t / 300 + i) % 3 === 0) sparkle(sx2, sy2, '#cfd6ff'); }
   }
-  /* il nonno giovane, piccolo in controluce, guarda */
-  const gx = Math.round(W * 0.84);
-  hero(GRANDPA, gx, gy, 'left', 0);
-  ctx.fillStyle = 'rgba(30,20,70,.35)'; ctx.fillRect(0, 0, W, H);
+  /* il fuoco del campo */
+  const fx = Math.round(W * 0.42), fl = Math.floor(t / 160) % 2;
+  /* la luce del fuoco si vede DOVE CADE, sull'erba: un alone tondo semitrasparente sul buio
+     diventa un disco grigio */
+  for (let i = 0; i < 3; i++) px(fx - 18 + i * 2, gy + i, 36 - i * 4, 1, i ? '#3c4a30' : '#4a5a36');
+  for (let i = 0; i < 5; i++) px(fx - 6 + i * 3, gy - 2, 3, 3, i % 2 ? '#5c4229' : '#3e2c1c');          // legna
+  px(fx - 2, gy - 8, 5, 6, '#e8873a'); px(fx - 1, gy - 10 - fl, 3, 8, '#f6b34a'); px(fx, gy - 11 - fl, 1, 5, '#ffe9a8');
+  for (let i = 0; i < 4; i++) { const a2 = (t / 700 + i / 4) % 1; px(fx + Math.sin(t / 300 + i) * 3, gy - 12 - a2 * 18, 1, 1, `rgba(255,190,120,${(1 - a2).toFixed(2)})`); }
+  /* il fossile appena trovato, posato accanto al fuoco */
+  miniSkull(fx + 22, gy - 14);
+  /* il nonno, in piedi, guarda in alto: dal fossile al cielo */
+  const gx = Math.round(W * 0.34);
+  shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'lift');
 }
 function shotGive(W, H, t, tu) {
   sky(W, H, ['#6a3a5e', '#a24a5a', '#d8664a', '#f0904a', '#f6b45a'], Math.round(H * 0.56));
