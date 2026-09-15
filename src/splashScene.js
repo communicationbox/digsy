@@ -64,25 +64,28 @@ const SWING = 1200;
 export function drawCornerScene(c, t, drawHero) {
   c.clearRect(0, 0, SCENE_W, SCENE_H);
   mound(c);
-  const hx = MOUND_X0 + MOUND_W - 34, hy = moundTop(hx + 16) - 29;    // in piedi sul mucchio
+  const hx = MOUND_X0 + MOUND_W - 34, hy0 = moundTop(hx + 16) - 29;    // in piedi sul mucchio
   const u = (t % SWING) / SWING;
-  const stage = u < 0.5 ? 'carica' : u < 0.62 ? 'fendente' : 'impatto';
-  const pose = stage === 'carica' ? 'lift' : 'strike';
-  const oy = hy + (stage === 'carica' ? -1 : stage === 'impatto' ? 2 : 0);
-  /* la mano e la punta dell'attrezzo in coordinate dello SPRITE (0..31), poi specchiate perché
-     guarda a sinistra: così il manico parte davvero dal pugno */
-  const [gx, gy] = GRIP[pose].side;
-  const head = stage === 'carica' ? [gx - 5, gy - 18] : stage === 'fendente' ? [gx + 11, gy - 6] : [gx + 7, gy + 9];
-  const mapX = sxp => hx + (31 - sxp);
+  /* IL PICCONE RUOTA ATTORNO ALLA MANO, senza salti: carica lenta all'indietro, colpo veloce in
+     avanti, poi resta piantato un attimo. Prima erano tre posizioni staccate e il braccio andava
+     per conto suo (segnalato). Angolo in gradi: 0 = verso destra, cresce verso il basso. */
+  let ang, pose, bob = 0;
+  if (u < 0.55) { const k = u / 0.55; ang = -28 - 34 * k; pose = 'lift'; bob = k > 0.8 ? -1 : 0; }        // si carica, sopra la spalla
+  else if (u < 0.72) { const k = (u - 0.55) / 0.17; ang = -62 - 142 * (k * k * (3 - 2 * k)); pose = k < 0.3 ? 'lift' : 'strike'; }   // cala, prendendo velocità
+  else { ang = -204; pose = 'strike'; bob = 1; }                                                          // piantato
+  const oy = hy0 + bob;
+  const [gx, gy] = GRIP[pose].side;                       // la mano, in coordinate dello sprite
+  const handX = hx + (31 - gx), handY = oy + gy;          // guarda a sinistra: lo sprite si specchia
+  const rad = ang * Math.PI / 180, L = 15;
   drawHero(c, hx, oy, 'left', 0, false, pose);
-  pick(c, mapX(gx), oy + gy, mapX(head[0]), oy + head[1]);
-  if (stage === 'impatto') {                                   // polvere: pochi puntini
-    const k = (u - 0.62) / 0.38, ix = mapX(head[0]), iy = oy + head[1];
+  pick(c, handX, handY, Math.round(handX + Math.cos(rad) * L), Math.round(handY + Math.sin(rad) * L));   // l'attrezzo sta DAVANTI a lui, come in gioco
+  if (u >= 0.72) {                                        // polvere: pochi puntini dove batte
+    const k = (u - 0.72) / 0.28, ix = handX + Math.cos(rad) * L, iy = handY + Math.sin(rad) * L;
     for (let i = 0; i < 7; i++) {
       if (hash(i, 41) < k * 0.8) continue;
-      const ang = Math.PI + hash(i, 42) * Math.PI, r = 2 + k * (7 + hash(i, 43) * 7);
+      const a2 = Math.PI + hash(i, 42) * Math.PI, r = 2 + k * (7 + hash(i, 43) * 7);
       c.fillStyle = i % 3 ? '#e6d6b2' : '#c9b48c';
-      c.fillRect(Math.round(ix + Math.cos(ang) * r), Math.round(iy + Math.sin(ang) * r * 0.5 - k * 4), 1, 1);
+      c.fillRect(Math.round(ix + Math.cos(a2) * r), Math.round(iy + Math.sin(a2) * r * 0.5 - k * 4), 1, 1);
     }
   }
 }
