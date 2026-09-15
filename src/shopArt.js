@@ -737,16 +737,31 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
     g.px(mx - 7 * face, my - 3 - up, '#1a120a'); g.px(mx - 10 * face, my - 2 - up, '#e07a8a');
   };
   const petMouse = pet && pet.kind === 'topo';
+  const rt = (t / 1000) % 14, runX = rt < 2.2 ? 36 + (rt / 2.2) * 240 : null;
   if (petMouse) {
-    /* coccolato: esce, si alza sulle zampine e sgranocchia un pezzo di formaggio */
-    const nib = Math.floor(pet.t * 8) % 2;
-    mouseAt(46, 198, 1 + nib, 1);
-    g.rect(37, 197, 6, 5, '#2a2016'); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
-    hearts(g, 43, 184, pet);
+    /* se stava attraversando la stanza, il formaggio lo richiama: TORNA INDIETRO correndo fin lì (prima
+       compariva di colpo accanto alla tana). Si ricorda da dove parte al primo fotogramma della coccola
+       e la reazione si allunga del tempo della corsa. */
+    if (pet.fromX == null) {
+      pet.fromX = runX != null ? runX : 46;
+      pet.run = Math.max(0, (pet.fromX - 46) / 150);            // secondi di corsa a 150 px/s
+      pet.t += pet.run; pet.total = pet.t;
+    }
+    const el = pet.total - pet.t;
+    if (el < pet.run) {
+      const k = el / pet.run, x = Math.round(pet.fromX + (46 - pet.fromX) * k);
+      mouseAt(x, 200 - (Math.floor(el * 12) % 2), 0, 1);
+      g.rect(37, 197, 6, 5, '#2a2016'); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
+    } else {
+      /* arrivato: si alza sulle zampine e sgranocchia il formaggio */
+      const nib = Math.floor(pet.t * 8) % 2;
+      mouseAt(46, 198, 1 + nib, 1);
+      g.rect(37, 197, 6, 5, '#2a2016'); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
+      hearts(g, 43, 184, { t: Math.min(2.6, pet.t) });
+    }
   } else if (Math.floor(t / 2200) % 3 !== 2) { g.px(27, 200, '#f2d080'); g.px(31, 200, '#f2d080'); }
   /* topolino che attraversa lungo il muro basso */
-  const rt = (t / 1000) % 14;
-  if (rt < 2.2 && !petMouse) mouseAt(Math.round(36 + (rt / 2.2) * 240), 200, 0, -1);
+  if (runX != null && !petMouse) mouseAt(Math.round(runX), 200, 0, -1);
 }
 
 /* le finestre di ogni mestiere (x del vetro): dove non c'è nulla appeso */

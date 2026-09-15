@@ -4283,6 +4283,15 @@ sprites.applyLook();
     }
   } catch (e) { crash = e.message; }
   check('coccole: le sei reazioni si disegnano', crash === null, crash || '');
+  /* il topolino che sta correndo torna indietro fino al formaggio, non ci compare sopra */
+  {
+    const pm = { kind: 'topo', t: 2.6 };
+    shop.drawLabFloorProps(BRUSH, 320, 224, 1100, null, false, pm);          // 1,1 s: a metà della corsa
+    check('topolino in corsa: parte da dove si trova e la coccola dura anche la corsa', pm.fromX > 120 && pm.run > 0.5 && pm.t > 2.6 + 0.5);
+    const home = { kind: 'topo', t: 2.6 };
+    shop.drawLabFloorProps(BRUSH, 320, 224, 5000, null, false, home);        // 5 s: è nella tana
+    check('topolino nella tana: esce subito, niente corsa', home.run === 0);
+  }
   Object.assign(it.INT, keep); Object.assign(S, keepS);
 }
 
