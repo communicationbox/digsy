@@ -338,6 +338,10 @@ function buildMenu(inGame) {
       h += `<div class="sp-note">${acc.user
         ? tr('Salvati anche online: li ritrovi su ogni dispositivo.', 'Also saved online: you\'ll find them on every device.')
         : tr('Salvati solo qui. Entra con Google per ritrovarli ovunque.', 'Saved only here. Sign in with Google to have them everywhere.')}</div>`;
+      /* il pulsante sta QUI, accanto alla frase che spiega perché premerlo */
+      h += `<button class="sp-btn" id="sp-account">☁️ ${acc.user
+        ? esc(acc.user.email || acc.user.name || tr('Il tuo account', 'Your account'))
+        : tr('Entra con Google', 'Sign in with Google')}</button>`;
     }
     /* LE STATISTICHE HANNO UNA SCHERMATA LORO, raggiunta da qui.
        Messe in fondo a questa, dodici righe schiacciavano i tre slot fino a farli sparire:
@@ -587,19 +591,10 @@ function buildMenu(inGame) {
          non si sa    → mentre si chiede al server (un attimo all'avvio)
        Nessuna classe speciale e nessun sottotitolo: è un pulsante come gli altri, e non c'è
        ragione perché sia più grande — l'importanza gliela dà la posizione, non la taglia. */
-    if (cloudEnabled()) {
-      const et = acc.user
-        ? esc(acc.user.email || acc.user.name || tr('Collegato', 'Signed in'))
-        : acc.known
-          ? tr('Entra con Google', 'Sign in with Google')
-          : tr('La tua partita', 'Your game');
-      h += `<button class="sp-btn" id="sp-account">☁️ ${et}</button>`;
-    }
-    /* L'INVITO A INSTALLARE sta qui, sotto Gioca: si vede, e sparisce da solo una volta
-       installato. Non è un banner che compare da sé — quelli si chiudono per riflesso. */
-    if (pwaProponibile()) {
-      h += `<button class="sp-btn" id="sp-install">🏠 ${tr('Installa Digsy', 'Install Digsy')}</button>`;
-    }
+    /* IL MENU HA TRE VOCI, non cinque: giocare, i salvataggi, le impostazioni. L'accesso con
+       Google è finito dentro Salvataggi (è lì che serve sapere dove finisce la partita) e
+       "Installa Digsy" dentro Impostazioni, dove c'era già la stessa riga: due voci in meno
+       davanti a chi apre il gioco per la prima volta. */
     h += `<button class="sp-btn" id="sp-saves">💾 ${tr('Salvataggi', 'Saves')}</button>`;
     h += `<button class="sp-btn" id="sp-settings">⚙️ ${tr('Impostazioni', 'Settings')}</button>`;
     /* riga secondaria: pulsanti meno importanti, SOLO icone (peso gerarchico minore) */

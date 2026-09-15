@@ -13,6 +13,9 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "open": "открыть",
+  "fold": "свернуть",
+  "Your account": "Твой аккаунт",
   "This is your bed": "Это твоя кровать",
   "Press {act} on the bed: you sleep here for free when your energy ⚡ runs out.": "Нажми {act} на кровати: здесь спишь бесплатно, когда кончается энергия ⚡.",
   "Head outside": "Выйди из дома",
@@ -1747,7 +1750,6 @@ export const RU = {
   'Fixed stick': 'Неподвижный джойстик', 'Stick under finger': 'Джойстик под пальцем',
 
 
-  'Signed in': 'Вход выполнен',
   'day': 'день',
   'Teleport back 🌀': 'Телепорт назад 🌀',
   'Drag to rotate': 'Потяни, чтобы повернуть',

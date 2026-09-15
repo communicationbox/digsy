@@ -564,19 +564,21 @@ sprites.applyLook();
      solo a disattivarlo. */
   if (typeof window !== 'undefined') {
     const menuEl = () => document.getElementById('sp-menu');
-    window.DIGSY_CLOUD = false; sp.showSplash();
-    check('spento: nessuna voce dell\'account nel menu', !menuEl().innerHTML.includes('sp-account'));
-    window.DIGSY_CLOUD = true; sp.resumeSplash(); sp.showSplash();
-    check('acceso: la voce dell\'account compare', menuEl().innerHTML.includes('sp-account'));
+    /* l'accesso vive nella schermata SALVATAGGI, accanto alla frase che dice dove finisce la
+       partita: nel menu del titolo restano tre voci sole (gioca, salvataggi, impostazioni) */
+    window.DIGSY_CLOUD = false; sp.showSplash(); sp.setView('saves');
+    check('spento: nessuna voce dell\'account', !menuEl().innerHTML.includes('sp-account'));
+    window.DIGSY_CLOUD = true; sp.resumeSplash(); sp.showSplash(); sp.setView('saves');
+    check('acceso: l\'accesso compare nei Salvataggi', menuEl().innerHTML.includes('sp-account'));
     /* E DICE COME SEI MESSO senza doverci entrare: chiedere "Entra con Google" a chi è già
        entrato è una bugia, e far aprire un pannello per sapere se si è collegati è lavoro
        scaricato sul giocatore. */
     sp.acc.user = { email: 'tizio@example.com' }; sp.acc.known = true;
-    sp.resumeSplash(); sp.showSplash();
+    sp.resumeSplash(); sp.showSplash(); sp.setView('saves');
     check('collegato: il pulsante mostra con chi sei entrato',
       menuEl().innerHTML.includes('tizio@example.com'));
     sp.acc.user = null;
-    sp.resumeSplash(); sp.showSplash();
+    sp.resumeSplash(); sp.showSplash(); sp.setView('saves');
     check('scollegato: il pulsante invita a entrare',
       /Entra con Google|Sign in with Google/.test(menuEl().innerHTML));
     sp.acc.known = false;
@@ -760,7 +762,10 @@ sprites.applyLook();
   sp3.pwa.invito = { prompt() {}, userChoice: Promise.resolve() };
   sp3.showSplash();
   const menu3 = document.getElementById('sp-menu');
-  check('il pulsante per installare compare nel menu', menu3.innerHTML.includes('sp-install'));
+  /* installare si fa dalle Impostazioni: nel menu del titolo era una quarta voce che quasi
+     nessuno tocca alla prima apertura */
+  sp3.setView('settings');
+  check('il pulsante per installare sta nelle Impostazioni', menu3.innerHTML.includes('sp-install'));
   sp3.setView('install');
   check('la schermata spiega cosa si guadagna', /senza rete|offline/i.test(menu3.innerHTML));
   /* iPhone con SAFARI: si spiegano i passi, che lì nessuno indovina da solo */
