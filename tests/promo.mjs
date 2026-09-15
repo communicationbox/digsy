@@ -114,6 +114,15 @@ const SCENE = [
     await G.intPos(15, 51);
     ${ANIMA}
   ` },
+  /* Le teche d'AMBRA accanto a quelle d'oro: la seconda collezione della v0.98, copertina del devlog */
+  { nome: '04b-ambra', size: WIDE, passi: `
+    ${PARTITA}
+    await G.cmd('godamber');
+    await G.cmd('goto=city');
+    await G.enterRoom('museum');
+    await G.intPos(15, 51);
+    ${ANIMA}
+  ` },
   /* Un bioma che non sia il prato: dice "mondo grande" senza doverlo scrivere nel post. */
   { nome: '05-ghiacci', size: WIDE, passi: `
     ${PARTITA}

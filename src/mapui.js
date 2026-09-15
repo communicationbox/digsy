@@ -371,13 +371,22 @@ export function openMap() {
      carta a chi la sta leggendo (undici voci sempre in vista la facevano sembrare un modulo) */
   const lb = document.getElementById('mp-legbtn'), lgn = document.getElementById('mp-legend');
   if (lb && lgn) { lb.textContent = '? ' + tr('Legenda', 'Legend'); lb.onclick = () => { lgn.classList.toggle('open'); lb.classList.toggle('open'); }; }
+  /* TORNA A CASA: il teletrasporto verso casa esisteva (tocco sul segno della casetta) ma nessuno lo
+     scopriva. Un bottone sotto la carta lo dice e lo fa; da casa un portale riporta dove eri */
+  const gh = document.getElementById('mp-gohome');
+  if (gh) {
+    gh.hidden = !S.home;
+    gh.textContent = '🏠 ' + tr('Teletrasporto a casa', 'Teleport home');
+    gh.title = tr('Poi un portale ti riporta qui', 'A portal brings you back here');
+    gh.onclick = () => { closeMap(); goHome(); };
+  }
   const lg = document.getElementById('mp-legend');
   if (lg) {
     /* NIENTE NOMI DI BIOMA in legenda. Erano sei voci su quattordici, cioè metà della legenda
        spesa a dire che il verde è prato: una cosa che si impara camminando, e che il tag della
        zona nell'HUD dice già mentre ci sei dentro. Restano i SIMBOLI, che invece non si possono
        indovinare: chi ha il Museo, dov'è una meraviglia, quale X è la tua. */
-    lg.innerHTML = legendItem('me', tr('sei qui', 'you are here')) + legendItem('home', tr('casa tua', 'your home'))
+    lg.innerHTML = legendItem('me', tr('sei qui', 'you are here')) + legendItem('home', tr('casa tua · toccala per andarci', 'your home · tap to go there'))
       + legendItem('museum', tr('città col Museo', 'city with Museum')) + legendItem('town', tr('paese', 'town'))
       + legendItem('village', tr('borgo', 'hamlet')) + legendItem('wonder', tr('meraviglia', 'wonder'))
       + legendItem('arch', tr('arco (viaggio)', 'arch (travel)')) + legendItem('site', tr('ossa da scavare', 'bones to dig'))

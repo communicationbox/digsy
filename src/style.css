@@ -1551,3 +1551,15 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
 .bitile.amber{box-shadow:0 0 0 2px #0b0c11,inset 0 0 0 2px #e0873a}
 .bitile.amber::after{content:'';position:absolute;right:4px;top:4px;width:3px;height:3px;background:#ffd27a;box-shadow:0 0 0 1px #b35f1c}
 .bk-amber{color:#b35f1c}
+/* SCENA DEL RISVEGLIO */
+.awaken-ov{position:fixed;inset:0;z-index:60;background:rgba(8,6,12,.88);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:16px;cursor:pointer;animation:awIn .35s steps(4)}
+.awaken-ov canvas{width:min(80vw,600px);height:auto;image-rendering:pixelated;box-shadow:0 0 0 3px #3a2f48,0 0 0 6px #120e18}
+.awaken-ov .aw-t{color:#ffe38a;font:800 clamp(18px,4vw,26px) ui-monospace,monospace;text-align:center}
+.awaken-ov .aw-s{color:#bff0f5;font:700 clamp(14px,3vw,18px) ui-monospace,monospace;text-align:center}
+.awaken-ov .aw-h{color:#a89cb8;font:600 12px ui-monospace,monospace}
+.awaken-ov .aw-skip{position:absolute;top:14px;right:14px}
+@keyframes awIn{from{opacity:0}to{opacity:1}}
+/* sotto la carta: la legenda ripiegata a sinistra e il teletrasporto a casa a destra */
+.mp-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 12px 8px}
+.mp-foot .mp-legbtn{margin:0}
+.mp-homebtn{font:800 13px ui-monospace,monospace;background:var(--c-line-2);color:var(--c-paper);border:0;padding:6px 10px;cursor:pointer;box-shadow:0 0 0 2px var(--c-line-3)}

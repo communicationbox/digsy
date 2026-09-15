@@ -355,6 +355,67 @@ export function updatePrompt() {
   if (fireflyInReach()) { setPrompt(withIcons(actKey() + ' ' + tr('Retina le lucciole ✨', 'Net the fireflies ✨'))); return; }
   setPrompt(null); // niente hint per lo scavo semplice
 }
+/* SCENA DEL RISVEGLIO: lo scheletro della specie brilla, un lampo, e l'animale vivo salta fuori.
+   Si chiude SOLO al clic (regola delle cutscene), con Salta, e la didascalia dice dove ritrovarlo:
+   nel giardino di casa, dove è già stato messo. Fase dell'animazione dal tempo. */
+let awakenOpen = false;
+export function isAwakeningOpen() { return awakenOpen; }
+export function playAwakening(spId) {
+  if (typeof document === 'undefined' || !document.body || !document.createElement) return;
+  const sp = spById[spId]; if (!sp) return;
+  const ov = document.createElement('div'); ov.id = 'awakenov'; ov.className = 'awaken-ov';
+  ov.innerHTML = withIcons(`<canvas id="awakenCv" width="200" height="130"></canvas>
+    <div class="aw-t">🧬 ${sp.name} ${tr('è di nuovo vivo!', 'is alive again!')}</div>
+    <div class="aw-s">🏡 ${tr('Lo troverai nel tuo giardino', "You'll find it in your garden")}</div>
+    <div class="aw-h">${tr('clicca per continuare', 'click to continue')}</div>
+    <button class="btn ghost aw-skip" id="awSkip">${tr('Salta', 'Skip')}</button>`);
+  document.body.appendChild(ov); awakenOpen = true; playSfx('found');
+  const cv = ov.querySelector ? ov.querySelector('#awakenCv') : null;
+  const t0 = performance.now();
+  let bones = null, alive = null, raf = 0;
+  Promise.all([import('./render.js'), import('./bones.js'), import('./voxview.js')]).then(([r, b, vv]) => {
+    try {
+      bones = document.createElement('canvas'); bones.width = 120; bones.height = 90;
+      vv.projectVox(bones, b.buildVoxels(b.baseSpec(sp)), false, null, false);
+      alive = r.creatureSprite({ c: { skull: spId, torso: spId, leg: spId, q: sp.r } }, 'side');
+    } catch (e) { /* stub */ }
+  });
+  const close = () => { if (!awakenOpen) return; awakenOpen = false; cancelAnimationFrame(raf); ov.remove(); };
+  const draw = () => {
+    if (!awakenOpen || !cv || !cv.getContext) return;
+    const g = cv.getContext('2d'); if (!g) return;
+    const t = (performance.now() - t0) / 1000;
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = '#0f0c14'; g.fillRect(0, 0, 200, 130);
+    for (let i = 0; i < 24; i++) {                                   // stelline dal tempo, mai dai pixel
+      const a = i * 2.39 + t * (0.6 + (i % 3) * 0.2), rr = 20 + ((i * 13 + t * 30) % 60);
+      const x = 100 + Math.cos(a) * rr, y = 62 + Math.sin(a) * rr * 0.6;
+      if (((i + Math.floor(t * 6)) % 4) === 0) { g.fillStyle = i % 2 ? '#7fe0f0' : '#ffe38a'; g.fillRect(x | 0, y | 0, 2, 2); }
+    }
+    if (t < 1.4 && bones) {
+      const sh = t > 0.8 ? (((t * 30) | 0) % 2 ? 1 : -1) : 0;          // trema prima del lampo
+      g.globalAlpha = 0.5 + Math.min(0.5, t); g.drawImage(bones, 40 + sh, 16); g.globalAlpha = 1;
+    }
+    if (t >= 1.2 && t < 1.7) {                                        // lampo
+      const k = 1 - Math.abs(t - 1.45) / 0.25;
+      g.fillStyle = 'rgba(255,248,220,' + Math.max(0, k).toFixed(2) + ')'; g.fillRect(0, 0, 200, 130);
+    }
+    if (t >= 1.45 && alive) {
+      const hop = Math.round(Math.abs(Math.sin(t * 5)) * -6);
+      const s = alive.width > 90 ? 1 : 2;
+      const w = alive.width * s, h = alive.height * s;
+      g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(100 - w / 2 + 4, 112, w - 8, 3);
+      g.drawImage(alive, Math.round(100 - w / 2), Math.round(112 - h + hop), w, h);
+    }
+    raf = requestAnimationFrame(draw);
+  };
+  if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(draw);
+  ov.onclick = e => { if (e && e.target && e.target.id === 'awSkip') { close(); return; } if ((performance.now() - t0) > 1600) close(); };
+  /* da tastiera: Invio, spazio o ESC chiudono (dopo il lampo), come il clic */
+  const onKey = e => { if (!awakenOpen) { document.removeEventListener('keydown', onKey, true); return; }
+    if (['Enter', ' ', 'Escape', 'e', 'E'].includes(e.key)) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Escape' || (performance.now() - t0) > 1600) { close(); document.removeEventListener('keydown', onKey, true); } } };
+  if (document.addEventListener) document.addEventListener('keydown', onKey, true);
+}
 /* banner centrale a tutto schermo per gli eventi importanti (consegna del Libro, ecc.) */
 export function showBanner(html, ms = 2600) {
   if (typeof document === 'undefined' || !document.createElement || !document.body) return;

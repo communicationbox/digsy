@@ -13,6 +13,12 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "Teleport home": "Телепорт домой",
+  "A portal brings you back here": "Портал вернёт тебя сюда",
+  "your home · tap to go there": "твой дом · нажми, чтобы перенестись",
+  " is in your garden.": " в твоём саду.",
+  "is alive again!": "снова жив!",
+  "You'll find it in your garden": "Ты найдёшь его в своём саду",
   "Amber cases: ": "Янтарные витрины: ",
   "look at the statue by the Museum": "осмотри статую у Музея",
   "Hidden in the stone": "Спрятано в камне",
@@ -331,7 +337,7 @@ export const RU = {
   "You're already home": 'Ты уже дома',
   "You're home: the portal takes you back": "Ты дома: портал вернёт тебя назад",
   'Back where you were': 'Обратно туда, где ты был',
-  'your home': 'твой дом',
+
   '…the vein is silent this season': '…в этот сезон жила молчит',
   '…nothing': '…ничего',
   '…just wood chips': '…только щепки',
@@ -409,7 +415,7 @@ export const RU = {
 
   'No snacks in your bag': 'В рюкзаке нет перекусов',
   'Energy already full': 'Энергия уже полная',
-  'SPECIES AWAKENED': 'ВИД ПРОБУЖДЁН',
+
 
   /* ---- HUD e intro ---- */
   'bag ': 'рюкзак ',
@@ -1007,7 +1013,7 @@ export const RU = {
 
   '1 more to the next milestone.': 'До следующей вехи остался 1.',
   ' more to the next milestone.': ' до следующей вехи.',
-  ' walks the park again.': ' снова ходит по парку.',
+
   ' Your grandparent never saw one alive: you did. ': ' Дедушка не видел ни одного живым: а ты видишь. ',
   ' left to go.': ' осталось.',
   'I was the first to find them. But finding them is not enough: no one has ever seen one alive.':

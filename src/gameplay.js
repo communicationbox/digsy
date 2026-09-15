@@ -18,7 +18,7 @@ import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearLockedGate, houseFloorHere, enterInterior, nudgeOffFurniture, CUT } from './interior.js';
-import { ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked, restFreeFor, holdTarget, setHoldTarget } from './house.js';
+import { ensureHouseState, ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked, restFreeFor, holdTarget, setHoldTarget } from './house.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
 import { isNight, seasonOf } from './daynight.js';
@@ -1574,17 +1574,19 @@ export function awakenSpecies(spId) {
   if (S.awakened.includes(spId) || !awakenReady(spId)) return false;
   if (!isDebug()) S.dna[spId] = dnaOf(spId) - 2; // 2 fialette consumate
   S.awakened.push(spId);
-  /* IL RISVEGLIO È IL TRAGUARDO DEL GIOCO (goal.js), non un evento fra gli altri: il momento
-     lo deve dire. Prima annunciava la specie e basta, e il giocatore non aveva modo di capire
-     che aveva appena fatto UNA di sessantasei cose che portano da qualche parte. */
-  bigMoment('🧬 ' + tr('SPECIE RISVEGLIATA', 'SPECIES AWAKENED'),
-    (spById[spId] ? spById[spId].name : '') + ' — ' + goalLine());
+  /* va DA SOLA nel cortile di casa: prima restava solo "scegliibile" e chi non apriva il pannello
+     del cortile non la vedeva mai camminare. È il momento in cui si vuole vederla. */
+  try { ensureHouseState(); } catch (e) { /* stub */ }
+  if (S.house) { if (!S.house.yard) S.house.yard = []; if (!S.house.yard.includes('sp' + spId)) S.house.yard.push('sp' + spId); }
   gainXp(25);
   save(); updateHUD();
+  /* IL RISVEGLIO È IL TRAGUARDO DEL GIOCO (goal.js): una scena sua, lo scheletro che torna vivo, con
+     la didascalia che dice dove ritrovarla */
+  if (typeof document !== 'undefined') import('./ui.js').then(u => u.playAwakening && u.playAwakening(spId)).catch(() => {});
   /* la PRIMA volta si dice dove porta tutto questo: è l'unico istante in cui il giocatore ha
      appena visto con i suoi occhi cosa vuol dire "riportarle in vita", ed è lì che la frase
      attacca. Dalla seconda in poi basta il conto. */
-  toast('🧬 ' + spById[spId].name + tr(' cammina di nuovo nel parco.', ' walks the park again.')
+  toast('🧬 ' + spById[spId].name + tr(' è nel tuo giardino.', ' is in your garden.')
     + (alive() === 1
       ? tr(' Il nonno non ne vide mai una viva: tu sì. Ne restano ', ' Your grandparent never saw one alive: you did. ')
         + (aliveTotal() - 1) + tr('.', ' left to go.')

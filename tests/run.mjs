@@ -4249,6 +4249,25 @@ sprites.applyLook();
   }
 }
 
+/* ---------- RISVEGLIO: scena + la creatura va da sola nel giardino ---------- */
+{
+  const S = state.S;
+  const gpW = await import('../src/gameplay.js');
+  const uiW = await import('../src/ui.js');
+  const dW = await import('../src/data.js');
+  const keep = { dna: S.dna, awakened: S.awakened, house: S.house };
+  const sp = dW.SPECIES[7];
+  S.dna = { [sp.id]: 2 }; S.awakened = [];
+  const ok = gpW.awakenSpecies(sp.id);
+  check('risveglio: la specie va da sola nel giardino di casa', ok && S.house && (S.house.yard || []).includes('sp' + sp.id));
+  let crash = null;
+  try { uiW.playAwakening(sp.id); } catch (e) { crash = e.message; }
+  const ov = document.getElementById('awakenov');
+  check('risveglio: la scena si apre e dice dove ritrovarla', crash === null && uiW.isAwakeningOpen() && /giardino|garden/i.test((ov && ov.innerHTML) || ''), crash || '');
+  if (ov && ov.remove) ov.remove();
+  Object.assign(S, keep);
+}
+
 /* ---------- AMBRA: la seconda collezione ----------
    arriva solo per le specie con la teca completa, riempie una seconda fila di cinque pezzi e al
    completamento paga e accende la teca d'oro */
@@ -6348,8 +6367,8 @@ sprites.applyLook();
   }
   check('esistono i suoni di festa, errore e interfaccia', true);
   const src = (await import('node:fs')).readFileSync('src/gameplay.js', 'utf8');
-  check('chimera e risveglio annunciati con banner+suono', /bigMoment\(/.test(src) &&
-    (src.match(/bigMoment\(/g) || []).length >= 3);
+  /* il risveglio ha una SCENA sua (playAwakening), la schiusa e le soglie il banner */
+  check('chimera e risveglio annunciati (banner o scena)', (src.match(/bigMoment\(/g) || []).length >= 2 && /playAwakening\(/.test(src));
   /* il suono POSITIVO ('found') deve accompagnare OGNI reperto, non solo lo scavo a terra:
      accetta/piccone lo davano solo col colpo dell'attrezzo, il sito non lo dava affatto */
   check('accetta/piccone: suono "found" sul reperto (non solo il colpo)', /found \? 'found' : kind === 'chop'/.test(src));
@@ -8347,7 +8366,7 @@ sprites.applyLook();
      dice già mentre ci sei dentro. La legenda spiega i SIMBOLI, quelli che non si indovinano. */
   check('mappa: la legenda NON elenca i nomi dei biomi',
     !/ZONES\.map\(/.test(mapSrc) && !/z\.name/.test(mapSrc));
-  for (const voce of ['città col Museo', 'meraviglia', 'X del tesoro', 'sei qui', 'da esplorare', 'casa tua', 'paese', 'ossa da scavare']) {
+  for (const voce of ['città col Museo', 'meraviglia', 'X del tesoro', 'sei qui', 'da esplorare', 'casa tua · toccala per andarci', 'paese', 'ossa da scavare']) {
     check('mappa: la legenda spiega ancora "' + voce + '"', mapSrc.includes(`'${voce}'`));
   }
 
