@@ -15,7 +15,6 @@ import { drawHero, applyLook } from './sprites.js';
 import { S } from './state.js';
 import { tr } from './i18n.js';
 import { treeSprite, TREE_AX, TREE_AY } from './treeArt.js';
-import { drawBuriedSkull } from './splashScene.js';
 
 let active = false;
 export function introActive() { return active; }

@@ -282,15 +282,21 @@ function startAnim() {
   const c2 = dc.getContext('2d'); c2.imageSmoothingEnabled = false;
   const fc = document.getElementById('sp-fossil');
   const c3 = fc && fc.getContext ? fc.getContext('2d') : null; if (c3) c3.imageSmoothingEnabled = false;
+  cornerCtx = c3;   // per le foto: `npm run shot -- main … "scena=5000"` ferma la scenetta su un istante
   (function anim(ts) {
     if (!on) { animOn = false; return; }
     c2.clearRect(0, 0, 40, 52);
     drawHero(c2, 4, 17, 'right', Math.floor((ts || 0) / 180) % 2);   // 17 sopra: creste e cappelli salgono fino a 14 pixel (a 2 si tagliavano)
     /* la scenetta dell'angolo si disegna solo se si vede (su telefono è nascosta) */
-    if (c3 && fc.offsetParent !== null) drawCornerScene(c3, ts || 0, drawHero);
+    if (c3 && fc.offsetParent !== null) drawCornerScene(c3, cornerFreeze == null ? (ts || 0) : cornerFreeze, drawHero);
     requestAnimationFrame(anim);
   })(0);
 }
+
+/* la scenetta dell'angolo disegnata a un istante preciso: in headless requestAnimationFrame non
+   avanza come in gioco, e senza questo la foto la ritrae sempre nello stesso fotogramma */
+let cornerCtx = null, cornerFreeze = null;
+export function drawCornerAt(t) { cornerFreeze = t; if (cornerCtx) drawCornerScene(cornerCtx, t, drawHero); }
 
 /* SCORCIATOIE da tastiera mostrate nel menu (solo desktop). NIENTE cheat: sono per sviluppatori. */
 const SHORTCUTS = [

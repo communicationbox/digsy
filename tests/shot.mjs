@@ -66,6 +66,9 @@ async function main() {
        mondo. Vale solo per la pagina della foto, il gioco non la vede mai. */
     /* 'tutorial' = il gioco col passo N del tutorial d'apertura (passo=0..4), per leggere la
        scheda del passo com'è davvero a schermo */
+    /* `scena=<ms>` ferma la scenetta dell'angolo del menu su un istante preciso */
+    var qs = new URLSearchParams(location.search).get('scena');
+    if (qs) setTimeout(function(){ if (G.drawCornerAt) G.drawCornerAt(+qs); else document.body.style.background = 'red'; }, 600);
     if (${JSON.stringify(vista)} === 'tutorial') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       var St = G.state && G.state(); var np = +(new URLSearchParams(location.search).get('passo') || 0);
       if (St) St.tut = { i: np, n: 0, done: false }; if(G.updateHUD) G.updateHUD(); }

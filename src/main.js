@@ -16,7 +16,7 @@ import { checkWonderDiscovery, checkGateNotice } from './gameplay.js';
 import { wonderName } from './wonders.js';
 import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
-import { initSplash, splashActive, cloudEnabled } from './splash.js';
+import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
@@ -347,7 +347,7 @@ if (typeof window !== 'undefined') {
       openBag: u.openBag, closeBag: u.closeBag, openBook: u.openBook, closeBook: u.closeBook,
       openMap: u.openMap, closeMap: u.closeMap, openGuide: u.openGuide, openWonderBook: u.openWonderBook,
       openLetters: u.openLetters, openAchievements: u.openAchievements, closeModal: u.closeModal,
-      openQuests: u.openQuests, updateHUD: u.updateHUD, drawIntroLine,
+      openQuests: u.openQuests, updateHUD: u.updateHUD, drawIntroLine, drawCornerAt,
       /* l'EDITOR del personaggio: si apre solo alla primissima partita, quindi senza questa
          riga non c'era modo di fotografarlo né di farlo disegnare da un test (regola 9) */
       openEditor: () => u.openEditor(() => {}),
