@@ -4256,7 +4256,7 @@ sprites.applyLook();
   const gpP = await import('../src/gameplay.js');
   const keep = { active: it.INT.active, b: it.INT.b, x: it.INT.x, y: it.INT.y, pet: it.INT.pet };
   const keepS = { energy: S.energy, petDay: S.petDay };
-  for (const [type, kind] of [['store', 'gatto'], ['inn', 'cane'], ['lab', 'topo']]) {
+  for (const [type, kind] of [['store', 'gatto'], ['inn', 'cane'], ['lab', 'topo'], ['barber', 'pappagallo'], ['tailor', 'coniglio'], ['furniture', 'scoiattolo']]) {
     const p = it.SHOP_PETS[type];
     Object.assign(it.INT, { active: true, b: { type }, x: p.x, y: p.y + 20, pet: null });
     S.petDay = {}; S.energy = 5;
@@ -4277,9 +4277,12 @@ sprites.applyLook();
       shop.drawStoreFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'gatto', t: k });
       shop.drawInnFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'cane', t: k });
       shop.drawLabFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'topo', t: k });
+      shop.drawBarberFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'pappagallo', t: k });
+      shop.drawTailorFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'coniglio', t: k });
+      shop.drawFurnitureFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'scoiattolo', t: k });
     }
   } catch (e) { crash = e.message; }
-  check('coccole: le tre reazioni si disegnano', crash === null, crash || '');
+  check('coccole: le sei reazioni si disegnano', crash === null, crash || '');
   Object.assign(it.INT, keep); Object.assign(S, keepS);
 }
 

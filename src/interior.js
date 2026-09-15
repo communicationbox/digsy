@@ -342,6 +342,9 @@ export const SHOP_PETS = {
   store: { kind: 'gatto', x: 74, y: 102 },
   inn: { kind: 'cane', x: 40, y: 190 },
   lab: { kind: 'topo', x: 34, y: 200 },
+  barber: { kind: 'pappagallo', x: 40, y: 170 },
+  tailor: { kind: 'coniglio', x: 284, y: 192 },
+  furniture: { kind: 'scoiattolo', x: 38, y: 190 },
 };
 export const PET_SEC = 2.6;
 export function nearPet() {

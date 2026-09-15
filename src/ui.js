@@ -275,7 +275,7 @@ export function updatePrompt() {
     if (nearMentorInt()) { setPrompt(withIcons(actKey() + ' ' + tr('Parla col Maestro Scavatore 🎓', 'Talk to the Master Digger 🎓'))); return; }
     const nc = nearCase();
     if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/' + PARTS.length + (nc.n === PARTS.length ? ' 💫' : ''))); return; }
-    { const pet = nearPet(); if (pet && !nearNpc()) { setPrompt(withIcons(actKey() + ' ' + ({ gatto: '🐾 ' + tr('Accarezza il gatto', 'Pet the cat'), cane: '🐾 ' + tr('Coccola il cane', 'Cuddle the dog'), topo: '🐾 ' + tr('Dai il formaggio al topolino', 'Give the mouse some cheese') })[pet.kind])); return; } }
+    { const pet = nearPet(); if (pet && !nearNpc()) { setPrompt(withIcons(actKey() + ' ' + ({ gatto: '🐾 ' + tr('Accarezza il gatto', 'Pet the cat'), cane: '🐾 ' + tr('Coccola il cane', 'Cuddle the dog'), topo: '🐾 ' + tr('Dai il formaggio al topolino', 'Give the mouse some cheese'), pappagallo: '🐾 ' + tr('Gratta la testa al pappagallo', 'Scratch the parrot\'s head'), coniglio: '🐾 ' + tr('Accarezza il coniglietto', 'Pet the bunny'), scoiattolo: '🐾 ' + tr('Saluta lo scoiattolo', 'Say hi to the squirrel') })[pet.kind])); return; } }
     if (nearNpc()) {
       if (!INT.greeted && INT.b) { sayGreet(INT.b.type); INT.greeted = true; } // saluto (una frase a caso) avvicinandosi
       setPrompt(withIcons(actKey() + ' ' + tr('Parla con ', 'Talk to ') + npcName(INT.b.type))); return;

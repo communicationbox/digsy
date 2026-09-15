@@ -357,7 +357,10 @@ export function petShopAnimal() {
   if (first) { S.petDay[r.kind] = S.day; S.energy = Math.min(S.maxEnergy, S.energy + 1); updateHUD(); save(); }
   const msg = r.kind === 'gatto' ? tr('Il gatto fa le fusa', 'The cat purrs')
     : r.kind === 'cane' ? tr('Il cane scodinzola felice', 'The dog wags happily')
-      : tr('Squit! Il topolino si gode il formaggio', 'Squeak! The mouse enjoys the cheese');
+      : r.kind === 'topo' ? tr('Squit! Il topolino si gode il formaggio', 'Squeak! The mouse enjoys the cheese')
+        : r.kind === 'pappagallo' ? tr('Il pappagallo fischietta contento', 'The parrot whistles happily')
+          : r.kind === 'coniglio' ? tr('Il coniglietto saltella', 'The bunny hops around')
+            : tr('Lo scoiattolo ti mostra la sua ghianda', 'The squirrel shows you its acorn');
   toast('🐾 ' + msg + (first ? ' · +1 ⚡' : ''));
   playSfx('found');
   return true;

@@ -293,7 +293,9 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
     g.rect(59, 96, 2, 1, '#2a2016'); g.rect(64, 96, 2, 1, '#2a2016'); g.px(60, 95, '#2a2016'); g.px(65, 95, '#2a2016');
     const sw = Math.floor(pet.t * 6) % 2;
     g.rect(84, 92 + sw, 3, 12, '#2a2016'); g.rect(85, 93 + sw, 1, 10, '#e08a2c'); g.rect(86, 90 + sw * 2, 4, 3, '#2a2016'); g.rect(87, 91 + sw * 2, 2, 1, '#e08a2c');
-    if (Math.floor(pet.t * 4) % 2) { g.rect(48, 94, 4, 1, '#8a6a4a'); g.rect(47, 97, 5, 1, '#8a6a4a'); }
+    /* baffi attaccati alle guance (fremono con le fusa), non più due trattini staccati dal muso */
+    const wh = Math.floor(pet.t * 6) % 2, WC = '#fff6e6';
+    for (const [x, y] of [[55, 98], [54, 98], [53, 97], [52, 97 - wh], [55, 100], [54, 100], [53, 101], [52, 101 + wh]]) g.px(x, y, WC);   // due baffi sottili che si aprono a ventaglio dal muso
     hearts(g, 66, 86, pet);
   } else {
     g.rect(59, 97, 3, 1, '#2a2016'); g.px(64, 99, '#e8a0b8');
@@ -440,7 +442,7 @@ export function drawBarberProps(g, rw, rh, time) {
   /* diploma incorniciato */
   frame(g, rw - 76, 14, 24, 18, true); g.rect(rw - 73, 17, 18, 12, '#f3ecda'); g.rect(rw - 70, 20, 12, 1, '#8f887a'); g.rect(rw - 70, 23, 9, 1, '#8f887a'); g.rect(rw - 62, 25, 3, 3, '#c65a54');
 }
-export function drawBarberFloorProps(g, rw, rh, time) {
+export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
   const cx = rw / 2;
   /* sul bancone: forbici, pettine, pennello, flacone */
   g.rect(cx - 64, 66, 10, 2, '#8f9aa3'); g.rect(cx - 58, 64, 2, 6, '#8f9aa3'); g.rect(cx - 66, 64, 4, 4, '#c65a54'); g.rect(cx - 66, 68, 4, 3, '#c65a54');
@@ -473,6 +475,26 @@ export function drawBarberFloorProps(g, rw, rh, time) {
   g.rect(264, 100, 14, 9, '#8f887a'); g.rect(265, 100, 12, 8, '#f3ecda'); g.rect(267, 102, 8, 1, '#5a5248'); g.rect(267, 105, 6, 1, '#8f887a');
   g.rect(294, 108, 12, 12, '#2a1e14'); g.rect(295, 109, 10, 11, '#c86a4a'); g.rect(295, 109, 10, 2, '#e08a62');
   g.rect(292, 94, 7, 14, '#3f7a3a'); g.rect(299, 90, 7, 18, '#4f9a48'); g.rect(296, 86, 5, 12, '#5fae52'); g.px(298, 88, '#8fd07a');
+  /* PAPPAGALLO sul trespolo in basso a sinistra: dondola la testa; coccolato apre le ali e fischietta */
+  {
+    const t = time || 0, pp = pet && pet.kind === 'pappagallo';
+    g.shadow(40, 204, 12);
+    g.rect(38, 170, 3, 34, '#2a1e14'); g.rect(39, 171, 1, 32, '#8a5f38'); g.rect(30, 202, 20, 3, '#2a1e14'); g.rect(31, 202, 18, 2, '#6e4a2e');
+    g.rect(28, 168, 24, 3, '#2a1e14'); g.rect(29, 168, 22, 2, '#a97a4c');
+    const bob = pp ? (Math.floor(pet.t * 8) % 2) : (Math.floor(t / 900) % 2);
+    if (pp) {                                            // ali aperte
+      const fl = Math.floor(pet.t * 10) % 2;
+      g.rect(26, 150 - fl * 3, 9, 12, '#2a2016'); g.rect(27, 151 - fl * 3, 7, 10, '#4fae5a'); g.rect(27, 158 - fl * 3, 7, 3, '#e0873a');
+      g.rect(45, 150 - fl * 3, 9, 12, '#2a2016'); g.rect(46, 151 - fl * 3, 7, 10, '#4fae5a'); g.rect(46, 158 - fl * 3, 7, 3, '#5a86c8');
+    }
+    g.rect(34, 152 + bob, 12, 17, '#2a2016'); g.rect(35, 153 + bob, 10, 15, '#3f9a4a'); g.rect(35, 153 + bob, 10, 3, '#6ac46e');
+    g.rect(37, 160 + bob, 6, 6, '#e8c34a');                                   // petto giallo
+    g.rect(35, 144 + bob, 11, 10, '#2a2016'); g.rect(36, 145 + bob, 9, 8, '#d8453c'); g.rect(36, 145 + bob, 9, 2, '#f06a5a');
+    g.rect(44, 148 + bob, 4, 4, '#2a2016'); g.rect(45, 149 + bob, 2, 2, '#e8dcc0');    // becco ricurvo
+    g.px(41, 147 + bob, pp ? '#1a120a' : '#1a120a'); g.px(42, 147 + bob, '#ffffff');
+    g.rect(37, 169, 6, 3, '#2a2016'); g.rect(38, 167 + bob, 4, 3, '#2f7a3a');       // coda
+    if (pp) { for (let i = 0; i < 3; i++) if ((Math.floor(pet.t * 5) + i) % 3 === 0) g.rect(52 + i * 4, 142 - i * 3, 2, 2, '#f3ecda'); hearts(g, 40, 140, pet); }
+  }
 }
 
 /* ================= SARTORIA ================= */
@@ -502,7 +524,7 @@ export function drawTailorProps(g, rw, rh, time) {
   g.rect(rw - 72, 14, 2, 18, '#8f9aa3'); g.rect(rw - 66, 14, 2, 18, '#8f9aa3'); g.rect(rw - 75, 32, 6, 6, '#2a2016'); g.rect(rw - 67, 32, 6, 6, '#2a2016');
   g.rect(rw - 74, 33, 4, 4, '#c9a227'); g.rect(rw - 66, 33, 4, 4, '#c9a227');
 }
-export function drawTailorFloorProps(g, rw, rh, time) {
+export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
   const t = time || 0, cx = rw / 2;
   /* sul bancone: pila di stoffe piegate, puntaspilli, forbici */
   const pile = ['#5a86c8', '#e8a0b8', '#e8c34a', '#5fa04e'];
@@ -544,6 +566,45 @@ export function drawTailorFloorProps(g, rw, rh, time) {
   g.rect(240, 70, 4, 5, '#c65a54'); g.rect(241, 68, 2, 2, '#8a5f38');                                              // rocchetto in cima
   /* ritagli di stoffa a terra */
   for (let i = 0; i < 6; i++) { const c = ['#c65a54', '#5a86c8', '#e8a0b8', '#5fa04e', '#e8c34a', '#8a6ab0'][i]; g.rect(124 + (i * 38) % 80, 156 + (i * 26) % 36, 4, 2, c); g.px(125 + (i * 38) % 80, 158 + (i * 26) % 36, c); }
+  /* CONIGLIETTO acciambellato nel cesto di stoffe, in basso a destra, di profilo: corpo tondo e morbido,
+     orecchie lunghe distese sulla schiena, codino a pompon, naso che fremita. Coccolato si tira su,
+     drizza le orecchie e fa due saltelli. Contorno bruno morbido, non nero: è un animale di peluche. */
+  {
+    const t = time || 0, pr = pet && pet.kind === 'coniglio';
+    const OUT = '#6b5a4c', W1 = '#f6f1e8', W2 = '#e4dccf', W3 = '#cfc4b4', PK = '#f0a8b8';
+    const oval = (cx, cy, rx, ry, fill) => {
+      for (let y = -ry; y <= ry; y++) { const w = Math.round(rx * Math.sqrt(1 - (y * y) / (ry * ry + 0.01))); g.rect(cx - w, cy + y, w * 2 + 1, 1, fill(y, w)); }
+    };
+    const edge = (cx, cy, rx, ry) => oval(cx, cy, rx + 1, ry + 1, () => OUT);
+    g.shadow(284, 207, 17);
+    /* cesto */
+    g.rect(266, 192, 36, 15, '#2a1e14'); g.rect(267, 193, 34, 13, '#b07c4a'); for (let k = 0; k < 34; k += 4) g.rect(267 + k, 193, 2, 13, '#8a5f38');
+    g.rect(265, 189, 38, 5, '#2a1e14'); g.rect(266, 190, 36, 3, '#d9869f'); g.rect(266, 190, 36, 1, '#eaa6bb');
+    const hop = pr ? -Math.round(Math.abs(Math.sin(pet.t * 6)) * 5) : 0;
+    const bx = 288, by = 186 + hop;
+    /* corpo */
+    edge(bx, by, 10, 7);
+    oval(bx, by, 10, 7, (y, w) => y < -3 ? W1 : y > 3 ? W3 : W2);
+    g.rect(bx + 9, by - 3, 5, 5, OUT); g.rect(bx + 10, by - 2, 3, 3, '#ffffff');               // codino a pompon
+    /* testa, davanti al corpo verso sinistra */
+    const hx = bx - 10, hy = by - 4 - (pr ? 2 : 0);
+    edge(hx, hy, 6, 5);
+    oval(hx, hy, 6, 5, (y) => y < -2 ? W1 : W2);
+    /* orecchie: distese sulla schiena da ferme, dritte coccolate */
+    if (pr) {
+      for (const ex of [hx - 1, hx + 3]) { g.rect(ex - 1, hy - 15, 4, 11, OUT); g.rect(ex, hy - 14, 2, 10, W1); g.rect(ex, hy - 12, 1, 7, PK); }
+    } else {
+      g.rect(hx + 1, hy - 6, 14, 4, OUT); g.rect(hx + 2, hy - 5, 12, 2, W1); g.rect(hx + 4, hy - 5, 8, 1, PK);
+    }
+    /* occhio col punto di luce, guancia, naso che fremita */
+    g.rect(hx - 3, hy - 1, 2, 2, '#2a1e18'); g.px(hx - 3, hy - 1, '#ffffff');
+    g.px(hx - 1, hy + 2, '#f6c6cf');
+    const nose = Math.floor(pr ? pet.t * 12 : t / 350) % 2;
+    g.rect(hx - 7, hy + 1 - nose, 2, 2, PK);
+    /* zampine davanti */
+    g.rect(hx - 3, by + 5, 4, 3, OUT); g.rect(hx - 2, by + 5, 2, 2, W1);
+    if (pr) hearts(g, bx - 4, hy - 18, pet);
+  }
 }
 
 /* ================= LABORATORIO ================= */
@@ -699,7 +760,7 @@ export function drawFurnitureProps(g, rw, rh, time) {
   g.rect(rw - 32, 12, 16, 16, '#2a2016'); g.rect(rw - 31, 13, 14, 14, '#8a5f38'); g.rect(rw - 29, 15, 10, 10, '#f3ecda');
   const hh = Math.floor(t / 1000) % 4; g.rect(rw - 24, 17, 1, 4, '#2a2016'); g.rect(rw - 24 + (hh < 2 ? 0 : -3), 20, 4, 1, '#2a2016');
 }
-export function drawFurnitureFloorProps(g, rw, rh, time) {
+export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
   const t = time || 0, cx = rw / 2;
   /* sul bancone: catalogo aperto, ventaglio di campioni di stoffa, matita, sedia in miniatura */
   g.rect(cx - 70, 62, 28, 9, '#2a2016'); g.rect(cx - 69, 63, 13, 7, '#f3ecda'); g.rect(cx - 55, 63, 12, 7, '#e8dcc0'); g.rect(cx - 56, 62, 1, 9, '#8a3f3a');
@@ -737,4 +798,19 @@ export function drawFurnitureFloorProps(g, rw, rh, time) {
   /* assi appoggiate al muro e trucioli sparsi */
   for (let i = 0; i < 3; i++) { g.rect(300 - i * 4, 150 + i * 2, 5, 50 - i * 2, '#2a1e14'); g.rect(301 - i * 4, 151 + i * 2, 3, 48 - i * 2, ['#c49a63', '#a97a4c', '#dcb880'][i]); }
   for (let i = 0; i < 9; i++) { const x = 110 + (i * 41) % 110, y = 150 + (i * 29) % 44; g.rect(x, y, 3, 1, '#e0b890'); g.px(x + 3, y - 1, '#e0b890'); g.px(x - 1, y + 1, '#c49a63'); }
+  /* SCOIATTOLO sul ceppo in basso a sinistra, con la ghianda: la coda a pennacchio; coccolato si alza e
+     rigira la ghianda fra le zampine */
+  {
+    const t = time || 0, ps = pet && pet.kind === 'scoiattolo';
+    g.shadow(38, 206, 16);
+    g.rect(24, 190, 28, 16, '#2a1e14'); g.rect(25, 191, 26, 14, '#8a5f38'); g.rect(25, 189, 26, 4, '#2a1e14'); g.rect(26, 190, 24, 2, '#dcb880'); g.rect(33, 190, 10, 2, '#c49a63');
+    const up = ps ? 3 : 0, tw = Math.floor((ps ? pet.t * 8 : t / 700)) % 2;
+    g.rect(40, 164 - up - tw, 12, 20, '#2a2016'); g.rect(41, 165 - up - tw, 10, 18, '#c96a2e'); g.rect(44, 167 - up - tw, 6, 14, '#e0873a');   // coda a pennacchio
+    g.rect(30, 176 - up, 13, 14, '#2a2016'); g.rect(31, 177 - up, 11, 12, '#b55a26'); g.rect(33, 181 - up, 6, 7, '#f0c89a');                     // corpo e pancia
+    g.rect(28, 168 - up, 11, 10, '#2a2016'); g.rect(29, 169 - up, 9, 8, '#b55a26'); g.rect(30, 166 - up, 3, 3, '#2a2016'); g.rect(35, 166 - up, 3, 3, '#2a2016');
+    g.px(31, 172 - up, '#1a120a'); g.px(35, 172 - up, '#1a120a'); g.px(28, 174 - up, '#2a2016');
+    const ax = ps ? 31 + (Math.floor(pet.t * 6) % 2) : 33;
+    g.rect(ax, 182 - up, 5, 5, '#2a2016'); g.rect(ax + 1, 183 - up, 3, 3, '#a8742e'); g.rect(ax + 1, 182 - up, 3, 1, '#5c4229');                    // ghianda
+    if (ps) hearts(g, 36, 158, pet);
+  }
 }

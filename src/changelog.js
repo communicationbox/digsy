@@ -1,8 +1,8 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.98.4', it: [
-      'COCCOLE: accarezza il gatto del Negozio, coccola il cane della Locanda, dai il formaggio al topolino del Laboratorio. Cuoricini, e la prima coccola del giorno regala 1 ⚡',
+    v: 'v0.98.5', it: [
+      'COCCOLE: un animaletto in ogni bottega — gatto al Negozio, cane alla Locanda, topolino al Laboratorio, pappagallo dal Barbiere, coniglietto in Sartoria, scoiattolo alla Bottega d\'arredo. Cuoricini, e la prima coccola del giorno regala 1 ⚡',
       'RISVEGLIO: una scena tutta sua (lo scheletro brilla, un lampo, l\'animale salta fuori) e la specie va da sola nel tuo giardino',
       'MAPPA: bottone "Teletrasporto a casa" sotto la carta',
       'LETTERA NASCOSTA: la prima lettera del nonno è infilata dietro la targa della sua statua, accanto al Museo. Basta toccarla',
@@ -13,7 +13,7 @@ export const CHANGELOG = [
       'CAPELLI: stempiato e afro rifatti',
       'MENO TESTO ovunque: pannelli senza spiegazioni lunghe, bottoni a portata di dito su telefono',
     ], en: [
-      'CUDDLES: pet the Shop cat, cuddle the Inn dog, give the Lab mouse some cheese. Little hearts, and the first cuddle of the day gives 1 ⚡',
+      'CUDDLES: a little animal in every shop — cat at the Shop, dog at the Inn, mouse at the Lab, parrot at the Barber, bunny at the Tailor, squirrel at the Furniture store. Little hearts, and the first cuddle of the day gives 1 ⚡',
       'AWAKENING: its own scene (the skeleton glows, a flash, the animal jumps out) and the species goes straight to your garden',
       'MAP: a "Teleport home" button under the map',
       'HIDDEN LETTER: Grandpa\'s first letter is tucked behind the plaque of his statue, next to the Museum. Just tap it',
