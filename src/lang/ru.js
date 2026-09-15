@@ -17,7 +17,7 @@ export const RU = {
   "Gently with the spade… there it is. The bone of a creature that lived a very long time ago.": "Осторожно лопатой… вот она. Кость существа, жившего очень-очень давно.",
   "I spent my life looking for them. And I always dreamed of seeing one alive, even just one.": "Я всю жизнь их искал. И всегда мечтал увидеть хоть одно живым, хотя бы одно.",
   "This is for you, {n}. I'm tired now… but you have the whole road ahead of you.": "Это тебе, {n}. Я уже устал… а у тебя впереди вся дорога.",
-  "I promise, Grandpa: I'll bring them home. Every single one.": "Обещаю, дедушка: я верну их домой. Всех до одного.",
+  "I promise, Grandpa: I'll bring them back to life. Every single one.": "Обещаю, дедушка: я верну их к жизни. Всех до одного.",
   "Every dig uses energy ⚡. When it runs out, sleep at the <b>Inn</b> or eat a snack (+15 ⚡).": "Каждый раскоп тратит энергию ⚡. Когда она кончится, поспи в <b>Таверне</b> или съешь перекус (+15 ⚡).",
   "When your bag is full, new finds stay <b>on the ground</b>. The Shop sells bigger bags.": "Когда рюкзак полон, новые находки остаются <b>на земле</b>. В Лавке есть рюкзаки побольше.",
   "Once a case is complete, <b>amber</b> pieces ✨ of that species can turn up: a second case to fill.": "Когда витрина заполнена, могут попадаться <b>янтарные</b> ✨ части этого вида: вторая витрина ждёт.",

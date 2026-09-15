@@ -33,7 +33,7 @@ const LINES = [
   { s: 'G', it: 'Piano con la pala… eccolo. È l\'osso di una creatura vissuta tantissimo tempo fa.', en: 'Gently with the spade… there it is. The bone of a creature that lived a very long time ago.', shot: 2 },
   { s: 'G', it: 'Ho passato la vita a cercarle. E ho sempre sognato di vederne una viva, anche una sola.', en: 'I spent my life looking for them. And I always dreamed of seeing one alive, even just one.', shot: 3 },
   { s: 'G', it: 'Questo è per te, {n}. Io ormai sono stanco… ma tu hai tutta la strada davanti.', en: 'This is for you, {n}. I\'m tired now… but you have the whole road ahead of you.', shot: 4 },
-  { s: 'D', it: 'Te lo prometto, nonno: le riporterò a casa. Tutte quante.', en: 'I promise, Grandpa: I\'ll bring them home. Every single one.', shot: 4 },
+  { s: 'D', it: 'Te lo prometto, nonno: le farò tornare vive. Tutte quante.', en: 'I promise, Grandpa: I\'ll bring them back to life. Every single one.', shot: 4 },
 ];
 
 /* ---------------- pennelli ---------------- */
