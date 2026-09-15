@@ -33,7 +33,7 @@ const LINES = [
   { s: 'G', it: 'Piano con la pala… eccolo. È l\'osso di una creatura vissuta tantissimo tempo fa.', en: 'Gently with the spade… there it is. The bone of a creature that lived a very long time ago.', shot: 2 },
   { s: 'G', it: 'Ho passato la vita a cercarle. E ho sempre sognato di vederne una viva, anche una sola.', en: 'I spent my life looking for them. And I always dreamed of seeing one alive, even just one.', shot: 3 },
   { s: 'G', it: 'Questo è per te, {n}. Io ormai sono stanco… ma tu hai tutta la strada davanti.', en: 'This is for you, {n}. I\'m tired now… but you have the whole road ahead of you.', shot: 4 },
-  { s: 'D', it: 'Te lo prometto, nonno: le riporterò a casa. Tutte quante.', en: 'I promise, Grandpa: I\'ll bring them home. Every single one.', shot: 5 },
+  { s: 'D', it: 'Te lo prometto, nonno: le riporterò a casa. Tutte quante.', en: 'I promise, Grandpa: I\'ll bring them home. Every single one.', shot: 4 },
 ];
 
 /* ---------------- pennelli ---------------- */
@@ -75,24 +75,36 @@ function sparkle(x, y, col) { px(x, y - 2, 1, 5, col); px(x - 2, y, 5, 1, col); 
 /* LO SFONDO DEL CAMPO — cielo, colline, alberi, prato e la tenda col baule e la lanterna.
    Lo usano la PRIMA e la SECONDA inquadratura: è lo stesso posto, visto da più vicino. Prima la
    seconda scena aveva un fondo tutto suo e sembrava un altro mondo (segnalato). */
-function campBack(W, H, t, gy, night) {
+function campBack(W, H, t, gy, ora) {
+  const night = ora === 'notte', morn = ora === 'mattina';
   if (night) {
     sky(W, H, ['#0e0f28', '#151a3c', '#1e2650', '#28325e', '#333d6a'], gy);
     for (let i = 0; i < 70; i++) { const x = hash(i, 11) * W, y = hash(i, 12) * gy * 0.92; if (Math.floor(t / 500 + i) % 6) px(x, y, 1, 1, i % 4 ? '#cfc8ff' : '#fff6c8'); }
     sun(Math.round(W * 0.74), Math.round(gy * 0.36), 12, '#efe6c8', 'rgba(239,230,200,.10)');
     px(Math.round(W * 0.74) + 3, Math.round(gy * 0.36) - 5, 4, 3, '#d6cba8');
+  } else if (morn) {
+    sky(W, H, ['#6f9ccb', '#93b5d6', '#bcd0dd', '#e2d3b4', '#f7e7c2'], gy);              // mattina: cielo chiaro, sole basso a destra
+    sun(Math.round(W * 0.78), Math.round(gy * 0.74), 15, '#fff0b8', 'rgba(255,240,184,.28)');
+    for (let i = 0; i < 3; i++) { const cx = ((i * 121 + t / 200) % (W + 60)) - 30; px(cx, 14 + i * 10, 24, 3, '#eef2f6'); px(cx + 6, 12 + i * 10, 12, 2, '#ffffff'); }
   } else {
     sky(W, H, ['#4a3a6e', '#7a4a78', '#b55a6a', '#e07a52', '#f2a55a', '#f7c878'], gy);   // il cielo arriva fino al prato: niente striscia nera
     sun(Math.round(W * 0.7), Math.round(gy * 0.72), 14, '#ffe09a', 'rgba(255,226,150,.25)');
     for (let i = 0; i < 4; i++) { const cx = ((i * 97 + t / 120) % (W + 60)) - 30; px(cx, 12 + i * 9, 26, 3, '#f6b08a'); px(cx + 6, 10 + i * 9, 14, 2, '#f8c8a2'); }
   }
-  hills(W, H, Math.round(gy - 26), 6, 0.035, night ? '#241e44' : '#6a4a7a', 1.3, night ? '#302852' : '#7e5a8c');
-  hills(W, H, Math.round(gy - 13), 5, 0.05, night ? '#1b2038' : '#3e4a5a', 4.1, night ? '#262c4c' : '#4c5a6a');
-  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, gy + 2, v, night ? NIGHT_TREE : DUSK_TREE, t);
-  grass(W, H, gy, night ? ['#24352a', '#2e4434', '#1c2a22'] : ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
+  hills(W, H, Math.round(gy - 26), 6, 0.035, night ? '#241e44' : morn ? '#7e93b0' : '#6a4a7a', 1.3, night ? '#302852' : morn ? '#93a8c2' : '#7e5a8c');
+  hills(W, H, Math.round(gy - 13), 5, 0.05, night ? '#1b2038' : morn ? '#5a7186' : '#3e4a5a', 4.1, night ? '#262c4c' : morn ? '#6b8296' : '#4c5a6a');
+  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, gy + 2, v, night ? NIGHT_TREE : morn ? PRATI : DUSK_TREE, t);
+  grass(W, H, gy, night ? ['#24352a', '#2e4434', '#1c2a22'] : morn ? ['#4f8f44', '#7fbf63', '#3f7a3a'] : ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
   const tx = Math.round(W * 0.18);
   for (let y = 0; y < 24; y++) { const w = Math.round(y * 0.9); px(tx - w, gy - 24 + y, w * 2, 1, y < 2 ? '#e8d6a8' : '#c9b07a'); px(tx - w, gy - 24 + y, 2, 1, '#8a7048'); }
-  px(tx - 3, gy - 14, 6, 14, '#3a2a1a');
+  px(tx - 5, gy - 14, 10, 14, '#2a1f14');                                   // l'apertura della tenda
+  if (night) {                                                              // IL PICCOLO DORME dentro la tenda
+    px(tx - 4, gy - 5, 9, 5, '#5a86c8'); px(tx - 4, gy - 5, 9, 1, '#7aa2e0');      // coperta
+    px(tx - 1, gy - 9, 5, 5, '#e3b98a'); px(tx - 1, gy - 9, 5, 2, '#8a6a3a');      // testa e capelli
+    px(tx, gy - 7, 1, 1, '#2a1f14'); px(tx + 2, gy - 7, 1, 1, '#2a1f14');          // occhi chiusi
+    const zz = Math.floor(t / 900) % 3;                                            // zzz che salgono
+    for (let i = 0; i <= zz; i++) { const zx = tx + 6 + i * 4, zy = gy - 12 - i * 5; px(zx, zy, 4, 1, '#cfd6ff'); px(zx, zy + 3, 4, 1, '#cfd6ff'); px(zx + 1, zy + 1, 2, 2, '#cfd6ff'); }
+  }
   px(tx + 26, gy - 8, 12, 8, '#8a5f38'); px(tx + 26, gy - 8, 12, 2, '#b07c4a'); px(tx + 31, gy - 8, 2, 8, '#5c4229');
   const fl = Math.floor(t / 200) % 2, lx = tx + 46;
   px(lx, gy - 26, 2, 26, '#5c4229'); px(lx + 2, gy - 26, 1, 26, '#3e2c1c');
@@ -198,13 +210,13 @@ function shotBone(W, H, t, tu) {
   if (hit) { px(ex - 7, ey + 6, 14, 4, '#6b4a2e'); px(ex - 5, ey + 7, 9, 2, '#8a6440'); }   // terra sulla lama
 }
 /* TERZA INQUADRATURA — "ho sempre sognato di vederne una viva". Lo STESSO campo, di notte: il
-   nonno sta in piedi accanto al fuoco, col fossile appena trovato posato lì, e guarda il cielo
+   piccolo dorme nella tenda e il nonno resta in piedi accanto al fuoco, col fossile posato lì, e guarda il cielo
    stellato. Prima c'era uno scheletro gigante a terra e la creatura fuori dall'inquadratura, poi
    la creatura sognata disegnata in cielo: sembrava buttata lì a caso (segnalato). La battuta dice
    già che la sogna — il quadro deve solo stargli intorno, non illustrarla. */
 function shotMemory(W, H, t) {
   const gy = Math.round(H * 0.62);
-  campBack(W, H, t, gy, true);
+  campBack(W, H, t, gy, 'notte');
   /* il fuoco del campo */
   const fx = Math.round(W * 0.42), fl = Math.floor(t / 160) % 2;
   /* la luce del fuoco si vede DOVE CADE, sull'erba: un alone tondo semitrasparente sul buio
@@ -219,42 +231,26 @@ function shotMemory(W, H, t) {
   const gx = Math.round(W * 0.34);
   shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'lift');
 }
+/* QUARTA INQUADRATURA — la mattina dopo, stesso campo: il fuoco ormai è brace, e il nonno mette
+   il fossile nelle mani del piccolo. Niente teschio per terra: quello ha passato la notte lì, ora
+   è il dono che passa di mano. */
 function shotGive(W, H, t, tu) {
-  sky(W, H, ['#6a3a5e', '#a24a5a', '#d8664a', '#f0904a', '#f6b45a'], Math.round(H * 0.56));
-  sun(Math.round(W * 0.5), Math.round(H * 0.47), 18, '#ffd48a', 'rgba(255,212,138,.2)');   // il sole fra i due, sopra le colline
-  hills(W, H, Math.round(H * 0.54), 4, 0.05, '#4a3a5a', 0.7, '#5a4a6a');
-  const gy = Math.round(H * 0.64);
-  grass(W, H, gy, ['#4a5a3a', '#6a7a4a', '#3a4a2e'], t);
-  /* vicini abbastanza da passarsi il fossile: a 0,4 e 0,6 volava nel vuoto fra i due */
-  const gx = Math.round(W / 2 - 21), dx = Math.round(W / 2 + 21);
+  const gy = Math.round(H * 0.62);
+  campBack(W, H, t, gy, 'mattina');
+  /* la brace del fuoco, con un filo di fumo */
+  const fx = Math.round(W * 0.5);
+  for (let i = 0; i < 5; i++) px(fx - 6 + i * 3, gy - 2, 3, 3, i % 2 ? '#5c4229' : '#3e2c1c');
+  for (let i = 0; i < 3; i++) px(fx - 4 + i * 3, gy - 3, 2, 1, (Math.floor(t / 300) + i) % 2 ? '#e8873a' : '#c9502a');
+  for (let i = 0; i < 5; i++) { const a2 = (t / 1100 + i / 5) % 1; px(fx - 1 + Math.sin(t / 400 + i * 1.4) * 4, gy - 6 - a2 * 26, 2, 2, `rgba(200,200,190,${(0.5 - a2 * 0.5).toFixed(2)})`); }
+  /* i due attorno al fuoco, vicini abbastanza da passarsi il fossile */
+  const gx = fx - 26, dx = fx + 26;
   shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'strike');
   shadowAt(dx, gy, 12); hero(null, dx, gy, 'left', 0, tu > 1400 ? 'strike' : undefined);
   /* il fossile che passa di mano e brilla */
-  const k = Math.min(1, tu / 1600), fx = Math.round(gx + 11 + (dx - gx - 22) * k), fy = gy - 14 - Math.round(Math.sin(k * Math.PI) * 3);
-  px(fx - 4, fy - 1, 9, 3, '#2a1f14'); px(fx - 3, fy, 7, 1, '#f1e8d2'); px(fx - 5, fy - 2, 3, 5, '#2a1f14'); px(fx - 4, fy - 1, 1, 3, '#f1e8d2'); px(fx + 3, fy - 2, 3, 5, '#2a1f14'); px(fx + 4, fy - 1, 1, 3, '#f1e8d2');
-  for (let i = 0; i < 5; i++) { const a = (t / 900 + i / 5) % 1; if (a < 0.8) sparkle(fx - 8 + hash(i, 2) * 16, fy - 2 - a * 18, i % 2 ? '#fff6c8' : '#ffe27a'); }
+  const k = Math.min(1, tu / 1600), hxf = Math.round(gx + 13 + (dx - gx - 26) * k), hyf = gy - 14 - Math.round(Math.sin(k * Math.PI) * 3);
+  px(hxf - 4, hyf - 1, 9, 3, '#2a1f14'); px(hxf - 3, hyf, 7, 1, '#f1e8d2'); px(hxf - 5, hyf - 2, 3, 5, '#2a1f14'); px(hxf - 4, hyf - 1, 1, 3, '#f1e8d2'); px(hxf + 3, hyf - 2, 3, 5, '#2a1f14'); px(hxf + 4, hyf - 1, 1, 3, '#f1e8d2');
+  for (let i = 0; i < 5; i++) { const a2 = (t / 900 + i / 5) % 1; if (a2 < 0.8) sparkle(hxf - 8 + hash(i, 2) * 16, hyf - 2 - a2 * 18, i % 2 ? '#fff6c8' : '#ffe27a'); }
 }
-function shotDawn(W, H, t, tu) {
-  sky(W, H, ['#3a5a8a', '#6a8ab0', '#a8b8c8', '#f0c89a', '#f7dcaa'], Math.round(H * 0.56));
-  const sxn = Math.round(W / 2), syn = Math.round(H * 0.56) - Math.min(10, Math.round(tu / 300));
-  /* raggi del sole che sorge: spicchi alternati */
-  for (let i = 0; i < 10; i++) {
-    if (i % 2) continue;
-    const a0 = Math.PI + i / 10 * Math.PI, a1 = a0 + Math.PI / 10;
-    ctx.fillStyle = 'rgba(255,236,190,.18)'; ctx.beginPath(); ctx.moveTo(sxn, syn); ctx.lineTo(sxn + Math.cos(a0) * W, syn + Math.sin(a0) * W); ctx.lineTo(sxn + Math.cos(a1) * W, syn + Math.sin(a1) * W); ctx.closePath(); ctx.fill();
-  }
-  sun(sxn, syn, 16, '#fff0b8', 'rgba(255,240,184,.3)');
-  hills(W, H, Math.round(H * 0.54), 5, 0.04, '#5a7a8a', 3.3, '#6a8a9a');
-  const gy = Math.round(H * 0.64);
-  for (const [fx, v] of [[0.1, 3], [0.2, 5], [0.88, 6]]) tree(W * fx, gy + 2, v, PRATI, t);
-  grass(W, H, gy, ['#4f8f44', '#7fbf63', '#3f7a3a'], t);
-  for (let b = 0; b < 3; b++) { const bx = ((t / 30) + b * 60) % (W + 20) - 10, by = H * 0.2 + b * 7 + Math.sin(t / 250 + b) * 2; px(bx - 1, by, 1, 1, '#2a2a3a'); px(bx, by - 1, 1, 1, '#2a2a3a'); px(bx + 1, by, 1, 1, '#2a2a3a'); }
-  /* il piccolo, da solo, alza il piccone verso il sole */
-  const dx = Math.round(W / 2), raise = tu > 700;
-  shadowAt(dx, gy, 14); hero(null, dx, gy, 'right', 0, raise ? 'lift' : undefined);
-  if (raise) { const hx = dx - 16 + 23, hy = gy - 32 + 16; px(hx, hy - 16, 2, 16, '#8a5f38'); px(hx - 6, hy - 18, 14, 3, '#c9c2b2'); px(hx - 7, hy - 17, 2, 2, '#7f776a'); px(hx + 7, hy - 17, 2, 2, '#7f776a'); if (Math.floor(t / 300) % 2) sparkle(hx + 9, hy - 20, '#fff6c8'); }
-}
-
 /* ---------------- regia ---------------- */
 let cur = 0, typed = 0, tStart = 0, shotStart = 0, lastShot = 0, fadeT = -1e9;
 function drawIntro(t) {
@@ -270,8 +266,7 @@ function drawIntro(t) {
   if (line.shot === 1) shotSite(W, H, t, tu);
   else if (line.shot === 2) shotBone(W, H, t, tu);
   else if (line.shot === 3) shotMemory(W, H, t);
-  else if (line.shot === 4) shotGive(W, H, t, tu);
-  else shotDawn(W, H, t, tu);
+  else shotGive(W, H, t, tu);
   /* PASSAGGIO a gradini: dal nero si apre a scacchiera che si dirada (niente dissolvenza morbida) */
   const f = (t - fadeT) / 420;
   if (f < 1) {
