@@ -44,7 +44,7 @@ export function spadeCost() { return TOOL_COST.spade; }
 
 /* GLI OTTO PASSI = il giro completo del gioco, nell'ordine in cui lo si impara facendolo:
    il letto di casa → esci → raccogli le monete → compra la pala → scava → consegna al Museo →
-   torna a dormire (passa il giorno) → ritira i reperti identificati.
+   ritira i reperti identificati → torna a casa a dormire.
    Chi li finisce ha fatto una partita intera in piccolo e sa dove tornare per ognuna delle cose.
    `auto` = il passo si spunta da solo guardando lo stato; senza `auto` lo spunta un'azione di
    gioco che chiama `tutBump`. */
@@ -55,8 +55,8 @@ export const STEPS = [
   { id: 'shop', auto: () => !!(S.tools || {}).spade, have: () => ((S.tools || {}).spade ? 1 : 0), need: () => 1 },
   { id: 'dig', need: () => 1 },
   { id: 'museum', need: () => 1 },
-  { id: 'sleep', need: () => 1 },
   { id: 'collect', need: () => 1 },
+  { id: 'sleep', need: () => 1 },
 ];
 export const STEP_IDS = STEPS.map(s => s.id);
 
@@ -76,11 +76,11 @@ const TEXT = {
   dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),
     tr('Fuori dalla piazza, premi {act}: ogni scavo costa 1 ⚡ e può darti un reperto.', 'Away from the plaza, press {act}: each dig costs 1 ⚡ and may turn up a find.')],
   museum: () => [tr('Porta i reperti al Museo', 'Take your finds to the Museum'),
-    tr('Consegnali al Curatore: te li identifica entro domani.', 'Hand them to the Curator: they\'ll be identified by tomorrow.')],
-  sleep: () => [tr('Torna a casa e dormi', 'Go home and sleep'),
-    tr('Premi {act} sul letto: passa il giorno e l\'energia torna piena.', 'Press {act} on the bed: a day goes by and your energy fills up.')],
-  collect: () => [tr('Ritira i reperti al Museo', 'Collect your finds at the Museum'),
+    tr('Consegnali al Curatore: li identifica sul momento.', 'Hand them to the Curator: they get identified right away.')],
+  collect: () => [tr('Ritira i reperti dal Curatore', 'Collect your finds from the Curator'),
     tr('Ora hanno un nome: i doppioni si vendono, i pezzi nuovi restano in teca.', 'Now they have a name: duplicates can be sold, new pieces stay on display.')],
+  sleep: () => [tr('Torna a casa e dormi', 'Go home and sleep'),
+    tr('Premi {act} sul letto: passa il giorno e l\'energia torna piena, gratis.', 'Press {act} on the bed: a day goes by and your energy fills up, for free.')],
 };
 export function tutTitle(id) { return TEXT[id] ? TEXT[id]()[0] : id; }
 export function tutHint(id) { return TEXT[id] ? TEXT[id]()[1].replace(/\{act\}/g, actKey()) : ''; }

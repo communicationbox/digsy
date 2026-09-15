@@ -7924,7 +7924,7 @@ sprites.applyLook();
   const house = await import('../src/house.js');
   const S = state.S, P5 = state.P;
   check('gli otto passi sono il giro completo, in ordine',
-    tut.STEP_IDS.join('>') === 'bed>out>pick>shop>dig>museum>sleep>collect');
+    tut.STEP_IDS.join('>') === 'bed>out>pick>shop>dig>museum>collect>sleep');
   /* si nasce senza pala: il passo dello scavo NON può venire prima di quello del Negozio */
   check('lo scavo viene DOPO aver comprato la pala',
     tut.STEP_IDS.indexOf('shop') < tut.STEP_IDS.indexOf('dig'));
@@ -7984,9 +7984,9 @@ sprites.applyLook();
   check('scavato → si passa al Museo', tut.tutBump('dig') === 'step' && tut.tutStepId() === 'museum');
   check('le targhe sulle case si accendono solo quando serve entrare',
     tut.tutShowLabels() === true);
-  check('consegnato al Museo → si va a dormire', tut.tutBump('museum') === 'step' && tut.tutStepId() === 'sleep');
-  check('dormito a casa → si torna al Museo a ritirare', tut.tutBump('sleep') === 'step' && tut.tutStepId() === 'collect');
-  check('ritirati i reperti → tutorial finito', tut.tutBump('collect') === 'step' && tut.tutDone() && !tut.tutActive());
+  check('consegnato al Museo → si passa al ritiro', tut.tutBump('museum') === 'step' && tut.tutStepId() === 'collect');
+  check('ritirati i reperti → si torna a casa a dormire', tut.tutBump('collect') === 'step' && tut.tutStepId() === 'sleep');
+  check('dormito nel proprio letto → tutorial finito', tut.tutBump('sleep') === 'step' && tut.tutDone() && !tut.tutActive());
   check('finito, le targhe si spengono', tut.tutShowLabels() === false);
 
   /* SI PARTE IN UNA CITTÀ COL MUSEO: è quello che rende l'ultimo passo un trenta passi invece
@@ -8011,11 +8011,11 @@ sprites.applyLook();
     check('il passo del Museo indica la porta del Museo',
       !!gMus && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gMus.x && b.doory === gMus.y));
     tut.tutBump('museum');
-    check('il passo della dormita manda a casa', tut.tutStepId() === 'sleep' && tut.tutTarget(start.x, start.y) === S.home);
-    tut.tutBump('sleep');
     const gCol = tut.tutTarget(start.x, start.y);
     check('il passo del ritiro rimanda al Museo',
       !!gCol && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gCol.x && b.doory === gCol.y));
+    tut.tutBump('collect');
+    check('il passo della dormita manda a casa', tut.tutStepId() === 'sleep' && tut.tutTarget(start.x, start.y) === S.home);
   }
   /* IL PRIMO SCAVO DEL TUTORIAL NON VA MAI A VUOTO. Una casella d'erba rende .30: senza
      garanzia, sette giocatori su dieci vedrebbero "…solo terra" al primissimo colpo della loro
@@ -8099,7 +8099,7 @@ sprites.applyLook();
     S.tools = { spade: true }; S.coins = 999;
     tut.tutBump('bed'); tut.tutBump('out'); tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
     check('arrivati al suo passo, il Museo apre', tut.tutStepId() === 'museum' && tut.museumOpen() === true);
-    check('e resta aperto anche per il ritiro', (tut.tutBump('museum'), tut.tutBump('sleep'), tut.tutStepId() === 'collect' && tut.museumOpen() === true));
+    check('e resta aperto anche per il ritiro', (tut.tutBump('museum'), tut.tutStepId() === 'collect' && tut.museumOpen() === true));
     /* SALTARE RESTITUISCE IL GIOCO INTERO: nessuna porta resta chiusa dietro di sé */
     S.tut = null; S.tools = {}; S.coins = 0;
     check('a tutorial in corso resta chiuso', tut.museumOpen() === false);
@@ -8110,7 +8110,7 @@ sprites.applyLook();
     /* e finito per bene, resta aperto */
     S.tools = { spade: true }; S.coins = 999;
     tut.tutBump('bed'); tut.tutBump('out'); tut.tutTick(); tut.tutTick();
-    tut.tutBump('dig'); tut.tutBump('museum'); tut.tutBump('sleep'); tut.tutBump('collect');
+    tut.tutBump('dig'); tut.tutBump('museum'); tut.tutBump('collect'); tut.tutBump('sleep');
     check('finito: il Museo resta aperto', tut.tutDone() && tut.museumOpen() === true);
     /* la porta del Museo passa DAVVERO da museumOpen, non è solo una funzione che nessuno usa */
     {

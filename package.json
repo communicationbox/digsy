@@ -20,7 +20,8 @@
     "deploy": "node tests/deploy.mjs",
     "tester": "node tests/tester.mjs",
     "mobile": "node tests/mobile.mjs",
-    "pacing": "node tests/pacing.mjs"
+    "pacing": "node tests/pacing.mjs",
+    "partita": "node tests/partita.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"

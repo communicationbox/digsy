@@ -13,6 +13,16 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "This is your bed": "Это твоя кровать",
+  "Press {act} on the bed: you sleep here for free when your energy ⚡ runs out.": "Нажми {act} на кровати: здесь спишь бесплатно, когда кончается энергия ⚡.",
+  "Head outside": "Выйди из дома",
+  "Walk onto the door below: the whole world is there to dig.": "Наступи на дверь внизу: весь мир ждёт раскопок.",
+  "Away from the plaza, press {act}: each dig costs 1 ⚡ and may turn up a find.": "За пределами площади нажми {act}: каждый раскоп стоит 1 ⚡ и может дать находку.",
+  "Hand them to the Curator: they get identified right away.": "Отдай их Хранителю: он определит их сразу.",
+  "Collect your finds from the Curator": "Забери находки у Хранителя",
+  "Now they have a name: duplicates can be sold, new pieces stay on display.": "Теперь у них есть имя: дубликаты можно продать, новые части останутся в витрине.",
+  "Go home and sleep": "Иди домой спать",
+  "Press {act} on the bed: a day goes by and your energy fills up, for free.": "Нажми {act} на кровати: пройдёт день, энергия восстановится бесплатно.",
   "There you are, {n}! Come close to me: the earth has a secret to show us today.": "Вот и ты, {n}! Подойди ко мне поближе: сегодня земля хочет показать нам секрет.",
   "Gently with the spade… there it is. The bone of a creature that lived a very long time ago.": "Осторожно лопатой… вот она. Кость существа, жившего очень-очень давно.",
   "I spent my life looking for them. And I always dreamed of seeing one alive, even just one.": "Я всю жизнь их искал. И всегда мечтал увидеть хоть одно живым, хотя бы одно.",
@@ -64,7 +74,6 @@ export const RU = {
   "Pick up what sparkles": "Собери то, что блестит",
   "Follow the arrow and press {act}. You need 15 coins for the spade.": "Иди по стрелке и нажми {act}. На лопату нужно 15 монет.",
   "Sell what you picked up and buy the spade 🪏.": "Продай собранное и купи лопату 🪏.",
-  "Hand them to the Curator: they'll be identified by tomorrow.": "Отдай их Хранителю: к завтрашнему дню их определят.",
   "awakening": "пробуждение",
   "The Curator is busy. Come back when you have a find.": "Хранитель занят. Возвращайся, когда найдёшь находку.",
   "Tutorial skipped. You can redo it from the Guide.": "Обучение пропущено. Его можно пройти снова из Справки.",
