@@ -248,7 +248,9 @@ function tourNext() {
   return null;
 }
 
-export const COMMANDS = {
+/* i comandi di prima, ancora raggiungibili dai loro nomi (vedi LEGACY sotto): il registro pubblico
+   è COMMANDS, più corto e tutto nella stessa lingua */
+const OLD = {
   money: { aliases: ['coins', 'monete'], type: 'num', cheat: true, help: 'money=40 — imposta le monete',
     run: v => { S.coins = Math.max(0, v); return '🪙 ' + tr('Monete: ', 'Coins: ') + S.coins; } },
   energy: { aliases: ['en', 'energia'], type: 'num', cheat: true, help: 'energy=40 — imposta l\'energia',
@@ -575,9 +577,94 @@ export const COMMANDS = {
     run: () => tr('Comandi disponibili:\n', 'Available commands:\n') + commandHelp().map(t => '  ' + t).join('\n') },
 };
 
+/* ============ LA CONSOLE, RIORDINATA ============
+   Prima: 42 comandi, nomi un po' in italiano e un po' in inglese (museo, gotopark, dawn, skfit),
+   aiuto scritto solo in italiano. Ora pochi comandi in inglese corto, raggruppati per cosa fanno
+   (`god=`, `go=`, `play=`, `time=`), l'aiuto nella lingua del gioco, e i VALORI accettati in
+   entrambe le lingue (`weather=pioggia` e `weather=rain`). I nomi vecchi funzionano ancora (LEGACY),
+   ma non affollano l'elenco. */
+const pick = (map, v) => { const k = String(v || '').toLowerCase(); for (const [id, names] of Object.entries(map)) if (names.includes(k)) return id; return null; };
+const SEASON_V = { 0: ['spring', 'primavera', '0'], 1: ['summer', 'estate', '1'], 2: ['autumn', 'fall', 'autunno', '2'], 3: ['winter', 'inverno', '3'] };
+const GOD_V = { all: ['', 'all', 'tutto'], items: ['items', 'oggetti', 'fossili'], dna: ['dna'], amber: ['amber', 'ambra'], letters: ['letters', 'lettere'], furn: ['furniture', 'furn', 'arredo'], trophies: ['trophies', 'trofei', 'traguardi'] };
+const GO_V = { city: ['city', 'città', 'citta', 'museum', 'museo'], park: ['park', 'yard', 'home', 'parco', 'cortile', 'casa'], site: ['site', 'sito'], water: ['water', 'acqua', 'mare'], wreck: ['wreck', 'relitto'], wonder: ['wonder', 'meraviglia', 'landmark'], bones: ['bones', 'ossa', 'scheletro'], cave: ['cave', 'grotta'], next: ['next', 'tour', 'prossimo'] };
+const PLAY_V = { prep: ['prep', 'restauro'], restore: ['restore', 'ritiro'], toss: ['toss', 'fountain', 'fontana'], skeleton: ['skeleton', 'scheletro'], fetch: ['fetch', 'riporto'], egg: ['egg', 'uovo'], hatch: ['hatch', 'schiudi'], fuse: ['fuse', 'fondi', 'doppioni'] };
+const TIME_V = { night: ['night', 'notte'], dawn: ['dawn', 'alba'], day: ['day', 'giorno', 'noon', 'mezzogiorno'] };
+const WEATHER_V = { rain: ['rain', 'pioggia'], sandstorm: ['sandstorm', 'sabbia'], fog: ['fog', 'nebbia'], ash: ['ash', 'cenere'], snow: ['snow', 'neve'], clear: ['clear', 'sereno'], off: ['off', 'auto'] };
+const MARKET_V = { basso: ['low', 'basso'], normale: ['normal', 'normale'], alto: ['high', 'alto'], record: ['record'], off: ['off', 'auto'] };
+const BUDDY_V = { terra: ['earth', 'terra'], acqua: ['water', 'acqua'], albero: ['tree', 'albero'], roccia: ['rock', 'roccia'], grotta: ['cave', 'grotta'] };
+const RAR_V = { comune: ['common', 'comune'], raro: ['rare', 'raro'], eccezionale: ['epic', 'exceptional', 'eccezionale'], leggendario: ['legendary', 'leggendario'] };
+const words = m => Object.values(m).map(n => n[0]).filter(Boolean).join('|');
+const H = (name, it, en) => name + ' — ' + tr(it, en);
+
+export const COMMANDS = {
+  money: { type: 'num', cheat: true, help: H('money=500', 'monete', 'coins'), run: OLD.money.run },
+  energy: { type: 'num', cheat: true, help: H('energy=60', 'energia', 'energy'), run: OLD.energy.run },
+  heal: { type: 'action', cheat: true, help: H('heal', 'energia piena', 'full energy'), run: OLD.heal.run },
+  day: { type: 'num', cheat: true, help: H('day=10', 'giorno', 'day'), run: OLD.day.run },
+  speed: { type: 'num', cheat: true, help: H('speed=5', 'velocità 1-20', 'speed 1-20'), run: OLD.speed.run },
+  season: { type: 'str', help: H('season=' + words(SEASON_V), 'stagione', 'season'), suggest: p => ['spring', 'summer', 'autumn', 'winter'].filter(x => x.startsWith(p)),
+    run: v => { const k = pick(SEASON_V, v); return k == null ? tr('Stagioni: ', 'Seasons: ') + words(SEASON_V) : OLD.season.run(String(k)); } },
+  time: { type: 'str', cheat: true, help: H('time=' + words(TIME_V), 'ora del giorno (di notte ci sono le lucciole)', 'time of day (fireflies at night)'), suggest: p => Object.keys(TIME_V).filter(x => x.startsWith(p)),
+    run: v => { const k = pick(TIME_V, v); if (k === 'night') return OLD.night.run(); if (k === 'dawn') return OLD.dawn.run(); if (k === 'day') { S.tod = 0.3; return '☀️ ' + tr('Giorno', 'Day'); } return tr('Ore: ', 'Times: ') + words(TIME_V); } },
+  weather: { type: 'str', help: H('weather=' + words(WEATHER_V), 'meteo', 'weather'), suggest: p => Object.keys(WEATHER_V).filter(x => x.startsWith(p)),
+    run: v => { const k = pick(WEATHER_V, v); if (!k) return tr('Meteo: ', 'Weather: ') + words(WEATHER_V); if (k === 'off') { S.weatherOverride = null; return '🌦️ ' + tr('meteo automatico', 'auto weather'); } S.weatherOverride = k; return '🌦️ ' + k; } },
+  market: { type: 'str', help: H('market=' + words(MARKET_V), 'prezzi del Negozio', 'Shop prices'), suggest: p => ['low', 'normal', 'high', 'record', 'off'].filter(x => x.startsWith(p)),
+    run: v => { const k = pick(MARKET_V, v); return k ? OLD.market.run(k) : tr('Mercato: ', 'Market: ') + words(MARKET_V); } },
+  god: { type: 'both', cheat: true, help: H('god[=' + words(GOD_V).replace(/^\|/, '') + ']', 'sblocca tutto, o solo una parte', 'unlock everything, or just one part'),
+    suggest: p => Object.keys(GOD_V).filter(x => x !== 'all' && x.startsWith(p)),
+    run: v => {
+      const k = pick(GOD_V, v == null ? '' : v);
+      const f = { all: OLD.godmode, items: OLD.goditem, dna: OLD.goddna, amber: OLD.godamber, letters: OLD.godletters, furn: OLD.godfurn, trophies: OLD.achall }[k];
+      return f ? f.run() : tr('Parti: ', 'Parts: ') + words(GOD_V);
+    } },
+  go: { type: 'str', help: H('go=' + words(GO_V) + '|' + ZONES.map(z => z.id).join('|'), 'teletrasporto', 'teleport'),
+    suggest: p => [...Object.keys(GO_V), ...ZONES.map(z => z.id)].filter(x => x.startsWith(p)),
+    run: v => {
+      const k = pick(GO_V, v);
+      if (k === 'city' || k === 'cave') return OLD.goto.run(k === 'city' ? 'city' : 'grotta');
+      const f = { park: OLD.gotopark, site: OLD.gotosite, water: OLD.gotowater, wreck: OLD.gotowreck, wonder: OLD.gotolandmark, bones: OLD.gotobone, next: OLD.tour }[k];
+      if (f) return f.run();
+      const z = ZONES.find(zz => zz.id === String(v).toLowerCase());
+      return z ? OLD.goto.run(z.id) : tr('Mete: ', 'Targets: ') + words(GO_V) + '|' + ZONES.map(zz => zz.id).join('|');
+    } },
+  play: { type: 'str', cheat: true, help: H('play=' + words(PLAY_V), 'prova un minigioco o un sistema subito', 'try a minigame or system right away'),
+    suggest: p => Object.keys(PLAY_V).filter(x => x.startsWith(p)),
+    run: v => {
+      const [w, extra] = String(v).split(/\s+/);
+      const k = pick(PLAY_V, w), rar = pick(RAR_V, extra);
+      const f = { prep: OLD.prep, restore: OLD.museo, toss: OLD.toss, skeleton: OLD.skfit, fetch: OLD.playcomp, egg: OLD.layegg, hatch: OLD.hatchegg, fuse: OLD.dupes }[k];
+      return f ? f.run(rar || undefined) : tr('Prove: ', 'Tries: ') + words(PLAY_V);
+    } },
+  buddy: { type: 'str', cheat: true, help: H('buddy=' + words(BUDDY_V) + ' [rarity]', 'compagno di quel tipo (leggendario se non dici)', 'companion of that type (legendary by default)'),
+    suggest: p => Object.keys(BUDDY_V).map(k => BUDDY_V[k][0]).filter(x => x.startsWith(p)),
+    run: v => { const [w, r] = String(v).split(/\s+/); const t = pick(BUDDY_V, w); const q = pick(RAR_V, r); return t ? OLD.companion.run(t + (q ? ' ' + q : '')) : tr('Tipi: ', 'Types: ') + words(BUDDY_V); } },
+  mount: { type: 'action', cheat: true, help: H('mount', 'drago di cristallo e su in volo', 'crystal dragon, straight into the air'), run: OLD.mount.run },
+  chimera: { type: 'action', cheat: true, help: H('chimera', 'una chimera di prova nel cortile', 'a test chimera in your yard'), run: OLD.chimera.run },
+  fly: { type: 'action', cheat: true, help: H('fly', 'attraversa gli ostacoli (on/off)', 'walk through obstacles (on/off)'), run: OLD.fly.run },
+  stress: { type: 'both', cheat: true, help: H('stress=1-5', 'riempie il gioco e misura i frame', 'fills the game and measures frames'), run: OLD.stress.run },
+  info: { type: 'action', help: H('info', 'stato del compagno (debug)', 'companion state (debug)'), run: OLD.compinfo.run },
+  intro: { type: 'action', help: H('intro', 'rivedi il filmato iniziale', 'replay the intro'), run: OLD.intro.run },
+  vanilla: { type: 'action', help: H('vanilla', 'togli i cheat e torna alla partita di prima', 'remove cheats and restore your game'), run: OLD.vanilla.run },
+  help: { type: 'action', help: H('help', 'questo elenco', 'this list'), run: () => tr('Comandi:\n', 'Commands:\n') + commandHelp().map(t => '  ' + t).join('\n') },
+};
+/* NOMI VECCHI → comando nuovo. `$` = il valore scritto dopo l'uguale */
+const LEGACY = {
+  godmode: 'god', goto: 'go=$', companion: 'buddy=$',
+  coins: 'money=$', monete: 'money=$', en: 'energy=$', energia: 'energy=$', meteo: 'weather=$', mercato: 'market=$',
+  goditem: 'god=items', goddna: 'god=dna', godamber: 'god=amber', ambra: 'god=amber', amber: 'god=amber', godletters: 'god=letters', letters: 'god=letters', lettere: 'god=letters',
+  godfurn: 'god=furn', furniture: 'god=furn', arredo: 'god=furn', achall: 'god=trophies', achievements: 'god=trophies', traguardi: 'god=trophies',
+  gotopark: 'go=park', parco: 'go=park', park: 'go=park', cortile: 'go=park', gotosite: 'go=site', gotowater: 'go=water', acqua: 'go=water', mare: 'go=water', water: 'go=water',
+  gotowreck: 'go=wreck', gotolandmark: 'go=wonder', goland: 'go=wonder', gotobone: 'go=bones', bonesite: 'go=bones', sepolto: 'go=bones', tour: 'go=next', explore: 'go=next', esplora: 'go=next',
+  museo: 'play=restore', museum: 'play=restore', gotomuseum: 'play=restore', prep: 'play=prep $', minigioco: 'play=prep $', minigame: 'play=prep $', tavolo: 'play=prep $',
+  toss: 'play=toss', fontana: 'play=toss', fountain: 'play=toss', skfit: 'play=skeleton', scheletro: 'play=skeleton', montaggio: 'play=skeleton',
+  dupes: 'play=fuse $', doppioni: 'play=fuse $', fuse: 'play=fuse $', fondi: 'play=fuse $', playcomp: 'play=fetch', gioca: 'play=fetch', fetch: 'play=fetch',
+  layegg: 'play=egg', uovo: 'play=egg', breed: 'play=egg', hatchegg: 'play=hatch', schiudi: 'play=hatch',
+  night: 'time=night', notte: 'time=night', dawn: 'time=dawn', alba: 'time=dawn', compagno: 'buddy=$', buddyinfo: 'info', compinfo: 'info', 'comp?': 'info',
+  cavalca: 'mount', ride: 'mount', chimere: 'chimera', reset: 'vanilla', ungod: 'vanilla', storia: 'intro', story: 'intro', gotocity: 'go=city',
+};
+
 /* l'elenco dei comandi, usato sia da `help` sia dalla pagina Comandi del menu: un posto
-   solo, così non possono divergere. IN ORDINE ALFABETICO: sono una trentina, e cercarne
-   uno in un elenco disordinato è una piccola tortura. */
+   solo, così non possono divergere. In ordine alfabetico. */
 export function commandHelp() {
   return Object.values(COMMANDS).map(c => c.help)
     .sort((a, b) => a.localeCompare(b, 'it', { sensitivity: 'base' }));
@@ -589,6 +676,9 @@ for (const [name, c] of Object.entries(COMMANDS)) { INDEX[name] = c; c._name = n
 export function runCommand(raw) {
   const s = (raw || '').trim();
   if (!s) return null;
+  /* nome vecchio: si riscrive col comando nuovo e si esegue quello */
+  { const m = s.match(/^([\w?]+)\s*(?:=\s*(.+?))?\s*$/); const leg = m && !INDEX[m[1].toLowerCase()] && LEGACY[m[1].toLowerCase()];
+    if (leg) return runCommand(leg.replace(/\s*\$$/, m[2] ? ' ' + m[2] : '').replace('=$', m[2] ? '=' + m[2] : '').replace(/=$/, '')); }
   const eq = s.match(/^(\w+)\s*=\s*(.+?)\s*$/);
   let cmd, val;
   if (eq) {

@@ -1,190 +1,48 @@
 # Console comandi — Digsy World
 
-Premi **`\`** (backslash) in gioco per aprire la console. Scrivi un comando e premi **Invio**
-(esegui) o **Esc** (chiudi). **Tab** completa col primo suggerimento; sotto l'input compaiono i
-suggerimenti mentre scrivi (es. `goto=pal` → `goto=palude`).
+**`\`** apre la console (solo in sviluppo). **Invio** esegue, **Esc** chiude, **Tab** completa,
+**↑/↓** cronologia. `help` elenca tutto nella lingua del gioco.
 
-> ℹ️ I comandi **cheat** (segnati sotto) ora **si salvano come una partita normale**: giocare con
-> essi NON fa perdere i progressi al refresh. Al primo comando si fa uno **snapshot pre-cheat**
-> (persistito, sopravvive al refresh) e l'HUD mostra il tag **🐞**. Il comando **`vanilla`** annulla
-> tutti i cheat **ripristinando quello snapshot** (torna monete/museo/DNA/posizione a com'erano).
+Nomi in **inglese corto**; i **valori** si scrivono in inglese o in italiano (`weather=rain` =
+`weather=pioggia`). I cheat (✔) accendono il tag 🐞 e si annullano con **`vanilla`**, che rimette
+la partita com'era prima del primo cheat.
 
-## Comandi
-
-Ordinati per **gruppo** (in gioco `help` li elenca tutti). Cheat ✔ = accende il tag 🐞 e abilita
-`vanilla` (annulla via snapshot); il salvataggio resta normale.
-
-### Risorse e tempo
-| Comando | Cheat | Effetto |
+| Comando | Cheat | Cosa fa |
 |---|:---:|---|
-| `money=40` | ✔ | Imposta le monete (alias `coins`, `monete`) |
-| `energy=40` | ✔ | Imposta l'energia, alza il massimo se serve (alias `en`, `energia`) |
-| `heal` | ✔ | Energia al massimo |
-| `day=10` | ✔ | Imposta il giorno |
-| `season=inverno` | ✖ | Cambia stagione (`primavera`/`estate`/`autunno`/`inverno` o `0-3`) |
-| `speed=5` | ✔ | Velocità di movimento, da **1 a 20** |
-| `weather=pioggia` | ✖ | Forza il meteo (`pioggia`/`sabbia`/`nebbia`/`cenere`/`neve`/`sereno`/`off`; alias `meteo`) |
-| `market=alto` | ✖ | Forza la fascia di **mercato** per tutte le specie (`basso`/`normale`/`alto`/`record`/`off`; alias `mercato`) |
-| `night` | ✔ | Notte fonda **+ missione lucciole** (per provarle; alias `notte`). La missione vera è **rara** e **stagionale** (estate) |
-| `dawn` | ✔ | Riporta all'alba (alias `alba`) |
+| `money=500` | ✔ | monete |
+| `energy=60` | ✔ | energia (alza il massimo se serve) |
+| `heal` | ✔ | energia piena |
+| `day=10` | ✔ | giorno |
+| `speed=5` | ✔ | velocità 1-20 |
+| `season=spring\|summer\|autumn\|winter` | | stagione (anche 0-3) |
+| `time=night\|dawn\|day` | ✔ | ora del giorno; `night` attiva anche le lucciole |
+| `weather=rain\|sandstorm\|fog\|ash\|snow\|clear\|off` | | meteo |
+| `market=low\|normal\|high\|record\|off` | | prezzi del Negozio |
+| `god` | ✔ | sblocca e completa **tutto** (volo compreso) |
+| `god=items\|dna\|amber\|letters\|furniture\|trophies` | ✔ | sblocca solo quella parte |
+| `go=city\|park\|site\|water\|wreck\|wonder\|bones\|cave\|next` | | teletrasporto; `next` = prossima cosa speciale non vista |
+| `go=<bioma>` | | `prati dune boschi terre palude ghiacci` |
+| `play=prep [rarità]` | ✔ | tavolo di preparazione |
+| `play=restore` | ✔ | doppioni al Museo pronti per il restauro |
+| `play=toss` | ✔ | fontana |
+| `play=skeleton` | ✔ | montaggio dello scheletro |
+| `play=fetch` | ✔ | gioca col compagno |
+| `play=egg` / `play=hatch` | ✔ | uovo nel cortile / schiudilo |
+| `play=fuse [rarità]` | ✔ | 3 doppioni da fondere al Lab |
+| `buddy=earth\|water\|tree\|rock\|cave [rarità]` | ✔ | compagno di quel tipo (leggendario di base) |
+| `mount` | ✔ | drago di cristallo, in volo |
+| `chimera` | ✔ | una chimera di prova nel cortile |
+| `fly` | ✔ | attraversa gli ostacoli (on/off) |
+| `stress=1-5` | ✔ | riempie il gioco e misura i frame |
+| `info` | | stato del compagno (debug) |
+| `intro` | | rivedi il filmato iniziale |
+| `vanilla` | | toglie i cheat |
 
-### Sblocca
-| Comando | Cheat | Effetto |
-|---|:---:|---|
-| `godmode` | ✔ | Sblocca e completa **tutto** (`goditem`+`goddna`+cosmetici+museo+libro+risvegli), infinito, ×5, **volo** (alias `god`) |
-| `goditem` | ✔ | Ogni pezzo di ogni specie identificato + attrezzi + mezzi + mappe |
-| `goddna` | ✔ | DNA infinito per tutte le specie |
-| `godamber` | ✔ | Teca d'ambra accesa a metà delle specie con la teca completa (alias `ambra`) |
-| `godfurn` | ✔ | Ogni mobile di ogni zona nel vassoio, gratis (alias `furniture`, `arredo`) |
-| `godletters` | ✔ | Tutte le lettere del nonno, finale compreso (alias `letters`, `lettere`) |
-| `achall` | ✖ | Sblocca tutti i traguardi (alias `achievements`, `traguardi`) |
+Rarità: `common rare epic legendary` (o `comune raro eccezionale leggendario`).
 
-### Compagni
-| Comando | Cheat | Effetto |
-|---|:---:|---|
-| `companion=grotta` | ✔ | Compagno di quel **TIPO** (`terra`/`acqua`/`albero`/`roccia`/`grotta`), rarità opzionale — `companion=terra leggendario` (alias `compagno`, `buddy`) |
-| `mount` | ✔ | Compagno di **grotta leggendario** e **su in volo** (in grotta non si vola; alias `cavalca`, `ride`) |
-| `chimera` | ✔ | Crea una **chimera** di prova (passeggia nel parco, sceglibile come compagno; alias `chimere`) |
-| `layegg` | ✔ | Depone un **uovo** (crea genitori/doppioni/energia se mancano; alias `uovo`, `breed`) |
-| `hatchegg` | ✔ | L'uovo in cova è pronto **subito** (alias `schiudi`) |
-
-### Vai a
-| Comando | Cheat | Effetto |
-|---|:---:|---|
-| `goto=palude` | ✖ | Bioma indicato (`prati`/`dune`/`boschi`/`terre`/`palude`/`ghiacci`) — **dentro**, non sul confine |
-| `goto=grotta` | ✖ | Un imbocco di **grotta** vero (all'uscita ci torni) |
-| `goto=city` | ✖ | Città **grande** (col Museo) più vicina |
-| `gotopark` | ✖ | **Dentro** il recinto del parco, dove vivono chimere e risvegliate (alias `parco`, `park`) |
-| `gotosite` | ✖ | Sito di scavo più vicino |
-| `gotobone` | ✖ | **Scheletro sepolto** più vicino (5 parti da scavare; alias `bonesite`, `sepolto`) |
-| `gotowreck` | ✖ | Relitto in mare più vicino (attiva la barca) |
-| `gotolandmark` | ✖ | Landmark più vicino (alias `goland`) |
-| `tour` | ✖ | Prossima cosa speciale **non ancora vista** (landmark/grotta/sito/relitto/scheletro sepolto; alias `explore`, `esplora`) |
-
-### Prova minigiochi e scene
-| Comando | Cheat | Effetto |
-|---|:---:|---|
-| `prep` | ✔ | Tavolo di **preparazione** (`prep=raro\|eccezionale\|leggendario`; alias `minigioco`, `tavolo`) |
-| `toss` | ✔ | Minigioco della **fontana** (mira; alias `fontana`, `fountain`) |
-| `skfit` | ✔ | **Ricomponi lo scheletro** (trascina il pezzo nel socket giusto; alias `scheletro`, `montaggio`) |
-| `playcomp` | ✔ | **Gioca col compagno** (lancia e riporta, ovunque; se non ne hai uno te ne dà uno; alias `gioca`, `fetch`) |
-| `dupes` | ✔ | 3 **doppioni** da fondere (`dupes=raro\|eccezionale`; alias `doppioni`, `fondi`) |
-| `museo` | ✔ | 3 doppioni **già consegnati** + città col Museo (premi «Ritira» per il restauro; alias `museum`) |
-| `stress=1..5` | ✔ | Riempie il gioco e **misura gli fps** sul dispositivo |
-| `intro` | ✖ | Rivedi il filmato introduttivo (alias `storia`, `story`) |
-
-### Sistema
-| Comando | Cheat | Effetto |
-|---|:---:|---|
-| `fly` | ✔ | **Attraversa gli ostacoli** (noclip, on/off) — diverso da `mount` (che cavalca il compagno) |
-| `vanilla` | ✖ | Toglie i cheat e **ripristina il salvataggio** (alias `reset`, `ungod`) |
-| `help` | ✖ | Elenco di tutti i comandi |
-
-## Compagni — provare i poteri
-
-Il potere di un compagno dipende dai **tratti**: il **TIPO** (la fonte della specie, o della
-specie del cranio per le chimere) decide *che* aiuto dà, la **RARITÀ** *quanto*.
-
-- `companion=terra` · `companion=acqua` · `companion=albero` · `companion=roccia` · `companion=grotta`
-  scelgono al volo un compagno di quel tipo. Rarità opzionale: `companion=acqua eccezionale`
-  (default **leggendario**, così provi subito i poteri speciali).
-- I **leggendari** di terra/acqua/albero/roccia **raccolgono da soli**: vanno a una casella,
-  lavorano con animazione e ti portano il fossile (lento, e solo a zaino non pieno).
-- Il **leggendario di grotta** è un **fossile volante**: `mount` (o **dallo zaino**, sezione
-  Mezzi) lo cavalca e sorvoli la mappa attraversando tutto — **in grotta si scende e si cammina**.
-- `chimera` mette una chimera nel parco: comodo per provare il **parco** e la scelta del
-  compagno senza `godmode`.
-
-Ogni compagno, a prescindere dal tipo, dà anche **fiuto** (segnala i reperti a terra) e
-**bussola** sempre accesa.
-
-## Aggiungere un comando
-
-Modifica `src/commands.js`: aggiungi una voce a `COMMANDS` con `type` (`num` \| `str` \| `action`),
-`help`, eventuale `cheat: true`, opzionale `suggest(partial)` e la funzione `run(val)` che ritorna
-il messaggio da mostrare.
-
-## Lettere
-
-`godletters` (alias `lettere`, `letters`) — sblocca tutte le lettere del nonno, finale
-compreso. Si rileggono dallo **zaino → scheda Lettere**.
-
-## Cronologia
-
-Nella console i tasti **↑ / ↓** ripescano i comandi già dati, come in un terminale:
-↑ risale, ↓ ridiscende fino a restituire quello che stavi scrivendo. Le ultime 60 righe
-restano anche dopo un refresh (niente doppioni consecutivi).
-
-## `dupes` — tre doppioni pronti da fondere
-
-`dupes` · `dupes=raro` · `dupes=eccezionale` (alias: `doppioni`, `fondi`)
-
-Mette nello zaino **3 pezzi identici** (stessa specie, stessa parte) di una specie della zona
-in cui ti trovi, così la fusione si può provare subito invece di scavare per mezz'ora.
-Poi: Laboratorio → **Fondi i doppioni** → «Fondi 3».
-
-Con `dupes=eccezionale` si prova il salto a **leggendario**, che è il caso più interessante.
-
-## `prep` — apre il minigioco (tavolo di preparazione)
-
-`prep` · `prep=raro` · `prep=eccezionale` · `prep=leggendario` (alias: `minigioco`, `tavolo`)
-
-Apre subito il **tavolo di preparazione** senza dover cercare un museo e avere il pezzo giusto.
-Se non hai un reperto adatto te ne mette uno in mano; il bonus di valore finisce su quello.
-Si spazzola trascinando il dito (o il mouse) sul fossile.
-
-In partita normale il tavolo si apre **al Museo**, su **un pezzo per consegna** e solo da
-**raro in su**: sui comuni sarebbe una catena di montaggio.
-
-## `skfit` — apre il minigioco «ricomponi lo scheletro»
-
-`skfit` (alias: `scheletro`, `montaggio`)
-
-Apre subito il minigioco del **Museo**: un pezzo NUOVO (raro, di specie a caso) da trascinare
-nel socket giusto della tavola. Sempre saltabile (bottone **Salta** o **Esc**); un socket
-sbagliato rimanda il pezzo alla base, il tempo continua — mai un fallimento vero, la fretta è
-solo quello che dà il bonus XP.
-
-## `playcomp` — apre il minigioco «gioca col compagno»
-
-`playcomp` (alias: `gioca`, `fetch`)
-
-Lancia subito un oggetto per il tuo compagno (se non ne hai uno, te ne dà uno di terra comune):
-lui/lei corre a riportarlo, e appena torna c'è **una finestra di tempismo** per prenderlo al
-volo — si vede dalla barra che riempie sopra la sua testa, con la zona d'oro in evidenza.
-Presa perfetta = 3 cariche di ×2 sulla prossima raccolta (`digX2`, lo stesso buff delle spore
-del Cerchio di Funghi); un riporto qualsiasi (tardi o scaduto) = 1 carica — **mai un
-fallimento vero**, la fretta è solo quello che dà il bonus in più.
-
-In partita normale parte solo dove **non si scava** (il parco, tipicamente): se hai già un
-compagno pronto, E nel parco gioca invece di riaprire il selettore; il selettore resta per
-chi non ne ha ancora scelto uno, o mentre il compagno lavora/riposa dal round precedente.
-Il comando bypassa questo controllo del terreno, per provarlo ovunque.
-
-## `museo` — prova il tavolo nel FLUSSO VERO
-
-`museo` (alias: `museum`, `gotomuseum`)
-
-Prepara tre **doppioni raro/eccezionale/leggendario GIÀ consegnati** (li mette nel lotto in
-lavorazione, marcato idoneo al restauro) e ti **teletrasporta alla città col Museo**. Al Museo
-premi **«Ritira»**: i doppioni tornano a te e il **Curatore propone il restauro** del migliore
-(bottoni **Restaura / Salta**). È il flusso vero: il restauro si offre **al ritiro**, solo se hai
-consegnato **≥3 raro+ insieme**, sul **miglior doppione** che ti torna, ed è **saltabile**.
-
-## `stress=1..5` — carica il gioco per davvero (beta)
-
-Riempie la partita e misura i **frame veri sul dispositivo che hai in mano**. Serve a provare
-i limiti su un telefono, non su una macchina da sviluppo.
-
-| livello | creature | blocchi di mappa | scavi | salvataggio |
-|---|---|---|---|---|
-| 1 | 50 | 2.000 | 2.000 | 0,02 MB |
-| 2 | 200 | 20.000 | 20.000 | 0,19 MB |
-| 3 | 600 | 100.000 | 100.000 | 0,95 MB |
-| 4 | 1.500 | 400.000 | 400.000 | ~4 MB |
-| 5 | 4.000 | 1.000.000 | 1.000.000 | ~10 MB (oltre la quota del browser) |
-
-Dopo il comando vai in un **parco di città**: è lì che le creature si vedono tutte insieme.
-Il numero di fps compare in un avviso dopo due secondi di misura.
-
-`vanilla` rimette tutto com'era ripristinando lo snapshot pre-cheat (funziona anche dopo un refresh).
+## Nomi vecchi
+Funzionano ancora ma non compaiono in `help`: `godmode goditem goddna godamber godletters godfurn
+achall goto gotopark gotosite gotowater gotowreck gotolandmark gotobone tour museo prep toss skfit
+dupes playcomp layegg hatchegg night dawn companion compinfo` e gli alias italiani (`monete`,
+`meteo`, `mercato`, `lettere`, `notte`, `alba`…). Stanno in `LEGACY` (src/commands.js), riscritti
+nel comando nuovo.

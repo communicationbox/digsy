@@ -388,11 +388,12 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   sull'ultimo bordo, al buio: con il solo mouse non c'era niente da cliccare "fuori" per
   uscire. Il pass del buio si apre vicino all'imbocco, altrimenti il varco tornerebbe nero.
   `render.js` ora usa `caveCam()` invece di ricopiarne la formula (le due erano divergute).
-- **Console comandi** (`\`, `commands.js`): `money/energy/day/speed(1-20)/heal`, `godmode`
-  (sblocca+completa tutto, ×5), `goddna`, `goditem` (fossili+attrezzi+barca+mappe), `goto=<bioma|grotta>`
-  (suggest+Tab), `gotocity`, **`fly`** (attraversa ostacoli, `P.fly`), **`vanilla`** (toglie i
-  cheat e ripristina il save: i cheat sono NON distruttivi, `cheatLock`+snapshot in state).
-  Output multi-linea (`#cmdout`), `\` toggle. Doc in `COMMANDS.md`.
+- **Console comandi** (`\`, `commands.js`): ~20 comandi in inglese corto raggruppati
+  (`money/energy/day/speed/heal`, `season/time/weather/market`, `god[=parte]`, `go=meta|bioma`,
+  `play=prep|restore|toss|skeleton|fetch|egg|hatch|fuse`, `buddy=tipo`, `mount/chimera/fly/stress`,
+  **`vanilla`** annulla i cheat via snapshot). Aiuto nella lingua del gioco, VALORI in italiano o
+  inglese. I nomi vecchi (`godmode`, `goto`, `prep`, `meteo`…) restano in `LEGACY`, riscritti nel
+  comando nuovo e fuori da `help`: promo/shot/test li usano ancora. Doc in `COMMANDS.md`.
 - **Audio**: tema chiptune **rifatto** (128 ottavi, 4 frasi + variazione, progressione d'accordi,
   pad+shaker). Riparte in loop **al primo gesto dopo il refresh** (`armAudioResume`). **SFX**
   agganciati: scavo (dig/found), accetta/piccone, pesca, monete (fontana/vendite/acquisti).

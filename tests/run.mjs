@@ -5530,7 +5530,18 @@ sprites.applyLook();
   const ach2G = await import('../src/achievements.js');
   check('console: godmode sblocca+completa tutto (incl. volo + cappelli-trofeo glitter)', dbg2.isDebug() === true && ach2G.TROPHY_HATS.every(h => S.unlocked.hats.includes(h)) && S.glitterHats.length === ach2G.TROPHY_HATS.length &&
     S.unlocked.hairs.length === THEMED_HAIR.length && P.speedMul === 5 && P.fly === true && S.items.length > 0 && S.tools.boat && SPECIES.every(sp => S.awakened.includes(sp.id)) && ZONESc.every(z => S.book[z.id]));
-  check('console: suggest per goto', cmds.suggest('goto=pal').includes('goto=palude'));
+  check('console: suggest per goto', cmds.suggest('go=pal').includes('go=palude'));
+  {
+    /* console riordinata: nomi inglesi corti, valori in tutte e due le lingue, nomi vecchi ancora validi */
+    check('console: nomi dei comandi tutti in inglese corto', Object.keys(cmds.COMMANDS).every(k => /^[a-z]{2,8}$/.test(k)) && Object.keys(cmds.COMMANDS).length <= 24);
+    S.weatherOverride = null; cmds.runCommand('weather=pioggia'); const w1 = S.weatherOverride; cmds.runCommand('weather=rain');
+    check('console: weather accetta italiano e inglese', w1 === 'rain' && S.weatherOverride === 'rain'); cmds.runCommand('weather=off');
+    cmds.runCommand('meteo=neve'); check('console: il nome vecchio `meteo` funziona ancora', S.weatherOverride === 'snow'); cmds.runCommand('weather=off');
+    const m0 = S.coins; cmds.runCommand('monete=77'); check('console: `monete=77` passa a money', S.coins === 77); S.coins = m0;
+    cmds.runCommand('time=night'); check('console: time=night', S.tod > 0.8); cmds.runCommand('notte'); check('console: `notte` = time=night', S.tod > 0.8); cmds.runCommand('time=alba'); check('console: time=alba', S.tod < 0.1);
+    check('console: suggerisce solo i comandi nuovi', !cmds.suggest('god').some(x => x.startsWith('godmode')) && cmds.suggest('play=pr').includes('play=prep'));
+    check('console: valore sbagliato → elenco dei valori', /prep/.test(String(cmds.runCommand('play=boh'))));
+  }
   cmds.runCommand('goto=dune');
   check('console: goto=dune porta nelle Dune', regionsC.zoneAt(Math.floor(P.x / TS), Math.floor((P.y + 13) / TS)).id === 'dune');
   // VANILLA: rimuove i cheat e ripristina lo stato pre-cheat (coins=50, day=3, energia base)
@@ -6868,8 +6879,8 @@ sprites.applyLook();
   check('la freccia su richiama l\'ultimo comando', cmdi.value === 'money=999');
   type('ArrowDown');
   check('la freccia giù torna a quello che stavi scrivendo', cmdi.value === '');
-  cmdi.value = 'got'; type('Tab');
-  check('Tab completa il comando', cmdi.value.startsWith('got') && cmdi.value.length > 3);
+  cmdi.value = 'pla'; type('Tab');
+  check('Tab completa il comando', cmdi.value.startsWith('pla') && cmdi.value.length > 3);
   type('Escape');
   check('ESC chiude la console', !cmdEl.classList.contains('on'));
   /* mentre la console è aperta il gioco NON deve muoversi */
@@ -7641,7 +7652,7 @@ sprites.applyLook();
   check('la pagina Comandi elenca i comandi della console', /sp-cmdrow/.test(html14));
   /* i comandi che servono ai tester devono essere raggiungibili senza sapere già che
      esistono: prima si scoprivano solo scrivendo `help` dentro la console */
-  for (const c of ['dupes', 'prep', 'stress', 'godmode', 'vanilla']) {
+  for (const c of ['play', 'god', 'go', 'stress', 'vanilla']) {
     check('… compreso ' + c, html14.includes(c));
   }
   check('l\'elenco viene da un posto solo', cm14.commandHelp().length >= 20 &&
