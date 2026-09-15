@@ -101,7 +101,7 @@ async function main() {
     /* 'bottega' = l'interno di un mestiere scelto con tipo=store|inn|barber|tailor|lab|furniture (per
        confrontarli con la casa: stesso livello di dettaglio) */
     else if (${JSON.stringify(vista)} === 'bottega') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
-      if(G.enterRoom) G.enterRoom(new URLSearchParams(location.search).get('tipo') || 'store').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ if(G.frame) G.frame(1000); }); }
+      if(G.enterRoom) G.enterRoom(new URLSearchParams(location.search).get('tipo') || 'store').then(function(){ if(G.intPos) return G.intPos(5, 5); }).then(function(){ var pp = new URLSearchParams(location.search).get('coccola'); if (pp && G.petPose) return G.petPose(pp); }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'bottega-fuori' = la piazza di una città grande con la Bottega d'arredo in vista */
     else if (${JSON.stringify(vista)} === 'bottega-fuori') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goto=city').then(function(){ return G.townHere(); }).then(function(t){

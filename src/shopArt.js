@@ -254,7 +254,17 @@ export function drawStoreProps(g, rw, rh, time) {
   g.rect(sx - 17, 14, 11, 14, '#2a2016'); g.rect(sx - 16, 16, 9, 10, lf ? '#f2c53d' : '#e8862e'); g.rect(sx - 15, 17, 2, 8, '#fff3c8');
   g.rect(sx - 18, 13, 13, 2, '#5a5248'); g.rect(sx - 18, 27, 13, 2, '#5a5248');
 }
-export function drawStoreFloorProps(g, rw, rh, time) {
+/* CUORICINI che salgono e svaniscono sopra un animale coccolato (fase dal tempo della reazione) */
+function hearts(g, x, y, pet) {
+  const k = 1 - pet.t / 2.6;
+  for (let i = 0; i < 3; i++) {
+    const p = k * 1.6 - i * 0.35; if (p < 0 || p > 1) continue;
+    const hx = Math.round(x + (i - 1) * 9 + Math.sin(p * 6 + i) * 2), hy = Math.round(y - p * 26);
+    const c = i === 1 ? '#e8607a' : '#f08aa0';
+    g.rect(hx, hy, 2, 2, c); g.rect(hx + 3, hy, 2, 2, c); g.rect(hx - 1, hy + 1, 7, 2, c); g.rect(hx, hy + 3, 5, 1, c); g.px(hx + 2, hy + 4, c); g.px(hx, hy, '#ffd0da');
+  }
+}
+export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* sul bancone: bilancia che oscilla, monete, registro, vaso di caramelle */
   const bx = rw / 2 + 52, tilt = (Math.floor((time || 0) / 900) % 2 ? 1 : -1) * 2;
   g.rect(bx - 6, 67, 16, 4, '#3a3630'); g.rect(bx, 54, 4, 14, '#5a5248'); g.rect(bx + 1, 54, 1, 14, '#8f887a');
@@ -276,8 +286,19 @@ export function drawStoreFloorProps(g, rw, rh, time) {
   g.rect(56, 92, 13, 11, '#2a2016'); g.rect(57, 93, 11, 9, '#e08a2c');
   g.rect(57, 90, 3, 3, '#2a2016'); g.rect(65, 90, 3, 3, '#2a2016'); g.px(58, 91, '#e8a0b8'); g.px(66, 91, '#e8a0b8');
   for (const s of [69, 74, 79]) g.rect(s, 98, 2, 8, '#b5652a');
-  g.rect(59, 97, 3, 1, '#2a2016'); g.px(64, 99, '#e8a0b8');
-  g.rect(84, 102 + tail, 10, 3, '#2a2016'); g.rect(85, 103 + tail, 8, 1, '#e08a2c');
+  const petCat = pet && pet.kind === 'gatto';
+  if (petCat) {
+    /* coccolato: apre gli occhi a mezzaluna, le orecchie si drizzano, la coda si alza e ondeggia, fa le fusa */
+    g.rect(57, 88, 3, 3, '#2a2016'); g.rect(65, 88, 3, 3, '#2a2016'); g.px(58, 89, '#e8a0b8'); g.px(66, 89, '#e8a0b8');
+    g.rect(59, 96, 2, 1, '#2a2016'); g.rect(64, 96, 2, 1, '#2a2016'); g.px(60, 95, '#2a2016'); g.px(65, 95, '#2a2016');
+    const sw = Math.floor(pet.t * 6) % 2;
+    g.rect(84, 92 + sw, 3, 12, '#2a2016'); g.rect(85, 93 + sw, 1, 10, '#e08a2c'); g.rect(86, 90 + sw * 2, 4, 3, '#2a2016'); g.rect(87, 91 + sw * 2, 2, 1, '#e08a2c');
+    if (Math.floor(pet.t * 4) % 2) { g.rect(48, 94, 4, 1, '#8a6a4a'); g.rect(47, 97, 5, 1, '#8a6a4a'); }
+    hearts(g, 66, 86, pet);
+  } else {
+    g.rect(59, 97, 3, 1, '#2a2016'); g.px(64, 99, '#e8a0b8');
+    g.rect(84, 102 + tail, 10, 3, '#2a2016'); g.rect(85, 103 + tail, 8, 1, '#e08a2c');
+  }
   /* botti con mele (228..296 × 92..136) */
   g.shadow(262, 136, 34);
   for (const ox of [230, 264]) {
@@ -327,7 +348,7 @@ export function drawInnProps(g, rw, rh, time) {
   g.rect(rw - 40, 52, 3, 6, '#3a2a1c'); g.rect(rw - 23, 52, 3, 6, '#3a2a1c');
   g.rect(rw - 50, 39, 6, 3, '#c9a227'); if (Math.floor(t / 700) % 3 === 0) g.px(rw - 49, 43 + (Math.floor(t / 230) % 3), '#e8c34a');
 }
-export function drawInnFloorProps(g, rw, rh, time) {
+export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   const t = time || 0, cx = rw / 2;
   /* bagliore del camino che pulsa sul pavimento */
   const gl = 0.08 + 0.04 * (Math.floor(t / 400) % 2);
@@ -354,9 +375,19 @@ export function drawInnFloorProps(g, rw, rh, time) {
   g.rect(15, 185, 16, 12, '#2a2016'); g.rect(16, 186, 14, 10, '#c9955a');                  // testa
   g.rect(12, 190, 7, 6, '#2a2016'); g.rect(13, 191, 5, 4, '#e8c89a'); g.px(12, 191, '#2a2016'); // muso e naso
   g.rect(24, 184, 6, 10, '#2a2016'); g.rect(25, 185, 4, 8, '#6e4a2a');                     // orecchio che ricade
-  g.rect(19, 189, 4, 1, '#2a2016');                                                        // occhio chiuso
+  const petDog = pet && pet.kind === 'cane';
+  if (petDog) {
+    /* coccolato: occhi aperti e lucidi, lingua fuori, la coda scodinzola veloce */
+    g.rect(19, 188, 3, 3, '#2a2016'); g.px(19, 188, '#ffffff');
+    g.rect(14, 194, 3, 3, '#2a2016'); g.rect(15, 195, 1, 2, '#e8607a');
+    const wg = Math.floor(pet.t * 10) % 2;
+    g.rect(55, 184, 7, 5, '#b8834a'); g.rect(56 + wg * 2, 176 + wg, 3, 8, '#2a2016'); g.rect(57 + wg * 2, 177 + wg, 1, 6, '#d4a064');
+    hearts(g, 22, 178, pet);
+  } else {
+    g.rect(19, 189, 4, 1, '#2a2016');                                                      // occhio chiuso
+    if (Math.floor(t / 1400) % 2) { g.px(12, 180, '#f3ecda'); g.px(10, 177, '#f3ecda'); g.px(13, 175, '#f3ecda'); } // zzz
+  }
   g.rect(14, 196, 12, 3, '#2a2016'); g.rect(15, 196, 4, 2, '#e8c89a'); g.rect(21, 196, 4, 2, '#e8c89a'); // zampe davanti
-  if (Math.floor(t / 1400) % 2) { g.px(12, 180, '#f3ecda'); g.px(10, 177, '#f3ecda'); g.px(13, 175, '#f3ecda'); } // zzz
   }
   /* tavoli con tovaglia, sgabelli, boccali e candela (28..96 e 224..292 × 96..136) */
   for (const ox of [30, 226]) {
@@ -563,7 +594,7 @@ function eggTankArt(g, x, y, time, egg, ready) {
   }
   g.px(x + W - 4, y + H + 4, egg ? (ready ? '#7ec069' : '#e8c34a') : '#5a5248');
 }
-export function drawLabFloorProps(g, rw, rh, time, egg, ready) {
+export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   const t = time || 0, cx = rw / 2;
   /* sul bancone: fogli, calamaio, lente */
   g.rect(cx - 66, 64, 18, 8, '#8f887a'); g.rect(cx - 65, 64, 16, 7, '#f3ecda'); g.rect(cx - 62, 66, 10, 1, '#8f887a'); g.rect(cx - 62, 68, 8, 1, '#8f887a');
@@ -602,9 +633,22 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready) {
   /* fogli caduti */
   g.rect(200, 156, 14, 10, '#8f887a'); g.rect(201, 156, 12, 9, '#f3ecda'); g.rect(208, 168, 14, 10, '#8f887a'); g.rect(209, 168, 12, 9, '#ece5d2');
   g.rect(203, 159, 8, 1, '#8f887a'); g.rect(211, 171, 8, 1, '#8f887a');
+  /* TANA del topolino nel battiscopa, con gli occhietti che brillano nel buio */
+  g.rect(22, 194, 16, 12, '#2a2016'); g.rect(24, 196, 12, 10, '#140e0a'); g.rect(23, 193, 14, 2, '#6f685c');
+  const petMouse = pet && pet.kind === 'topo';
+  if (petMouse) {
+    /* coccolato: esce, si alza sulle zampine e sgranocchia un pezzo di formaggio */
+    const nib = Math.floor(pet.t * 8) % 2;
+    g.rect(38, 192, 10, 12, '#2a2016'); g.rect(39, 193, 8, 10, '#8a8278'); g.rect(40, 197, 6, 5, '#b8b0a4');
+    g.rect(37, 188 + nib, 3, 3, '#2a2016'); g.rect(46, 188 + nib, 3, 3, '#2a2016'); g.px(38, 189 + nib, '#e0a8b0'); g.px(47, 189 + nib, '#e0a8b0');
+    g.px(41, 195, '#1a120a'); g.px(44, 195, '#1a120a'); g.px(42, 197 + nib, '#e0a8b0');
+    g.rect(40, 199, 6, 4, '#2a2016'); g.rect(41, 200, 4, 2, '#f2c53d'); g.px(42, 200, '#c9a227');
+    g.rect(47, 202, 6, 1, '#a09080'); g.px(53, 201, '#a09080');
+    hearts(g, 43, 186, pet);
+  } else if (Math.floor(t / 2200) % 3 !== 2) { g.px(27, 200, '#f2d080'); g.px(31, 200, '#f2d080'); }
   /* topolino che attraversa lungo il muro basso */
   const rt = (t / 1000) % 14;
-  if (rt < 2.2) {
+  if (rt < 2.2 && !petMouse) {
     const x = Math.round(36 + (rt / 2.2) * 240);
     g.rect(x, 198, 12, 7, '#2a2016'); g.rect(x + 1, 199, 10, 5, '#8a8278'); g.rect(x + 9, 197, 5, 5, '#2a2016'); g.rect(x + 10, 198, 3, 3, '#8a8278');
     g.px(x + 10, 196, '#e0a8b0'); g.px(x + 12, 199, '#1a120a'); g.rect(x - 6, 202, 6, 1, '#a09080');

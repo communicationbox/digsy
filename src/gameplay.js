@@ -17,7 +17,7 @@ import { companionYieldMul, companionType, companionSpec, COMP } from './compani
 import { addXp, XP_BY_RAR, digDurationMul, rareBonus } from './progress.js';
 import { weatherAt, weatherDropMul } from './weather.js';
 import { playSfx } from './audio.js';
-import { INT, nearNpc, nearCase, nearMentorInt, nearLockedGate, houseFloorHere, enterInterior, nudgeOffFurniture, CUT } from './interior.js';
+import { INT, nearNpc, nearCase, nearMentorInt, nearLockedGate, houseFloorHere, enterInterior, nudgeOffFurniture, CUT , nearPet, petAnimal } from './interior.js';
 import { ensureHouseState, ATRIO_PORTAL, isHolding, pickUpFurniture, placeHold, isFloorCell, furnAt, roomUnlocked, restFreeFor, holdTarget, setHoldTarget } from './house.js';
 import { CAVE, digCave } from './cave.js';
 import { tryCatchFireflies } from './firefly.js';
@@ -349,6 +349,19 @@ export function useTeleport() {
   toast(tr('Nessuna città col museo trovata vicino', 'No museum city found nearby')); return false;
 }
 /* ---------- casa: teleport gratuito verso S.home, illimitato ---------- */
+/* COCCOLE agli animali delle botteghe (interior.js): reazione, suono, e la prima del giorno +1 ⚡ */
+export function petShopAnimal() {
+  const r = petAnimal(S.day); if (!r) return false;
+  if (!S.petDay) S.petDay = {};
+  const first = S.petDay[r.kind] !== S.day;
+  if (first) { S.petDay[r.kind] = S.day; S.energy = Math.min(S.maxEnergy, S.energy + 1); updateHUD(); save(); }
+  const msg = r.kind === 'gatto' ? tr('Il gatto fa le fusa', 'The cat purrs')
+    : r.kind === 'cane' ? tr('Il cane scodinzola felice', 'The dog wags happily')
+      : tr('Squit! Il topolino si gode il formaggio', 'Squeak! The mouse enjoys the cheese');
+  toast('🐾 ' + msg + (first ? ' · +1 ⚡' : ''));
+  playSfx('found');
+  return true;
+}
 export function goHome() {
   if (!S.home) { toast(tr('Casa non ancora trovata', 'Home not found yet')); return false; }
   const htx = Math.floor(P.x / TS), hty = Math.floor((P.y + FOOT_DY) / TS);
@@ -1198,6 +1211,7 @@ export function act() {
     if (nearbyReturnPortal()) { useReturnPortal(); return; } // portale di ritorno (goHome): in mezzo all'atrio
     if (nearMentorInt()) { openMentor(); return; } // Maestro Scavatore: spiega i livelli
     if (nearNpc()) { openBuilding(INT.b); return; }
+    { const pet = nearPet(); if (pet) { petShopAnimal(); return; } }
     const nc = nearCase(); if (nc) { openExhibit(nc.sp.id); return; }
     const gate = nearLockedGate(); if (gate != null) { openRoomLock(gate); return; } // casa: porta a lucchetto
     /* casa: piazzare/raccogliere arredo sulla propria casella (M3) — stesso criterio di

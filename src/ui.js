@@ -16,7 +16,7 @@ import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nea
 import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
-import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc } from './interior.js';
+import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc , nearPet } from './interior.js';
 import { roomPrice, tryUnlockRoom, buyFurniture, furnLevelLock, ownedUnplaced, ownedBackdrops, placeTarget, canPlace, roomComfort, restFreeFor, COMFORT_MAX, pickUpFurniture, takeHold, setHoldTarget, holdPlacement, clampFurn, tryPlaceFurniture, removeFurnitureAt, furnAt, pedestalCandidates, assignPedestal, ensureHouseState, isHolding, holdItem, cancelHold, rotateHold, applyBackdrop, clearBackdrop, roomPaper, roomGround } from './house.js';
 import { drawFurnThumb, furnRotatable } from './furnArt.js';
 import { FURN_CATALOG, FURN_THEMES, ZONE_THEME } from './furnCatalog.js';
@@ -275,6 +275,7 @@ export function updatePrompt() {
     if (nearMentorInt()) { setPrompt(withIcons(actKey() + ' ' + tr('Parla col Maestro Scavatore 🎓', 'Talk to the Master Digger 🎓'))); return; }
     const nc = nearCase();
     if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/' + PARTS.length + (nc.n === PARTS.length ? ' 💫' : ''))); return; }
+    { const pet = nearPet(); if (pet && !nearNpc()) { setPrompt(withIcons(actKey() + ' ' + ({ gatto: '🐾 ' + tr('Accarezza il gatto', 'Pet the cat'), cane: '🐾 ' + tr('Coccola il cane', 'Cuddle the dog'), topo: '🐾 ' + tr('Dai il formaggio al topolino', 'Give the mouse some cheese') })[pet.kind])); return; } }
     if (nearNpc()) {
       if (!INT.greeted && INT.b) { sayGreet(INT.b.type); INT.greeted = true; } // saluto (una frase a caso) avvicinandosi
       setPrompt(withIcons(actKey() + ' ' + tr('Parla con ', 'Talk to ') + npcName(INT.b.type))); return;

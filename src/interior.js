@@ -334,6 +334,29 @@ export function interiorSolid(x, y) {
   for (const f of INT.solids || []) if (x >= f.x0 && x <= f.x1 && y >= f.y0 && y <= f.y1) return true;
   return false;
 }
+/* ANIMALI DELLE BOTTEGHE: il gatto sulle casse del Negozio, il cane davanti al camino della Locanda,
+   il topolino alla sua tana nel Laboratorio. Ci si avvicina e con l'azione si fanno le coccole:
+   una reazione di due secondi e mezzo coi cuoricini, e la prima coccola del giorno regala 1 ⚡.
+   (x, y) = dove sta l'animale, in pixel della stanza. */
+export const SHOP_PETS = {
+  store: { kind: 'gatto', x: 74, y: 102 },
+  inn: { kind: 'cane', x: 40, y: 190 },
+  lab: { kind: 'topo', x: 34, y: 200 },
+};
+export const PET_SEC = 2.6;
+export function nearPet() {
+  if (!INT.active || !INT.b || CUT.on) return null;
+  const p = SHOP_PETS[INT.b.type]; if (!p) return null;
+  return (Math.abs(INT.x - p.x) < 46 && Math.abs(INT.y + 12 - p.y) < 58) ? p : null;
+}
+/* la coccola: ritorna il tipo di animale se è partita, `firstToday` se ha dato l'energia */
+export function petAnimal(day) {
+  const p = nearPet(); if (!p) return null;
+  if (INT.pet && INT.pet.t > 0.6) return null;             // una alla volta: lascia finire la reazione
+  INT.pet = { kind: p.kind, t: PET_SEC };
+  INT.dir = p.x < INT.x - 8 ? 'left' : p.x > INT.x + 8 ? 'right' : 'up';
+  return { kind: p.kind, firstToday: day };
+}
 export function nearNpc() {
   if (!INT.active) return false;
   if (INT.b && INT.b.type === 'house') return false;      // niente NPC in casa
@@ -485,6 +508,7 @@ export function intCollide(x, y) {
 export const FOOT_TOP = 8, FOOT_BOT = 12;
 export function updateInterior(dt, keys, speed) {
   if (INT.say) { INT.say.t -= dt; if (INT.say.t <= 0) INT.say = null; } // scade il fumetto
+  if (INT.pet) { INT.pet.t -= dt; if (INT.pet.t <= 0) INT.pet = null; }  // finisce la coccola
   if (CUT.on) { INT.moving = false; stepCut(dt); return; } // cutscene: input bloccato (Maestro fermo)
   if (INT.b && INT.b.type === 'museum') updateMentor(dt); // il Maestro fa il suo giro
   let dx = 0, dy = 0;

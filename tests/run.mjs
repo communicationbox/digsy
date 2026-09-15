@@ -4249,6 +4249,40 @@ sprites.applyLook();
   }
 }
 
+/* ---------- COCCOLE agli animali delle botteghe ---------- */
+{
+  const S = state.S;
+  const it = await import('../src/interior.js');
+  const gpP = await import('../src/gameplay.js');
+  const keep = { active: it.INT.active, b: it.INT.b, x: it.INT.x, y: it.INT.y, pet: it.INT.pet };
+  const keepS = { energy: S.energy, petDay: S.petDay };
+  for (const [type, kind] of [['store', 'gatto'], ['inn', 'cane'], ['lab', 'topo']]) {
+    const p = it.SHOP_PETS[type];
+    Object.assign(it.INT, { active: true, b: { type }, x: p.x, y: p.y + 20, pet: null });
+    S.petDay = {}; S.energy = 5;
+    const ok = gpP.petShopAnimal();
+    check('coccola ' + kind + ': parte la reazione e la prima del giorno dà +1 ⚡', ok && it.INT.pet && it.INT.pet.kind === kind && S.energy === 6);
+    it.INT.pet = null; gpP.petShopAnimal();
+    check('coccola ' + kind + ': la seconda dello stesso giorno è solo affetto', S.energy === 6);
+    it.updateInterior(3, {}, 0);
+    check('coccola ' + kind + ': la reazione finisce da sola', it.INT.pet === null);
+    it.INT.x = p.x + 200;
+    check('coccola ' + kind + ': da lontano non si coccola', it.nearPet() === null);
+  }
+  const shop = await import('../src/shopArt.js');
+  const { BRUSH } = await import('../src/brush.js');
+  let crash = null;
+  try {
+    for (const k of [0.3, 1.2, 2.4]) {
+      shop.drawStoreFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'gatto', t: k });
+      shop.drawInnFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'cane', t: k });
+      shop.drawLabFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'topo', t: k });
+    }
+  } catch (e) { crash = e.message; }
+  check('coccole: le tre reazioni si disegnano', crash === null, crash || '');
+  Object.assign(it.INT, keep); Object.assign(S, keepS);
+}
+
 /* ---------- RISVEGLIO: scena + la creatura va da sola nel giardino ---------- */
 {
   const S = state.S;

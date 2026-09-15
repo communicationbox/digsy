@@ -13,6 +13,12 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "The cat purrs": "Кот мурлычет",
+  "The dog wags happily": "Пёс радостно виляет хвостом",
+  "Squeak! The mouse enjoys the cheese": "Пи-пи! Мышонок наслаждается сыром",
+  "Pet the cat": "Погладить кота",
+  "Cuddle the dog": "Приласкать пса",
+  "Give the mouse some cheese": "Дать мышонку сыра",
   "Teleport home": "Телепорт домой",
   "A portal brings you back here": "Портал вернёт тебя сюда",
   "your home · tap to go there": "твой дом · нажми, чтобы перенестись",

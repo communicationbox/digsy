@@ -372,6 +372,8 @@ if (typeof window !== 'undefined') {
          porta in fondo: senza questo, ogni foto e ogni test la ritraggono dall'atrio e le sale
          con i piedistalli — cioè quasi tutta la scena — non vengono mai disegnate. */
       intPos: (tx, ty) => import('./interior.js').then(m => { m.INT.x = tx * TS + 8; m.INT.y = ty * TS + 8; return [m.INT.x, m.INT.y]; }),
+      /* foto della coccola: mette la reazione dell'animale della bottega a metà (t in secondi rimasti) */
+      petPose: (t) => import('./interior.js').then(m => { const p = m.SHOP_PETS[m.INT.b && m.INT.b.type]; if (p) m.INT.pet = { kind: p.kind, t: +t || 1.4 }; return !!p; }),
       enterCave: () => import('./cave.js').then(m => { m.enterCave(1, Math.floor(P.x / 16), Math.floor(P.y / 16)); return true; }),
       leaveCave: () => import('./cave.js').then(m => m.exitCave()),
       inRoom: () => import('./interior.js').then(m => !!m.INT.active),

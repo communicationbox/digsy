@@ -567,7 +567,7 @@ export function drawInteriorScene(time) {
      (davanti a lui: l'NPC non cammina davanti alla merce) */
   drawCounter(g, type, TS, Math.round(2.2 * TS), rw - 2 * TS, 20);
   drawNpc(rw / 2, 1.9 * TS, type, time);
-  if (floorProps) { const e = type === 'lab' ? breedEgg() : null; floorProps(g, rw, rh, time, e, !!e && eggReady()); }
+  if (floorProps) { const e = type === 'lab' ? breedEgg() : null; floorProps(g, rw, rh, time, e, !!e && eggReady(), INT.pet); }
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
   shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
   drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
