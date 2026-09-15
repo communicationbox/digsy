@@ -7,7 +7,7 @@ import { TS } from './data.js';
 import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
 import { updateCompanion } from './companion.js';
-import { playIntro, introActive } from './intro.js';
+import { playIntro, introActive, drawIntroLine } from './intro.js';
 import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending, showIdleWelcome } from './ui.js';
 import { idleHours, idleCoins, idleEligible, IDLE_DNA_CHANCE } from './idle.js';
 import { updateCompass } from './compass.js';
@@ -347,7 +347,7 @@ if (typeof window !== 'undefined') {
       openBag: u.openBag, closeBag: u.closeBag, openBook: u.openBook, closeBook: u.closeBook,
       openMap: u.openMap, closeMap: u.closeMap, openGuide: u.openGuide, openWonderBook: u.openWonderBook,
       openLetters: u.openLetters, openAchievements: u.openAchievements, closeModal: u.closeModal,
-      openQuests: u.openQuests, updateHUD: u.updateHUD,
+      openQuests: u.openQuests, updateHUD: u.updateHUD, drawIntroLine,
       /* l'EDITOR del personaggio: si apre solo alla primissima partita, quindi senza questa
          riga non c'era modo di fotografarlo né di farlo disegnare da un test (regola 9) */
       openEditor: () => u.openEditor(() => {}),

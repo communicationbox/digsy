@@ -1,10 +1,12 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.98.11', it: [
+    v: 'v0.98.12', it: [
+      'VIDEO INIZIALE: la lanterna ora è appesa a un palo, gli alberi poggiano sull\'erba, la luce scende nella buca dello scavo, il nonno passa davvero il fossile al piccolo; dialoghi più affettuosi',
       'TESTI RIVISTI: tutorial, Guida e messaggi scritti in italiano vero, frasi brevi al posto di simboli e sigle; la Guida segue l\'ordine del gioco',
       'FIX: il parco quando torni regala una fialetta intera (diceva "mezza"); al Lab non dice più "nessuna fialetta" se ne hai una sola',
     ], en: [
+      'OPENING VIDEO: the lantern now hangs from a pole, trees stand on the grass, light falls into the dig pit, Grandpa really hands the fossil over; warmer dialogue',
       'TEXTS REVISED: tutorial, Guide and messages rewritten as plain sentences instead of symbols and shorthand; the Guide follows the order of the game',
       'FIX: the park gives a whole vial when you return (it said "half"); the Lab no longer says "no vials" when you have just one',
     ],

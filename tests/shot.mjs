@@ -73,6 +73,12 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'guida') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       var Sg = G.state && G.state(); if (Sg) { Sg.tips = {}; ['dig','raw','energy','bagfull','water','cave','wonder','map','dna','quest','amber','night'].forEach(function(k){ Sg.tips[k] = 1; }); }
       if (G.openGuide) G.openGuide(); }
+    /* 'intro' = una battuta dell'intro (battuta=0..4), disegnata a tempo fisso con testo e barre */
+    else if (${JSON.stringify(vista)} === 'intro') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var qi = new URLSearchParams(location.search), bi = +(qi.get('battuta') || 0), ti = +(qi.get('t') || 2500);
+      if (G.cmd) G.cmd('intro').then(function(){ setTimeout(function(){
+        for (var k = 0; k < bi * 2; k++) { var tp = document.getElementById('introtap'); if (tp) tp.click(); }
+        if (G.drawIntroLine) G.drawIntroLine(bi, ti); }, 300); }); }
     else if (${JSON.stringify(vista)} === 'gioco') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.updateHUD) G.updateHUD(); }
     /* 'editor' = la creazione del personaggio: si vede una volta sola nella vita di una
        partita, ed è esattamente per questo che va guardata di proposito */

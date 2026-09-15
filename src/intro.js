@@ -29,11 +29,11 @@ function withLook(look, fn) { const saved = S.look; S.look = look; applyLook(); 
  * invece di raccontarlo. Qui resta solo chi era il nonno e perché tocca a te; e lo scopo del gioco
  * detto da chi ha diritto di chiederlo (nessuno le ha mai riviste vive → riportarle indietro). */
 const LINES = [
-  { s: 'G', it: 'Vieni, {n}. Guarda cosa nasconde la terra.', en: 'Come, {n}. Look what the earth hides.', shot: 1 },
-  { s: 'G', it: 'Un osso. Di una creatura di tantissimo tempo fa.', en: 'A bone. From a creature of long, long ago.', shot: 2 },
-  { s: 'G', it: 'Io fui il primo a trovarle. Ma trovarle non basta: nessuno le ha mai riviste vive.', en: 'I was the first to find them. But finding them is not enough: no one has ever seen one alive.', shot: 3 },
-  { s: 'G', it: 'Tienilo, {n}: il tuo primo tesoro. A me il tempo è finito.', en: 'Take it, {n}: your first treasure. My time ran out.', shot: 4 },
-  { s: 'D', it: 'Allora le riporterò indietro. Tutte.', en: 'Then I will bring them back. All of them.', shot: 5 },
+  { s: 'G', it: 'Eccoti, {n}! Vieni qui vicino a me: la terra oggi ha un segreto da mostrarci.', en: 'There you are, {n}! Come close to me: the earth has a secret to show us today.', shot: 1 },
+  { s: 'G', it: 'Piano, col pennello… eccolo. È l\'osso di una creatura vissuta tantissimo tempo fa.', en: 'Gently, with the brush… there it is. The bone of a creature that lived a very long time ago.', shot: 2 },
+  { s: 'G', it: 'Ho passato la vita a cercarle. E ho sempre sognato di vederne una viva, anche una sola.', en: 'I spent my life looking for them. And I always dreamed of seeing one alive, even just one.', shot: 3 },
+  { s: 'G', it: 'Questo è per te, {n}. Io ormai sono stanco… ma tu hai tutta la strada davanti.', en: 'This is for you, {n}. I\'m tired now… but you have the whole road ahead of you.', shot: 4 },
+  { s: 'D', it: 'Te lo prometto, nonno: le riporterò a casa. Tutte quante.', en: 'I promise, Grandpa: I\'ll bring them home. Every single one.', shot: 5 },
 ];
 
 /* ---------------- pennelli ---------------- */
@@ -78,8 +78,9 @@ function shotSite(W, H, t, tu) {
   /* il terreno sta ALTO: sotto c'è il riquadro del testo, che copriva i personaggi */
   hills(W, H, Math.round(H * 0.46), 6, 0.035, '#6a4a7a', 1.3, '#7e5a8c');
   hills(W, H, Math.round(H * 0.54), 5, 0.05, '#3e4a5a', 4.1, '#4c5a6a');
-  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, Math.round(H * 0.6), v, DUSK_TREE, t);   // pochi alberi, ai lati: niente muro
   const gy = Math.round(H * 0.62);
+  /* la base del tronco SULL'ERBA (gy): prima stava a 0,6 e gli alberi galleggiavano sopra il prato */
+  for (const [fx, v] of [[0.08, 1], [0.86, 4], [0.95, 2]]) tree(W * fx, gy + 2, v, DUSK_TREE, t);   // pochi alberi, ai lati: niente muro
   grass(W, H, gy, ['#4a6a3a', '#6a8a4a', '#3a5a2e'], t);
   /* il campo: tenda, cassa, lanterna accesa, cumulo */
   const tx = Math.round(W * 0.18);
@@ -87,8 +88,16 @@ function shotSite(W, H, t, tu) {
   px(tx - 3, gy - 14, 6, 14, '#3a2a1a');
   px(tx + 26, gy - 8, 12, 8, '#8a5f38'); px(tx + 26, gy - 8, 12, 2, '#b07c4a'); px(tx + 31, gy - 8, 2, 8, '#5c4229');
   const fl = Math.floor(t / 200) % 2;
-  glow(tx + 49, gy - 13, 10, 'rgba(255,210,120,.16)');
-  px(tx + 47, gy - 16, 4, 6, '#2a1f14'); px(tx + 48, gy - 15, 2, 4, fl ? '#ffd27a' : '#ffe9a8');
+  /* la lanterna è APPESA a un palo piantato accanto alla cassa: prima c'erano solo il vetro e
+     l'alone, sospesi a mezz'aria sopra il prato */
+  const lx = tx + 46;
+  px(lx, gy - 26, 2, 26, '#5c4229'); px(lx + 2, gy - 26, 1, 26, '#3e2c1c');         // palo
+  px(lx, gy - 26, 9, 2, '#5c4229'); px(lx + 7, gy - 24, 1, 2, '#2a1f14');            // braccio e gancio
+  /* la luce si vede dove CADE: una chiazza calda sull'erba sotto la lanterna (un alone tondo a
+     mezz'aria, sopra le colline viola, diventava un disco grigio) */
+  px(lx + 1, gy, 15, 1, '#8a9a52'); px(lx + 3, gy + 1, 11, 1, '#7a8a4a');
+  px(lx + 5, gy - 22, 6, 1, '#2a1f14'); px(lx + 5, gy - 21, 6, 6, '#2a1f14'); px(lx + 5, gy - 15, 6, 1, '#2a1f14');
+  px(lx + 6, gy - 20, 4, 4, fl ? '#ffd27a' : '#ffe9a8'); px(lx + 7, gy - 19, 2, 2, '#fff6d8');
   for (let x = 0; x < 50; x++) { const h = Math.round(Math.sin(x / 50 * Math.PI) * 9); px(W * 0.5 + x, gy - h, 1, h, x % 7 ? '#8a6440' : '#6b4a2e'); }
   /* il nonno aspetta vicino al cumulo; il piccolo arriva di corsa da destra */
   const gx = Math.round(W * 0.46);
@@ -106,11 +115,23 @@ function shotBone(W, H, t) {
   for (let i = 0; i < 40; i++) { const x = hash(i, 5) * W, y = gy + 12 + hash(i, 6) * (H - gy); px(x, y, 2 + (hash(i, 7) * 3 | 0), 2, i % 3 ? '#9a9285' : '#3a2a1a'); }
   /* il cranio al centro, luce che scende */
   const sx = Math.round(W / 2 - 55), sy = Math.round(H * 0.58 - 45);
-  ctx.fillStyle = 'rgba(255,230,160,.10)'; for (let i = 0; i < 4; i++) ctx.fillRect(Math.round(W / 2 - 40 + i * 6), gy, 30 - i * 6, H);
+  /* LA BUCA: dall'erba si scende fino al cranio, pareti in ombra e fondo di terra smossa. La luce
+     del tramonto entra da lì — prima era una colonna chiara in mezzo alla terra piena, cioè una
+     luce che non veniva da nessuna parte */
+  const pitTop = gy + 2, pitBot = sy + 30;
+  for (let y = pitTop; y <= pitBot; y++) {
+    const k = (y - pitTop) / (pitBot - pitTop), x0 = Math.round(sx + 6 + k * 14), x1 = Math.round(sx + 110 - k * 10);
+    px(x0, y, x1 - x0, 1, '#a57e52');
+    px(x0 - 2, y, 2, 1, '#4a3120'); px(x1, y, 2, 1, '#3a2616');
+  }
+  px(sx + 4, pitTop - 1, 108, 2, '#6b4a2e');
+  ctx.fillStyle = 'rgba(255,230,160,.12)';
+  for (let i = 0; i < 3; i++) ctx.fillRect(Math.round(sx + 26 + i * 8), pitTop, 40 - i * 10, pitBot - pitTop);
   drawBuriedSkull(ctx, t, sx, sy);
-  /* il PENNELLO del nonno che spazzola avanti e indietro, con la polvere */
+  /* il PENNELLO del nonno, col manico che risale fuori dalla buca fino alla sua mano */
   const bx = Math.round(W / 2 + 10 + Math.sin(t / 180) * 14), by = sy + 22;
-  px(bx - 1, by - 22, 3, 20, '#6e4a2a'); px(bx - 3, by - 3, 7, 5, '#e8d29a'); px(bx - 3, by + 1, 7, 2, '#c9a06a');
+  px(bx - 1, pitTop - 8, 3, by - pitTop + 6, '#6e4a2a'); px(bx - 3, by - 3, 7, 5, '#e8d29a'); px(bx - 3, by + 1, 7, 2, '#c9a06a');
+  px(bx - 3, pitTop - 12, 7, 5, '#e3b98a'); px(bx - 4, pitTop - 16, 9, 4, '#7a6a52');     // mano e manica
   for (let i = 0; i < 8; i++) { const a = (t / 400 + i / 8) % 1; px(bx - 10 + hash(i, 1) * 20 + Math.sin(t / 180) * 6 * a, by + 2 - a * 16, 1, 1, `rgba(236,220,180,${(1 - a).toFixed(2)})`); }
   if (Math.floor(t / 500) % 3 === 0) sparkle(sx + 48, sy + 40, '#fff6c8');
 }
@@ -141,16 +162,16 @@ function shotMemory(W, H, t, tu, creature) {
 }
 function shotGive(W, H, t, tu) {
   sky(W, H, ['#6a3a5e', '#a24a5a', '#d8664a', '#f0904a', '#f6b45a'], Math.round(H * 0.56));
-  sun(Math.round(W * 0.5), Math.round(H * 0.56), 22, '#ffd48a', 'rgba(255,212,138,.2)');
+  sun(Math.round(W * 0.5), Math.round(H * 0.47), 18, '#ffd48a', 'rgba(255,212,138,.2)');   // il sole fra i due, sopra le colline
   hills(W, H, Math.round(H * 0.54), 4, 0.05, '#4a3a5a', 0.7, '#5a4a6a');
   const gy = Math.round(H * 0.64);
   grass(W, H, gy, ['#4a5a3a', '#6a7a4a', '#3a4a2e'], t);
-  const gx = Math.round(W * 0.4), dx = Math.round(W * 0.6);
+  /* vicini abbastanza da passarsi il fossile: a 0,4 e 0,6 volava nel vuoto fra i due */
+  const gx = Math.round(W / 2 - 21), dx = Math.round(W / 2 + 21);
   shadowAt(gx, gy, 14); hero(GRANDPA, gx, gy, 'right', 0, 'strike');
   shadowAt(dx, gy, 12); hero(null, dx, gy, 'left', 0, tu > 1400 ? 'strike' : undefined);
   /* il fossile che passa di mano e brilla */
-  const k = Math.min(1, tu / 1600), fx = Math.round(gx + 10 + (dx - gx - 20) * k), fy = gy - 12 - Math.round(Math.sin(k * Math.PI) * 6);
-  glow(fx, fy, 8, 'rgba(255,240,180,.22)'); glow(fx, fy, 5, 'rgba(255,240,180,.22)');
+  const k = Math.min(1, tu / 1600), fx = Math.round(gx + 11 + (dx - gx - 22) * k), fy = gy - 14 - Math.round(Math.sin(k * Math.PI) * 3);
   px(fx - 4, fy - 1, 9, 3, '#2a1f14'); px(fx - 3, fy, 7, 1, '#f1e8d2'); px(fx - 5, fy - 2, 3, 5, '#2a1f14'); px(fx - 4, fy - 1, 1, 3, '#f1e8d2'); px(fx + 3, fy - 2, 3, 5, '#2a1f14'); px(fx + 4, fy - 1, 1, 3, '#f1e8d2');
   for (let i = 0; i < 5; i++) { const a = (t / 900 + i / 5) % 1; if (a < 0.8) sparkle(fx - 8 + hash(i, 2) * 16, fy - 2 - a * 18, i % 2 ? '#fff6c8' : '#ffe27a'); }
 }
@@ -165,8 +186,8 @@ function shotDawn(W, H, t, tu) {
   }
   sun(sxn, syn, 16, '#fff0b8', 'rgba(255,240,184,.3)');
   hills(W, H, Math.round(H * 0.54), 5, 0.04, '#5a7a8a', 3.3, '#6a8a9a');
-  for (const [fx, v] of [[0.1, 3], [0.2, 5], [0.88, 6]]) tree(W * fx, Math.round(H * 0.62), v, PRATI, t);
   const gy = Math.round(H * 0.64);
+  for (const [fx, v] of [[0.1, 3], [0.2, 5], [0.88, 6]]) tree(W * fx, gy + 2, v, PRATI, t);
   grass(W, H, gy, ['#4f8f44', '#7fbf63', '#3f7a3a'], t);
   for (let b = 0; b < 3; b++) { const bx = ((t / 30) + b * 60) % (W + 20) - 10, by = H * 0.2 + b * 7 + Math.sin(t / 250 + b) * 2; px(bx - 1, by, 1, 1, '#2a2a3a'); px(bx, by - 1, 1, 1, '#2a2a3a'); px(bx + 1, by, 1, 1, '#2a2a3a'); }
   /* il piccolo, da solo, alza il piccone verso il sole */
@@ -205,6 +226,10 @@ function drawIntro(t) {
   }
 }
 
+/* una battuta disegnata a comando, per la foto (`npm run shot -- intro … "battuta=3"`): in headless
+   requestAnimationFrame non avanza, quindi l'intro vera resterebbe al primo fotogramma */
+export function drawIntroLine(i, t) { cur = Math.max(0, Math.min(LINES.length - 1, i)); lastShot = LINES[cur].shot; shotStart = 0; fadeT = -1e9; drawIntro(t); }
+
 export function playIntro(onDone) {
   const finish = () => { active = false; try { removeEventListener('resize', fit); box.remove(); document.body.classList.remove('introing'); } catch (e) { /* ok */ } if (onDone) onDone(); };
   if (typeof document === 'undefined' || !document.createElement) { if (onDone) onDone(); return; }
@@ -227,7 +252,7 @@ export function playIntro(onDone) {
   let textFull = '';
   function showLine() {
     const l = LINES[cur]; textFull = tr(l.it, l.en).replace(/\{n\}/g, nm()); typed = 0; tStart = now();
-    if (nameEl) { nameEl.textContent = l.s === 'G' ? tr('Nonno', 'Grandpa') : nm(); nameEl.style.color = l.s === 'G' ? '#f0c674' : '#8fd0c0'; }
+    if (nameEl) { nameEl.textContent = l.s === 'G' ? tr('Nonno', 'Grandpa') : (S.name || 'Digsy'); nameEl.style.color = l.s === 'G' ? '#f0c674' : '#8fd0c0'; }
     if (textEl) textEl.textContent = '';
   }
   function endThen() {

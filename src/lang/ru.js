@@ -13,6 +13,11 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "There you are, {n}! Come close to me: the earth has a secret to show us today.": "Вот и ты, {n}! Подойди ко мне поближе: сегодня земля хочет показать нам секрет.",
+  "Gently, with the brush… there it is. The bone of a creature that lived a very long time ago.": "Осторожно, кисточкой… вот она. Кость существа, жившего очень-очень давно.",
+  "I spent my life looking for them. And I always dreamed of seeing one alive, even just one.": "Я всю жизнь их искал. И всегда мечтал увидеть хоть одно живым, хотя бы одно.",
+  "This is for you, {n}. I'm tired now… but you have the whole road ahead of you.": "Это тебе, {n}. Я уже устал… а у тебя впереди вся дорога.",
+  "I promise, Grandpa: I'll bring them home. Every single one.": "Обещаю, дедушка: я верну их домой. Всех до одного.",
   "Every dig uses energy ⚡. When it runs out, sleep at the <b>Inn</b> or eat a snack (+15 ⚡).": "Каждый раскоп тратит энергию ⚡. Когда она кончится, поспи в <b>Таверне</b> или съешь перекус (+15 ⚡).",
   "When your bag is full, new finds stay <b>on the ground</b>. The Shop sells bigger bags.": "Когда рюкзак полон, новые находки остаются <b>на земле</b>. В Лавке есть рюкзаки побольше.",
   "Once a case is complete, <b>amber</b> pieces ✨ of that species can turn up: a second case to fill.": "Когда витрина заполнена, могут попадаться <b>янтарные</b> ✨ части этого вида: вторая витрина ждёт.",
@@ -1116,10 +1121,9 @@ export const RU = {
 
   ' Your grandparent never saw one alive: you did. ': ' Дедушка не видел ни одного живым: а ты видишь. ',
   ' left to go.': ' осталось.',
-  'I was the first to find them. But finding them is not enough: no one has ever seen one alive.':
-    'Я первым их нашёл. Но найти — мало: никто никогда не видел их живыми.',
-  'Take it, {n}: your first treasure. My time ran out.': 'Держи, {n}: твоё первое сокровище. Моё время вышло.',
-  'Then I will bring them back. All of them.': 'Тогда я верну их. Всех.',
+
+
+
   /* ---- tutorial: frasi corte, una cosa per volta ---- */
 
 
@@ -1560,8 +1564,8 @@ export const RU = {
     'Здесь выбирают рубашку, штаны и шляпу. Примеряйте свободно, платите при подтверждении; некоторые особые шляпы открываются отдельно.',
 
   /* ---- intro: le prime battute ---- */
-  'Come, {n}. Look what the earth hides.': 'Иди сюда, {n}. Посмотри, что прячет земля.',
-  'A bone. From a creature of long, long ago.': 'Кость. Существа, жившего очень-очень давно.',
+
+
 
   /* ---- comandi: col mouse si gioca senza tastiera ---- */
 

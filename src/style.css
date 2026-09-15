@@ -771,7 +771,7 @@ body.cutscene #hud,body.cutscene #touch,body.cutscene #prompt,body.cutscene #toa
   background:rgba(20,16,12,.82);color:var(--c-ink);border:1px solid var(--c-line);border-radius:20px;padding:6px 18px;
   font-family:ui-monospace,Menlo,monospace;font-weight:800;font-size:clamp(12px,2.2vmin,15px);white-space:nowrap;animation:hintpulse 1.2s ease-in-out infinite}
 @keyframes hintpulse{0%,100%{opacity:.55}50%{opacity:1}}
-body.introing #hud,body.introing #touch,body.introing #splash,body.introing #prompt,body.introing #toasts{display:none!important}
+body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #touch,body.introing #splash,body.introing #prompt,body.introing #toasts{display:none!important}
 /* finale: fadeout 8-bit (a scatti) al nero + scritta */
 #introend{position:fixed;inset:0;z-index:70;background:#000;opacity:0;transition:opacity 2.2s steps(11,end);display:flex;align-items:center;justify-content:center;pointer-events:auto}
 #introend.show{opacity:1}
