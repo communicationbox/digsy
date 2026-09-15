@@ -198,21 +198,13 @@ function shotBone(W, H, t, tu) {
   if (hit) { px(ex - 7, ey + 6, 14, 4, '#6b4a2e'); px(ex - 5, ey + 7, 9, 2, '#8a6440'); }   // terra sulla lama
 }
 /* TERZA INQUADRATURA — "ho sempre sognato di vederne una viva". Lo STESSO campo, di notte: il
-   nonno sta in piedi accanto al fuoco col fossile appena trovato ai suoi piedi, e nel cielo passa
-   la creatura che sogna, trasparente come un pensiero. Prima c'era uno scheletro gigante a terra
-   e la creatura fuori dall'inquadratura: non si capiva cosa fosse (segnalato). */
-function shotMemory(W, H, t, tu, creature) {
+   nonno sta in piedi accanto al fuoco, col fossile appena trovato posato lì, e guarda il cielo
+   stellato. Prima c'era uno scheletro gigante a terra e la creatura fuori dall'inquadratura, poi
+   la creatura sognata disegnata in cielo: sembrava buttata lì a caso (segnalato). La battuta dice
+   già che la sogna — il quadro deve solo stargli intorno, non illustrarla. */
+function shotMemory(W, H, t) {
   const gy = Math.round(H * 0.62);
   campBack(W, H, t, gy, true);
-  /* IL SOGNO nel cielo: la creatura viva, trasparente, attraversa lenta sopra le colline */
-  if (creature) {
-    const k = ((tu / 11000) % 1), cx = Math.round(-creature.width + (W + creature.width * 2) * k);
-    const cy = Math.round(gy * 0.3 + Math.sin(t / 900) * 4);
-    ctx.save(); ctx.globalAlpha = 0.34;
-    ctx.translate(cx + creature.width, cy); ctx.scale(-1, 1); ctx.drawImage(creature, 0, 0);
-    ctx.restore();
-    for (let i = 0; i < 6; i++) { const sx2 = cx + (i * 37) % creature.width, sy2 = cy + (i * 23) % creature.height; if (Math.floor(t / 300 + i) % 3 === 0) sparkle(sx2, sy2, '#cfd6ff'); }
-  }
   /* il fuoco del campo */
   const fx = Math.round(W * 0.42), fl = Math.floor(t / 160) % 2;
   /* la luce del fuoco si vede DOVE CADE, sull'erba: un alone tondo semitrasparente sul buio
@@ -265,7 +257,6 @@ function shotDawn(W, H, t, tu) {
 
 /* ---------------- regia ---------------- */
 let cur = 0, typed = 0, tStart = 0, shotStart = 0, lastShot = 0, fadeT = -1e9;
-let memCreature = null;
 function drawIntro(t) {
   /* scala INTERA scelta perché la scena sia larga circa 400 pixel di gioco: a 240 alberi e personaggi
      riempivano mezzo schermo */
@@ -278,7 +269,7 @@ function drawIntro(t) {
   const tu = t - shotStart;
   if (line.shot === 1) shotSite(W, H, t, tu);
   else if (line.shot === 2) shotBone(W, H, t, tu);
-  else if (line.shot === 3) shotMemory(W, H, t, tu, memCreature);
+  else if (line.shot === 3) shotMemory(W, H, t);
   else if (line.shot === 4) shotGive(W, H, t, tu);
   else shotDawn(W, H, t, tu);
   /* PASSAGGIO a gradini: dal nero si apre a scacchiera che si dirada (niente dissolvenza morbida) */
@@ -311,10 +302,6 @@ export function playIntro(onDone) {
   document.body.appendChild(box);
   const now = () => (typeof performance !== 'undefined' && performance.now) ? performance.now() : 0;
   cur = 0; lastShot = 0; let ending = false;
-  /* la creatura del ricordo: una leggendaria VIVA, costruita a risoluzione 4 (grande, pixel del mondo) */
-  import('./render.js').then(r => {
-    try { memCreature = r.creatureSprite({ c: { skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'leggendario' } }, 'side', { res: 4 }); } catch (e) { memCreature = null; }
-  }).catch(() => { memCreature = null; });
   const nm = () => (S.name || tr('piccolo', 'little one'));
   const nameEl = box.querySelector('#introname'), textEl = box.querySelector('#introtext');
   let textFull = '';
