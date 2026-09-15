@@ -64,7 +64,16 @@ async function main() {
     /* e display:none, non solo la classe: .off sfuma con una transizione e allo scatto la
        splash traspariva ancora — nella foto si leggevano "Continue" e "Save" in mezzo al
        mondo. Vale solo per la pagina della foto, il gioco non la vede mai. */
-    if (${JSON.stringify(vista)} === 'gioco') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.updateHUD) G.updateHUD(); }
+    /* 'tutorial' = il gioco col passo N del tutorial d'apertura (passo=0..4), per leggere la
+       scheda del passo com'è davvero a schermo */
+    if (${JSON.stringify(vista)} === 'tutorial') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var St = G.state && G.state(); var np = +(new URLSearchParams(location.search).get('passo') || 0);
+      if (St) St.tut = { i: np, n: 0, done: false }; if(G.updateHUD) G.updateHUD(); }
+    /* 'guida' = la Guida (zaino → ?), con tutti i suggerimenti già visti */
+    else if (${JSON.stringify(vista)} === 'guida') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var Sg = G.state && G.state(); if (Sg) { Sg.tips = {}; ['dig','raw','energy','bagfull','water','cave','wonder','map','dna','quest','amber','night'].forEach(function(k){ Sg.tips[k] = 1; }); }
+      if (G.openGuide) G.openGuide(); }
+    else if (${JSON.stringify(vista)} === 'gioco') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.updateHUD) G.updateHUD(); }
     /* 'editor' = la creazione del personaggio: si vede una volta sola nella vita di una
        partita, ed è esattamente per questo che va guardata di proposito */
     else if (${JSON.stringify(vista)} === 'editor') { if(sp) sp.classList.add('off'); if(G.openEditor) G.openEditor(); }
@@ -355,7 +364,10 @@ async function main() {
       + 'font:11px ui-monospace,monospace;padding:2px 6px;pointer-events:none';
     document.body.appendChild(b);
   }, 1200);</script>`;
-  writeFileSync(join(DIST, '__shot.html'), html.replace('</body>', probe + '</body>'));
+  /* `lang=it` (o ru/en) fra gli argomenti: la lingua va scritta PRIMA che partano i moduli,
+     quindi sta in testa alla pagina e non nella sonda */
+  const lingua = `<script>try{var L=new URLSearchParams(location.search).get('lang');if(L)localStorage.setItem('digsy_lang',L);}catch(e){}</script>`;
+  writeFileSync(join(DIST, '__shot.html'), html.replace('<head>', '<head>' + lingua).replace('</body>', probe + '</body>'));
 
   const srv = createServer((req, res) => {
     const p = join(DIST, decodeURIComponent(req.url.split('?')[0]));

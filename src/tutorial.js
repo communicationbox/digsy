@@ -64,16 +64,16 @@ export const STEP_IDS = STEPS.map(s => s.id);
    Qui c'è solo il gesto da fare — il perché lo capisci facendolo, ed è il senso del tutorial.
    La freccia a schermo dice DOVE, quindi il testo non deve descrivere anche il posto. */
 const TEXT = {
-  pick: () => [tr('Raccogli le cose che luccicano', 'Pick up the shiny things'),
-    tr('Segui la freccia e premi {act}. Servono 15 monete.', 'Follow the arrow and press {act}. You need 15 coins.')],
+  pick: () => [tr('Raccogli ciò che luccica', 'Pick up what sparkles'),
+    tr('Segui la freccia e premi {act}. Ti servono 15 monete per la pala.', 'Follow the arrow and press {act}. You need 15 coins for the spade.')],
   shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
-    tr('Vendi tutto, poi compra la pala 🪏.', 'Sell everything, then buy the spade 🪏.')],
+    tr('Vendi quello che hai raccolto e compra la pala 🪏.', 'Sell what you picked up and buy the spade 🪏.')],
   armchair: () => [tr('Arreda casa tua', 'Furnish your home'),
-    tr('Piazza la poltrona qui in Sala con {act}.', 'Place the armchair here in the Living room with {act}.')],
+    tr('Premi {act}, prendi la poltrona e posala in Sala.', 'Press {act}, take the armchair and place it in the Living room.')],
   dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),
-    tr('Sull\'erba, premi {act}. In piazza non si scava.', 'On the grass, press {act}. No digging on the plaza.')],
+    tr('Fuori dalla piazza, premi {act} per scavare.', 'Away from the plaza, press {act} to dig.')],
   museum: () => [tr('Porta i reperti al Museo', 'Take your finds to the Museum'),
-    tr('Il Curatore ti aspetta per identificarli.', 'The Curator is waiting to identify them.')],
+    tr('Consegnali al Curatore: te li identifica entro domani.', 'Hand them to the Curator: they\'ll be identified by tomorrow.')],
 };
 export function tutTitle(id) { return TEXT[id] ? TEXT[id]()[0] : id; }
 export function tutHint(id) { return TEXT[id] ? TEXT[id]()[1].replace(/\{act\}/g, actKey()) : ''; }
@@ -189,7 +189,7 @@ function buildingDoor(tx, ty, type) {
    il difetto che stiamo togliendo all'intro. */
 const PURPOSE = {
   store: () => tr('vendi e compri', 'sell and buy'),
-  lab: () => tr('chimere', 'chimeras'),
+  lab: () => tr('risvegli', 'awakening'),
   museum: () => tr('identifica', 'identifies'),
   inn: () => tr('dormi', 'sleep'),
   barber: () => tr('capelli', 'hair'),
@@ -206,8 +206,7 @@ export function bldPurpose(type) { return PURPOSE[type] ? PURPOSE[type]() : ''; 
    una porta murata. */
 export function museumOpen() { return !tutActive() || tutStepId() === 'museum'; }
 export function museumClosedText() {
-  return tr('Il Curatore cataloga: torna con un reperto.',
-    'The Curator is cataloguing: come back with a find.');
+  return tr('Il Curatore è occupato. Torna quando avrai un reperto.', 'The Curator is busy. Come back when you have a find.');
 }
 
 export function tutSkip() { const t = st(); t.done = true; t.skipped = true; save(); return true; }

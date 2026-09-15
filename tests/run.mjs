@@ -7884,7 +7884,7 @@ sprites.applyLook();
   const battute = (isrc.match(/\{ s: '[GD]'/g) || []).length;
   check(`l'intro non supera le 5 battute (${battute})`, battute > 0 && battute <= 5);
   check('il tutorial insegna a raccogliere le cose da terra',
-    /luccicano|shiny things/i.test(tsrc));
+    /luccica|sparkles/i.test(tsrc));
   check('il tutorial manda a vendere al Negozio e a comprare la pala',
     /Negozio|Shop/.test(tsrc) && /pala|spade/i.test(tsrc));
   /* IL REGALO DEL NONNO È GREZZO. Un grezzo non serve a niente finché non lo si fa

@@ -113,7 +113,7 @@ function syncTutorial() {
   box.innerHTML = withIcons(h);
   box.style.display = '';
   const sk = document.getElementById('tut-skip');
-  if (sk) sk.onclick = () => { tutSkip(); updateHUD(); toast('🎓 ' + tr('Tutorial saltato (Guida per rifarlo)', 'Tutorial skipped (redo from the Guide)')); };
+  if (sk) sk.onclick = () => { tutSkip(); updateHUD(); toast('🎓 ' + tr('Tutorial saltato. Puoi rifarlo dalla Guida.', 'Tutorial skipped. You can redo it from the Guide.')); };
 }
 /* la splash copre lo schermo: sotto non deve restare acceso niente */
 function splashOpen() {
@@ -124,9 +124,9 @@ function splashOpen() {
    passa inosservata proprio nel momento in cui il giocatore ha fatto la cosa giusta. */
 export function announceTutStep() {
   updateHUD();
-  if (tutDone()) { toast('🎓 ' + tr('Tutorial finito. Ora decidi tu.', 'Tutorial done. Now it\'s up to you.')); playSfx('found'); return; }
+  if (tutDone()) { toast('🎓 ' + tr('Tutorial finito! Ora completa le teche e riporta in vita le creature.', 'Tutorial done! Now complete the cases and bring the creatures back to life.')); playSfx('found'); return; }
   const id = tutStepId(); if (!id) return;
-  toast('✓ ' + tr('Fatto. Ora: ', 'Done. Now: ') + tutTitle(id)); playSfx('found');
+  toast('✓ ' + tr('Fatto! Adesso: ', 'Done! Next: ') + tutTitle(id)); playSfx('found');
   /* il foglio scatta una volta: senza, l'obiettivo cambia in silenzio in un angolo dello
      schermo proprio nell'istante in cui il giocatore ha fatto la cosa giusta */
   const box = document.getElementById('tutbox');
@@ -172,7 +172,7 @@ export function updateHUD() {
       if (tier >= 3 && t.reward) {
         if (!S.unlocked.hats.includes(t.reward)) S.unlocked.hats.push(t.reward);
         if (tier === 4) { if (!S.glitterHats) S.glitterHats = []; if (!S.glitterHats.includes(t.reward)) S.glitterHats.push(t.reward); }
-        extra = `<div class="sub" style="margin-top:4px">${tier === 4 ? '✨ ' + tr('Cappello PLATINO glitterato + AURA dorata!', 'PLATINUM glitter hat + golden AURA!') : '🎁 ' + tr('Nuovo cappello: ', 'New hat: ') + hatLabel(t.reward)}</div>`;
+        extra = `<div class="sub" style="margin-top:4px">${tier === 4 ? '✨ ' + tr('Cappello di platino scintillante e aura dorata!', 'Sparkling platinum hat and golden aura!') : '🎁 ' + tr('Nuovo cappello: ', 'New hat: ') + hatLabel(t.reward)}</div>`;
       }
       toast('🏆 ' + medal + ' · ' + trackLabel(t)); playSfx('fanfare');
       showBanner(`🏆 ${trackLabel(t)} — <b style="color:${tierCol(tier)}">${medal}</b>${extra}`, 2400);
@@ -424,7 +424,7 @@ export function showIdleWelcome(r) {
   if (!r) return;
   const bits = [];
   if (r.coins > 0) bits.push('🪙 ' + r.coins);
-  if (r.dnaSp) { const sp = spById[r.dnaSp]; if (sp) bits.push('🧬 ' + tr('mezza fialetta di ', 'half a vial of ') + sp.name); }
+  if (r.dnaSp) { const sp = spById[r.dnaSp]; if (sp) bits.push('🧬 ' + tr('una fialetta di ', 'a vial of ') + sp.name); }
   if (!bits.length) return;
   toast('🐾 ' + tr('Bentornato! Il parco ha reso: ', 'Welcome back! The park earned: ') + bits.join(' · '));
 }
@@ -948,8 +948,8 @@ export function openGuide() {
   h += TIP_IDS.map(id => `<div class="row${tipSeen(id) ? '' : ' miss'}"><span class="em">${tipSeen(id) ? '💡' : '·'}</span><div><div class="nm">${tipTitle(id)}</div><div class="sub">${tipText(id)}</div></div></div>`).join('');
   /* i comandi si scrivono per il dispositivo che si ha in mano: tastiera o schermo */
   h += isTouch()
-    ? `<div class="muted" style="margin-top:8px;font-size:11px">${tr('Leva: muovi · <kbd>A</kbd>: agisci · ☰ menu', 'Stick: move · <kbd>A</kbd>: act · ☰ menu')}</div>`
-    : `<div class="muted" style="margin-top:8px;font-size:11px">${tr('<kbd>WASD</kbd> muovi · <kbd>E</kbd> agisci · <kbd>I</kbd> zaino · <kbd>L</kbd> libro · <kbd>M</kbd> mappa · <kbd>Q</kbd> missioni<br><b>Clic</b> vai · <b>destro</b> agisci', '<kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions<br><b>Click</b> walk · <b>right</b> act')}</div>`;
+    ? `<div class="muted" style="margin-top:8px;font-size:11px">${tr('Muoviti con la leva, agisci con <kbd>A</kbd>, apri il menu con ☰.', 'Move with the stick, act with <kbd>A</kbd>, open the menu with ☰.')}</div>`
+    : `<div class="muted" style="margin-top:8px;font-size:11px">${tr('<kbd>WASD</kbd> muoviti · <kbd>E</kbd> agisci · <kbd>I</kbd> zaino · <kbd>L</kbd> libro · <kbd>M</kbd> mappa · <kbd>Q</kbd> missioni<br><b>Clic</b> per andare · <b>tasto destro</b> per agire', '<kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions<br><b>Click</b> to walk · <b>right-click</b> to act')}</div>`;
   /* RIFARE IL TUTORIAL: chi lo salta al primo minuto (o ricarica per una seconda partita)
      deve poterselo riprendere. Sta qui e non in un menu suo: la Guida è già il posto dove si
      torna quando non si è capito qualcosa. */
@@ -989,7 +989,7 @@ function powLabel(type, mag) {
   const e = TYPE_TXT[type]; if (!e) return '';
   const name = tr(e[0], e[1]), how = tr(e[2], e[3]);
   return type === 'grotta'
-    ? name + ': ' + tr('cristalli in grotta + luce di notte', 'richer crystals + light at night')
+    ? name + ': ' + tr('cristalli più ricchi in grotta e luce di notte', 'richer cave crystals and light at night')
     : name + ': +' + Math.round(mag * 100) + '% ' + tr('reperti ', 'finds ') + how;
 }
 /* etichetta del compagno `spec`: UNO o DUE poteri (le chimere ne hanno due, più deboli). I
@@ -998,11 +998,11 @@ function abilLabel(spec) {
   const powers = companionPowers(spec); if (!powers.length) return '';
   let base = powers.map(p => powLabel(p.type, p.mag)).filter(Boolean).join(' · ');
   if (spec && spec.q === 'leggendario') base += companionType(spec) === 'grotta'
-    ? ' · 🐾 ' + tr('CAVALCABILE: vola sulla mappa', 'RIDEABLE: fly over the map')
+    ? ' · 🐾 ' + tr('Si cavalca: vola sulla mappa', 'Rideable: flies over the map')
     /* dice anche i LIMITI, non solo il potere: è lento, metà delle volte torna a mani vuote e
        non fa livellare. Scritto solo "raccoglie da solo e ti porta i fossili" sembrava un
        secondo giocatore al posto tuo, ed è la cosa che poi si scopre di persona e delude. */
-    : ' · 🐾 ' + tr('raccoglie da solo, piano', 'gathers slowly on its own');
+    : ' · 🐾 ' + tr('raccoglie reperti da solo, con calma', 'gathers finds on its own, slowly');
   return base;
 }
 /* Nel cortile si scelgono DUE cose per ogni creatura: chi ti segue nel mondo (compagno, come
@@ -1072,15 +1072,15 @@ export function openHudGuide() {
   const rowg = (ic, k, v) => `<div class="row"><span class="em">${ic}</span><div><div class="nm">${k}</div><div class="sub">${v}</div></div></div>`;
   let h = '';
   h += rowg('🪙', tr('Monete', 'Coins') + ': ' + S.coins, tr('attrezzi, mappe, vestiti', 'tools, maps, clothes'));
-  h += rowg('⚡', tr('Energia', 'Energy') + ': ' + S.energy + '/' + S.maxEnergy, tr('1 a scavo · dormi per rifarla', '1 per dig · sleep to refill'));
+  h += rowg('⚡', tr('Energia', 'Energy') + ': ' + S.energy + '/' + S.maxEnergy, tr('ogni scavo ne usa 1, dormendo si ricarica', 'each dig uses 1, sleeping refills it'));
   h += rowg('📅', tr('Giorno', 'Day') + ': ' + S.day + ' · ' + hh + ':' + mm, tr('alba alle 06:00', 'dawn at 06:00'));
   h += rowg(SEASONS[seasonOf(S.day)].icon, tr('Stagione', 'Season') + ': ' + seasonName(seasonOf(S.day)), tr('ogni 3 giorni', 'every 3 days'));
   h += rowg(z.icon, tr('Zona', 'Zone') + ': ' + zoneName(z.id), tr(zd[0], zd[1]));
   const wl = weatherLabel(weatherAt(z.id, S.day));
-  h += rowg('🌦️', tr('Meteo', 'Weather') + ': ' + (wl || tr('Sereno', 'Clear')), tr('pioggia = più reperti', 'rain = more finds'));
-  h += rowg('🎓', tr('Livello archeologo', 'Archaeologist level') + ': ' + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(), tr('più energia, più rari', 'more energy, more rares'));
+  h += rowg('🌦️', tr('Meteo', 'Weather') + ': ' + (wl || tr('Sereno', 'Clear')), tr('con la pioggia trovi più reperti', 'you find more in the rain'));
+  h += rowg('🎓', tr('Livello archeologo', 'Archaeologist level') + ': ' + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(), tr('sale scavando: più energia e reperti più rari', 'goes up as you dig: more energy and rarer finds'));
   const nq = activeQuests().length;
-  h += rowg('📋', tr('Missioni', 'Missions') + ': ' + nq + '/3', tr('cartello 📋 · scadono a sera', 'board 📋 · expire at night'));
+  h += rowg('📋', tr('Missioni', 'Missions') + ': ' + nq + '/3', tr('al cartello 📋, scadono a sera', 'at the board 📋, they expire at night'));
   const cs = companionSpec();
   h += rowg('🐾', tr('Compagno', 'Companion') + ': ' + (cs ? cs.name : tr('nessuno', 'none')), cs ? abilLabel(cs) : tr('scegline uno in cortile', 'pick one in your yard'));
   mTitle.innerHTML = withIcons('❔ ' + tr('Guida rapida', 'Quick guide'));
@@ -1239,7 +1239,7 @@ function skNext() {
   ov.classList.add('on');
   const sp = spById[skItem.s];
   const ttl = document.getElementById('sk-title'); if (ttl) ttl.innerHTML = withIcons(partName(skItem.t) + ' ' + tr('di', 'of') + ' ' + (sp ? sp.name : skItem.s));
-  const hint = document.getElementById('sk-hint'); if (hint) hint.innerHTML = withIcons(tr('Trascina il pezzo nel socket giusto', 'Drag the piece into the right socket'));
+  const hint = document.getElementById('sk-hint'); if (hint) hint.innerHTML = withIcons(tr('Trascina ogni osso al suo posto', 'Drag each bone into place'));
   /* ogni socket mostra l'ICONA della sua parte (stessa del Libro/zaino): senza, sono 5 cerchi
      identici e non è una sfida, è indovinare a caso (segnalato da un giocatore) */
   for (const s of SOCKETS) { const el = document.getElementById('sk-s-' + s.id); if (el) el.innerHTML = withIcons(partLabel(s.id)); }
@@ -1489,7 +1489,7 @@ function renderLab() {
   {
     const groups = fusibleGroups(S.items);
     h += `<div class="bighead">${tr('Fondi i doppioni', 'Fuse duplicates')}</div>`;
-    h += `<div class="muted" style="margin-bottom:8px">${tr('<b>3 uguali</b> → <b>1 più raro</b>', '<b>3 identical</b> → <b>1 rarer</b>')}</div>`;
+    h += `<div class="muted" style="margin-bottom:8px">${tr('Tre pezzi uguali diventano <b>uno più raro</b>.', 'Three identical pieces become <b>one rarer piece</b>.')}</div>`;
     if (!groups.length) {
       h += `<div class="center muted" style="margin-bottom:10px">${tr('Nessun tris, per ora.', 'No sets of 3 yet.')}</div>`;
     } else {
@@ -1542,12 +1542,12 @@ function renderLab() {
     }
   }
   h += `<hr class="hr"><div class="bighead">${tr('Risveglia una specie', 'Awaken a species')}</div>`;
-  h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('<b>2 fialette</b> = specie <b>VIVA</b> · Risvegliate', '<b>2 vials</b> = species <b>ALIVE</b> · Awakened')}: ${S.awakened.length}/${ALL_SPECIES.length}</div>`;
+  h += `<div class="muted" style="margin-bottom:8px">${isDebug() ? '🐞 ' + tr('DEBUG: fialette DNA infinite. Risvegliate', 'DEBUG: infinite DNA vials. Awakened') : tr('Con <b>2 fialette</b> la specie torna <b>viva</b>. Risvegliate', 'With <b>2 vials</b> a species comes back <b>alive</b>. Awakened')}: ${S.awakened.length}/${ALL_SPECIES.length}</div>`;
   /* in debug il DNA è infinito: elenca i fossili SCOPERTI (non tutti e 60) ancora da risvegliare */
   const ready = ALL_SPECIES.filter(s => !S.awakened.includes(s.id) && (isDebug() ? S.codex.includes(s.id) : awakenReady(s.id)));
-  if (!ready.length) h += `<div class="center muted">${isDebug() ? tr('Scopri fossili per risvegliarli.', 'Discover fossils to awaken them.') : tr('Nessuna fialetta DNA.', 'No DNA vials.')}</div>`;
+  if (!ready.length) h += `<div class="center muted">${isDebug() ? tr('Scopri fossili per risvegliarli.', 'Discover fossils to awaken them.') : tr('Nessuna specie ha ancora 2 fialette.', 'No species has 2 vials yet.')}</div>`;
   else ready.forEach(s => h += `<div class="row"><span class="em">🧬</span><div><div class="nm">${s.name}</div><div class="sub">${tr('Fialetta DNA pronta', 'DNA vial ready')}</div></div><div class="rt"><button class="btn amber" data-awaken="${s.id}">${tr('Risveglia', 'Awaken')}</button></div></div>`);
-  if (isDebug()) h += `<hr class="hr"><div class="bighead">🐞 ${tr('Debug', 'Debug')}</div><div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Spawna tutti i fossili', 'Spawn all fossils')}</div><div class="sub">${tr('Ogni pezzo di ogni specie', 'Every piece of every species')}</div></div><div class="rt"><button class="btn clay" id="dbgSpawn">${tr('Spawna', 'Spawn')}</button></div></div>`;
+  if (isDebug()) h += `<hr class="hr"><div class="bighead">🐞 ${tr('Debug', 'Debug')}</div><div class="row"><span class="em">🦴</span><div><div class="nm">${tr('Genera tutti i fossili', 'Generate all fossils')}</div><div class="sub">${tr('Ogni pezzo di ogni specie', 'Every piece of every species')}</div></div><div class="rt"><button class="btn clay" id="dbgSpawn">${tr('Genera', 'Generate')}</button></div></div>`;
   h += `<hr class="hr"><div class="bighead">${tr('Libro dei Fossili', 'Fossil Book')}</div>`;
   const found = ALL_SPECIES.filter(s => S.codex.includes(s.id)).length;
   h += `<div class="row"><span class="em">📖</span><div><div class="nm">${tr('Fossili ricostruiti', 'Fossils reconstructed')}: ${found}/${ALL_SPECIES.length}</div><div class="sub">${MUSEUM_ZONES.map(z => z.icon + ' ' + zonePools[z.id].filter(s => S.codex.includes(s.id)).length + '/' + zonePools[z.id].length).join(' · ')}</div></div>
@@ -1699,7 +1699,7 @@ function renderThemeItems(z, theme) {
   const tot = FURN_CATALOG.filter(f => f.theme === theme).length;
   const casa = ZONE_THEME[z.id] === theme;
   let h = `<div class="muted" style="margin:6px 0 10px">${casa
-    ? tr('Tutto disponibile · −25%', 'Everything in stock · −25%')
+    ? tr('Tutto in vetrina, −25%', 'Everything in stock, −25%')
     : tr('Oggi', 'Today') + ' ' + ids.length + '/' + tot}</div>`;
   return h + ids.map(id => furnRow(id, catalogPrice(id, z.id), 'data-cfurn')).join('');
 }
@@ -1743,7 +1743,7 @@ function renderStoreGoods() {
       : tr('finiti: domani', 'sold out: tomorrow');
     const btn = left > 0 ? `<button class="btn amber" id="buyEn"${lockOther}>🪙 ${cost}</button>` : `<button class="btn" disabled>${tr('Esauriti', 'Sold out')}</button>`;
     /* non è energia istantanea: finisce nello zaino e la mangi tu quando serve */
-    const keep = tr('+15 ⚡, dallo zaino', '+15 ⚡, from your bag');
+    const keep = tr('+15 ⚡, si usa dallo zaino', '+15 ⚡, use it from your bag');
     h += `<hr class="hr"><div class="row"><span class="em">🍞</span><div><div class="nm">${tr('Ristoro', 'Snack')}</div><div class="sub">${keep}</div><div class="sub">${sub}</div></div><div class="rt">${btn}</div></div>`;
   }
   h += `<div class="row"><span class="em">📜</span><div><div class="nm">${tr('Pergamena di ritorno', 'Return scroll')}${S.teleports > 0 ? ` ×${S.teleports}` : ''}</div><div class="sub">${tr('ti porta alla città più vicina', 'takes you to the nearest city')}</div></div><div class="rt"><button class="btn amber" id="buyTp"${lockOther}>🪙 ${TELEPORT_COST}</button></div></div>`;
@@ -1769,11 +1769,11 @@ function renderStoreGoods() {
     h += `<div class="row"><span class="em">${em}</span><div><div class="nm">${nm}${owned ? ' ✓' : ''}</div><div class="sub">${sub}</div></div><div class="rt">${owned ? '' : `<button class="btn amber${isTarget ? ' tut-target' : ''}" data-tool="${id}"${isTarget ? '' : lockOther}>🪙 ${TOOL_COST[id]}</button>`}</div></div>`;
   }
   /* mezzi di trasporto + torcia */
-  h += `<div class="bighead">🛼 ${tr('Mezzi & luce', 'Vehicles & light')}</div>`;
+  h += `<div class="bighead">🛼 ${tr('Mezzi e luce', 'Vehicles and light')}</div>`;
   const GEAR_UI = [
-    ['skates', '🛼', tr('Pattini', 'Skates'), tr('×2 a piedi', '×2 on foot')],
-    ['bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('×3 a piedi', '×3 on foot')],
-    ['motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('×3 in acqua (serve la barca)', '×3 on water (needs boat)')],
+    ['skates', '🛼', tr('Pattini', 'Skates'), tr('a piedi vai veloce il doppio', 'twice as fast on foot')],
+    ['bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('a piedi vai veloce il triplo', 'three times as fast on foot')],
+    ['motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('in acqua vai veloce il triplo (serve la barca)', 'three times as fast on water (needs the boat)')],
     ['torch', '🔦', tr('Torcia', 'Torch'), tr('più luce al buio', 'more light in the dark')],
     ['compass', '🧭', tr('Bussola', 'Compass'), tr('punta alla città', 'points to town')],
   ];
@@ -1869,7 +1869,7 @@ function renderMuseum() {
     /* PROPOSTA di RESTAURO del Curatore: sul MIGLIOR doppione raro+ tornato, e SKIPPABILE */
     if (r.prepCand) {
       const c = r.prepCand, sp = spById[c.s];
-      keep += `<div class="bighead" style="margin-top:10px">🪶 ${tr('Restauro', 'Restore')} <span class="muted" style="font-weight:400">${tr('fino a ×1,5', 'up to ×1.5')}</span></div>
+      keep += `<div class="bighead" style="margin-top:10px">🪶 ${tr('Restauro', 'Restore')} <span class="muted" style="font-weight:400">${tr('vale fino al 50% in più', 'worth up to 50% more')}</span></div>
         <div class="row"><canvas class="pv" width="36" height="30" data-pv="${c.s}|${c.t}"></canvas>
         <div><div class="nm">${partName(c.t)} ${tr('di', 'of')} ${sp ? sp.name : '?'}</div>
         <div class="sub">${rarSpan(c.q)} · ${tr('valore', 'value')} 🪙 ${c.val}</div></div>
@@ -2034,14 +2034,14 @@ export function openBag(tab) {
   /* ---- SCHEDA OGGETTI: ATTREZZI e MEZZI hanno una sezione loro con l'elenco COMPLETO
      (quelli non ancora comprati restano in grigio: si vede a colpo d'occhio cosa manca);
      sotto, il resto (consumabili, mappe, cianfrusaglie da vendere). ---- */
-  const shopHint = tr('non ancora acquistato · Negozio', 'not bought yet · Shop');
+  const shopHint = tr('non ce l\'hai: si compra al Negozio', 'you don\'t have it: buy it at the Shop');
   /* riga di un attrezzo/mezzo: posseduto = normale (con eventuale bottone), altrimenti grigia */
   const kitRow = (has, ic, nm, sub, right, data, cls) => has
     ? row(ic, nm, sub, right || '', data || '', cls || '')
     : row(ic, nm, shopHint, '', '', 'miss');
   const tools = [
-    kitRow(S.tools.spade, '🪏', tr('Pala', 'Spade'), tr('E per scavare la terra', 'E to dig the ground')),
-    kitRow(S.tools.axe, '🪓', tr('Accetta', 'Hatchet'), tr('E davanti a un albero', 'E facing a tree')),
+    kitRow(S.tools.spade, '🪏', tr('Pala', 'Spade'), tr('per scavare la terra', 'to dig the ground')),
+    kitRow(S.tools.axe, '🪓', tr('Accetta', 'Hatchet'), tr('si usa davanti a un albero', 'use it facing a tree')),
     kitRow(S.tools.pick, '⛏️', tr('Piccone', 'Pickaxe'), tr('massi, guglie e cristalli di grotta', 'boulders, spires and cave crystals')),
     kitRow(S.tools.torch, '🔦', tr('Torcia', 'Torch'), tr('alone di luce più ampio', 'wider light halo')),
   ];
@@ -2049,7 +2049,7 @@ export function openBag(tab) {
     tools.push(row('🧭', tr('Bussola', 'Compass'), on ? tr('guida verso la città', 'points to town') : tr('spenta', 'off'),
       `<button class="bbtn${on ? ' on' : ''}" data-compass="1">${on ? tr('Attiva', 'On') : tr('Attiva', 'Use')}</button>`, '', 'click' + (on ? ' on' : '')));
   } else tools.push(kitRow(false, '🧭', tr('Bussola', 'Compass'), ''));
-  if (S.shovel > 0) tools.push(row('🪏', tr('Pala fortunata', 'Lucky shovel'), tr('scavi col drop aumentato', 'boosted digs'), `<span class="bqt">×${S.shovel}</span>`));
+  if (S.shovel > 0) tools.push(row('🪏', tr('Pala fortunata', 'Lucky shovel'), tr('scavi più fortunati', 'luckier digs'), `<span class="bqt">×${S.shovel}</span>`));
   const gearRow = (g, ic, nm, sub) => {
     if (!S.tools[g]) return kitRow(false, ic, nm, '');
     const on = gearActive(g);
@@ -2060,10 +2060,10 @@ export function openBag(tab) {
     ? row(ic, nm, sub, `<span class="bqt">${gearActive(g) ? tr('in uso', 'in use') : tr('di scorta', 'spare')}</span>`)
     : kitRow(false, ic, nm, '');
   const vehicles = [
-    gearRow('skates', '🛼', tr('Pattini', 'Skates'), tr('velocità ×2 a piedi', 'speed ×2 on foot')),
-    gearRow('bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('velocità ×3 a piedi', 'speed ×3 on foot')),
+    gearRow('skates', '🛼', tr('Pattini', 'Skates'), tr('a piedi vai veloce il doppio', 'twice as fast on foot')),
+    gearRow('bike', '🚲', tr('Bicicletta', 'Bicycle'), tr('a piedi vai veloce il triplo', 'three times as fast on foot')),
     boatRow('boat', '⛵', tr('Barca', 'Boat'), tr('entra in acqua per salire', 'walk into water to board')),
-    boatRow('motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('×3 in acqua', '×3 on water')),
+    boatRow('motorboat', '🚤', tr('Motoscafo', 'Motorboat'), tr('in acqua vai veloce il triplo', 'three times as fast on water')),
   ];
   /* cavalcatura volante: solo se il compagno è un grotta LEGGENDARIO (in grotta non si vola) */
   if (companionRides()) { const fly = isMounted();
@@ -2090,7 +2090,7 @@ export function openBag(tab) {
   if (isDebug()) secDna += `<div class="bag-sec"><h3>${tr('DNA', 'DNA')}</h3><div class="bag-list">` +
     row('🧬', '🐞 DEBUG', tr('DNA infinito', 'Infinite DNA'), '<span class="bqt">∞</span>') + `</div></div>`;
   else if (dnaIds.length) secDna += `<div class="bag-sec"><h3>${tr('DNA', 'DNA')}</h3><div class="bag-list">` +
-    dnaIds.map(id => row('🧬', spById[id].name, tr('fialette · 2 = risveglio al Lab', 'vials · 2 = awaken at Lab'), `<span class="bqt">×${S.dna[id]}</span>`)).join('') + `</div></div>`;
+    dnaIds.map(id => row('🧬', spById[id].name, tr('fialette: con 2 la risvegli al Lab', 'vials: with 2 you awaken it at the Lab'), `<span class="bqt">×${S.dna[id]}</span>`)).join('') + `</div></div>`;
   const cr = [];
   if (S.museumJob) cr.push(row('🏛️', tr('Al museo', 'At the museum') + ' ×' + S.museumJob.items.length, tr('ritiro dal giorno ', 'pickup from day ') + S.museumJob.ready));
   cr.push(...S.creatures.map(c => row('🐾', c.name + ' · ' + rarLabel(c.q), spById[c.skull].name + ' / ' + spById[c.torso].name + ' / ' + spById[c.leg].name)));

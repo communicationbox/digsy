@@ -81,8 +81,7 @@ export function goalTitle() { return tr('Riportate in vita', 'Brought back to li
 export function goalHint(st) {
   if (goalDone(st)) return tr('Tutte. Il mondo del nonno cammina di nuovo.', 'All of them. Your grandparent\'s world walks again.');
   if (alive(st) === 0) {
-    return tr('Teca completa al Museo, poi risveglio al Lab.',
-      'Full case at the Museum, then awaken at the Lab.');
+    return tr('Completa una teca al Museo, poi risveglia la specie al Lab.', 'Complete a case at the Museum, then awaken the species at the Lab.');
   }
   const m = toNextMilestone(st);
   return m === 1

@@ -13,6 +13,88 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "Every dig uses energy ⚡. When it runs out, sleep at the <b>Inn</b> or eat a snack (+15 ⚡).": "Каждый раскоп тратит энергию ⚡. Когда она кончится, поспи в <b>Таверне</b> или съешь перекус (+15 ⚡).",
+  "When your bag is full, new finds stay <b>on the ground</b>. The Shop sells bigger bags.": "Когда рюкзак полон, новые находки остаются <b>на земле</b>. В Лавке есть рюкзаки побольше.",
+  "Once a case is complete, <b>amber</b> pieces ✨ of that species can turn up: a second case to fill.": "Когда витрина заполнена, могут попадаться <b>янтарные</b> ✨ части этого вида: вторая витрина ждёт.",
+  "Blessing: 10 digs with double experience": "Благословение: 10 раскопок с двойным опытом",
+  "Sparkling platinum hat and golden aura!": "Сверкающая платиновая шляпа и золотая аура!",
+  "worth up to 50% more": "стоит до 50% дороже",
+  "On iPhone Apple only lets Safari install apps: open <b>digsy.dev-box.it</b> in Safari.": "На iPhone Apple разрешает устанавливать только из Safari: открой <b>digsy.dev-box.it</b> в Safari.",
+  "You signed in somewhere else: this game stays only here.": "Вход выполнен в другом месте: эта игра остаётся только здесь.",
+  "You need the pickaxe: get it at the Shop": "Нужна кирка: купи её в Лавке",
+  "You need a spade: get it at the Shop": "Нужна лопата: купи её в Лавке",
+  "You're out of energy: rest at the Inn": "Нет энергии: отдохни в Таверне",
+  "Lucky shovel: 60 luckier digs": "Счастливая лопата: 60 удачных раскопок",
+  "You need the hatchet: get it at the Shop": "Нужен топорик: купи его в Лавке",
+  "You slept. The room is bare: no bonus": "Ты поспал. Комната пустая: бонуса нет",
+  "Complete a case at the Museum, then awaken the species at the Lab.": "Заполни витрину в Музее, затем пробуди вид в Лаборатории.",
+  "↻ to rotate, tap where to place it": "↻ — повернуть, коснись, куда поставить",
+  "↻ or R to rotate, click to place": "↻ или R — повернуть, клик — поставить",
+  "Delete your account and online saves? The game on this device stays.": "Удалить аккаунт и сохранения в сети? Игра на этом устройстве останется.",
+  "Also saved online: you'll find them on every device.": "Сохранено и в сети: доступно на любом устройстве.",
+  "Saved only here. Sign in with Google to have them everywhere.": "Сохранено только здесь. Войди через Google, чтобы они были везде.",
+
+  "Open the browser menu and choose <b>Install</b> or <b>Add to Home screen</b>.": "Открой меню браузера и выбери <b>Установить</b> или <b>На экран «Домой»</b>.",
+  "Move with WASD or the arrow keys.": "Двигайся клавишами WASD или стрелками.",
+  "Right-click works like <kbd>E</kbd>.": "Правый клик работает как <kbd>E</kbd>.",
+  "Explains each thing the first time. Find them again in the Guide (bag → ❔).": "Объясняет всё в первый раз. Потом это есть в Справке (рюкзак → ❔).",
+  "Help improve the game": "Помоги улучшить игру",
+  "Sends play time and progress, <b>anonymously</b>.": "Отправляет время игры и прогресс <b>анонимно</b>.",
+  "The game here and the online one are different. Which do you want to keep?": "Игра здесь и игра в сети отличаются. Какую оставить?",
+  "No Google sign-in on itch.io: the game stays on this device.": "На itch.io нельзя войти через Google: игра остаётся на этом устройстве.",
+  "Sign in to have the same game on phone and computer.": "Войди, чтобы играть в одну игру на телефоне и компьютере.",
+  "Press {act} to dig: it costs 1 ⚡. Each spot can be dug only once, then move on.": "Нажми {act}, чтобы копать: это стоит 1 ⚡. Каждое место копается один раз, потом иди дальше.",
+  "Take raw finds to the <b>Museum</b>: they identify them there.": "Неопознанные находки неси в <b>Музей</b>: там их определят.",
+
+
+  "With the Shop's <b>boat</b> you can go on the water. Press {act} to fish.": "С <b>лодкой</b> из Лавки можно выйти на воду. Нажми {act}, чтобы рыбачить.",
+  "You need the <b>pickaxe</b> to enter caves. Inside live 6 species found nowhere else.": "Чтобы войти в пещеру, нужна <b>кирка</b>. Внутри живут 6 видов, которых больше нигде нет.",
+  "Each wonder gives you a gift, then needs to rest a few days.": "Каждое чудо дарит подарок, а потом отдыхает несколько дней.",
+  "The map{key:M} reveals itself as you walk.": "Карта{key:M} открывается по мере того, как ты ходишь.",
+  "DNA and awakening": "ДНК и пробуждение",
+  "A complete case at the Museum gives you a <b>DNA vial</b>. With <b>2</b> vials you awaken the species at the Lab.": "Полная витрина в Музее даёт <b>пробирку ДНК</b>. С <b>2</b> пробирками вид пробуждается в Лаборатории.",
+  "The board 📋 has missions that pay coins and experience.": "На доске 📋 есть задания за монеты и опыт.",
+
+  "A day lasts 20 minutes and the season changes every 3 days. At night the <b>torch</b> lets you see farther.": "День длится 20 минут, а сезон меняется каждые 3 дня. Ночью <b>фонарь</b> помогает видеть дальше.",
+  "Pick up what sparkles": "Собери то, что блестит",
+  "Follow the arrow and press {act}. You need 15 coins for the spade.": "Иди по стрелке и нажми {act}. На лопату нужно 15 монет.",
+  "Sell what you picked up and buy the spade 🪏.": "Продай собранное и купи лопату 🪏.",
+  "Press {act}, take the armchair and place it in the Living room.": "Нажми {act}, возьми кресло и поставь его в гостиной.",
+  "Away from the plaza, press {act} to dig.": "За пределами площади нажми {act}, чтобы копать.",
+  "Hand them to the Curator: they'll be identified by tomorrow.": "Отдай их Хранителю: к завтрашнему дню их определят.",
+  "awakening": "пробуждение",
+  "The Curator is busy. Come back when you have a find.": "Хранитель занят. Возвращайся, когда найдёшь находку.",
+  "Tutorial skipped. You can redo it from the Guide.": "Обучение пропущено. Его можно пройти снова из Справки.",
+  "Tutorial done! Now complete the cases and bring the creatures back to life.": "Обучение пройдено! Теперь заполняй витрины и возвращай существ к жизни.",
+  "Done! Next: ": "Готово! Дальше: ",
+  "a vial of ": "пробирка: ",
+  "Move with the stick, act with <kbd>A</kbd>, open the menu with ☰.": "Двигайся стиком, действуй кнопкой <kbd>A</kbd>, меню — ☰.",
+  "<kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions<br><b>Click</b> to walk · <b>right-click</b> to act": "<kbd>WASD</kbd> движение · <kbd>E</kbd> действие · <kbd>I</kbd> рюкзак · <kbd>L</kbd> книга · <kbd>M</kbd> карта · <kbd>Q</kbd> задания<br><b>Клик</b> — идти · <b>правый клик</b> — действие",
+  "richer cave crystals and light at night": "богаче кристаллы в пещерах и свет ночью",
+  "Rideable: flies over the map": "Можно оседлать: летает над картой",
+  "gathers finds on its own, slowly": "сам собирает находки, не спеша",
+  "each dig uses 1, sleeping refills it": "каждый раскоп тратит 1, сон восстанавливает",
+  "you find more in the rain": "в дождь находок больше",
+  "goes up as you dig: more energy and rarer finds": "растёт с раскопками: больше энергии и редких находок",
+  "at the board 📋, they expire at night": "на доске 📋, истекают к ночи",
+  "Drag each bone into place": "Перетащи каждую кость на её место",
+  "Three identical pieces become <b>one rarer piece</b>.": "Три одинаковые части превращаются в <b>одну более редкую</b>.",
+  "With <b>2 vials</b> a species comes back <b>alive</b>. Awakened": "С <b>2 пробирками</b> вид <b>оживает</b>. Пробуждено",
+  "No species has 2 vials yet.": "Ни у одного вида пока нет 2 пробирок.",
+  "Generate all fossils": "Создать все окаменелости",
+  "Generate": "Создать",
+  "Everything in stock, −25%": "Всё в наличии, −25%",
+  "+15 ⚡, use it from your bag": "+15 ⚡, используй из рюкзака",
+  "Vehicles and light": "Транспорт и свет",
+  "twice as fast on foot": "пешком вдвое быстрее",
+  "three times as fast on foot": "пешком втрое быстрее",
+  "three times as fast on water (needs the boat)": "на воде втрое быстрее (нужна лодка)",
+  "you don't have it: buy it at the Shop": "у тебя нет: купи в Лавке",
+  "to dig the ground": "чтобы копать землю",
+  "use it facing a tree": "используй перед деревом",
+  "luckier digs": "удачных раскопок",
+  "three times as fast on water": "на воде втрое быстрее",
+  "vials: with 2 you awaken it at the Lab": "пробирки: с 2 пробуди вид в Лаборатории",
   "Seasons: ": "Сезоны: ",
   "Times: ": "Время: ",
   "Weather: ": "Погода: ",
@@ -46,18 +128,18 @@ export const RU = {
   "A letter from me is waiting in every room. I left you one for each zone.": "В каждом зале тебя ждёт моё письмо. Я оставил по одному на каждую зону.",
   "Good luck, little archaeologist.": "Удачи, маленький археолог.",
   "Amber": "Янтарь",
-  "Once a case is full, <b>amber</b> pieces ✨ appear: a second case to fill.": "Когда витрина полна, появляются <b>янтарные</b> части ✨: вторая витрина для сбора.",
+
   "Amber cases": "Янтарные витрины",
   "Amber on display: ": "Янтарь в витрине: ",
   "Amber case! ": "Янтарная витрина! ",
   "Cheats on · `vanilla` to undo": "Читы включены · `vanilla` — отменить",
-  "Signed in elsewhere: game kept here.": "Вход с другого устройства: игра сохранена здесь.",
+
   "Not rebuilt yet. Dig in ": "Ещё не восстановлен. Копай в ",
   " and bring finds to the Museum.": " и неси находки в Музей.",
   "Visit the zone's <b>Museum</b>,<br>then dig.": "Посети <b>Музей</b> зоны,<br>потом копай.",
   "the Museum has a cave room": "в Музее есть пещерный зал",
   "Cave fossil! (to identify)": "Пещерная окаменелость! (определить)",
-  "Needs the pickaxe (Shop)": "Нужна кирка (Магазин)",
+
   "The fireflies bring a legendary map! ": "Светлячки приносят легендарную карту! ",
   "Fireflies caught!": "Светлячки пойманы!",
   "Raw find! (to identify)": "Сырая находка! (определить)",
@@ -80,16 +162,16 @@ export const RU = {
   " (bag full: rest on the ground)": " (рюкзак полон: остальное на земле)",
   "Lucky spores: 10 luckier digs": "Счастливые споры: 10 удачных раскопок",
   " pieces wait at the Museum": " частей ждут в Музее",
-  "Slept. Bare room: no bonus": "Поспал. Пустая комната: без бонуса",
+
   "Snacks sold out: come back tomorrow": "Перекусы закончились: приходи завтра",
   "Snack in your bag{key:I}: +15 ⚡": "Перекус в рюкзаке{key:I}: +15 ⚡",
   "No digging while flying": "В полёте копать нельзя",
   "Trees everywhere: it's a forest.": "Деревья повсюду: это уже лес.",
   "All of them! Grandpa's world walks again.": "Все! Мир дедушки снова ходит.",
-  "Full case at the Museum, then awaken at the Lab.": "Полная витрина в Музее, затем пробуждение в Лаборатории.",
+
   "Bought! It's in your tray": "Куплено! Лежит на подносе",
   "This piece doesn't rotate": "Этот предмет не поворачивается",
-  "↻ rotate · tap to place": "↻ повернуть · нажми, куда поставить",
+
   "Too far or no path": "Слишком далеко или нет пути",
   "🏛️ Commission expired": "🏛️ Заказ истёк",
   "🥚 Egg almost ready: back to the Lab!": "🥚 Яйцо почти готово: в Лабораторию!",
@@ -101,39 +183,39 @@ export const RU = {
   "Sign-in not confirmed. Try again.": "Вход не подтверждён. Попробуй ещё раз.",
   "Offline: game saved on this device.": "Нет сети: игра сохранена на этом устройстве.",
   "Google not responding. Try later.": "Google не отвечает. Попробуй позже.",
-  "Delete account and online saves? This device keeps it.": "Удалить аккаунт и онлайн-сохранения? На этом устройстве игра останется.",
-  "Also online: available everywhere.": "Есть и онлайн: доступно везде.",
-  "Only here. Sign in with Google for everywhere.": "Только здесь. Войди через Google, чтобы играть везде.",
+
+
+
   "Already installed.": "Уже установлено.",
-  "Menu → <b>Install</b> or <b>Add to Home screen</b>.": "Меню → <b>Установить</b> или <b>На главный экран</b>.",
+
   "The stick appears where you touch.": "Стик появляется там, где касаешься.",
   "The stick stays in the corner.": "Стик всегда в углу.",
   "Hold: Digsy follows the pointer.": "Удерживай: Дигси идёт за указателем.",
-  "WASD or arrows.": "WASD или стрелки.",
+
   "Click a spot: Digsy walks there.": "Кликни место: Дигси идёт туда.",
-  "Right click = <kbd>E</kbd>.": "Правый клик = <kbd>E</kbd>.",
-  "First-time hints (Guide: bag → ❔).": "Подсказки при первом разе (Справка: рюкзак → ❔).",
+
+
   "Reload the game. Your save stays.": "Перезагрузить игру. Сохранение останется.",
-  "Play time and progress, <b>anonymous</b>.": "Время игры и прогресс, <b>анонимно</b>.",
+
   "opens cheats: saving paused until you type <b>vanilla</b>.": "открывает читы: сохранение на паузе, пока не введёшь <b>vanilla</b>.",
-  "Two different games here and online. Which one?": "Здесь и онлайн разные игры. Какую оставить?",
-  "No Google sign-in on itch.io: game kept here.": "На itch.io нет входа через Google: игра хранится здесь.",
+
+
   "Online saves on digsy.dev-box.it": "Онлайн-сохранения на digsy.dev-box.it",
-  "Sign in: same game on phone and computer.": "Войди: одна игра на телефоне и компьютере.",
-  "{act} digs: 1 ⚡. Tiles run out: move on.": "{act} копает: 1 ⚡. Клетки истощаются: иди дальше.",
-  "Raw finds go to the <b>Museum</b> to be identified.": "Сырые находки несут в <b>Музей</b> на определение.",
-  "No ⚡: sleep at the <b>Inn</b> or eat a snack (+15 ⚡).": "Нет ⚡: поспи в <b>Таверне</b> или съешь перекус (+15 ⚡).",
-  "Bag full: finds stay <b>on the ground</b>. Bigger bags at the Shop.": "Рюкзак полон: находки остаются <b>на земле</b>. Рюкзаки больше — в Магазине.",
-  "<b>Boat</b> (Shop): walk into water. {act} to fish.": "<b>Лодка</b> (Магазин): зайди в воду. {act} — рыбачить.",
-  "The <b>pickaxe</b> opens caves: 6 unique species.": "<b>Кирка</b> открывает пещеры: 6 особых видов.",
-  "Each wonder gives a gift, then rests a few days.": "Каждое чудо дарит подарок и отдыхает несколько дней.",
-  "The map{key:M} fills in as you walk.": "Карта{key:M} открывается по пути.",
-  "5 pieces = <b>DNA vial</b>. <b>2</b> vials = species alive at the Lab.": "5 частей = <b>флакон ДНК</b>. <b>2</b> флакона = живой вид в Лаборатории.",
-  "The board 📋 gives missions: coins and XP.": "Доска 📋 даёт задания: монеты и опыт.",
-  "A day = 20 minutes. At night use the <b>torch</b>.": "День = 20 минут. Ночью бери <b>факел</b>.",
-  "Sell everything, then buy the spade 🪏.": "Продай всё, затем купи лопату 🪏.",
-  "Tutorial skipped (redo from the Guide)": "Обучение пропущено (повторить в Справке)",
-  "Tutorial done. Now it's up to you.": "Обучение пройдено. Дальше решаешь ты.",
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   "Frees the slot, finds stay yours": "Освобождает место, находки остаются твоими",
   "Unlock and furnish it your way.": "Открой и обставь по-своему.",
   "Drag or click to place · ↻ (R) rotates": "Перетащи или кликни, куда поставить · ↻ (R) поворот",
@@ -159,29 +241,29 @@ export const RU = {
   "In progress": "Идёт",
   "Finished": "Пройдено",
   "No missions: find the board 📋": "Заданий нет: найди доску 📋",
-  "gathers slowly on its own": "сам понемногу собирает",
+
   "No creatures: awaken one at the Lab": "Существ нет: пробуди в Лаборатории",
   "tools, maps, clothes": "инструменты, карты, одежда",
-  "1 per dig · sleep to refill": "1 за раскопку · сон восполняет",
+
   "dawn at 06:00": "рассвет в 06:00",
   "every 3 days": "каждые 3 дня",
-  "rain = more finds": "дождь = больше находок",
-  "more energy, more rares": "больше энергии, больше редких",
-  "board 📋 · expire at night": "доска 📋 · сгорают к ночи",
+
+
+
   "pick one in your yard": "выбери во дворе",
-  "<b>3 identical</b> → <b>1 rarer</b>": "<b>3 одинаковых</b> → <b>1 редче</b>",
+
   "No sets of 3 yet.": "Пока нет троек.",
   "not at the Museum yet": "ещё не в Музее",
   "duplicates": "дубликатов",
-  "<b>2 vials</b> = species <b>ALIVE</b> · Awakened": "<b>2 флакона</b> = вид <b>ЖИВ</b> · Пробуждено",
-  "No DNA vials.": "Нет флаконов ДНК.",
-  "Everything in stock · −25%": "Всё в наличии · −25%",
+
+
+
   "Today": "Сегодня",
   "Raw finds go to the Museum first.": "Сырые находки — сначала в Музей.",
   "Nothing to sell.": "Нечего продать.",
   "left today: ": "сегодня осталось: ",
   "sold out: tomorrow": "закончились: завтра",
-  "+15 ⚡, from your bag": "+15 ⚡, из рюкзака",
+
   "takes you to the nearest city": "переносит в ближайший город",
   "1 sure find": "1 верная находка",
   "to dig": "чтобы копать",
@@ -189,9 +271,9 @@ export const RU = {
   "fossils in trees": "окаменелости в деревьях",
   "fossils in rocks": "окаменелости в камнях",
   "sail and fish fossils": "плавай и лови окаменелости",
-  "×2 on foot": "×2 пешком",
-  "×3 on foot": "×3 пешком",
-  "×3 on water (needs boat)": "×3 по воде (нужна лодка)",
+
+
+
   "more light in the dark": "больше света в темноте",
   "Handed in! Pick up tomorrow": "Сдано! Забрать завтра",
   "Case complete: DNA at the desk": "Витрина полна: ДНК у стойки",
@@ -199,9 +281,9 @@ export const RU = {
   "Tap a find": "Нажми на находку",
   "for the Museum": "для Музея",
   "walk into water to board": "зайди в воду, чтобы сесть",
-  "×3 on water": "×3 по воде",
+
   "fly over the map": "летай над картой",
-  "vials · 2 = awaken at Lab": "флаконы · 2 = пробуждение в Лаборатории",
+
   "you can pick it up later": "можно поднять потом",
   ...RU_CATALOG,
   'All': 'Все', 'Search by name…': 'Поиск по названию…', 'Everywhere': 'Везде', 'In this tab': 'В этой вкладке',
@@ -326,10 +408,10 @@ export const RU = {
 
   /* ---- scavo ---- */
   'No digging in town': 'В городе копать нельзя',
-  'You need a spade (Shop)': 'Нужна лопата (Магазин)',
+
   "You can't dig here": 'Здесь копать нельзя',
   'Already dug here': 'Здесь уже копали',
-  'Out of energy — rest at the Inn': 'Нет энергии — отдохните в Таверне',
+
   'The X was true! A ': 'Крестик не обманул! Находка: ',
   ' find (needs identifying)': ' (нужно определить)',
 
@@ -345,7 +427,7 @@ export const RU = {
 
   'You already own it': 'У вас это уже есть',
   'You need the boat first': 'Сначала нужна лодка',
-  'Lucky shovel: +60 boosted digs': 'Счастливая лопатка: +60 удачных раскопок',
+
   'Bought': 'Куплено',
 
   'Return scroll in your bag': 'Свиток возврата в рюкзаке',
@@ -363,9 +445,9 @@ export const RU = {
   '…just rubble': '…только щебень',
   '…just rubble. This vein opens in ': '…только щебень. Эта жила открывается в сезон: ',
 
-  'You need the hatchet (Shop)': 'Нужен топор (Магазин)',
 
-  'You need the pickaxe (Shop)': 'Нужна кирка (Магазин)',
+
+
 
 
   '…nothing bites': '…не клюёт',
@@ -419,7 +501,7 @@ export const RU = {
   ' of ': ' вида ',
   ' from the ice!': ' изо льда!',
 
-  'Blessing: 10 digs with double XP': 'Благословение: 10 раскопок с двойным опытом',
+
   'Nothing happens': 'Ничего не происходит',
 
   /* ---- museo, laboratorio, locanda ---- */
@@ -495,7 +577,7 @@ export const RU = {
 
   /* ---- ricomponi lo scheletro (museo) ---- */
   'SKELETON': 'СКЕЛЕТ',
-  'Drag the piece into the right socket': 'Перетащи кость в нужное гнездо',
+
   'Perfect fit!': 'Идеально подогнано!',
   'Nicely fitted': 'Хорошо подогнано',
   'Fitted': 'Подогнано',
@@ -539,7 +621,7 @@ export const RU = {
 
   /* ---- parco che rende (idle) ---- */
   'Welcome back! The park earned: ': 'С возвращением! Парк заработал: ',
-  'half a vial of ': 'полфлакона ',
+
 
   /* ---- gioca col compagno (lancia e riporta) ---- */
 
@@ -581,7 +663,7 @@ export const RU = {
   'Tiers unlocked': 'Открыто ступеней',
   'Bronze · Silver · Gold · Platinum': 'Бронза · Серебро · Золото · Платина',
   'All trophies at PLATINUM! (9 glitter hats + aura)': 'Все трофеи на ПЛАТИНЕ! (9 блестящих шляп + аура)',
-  'PLATINUM glitter hat + golden AURA!': 'ПЛАТИНОВАЯ блестящая шляпа + золотая АУРА!',
+
   'New hat: ': 'Новая шляпа: ',
   'Gold Crown': 'Золотая корона', 'Gold Cap': 'Золотая шапочка', 'Gold Laurel': 'Золотой лавр',
   'Gold Goggles': 'Золотые очки', 'Gold Horns': 'Золотые рога', 'Gold Pith': 'Золотой шлем',
@@ -612,7 +694,7 @@ export const RU = {
   'Wonders': 'Чудеса',
 
   'Map': 'Карта',
-  'DNA and chimeras': 'ДНК и химеры',
+
   'Missions': 'Задания',
 
   'Night and seasons': 'Ночь и сезоны',
@@ -735,8 +817,7 @@ export const RU = {
 
   'Tip': 'Подсказка',
 
-  "Stick: move · <kbd>A</kbd>: act · ☰ menu":
-    "Стик: ходить · <kbd>A</kbd>: действие · ☰ меню",
+
   'Guide': 'Справка',
 
   'ready': 'готово',
@@ -792,9 +873,9 @@ export const RU = {
   'DNA vial ready': 'Пробирка ДНК готова',
   'Awaken': 'Пробудить',
   'Debug': 'Отладка',
-  'Spawn all fossils': 'Выдать все ископаемые',
 
-  'Spawn': 'Выдать',
+
+
   'Fossil Book': 'Книга ископаемых',
   'Fossils reconstructed': 'Восстановлено ископаемых',
   'Open (L)': 'Открыть (L)',
@@ -834,7 +915,7 @@ export const RU = {
 
   'Boat': 'Лодка',
 
-  'Vehicles & light': 'Транспорт и свет',
+
   'Skates': 'Коньки',
 
   'Bicycle': 'Велосипед',
@@ -852,7 +933,7 @@ export const RU = {
   /* ---- museo ---- */
   '📖 New pages in the book: ': '📖 Новые страницы в книге: ',
   'Hand in all': 'Сдать всё',
-  'up to ×1.5': 'до ×1,5',
+
   'Skip': 'Пропустить',
   'Restore': 'Реставрировать',
   'Being examined': 'На исследовании',
@@ -885,19 +966,19 @@ export const RU = {
   'Raw': 'Необработанное',
   'coins': 'монет',
   'Empty: go dig!': 'Пусто: идите копать!',
-  'not bought yet · Shop': 'ещё не куплено · Магазин',
-  'E to dig the ground': 'E — копать землю',
-  'E facing a tree': 'E перед деревом',
+
+
+
   'boulders, spires and cave crystals': 'валуны, шпили и пещерные кристаллы',
   'wider light halo': 'шире круг света',
   'points to town': 'указывает на город',
   'off': 'выкл',
   'On': 'Вкл',
-  'boosted digs': 'удачных раскопок',
+
   'in use': 'используется',
   'spare': 'в запасе',
-  'speed ×2 on foot': 'скорость ×2 пешком',
-  'speed ×3 on foot': 'скорость ×3 пешком',
+
+
 
 
   'to the nearest city': 'в ближайший город',
@@ -982,9 +1063,9 @@ export const RU = {
   'add to yard': 'добавить во двор',
   'Back to the Book': 'Обратно в Книгу',
   'Now lives in your yard!': 'Теперь живёт у вас во дворе!',
-  'richer crystals + light at night': 'богаче кристаллы + свет ночью',
+
   'finds ': 'находки ',
-  'RIDEABLE: fly over the map': 'ВЕРХОМ: летай над картой',
+
 
   'No flying here: get down and walk': 'Здесь не летают: спустись и иди пешком',
 
@@ -1040,19 +1121,17 @@ export const RU = {
   'Take it, {n}: your first treasure. My time ran out.': 'Держи, {n}: твоё первое сокровище. Моё время вышло.',
   'Then I will bring them back. All of them.': 'Тогда я верну их. Всех.',
   /* ---- tutorial: frasi corte, una cosa per volta ---- */
-  'Pick up the shiny things': 'Собирай блестящее',
-  'Follow the arrow and press {act}. You need 15 coins.': 'Иди по стрелке и жми {act}. Нужно 15 монет.',
+
+
   'Go to the Shop': 'Иди в Лавку',
 
   'Furnish your home': 'Обставь свой дом',
-  "Place the armchair here in the Living room with {act}.":
-    "Поставь кресло здесь, в Гостиной, с помощью {act}.",
+
   'Leave town and dig': 'Выйди из города и копай',
-  "On the grass, press {act}. No digging on the plaza.": "На траве нажми {act}. На площади копать нельзя.",
+
   'Take your finds to the Museum': 'Отнеси находки в Музей',
-  "The Curator is waiting to identify them.": "Смотритель ждёт, чтобы их определить.",
-  "The Curator is cataloguing: come back with a find.":
-    "Смотритель занят каталогом: приходи с находкой.",
+
+
   'Species discovered': 'Видов открыто',
   'finds': 'находок',
   'Complete cases': 'Витрин собрано',
@@ -1074,7 +1153,7 @@ export const RU = {
   'sell and buy': 'продать и купить',
 
 
-  'Done. Now: ': 'Готово. Теперь: ',
+
   'Opening tutorial': 'Вступительное обучение',
 
 
@@ -1485,8 +1564,7 @@ export const RU = {
   'A bone. From a creature of long, long ago.': 'Кость. Существа, жившего очень-очень давно.',
 
   /* ---- comandi: col mouse si gioca senza tastiera ---- */
-  "<kbd>WASD</kbd> move · <kbd>E</kbd> act · <kbd>I</kbd> bag · <kbd>L</kbd> book · <kbd>M</kbd> map · <kbd>Q</kbd> missions<br><b>Click</b> walk · <b>right</b> act":
-    "<kbd>WASD</kbd> ходить · <kbd>E</kbd> действие · <kbd>I</kbd> рюкзак · <kbd>L</kbd> книга · <kbd>M</kbd> карта · <kbd>Q</kbd> задания<br><b>Клик</b> идти · <b>правый</b> действие",
+
 
   /* ---- uscita dagli interni ---- */
   /* ---- partita in cloud e zaino pieno in grotta ---- */
@@ -1542,7 +1620,7 @@ export const RU = {
   'scroll and tap <b>Add to Home Screen</b>': 'прокрути и нажми <b>На экран «Домой»</b>',
   'confirm with <b>Add</b>': 'подтверди кнопкой <b>Добавить</b>',
   'On iPhone you need Safari.': 'На iPhone нужен Safari.',
-  "Apple rule: on iPhone only Safari installs. Open <b>digsy.dev-box.it</b> there.": "Правило Apple: на iPhone устанавливает только Safari. Открой <b>digsy.dev-box.it</b>.",
+
   'Then, in Safari:': 'Затем, в Safari:',
   'Install on device': 'Установить на устройство',
   'Done': 'Готово',
@@ -1550,7 +1628,7 @@ export const RU = {
 
 
   'Anonymous stats': 'Анонимная статистика',
-  'Send how it is going': 'Отправлять, как идут дела',
+
 
   /* ---- casa: sblocco stanze (M2, corridoio con stanze ai lati) ---- */
 
@@ -1583,7 +1661,7 @@ export const RU = {
   'Drag it where you want · ↻ to rotate': 'Перетащи куда хочешь · ↻ чтобы повернуть',
 
 
-  "↻ or R rotates, click to place": "↻ или R — повернуть, клик — поставить",
+
   'Room backdrop': 'Фон комнаты', 'Apply': 'Применить', 'in use': 'используется',
   'wallpaper': 'обои', 'flooring': 'напольное покрытие', 'on the wall': 'на стене',
   '1 tile': '1 клетка', 'tiles': 'клетки', 'you walk on it': 'по нему можно ходить',

@@ -340,8 +340,8 @@ if (cv && cv.addEventListener) {
       const mosso = Math.hypot(e.clientX - downX, e.clientY - downY) > 6;
       if (tipo === 'preso' && !mosso) {
         playSfx('ui');
-        toast('🎨 ' + keyText(isTouch() ? tr('↻ ruota · tocca dove posarlo', '↻ rotate · tap to place')
-          : tr('↻ o R ruota, clic per posare', '↻ or R rotates, click to place')));
+        toast('🎨 ' + keyText(isTouch() ? tr('↻ per ruotare, tocca dove posarlo', '↻ to rotate, tap where to place it')
+          : tr('↻ o R per ruotare, clic per posare', '↻ or R to rotate, click to place')));
         return;
       }
       if (isHolding()) {

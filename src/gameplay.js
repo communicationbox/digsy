@@ -223,10 +223,10 @@ export function tryDig() {
   const ti = townInfo(tx, ty);
   if (ti) { toast(tr('Non si scava in città', 'No digging in town')); return; } // vale anche SOTTO gli edifici
   if (yardInfo(tx, ty)) { toast(tr('Qui non si può scavare', 'You can\'t dig here')); return; } // cortile di casa
-  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
+  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Ti serve la pala: la trovi al Negozio', 'You need a spade: get it at the Shop')); return; }
   if (!diggable(t)) { toast(tr('Qui non si può scavare', 'You can\'t dig here')); return; }
   if (dugSet.has(key)) { toast(tr('Già scavato qui', 'Already dug here')); return; }
-  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); showTip('energy'); return; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); showTip('energy'); return; }
   beginDig(0.45, () => {
     if (!isDebug()) spendEnergy(1);
     dugSet.add(key); S.dug.push(key); noteDug(dugSet, key);
@@ -285,7 +285,7 @@ export function buyTool(t) {
   if (t === 'motorboat' && !S.tools.boat && !isDebug()) { toast('⛵ ' + tr('Prima serve la barca', 'You need the boat first')); return false; }
   if (S.coins < cost && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + cost); return false; }
   if (!isDebug()) S.coins -= cost;
-  if (t === 'shovel') { S.shovel = (S.shovel || 0) + 60; S.shovelWarn = true; toast('🪏 ' + tr('Pala fortunata: +60 scavi col boost', 'Lucky shovel: +60 boosted digs')); }
+  if (t === 'shovel') { S.shovel = (S.shovel || 0) + 60; S.shovelWarn = true; toast('🪏 ' + tr('Pala fortunata: 60 scavi più fortunati', 'Lucky shovel: 60 luckier digs')); }
   else { S.tools[t] = true; if (t === 'skates' || t === 'bike') S.gear = t; if (t === 'compass') S.compassOn = true; toast((TOOL_MSG[t] || (() => tr('Comprato', 'Bought')))()); }
   playSfx('coin'); save(); updateHUD();
   return true;
@@ -460,7 +460,7 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
   const d = decoAt(tx, ty);
   if (!d || !kindList.includes(d)) return false;
   if (!S.tools[tool]) { toast(missMsg); return true; } // consumato l'input: serve l'attrezzo
-  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); return true; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); return true; }
   beginDig(0.5, () => {
     if (!isDebug()) spendEnergy(1);
     setAdd.add(tx + ',' + ty); arr.push(tx + ',' + ty);
@@ -490,12 +490,12 @@ function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
 export function tryChop() {
   return harvestDeco(CHOPPABLE, 'axe', choppedSet, S.chopped, 'albero', 'chop',
     '🌲 ' + tr('Tra le radici: un reperto!', 'In the roots: a find!'),
-    '🪓 ' + tr('Serve l\'accetta (Negozio)', 'You need the hatchet (Shop)'));
+    '🪓 ' + tr('Ti serve l\'accetta: la trovi al Negozio', 'You need the hatchet: get it at the Shop'));
 }
 export function tryMine() {
   return harvestDeco(MINEABLE, 'pick', minedSet, S.mined, 'roccia', 'mine',
     '⛰️ ' + tr('Nella roccia: un reperto!', 'In the rock: a find!'),
-    '⛏️ ' + tr('Serve il piccone (Negozio)', 'You need the pickaxe (Shop)'));
+    '⛏️ ' + tr('Ti serve il piccone: lo trovi al Negozio', 'You need the pickaxe: get it at the Shop'));
 }
 
 /* ---------- barca: sull'acqua si naviga (mai a piedi) e si PESCA ---------- */
@@ -507,7 +507,7 @@ export function onBoat() {
   return hasBoat() && waterTile(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
 }
 export function tryFish() {
-  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.9, () => {
     if (!isDebug()) spendEnergy(1);
     const tx = Math.floor(P.x / TS), ty = Math.floor((P.y + FOOT_DY) / TS);
@@ -875,8 +875,8 @@ export function digSite() {
   const s = nearbySite(); if (!s) return;
   const rem = siteRemaining(s);
   if (rem <= 0) { toast(tr('Sito esaurito', 'Site dug out')); return; }
-  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
-  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
+  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Ti serve la pala: la trovi al Negozio', 'You need a spade: get it at the Shop')); return; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.55, () => {
     if (!isDebug()) spendEnergy(1);
     S.sites[s.key] = (S.sites[s.key] || 0) + 1;
@@ -908,8 +908,8 @@ export function nearbyBoneSite() {
 export function digBoneSite() {
   const b = nearbyBoneSite(); if (!b) return;
   const { site, part } = b;
-  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Serve la pala (Negozio)', 'You need a spade (Shop)')); return; }
-  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
+  if (!S.tools.spade && !isDebug()) { toast('🪏 ' + tr('Ti serve la pala: la trovi al Negozio', 'You need a spade: get it at the Shop')); return; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.55, () => {
     if (!isDebug()) spendEnergy(1);
     if (!S.boneSites[site.key]) S.boneSites[site.key] = [];
@@ -1029,7 +1029,7 @@ export function digWreck() {
   const w = nearbyWreck(); if (!w) return;
   const rem = wreckRemaining(w);
   if (rem <= 0) { toast('🚢 ' + tr('Relitto ripulito', 'Wreck picked clean')); return; }
-  if (S.energy <= 0 && !isDebug()) { toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn')); playSfx('nope'); return; }
+  if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.6, () => {
     if (!isDebug()) spendEnergy(1);
     if (!S.wrecks) S.wrecks = {}; S.wrecks[w.key] = (S.wrecks[w.key] || 0) + 1;
@@ -1077,8 +1077,8 @@ export function act() {
   if (isMounted()) { toast('🐾 ' + tr('In volo non si scava', "No digging while flying")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
-    if (r === 'nopick') toast('⛏️ ' + tr('Serve il piccone (Negozio)', 'Needs the pickaxe (Shop)'));
-    else if (r === 'noenergy') toast(tr('Senza energia — riposa alla Locanda', 'Out of energy — rest at the Inn'));
+    if (r === 'nopick') toast('⛏️ ' + tr('Ti serve il piccone: lo trovi al Negozio', 'You need the pickaxe: get it at the Shop'));
+    else if (r === 'noenergy') toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn'));
     else if (r === 'bagfull') { toast('🎒 ' + tr('Zaino pieno: il cristallo resta qui', 'Bag full: the crystal stays here')); playSfx('nope'); }
     else if (r === false) toast(tr('Avvicinati a un giacimento luminoso', 'Get close to a glowing deposit'));
     return;
@@ -1195,7 +1195,7 @@ export function useWonder(lm) {
       break;
     }
     case 'mushring': addBuff('digX2', 10); out = '🍄 ' + tr('Spore fortunate: 10 scavi più fortunati', 'Lucky spores: 10 luckier digs'); playSfx('found'); break;
-    case 'totem': addBuff('xpX2', 10); out = '🗿 ' + tr('Benedizione: 10 scavi con XP doppia', 'Blessing: 10 digs with double XP'); playSfx('found'); break;
+    case 'totem': addBuff('xpX2', 10); out = '🗿 ' + tr('Benedizione: 10 scavi con esperienza doppia', 'Blessing: 10 digs with double experience'); playSfx('found'); break;
     case 'willow': out = 'sleep'; break;                 // gestito da chi chiama (dorme)
     case 'menhir': case 'icespire': out = 'reveal'; break; // rivelazione mappa (vedi ui/map)
     case 'aurora': out = 'aurora'; break;
@@ -1340,7 +1340,7 @@ export function sleepAtHome(room) {
   if (!restInn()) return false;
   S.restFree = bonus;
   if (bonus) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + bonus + tr(' fatiche non costano energia', ' efforts cost no energy'));
-  else toast('😴 ' + tr('Dormito. Stanza spoglia: niente bonus', 'Slept. Bare room: no bonus'));
+  else toast('😴 ' + tr('Hai dormito. La stanza è spoglia: niente bonus', 'You slept. The room is bare: no bonus'));
   save(); updateHUD();
   return true;
 }

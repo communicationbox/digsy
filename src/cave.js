@@ -265,7 +265,7 @@ export function checkCaveEnter(caveEntranceAt) {
     if (!(P.moving && P.dir === 'up') && !goalIsTile(tx, ty)) return;
     /* senza piccone non si entra: il masso davanti va spaccato, e serve per staccare i
        cristalli là dentro (in debug si passa comunque) */
-    if (!S.tools.pick && !isDebug()) { toast('⛏️ ' + tr('Serve il piccone (Negozio)', 'Needs the pickaxe (Shop)')); CAVE.justLeft = true; return; }
+    if (!S.tools.pick && !isDebug()) { toast('⛏️ ' + tr('Ti serve il piccone: lo trovi al Negozio', 'You need the pickaxe: get it at the Shop')); CAVE.justLeft = true; return; }
     enterCave(vhash(tx, ty, 91) * 1000, tx, ty);
   } else CAVE.justLeft = false;
 }

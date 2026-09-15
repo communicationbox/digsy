@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.98.11', it: [
+      'TESTI RIVISTI: tutorial, Guida e messaggi scritti in italiano vero, frasi brevi al posto di simboli e sigle; la Guida segue l\'ordine del gioco',
+      'FIX: il parco quando torni regala una fialetta intera (diceva "mezza"); al Lab non dice più "nessuna fialetta" se ne hai una sola',
+    ], en: [
+      'TEXTS REVISED: tutorial, Guide and messages rewritten as plain sentences instead of symbols and shorthand; the Guide follows the order of the game',
+      'FIX: the park gives a whole vial when you return (it said "half"); the Lab no longer says "no vials" when you have just one',
+    ],
+  },
+  {
     v: 'v0.98.9', it: [
       'COMPAGNO: tolto il gioco del lancio (il tasto azione vicino al compagno faceva troppe cose diverse). Nel cortile il tasto apre di nuovo solo Compagno e cortile',
     ], en: [
