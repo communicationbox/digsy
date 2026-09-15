@@ -1258,13 +1258,14 @@ function addToMuseumJob(arriveDay) {
 export function museumDeposit() {
   if (!S.raw.length) { toast(tr('Niente reperti grezzi da consegnare', 'No raw finds to hand in')); return false; }
   addToMuseumJob(S.day); // consegna di persona: identificazione ISTANTANEA (ready = oggi)
-  if (tutBump('museum') === 'step') announceTutStep();   // ultimo passo: il ciclo è chiuso
+  if (tutBump('museum') === 'step') announceTutStep();   // consegnato: il tutorial manda a dormire
   save(); updateHUD();
   return true;
 }
 export function museumJobReady() { return !!S.museumJob && (isDebug() || S.day >= S.museumJob.ready); }
 export function museumCollect() {
   if (!museumJobReady()) return null;
+  if (tutBump('collect') === 'step') announceTutStep();   // ultimo passo: il giro è chiuso
   const prepOk = !!S.museumJob.prepOk;
   const back = [], shown = [], vials = [], left = [], amberShown = [], amberDone = [];
   for (const it of S.museumJob.items) {
@@ -1338,6 +1339,7 @@ export function restInn() {
 export function sleepAtHome(room) {
   const bonus = restFreeFor(room);
   if (!restInn()) return false;
+  if (tutBump('sleep') === 'step') announceTutStep();   // tutorial: dormire a casa è un passo suo
   S.restFree = bonus;
   if (bonus) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + bonus + tr(' fatiche non costano energia', ' efforts cost no energy'));
   else toast('😴 ' + tr('Hai dormito. La stanza è spoglia: niente bonus', 'You slept. The room is bare: no bonus'));

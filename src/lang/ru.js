@@ -64,8 +64,6 @@ export const RU = {
   "Pick up what sparkles": "Собери то, что блестит",
   "Follow the arrow and press {act}. You need 15 coins for the spade.": "Иди по стрелке и нажми {act}. На лопату нужно 15 монет.",
   "Sell what you picked up and buy the spade 🪏.": "Продай собранное и купи лопату 🪏.",
-  "Press {act}, take the armchair and place it in the Living room.": "Нажми {act}, возьми кресло и поставь его в гостиной.",
-  "Away from the plaza, press {act} to dig.": "За пределами площади нажми {act}, чтобы копать.",
   "Hand them to the Curator: they'll be identified by tomorrow.": "Отдай их Хранителю: к завтрашнему дню их определят.",
   "awakening": "пробуждение",
   "The Curator is busy. Come back when you have a find.": "Хранитель занят. Возвращайся, когда найдёшь находку.",
@@ -1129,7 +1127,6 @@ export const RU = {
 
   'Go to the Shop': 'Иди в Лавку',
 
-  'Furnish your home': 'Обставь свой дом',
 
   'Leave town and dig': 'Выйди из города и копай',
 

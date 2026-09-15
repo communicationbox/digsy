@@ -12,7 +12,7 @@ import { tr, zoneName } from './i18n.js';
 import { zoneAt } from './regions.js';
 import { playSfx } from './audio.js';
 import { pendingLetter, giveLetter, letterTitle } from './letters.js';
-import { museumOpen, museumClosedText } from './tutorial.js';
+import { museumOpen, museumClosedText, tutBump } from './tutorial.js';
 import {
   CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, corridorSolid, corridorExitAt, corridorEntryFor,
   roomPerimeterSolid, roomEntryPoint, houseFurnSolid, floorCellAt, furnAt, wallAt, isHolding, setHoldTarget,
@@ -284,6 +284,9 @@ function stepCut(dt) {
   cutHint(CUT.on && CUT.phase === 'give'); // "clicca per continuare" solo mentre parla
 }
 export function exitInterior() {
+  /* tutorial: uscire di casa è un passo suo. `ui.js` si chiama a runtime (import dinamico):
+     interior↔ui a top-level sarebbe un ciclo */
+  if (INT.type === 'house' && tutBump('out') === 'step') import('./ui.js').then(u => u.announceTutStep());
   INT.active = false; INT.justLeft = true;
   if (CUT.on) { CUT.on = false; CUT.phase = null; CUT.line = null; CUT.thanks = null; } cutBars(false);
   if (!INT.b) return;

@@ -25,7 +25,7 @@ import { letterTitle, letterBody, hasLetter, allLetters, roomsDone, roomsTotal, 
 import { goalTitle, goalLine, goalHint, goalEnd, alive, aliveTotal, toNextMilestone, milestoneReached } from './goal.js';
 import { isExplored, revealArea, exploredTiles } from './map.js';
 import { TIPS, TIP_IDS, tipSeen, markTip, tipTitle, tipText, tipsSeenCount } from './tips.js';
-import { STEP_IDS, tutActive, tutIndex, tutStepId, tutChecked, tutProgress, tutTitle, tutHint, tutSkip, tutRestart, tutDone, tutSkipped } from './tutorial.js';
+import { STEP_IDS, tutBump, tutActive, tutIndex, tutStepId, tutChecked, tutProgress, tutTitle, tutHint, tutSkip, tutRestart, tutDone, tutSkipped } from './tutorial.js';
 import { landmarkForCell, LCELL } from './world.js';
 import { drawWonder } from './wonderart.js';
 import { wonderName, wonderDesc, wonderGrandpa, wonderPower, wonderCd, wonderStatusText, wonderReadyIn, markWonderUsed, archList, travelToArch, isDiscovered, WONDERS } from './wonders.js';
@@ -643,6 +643,7 @@ function furnSizeLabel(id) {
    COMODA la stanza. Il punteggio non è un numero misterioso: dice cosa lo alza e quanto vale
    la dormita, perché "arreda e vedrai" è esattamente il tipo di promessa che nessuno segue. */
 export function openBed(room, gx, gy) {
+  if (tutBump('bed') === 'step') announceTutStep();   // tutorial: il primo passo è proprio questo
   const c = roomComfort(room), gratis = restFreeFor(room);
   const LIV = [[' spoglia', ' bare'], [' accogliente', ' cosy'], [' curata', ' well kept'], [' da rivista', ' picture perfect']][c.level];
   let h = `<div class="row"><span class="em">🛏️</span><div><div class="nm">${roomName(room)}: ${tr('comodità', 'comfort')} ${c.score}/${COMFORT_MAX} ·${tr(LIV[0], LIV[1])}</div><div class="sub">${gratis ? tr('dormendo qui le prossime ', 'sleeping here your next ') + gratis + tr(' fatiche non costano energia', ' efforts cost no energy') : tr('rifà l\'energia', 'refills energy')}</div></div></div>`;

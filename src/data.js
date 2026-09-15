@@ -302,6 +302,10 @@ export function furnIsBackdrop(id) { const p = furnPlace(id); return p === 'pape
    inventare — regalarla ignora il suo `lvl` normale (il dono bypassa `buyFurniture`). */
 export const STARTER_FURN_ID = 'boschi_chair';
 export const STARTER_PLANT_ID = 'giardino_monstera';
+/* IL LETTO C'È GIÀ, dalla prima partita: casa tua è il posto dove si dorme gratis, e il tutorial
+   ci comincia da lì. Prima bisognava comprarlo alla Bottega d'arredo e fino ad allora l'unico modo
+   di rifare l'energia era pagare la Locanda. */
+export const STARTER_BED_ID = 'camera_letto';
 
 /* COSMETICI TEMATICI: ogni zona ha un taglio (barbiere) e un cappello (sarto)
    scopribili solo visitando il negozio IN quella zona; una volta sbloccati

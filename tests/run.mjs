@@ -7891,8 +7891,8 @@ sprites.applyLook();
      identificare, e si identifica SOLO al Museo. Se domani il Museo comparisse anche altrove
      (o sparisse dalle città grandi) i controlli qui sotto cadono, ed è quello che devono fare. */
   check('il tutorial manda al Museo a far identificare il grezzo', /Museo|Museum/.test(tsrc));
-  check('il tutorial insegna a piazzare un mobile prima di scavare',
-    /armchair/.test(tsrc));
+  check('il tutorial parte dal letto di casa e insegna a dormirci',
+    /'bed'/.test(tsrc) && /letto/i.test(tsrc));
   {
     /* la promessa del nonno regge sul mondo vero? */
     let cities = 0, withMus = 0, smallWithMus = 0;
@@ -7907,48 +7907,46 @@ sprites.applyLook();
   }
 }
 
-/* ---------- TUTORIAL: i cinque passi sono il ciclo d'apertura, e sono ESEGUIBILI ----------
+/* ---------- TUTORIAL: gli otto passi sono il giro completo, e sono ESEGUIBILI ----------
    Il primo ordine che avevo scritto (esci → scava → raccogli) non stava in piedi: si nasce
    SENZA pala e con zero monete, e senza pala `tryDig` rifiuta. Un tutorial che chiede una cosa
    che il gioco vieta è peggio di nessun tutorial. Questi controlli tengono l'ordine ancorato
    alle regole vere: la pala prima dello scavo, e il Museo raggiungibile da dove si parte.
-   La partita ORA comincia dentro la Sala di casa propria (main.js entra da solo dopo
-   editor/intro): `armchair` è quindi il PRIMISSIMO passo, prima ancora di uscire in strada —
-   piazzare la poltrona di partenza (già nel vassoio, regalata in state.js) è il primo gesto
-   possibile da dove ci si trova. */
+   La partita comincia dentro la Sala di casa propria (main.js entra da solo dopo editor/intro),
+   e in Sala c'è già il LETTO (house.js lo piazza alla prima partita): i primi due passi sono
+   quindi provare il letto e uscire di casa, gli unici gesti possibili da dove ci si trova.
+   Gli ultimi due chiudono il giro: dormire a casa fa passare il giorno, e il giorno dopo si
+   ritirano al Museo i reperti identificati. */
 {
   const tut = await import('../src/tutorial.js');
   const gp5 = await import('../src/gameplay.js');
   const dataT = await import('../src/data.js');
   const house = await import('../src/house.js');
   const S = state.S, P5 = state.P;
-  check('i passi sono cinque, nell\'ordine del ciclo d\'apertura',
-    tut.STEP_IDS.join('>') === 'armchair>pick>shop>dig>museum');
+  check('gli otto passi sono il giro completo, in ordine',
+    tut.STEP_IDS.join('>') === 'bed>out>pick>shop>dig>museum>sleep>collect');
   /* si nasce senza pala: il passo dello scavo NON può venire prima di quello del Negozio */
   check('lo scavo viene DOPO aver comprato la pala',
     tut.STEP_IDS.indexOf('shop') < tut.STEP_IDS.indexOf('dig'));
-  /* la poltrona è il primissimo gesto: si è già in Sala, prima ancora di uscire in strada */
-  check('la poltrona è il primissimo passo',
-    tut.STEP_IDS.indexOf('armchair') === 0 && tut.STEP_IDS.indexOf('armchair') < tut.STEP_IDS.indexOf('pick'));
-
-  /* piazza/rimuove la poltrona di partenza nella stanza 0 (Sala), per pilotare l'auto() del
-     passo senza passare dal vero overlay della casa */
-  const armchairSet = (on) => {
+  /* il letto è il primissimo gesto: si è già in Sala, prima ancora di uscire in strada */
+  check('il letto è il primissimo passo',
+    tut.STEP_IDS.indexOf('bed') === 0 && tut.STEP_IDS.indexOf('out') === 1);
+  /* IL LETTO C'È GIÀ in Sala alla prima partita: senza, il primo passo chiederebbe una cosa che
+     non esiste e si dormirebbe solo pagando la Locanda */
+  {
+    const keepRooms = S.house ? JSON.parse(JSON.stringify(S.house)) : null, keepOwn = [...(S.furnOwned || [])];
+    S.house = null; S.bedPlaced = false; S.bedGiven = false; S.furnOwned = [dataT.STARTER_BED_ID];
     house.ensureHouseState();
-    S.house.rooms[0].furn = on ? [{ itemId: dataT.STARTER_FURN_ID, gx: 2, gy: 2 }] : [];
-  };
+    const inSala = (S.house.rooms[0].furn || []).some(f => f.itemId === dataT.STARTER_BED_ID);
+    check('la Sala nasce col letto già piazzato', inSala);
+    S.house = keepRooms; S.furnOwned = keepOwn; house.ensureHouseState();
+  }
 
-  S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = []; armchairSet(false);
-  check('si parte dal passo della poltrona', tut.tutStepId() === 'armchair' && tut.tutActive());
-  check('scavare durante la poltrona non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'armchair');
-  check('senza piazzarla il passo non avanza', tut.tutTick() === false && tut.tutStepId() === 'armchair');
-  /* piazzarla in un'ALTRA stanza (Cucina, id 1) non basta: il passo guarda la Sala (stanza 0) */
-  house.ensureHouseState(); S.house.rooms[1].unlocked = true;
-  S.house.rooms[1].furn = [{ itemId: dataT.STARTER_FURN_ID, gx: 2, gy: 2 }];
-  check('piazzata in un\'altra stanza non conta', tut.tutTick() === false && tut.tutStepId() === 'armchair');
-  S.house.rooms[1].furn = []; S.house.rooms[1].unlocked = false;
-  armchairSet(true);
-  check('piazzata in Sala → si passa alla raccolta', tut.tutTick() === 'step' && tut.tutStepId() === 'pick');
+  S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = [];
+  check('si parte dal passo del letto', tut.tutStepId() === 'bed' && tut.tutActive());
+  check('scavare durante il letto non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'bed');
+  check('provato il letto → si esce di casa', tut.tutBump('bed') === 'step' && tut.tutStepId() === 'out');
+  check('uscito di casa → si passa alla raccolta', tut.tutBump('out') === 'step' && tut.tutStepId() === 'pick');
   check('la soglia della raccolta è il prezzo della pala', tut.tutProgress().need === gp5.TOOL_COST.spade);
   /* raccolta: conta il VALORE (monete + merce), non il numero di oggetti — con valori da 1 a 5
      a seconda del bioma "otto oggetti" qualche volta non bastava per la pala e il tutorial
@@ -7986,9 +7984,10 @@ sprites.applyLook();
   check('scavato → si passa al Museo', tut.tutBump('dig') === 'step' && tut.tutStepId() === 'museum');
   check('le targhe sulle case si accendono solo quando serve entrare',
     tut.tutShowLabels() === true);
-  check('consegnato al Museo → tutorial finito', tut.tutBump('museum') === 'step' && tut.tutDone() && !tut.tutActive());
+  check('consegnato al Museo → si va a dormire', tut.tutBump('museum') === 'step' && tut.tutStepId() === 'sleep');
+  check('dormito a casa → si torna al Museo a ritirare', tut.tutBump('sleep') === 'step' && tut.tutStepId() === 'collect');
+  check('ritirati i reperti → tutorial finito', tut.tutBump('collect') === 'step' && tut.tutDone() && !tut.tutActive());
   check('finito, le targhe si spengono', tut.tutShowLabels() === false);
-  armchairSet(false);
 
   /* SI PARTE IN UNA CITTÀ COL MUSEO: è quello che rende l'ultimo passo un trenta passi invece
      di una traversata. Se `findStart` cambiasse, il tutorial diventerebbe una caccia. */
@@ -7997,10 +7996,10 @@ sprites.applyLook();
     const stx = Math.floor(start.x / TS), sty = Math.floor(start.y / TS);
     const home = world.townForTile(stx, sty);
     check('si parte dentro una città che ha il Museo', !!home && world.hasMuseum(home));
-    S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; armchairSet(false); // torna al passo 'armchair'
-    check('il passo della poltrona indica la porta di casa',
-      tut.tutStepId() === 'armchair' && tut.tutTarget(start.x, start.y) === S.home);
-    armchairSet(true); tut.tutTick();                 // poltrona piazzata → passo 'pick'
+    S.tut = null; S.coins = 0; S.goods = []; S.tools = {};   // torna al primo passo
+    check('il passo del letto non manda da nessuna parte (sei già lì)',
+      tut.tutStepId() === 'bed' && tut.tutTarget(start.x, start.y) === null);
+    tut.tutBump('bed'); tut.tutBump('out');           // fuori di casa → passo 'pick'
     const gPick = tut.tutTarget(start.x, start.y);
     check('il passo della raccolta indica DOVE andare', !!gPick && Number.isFinite(gPick.x));
     S.goods = [{ id: 'spiga', val: gp5.TOOL_COST.spade, n: 1, good: true }]; tut.tutTick();
@@ -8011,7 +8010,12 @@ sprites.applyLook();
     const gMus = tut.tutTarget(start.x, start.y);
     check('il passo del Museo indica la porta del Museo',
       !!gMus && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gMus.x && b.doory === gMus.y));
-    armchairSet(false);
+    tut.tutBump('museum');
+    check('il passo della dormita manda a casa', tut.tutStepId() === 'sleep' && tut.tutTarget(start.x, start.y) === S.home);
+    tut.tutBump('sleep');
+    const gCol = tut.tutTarget(start.x, start.y);
+    check('il passo del ritiro rimanda al Museo',
+      !!gCol && (home.buildings || []).some(b => b.type === 'museum' && b.doorx === gCol.x && b.doory === gCol.y));
   }
   /* IL PRIMO SCAVO DEL TUTORIAL NON VA MAI A VUOTO. Una casella d'erba rende .30: senza
      garanzia, sette giocatori su dieci vedrebbero "…solo terra" al primissimo colpo della loro
@@ -8021,12 +8025,11 @@ sprites.applyLook();
   {
     const w5 = await import('../src/world.js');
     const orig = Math.random;
-    S.tut = null; S.tools = { spade: true }; S.coins = 999; S.goods = []; armchairSet(true);
-    tut.tutTick();                                  // poltrona già piazzata → passo 'pick'
-    tut.tutTick();                                  // la borsa paga la pala → passo 'shop'
+    S.tut = null; S.tools = { spade: true }; S.coins = 999; S.goods = [];
+    tut.tutBump('bed'); tut.tutBump('out');         // fuori di casa → passo 'pick'
+    tut.tutTick();                                  // le monete pagano la pala → passo 'shop'
     tut.tutTick();                                  // pala comprata → passo 'dig'
     check('si parte dal passo dello scavo', tut.tutStepId() === 'dig');
-    armchairSet(false);
     /* terreno scavabile fuori città, e la sfortuna al massimo: senza garanzia non uscirebbe
        niente */
     let tx5 = 0, ty5 = 0;
@@ -8091,12 +8094,12 @@ sprites.applyLook();
      Ma chiuso NON vuol dire murato: saltando il tutorial il gioco deve tornare intero. */
   {
     S.tut = null; S.tools = {}; S.coins = 0; S.goods = [];
-    check('al primo passo il Museo è chiuso', tut.tutStepId() === 'armchair' && tut.museumOpen() === false);
+    check('al primo passo il Museo è chiuso', tut.tutStepId() === 'bed' && tut.museumOpen() === false);
     check('e la porta lo dice invece di non fare niente', tut.museumClosedText().length > 20);
-    S.tools = { spade: true }; S.coins = 999; armchairSet(true);
-    tut.tutTick(); tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
+    S.tools = { spade: true }; S.coins = 999;
+    tut.tutBump('bed'); tut.tutBump('out'); tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
     check('arrivati al suo passo, il Museo apre', tut.tutStepId() === 'museum' && tut.museumOpen() === true);
-    armchairSet(false);
+    check('e resta aperto anche per il ritiro', (tut.tutBump('museum'), tut.tutBump('sleep'), tut.tutStepId() === 'collect' && tut.museumOpen() === true));
     /* SALTARE RESTITUISCE IL GIOCO INTERO: nessuna porta resta chiusa dietro di sé */
     S.tut = null; S.tools = {}; S.coins = 0;
     check('a tutorial in corso resta chiuso', tut.museumOpen() === false);
@@ -8105,10 +8108,10 @@ sprites.applyLook();
     tut.tutRestart();
     check('rifacendolo torna chiuso finché non serve', tut.museumOpen() === false);
     /* e finito per bene, resta aperto */
-    S.tools = { spade: true }; S.coins = 999; armchairSet(true);
-    tut.tutTick(); tut.tutTick(); tut.tutTick(); tut.tutBump('dig'); tut.tutBump('museum');
+    S.tools = { spade: true }; S.coins = 999;
+    tut.tutBump('bed'); tut.tutBump('out'); tut.tutTick(); tut.tutTick();
+    tut.tutBump('dig'); tut.tutBump('museum'); tut.tutBump('sleep'); tut.tutBump('collect');
     check('finito: il Museo resta aperto', tut.tutDone() && tut.museumOpen() === true);
-    armchairSet(false);
     /* la porta del Museo passa DAVVERO da museumOpen, non è solo una funzione che nessuno usa */
     {
       const fs11 = await import('node:fs');
@@ -8122,7 +8125,7 @@ sprites.applyLook();
   tut.tutSkip();
   check('saltato: sparisce e non spunta niente', !tut.tutActive() && tut.tutSkipped() && tut.tutChecked(0) === false);
   tut.tutRestart();
-  check('rifatto dalla Guida: riparte dal primo passo', tut.tutActive() && tut.tutStepId() === 'armchair' && !tut.tutSkipped());
+  check('rifatto dalla Guida: riparte dal primo passo', tut.tutActive() && tut.tutStepId() === 'bed' && !tut.tutSkipped());
   {
     const fs5 = await import('node:fs');
     const usrc = fs5.readFileSync('src/ui.js', 'utf8');

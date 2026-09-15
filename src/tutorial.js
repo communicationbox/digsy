@@ -31,7 +31,7 @@ import { S, save } from './state.js';
 import { tr, actKey } from './i18n.js';
 import { TOOL_COST } from './gameplay.js';
 import { townForTile, townForCell, pickupAt, harvestDecoAt, TCELL, hasMuseum } from './world.js';
-import { TS, STARTER_FURN_ID } from './data.js';
+import { TS } from './data.js';
 
 /* quanto vale adesso quello con cui potresti pagare la pala: monete in tasca + merce da
    vendere. Il primo passo finisce quando basta — non "otto oggetti", che con i valori da 1 a 5
@@ -42,38 +42,45 @@ export function tutPurse() {
 }
 export function spadeCost() { return TOOL_COST.spade; }
 
-/* i cinque passi, in ordine. `auto` = si spunta da solo guardando lo stato; senza `auto` lo
-   spunta un'azione di gioco che chiama `tutBump`. */
-function armchairPlaced() {
-  const r = S.house && S.house.rooms && S.house.rooms[0];
-  return !!r && (r.furn || []).some(f => f.itemId === STARTER_FURN_ID);
-}
+/* GLI OTTO PASSI = il giro completo del gioco, nell'ordine in cui lo si impara facendolo:
+   il letto di casa → esci → raccogli le monete → compra la pala → scava → consegna al Museo →
+   torna a dormire (passa il giorno) → ritira i reperti identificati.
+   Chi li finisce ha fatto una partita intera in piccolo e sa dove tornare per ognuna delle cose.
+   `auto` = il passo si spunta da solo guardando lo stato; senza `auto` lo spunta un'azione di
+   gioco che chiama `tutBump`. */
 export const STEPS = [
-  { id: 'armchair', auto: () => armchairPlaced(), have: () => (armchairPlaced() ? 1 : 0), need: () => 1 },
+  { id: 'bed', need: () => 1 },                     // premi {act} sul letto: si impara dove si dorme
+  { id: 'out', need: () => 1 },                     // esci di casa
   { id: 'pick', auto: () => tutPurse() >= spadeCost(), have: () => Math.min(tutPurse(), spadeCost()), need: () => spadeCost() },
   { id: 'shop', auto: () => !!(S.tools || {}).spade, have: () => ((S.tools || {}).spade ? 1 : 0), need: () => 1 },
   { id: 'dig', need: () => 1 },
   { id: 'museum', need: () => 1 },
+  { id: 'sleep', need: () => 1 },
+  { id: 'collect', need: () => 1 },
 ];
 export const STEP_IDS = STEPS.map(s => s.id);
 
 /* titolo + istruzione. Il tasto NON si concatena da fuori: `actKey()` dentro la stringa
-   cambierebbe la chiave del dizionario e la traduzione non si troverebbe più (i18n.js). */
-/* FRASI CORTE, UNA COSA PER VOLTA, all'imperativo. Le prime erano spiegazioni: dicevano il
-   perché insieme al cosa, e chi legge poco (o ha otto anni) si ferma alla prima virgola.
-   Qui c'è solo il gesto da fare — il perché lo capisci facendolo, ed è il senso del tutorial.
-   La freccia a schermo dice DOVE, quindi il testo non deve descrivere anche il posto. */
+   cambierebbe la chiave del dizionario e la traduzione non si troverebbe più (i18n.js).
+   Frasi corte, una cosa per volta, all'imperativo: la seconda riga dice il gesto E cosa ci
+   guadagni, perché è quello che fa capire il gioco (prima diceva solo il gesto). */
 const TEXT = {
+  bed: () => [tr('Questo è il tuo letto', 'This is your bed'),
+    tr('Premi {act} sul letto: qui dormi gratis quando finisci l\'energia ⚡.', 'Press {act} on the bed: you sleep here for free when your energy ⚡ runs out.')],
+  out: () => [tr('Esci di casa', 'Head outside'),
+    tr('Cammina sulla porta in basso: il mondo è tutto da scavare.', 'Walk onto the door below: the whole world is there to dig.')],
   pick: () => [tr('Raccogli ciò che luccica', 'Pick up what sparkles'),
     tr('Segui la freccia e premi {act}. Ti servono 15 monete per la pala.', 'Follow the arrow and press {act}. You need 15 coins for the spade.')],
   shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
     tr('Vendi quello che hai raccolto e compra la pala 🪏.', 'Sell what you picked up and buy the spade 🪏.')],
-  armchair: () => [tr('Arreda casa tua', 'Furnish your home'),
-    tr('Premi {act}, prendi la poltrona e posala in Sala.', 'Press {act}, take the armchair and place it in the Living room.')],
   dig: () => [tr('Esci dalla città e scava', 'Leave town and dig'),
-    tr('Fuori dalla piazza, premi {act} per scavare.', 'Away from the plaza, press {act} to dig.')],
+    tr('Fuori dalla piazza, premi {act}: ogni scavo costa 1 ⚡ e può darti un reperto.', 'Away from the plaza, press {act}: each dig costs 1 ⚡ and may turn up a find.')],
   museum: () => [tr('Porta i reperti al Museo', 'Take your finds to the Museum'),
     tr('Consegnali al Curatore: te li identifica entro domani.', 'Hand them to the Curator: they\'ll be identified by tomorrow.')],
+  sleep: () => [tr('Torna a casa e dormi', 'Go home and sleep'),
+    tr('Premi {act} sul letto: passa il giorno e l\'energia torna piena.', 'Press {act} on the bed: a day goes by and your energy fills up.')],
+  collect: () => [tr('Ritira i reperti al Museo', 'Collect your finds at the Museum'),
+    tr('Ora hanno un nome: i doppioni si vendono, i pezzi nuovi restano in teca.', 'Now they have a name: duplicates can be sold, new pieces stay on display.')],
 };
 export function tutTitle(id) { return TEXT[id] ? TEXT[id]()[0] : id; }
 export function tutHint(id) { return TEXT[id] ? TEXT[id]()[1].replace(/\{act\}/g, actKey()) : ''; }
@@ -128,7 +135,7 @@ export function tutTick() {
    istante non si farebbe in tempo a leggerle. */
 export function tutShowLabels() {
   const id = tutStepId();
-  return id === 'shop' || id === 'museum';
+  return id === 'shop' || id === 'museum' || id === 'collect';
 }
 
 /* DOVE DEVI ANDARE, in caselle, o null se il passo non ha un posto (scavare si fa dovunque).
@@ -139,8 +146,8 @@ export function tutTarget(px, py) {
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
   if (id === 'pick') return nearestPickup(tx, ty);
   if (id === 'shop') return buildingDoor(tx, ty, 'store');
-  if (id === 'armchair') return S.home || null;   // la porta di casa (world.js: houseDoorAt)
-  if (id === 'museum') return buildingDoor(tx, ty, 'museum');
+  if (id === 'sleep') return S.home || null;            // la porta di casa (world.js: houseDoorAt)
+  if (id === 'museum' || id === 'collect') return buildingDoor(tx, ty, 'museum');
   return null;                                   // 'dig': si scava dove capita, fuori città
 }
 /* la cosa raccoglibile più vicina. Anelli concentrici: si ferma al primo colpo, così di solito
@@ -204,7 +211,7 @@ export function bldPurpose(type) { return PURPOSE[type] ? PURPOSE[type]() : ''; 
    Chiuso NON vuol dire bloccato per sempre: appena il tutorial arriva al suo passo si apre, e
    se lo si SALTA si apre subito — saltare deve restituire il gioco intero, non un mondo con
    una porta murata. */
-export function museumOpen() { return !tutActive() || tutStepId() === 'museum'; }
+export function museumOpen() { const id = tutStepId(); return !tutActive() || id === 'museum' || id === 'collect'; }
 export function museumClosedText() {
   return tr('Il Curatore è occupato. Torna quando avrai un reperto.', 'The Curator is busy. Come back when you have a find.');
 }

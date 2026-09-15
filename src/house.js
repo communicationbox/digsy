@@ -12,7 +12,7 @@
    queste funzioni pure per collisioni/varchi; interiors.js le disegna. Il DATO resta lo
    stesso (`S.house.rooms[i] = {id, unlocked, furn:[{itemId,gx,gy}]}`, coordinate LOCALI
    alla stanza): piazzamento/arredo non cambia, cambia SOLO come le stanze stanno nel mondo. */
-import { TS, ROOM_PRICES, FURN_BY_ID, PEDESTAL_ID, furnIsSolid, furnPlace, furnSize, furnIsBackdrop } from './data.js';
+import { STARTER_BED_ID, TS, ROOM_PRICES, FURN_BY_ID, PEDESTAL_ID, furnIsSolid, furnPlace, furnSize, furnIsBackdrop } from './data.js';
 import { S, save } from './state.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD } from './ui.js';
@@ -75,6 +75,15 @@ export function ensureHouseState() {
   for (const r of S.house.rooms) {
     const i = r.furn.findIndex(f => f.gx === egx && f.gy === egy);
     if (i >= 0) r.furn.splice(i, 1);
+  }
+  /* IL LETTO È GIÀ IN SALA, dalla prima partita: casa tua deve essere subito buona a qualcosa
+     (ci si dorme gratis, senza pagare la Locanda) e il tutorial comincia da lì. Si piazza una
+     volta sola: se poi lo si sposta o lo si rimette nel vassoio, resta com'è. */
+  if (!S.bedPlaced) {
+    S.bedPlaced = true;
+    if ((S.furnOwned || []).includes(STARTER_BED_ID) && !placedItemIds().includes(STARTER_BED_ID)) {
+      for (const [gx, gy] of [[2, 2], [7, 2], [2, 4], [7, 4]]) if (tryPlaceFurniture(0, gx, gy, STARTER_BED_ID)) break;
+    }
   }
 }
 export function roomUnlocked(id) {
