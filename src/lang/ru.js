@@ -70,8 +70,8 @@ export const RU = {
   "In the rock: a find!": "В камне: находка!",
   "Aquatic fossil!": "Водная окаменелость!",
   "…nothing. At night the water changes here": "…ничего. Ночью вода здесь меняется",
-  "Caught! 3 luckier digs": "Поймал! 3 удачные раскопки",
-  "Nice fetch! 1 luckier dig": "Отлично! 1 удачная раскопка",
+
+
   "Needs a legendary cave companion": "Нужен легендарный пещерный спутник",
   "Shipped! Pick up tomorrow at the Museum": "Отправлено! Забрать завтра в Музее",
   "Site dug out": "Место раскопано",
@@ -544,8 +544,8 @@ export const RU = {
   /* ---- gioca col compagno (lancia e riporta) ---- */
 
 
-  'Thrown! Press E at the right moment when it comes back (watch the bar over its head)': 'Брошено! Нажми E в нужный момент, когда он вернётся (следи за полоской над головой)',
-  'No open space around you: move and try again': 'Вокруг нет свободного места: отойди и попробуй снова',
+
+
 
   /* ---- missioni ---- */
   'Deliver ': 'Сдайте ',
@@ -627,10 +627,10 @@ export const RU = {
   'Dig: ': 'Копать: ',
   ' · skeleton complete!': ' · скелет собран!',
   'Mission board 📋': 'Доска заданий 📋',
-  'Play with your companion 🐾': 'Поиграть со спутником 🐾',
+
   'Companion & yard 🐾': 'Спутник и двор 🐾',
   'Yard': 'Двор',
-  'Catch it NOW! 🐾': 'Лови СЕЙЧАС! 🐾',
+
   'Toss 1 🪙 into the fountain': 'Бросить 1 🪙 в фонтан',
   'Search the wreck 🚢 (': 'Обыскать обломки 🚢 (',
   'Pick ': 'Подобрать ',

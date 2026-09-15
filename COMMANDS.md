@@ -26,7 +26,6 @@ la partita com'era prima del primo cheat.
 | `play=restore` | ✔ | doppioni al Museo pronti per il restauro |
 | `play=toss` | ✔ | fontana |
 | `play=skeleton` | ✔ | montaggio dello scheletro |
-| `play=fetch` | ✔ | gioca col compagno |
 | `play=egg` / `play=hatch` | ✔ | uovo nel cortile / schiudilo |
 | `play=fuse [rarità]` | ✔ | 3 doppioni da fondere al Lab |
 | `buddy=earth\|water\|tree\|rock\|cave [rarità]` | ✔ | compagno di quel tipo (leggendario di base) |

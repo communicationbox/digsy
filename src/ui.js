@@ -12,7 +12,7 @@ import { weatherAt, weatherLabel } from './weather.js';
 import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
-import { nearbyWonder, useWonder, bagFull, nearbyHarvest, companionPlayable, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal , amberReward } from './gameplay.js';
+import { nearbyWonder, useWonder, bagFull, nearbyHarvest, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal , amberReward } from './gameplay.js';
 import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
@@ -305,16 +305,6 @@ export function updatePrompt() {
     }
     setPrompt(null); return;
   }
-  /* "GIOCA COL COMPAGNO": il prompt deve dire la VERITÀ su cosa fa E in questo istante — con
-     un solo tasto per tutto, un E che non corrisponde a niente (o corrisponde a qualcos'altro)
-     è quello che confonde di più. Durante il round E ha SEMPRE la priorità assoluta (act() la
-     controlla per prima), quindi anche qui viene prima di ogni altro prompt. */
-  if (COMP.play) {
-    setPrompt(COMP.play.phase === 'catch'
-      ? withIcons(actKey() + ' ' + tr('Prendilo AL VOLO! 🐾', 'Catch it NOW! 🐾'))
-      : null); // lancio/inseguimento/ritorno: E non fa niente adesso, meglio tacere che mentire
-    return;
-  }
   { /* MERAVIGLIA: il prompt dice sempre se il dono è pronto o quanto deve riposare */
     const w = nearbyWonder();
     if (w) {
@@ -342,9 +332,6 @@ export function updatePrompt() {
      che ha la precedenza). Su mobile, dove il tasto non si può nemmeno intuire, voleva dire
      restare fuori da casa propria senza sapere come rientrare (segnalato). */
   if (nearbyLockedGate()) { setPrompt(withIcons(actKey() + ' ' + tr('Riapri il cancello 🔓', 'Reopen the gate 🔓'))); return; }
-  /* già ne hai uno pronto? nel cortile si GIOCA invece di riaprire il selettore (stessa
-     priorità di act(): companionPlayable() prima di nearbyYard()) */
-  if (companionPlayable()) { setPrompt(withIcons(actKey() + ' ' + tr('Gioca col compagno 🐾', 'Play with your companion 🐾'))); return; }
   if (nearbyYard()) { setPrompt(withIcons(actKey() + ' ' + tr('Compagno e cortile 🐾', 'Companion & yard 🐾'))); return; }
   if (nearbyDrop()) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli da terra ✨', 'Pick up from the ground ✨'))); return; } // il fossile caduto viene prima della fontana
   if (nearbyFountain()) { setPrompt(withIcons(actKey() + ' ' + tr('Lancia 1 🪙 nella fontana', 'Toss 1 🪙 into the fountain'))); return; }

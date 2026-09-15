@@ -4360,7 +4360,7 @@ sprites.applyLook();
   }
   const keep = S.companion;
   S.companion = S.companion || { key: 'test9', skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'raro' };
-  comp9.resetCompanionTrail(); COMP.job = null; COMP.play = null;
+  comp9.resetCompanionTrail(); COMP.job = null;
   P.x = spot[0] * TS + 16; P.y = spot[1] * TS;
   comp9.updateCompanion(1 / 30, false);
   for (let i = 0; i < 150; i++) { P.y -= 1.2; comp9.updateCompanion(1 / 30, false); }
@@ -5882,114 +5882,6 @@ sprites.applyLook();
   comp.clearCompanion(); COMP.job = null; COMP.fx = []; S.items = []; S.raw = [];
 }
 
-/* ---------- MINIGIOCO #7: gioca col compagno (lancia e riporta) ---------- */
-{
-  const comp = await import('../src/companion.js');
-  const gp = await import('../src/gameplay.js');
-  const world = await import('../src/world.js');
-  const dataN = await import('../src/data.js');
-  const wo = await import('../src/wonders.js');
-  const { COMP } = comp;
-  const terra = dataN.ALL_SPECIES.find(s => (s.src || 'terra') === 'terra');
-  const pet = { skull: terra.id, torso: terra.id, leg: terra.id, q: 'comune', key: 'pet1', name: 'Pet' };
-
-  comp.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  check('senza compagno: non giocabile', gp.companionPlayable() === false);
-
-  comp.setCompanion(pet);
-  /* su terra scavabile e libera vince lo scavo, non si gioca */
-  let gx = null, gy = null;
-  for (let ty = -20; ty <= 20 && gx === null; ty++) for (let tx = -20; tx <= 20; tx++) {
-    if (world.diggable(world.baseTerrain(tx, ty)) && !world.townInfo(tx, ty) && !world.decoAt(tx, ty)) { gx = tx; gy = ty; break; }
-  }
-  P.x = gx * TS + 8; P.y = gy * TS + 8 - 13; COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  check('su terra scavabile: vince lo scavo, non si gioca', gp.companionPlayable() === false);
-
-  /* nel cortile di casa (tryDig lo blocca): si gioca — è la casa naturale del minigioco.
-     `S.home` era stato fissato da un test precedente, ma il blocco `vanilla` qui sopra
-     ripristina lo snapshot pre-cheat (preso PRIMA che la casa esistesse) e se lo porta via:
-     va rifissato. */
-  if (!S.home) {
-    let hTown = null;
-    for (let cx = -14; cx < 14 && !hTown; cx++) for (let cy = -14; cy < 14 && !hTown; cy++) {
-      const t = world.townForCell(cx, cy); if (t && t.size === 'città') hTown = t;
-    }
-    S.home = hTown && world.findHomeSpot(hTown);
-  }
-  const pen = world.yardRect();
-  check('trovato il cortile per il test', !!pen);
-  const px0 = pen.cx, py0 = pen.y1 - 1; // prato aperto a sud della casa (il centro del rettangolo è la casa)
-  P.x = px0 * TS + 8; P.y = py0 * TS + 8 - 13; P.dir = 'down'; COMP.x = P.x; COMP.y = P.y; COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  check('nel cortile: compagno giocabile', gp.companionPlayable() === true);
-  COMP.job = { phase: 'go' }; check('compagno al lavoro: non giocabile', gp.companionPlayable() === false); COMP.job = null;
-  COMP.playCool = 1; check('appena finito un round: pausa, non giocabile', gp.companionPlayable() === false); COMP.playCool = 0;
-
-  /* IL PROMPT DEVE DIRE LA VERITÀ: con un solo tasto per tutto, un E che non fa quello che il
-     prompt dice è la cosa che confonde di più (segnalato). */
-  ui.closeBag(); ui.closeBook(); ui.closeMap(); ui.closeModal(); ui.updatePrompt();
-  const prReady = document.getElementById('prompt').innerHTML || '';
-  check('pronto a giocare: il prompt lo dice ("Gioca")', /Gioca|Play/.test(prReady), prReady.slice(0, 40));
-
-  /* il round intero: lancio → insegue → cattura → torna */
-  const started = gp.playWithCompanion();
-  check('E avvia il lancio', started === true && !!COMP.play && COMP.play.phase === 'throw');
-  for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-  check('dopo il lancio il compagno insegue', COMP.play && COMP.play.phase === 'chase');
-  ui.updatePrompt();
-  check('in inseguimento: niente prompt (E non fa nulla adesso, meglio tacere)', document.getElementById('prompt').style.display === 'none');
-  for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
-  check('raggiunto il bersaglio: finestra di cattura aperta', COMP.play && COMP.play.phase === 'catch');
-  ui.updatePrompt();
-  const prCatch = document.getElementById('prompt').innerHTML || '';
-  check('finestra aperta: il prompt dice di prenderlo AL VOLO', /AL VOLO|NOW/.test(prCatch), prCatch.slice(0, 40));
-
-  /* la finestra d'oro deve premiare un riflesso NATURALE ("lo prendo appena arriva"), non
-     un'attesa deliberata — segnalato: "mi dà sempre bel riporto" perché la finestra era a
-     metà di un secondo di attesa, mentre chi gioca preme presto. ~220ms dopo il "ding" (tempo
-     di reazione realistico) deve bastare. */
-  {
-    const bR = wo.buffLeft('digX2');
-    COMP.play.t = 0.22;
-    const okReflex = gp.tryCatchCompanion();
-    check('un riflesso pronto (~220ms) prende al volo, non solo l\'attesa a metà barra', okReflex === true && wo.buffLeft('digX2') === bR + 3);
-    for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
-    COMP.playCool = 0;
-    check('secondo round: nuovo lancio riuscito', gp.playWithCompanion() === true && !!COMP.play);
-    for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-    for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
-  }
-
-  /* presa PERFETTA (dentro la finestra d'oro) → 3 cariche */
-  const b1 = wo.buffLeft('digX2');
-  COMP.play.t = (gp.PLAY_PERFECT[0] + gp.PLAY_PERFECT[1]) / 2 * gp.PLAY_CATCH;
-  const caught = gp.tryCatchCompanion();
-  check('presa al volo nella finestra d\'oro: 3 cariche di digX2', caught === true && wo.buffLeft('digX2') === b1 + 3 && COMP.play.phase === 'return');
-  for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
-  check('tornato dal player: round chiuso, in pausa', COMP.play === null && COMP.playCool > 0);
-
-  /* mai un fallimento vero: se il tempo scade da solo, torna comunque (1 carica, non zero) */
-  COMP.playCool = 0;
-  check('terzo round: nuovo lancio riuscito', gp.playWithCompanion() === true && !!COMP.play);
-  for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-  for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
-  const b2 = wo.buffLeft('digX2');
-  for (let i = 0; i < 200 && COMP.play && COMP.play.phase === 'catch'; i++) gp.companionPlayTick(1 / 60);
-  check('tempo scaduto: comunque riportato, 1 carica (mai un fallimento vero)', wo.buffLeft('digX2') === b2 + 1 && !!COMP.play && COMP.play.phase === 'return');
-  for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
-
-  /* E durante la finestra di cattura ha SEMPRE priorità in act(), prima di ogni altra cosa */
-  COMP.playCool = 0;
-  check('quarto round: nuovo lancio riuscito', gp.playWithCompanion() === true && !!COMP.play);
-  for (let i = 0; i < 60 && COMP.play && COMP.play.phase === 'throw'; i++) gp.companionPlayTick(1 / 60);
-  for (let i = 0; i < 600 && COMP.play && COMP.play.phase === 'chase'; i++) gp.companionPlayTick(1 / 20);
-  check('finestra aperta: act() la risolve subito', gp.companionPlayable() === false); // il round è già in corso: niente doppio lancio
-  gp.act();
-  check('act() durante la cattura risolve il gioco (E = prendilo)', COMP.play && COMP.play.phase === 'return');
-  for (let i = 0; i < 600 && COMP.play; i++) gp.companionPlayTick(1 / 20);
-  comp.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  delete S.buffs.digX2; // non lasciare cariche in giro per i test dopo di questo
-}
-
 /* ---------- compagno GROTTA leggendario: cavalcatura volante (Fase 2) ---------- */
 {
   const comp = await import('../src/companion.js');
@@ -6738,7 +6630,7 @@ sprites.applyLook();
     const { cam: ccam } = await import('../src/state.js');
     const { FOOT_DY: FD } = await import('../src/body.js');
     if (!S.companion) comp.setCompanion({ skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune', key: 'sp' + SPECIES[0].id, name: 'Prova' });
-    comp.COMP.job = null; comp.COMP.play = null; comp.COMP.init = true;
+    comp.COMP.job = null; comp.COMP.init = true;
     comp.COMP.x = Pl.x + 60; comp.COMP.y = Pl.y;
     const ombre = [];
     const oldFR = cctx.fillRect, oldS = cctx.save, oldR = cctx.restore, oldT = cctx.translate, oldST = cctx.setTransform;
@@ -8280,28 +8172,8 @@ sprites.applyLook();
   ui5.skeletonFitSkip();
 }
 
-/* ---------- COMANDO playcomp: gioca col compagno OVUNQUE (anche senza uno) ---------- */
-{
-  const S = state.S;
-  const cmds6 = await import('../src/commands.js');
-  const comp6 = await import('../src/companion.js');
-  const gp6 = await import('../src/gameplay.js');
-  const { COMP } = comp6;
-  comp6.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  const out6 = cmds6.runCommand('playcomp');
-  check('playcomp senza compagno: te ne dà uno e lancia comunque', !!S.companion && !!COMP.play && COMP.play.phase === 'throw', out6);
-  /* alias, e forza il round anche su terra scavabile (dove il gioco normale non partirebbe) */
-  COMP.job = null; COMP.play = null; COMP.playCool = 0;
-  const out7 = cmds6.runCommand('gioca');
-  check('alias gioca/fetch: parte OVUNQUE (bypassa il controllo del terreno)', !!COMP.play);
-  for (let i = 0; i < 900 && COMP.play; i++) gp6.companionPlayTick(1 / 20); // lascia esaurire il round
-  delete S.buffs.digX2;
-  comp6.clearCompanion(); COMP.job = null; COMP.play = null; COMP.playCool = 0;
-}
-
 /* ---------- il compagno e la staccionata del cortile ----------
-   segnalati con foto: a cancello chiuso il compagno ci passava attraverso, e il cibo lanciato oltre la
-   staccionata lo faceva correre in mezzo alle assi */
+   segnalati con foto: a cancello chiuso il compagno ci passava attraverso, */
 {
   const S = state.S, P = state.P;
   const comp8 = await import('../src/companion.js'), gp8 = await import('../src/gameplay.js');
@@ -8311,7 +8183,7 @@ sprites.applyLook();
   if (yr) {
     const keep = S.companion;
     S.companion = S.companion || { key: 'test8', skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'raro' };
-    COMP.init = true; COMP.job = null; COMP.play = null; COMP.playCool = 0; P.gateWalk = null;
+    COMP.init = true; COMP.job = null; P.gateWalk = null;
     /* 1. il cancello aspetta: Digsy fuori, compagno ancora dentro → resta aperto, niente camminata */
     P.x = yr.cx * TS + 8; P.y = (yr.y1 - 1) * TS + 2; park8.refreshVisParks();
     COMP.x = P.x; COMP.y = P.y;
@@ -8321,18 +8193,7 @@ sprites.applyLook();
     check('uscito anche il compagno: Digsy torna a chiudere', !!P.gateWalk);
     for (let i = 0; i < 200 && P.gateWalk; i++) park8.stepGateWalk(1 / 30);
     P.gateTurnUntil = 0;
-    /* 2. il cibo non vola oltre la staccionata: dentro, addossati al lato ovest, guardando a ovest */
-    P.x = (yr.x0 + 1) * TS + 8; P.y = (yr.y0 + 4) * TS + 2; P.dir = 'left'; COMP.x = P.x + 12; COMP.y = P.y;
-    let fuori = 0, lanci = 0;
-    for (let i = 0; i < 40; i++) {
-      COMP.play = null; COMP.playCool = 0;
-      if (!gp8.playWithCompanion(true)) continue;
-      lanci++;
-      const tx = Math.floor(COMP.play.tx / TS), ty = Math.floor((COMP.play.ty + 13) / TS);
-      if (tx <= yr.x0 || tx >= yr.x1 || ty <= yr.y0 || ty >= yr.y1) fuori++;
-    }
-    check('lanci contro la staccionata: il cibo resta nel cortile (' + fuori + '/' + lanci + ' fuori)', lanci > 0 && fuori === 0);
-    COMP.play = null; COMP.playCool = 0; S.companion = keep;
+    S.companion = keep;
   }
 }
 

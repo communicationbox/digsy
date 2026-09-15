@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.98.9', it: [
+      'COMPAGNO: tolto il gioco del lancio (il tasto azione vicino al compagno faceva troppe cose diverse). Nel cortile il tasto apre di nuovo solo Compagno e cortile',
+    ], en: [
+      'COMPANION: removed the throw-and-fetch game (the action key near your companion did too many different things). In the yard the key opens Companion & yard again',
+    ],
+  },
+  {
     v: 'v0.98.7', it: [
       'COCCOLE: un animaletto in ogni bottega — gatto al Negozio, cane alla Locanda, topolino al Laboratorio, pappagallo dal Barbiere, coniglietto in Sartoria, scoiattolo alla Bottega d\'arredo. Cuoricini, e la prima coccola del giorno regala 1 ⚡',
       'RISVEGLIO: una scena tutta sua (lo scheletro brilla, un lampo, l\'animale salta fuori) e la specie va da sola nel tuo giardino',

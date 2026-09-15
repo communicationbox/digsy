@@ -589,7 +589,6 @@ export function companionGathers() {
 /* passo del raccoglitore: chiamato nel game loop PRIMA di updateCompanion (che segue solo se
    non c'è un job). In grotta/interni non lavora: là il compagno non c'è. */
 export function companionWorkTick(dt) {
-  if (COMP.play) return;               // sta giocando: il raccoglitore aspetta il suo turno
   if (!companionGathers()) { COMP.job = null; return; }
   /* se il player si è ALLONTANATO, molla il lavoro e RAGGIUNGILO (updateCompanion segue quando
      job=null): il raccoglitore lavora SOLO restandoti vicino, così non rimane "piantato" su una
@@ -634,124 +633,6 @@ export function companionWorkTick(dt) {
       mettiPausa(CW.COOL * (CW.SLOW_MIN + Math.random() * (CW.SLOW_MAX - CW.SLOW_MIN)));
     }
   }
-}
-
-/* ---------- MINIGIOCO #7: GIOCA COL COMPAGNO (lancia e riporta) ----------
-   QUALSIASI compagno (non solo i leggendari raccoglitori): lanci, lui/lei corre a riportarlo,
-   e c'è UNA finestra di tempismo per "prenderlo al volo" mentre torna — il timing lo si legge
-   dalla barra che riempie sopra la sua testa (render.js), non è indovinare al buio.
-   Ricompensa: cariche di digX2 (lo stesso buff delle spore del Cerchio di Funghi — niente
-   sistema nuovo). Presa perfetta = 3 cariche, riporto qualsiasi (tardi o scaduto) = 1: MAI un
-   fallimento vero, la fretta è solo quello che dà il bonus, come nel tavolo di preparazione e
-   in "ricomponi lo scheletro".
-   Il CORTILE è la casa naturale di questo minigioco: lì non si scava (tryDig lo blocca),
-   quindi E è libero — ma nearbyYard() apre ANCHE il selettore del compagno, e quello ha già
-   diritto su E. Si dà priorità al gioco SOLO se hai già un compagno pronto: altrimenti (nessun
-   compagno, o sta ancora lavorando/riposando dal round precedente) resta il selettore, come
-   prima. */
-/* esportate: render.js le usa per disegnare l'arco del lancio e la barra di tempismo alla
-   STESSA scala di questi numeri — due copie separate sarebbero potute divergere in silenzio */
-export const PLAY_THROW = 0.35, PLAY_CHASE = 150, PLAY_CATCH = 1.05, PLAY_COOL = 2.5;
-/* finestra d'oro dentro il tempo di cattura (frazione 0..1). PRESTO e LARGA di proposito:
-   l'istinto naturale è premere E APPENA il compagno arriva (non a metà di un secondo di
-   attesa) — un giocatore l'ha segnalato ("mi dà sempre bel riporto"). La finestra ora parte
-   quasi subito e copre un terzo abbondante della barra, più uno "ding" (sfx) al suo inizio:
-   il tempismo resta una sfida (non è premere a caso), ma è allineato a come si gioca davvero. */
-export const PLAY_PERFECT = [0.12, 0.48];
-/* `ignoreTile`=true salta il controllo "si scava qui" — usato dal comando console `playcomp`
-   per provare il minigioco ovunque, senza dover prima cercare un parco */
-export function companionPlayable(ignoreTile) {
-  if (!S.companion || isMounted() || CAVE.active || INT.active || CUT.on) return false;
-  if (COMP.job || COMP.play || COMP.playCool > 0) return false;
-  if (!ignoreTile) {
-    const { tx, ty } = digTarget(), key = tx + ',' + ty;
-    if (!townInfo(tx, ty) && !yardInfo(tx, ty) && diggable(baseTerrain(tx, ty)) && !dugSet.has(key)) return false; // si scava qui: vince lo scavo
-  }
-  return true;
-}
-/* il punto d'arrivo libero non basta: il compagno corre in LINEA RETTA fino al cibo e poi torna
-   da Digsy, quindi anche le due strade devono essere libere. Il cibo lanciato oltre la staccionata
-   del cortile atterrava su prato libero e la creatura ci passava in mezzo (segnalato). */
-function segmentClear(x0, y0, x1, y1) {
-  const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 4);
-  for (let i = 1; i <= n; i++) {           // il punto di partenza è dove si sta già
-    const k = i / n;
-    if (!passable(x0 + (x1 - x0) * k, y0 + (y1 - y0) * k + FOOT_DY)) return false;   // i piedi: una staccionata è una casella intera
-  }
-  return true;
-}
-function throwClear(cx, cy) {
-  const near = COMP.init && Math.hypot(COMP.x - P.x, COMP.y - P.y) < TS * 4;   // appena scelto: ricompare accanto a Digsy
-  if (bodyHits(cx, cy, (px, py) => !passable(px, py))) return false;
-  return segmentClear(P.x, P.y, cx, cy) && (!near || segmentClear(COMP.x, COMP.y, cx, cy));
-}
-/* lancia l'oggetto davanti a te (con un po' di spargimento): il compagno lo insegue */
-export function playWithCompanion(ignoreTile) {
-  if (!companionPlayable(ignoreTile)) return false;
-  const dv = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[P.dir] || [0, 1];
-  const base = Math.atan2(dv[1], dv[0]);
-  let tx = null, ty = null;
-  /* prima un lancio "vero" (davanti a te, lontano): ma il cortile di casa (M5, la casa
-     naturale di questo minigioco) è un rettangolo piccolo — stando vicino a una staccionata
-     un lancio lungo può cadere FUORI (recinto solido) e restare senza spazio libero nei 6
-     tentativi, un fallimento silenzioso e capriccioso (segnalato: gioco non deterministico).
-     Ripiego su un tiro CORTO, in QUALSIASI direzione libera (spread pieno): dentro un
-     cortile 10×8 c'è sempre un metro libero da qualche parte. */
-  for (let i = 0; i < 6 && tx == null; i++) {
-    const ang = base + (Math.random() - 0.5) * 0.9, dist = 46 + Math.random() * 30;
-    const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
-    if (throwClear(cx, cy)) { tx = cx; ty = cy; }
-  }
-  for (let i = 0; i < 10 && tx == null; i++) {
-    const ang = Math.random() * Math.PI * 2, dist = 18 + Math.random() * 20;
-    const cx = P.x + Math.cos(ang) * dist, cy = P.y + Math.sin(ang) * dist;
-    if (throwClear(cx, cy)) { tx = cx; ty = cy; }
-  }
-  if (tx == null) return false; // niente spazio libero attorno: pazienza, ci si riprova
-  COMP.play = { phase: 'throw', t: 0, tx, ty };
-  playSfx('click');
-  return true;
-}
-/* risolve la cattura: `auto`=true quando scade il tempo da sola (nessuna penalità, solo il
-   bonus minore) — MAI chiamata due volte per lo stesso round (il chiamante controlla la fase) */
-function finishCompanionCatch(auto) {
-  const pl = COMP.play; if (!pl || pl.phase !== 'catch') return;
-  const frac = pl.t / PLAY_CATCH;
-  const perfect = !auto && frac >= PLAY_PERFECT[0] && frac <= PLAY_PERFECT[1];
-  addBuff('digX2', perfect ? 3 : 1);
-  playSfx(perfect ? 'found' : 'click');
-  toast('🐾 ' + (perfect
-    ? tr('Preso! 3 scavi più fortunati', 'Caught! 3 luckier digs')
-    : tr('Bel riporto! 1 scavo più fortunato', 'Nice fetch! 1 luckier dig')));
-  pl.phase = 'return'; pl.t = 0;
-}
-/* E durante la finestra di cattura: SEMPRE prioritario su ogni altra azione (chiamato in cima
-   ad act(), come isMounted()) — un compagno che sta per prendere l'oggetto non aspetta */
-export function tryCatchCompanion() {
-  const pl = COMP.play; if (!pl || pl.phase !== 'catch') return false;
-  finishCompanionCatch(false);
-  return true;
-}
-/* passo del minigioco: chiamato nel game loop come companionWorkTick, PRIMA di updateCompanion
-   (che segue solo a play=null) */
-export function companionPlayTick(dt) {
-  if (COMP.playCool > 0) COMP.playCool = Math.max(0, COMP.playCool - dt);
-  const pl = COMP.play; if (!pl) return;
-  pl.t += dt;
-  if (pl.phase === 'throw') { if (pl.t >= PLAY_THROW) { pl.phase = 'chase'; pl.t = 0; } return; }
-  if (pl.phase === 'chase' || pl.phase === 'return') {
-    const gx = pl.phase === 'chase' ? pl.tx : P.x, gy = pl.phase === 'chase' ? pl.ty : P.y + 6;
-    const dx = gx - COMP.x, dy = gy - COMP.y, d = Math.hypot(dx, dy) || 1;
-    const step = Math.min(d, PLAY_CHASE * dt);
-    COMP.x += dx / d * step; COMP.y += dy / d * step; COMP.anim += dt;
-    if (Math.abs(dx) > 2) COMP.face = dx < 0 ? 'left' : 'right';
-    if (d < (pl.phase === 'chase' ? 4 : 10)) {
-      if (pl.phase === 'chase') { pl.phase = 'catch'; pl.t = 0; playSfx('click'); } // "ding": ORA si può prendere
-      else { COMP.play = null; COMP.playCool = PLAY_COOL; }
-    }
-    return;
-  }
-  if (pl.phase === 'catch' && pl.t >= PLAY_CATCH) finishCompanionCatch(true);
 }
 
 /* ---------- COMPAGNO LEGGENDARIO DI GROTTA: cavalcatura volante (Fase 2) ----------
@@ -1193,14 +1074,6 @@ export function act() {
      nessuno poteva più far avanzare — un limbo da cui si usciva solo ricaricando (segnalato
      con foto). La scenetta si fa avanzare col clic, che ha già la sua strada (cutAdvance). */
   if (CUT.on) return;
-  /* il compagno che sta per prendere il riporto NON aspetta: se c'è una finestra di cattura
-     aperta, E vale sempre "prendilo", prima di ogni altra cosa vicina */
-  if (tryCatchCompanion()) return;
-  /* il round è in corso ma non ancora catturabile (lancio/inseguimento/ritorno): E non deve
-     "sfuggire" ad altro (riaprire il selettore del parco, scavare) — resta in attesa, muto,
-     come premere E un attimo troppo presto. Senza questo un E impaziente durante l'inseguimento
-     apriva il pannello del compagno SOPRA al round ancora in corso. */
-  if (COMP.play) return;
   if (isMounted()) { toast('🐾 ' + tr('In volo non si scava', "No digging while flying")); return; } // la cavalcatura serve solo a spostarsi
   if (CAVE.active) { // in grotta: scava i giacimenti luminosi
     const r = digCave();
@@ -1251,7 +1124,6 @@ export function act() {
   if (nearbyMailbox()) { openMailbox(); return; } // cassetta: spedisci i grezzi al Museo
   /* già ne hai uno pronto? nel parco si GIOCA invece di riaprire il selettore (che resta per
      chi non ha ancora scelto, o mentre il compagno lavora/riposa dal round precedente) */
-  if (companionPlayable()) { if (playWithCompanion()) return; }
   if (nearbyYard()) { openCompanionPicker(); return; } // cortile: scegli compagno e cortile
   if (nearbyBoneSite()) { digBoneSite(); return; }
   if (nearbySite()) { digSite(); return; }

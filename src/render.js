@@ -10,7 +10,7 @@ import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTer
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
-import { siteRemaining, onBoat, footGear, waterTile, isMounted, PLAY_THROW, PLAY_CATCH, PLAY_PERFECT, boneSiteDug } from './gameplay.js';
+import { siteRemaining, onBoat, footGear, waterTile, isMounted, boneSiteDug } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
 import { drawHero, setHeroTime } from './sprites.js';
 import { GRIP } from './bodyArt.js';
@@ -330,30 +330,6 @@ function drawCompanionFx(cam, time) {
     rect(gx - 1, gy - 1, 2, 2, w); rect(gx - 3, gy - 1, 2, 2, w2); rect(gx + 1, gy - 1, 2, 2, w2); rect(gx - 1, gy - 3, 2, 2, w2); // ossino "+"
     if (a > 0.4) rect(gx - 1, gy - 5, 2, 2, COMP_RARCOL[p.q] || '#e8d9b0');                                                        // scintilla rarità
   }
-}
-/* MINIGIOCO "gioca col compagno": pallina lanciata con un arco, ferma dove atterra finché il
-   compagno non arriva, e la barra di TEMPISMO sopra la sua testa quando è il momento di
-   prenderla al volo — la zona d'oro (dove scatta il bonus pieno) SI VEDE, un cursore bianco
-   la attraversa: non è indovinare al buio, è leggere il momento giusto. Coordinate schermo
-   (cxs/cys = compagno già -cam, come il resto del blocco che lo disegna). */
-function drawCompanionPlay(cxs, cys, cam, time) {
-  /* FASE 2: nativa — palla a blocchi 2×2, arco/soglia raddoppiati, barra di tempismo più larga. */
-  const pl = COMP.play; if (!pl) return;
-  let bx, by;
-  if (pl.phase === 'throw') {
-    const f = Math.min(1, pl.t / PLAY_THROW), arc = Math.sin(f * Math.PI) * 64;
-    bx = snap(P.x + (pl.tx - P.x) * f - cam.x); by = snap(P.y + (pl.ty - P.y) * f - cam.y - arc);
-  } else if (pl.phase === 'chase' || pl.phase === 'catch') {
-    bx = snap(pl.tx - cam.x); by = snap(pl.ty - cam.y + (Math.sin(time / 140) > 0 ? -4 : 0)); // un filo di vita mentre aspetta
-  } else { bx = cxs; by = cys - 72; } // 'return': il compagno se la porta dietro
-  rect(bx - 1, by - 1, 2, 2, '#e8763c'); rect(bx - 3, by - 1, 2, 2, '#c65a2e'); rect(bx + 1, by - 1, 2, 2, '#c65a2e'); rect(bx - 1, by - 3, 2, 2, '#f2935c'); rect(bx - 1, by + 1, 2, 2, '#a8451f');
-  if (pl.phase !== 'catch') return;
-  const W = 64, H = 12, x0 = cxs - W / 2, y0 = cys - 104;
-  rect(x0 - 4, y0 - 4, W + 8, H + 8, '#2a2115');                     // cornice
-  rect(x0, y0, W, H, '#4a3a26');                                     // fondo
-  rect(x0 + PLAY_PERFECT[0] * W, y0, (PLAY_PERFECT[1] - PLAY_PERFECT[0]) * W, H, '#c79a3c'); // zona d'oro
-  const cur = x0 + Math.min(1, pl.t / PLAY_CATCH) * W;
-  rect(Math.round(cur), y0 - 2, 2, H + 4, '#fff');                   // cursore: dove sei ORA
 }
 /* MERAVIGLIE: il disegno vive in wonderart.js (modulo puro) così si può guardare e
    rifinire anche fuori dal gioco, nella pagina /wonders. */
@@ -1756,7 +1732,6 @@ export function render(time) {
         drawCreature(compObj, cxs - 16 + lx, cys - 26, cswim);
       }
       drawCompanionWork(cxs, cys, time, compObj);
-      drawCompanionPlay(cxs, cys, cam, time);
     } });
   }
   drawCompanionFx(cam, time);   // "+fossile" che salgono dal raccoglitore (sopra tutto)

@@ -390,7 +390,7 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   `render.js` ora usa `caveCam()` invece di ricopiarne la formula (le due erano divergute).
 - **Console comandi** (`\`, `commands.js`): ~20 comandi in inglese corto raggruppati
   (`money/energy/day/speed/heal`, `season/time/weather/market`, `god[=parte]`, `go=meta|bioma`,
-  `play=prep|restore|toss|skeleton|fetch|egg|hatch|fuse`, `buddy=tipo`, `mount/chimera/fly/stress`,
+  `play=prep|restore|toss|skeleton|egg|hatch|fuse`, `buddy=tipo`, `mount/chimera/fly/stress`,
   **`vanilla`** annulla i cheat via snapshot). Aiuto nella lingua del gioco, VALORI in italiano o
   inglese. I nomi vecchi (`godmode`, `goto`, `prep`, `meteo`…) restano in `LEGACY`, riscritti nel
   comando nuovo e fuori da `help`: promo/shot/test li usano ancora. Doc in `COMMANDS.md`.

@@ -47,7 +47,7 @@ import { TS, ZONES, SPECIES, ALL_SPECIES, MUSEUM_ZONES, PARTS, zonePools, THEMED
 import { isDebug, setDebug } from './debug.js';
 import { vhash } from './noise.js';
 import { TRACKS, TROPHY_HATS } from './achievements.js';
-import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers, playWithCompanion } from './gameplay.js';
+import { debugSpawnAll, chimeraName, companionRides, isMounted, toggleMount, companionGathers } from './gameplay.js';
 import { setCompanion, COMP } from './companion.js';
 import { zoneAt } from './regions.js';
 import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL, boneSiteForCell, BCELL, isSolidTile, yardRect, hasMuseum } from './world.js';
@@ -450,18 +450,6 @@ const OLD = {
       return ok ? '🐾 ' + tr('In groppa a ', 'Riding ') + sp.name + ' — ' + tr('vola sulla mappa (dallo zaino per scendere)', 'fly over the map (land from the bag)')
         : '🕳️ ' + tr('In grotta non si vola: esci prima', 'No flying in caves: leave first');
     } },
-  /* MINIGIOCO #7 — gioca col compagno (lancia e riporta): se non ne hai uno te ne dà uno al
-     volo, e forza il round OVUNQUE (in gioco parte solo dove non si scava, tipo il parco) */
-  playcomp: { aliases: ['gioca', 'fetch'], type: 'action', cheat: true,
-    help: 'playcomp — gioca col compagno (lancia e riporta): se non ne hai uno te ne dà uno',
-    run: () => {
-      if (!S.companion) spawnCompanion('terra', 'comune');
-      COMP.job = null; COMP.play = null; COMP.playCool = 0;
-      const ok = playWithCompanion(true);   // ignoreTile: si prova ovunque, non solo nel parco
-      return ok ? '🐾 ' + tr('Lanciato! Premi E al momento giusto quando torna (guarda la barra sopra la sua testa)',
-                             'Thrown! Press E at the right moment when it comes back (watch the bar over its head)')
-                : tr('Niente spazio libero attorno a te: spostati e riprova', 'No open space around you: move and try again');
-    } },
   chimera: { aliases: ['chimere'], type: 'action', cheat: true,
     help: 'chimera — crea una chimera di prova (parco + scelta come compagno)',
     run: () => {
@@ -587,7 +575,7 @@ const pick = (map, v) => { const k = String(v || '').toLowerCase(); for (const [
 const SEASON_V = { 0: ['spring', 'primavera', '0'], 1: ['summer', 'estate', '1'], 2: ['autumn', 'fall', 'autunno', '2'], 3: ['winter', 'inverno', '3'] };
 const GOD_V = { all: ['', 'all', 'tutto'], items: ['items', 'oggetti', 'fossili'], dna: ['dna'], amber: ['amber', 'ambra'], letters: ['letters', 'lettere'], furn: ['furniture', 'furn', 'arredo'], trophies: ['trophies', 'trofei', 'traguardi'] };
 const GO_V = { city: ['city', 'città', 'citta', 'museum', 'museo'], park: ['park', 'yard', 'home', 'parco', 'cortile', 'casa'], site: ['site', 'sito'], water: ['water', 'acqua', 'mare'], wreck: ['wreck', 'relitto'], wonder: ['wonder', 'meraviglia', 'landmark'], bones: ['bones', 'ossa', 'scheletro'], cave: ['cave', 'grotta'], next: ['next', 'tour', 'prossimo'] };
-const PLAY_V = { prep: ['prep', 'restauro'], restore: ['restore', 'ritiro'], toss: ['toss', 'fountain', 'fontana'], skeleton: ['skeleton', 'scheletro'], fetch: ['fetch', 'riporto'], egg: ['egg', 'uovo'], hatch: ['hatch', 'schiudi'], fuse: ['fuse', 'fondi', 'doppioni'] };
+const PLAY_V = { prep: ['prep', 'restauro'], restore: ['restore', 'ritiro'], toss: ['toss', 'fountain', 'fontana'], skeleton: ['skeleton', 'scheletro'], egg: ['egg', 'uovo'], hatch: ['hatch', 'schiudi'], fuse: ['fuse', 'fondi', 'doppioni'] };
 const TIME_V = { night: ['night', 'notte'], dawn: ['dawn', 'alba'], day: ['day', 'giorno', 'noon', 'mezzogiorno'] };
 const WEATHER_V = { rain: ['rain', 'pioggia'], sandstorm: ['sandstorm', 'sabbia'], fog: ['fog', 'nebbia'], ash: ['ash', 'cenere'], snow: ['snow', 'neve'], clear: ['clear', 'sereno'], off: ['off', 'auto'] };
 const MARKET_V = { basso: ['low', 'basso'], normale: ['normal', 'normale'], alto: ['high', 'alto'], record: ['record'], off: ['off', 'auto'] };
@@ -632,7 +620,7 @@ export const COMMANDS = {
     run: v => {
       const [w, extra] = String(v).split(/\s+/);
       const k = pick(PLAY_V, w), rar = pick(RAR_V, extra);
-      const f = { prep: OLD.prep, restore: OLD.museo, toss: OLD.toss, skeleton: OLD.skfit, fetch: OLD.playcomp, egg: OLD.layegg, hatch: OLD.hatchegg, fuse: OLD.dupes }[k];
+      const f = { prep: OLD.prep, restore: OLD.museo, toss: OLD.toss, skeleton: OLD.skfit, egg: OLD.layegg, hatch: OLD.hatchegg, fuse: OLD.dupes }[k];
       return f ? f.run(rar || undefined) : tr('Prove: ', 'Tries: ') + words(PLAY_V);
     } },
   buddy: { type: 'str', cheat: true, help: H('buddy=' + words(BUDDY_V) + ' [rarity]', 'compagno di quel tipo (leggendario se non dici)', 'companion of that type (legendary by default)'),
@@ -657,7 +645,7 @@ const LEGACY = {
   gotowreck: 'go=wreck', gotolandmark: 'go=wonder', goland: 'go=wonder', gotobone: 'go=bones', bonesite: 'go=bones', sepolto: 'go=bones', tour: 'go=next', explore: 'go=next', esplora: 'go=next',
   museo: 'play=restore', museum: 'play=restore', gotomuseum: 'play=restore', prep: 'play=prep $', minigioco: 'play=prep $', minigame: 'play=prep $', tavolo: 'play=prep $',
   toss: 'play=toss', fontana: 'play=toss', fountain: 'play=toss', skfit: 'play=skeleton', scheletro: 'play=skeleton', montaggio: 'play=skeleton',
-  dupes: 'play=fuse $', doppioni: 'play=fuse $', fuse: 'play=fuse $', fondi: 'play=fuse $', playcomp: 'play=fetch', gioca: 'play=fetch', fetch: 'play=fetch',
+  dupes: 'play=fuse $', doppioni: 'play=fuse $', fuse: 'play=fuse $', fondi: 'play=fuse $',
   layegg: 'play=egg', uovo: 'play=egg', breed: 'play=egg', hatchegg: 'play=hatch', schiudi: 'play=hatch',
   night: 'time=night', notte: 'time=night', dawn: 'time=dawn', alba: 'time=dawn', compagno: 'buddy=$', buddyinfo: 'info', compinfo: 'info', 'comp?': 'info',
   cavalca: 'mount', ride: 'mount', chimere: 'chimera', reset: 'vanilla', ungod: 'vanilla', storia: 'intro', story: 'intro', gotocity: 'go=city',

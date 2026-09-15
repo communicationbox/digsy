@@ -5,7 +5,7 @@ import { fit, view } from './screen.js';
 import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
-import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, companionPlayTick, isMounted } from './gameplay.js';
+import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
 import { updateCompanion } from './companion.js';
 import { playIntro, introActive } from './intro.js';
 import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending, showIdleWelcome } from './ui.js';
@@ -190,7 +190,6 @@ function loop(ts) {
     walk(dt);
     checkStatueArrival();            // toccata la statua da lontano: si apre all'arrivo
     companionWorkTick(dt);  // raccoglitore leggendario: se lavora, guida lui il movimento
-    companionPlayTick(dt);  // "gioca col compagno": lancio, corsa, finestra di cattura
     updateCompanion(dt, isMounted());    // in volo resta incollato; a terra insegue il player
     if (!isMounted()) {               // in volo si SORVOLA: per entrare scendi (tasto cavalcatura)
       checkDoorEnter(); // pestare una porta = entrare (niente E)
