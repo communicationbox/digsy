@@ -150,7 +150,7 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'museo-sala') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('godmode').then(function(){ return G.cmd('godamber'); }).then(function(){ return G.debug(false); }).then(function(){ return G.enterRoom('museum'); }).then(function(){
         var pos = new URLSearchParams(location.search).get('pos') || 'sala';
-        var xy = pos === 'atrio' ? [30, 55] : pos === 'grotte' ? [30, 9] : pos === 'targa' ? [15, 44] : [15, 52];
+        var xy = pos === 'atrio' ? [20, 59] : pos === 'rotonda' ? [20, 48] : pos === 'grotte' ? [20, 5] : pos === 'corridoio' ? [20, 35] : pos === 'targa' ? [16, 35] : [8, 35];
         return G.intPos(xy[0], xy[1]);
       }).then(function(){ if(G.frame) G.frame(1000); }); }
     /* 'edifici' = gli esterni di tutti gli edifici in griglia, di giorno e di notte */

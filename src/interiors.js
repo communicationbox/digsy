@@ -6,16 +6,17 @@ import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools, FURN_BY_ID, PEDESTAL
 import { drawFurnPiece, drawGroundTile, drawPaperBand, furnRise, roomDefault, furnRotatable } from './furnArt.js';
 import { drawReturnPortal } from './render.js'; // ciclo sicuro: chiamata solo a runtime, come drawInteriorScene(render.js→interiors.js)
 import { S, P } from './state.js';
+import { isWall, areaAt, roomBox, roomDoor, ROT, ATRIO, CAVE_Y1 } from './museumPlan.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
-import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot } from './interior.js';
+import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
-import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
+import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawMuseumSign, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
 import { EMAP, iconPaths } from './icons.js';
 import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps, drawMuseumPet} from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
-import { composedPartsVox, shadeHex } from './bones.js';
+import { composedPartsVox, shadeHex, buildVoxels, baseSpec } from './bones.js';
 import { zoneName } from './i18n.js';
 import { zoneIdxAt } from './regions.js';
 import { INT_WOOD, night } from './tiles.js';
@@ -63,6 +64,38 @@ export function exhibitSprite(spId, parts) {
   } catch (e) { cv = null; /* stub nei test */ }
   exCache.set(key, cv); return cv;
 }
+/* LO SCHELETRO MONTATO dell'atrio: la specie LEGGENDARIA della zona in cui sta il museo,
+   costruita con lo stesso `buildVoxels` del Libro e proiettata a voxel DOPPI, così si legge
+   da lontano ed è alta il doppio del giocatore. Disegnare a mano un animale nuovo avrebbe
+   voluto dire mettere in sala una bestia che nel gioco non esiste (sembrava un diplodoco, e
+   qui di dinosauri non se ne scavano). Cache per specie: il modello non cambia mai. */
+const cpCache = new Map();
+export function centrepieceSprite() {
+  const zi = zoneIdxAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
+  const z = MUSEUM_ZONES[zi] || MUSEUM_ZONES[0];
+  const pool = zonePools[z.id] || [];
+  const sp = pool.find(s => s.r === 'leggendario') || pool[pool.length - 1];
+  if (!sp) return null;
+  let cv = cpCache.get(sp.id); if (cv !== undefined) return cv;
+  cv = null;
+  try {
+    const vox = buildVoxels(baseSpec(sp)), S2 = 2;
+    let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
+    for (const v of vox) { mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z); }
+    cv = document.createElement('canvas');
+    cv.width = (mxx - mnx + 1) * S2 + 8; cv.height = (mxy - mny + 1) * S2 + 8;
+    const c2 = cv.getContext('2d'); const zr = Math.max(1, mxz - mnz);
+    for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
+      const zt = (v.z - mnz) / zr;
+      c2.fillStyle = v.k === 'eye' ? '#201a14' : zt < 0.34 ? '#9a9283' : zt < 0.67 ? '#ded7c7' : '#fffdf5';
+      c2.fillRect(4 + (v.x - mnx) * S2, 4 + (mxy - v.y) * S2, S2, S2);
+    }
+    /* contorno DOPPIO: su un pavimento di marmo chiaro un filo di un pixel sparisce e le ossa
+       bianche si sciolgono nel fondo (visto in foto). Due passate = un profilo che si legge. */
+    outlineSprite(cv, '#1c160f'); outlineSprite(cv, '#1c160f');
+  } catch (e) { cv = null; /* stub nei test */ }
+  cpCache.set(sp.id, cv); return cv;
+}
 /* contorno scuro AGGRAPPATO ALLA SAGOMA (non un rettangolo pieno dietro l'intera canvas):
    un mobile piccolo o sottile (lampada, vaso) in una canvas 30×30 quasi trasparente si
    ritrovava un enorme riquadro nero attorno — l'INGOMBRO della canvas, non la sua forma
@@ -98,196 +131,208 @@ export function drawMuseumGallery(time) {
   /* camera ancorata alla griglia dei pixel FISICI (come nel mondo): niente scatti */
   const camx = snap(rw <= W ? (rw - W) / 2 : Math.max(0, Math.min(rw - W, INT.x - W / 2)));
   /* cutscene: NIENTE clamp basso — alzo l'inquadratura così il player e la consegna
-     stanno nella fascia visibile fra le bande cinema (il vuoto sotto è coperto dal parquet) */
+     stanno nella fascia visibile fra le bande cinema */
   const camy = CUT.on
-    ? snap(Math.max(0, INT.y - Math.round(H * 0.72))) // consegna a ~3/4: sopra la banda inferiore
-    : snap(galleryCamY(H, rh));                       // stessa formula usata dal tocco
+    ? snap(Math.max(0, INT.y - Math.round(H * 0.72)))
+    : snap(galleryCamY(H, rh));
   ctx.save(); ctx.translate(-camx, -camy);
-  rect(camx, camy, W, H, '#c2af88'); // base parquet a tutto schermo: nessun vuoto nero fuori dalla galleria
-  const t0x = Math.max(0, Math.floor(camx / TS) - 1), t1x = Math.min(INT.w, Math.ceil((camx + W) / TS) + 1);
-  const t0y = Math.max(0, Math.floor(camy / TS) - 1), t1y = Math.min(INT.h, Math.ceil((camy + H) / TS) + 1);
-  /* PAVIMENTO (museumArt.js): marmo nei corridoi, parquet a spina di pesce dentro le sale */
-  const inRoom = (tx, ty) => MUSEUM_ZONES.some((z, zi) => { const o = roomOrigin(zi); return tx >= o.rx && tx < o.rx + ROOM_W && ty >= o.ry && ty < o.ry + ROOM_H; });
+  rect(camx, camy, W, H, '#1a1510');                  // fuori dall'edificio: buio, non parquet
+  const t0x = Math.max(-1, Math.floor(camx / TS) - 1), t1x = Math.min(INT.w + 1, Math.ceil((camx + W) / TS) + 2);
+  const t0y = Math.max(-1, Math.floor(camy / TS) - 1), t1y = Math.min(INT.h + 2, Math.ceil((camy + H) / TS) + 2);
+  /* --------- PAVIMENTI: marmo negli spazi comuni, materiale proprio in ogni ala --------- */
+  const wingOf = a => a.startsWith('sala') ? +a.slice(4) : a === 'grotte' ? 6 : -1;
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
-    if (inRoom(tx, ty)) drawParquetTile(BRUSH, tx, ty); else drawMarbleTile(BRUSH, tx, ty);
+    const a = areaAt(tx, ty);
+    if (a === 'muro') continue;
+    const wi = wingOf(a);
+    if (wi >= 0) drawWingFloor(BRUSH, tx, ty, wi); else drawMarbleTile(BRUSH, tx, ty);
   }
-  /* guida rossa lungo il corridoio centrale, dal bancone fino in fondo */
-  { const cxg = (INT.w / 2) * TS;
-    rect(cxg - 20, 2 * TS, 40, GAL_DESK.y0 - 2 * TS - 12, '#5c2a26'); rect(cxg - 18, 2 * TS, 36, GAL_DESK.y0 - 2 * TS - 12, '#a8453c');
-    rect(cxg - 14, 2 * TS, 2, GAL_DESK.y0 - 2 * TS - 12, '#c9a227'); rect(cxg + 12, 2 * TS, 2, GAL_DESK.y0 - 2 * TS - 12, '#c9a227'); }
-  /* SALE per bioma: ognuna con tappeto del colore del bioma, cornice a mosaico,
-     stendardo sulla parete di fondo, colonne agli angoli, panche e piante */
-  const roomCols = [];                                   // colonne delle sale: vanno in ordine di profondità
+  /* passatoia rossa: dalla porta, attraverso la rotonda, su per il corridoio. È il filo che
+     dice dove andare in un edificio grande. */
+  { const cxg = Math.floor(INT.w / 2) * TS + TS / 2;
+    /* due tratti: il corridoio delle sale e l'ingresso. Dentro la rotonda si ferma: là comanda
+       il medaglione di marmo, una passatoia che lo taglia in due lo rovina. */
+    const tratti = [[(CAVE_Y1 + 1) * TS, ROT.y0 * TS + TS], [ROT.y1 * TS, rh - TS]];
+    for (const [y0r, y1r] of tratti) {
+      rect(cxg - 22, y0r, 44, y1r - y0r, '#5c2a26'); rect(cxg - 20, y0r, 40, y1r - y0r, '#a8453c');
+      rect(cxg - 16, y0r, 2, y1r - y0r, '#c9a227'); rect(cxg + 14, y0r, 2, y1r - y0r, '#c9a227');
+    } }
+  /* lucernari: rotonda e sale — il soffitto alto non si può disegnare, la luce sì */
+  /* MEDAGLIONE della rotonda: un tondo di marmo intarsiato sotto lo scheletro. È il segno che
+     dice "questo è il centro del museo" prima ancora di alzare gli occhi sul pezzo grosso.
+     Disegnato a fasce PIENE (un anello di puntini si legge come sporco, non come intarsio). */
+  { const mcx = CENTRO.x, mcy = CENTRO.y - 10, R = 5.4 * TS, K = 0.6;
+    const disco = (rr, col) => { for (let dy = -Math.ceil(rr * K); dy <= rr * K; dy++) {
+      const w2 = Math.round(rr * Math.sqrt(Math.max(0, 1 - (dy / (rr * K)) * (dy / (rr * K)))));
+      rect(mcx - w2, mcy + dy, w2 * 2, 1, col);
+    } };
+    disco(R, '#b3a78c'); disco(R - 3, '#efe7d4'); disco(R - 26, '#c9a227'); disco(R - 29, '#dcd2b8'); disco(R - 52, '#e9e1cc');
+    for (let a2 = 0; a2 < 360; a2 += 30) {                                 // raggi dell'intarsio
+      const ca = Math.cos(a2 * Math.PI / 180), sa = Math.sin(a2 * Math.PI / 180) * K;
+      for (let r2 = R - 50; r2 < R - 28; r2 += 2) rect(Math.round(mcx + ca * r2), Math.round(mcy + sa * r2), 2, 2, '#c4b99d');
+    } }
+  drawSkylight(BRUSH, Math.floor(INT.w / 2) * TS, (ROT.y0 + 7) * TS, 20 * TS, 11 * TS);
   MUSEUM_ZONES.forEach((z, zi) => {
-    const { rx, ry } = roomOrigin(zi);
-    const x0 = rx * TS, y0 = ry * TS, wpx = ROOM_W * TS, hpx = ROOM_H * TS;
-    if (x0 - camx > W + 60 || x0 + wpx - camx < -60 || y0 - camy > H + 120 || y0 + hpx - camy < -60) return; // fuori vista
-    const col = WING_COL[zi];
-    drawRoomFloor(BRUSH, x0, y0, wpx, hpx, col, time);
-    for (const [cx0, cy0] of [[x0 + 14, y0 + 34], [x0 + wpx - 14, y0 + 34], [x0 + 14, y0 + hpx - 4], [x0 + wpx - 14, y0 + hpx - 4]]) roomCols.push([cx0, cy0]);
-    /* luce calda del lampadario al centro della sala */
-    ctx.fillStyle = 'rgba(255,220,140,.07)'; ctx.fillRect(x0 + wpx / 2 - 90, y0 + 40, 180, hpx - 60);
-    for (const benchx of [x0 + wpx / 2 - 64, x0 + wpx / 2 + 16]) drawBench(BRUSH, benchx, y0 + hpx - 30, col);
-    /* cordoni d'ottone lungo la passatoia: il segno che si sta guardando una collezione */
-    for (const ry2 of [y0 + 88, y0 + hpx - 132]) {
-      drawRope(BRUSH, x0 + wpx / 2 - 84, x0 + wpx / 2 - 44, ry2, col);
-      drawRope(BRUSH, x0 + wpx / 2 + 44, x0 + wpx / 2 + 84, ry2, col);
-    }
-    /* TARGA della sala: icona del bioma, nome e quante specie hai esposto. Senza, le sei sale
-       sono indistinguibili e non si capisce a quale zona appartengano le teche. */
-    {
-      const pool = zonePools[z.id] || [];
-      const done = pool.filter(sp => (S.museum[sp.id] || []).length === PARTS.length).length;
-      const label = zoneName(z.id).toUpperCase(), sub = done + '/' + pool.length;
-      ctx.font = '700 9px ui-monospace, Menlo, monospace'; ctx.textBaseline = 'top';
-      /* measureText può non esserci (o non ritornare nulla) fuori dal browser: fallback sempre */
-      const wOf = t => { const m = ctx.measureText && ctx.measureText(t); return Math.ceil((m && m.width) || t.length * 5.4); };
-      /* la targa deve contenere ICONA + NOME + spazio + CONTATORE: prima era dimensionata sul
-         solo nome e i due testi si sovrapponevano nelle zone dal nome lungo */
-      const PADL = 30, PADR = 10, GAP = 12;
-      const wl = wOf(label), ws = wOf(sub);
-      const bw2 = Math.max(96, PADL + wl + GAP + ws + PADR);
-      const bx2 = Math.round(x0 + wpx / 2 - bw2 / 2), by2 = y0 - 28;
-      rect(bx2 + 3, by2 + 4, bw2, 22, 'rgba(30,20,10,.25)');
-      rect(bx2 - 1, by2 - 1, bw2 + 2, 22, '#241a10');
-      rect(bx2, by2, bw2, 20, '#3a3a44'); rect(bx2, by2, bw2, 3, col); rect(bx2, by2 + 17, bw2, 3, shade8(col, 0.6));
-      rect(bx2 + 3, by2 + 5, bw2 - 6, 1, '#c9a227');
-      drawZoneIcon(BRUSH, z, bx2 + 16, by2 + 10);
-      ctx.fillStyle = '#f3ecda'; ctx.fillText(label, bx2 + PADL, by2 + 6);
-      ctx.fillStyle = done === pool.length && pool.length ? '#8fd06a' : '#e8c34a';
-      ctx.fillText(sub, bx2 + bw2 - PADR - ws, by2 + 6);
-    }
+    const b = roomBox(zi);
+    drawSkylight(BRUSH, (b.rx + b.rw / 2) * TS, (b.ry + b.rh / 2) * TS, (b.rw - 4) * TS, (b.rh - 4) * TS);
   });
-  /* pareti esterne + fregio dorato in alto */
-  drawGalleryTopWall(BRUSH, 0, rw, 2 * TS);
-  rect(0, 0, 8, rh, '#3a2616'); rect(6, 0, 2, rh, '#8a5f38'); rect(rw - 8, 0, 8, rh, '#3a2616'); rect(rw - 8, 0, 2, rh, '#8a5f38');
-  /* PARETE BASSA con un VARCO al centro: la porta si vede, e oltre la porta si vede la
-     strada. Prima la parete era continua e per uscire bisognava camminare fuori dallo
-     schermo: col solo mouse non c'era nulla da cliccare. */
-  const doorW = 3 * TS, doorL = Math.round(rw / 2 - doorW / 2);
-  rect(0, rh - 4, doorL, 4, '#4c5a4a');
-  rect(doorL + doorW, rh - 4, rw - doorL - doorW, 4, '#4c5a4a');
-  /* fuori: lastricato della piazza, zerbino e stipiti — è la zona su cui si clicca per uscire */
-  for (let y = rh; y < rh + GAL_FOOT; y += TS) for (let x = 0; x < rw; x += TS) {
-    const k = ((x / TS) * 7 + (y / TS) * 13) % 3;
-    rect(x, y, TS, TS, k === 0 ? '#d8c49a' : k === 1 ? '#d2bd90' : '#dfcda6');
-    px(x + 3, y + 5, '#c3ad7e'); px(x + 11, y + 10, '#c3ad7e');
-  }
-  rect(0, rh, rw, 1, '#8a7f66');                       // soglia
-  rect(doorL - 4, rh - 4, 4, 4, '#3a4638'); rect(doorL + doorW, rh - 4, 4, 4, '#3a4638'); // stipiti
-  /* COLONNATO visto dall'alto. Prima erano sei tondi piccoli e ravvicinati accanto alla
-     porta: sembravano tombini. Un colonnato si legge dal RITMO — pochi elementi grandi,
-     ben distanziati, su TUTTA la facciata — quindi qui sono quadrati (il rocchio squadrato
-     dice "architettura", il cerchio dice "chiusino") con base a gradino. */
-  {
-    const colY = rh + 16, half = 9, step = 5 * TS;        // 80 px fra un asse e l'altro
-    for (let cxp = Math.round(rw / 2 % step); cxp < rw; cxp += step) {
-      if (Math.abs(cxp - rw / 2) < 2.2 * TS) continue;    // la porta resta sgombra
-      /* ombra portata: luce da alto-sinistra come nel resto del gioco */
-      rect(cxp - half + 3, colY - half + 4, half * 2, half * 2, 'rgba(58,48,34,.26)');
-      /* PLINTO: il gradino di base, più largo del fusto — è ciò che dà l'altezza */
-      rect(cxp - half - 2, colY - half - 2, (half + 2) * 2, (half + 2) * 2, '#b3aa93');
-      rect(cxp - half - 2, colY - half - 2, (half + 2) * 2, 2, '#d9d2bd');
-      /* fusto: marmo a tre toni netti */
-      rect(cxp - half, colY - half, half * 2, half * 2, '#cec6ae');
-      rect(cxp - half, colY - half, half * 2 - 3, half * 2 - 3, '#e9e2ce');
-      rect(cxp + half - 3, colY - half + 3, 3, half * 2 - 3, '#a79e88');
-      rect(cxp - half + 3, colY + half - 3, half * 2 - 3, 3, '#a79e88');
-      /* scanalature: tre solchi verticali continui */
-      for (const sx of [-5, 0, 5]) rect(cxp + sx, colY - half + 3, 1, half * 2 - 6, '#b8af99');
-    }
-  }
-  /* zerbino davanti alla porta: dice "si esce di qui" senza scriverlo */
-  const mx = Math.round(rw / 2 - 28), my = rh + 16;
-  rect(mx, my, 56, 24, '#8a5f38'); rect(mx + 2, my + 2, 52, 20, '#a97a4c');
-  for (let i = 0; i < 6; i++) rect(mx + 6 + i * 8, my + 6, 4, 12, '#8a5f38');
-  /* TECHE: vetrina SCURA con cornice dorata — le ossa bianche risaltano */
-  /* teca disegnata come funzione: entra nella lista ordinata per y (il pg ci passa DIETRO) */
-  const drawCase = (pd) => {
-    const bx = pd.tx * TS, by = pd.ty * TS;
-    const parts = S.museum[pd.sp.id] || [];
-    const full = parts.length === PARTS.length;
-    const col = WING_COL[pd.zi] || '#6f5a94';
-    drawCaseBack(BRUSH, bx, by, col, full, time);
-    const cv = parts.length ? exhibitSprite(pd.sp.id, parts) : null;
-    if (cv) ctx.drawImage(cv, bx - 20, by - 50);
-    else { rect(bx + 13, by - 30, 6, 6, 'rgba(255,255,255,.12)'); rect(bx + 15, by - 22, 2, 10, 'rgba(255,255,255,.12)'); }   // sagoma vuota: qui manca ancora tutto
-    const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r] || '#b8b0a2';
-    drawCaseFront(BRUSH, bx, by, rc, full, time, (S.amberDone || []).includes(pd.sp.id));
-  };
-  /* pianta in vaso come funzione (fronde alte: il pg passa dietro) */
-  const drawPlant = (pxo) => {
-    /* FASE 2: nativa — vaso/fronde raddoppiati, oscillazione ampiezza raddoppiata. */
-    const vy = GAL_DESK.y1 - 4, sway = Math.round(Math.sin(time / 900 + pxo) * 2);
-    shadow(pxo + 10, vy + 20, 12);
-    rect(pxo + 2, vy, 16, 20, '#b5652a'); rect(pxo + 2, vy, 16, 4, '#d07d3c'); rect(pxo, vy - 2, 20, 4, '#8a4a1e'); // vaso
-    rect(pxo + 4, vy + 6, 12, 2, '#8a4a1e');
-    const cx3 = pxo + 10;
-    rect(cx3, vy - 16, 2, 18, '#3f6b34');
-    for (const [lx, ly, hh] of [[-8, -16, 12], [-4, -24, 16], [0, -30, 18], [4, -24, 16], [8, -16, 12]]) {
-      for (let k = 0; k < hh; k += 2) rect(cx3 + Math.round(lx * (1 - k / hh)) + (k > hh - 6 ? sway : 0), vy + ly + k, 2, 2, k < 4 ? '#619a4c' : '#4e7a3d');
-    }
-    px(cx3 - 2, vy - 30 + sway, '#7fb862'); px(cx3 + 2, vy - 32 + sway, '#7fb862');
-  };
-  /* ATRIO d'ingresso: tappeto rosso dalla porta al bancone (sotto le entità) */
-  const dx0 = (INT.w / 2) * TS;
-  const deskCx = (GAL_DESK.x0 + GAL_DESK.x1) / 2;
-  rect(dx0 - 20, GAL_DESK.y1, 40, rh - GAL_DESK.y1 - 4, '#5c2a26'); rect(dx0 - 18, GAL_DESK.y1, 36, rh - GAL_DESK.y1 - 4, '#a8453c');
-  rect(dx0 - 14, GAL_DESK.y1, 2, rh - GAL_DESK.y1 - 4, '#c9a227'); rect(dx0 + 12, GAL_DESK.y1, 2, rh - GAL_DESK.y1 - 4, '#c9a227');
-  rect(dx0 - 10, rh - 6, 20, 6, '#3a2e20'); rect(dx0 - 8, rh - 4, 16, 4, '#c49a63'); // varco porta
-  /* bancone: base+ripiano (statico, sta sotto); la parte alta/insegna resta qui */
-  const dw = GAL_DESK.x1 - GAL_DESK.x0, dh = GAL_DESK.y1 - GAL_DESK.y0;
-  const drawDesk = () => drawDeskArt(BRUSH, GAL_DESK.x0, GAL_DESK.y0, GAL_DESK.x1, GAL_DESK.y1, time);
-  drawMuseumSign(BRUSH, deskCx, GAL_DESK.y0 - 64);
-  /* ORDINAMENTO per y: teche, piante, bancone, curatore e player — chi è più in alto sta dietro */
+  /* --------- I MURI: gli stessi di museumPlan, quindi quello che si vede è quello che ferma.
+     Entrano nella lista per profondità: l'alzata sfora in alto e il giocatore ci passa davanti. */
   const ents = [];
+  /* il muro prende il colore dell'ala che chiude (così ogni sala ha le SUE pareti); negli
+     spazi comuni è la pietra calda dell'atrio, più scura del marmo del pavimento */
+  const wallCol = (tx, ty) => {
+    for (const [dx, dy] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) {
+      const w = WINGS[wingOf(areaAt(tx + dx, ty + dy))];
+      if (w) return w.wall;
+    }
+    return '#bdae90';
+  };
+  for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
+    if (!isWall(tx, ty)) continue;
+    const col = wallCol(tx, ty);
+    ents.push({ y: ty * TS + TS, f: () => drawWallTile(BRUSH, tx, ty, col, !isWall(tx, ty + 1), !isWall(tx, ty - 1)) });
+  }
+  /* --------- GLI ARCHI: ogni varco della pianta ha i suoi stipiti --------- */
+  const cxm = Math.floor(INT.w / 2);
+  const archi = [[cxm - 3, ROT.y1, 7, false], [cxm - 3, ROT.y0, 7, false], [cxm - 2, ATRIO.y1, 5, false]];
+  for (let zi = 0; zi < 7; zi++) { const d = roomDoor(zi); archi.push([d.x, d.y, d.n, d.vert]); }
+  for (const [ax, ay, an, av] of archi) {
+    if (ax * TS - camx < -200 || ax * TS - camx > W + 200 || ay * TS - camy < -200 || ay * TS - camy > H + 200) continue;
+    ents.push({ y: ay * TS + (av ? 0 : TS) - 1, f: () => drawArch(BRUSH, ax, ay, an, av, wallCol(ax, ay)) });
+  }
+  /* --------- LE SALE: targa sopra la porta, panche, cordoni --------- */
+  MUSEUM_ZONES.forEach((z, zi) => {
+    const b = roomBox(zi);
+    const x0 = b.rx * TS, y0 = b.ry * TS, wpx = b.rw * TS, hpx = b.rh * TS;
+    if (x0 - camx > W + 60 || x0 + wpx - camx < -60 || y0 - camy > H + 160 || y0 + hpx - camy < -60) return;
+    const col = (WINGS[zi] || WINGS[0]).acc;
+    /* due panche in mezzo alla sala: ci si siede e si guarda, come in un museo */
+    for (const bx of [x0 + wpx / 2 - 70, x0 + wpx / 2 + 14]) ents.push({ y: y0 + hpx / 2 + 14, f: () => drawBench(BRUSH, bx, y0 + hpx / 2, col) });
+    /* TARGA della sala, appesa sopra la sua porta */
+    const d = roomDoor(zi);
+    const tgx = d.vert ? (d.x + (zi % 2 ? 1.2 : -1.2)) * TS : (d.x + d.n / 2) * TS;
+    const tgy = d.vert ? (d.y - 1.6) * TS : (d.y - 1.4) * TS;
+    ents.push({ y: tgy + 40, f: () => drawWingPlate(z, zi, tgx, tgy, col) });
+  });
+  /* --------- ATRIO: bancone del Curatore a sinistra, insegna, zerbino, vasi --------- */
+  const deskCx = (GAL_DESK.x0 + GAL_DESK.x1) / 2;
+  const doorCx = cxm * TS + TS / 2;
+  { const my = (ATRIO.y1 - 1) * TS + 4;                      // zerbino davanti alla porta
+    rect(doorCx - 28, my, 56, 22, '#8a5f38'); rect(doorCx - 26, my + 2, 52, 18, '#a97a4c');
+    for (let i = 0; i < 6; i++) rect(doorCx - 22 + i * 8, my + 6, 4, 10, '#8a5f38'); }
+  drawMuseumSign(BRUSH, deskCx, GAL_DESK.y0 - 58);
+  ents.push({ y: GAL_DESK.y1 - 2, f: () => drawDeskArt(BRUSH, GAL_DESK.x0, GAL_DESK.y0, GAL_DESK.x1, GAL_DESK.y1, time) });
+  for (const [ppx, ppy] of ATRIO_PLANTS) ents.push({ y: ppy + 18, f: () => drawPlantPot(ppx, ppy, time) });
+  /* --------- LA ROTONDA: lo scheletro montato, al centro, con panche e cordoni attorno --------- */
+  { const sk = centrepieceSprite(), px2 = CENTRO.x, py2 = CENTRO.y;
+    ents.push({ y: py2 + 6, f: () => {
+      drawCentrepiece(BRUSH, px2, py2, time, sk ? sk.width : 120);
+      if (sk) { try { ctx.drawImage(sk, px2 - Math.floor(sk.width / 2), py2 - 14 - sk.height); } catch (e) { /* stub */ } }
+      drawRope(BRUSH, px2 - 84, px2 - 40, py2 + 16, '#8a3f3a');
+      drawRope(BRUSH, px2 + 40, px2 + 84, py2 + 16, '#8a3f3a');
+    } });
+    for (const [bx, by] of [[px2 - 150, py2 - 40], [px2 + 106, py2 - 40], [px2 - 150, py2 + 54], [px2 + 106, py2 + 54]])
+      ents.push({ y: by + 14, f: () => drawBench(BRUSH, bx, by, '#c9a227') }); }
+  /* --------- TECHE --------- */
   for (const pd of pedList()) {
     const bx = pd.tx * TS, by = pd.ty * TS;
     if (bx - camx < -3 * TS || bx - camx > W + 3 * TS || by - camy < -3 * TS || by - camy > H + 3 * TS) continue;
-    ents.push({ y: by + 15, f: () => drawCase(pd) });
+    ents.push({ y: by + 15, f: () => drawCase(pd, time) });
   }
-  for (const pxo of [GAL_DESK.x0 - 16, GAL_DESK.x1 + 6]) ents.push({ y: GAL_DESK.y1 + 8, f: () => drawPlant(pxo) });
-  /* LA TARTARUGA dell'atrio: anche il Museo ha la sua bestiola da coccolare */
+  /* LA TARTARUGA: anche il Museo ha la sua bestiola da coccolare */
   { const tp = museumPetSpot(S.day);
     ents.push({ y: tp.y, f: () => drawMuseumPet(BRUSH, tp.x, tp.y, time, INT.pet) }); }
-  ents.push({ y: GAL_DESK.y1 - 2, f: drawDesk });
-  for (const [ccx, ccy] of roomCols) if (ccx - camx > -40 && ccx - camx < W + 40 && ccy - camy > -20 && ccy - camy < H + 110) ents.push({ y: ccy, f: () => drawColumn(BRUSH, ccx, ccy) });
+  /* --------- PERSONAGGI --------- */
   const npx = CUT.on ? CUT.x : deskCx;
   const npy = CUT.on ? CUT.y : GAL_DESK.y0 - 8;
   const paintNpc = () => {
     const hop = CUT.on && CUT.phase === 'give' ? -Math.abs(Math.round(Math.sin(time / 180) * 2)) : 0;
-    const fdir = CUT.on ? (CUT.phase === 'back' ? 'up' : 'down') : null; // cutscene: posa fissa
-    drawNpc(npx, npy + hop, 'museum', time, fdir);
+    /* mentre cammina guarda dove va e muove i piedi; fermo al banco resta girato verso il
+       giocatore. Prima teneva la faccia in basso anche andando di lato: un granchio. */
+    const camminando = CUT.on && (CUT.phase === 'walk' || CUT.phase === 'back');
+    const fdir = CUT.on ? (camminando ? (CUT.dir || 'down') : 'down') : null;
+    drawNpc(npx, npy + hop, 'museum', time, fdir, camminando ? Math.floor(CUT.step || 0) % 2 : 0);
     if (CUT.on && CUT.phase === 'give') { // il Libro si alza brillando sopra la testa
       const lift = Math.min(14, CUT.t * 12), bob = Math.round(Math.sin(time / 160) * 1.5);
       const by2 = npy - 6 - lift + bob;
-      rect(npx - 5, by2, 11, 8, '#6e4a2e'); rect(npx - 4, by2 + 1, 9, 6, '#8a5f38');   // copertina
-      rect(npx - 3, by2 + 2, 3, 4, '#f6efdd'); rect(npx + 1, by2 + 2, 3, 4, '#f1e2c4'); // pagine
-      px(npx, by2 + 3, '#c9a227');                                                       // fibbia
-      for (let i = 0; i < 4; i++) { // anello di scintille che ruota
+      rect(npx - 5, by2, 11, 8, '#6e4a2e'); rect(npx - 4, by2 + 1, 9, 6, '#8a5f38');
+      rect(npx - 3, by2 + 2, 3, 4, '#f6efdd'); rect(npx + 1, by2 + 2, 3, 4, '#f1e2c4');
+      px(npx, by2 + 3, '#c9a227');
+      for (let i = 0; i < 4; i++) {
         const a = time / 240 + i * Math.PI / 2;
         px(Math.round(npx + Math.cos(a) * 10), Math.round(by2 + 3 + Math.sin(a) * 6), i % 2 ? '#f2c53d' : '#fff2b8');
       }
     }
   };
-  const paintHero = () => {
+  ents.push({ y: npy + 16, f: paintNpc });
+  { const mx2 = snap(MENTOR.x), my2 = snap(MENTOR.y);
+    const mfr = MENTOR.wait > 0 ? 0 : Math.floor(MENTOR.anim * 7) % 2;
+    ents.push({ y: MENTOR.y + 16, f: () => drawMentor(mx2, my2, MENTOR.dir, mfr) }); }
+  ents.push({ y: INT.y + 6, f: () => {
     const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
     const sx = snap(INT.x), sy = snap(INT.y);
     shadow(sx, sy + 12, 12);
     drawHero(null, sx - 16, sy - 20, INT.dir, fr);
-  };
-  ents.push({ y: npy + 16, f: paintNpc });
-  /* MAESTRO SCAVATORE: fa il giro del museo (posizione/verso da interior.js, mai dal seno) */
-  { const mx2 = snap(MENTOR.x), my2 = snap(MENTOR.y);
-    const mfr = MENTOR.wait > 0 ? 0 : Math.floor(MENTOR.anim * 7) % 2;
-    ents.push({ y: MENTOR.y + 16, f: () => drawMentor(mx2, my2, MENTOR.dir, mfr) }); }
-  ents.push({ y: INT.y + 6, f: paintHero });
+  } });
   ents.sort((a, b) => a.y - b.y).forEach(e => e.f()); // chi ha y minore (più in alto) sta dietro
+  /* fuori dalla porta si vede la piazza: è la zona su cui si clicca per uscire */
+  for (let y = rh; y < rh + GAL_FOOT; y += TS) for (let x = (cxm - 4) * TS; x < (cxm + 5) * TS; x += TS) {
+    const k = ((x / TS) * 7 + (y / TS) * 13) % 3;
+    rect(x, y, TS, TS, k === 0 ? '#d8c49a' : k === 1 ? '#d2bd90' : '#dfcda6');
+    px(x + 3, y + 5, '#c3ad7e'); px(x + 11, y + 10, '#c3ad7e');
+  }
   /* dialoghi della cutscene: baloon in coord SCHERMO (la galleria è traslata di -cam) */
-  /* UN SOLO baloon alla volta: se Digsy risponde, il Curatore tace */
   if (CUT.on && CUT.thanks) drawSayBalloon(INT.x - camx, INT.y - 14 - camy, CUT.thanks);
   else if (CUT.on && CUT.line) drawSayBalloon(npx - camx, npy - 12 - camy, CUT.line);
   ctx.restore();
+}
+/* la teca di un piedistallo: sfondo, i pezzi consegnati, il vetro davanti */
+function drawCase(pd, time) {
+  const bx = pd.tx * TS, by = pd.ty * TS;
+  const parts = S.museum[pd.sp.id] || [];
+  const full = parts.length === PARTS.length;
+  const col = (WINGS[pd.zi] || WINGS[0]).acc;
+  drawCaseBack(BRUSH, bx, by, col, full, time);
+  const cv = parts.length ? exhibitSprite(pd.sp.id, parts) : null;
+  if (cv) { try { ctx.drawImage(cv, bx - 20, by - 50); } catch (e) { /* stub */ } }
+  else { rect(bx + 13, by - 30, 6, 6, 'rgba(255,255,255,.12)'); rect(bx + 15, by - 22, 2, 10, 'rgba(255,255,255,.12)'); }
+  const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r] || '#b8b0a2';
+  drawCaseFront(BRUSH, bx, by, rc, full, time, (S.amberDone || []).includes(pd.sp.id));
+}
+/* TARGA di una sala: icona del bioma, nome e quante specie sono esposte. Senza, le sette ali
+   sono indistinguibili e non si capisce in quale si è entrati. */
+function drawWingPlate(z, zi, cx, cy, col) {
+  const pool = zonePools[z.id] || [];
+  const done = pool.filter(sp => (S.museum[sp.id] || []).length === PARTS.length).length;
+  const label = zoneName(z.id).toUpperCase(), sub = done + '/' + pool.length;
+  ctx.font = '700 9px ui-monospace, Menlo, monospace'; ctx.textBaseline = 'top';
+  const wOf = t => { const m = ctx.measureText && ctx.measureText(t); return Math.ceil((m && m.width) || t.length * 5.4); };
+  const PADL = 30, PADR = 10, GAP = 12;
+  const wl = wOf(label), ws = wOf(sub);
+  const bw2 = Math.max(96, PADL + wl + GAP + ws + PADR);
+  const bx2 = Math.round(cx - bw2 / 2), by2 = Math.round(cy);
+  rect(bx2 + 3, by2 + 4, bw2, 22, 'rgba(30,20,10,.3)');
+  rect(bx2 - 1, by2 - 1, bw2 + 2, 22, '#241a10');
+  rect(bx2, by2, bw2, 20, '#3a3a44'); rect(bx2, by2, bw2, 3, col); rect(bx2, by2 + 17, bw2, 3, shade8(col, 0.6));
+  rect(bx2 + 3, by2 + 5, bw2 - 6, 1, '#c9a227');
+  drawZoneIcon(BRUSH, z, bx2 + 16, by2 + 10);
+  ctx.fillStyle = '#f3ecda'; ctx.fillText(label, bx2 + PADL, by2 + 6);
+  ctx.fillStyle = done === pool.length && pool.length ? '#8fd06a' : '#e8c34a';
+  ctx.fillText(sub, bx2 + bw2 - PADR - ws, by2 + 6);
+}
+/* vaso con la pianta: le fronde sfiorano oltre la casella, il pg ci passa dietro */
+function drawPlantPot(pxo, vy, time) {
+  const sway = Math.round(Math.sin(time / 900 + pxo) * 2);
+  shadow(pxo + 10, vy + 20, 12);
+  rect(pxo + 2, vy, 16, 20, '#b5652a'); rect(pxo + 2, vy, 16, 4, '#d07d3c'); rect(pxo, vy - 2, 20, 4, '#8a4a1e');
+  rect(pxo + 4, vy + 6, 12, 2, '#8a4a1e');
+  const cx3 = pxo + 10;
+  rect(cx3, vy - 16, 2, 18, '#3f6b34');
+  for (const [lx, ly, hh] of [[-8, -16, 12], [-4, -24, 16], [0, -30, 18], [4, -24, 16], [8, -16, 12]]) {
+    for (let k = 0; k < hh; k += 2) rect(cx3 + Math.round(lx * (1 - k / hh)) + (k > hh - 6 ? sway : 0), vy + ly + k, 2, 2, k < 4 ? '#619a4c' : '#4e7a3d');
+  }
+  px(cx3 - 2, vy - 30 + sway, '#7fb862'); px(cx3 + 2, vy - 32 + sway, '#7fb862');
 }
 /* pattugliamento dietro il bancone: fermo → cammina a destra → fermo → attraversa → fermo → torna */
 const NPC_SPAN = 44;
@@ -304,13 +349,14 @@ export function npcPose(time) {
   }
   return { ox: 0, mov: false, dir: 'down' };
 }
-export function drawNpc(x, y, type, time, forceDir) {
+export function drawNpc(x, y, type, time, forceDir, walkFrame) {
   const saved = S.look;
   S.look = { hat: '#d06b43', shirt: '#57a58f', pants: '#c88a44', skin: '#f3cfa0', ...((NPCS[type] || {}).look || {}) };
   applyLook();
   /* forceDir (cutscene): posa fissa, niente pattugliamento/sway */
   const p = forceDir ? { dir: forceDir, ox: 0, mov: true } : npcPose(time);
-  const fr = p.mov ? Math.floor(time / 170) % 2 : 0;
+  /* `walkFrame` arriva dalla cutscene: il passo segue quanto ha camminato davvero, non un timer */
+  const fr = walkFrame != null ? walkFrame : (p.mov ? Math.floor(time / 170) % 2 : 0);
   /* SNAP alla griglia dei pixel fisici (come il player): niente righe quando si muove */
   drawHero(null, snap(x - 16 + p.ox), snap(y - 24), p.dir, fr);
   S.look = saved; applyLook();

@@ -7,6 +7,7 @@ import { P } from './state.js';
 import { goalIsTile, clearGoal, hasGoal, advance, goalTile } from './tapmove.js';
 import { townInfo, townForTile, isSolidTile, openArea, houseDoorAt } from './world.js';
 import { MUSEUM_ZONES, zonePools } from './data.js';
+import { GAL_W, GAL_H, ROOM_W, ROOM_H, roomOrigin, roomBox, roomDoor, roomPedTiles, isWall, areaAt, ROT, ATRIO, SPINE_X0, SPINE_X1 } from './museumPlan.js';
 import { S, save } from './state.js';
 import { tr, zoneName } from './i18n.js';
 import { zoneAt } from './regions.js';
@@ -35,23 +36,9 @@ export const INT = {
 /* fumetto sopra l'NPC (ringraziamenti/spiegazioni). Dura qualche secondo, poi sparisce. */
 export function sayNpc(text, sec = 3.4) { if (text) INT.say = { text, t: sec }; }
 export function clearSay() { INT.say = null; }
-/* museo: GRANDE galleria camminabile (camera che scorre), 6 SALE per bioma disposte a
-   griglia 2×3 attorno a un atrio d'ingresso; bancone del Curatore DRITTO davanti alla porta.
-   Ogni piedistallo espone i SOLI pezzi consegnati; etichetta interattiva con E. */
-export const GAL_W = 60, GAL_H = 62; // tile (4 file di sale: 6 biomi + le grotte)
-const RW = 26, RH = 11, GAPX = 4, GAPY = 3, MX = 2, MTOP = 3; // geometria delle sale
-export const ROOM_W = RW, ROOM_H = RH;
-/* Disposizione delle sale: si entra dal BASSO, quindi la prima zona (Prati) è la sala più
-   vicina all'ingresso e le GROTTE sono l'ultima, in fondo alla galleria — da sola e centrata,
-   come si conviene all'ala speciale. */
-const ROWS_UP = 3;                                  // righe di biomi (2 sale ciascuna)
-export function roomOrigin(zi) {
-  if (zi >= 6) {                                    // ala GROTTE: in fondo, centrata
-    return { rx: MX + Math.round((RW + GAPX) / 2), ry: MTOP };
-  }
-  const row = Math.floor(zi / 2);                   // 0 = più vicina all'ingresso
-  return { rx: MX + (zi % 2) * (RW + GAPX), ry: MTOP + (ROWS_UP - row) * (RH + GAPY) };
-}
+/* MUSEO: la pianta sta in `museumPlan.js` (muri, sale, porte, rotonda). Qui si tiene solo
+   quello che vive: i piedistalli con le loro specie, il bancone, il Maestro che passeggia. */
+export { GAL_W, GAL_H, ROOM_W, ROOM_H, roomOrigin, roomBox, roomDoor, isWall, areaAt, ROT, ATRIO, SPINE_X0, SPINE_X1 } from './museumPlan.js';
 /* memoizzato: la disposizione è deterministica, ma pedList gira più volte per frame
    (render + collisioni + nearCase) → evitiamo di riallocare 60 oggetti ogni volta */
 let _peds = null;
@@ -59,36 +46,43 @@ export function pedList() {
   if (_peds) return _peds;
   const out = [];
   MUSEUM_ZONES.forEach((z, zi) => {
-    const { rx, ry } = roomOrigin(zi);
     const pool = zonePools[z.id];
-    for (let i = 0; i < pool.length; i++) {
-      /* 2 file da 5 piedistalli, ben distanziati dentro la sala. Collisione SOLO sulla base:
-         la teca svetta e il pg ci passa DIETRO (disegnata dopo, z-order per y) */
-      const tx = rx + 4 + (i % 5) * 4, ty = ry + 3 + Math.floor(i / 5) * 5;
+    /* i piedistalli stanno ADDOSSATI ai muri della sala: in un museo si cammina in mezzo e si
+       guarda ai lati, non si fa lo slalom fra le teche */
+    roomPedTiles(zi, pool.length).forEach(([tx, ty], i) => {
       out.push({ sp: pool[i], zi, tx, ty, x0: tx * TS + 4, y0: ty * TS + 8, x1: tx * TS + 28, y1: ty * TS + 30 });
-    }
+    });
   });
   _peds = out; return _peds;
 }
-/* bancone CENTRATO davanti all'ingresso (in basso al centro), leggermente più stretto */
-export const GAL_DESK = { x0: (GAL_W / 2 - 3) * TS, y0: (GAL_H - 5) * TS, x1: (GAL_W / 2 + 3) * TS, y1: (GAL_H - 4) * TS };
-/* MAESTRO SCAVATORE: gira per il museo — dall'atrio sale, aggira il bancone e passeggia
-   nel corridoio FRA le due file di teche della sala in basso a sinistra, poi torna indietro.
-   Waypoint derivati dalla geometria (mai numeri magici): tutti su tile camminabili. */
-export const GAL_MENTOR = { x: GAL_DESK.x0 - 144, y: GAL_DESK.y1 + 44 };
+/* Bancone del Curatore: SUBITO a destra della porta, a tre passi dall'ingresso. I grezzi si
+   portano al museo in continuazione — se il banco sta in fondo o dall'altra parte dell'atrio
+   ogni consegna diventa una camminata, e la cosa che si fa più spesso è quella che deve
+   costare meno. Centrato davanti alla porta faceva invece da sbarramento. */
+export const GAL_DESK = { x0: (Math.floor(GAL_W / 2) + 3) * TS, y0: (ATRIO.y1 - 4) * TS, x1: (ATRIO.x1 - 1) * TS, y1: (ATRIO.y1 - 3) * TS };
+export const GAL_MENTOR = { x: 18 * TS, y: (ATRIO.y0 + 3) * TS };
 export const MENTOR_PATH = (() => {
-  const { rx, ry } = roomOrigin(0);                      // sala più vicina all'ingresso
-  const midY = (ry + 5.5) * TS;                          // fascia libera fra le due file di teche
-  const corrX = (GAL_W / 2) * TS;                        // corridoio verticale fra le colonne di sale
-  const overDesk = GAL_DESK.y0 - TS;                     // sopra il bancone, sotto le sale
+  const cx = Math.floor(GAL_W / 2), b0 = roomBox(0), d0 = roomDoor(0);
+  const lato = ROT.x0 + 6;                               // si passa DI FIANCO allo scheletro
+  /* atrio → rotonda (girando attorno al pezzo grosso) → corridoio → dentro la prima sala.
+     Ogni tratto è dritto e ogni waypoint sta su casella libera: il Maestro non attraversa
+     né muri né la montatura al centro. */
   return [
-    [GAL_MENTOR.x, GAL_MENTOR.y],                        // atrio, a sinistra del bancone
-    [GAL_MENTOR.x, overDesk],
-    [corrX, overDesk],
-    [corrX, midY],
-    [(rx + 2.5) * TS, midY],                             // in mezzo ai fossili
+    [GAL_MENTOR.x, GAL_MENTOR.y],
+    [cx * TS, GAL_MENTOR.y],
+    [cx * TS, (ROT.y1 - 2) * TS],
+    [lato * TS, (ROT.y1 - 2) * TS],
+    [lato * TS, (ROT.y0 + 2) * TS],
+    [cx * TS, (ROT.y0 + 2) * TS],
+    [cx * TS, (d0.y + 1) * TS],
+    [(b0.rx + 4) * TS, (d0.y + 1) * TS],
   ];
 })();
+/* Il pezzo grosso: al centro esatto della rotonda, e i vasi dell'atrio ai lati della porta */
+export const CENTRO = { x: Math.floor(GAL_W / 2) * TS + TS / 2, y: (ROT.y0 + 9) * TS };
+/* i vasi affiancano il PORTALE verso la rotonda, non il bancone: davanti al banco coprivano
+   il piano e il Curatore */
+export const ATRIO_PLANTS = [[(Math.floor(GAL_W / 2) - 4) * TS, (ATRIO.y0 + 2) * TS], [(Math.floor(GAL_W / 2) + 3) * TS, (ATRIO.y0 + 2) * TS]];
 /* stato del cammino: ping-pong sul percorso (mai teletrasporti, mai passi all'indietro) */
 export const MENTOR = { x: MENTOR_PATH[0][0], y: MENTOR_PATH[0][1], dir: 'up', anim: 0, pi: 1, back: false, wait: 0 };
 export function resetMentor() { MENTOR.x = MENTOR_PATH[0][0]; MENTOR.y = MENTOR_PATH[0][1]; MENTOR.pi = 1; MENTOR.back = false; MENTOR.dir = 'up'; MENTOR.anim = 0; MENTOR.wait = 0; }
@@ -206,8 +200,13 @@ export function enterInterior(b, town) {
   INT.room = mus ? 'gallery' : 'main';
   if (mus) resetMentor();                            // il Maestro riparte dall'atrio
   /* museo: bancone + piedistalli + i vasi (collisione SOLO sul vaso: le fronde stanno sopra, ci si passa dietro) */
-  const plants = mus ? [GAL_DESK.x0 - 16, GAL_DESK.x1 + 6].map(pxo => ({ x0: pxo, y0: GAL_DESK.y1 + 1, x1: pxo + 10, y1: GAL_DESK.y1 + 9 })) : [];
-  INT.solids = mus ? [GAL_DESK, ...pedList(), ...plants] : (FURN[b.type] || []);
+  /* le piante dell'atrio sono SOLIDE quanto il vaso che si vede: la cassa di prima era 10×8 e
+     ci si passava dentro (segnalato) */
+  const plants = mus ? ATRIO_PLANTS.map(([px0, py0]) => ({ x0: px0, y0: py0, x1: px0 + 20, y1: py0 + 16 })) : [];
+  /* lo scheletro al centro dell'atrio è solido: ci si gira attorno, non ci si cammina dentro */
+  /* lo scheletro montato al centro della rotonda: ci si gira attorno, non ci si passa dentro */
+  const centro = mus ? [{ x0: CENTRO.x - 62, y0: CENTRO.y - 34, x1: CENTRO.x + 62, y1: CENTRO.y + 8 }] : [];
+  INT.solids = mus ? [GAL_DESK, ...pedList(), ...plants, ...centro] : (FURN[b.type] || []);
   if (mus) {
     const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
     const letter = pendingLetter();               // sala riempita → il nonno ha lasciato una lettera
@@ -230,6 +229,10 @@ function follow(dt) { // segue i waypoint; true quando il percorso è finito
   const dx = t2[0] - CUT.x, dy = t2[1] - CUT.y, l = Math.hypot(dx, dy);
   if (l < 5) { CUT.pi++; return CUT.pi >= CUT.path.length; }
   CUT.x += dx / l * speed; CUT.y += dy / l * speed;
+  /* GUARDA DOVE VA: il Curatore teneva sempre la faccia verso il basso e attraversava la sala
+     di sbieco, come un granchio (segnalato). Verso e passo vengono dal movimento. */
+  CUT.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? 'left' : 'right') : (dy < 0 ? 'up' : 'down');
+  CUT.step = ((CUT.step || 0) + speed / 9) % 2;
   return false;
 }
 function stepCut(dt) {
@@ -330,9 +333,16 @@ export function interiorSolid(x, y) {
     return roomPerimeterSolid(x, y) || houseFurnSolid(INT.houseRoom, x, y);
   }
   const w = INT.w * TS, h = INT.h * TS;
+  /* MUSEO: il muro che ferma è LO STESSO che si disegna (museumPlan.isWall) — un museo fatto
+     di stanze vere non si può descrivere con quattro bordi, e due elenchi di muri separati
+     divergono al primo ritocco della pianta. */
+  if (INT.room === 'gallery') {
+    if (isWall(Math.floor(x / TS), Math.floor(y / TS))) return true;
+    for (const f of INT.solids || []) if (x >= f.x0 && x <= f.x1 && y >= f.y0 && y <= f.y1) return true;
+    return false;
+  }
   if (x < 8 || x > w - 8) return true;
   if (INT.room === 'main') { if (y < 2.9 * TS) return true; }            // parete + bancone
-  else if (y < 2 * TS) return true;                                       // galleria: parete alta
   if (y > h - 4) return true;                            // parete bassa (la porta è un varco)
   for (const f of INT.solids || []) if (x >= f.x0 && x <= f.x1 && y >= f.y0 && y <= f.y1) return true;
   return false;
@@ -346,7 +356,7 @@ export const SHOP_PETS = {
      angolo — ogni giorno la si ritrova da un'altra parte della galleria (`museumPetSpot`), così
      incontrarla è una piccola sorpresa invece di un soprammobile. Le coordinate qui sono solo
      quelle di partenza: chi disegna e chi coccola passano dalla funzione. */
-  museum: { kind: 'tartaruga', x: (GAL_W / 2 + 5) * TS, y: (GAL_H - 3) * TS },
+  museum: { kind: 'tartaruga', x: (ATRIO.x0 + 2) * TS, y: (ATRIO.y1 - 2) * TS },
   store: { kind: 'gatto', x: 74, y: 102 },
   inn: { kind: 'cane', x: 40, y: 190 },
   lab: { kind: 'topo', x: 34, y: 200 },
@@ -358,9 +368,9 @@ export const PET_SEC = 2.6;
 /* i posti dove può capitare la tartaruga: l'atrio ai due lati del bancone e l'imbocco dei
    corridoi fra le sale. Tutti su pavimento libero, lontani dal Curatore e dai piedistalli. */
 const PET_SPOTS = [
-  [(GAL_W / 2 + 5) * TS, (GAL_H - 3) * TS], [(GAL_W / 2 - 6) * TS, (GAL_H - 3) * TS],
-  [(GAL_W / 2 + 7) * TS, (GAL_H - 7) * TS], [(GAL_W / 2 - 8) * TS, (GAL_H - 8) * TS],
-  [(GAL_W / 2 - 2) * TS, (GAL_H - 10) * TS], [(GAL_W / 2 + 3) * TS, (GAL_H - 12) * TS],
+  [(ATRIO.x0 + 2) * TS, (ATRIO.y1 - 2) * TS], [(ATRIO.x1 - 3) * TS, (ATRIO.y1 - 6) * TS],
+  [(ROT.x0 + 3) * TS, (ROT.y0 + 4) * TS], [(ROT.x1 - 4) * TS, (ROT.y0 + 15) * TS],
+  [(ROT.x0 + 4) * TS, (ROT.y1 - 3) * TS], [(GAL_W - 14) * TS, (ATRIO.y0 + 6) * TS],
 ];
 export function museumPetSpot(day) {
   const d = Math.max(0, Math.floor(day || 0));

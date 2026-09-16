@@ -3185,6 +3185,32 @@ sprites.applyLook();
   check('la settima ala espone le specie di grotta', peds.some(p => p.sp.zone === 'grotta') && peds.filter(p => p.sp.zone === 'grotta').length === 6);
   /* i piedistalli della grotta stanno DENTRO la galleria (niente teche fuori dai muri) */
   check('la sala grotte sta dentro il museo', peds.filter(p => p.sp.zone === 'grotta').every(p => p.ty < inter.GAL_H - 6 && p.tx < inter.GAL_W - 1));
+  /* LA PIANTA DEL MUSEO REGGE? Non basta che le sale esistano: dalla porta d'ingresso si deve
+     poter camminare fino a OGNI piedistallo. Un varco dimenticato in museumPlan chiuderebbe
+     un'ala intera senza che nessun altro test se ne accorga — il museo si disegnerebbe
+     benissimo e basta. */
+  {
+    const plan = await import('../src/museumPlan.js');
+    const cx = Math.floor(plan.GAL_W / 2);
+    const visti = new Set(), coda = [[cx, plan.ATRIO.y1]];       // si parte dalla porta
+    while (coda.length) {
+      const [x, y] = coda.pop(), k = x + ',' + y;
+      if (visti.has(k) || plan.isWall(x, y)) continue;
+      visti.add(k);
+      coda.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+    const peds2 = inter.pedList();
+    const irraggiungibili = peds2.filter(p => !visti.has(p.tx + ',' + p.ty) && !visti.has((p.tx) + ',' + (p.ty + 1)));
+    check('dalla porta si arriva a ogni teca del museo', irraggiungibili.length === 0,
+      irraggiungibili.length + ' teche murate (' + irraggiungibili.slice(0, 3).map(p => p.sp.id).join(', ') + ')');
+    /* e ogni ambiente ha la sua porta: sale, rotonda, atrio, corridoio */
+    const ambienti = new Set([...visti].map(k => { const [a, b] = k.split(','); return plan.areaAt(+a, +b); }));
+    check('ogni ala del museo è collegata', ambienti.size >= 10, [...ambienti].join(' '));
+    /* il bancone del Curatore sta a pochi passi dalla porta: i grezzi si consegnano di
+       continuo, se il banco è lontano ogni consegna diventa una camminata */
+    const passi = Math.abs((inter.GAL_DESK.x0 + inter.GAL_DESK.x1) / 2 / 32 - cx) + Math.abs(inter.GAL_DESK.y1 / 32 - plan.ATRIO.y1);
+    check('il banco del Curatore è a pochi passi dall\'ingresso', passi <= 10, Math.round(passi) + ' caselle');
+  }
   /* ORDINE DI VISITA: si entra dal basso, quindi la prima zona è la sala più vicina alla porta
      e le GROTTE sono l'ULTIMA, in fondo alla galleria (prima erano le prime che incontravi) */
   {
@@ -3193,12 +3219,14 @@ sprites.applyLook();
     const cave = rowOf('grotta'), prati = rowOf('prati');
     check('le grotte sono la sala PIÙ LONTANA dall\'ingresso', cave < prati, 'grotte y=' + cave + ' · prati y=' + prati);
     check('l\'ordine delle zone segue il cammino', rowOf('prati') > rowOf('boschi') && rowOf('boschi') > rowOf('palude'));
-    /* la sala delle grotte è da sola e CENTRATA fra le due colonne */
-    const cx0 = inter.roomOrigin(6).rx, left = inter.roomOrigin(0).rx, right = inter.roomOrigin(1).rx;
-    check('la sala grotte è centrata in fondo', cx0 > left && cx0 < right, 'x=' + cx0 + ' fra ' + left + ' e ' + right);
+    /* l'ala delle GROTTE è da sola in fondo e larga quanto tutto il museo: è l'ala speciale,
+       non una delle due colonne di sale */
+    const gb = inter.roomBox(6);
+    check('l\'ala grotte occupa tutta la larghezza, in fondo', gb.rw > inter.ROOM_W * 2 && gb.ry < inter.roomOrigin(4).ry,
+      'larga ' + gb.rw + ' · y=' + gb.ry);
     /* nessuna sala esce dalla galleria e nessuna si sovrappone a un'altra */
     const boxes = MZ3.map((z, i) => { const o = inter.roomOrigin(i); return { ...o, id: z.id }; });
-    const outOf = boxes.filter(b => b.rx < 1 || b.ry < 1 || b.rx + inter.ROOM_W > inter.GAL_W - 1 || b.ry + inter.ROOM_H > inter.GAL_H - 6);
+    const outOf = boxes.filter(b => b.rx < 1 || b.ry < 1 || b.rx + inter.ROOM_W > inter.GAL_W - 1 || b.ry + inter.ROOM_H > inter.GAL_H);
     check('tutte le sale stanno dentro la galleria', outOf.length === 0, outOf.map(b => b.id).join(','));
     let overlap = 0;
     for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) {

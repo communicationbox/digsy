@@ -232,19 +232,29 @@ export function drawDeskArt(g, x0, y0, x1, y1, time) {
 }
 /* insegna del Museo sopra il bancone: tabella scura col tempio d'oro */
 export function drawMuseumSign(g, cx, y) {
-  g.rect(cx - 1, y - 12, 2, 12, '#3a2a1c'); g.rect(cx - 40, y - 12, 80, 2, '#3a2a1c');
-  g.rect(cx - 37, y - 10, 2, 10, '#3a2a1c'); g.rect(cx + 35, y - 10, 2, 10, '#3a2a1c');
-  g.rect(cx - 42, y, 84, 22, '#241a10'); g.rect(cx - 41, y + 1, 82, 20, '#3a3a44'); g.rect(cx - 41, y + 1, 82, 2, '#c9a227'); g.rect(cx - 41, y + 19, 82, 2, '#8a6a1e');
-  let drew = false;
-  try {
-    const ps = typeof Path2D === 'function' ? iconPaths('museum').map(d => new Path2D(d)) : [];
-    if (ps.length && g.ctx && g.ctx.fill) { const c = g.ctx; c.save(); c.translate(cx - 9, y + 2); c.scale(0.75, 0.75); c.fillStyle = '#e8c34a'; for (const p of ps) c.fill(p); c.restore(); drew = true; }
-  } catch (e) { drew = false; }
-  if (!drew) g.rect(cx - 6, y + 5, 12, 12, '#e8c34a');
-  for (const sx of [cx - 32, cx + 20]) for (let i = 0; i < 3; i++) g.rect(sx + i * 4, y + 10, 2, 2, '#c9a227');
+  /* SOPRA IL BANCONE: un FRONTONE di marmo col timpano e le colonnine, e l'emblema del museo
+     in mezzo. Prima era una tabella scura con dei puntini: nessuno capiva cosa fosse (segnalato).
+     La forma è la stessa della facciata del Museo là fuori, così si riconosce al volo. */
+  const W = 92, X = cx - W / 2, H = 26;
+  g.rect(X - 2, y + 4, W + 4, H, '#241a10');                                 // contorno
+  g.rect(X - 1, y + 5, W + 2, H - 2, '#e6ddc8');                             // fascia di marmo
+  g.rect(X - 1, y + 5, W + 2, 2, '#f6f1e4'); g.rect(X - 1, y + H + 1, W + 2, 2, '#b3a78c');
+  for (let k = 0; k < 5; k++) {                                              // timpano: un triangolo di lastre
+    const w2 = W - k * 16, x2 = Math.round(cx - w2 / 2), y2 = y + 3 - k * 3;
+    if (w2 <= 6) break;
+    g.rect(x2 - 1, y2 - 1, w2 + 2, 4, '#241a10');
+    g.rect(x2, y2, w2, 3, k % 2 ? '#dcd2bb' : '#e6ddc8'); g.rect(x2, y2, w2, 1, '#f6f1e4');
+  }
+  for (const dx of [-W / 2 + 6, W / 2 - 10]) {                               // due colonnine
+    g.rect(cx + dx - 1, y + 8, 6, H - 6, '#241a10');
+    g.rect(cx + dx, y + 8, 4, H - 7, '#efe7d4'); g.rect(cx + dx, y + 8, 1, H - 7, '#fbf8ef');
+    g.rect(cx + dx - 2, y + 6, 8, 3, '#d9d0bb'); g.rect(cx + dx - 2, y + H, 8, 3, '#d9d0bb');
+  }
+  /* emblema: un osso incrociato al martelletto, in ottone */
+  g.rect(cx - 16, y + 12, 32, 10, '#8f8670'); g.rect(cx - 15, y + 13, 30, 8, '#c9a227'); g.rect(cx - 15, y + 13, 30, 2, '#f0d470');
+  g.rect(cx - 10, y + 15, 20, 2, '#6b4f14'); g.rect(cx - 12, y + 14, 4, 4, '#6b4f14'); g.rect(cx + 8, y + 14, 4, 4, '#6b4f14');
+  g.rect(cx - 2, y + 11, 4, 12, '#6b4f14'); g.rect(cx - 1, y + 12, 2, 10, '#f0d470');
 }
-
-/* ---------- MURO di fondo della galleria ---------- */
 export function drawGalleryTopWall(g, x0, x1, H) {
   /* LA PARETE IN FONDO alla galleria: zoccolo di marmo, intonaco chiaro, cornice d'oro in alto
      e i quadri appesi con la loro lampadina. Prima era una fascia verde scuro a puntini con
@@ -270,5 +280,169 @@ export function drawGalleryTopWall(g, x0, x1, H) {
     g.rect(x + 8, 34, 24, 8, shadeHex(tela, 0.8));                                    // paesaggio dipinto
     g.rect(x + 12, 30, 6, 6, shadeHex(tela, 1.3)); g.rect(x + 22, 32, 8, 5, shadeHex(tela, 0.7));
     g.rect(x + 4, 24, 32, 1, 'rgba(255,255,255,.25)');
+  }
+}
+
+/* ---------- IL PEZZO FORTE: lo scheletro montato in mezzo all'atrio ----------
+   Il museo era grande e vuoto: si entrava e non c'era niente da guardare ("super dispersivo,
+   manca l'effetto wow"). Qui c'è il pezzo che tutti i musei hanno davvero: uno scheletro
+   intero montato su una pedana di marmo, sotto il faretto, col cordone attorno e la targa.
+   NON è un dinosauro disegnato a mano: è la LEGGENDARIA della zona, lo stesso modello voxel
+   del Libro e delle teche, montato grande. Qui sotto c'è solo l'allestimento; l'animale lo
+   passa chi chiama (`skel`, una canvas già pronta). */
+export function drawCentrepiece(g, cx, baseY, time, skW) {
+  const HW = Math.max(56, Math.round((skW || 120) / 2) + 22);   // la pedana segue l'animale
+  /* faretto dall'alto */
+  for (let k = 0; k < 120; k += 4) {
+    const ww = 14 + k * 0.52;
+    g.rect(Math.round(cx - ww / 2), baseY - 126 + k, Math.round(ww), 4, 'rgba(255,238,190,' + Math.max(0, 0.05 - k * 0.0004).toFixed(3) + ')');
+  }
+  /* ombra dell'animale sulla pedana: senza, la montatura galleggia */
+  for (let dy = -5; dy <= 5; dy++) {
+    const w2 = Math.round((HW - 26) * Math.sqrt(Math.max(0, 1 - (dy / 5) * (dy / 5))));
+    g.rect(cx - w2, baseY - 18 + dy, w2 * 2, 1, 'rgba(70,58,40,.18)');
+  }
+  /* PEDANA di marmo a due gradini */
+  g.rect(cx - HW, baseY - 6, HW * 2, 14, '#8f8670');
+  g.rect(cx - HW + 2, baseY - 5, HW * 2 - 4, 11, '#e6ddc8'); g.rect(cx - HW + 2, baseY - 5, HW * 2 - 4, 3, '#f6f1e4');
+  g.rect(cx - HW + 2, baseY + 3, HW * 2 - 4, 3, '#b3a78c');
+  g.rect(cx - HW + 12, baseY - 12, HW * 2 - 24, 8, '#8f8670');
+  g.rect(cx - HW + 14, baseY - 11, HW * 2 - 28, 6, '#efe7d4'); g.rect(cx - HW + 14, baseY - 11, HW * 2 - 28, 2, '#fbf8ef');
+  /* TARGA sul gradino basso */
+  g.rect(cx - 16, baseY - 3, 32, 9, '#241a10');
+  g.rect(cx - 15, baseY - 2, 30, 7, '#b99a4a'); g.rect(cx - 15, baseY - 2, 30, 2, '#e8c96a');
+  /* un luccichio che gira sull'ottone */
+  const tw = Math.floor(time / 500) % 3;
+  for (const [sx2, sy2, k] of [[cx - HW + 20, baseY - 8, 0], [cx + HW - 20, baseY - 8, 1], [cx, baseY - 14, 2]]) if (k === tw) {
+    g.rect(sx2 - 2, sy2, 5, 1, '#fff3a0'); g.rect(sx2, sy2 - 2, 1, 5, '#fff3a0');
+  }
+}
+
+/* ===================== L'EDIFICIO: MURI, ARCHI, SALE A TEMA =====================
+   Il museo era un unico stanzone e delle macchie di pavimento facevano da "sale": senza muri
+   non si legge un museo, si legge un capannone. Qui c'è il materiale da costruzione. */
+
+/* Ogni ala ha il SUO ambiente, non solo un tappeto di colore diverso: pavimento, zoccolo e
+   parete cambiano materiale. Indici = MUSEUM_ZONES (prati, dune, boschi, terre, palude,
+   ghiacci, grotte). */
+export const WINGS = [
+  { key: 'prati',   floor: 'parquet', f1: '#c8a86a', f2: '#b8975a', wall: '#d9d0b4', trim: '#c9a227', acc: '#d4b13c' },
+  { key: 'dune',    floor: 'lastre',  f1: '#ddcaa0', f2: '#cfbb8e', wall: '#e2d4ae', trim: '#c2a06a', acc: '#d2b078' },
+  { key: 'boschi',  floor: 'assi',    f1: '#7d7f6f', f2: '#6e7061', wall: '#b9bdae', trim: '#7f8c6d', acc: '#6f7f62' },
+  { key: 'terre',   floor: 'cotto',   f1: '#b06a4a', f2: '#9c5a3e', wall: '#dbb9a4', trim: '#a8512f', acc: '#c06a48' },
+  { key: 'palude',  floor: 'mosaico', f1: '#5f7a52', f2: '#52694a', wall: '#b2bfa6', trim: '#4e7a3d', acc: '#5f7a52' },
+  { key: 'ghiacci', floor: 'ghiaccio', f1: '#a9c6d8', f2: '#98b6ca', wall: '#cfe0ea', trim: '#6f9ab5', acc: '#8fd0e6' },
+  { key: 'grotte',  floor: 'roccia',  f1: '#6b6270', f2: '#5c5462', wall: '#aaa0b4', trim: '#7d6fa8', acc: '#7d6fa8' },
+];
+/* pavimento di una sala: un disegno per materiale, sempre a casella intera e sempre
+   deterministico (la fase viene dalle coordinate TILE, mai dallo schermo) */
+export function drawWingFloor(g, tx, ty, wi) {
+  const w = WINGS[wi] || WINGS[0], x = tx * 32, y = ty * 32;
+  const h = ((tx * 73856093) ^ (ty * 19349663)) >>> 0, r = (h % 1000) / 1000;
+  g.rect(x, y, 32, 32, r < 0.5 ? w.f1 : w.f2);
+  const d = g.shade8(w.f1, 0.86), l = g.shade8(w.f1, 1.1);
+  switch (w.floor) {
+    case 'parquet':                                   // tavole lunghe in verticale
+      for (const bx of [0, 8, 16, 24]) g.rect(x + bx, y, 1, 32, d);
+      if ((tx + ty) % 3 === 0) g.rect(x, y + (h % 3) * 10, 32, 1, d);
+      for (let i = 0; i < 4; i++) g.rect(x + 2 + ((h >> i) % 6), y + i * 8 + 2, 4, 1, l);
+      break;
+    case 'lastre':                                    // grandi lastre sfalsate
+      g.rect(x, y, 32, 1, d); g.rect(x + ((ty % 2) ? 0 : 16), y, 1, 32, d);
+      g.rect(x + 2, y + 2, 12, 1, l);
+      break;
+    case 'assi':                                      // assi orizzontali larghe
+      for (const by of [0, 11, 22]) g.rect(x, y + by, 32, 1, d);
+      g.rect(x + (h % 30), y + 4, 6, 1, l);
+      break;
+    case 'cotto': {                                   // mattonelle a losanga
+      for (let i = 0; i < 16; i++) { g.rect(x + i * 2, y + 16 - i * 2, 2, 2, d); g.rect(x + i * 2, y + i * 2, 2, 2, d); }
+      g.rect(x + 14, y + 14, 4, 4, l); break;
+    }
+    case 'mosaico':                                   // tesserine
+      for (let iy = 0; iy < 4; iy++) for (let ix = 0; ix < 4; ix++)
+        if (((ix + iy + h) % 3) === 0) g.rect(x + ix * 8 + 1, y + iy * 8 + 1, 6, 6, l);
+      for (const k of [0, 8, 16, 24]) { g.rect(x + k, y, 1, 32, d); g.rect(x, y + k, 32, 1, d); }
+      break;
+    case 'ghiaccio':                                  // lastre lucide con crepe
+      g.rect(x, y, 32, 1, l); g.rect(x, y, 1, 32, l);
+      if (h % 4 === 0) { g.rect(x + 6, y + 8, 12, 1, d); g.rect(x + 16, y + 9, 1, 6, d); }
+      g.rect(x + 20, y + 4, 6, 2, '#eaf6ff');
+      break;
+    default:                                          // roccia levigata
+      for (let i = 0; i < 5; i++) g.rect(x + ((h >> i) % 28), y + ((h >> (i + 5)) % 28), 3, 2, d);
+      g.rect(x + 4, y + 22, 8, 1, l);
+  }
+}
+/* MURO in 3/4. La casella di muro si legge in due metà, come in ogni gioco dall'alto:
+   sopra la CIMASA (la sommità del muro, vista da sopra: pietra scura) e sotto la FACCIA
+   (l'intonaco che guarda il visitatore, con lo zoccolo e il filo d'oro). Senza la cimasa
+   scura il muro aveva lo stesso valore del marmo del pavimento e spariva: il museo tornava
+   a sembrare uno stanzone. */
+export function drawWallTile(g, tx, ty, col, giuLibero, suLibero) {
+  const x = tx * 32, y = ty * 32;
+  const cima = g.shade8(col, 0.42), cimaL = g.shade8(col, 0.55);
+  const faccia = g.shade8(col, 1.02), zocc = g.shade8(col, 0.7);
+  /* CIMASA: metà alta della casella */
+  g.rect(x, y, 32, 17, cima);
+  g.rect(x, y, 32, 2, cimaL);
+  g.rect(x, y + 15, 32, 2, g.shade8(col, 0.3));
+  const h = ((tx * 83492791) ^ (ty * 29849663)) >>> 0;
+  if (h % 3 === 0) g.rect(x + (h % 18) + 4, y + 6, 8, 1, cimaL);          // conci
+  if (!suLibero) g.rect(x, y, 32, 4, g.shade8(col, 0.34));                // continua il muro sopra
+  /* FACCIA: metà bassa, intonaco chiaro, cornice d'oro e zoccolo */
+  g.rect(x, y + 17, 32, 15, faccia);
+  g.rect(x, y + 17, 32, 2, g.shade8(col, 1.14));
+  g.rect(x, y + 20, 32, 1, '#c9a227');
+  g.rect(x, y + 26, 32, 6, zocc);
+  g.rect(x, y + 26, 32, 1, g.shade8(col, 0.9));
+  /* ombra portata sul pavimento: senza, il muro galleggia sopra le lastre */
+  if (giuLibero) { g.rect(x, y + 32, 32, 3, 'rgba(38,30,18,.32)'); g.rect(x, y + 35, 32, 2, 'rgba(38,30,18,.15)'); }
+}
+/* PORTALE di passaggio: stipiti squadrati e architrave DRITTO. L'arco a tutto sesto stonava
+   — nel resto del gioco si stonda solo dove serve, e una porta di museo è un rettangolo di
+   pietra. Il varco non si annerisce: il pavimento prosegue, si mette solo l'ombra dello
+   spessore del muro, come sotto una porta vera. */
+export function drawArch(g, tx, ty, n, vert, col) {
+  const x = tx * 32, y = ty * 32;
+  const scuro = g.shade8(col, 0.45), chiaro = g.shade8(col, 1.14), faccia = g.shade8(col, 1.0);
+  if (vert) {                                         // varco in un muro VERTICALE
+    const hgt = n * 32;
+    /* ombra dello spessore del muro sui due lati del passaggio: il pavimento della sala si
+       vede attraverso, se no il varco sembra una serranda chiusa */
+    g.rect(x + 2, y, 7, hgt, 'rgba(34,26,16,.26)');
+    g.rect(x + 23, y, 7, hgt, 'rgba(34,26,16,.18)');
+    g.rect(x + 9, y, 14, hgt, 'rgba(34,26,16,.07)');
+    for (const sy of [y - 10, y + hgt - 4]) {         // spallette squadrate sopra e sotto
+      g.rect(x, sy, 32, 14, faccia);
+      g.rect(x, sy, 32, 3, chiaro); g.rect(x, sy + 11, 32, 3, scuro);
+      g.rect(x, sy + 6, 32, 1, '#c9a227');
+    }
+    g.rect(x + 2, y, 3, hgt, scuro); g.rect(x + 27, y, 3, hgt, scuro);
+  } else {                                            // varco in un muro ORIZZONTALE
+    const w = n * 32;
+    /* ARCHITRAVE: una trave dritta di pietra sopra la luce, con la cimasa e il filo d'oro */
+    g.rect(x - 8, y - 15, w + 16, 15, g.shade8(col, 0.5));
+    g.rect(x - 8, y - 15, w + 16, 3, g.shade8(col, 0.66));
+    g.rect(x - 8, y - 4, w + 16, 4, faccia);
+    g.rect(x - 8, y - 2, w + 16, 1, '#c9a227');
+    /* STIPITI: due pilastri squadrati che scendono a terra ai lati */
+    for (const sx of [x - 8, x + w]) {
+      g.rect(sx, y - 15, 8, 47, faccia);
+      g.rect(sx, y - 15, 3, 47, chiaro); g.rect(sx + 6, y - 15, 2, 47, scuro);
+      g.rect(sx, y + 14, 8, 2, '#c9a227');
+      g.rect(sx, y + 28, 8, 4, scuro); g.rect(sx, y + 32, 8, 3, 'rgba(38,30,18,.3)');
+    }
+    g.rect(x, y, w, 12, 'rgba(34,26,16,.3)');         // ombra sotto l'architrave
+    g.rect(x, y, w, 3, 'rgba(34,26,16,.26)');
+  }
+}
+/* LUCERNARIO: la luce che scende dall'alto in un ambiente grande. È quello che fa sembrare
+   alto il soffitto senza poterlo disegnare. */
+export function drawSkylight(g, cx, cy, w, h) {
+  for (let i = 0; i < 5; i++) {
+    const k = i / 5;
+    g.rect(Math.round(cx - w / 2 * (1 - k * 0.2)), Math.round(cy - h / 2 * (1 - k * 0.2)),
+      Math.round(w * (1 - k * 0.2)), Math.round(h * (1 - k * 0.2)), 'rgba(255,244,214,.045)');
   }
 }
