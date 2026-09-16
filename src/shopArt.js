@@ -703,40 +703,34 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
   disco(g, cx + 46, 66, 6, 4, '#c65a54');                                     // puntaspilli TONDO g.px(cx + 43, 61, '#8f9aa3'); g.px(cx + 48, 60, '#8f9aa3'); g.px(cx + 46, 62, '#e8c34a');
   g.rect(cx + 58, 66, 12, 2, '#8f9aa3'); g.rect(cx + 70, 64, 4, 4, '#2a2016');
   /* MANICHINO = un OMINO DI LEGNO CON L'ABITO ADDOSSO: testa tonda senza faccia, spalle,
-     maniche corte, vita e gonna che si apre. Il busto-e-basta sembrava una campana rosa
-     (segnalato): un manichino si riconosce perché ha la forma di una persona. */
+     maniche corte, vita e gonna che si apre. Il busto-e-basta sembrava una campana rosa.
+     ALTO COME UNA PERSONA, non il doppio: il primo giro arrivava a cinquanta pixel contro i
+     trentaquattro di Digsy e in mezzo alla stanza sembrava un monumento (segnalato con foto). */
   {
     const cx2 = 58, LEG = '#d8b48a', LEGD = '#a9825a', AB = '#e8a0b8', ABD = '#cf7b96', LN = '#6a2e48';
-    g.shadow(cx2, 134, 16);
-    disco(g, cx2, 131, 11, 3, '#8f887a');                                      // base tonda
-    g.rect(cx2 - 2, 114, 4, 17, LEGD); g.rect(cx2 - 1, 114, 2, 17, '#8f887a'); // asta
-    disco(g, cx2, 80, 6, 7, LEG, { line: LEGD });                              // testa di legno, senza faccia
-    g.rect(cx2 - 2, 86, 4, 4, LEGD);                                           // collo
-    /* SPALLE E MANICHE: il taglio dell'abito parte da qui */
-    for (let k = 0; k < 8; k++) {
-      const w = 13 - Math.abs(k - 3), y = 90 + k;
+    g.shadow(cx2, 133, 12);
+    disco(g, cx2, 131, 8, 3, '#8f887a');                                       // base tonda
+    g.rect(cx2 - 1, 125, 2, 7, LEGD);                                          // asta
+    disco(g, cx2, 101, 4, 5, LEG, { line: LEGD });                             // testa di legno, senza faccia
+    g.rect(cx2 - 1, 105, 2, 3, LEGD);                                          // collo
+    for (let k = 0; k < 5; k++) {                                              // spalle e maniche
+      const w = 9 - Math.abs(k - 2), y = 107 + k;
       g.rect(cx2 - w, y, w * 2, 1, LN);
       g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k < 2 ? g.shade8(AB, 1.14) : AB);
     }
-    for (const sgn of [-1, 1]) {                                               // il braccio di legno che spunta dalla manica
-      const bx = cx2 + sgn * 13;
-      g.rect(sgn < 0 ? bx - 3 : bx, 97, 3, 6, LEGD); g.rect(sgn < 0 ? bx - 2 : bx, 97, 2, 5, LEG);
+    for (const sgn of [-1, 1]) { const bx = cx2 + sgn * 9; g.rect(sgn < 0 ? bx - 2 : bx, 112, 2, 4, LEGD); }   // braccini
+    for (let k = 0; k < 7; k++) {                                              // busto che si stringe in vita
+      const w = 8 - Math.round(k * 0.3), y = 112 + k;
+      g.rect(cx2 - w, y, w * 2, 1, LN); g.rect(cx2 - w + 1, y, w * 2 - 2, 1, AB);
     }
-    /* BUSTO che si stringe in vita e GONNA che si apre: due tronchi di cono, non una palla */
-    for (let k = 0; k < 14; k++) {
-      const w = 12 - Math.round(k * 0.35), y = 98 + k;
-      g.rect(cx2 - w, y, w * 2, 1, LN); g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k > 10 ? ABD : AB);
+    for (let k = 0; k < 11; k++) {                                             // gonna che si apre
+      const w = 6 + Math.round(k * 0.6), y = 119 + k;
+      if (k === 10 && ((y + w) % 3 === 0)) continue;                           // orlo non netto
+      g.rect(cx2 - w, y, w * 2, 1, LN); g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k < 2 ? AB : ABD);
     }
-    for (let k = 0; k < 16; k++) {
-      const w = 8 + Math.round(k * 0.75), y = 112 + k;
-      const orlo = k === 15 && ((y + w) % 3 === 0);                            // l'orlo non è una riga netta
-      if (orlo) continue;
-      g.rect(cx2 - w, y, w * 2, 1, LN); g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k < 3 ? AB : ABD);
-    }
-    g.rect(cx2 - 3, 92, 6, 3, '#f3ecda');                                      // collo dell'abito
-    for (const by of [101, 105, 109]) g.px(cx2, by, '#c9a227');                // bottoncini
-    for (let i = 0; i < 5; i++) g.rect(cx2 - 10 + i * 5, 127, 3, 1, '#f3ecda'); // merletto sull'orlo
-    g.rect(cx2 - 16, 94, 10, 2, '#e8c34a'); g.rect(cx2 - 14, 96, 2, 12, '#e8c34a');   // metro appeso alla spalla
+    g.rect(cx2 - 2, 108, 4, 2, '#f3ecda');                                     // collo dell'abito
+    for (const by of [114, 117]) g.px(cx2, by, '#c9a227');                     // bottoncini
+    g.rect(cx2 - 11, 109, 7, 1, '#e8c34a'); g.rect(cx2 - 10, 110, 1, 8, '#e8c34a');   // metro appeso alla spalla
   }
   /* cesto di gomitoli */
   boxr(g, 88, 118, 24, 14, '#b07c4a', 4);                                     // cesto: bocca tonda
