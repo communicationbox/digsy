@@ -58,12 +58,17 @@ I quattro lavori sono tutti in gioco e almeno tre persone che non sono l'autore 
 - **impostazioni** fuori dal salvataggio (`prefs.js`), suggerimenti disattivabili.
 - **russo al 99%** (918 stringhe) con test su spazi, tag HTML e voci orfane.
 
+## Fatte dopo (erano parcheggiate)
+
+- **tetti a tema bioma**: `BIOME_BUILD` non è più inutilizzato — `roof()` in townArt.js ne
+  usa colori e materiale (coppi · pietra · scandole · tegole · paglia · ardesia, più la neve
+  nelle Lande) e `render.js` lo prende da `biomeBuild(x, y)`. Si vede in `npm run shot -- edifici`.
+
 ## Parcheggiate (buone idee, non ora)
 
 - DNA con scadenza (rischia di essere punitivo in un gioco senza game over — da valutare dopo i playtest)
 - foto alle chimere
 - mercato con prezzi variabili
-- tetti degli edifici a tema bioma (`BIOME_BUILD.roof` è già pronto e inutilizzato)
 - multigiocatore asincrono / scambio reperti
 - pesca come minigioco a sé
 - **idle bounded legato al parco** (chiesto da un tester): parco che rende gocce di

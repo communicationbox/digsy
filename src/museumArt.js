@@ -8,6 +8,9 @@
    casella con lo stesso trattamento: contorno, luce e ombra, materiali veri — marmo nei
    corridoi, parquet e tappeto nelle sale, vetrine col faretto, colonne che si girano attorno. */
 import { iconPaths } from './icons.js';
+/* gli stessi pennelli delle botteghe: una scatola con gli angoli smussati e un disco pieno.
+   Nel museo erano rimasti gli spigoli vivi (teche, plinti, bancone). */
+import { boxr, disco } from './shopArt.js';
 
 const TS = 32;
 const h32 = (a, b, s) => { let x = Math.imul((a | 0) + 0x9e3779b9, 2654435761) ^ Math.imul((b | 0) + (s | 0) * 97, 40503); x ^= x >>> 15; x = Math.imul(x, 2246822519); x ^= x >>> 13; return (x >>> 0) / 4294967296; };
@@ -127,8 +130,7 @@ export function drawBench(g, x, y, col) {
   }
   g.rect(x, y + 4, 48, 7, '#2a1e14');                                     // cornice di legno
   g.rect(x + 1, y + 5, 46, 5, '#6e4a2e'); g.rect(x + 1, y + 5, 46, 1, '#8a5f38');
-  g.rect(x, y - 1, 48, 6, '#2a1e14');                                     // cuscino
-  g.rect(x + 1, y, 46, 4, medio); g.rect(x + 1, y, 46, 2, chiaro); g.rect(x + 1, y + 3, 46, 1, scuro);
+  boxr(g, x, y - 1, 48, 6, medio, 2, { line: '#2a1e14', light: chiaro, dark: scuro });   // cuscino imbottito
   for (const bx of [x + 12, x + 24, x + 36]) { g.px(bx, y + 2, '#c9a227'); g.px(bx, y + 3, scuro); }   // bottoni della capitonné
 }
 
@@ -144,8 +146,8 @@ export function drawCaseBack(g, bx, by, col, full, time) {
   const X = bx + CASE.X, Y = by + CASE.Y, W = CASE.W, H = CASE.H;
   g.rect(X + 2, by + CASE.PH + 6, W - 4, 5, 'rgba(40,30,20,.28)');                 // ombra a terra
   /* PLINTO di pietra: piano chiaro, fronte con la fascia scura e lo zoccolo */
-  g.rect(X + 1, by + 2, W - 2, CASE.PH, '#8f8670');
-  g.rect(X + 2, by + 3, W - 4, 5, '#f4eedf');
+  boxr(g, X + 1, by + 2, W - 2, CASE.PH, '#d9d0bb', 3, { line: '#8f8670', light: '#f4eedf', dark: '#b8ae96' });
+  g.rect(X + 3, by + 3, W - 6, 5, '#f4eedf');
   g.rect(X + 2, by + 8, W - 4, CASE.PH - 7, '#d9d0bb');
   g.rect(X + 2, by + 8, 5, CASE.PH - 7, '#e9e2ce'); g.rect(X + W - 7, by + 8, 5, CASE.PH - 7, '#b8ae96');
   g.rect(X + 2, by + CASE.PH, W - 4, 3, '#a89c82');
@@ -169,8 +171,13 @@ export function drawCaseFront(g, bx, by, rarCol, full, time, amber) {
   if (amber) g.rect(X + 2, Y + 2, W - 4, H - 4, 'rgba(255,160,50,.22)');
   /* TELAIO d'ottone: sottile, con i montanti agli angoli e il cappello sopra. Il contorno si
      disegna a FILO (quattro righe), non con un rettangolo pieno: quello copriva il fossile. */
-  g.rect(X - 1, Y - 1, W + 2, 1, '#241a10'); g.rect(X - 1, Y + H, W + 2, 1, '#241a10');
-  g.rect(X - 1, Y, 1, H, '#241a10'); g.rect(X + W, Y, 1, H, '#241a10');
+  /* il CONTORNO della cassa ha gli angoli tagliati: una teca di vetro con gli spigoli vivi
+     sembra un quadro appeso (è la stessa nota dei mobili delle botteghe) */
+  g.rect(X + 2, Y - 1, W - 4, 1, '#241a10'); g.rect(X + 2, Y + H, W - 4, 1, '#241a10');
+  g.rect(X - 1, Y + 2, 1, H - 4, '#241a10'); g.rect(X + W, Y + 2, 1, H - 4, '#241a10');
+  for (const [ax, ay, sx2, sy2] of [[X - 1, Y - 1, 1, 1], [X + W, Y - 1, -1, 1], [X - 1, Y + H, 1, -1], [X + W, Y + H, -1, -1]]) {
+    g.px(ax + sx2, ay, '#241a10'); g.px(ax, ay + sy2, '#241a10');   // lo smusso, due pixel per angolo
+  }
   g.rect(X, Y, W, 2, gold); g.rect(X, Y, W, 1, goldL);
   g.rect(X, Y + H - 2, W, 2, gold);
   g.rect(X, Y, 2, H, gold); g.rect(X + W - 2, Y, 2, H, gold); g.rect(X, Y, 1, H, goldL);
@@ -207,10 +214,8 @@ export function drawDeskArt(g, x0, y0, x1, y1, time) {
     g.rect(px + 13, y0 + 8 + Math.round((h - 16) / 2) - 1, 4, 3, '#c9a227');   // maniglietta d'ottone
   }
   g.rect(x0, y1 - 5, w, 5, '#3a2616'); g.rect(x0, y1 - 5, w, 1, '#7a5230');    // zoccolo
-  /* PIANO DI MARMO che sporge, con il filo d'ottone sotto */
-  g.rect(x0 - 4, y0 - 7, w + 8, 9, '#8f8670');
-  g.rect(x0 - 3, y0 - 6, w + 6, 7, '#ece5d2'); g.rect(x0 - 3, y0 - 6, w + 6, 2, '#fbf8ef');
-  g.rect(x0 - 3, y0 - 1, w + 6, 1, '#b8ae96');
+  /* PIANO DI MARMO che sporge, con gli angoli smussati e il filo d'ottone sotto */
+  boxr(g, x0 - 4, y0 - 7, w + 8, 9, '#ece5d2', 3, { line: '#8f8670', light: '#fbf8ef', dark: '#b8ae96' });
   g.rect(x0 - 2, y0 + 1, w + 4, 2, '#c9a227'); g.rect(x0 - 2, y0 + 1, w + 4, 1, '#f0d470');
   /* SUL BANCONE: registro aperto, campanello d'ottone, lente, cassetta di reperti */
   const cx = x0 + w / 2;
@@ -220,7 +225,7 @@ export function drawDeskArt(g, x0, y0, x1, y1, time) {
   for (let r = 0; r < 3; r++) { g.rect(cx - 38, y0 - 10 + r * 2, 8, 1, '#b9ad91'); g.rect(cx - 25, y0 - 10 + r * 2, 7, 1, '#b9ad91'); }
   const shine = Math.floor(time / 900) % 4 === 0;
   g.rect(cx + 20, y0 - 6, 14, 2, '#6b4f14');                                    // base del campanello
-  g.rect(cx + 22, y0 - 13, 10, 8, g.shade8('#e8c34a', 0.34)); g.rect(cx + 23, y0 - 12, 8, 6, '#e8c34a'); g.rect(cx + 23, y0 - 12, 8, 2, '#f8e08a');
+  disco(g, cx + 27, y0 - 7, 5, 6, '#e8c34a', { line: g.shade8('#e8c34a', 0.34), light: '#f8e08a' });   // il campanello è una CUPOLA
   g.rect(cx + 26, y0 - 16, 2, 3, '#6b4f14');
   if (shine) g.rect(cx + 25, y0 - 11, 2, 2, '#fff8d0');
   g.rect(cx - 9, y0 - 12, 12, 8, '#241a10');                                    // lente

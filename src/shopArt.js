@@ -44,7 +44,7 @@ export function box(g, x, y, w, h, c) {
    (segnalato: «i mobili tutti gli angoli a 90 gradi... NON VA BENE»). Qui gli angoli si
    mangiano di qualche pixel, c'è un contorno solo e la luce viene sempre da sopra-sinistra.
    Si disegna per RIGHE, non per pixel: un mobile costa una cinquantina di rettangoli. */
-function boxr(g, x, y, w, h, fill, r = 3, o = {}) {
+export function boxr(g, x, y, w, h, fill, r = 3, o = {}) {
   x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
   const line = o.line || g.shade8(fill, 0.45), light = o.light || g.shade8(fill, 1.16), dark = o.dark || g.shade8(fill, 0.82);
   const ins = dy => (dy >= r ? 0 : Math.max(0, Math.ceil(r - Math.sqrt(Math.max(0, r * r + r - (r - dy) * (r - dy))))));
@@ -60,7 +60,7 @@ function boxr(g, x, y, w, h, fill, r = 3, o = {}) {
   }
 }
 /* DISCO/ellisse piena con contorno: basi tonde, cuscini, pomelli */
-function disco(g, cx, cy, rx, ry, fill, o = {}) {
+export function disco(g, cx, cy, rx, ry, fill, o = {}) {
   const line = o.line || g.shade8(fill, 0.45), light = o.light || g.shade8(fill, 1.16);
   for (let dy = -ry; dy <= ry; dy++) {
     const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry))));
@@ -1007,12 +1007,12 @@ export function drawFurnitureProps(g, rw, rh, time) {
     for (let k = 0; k < 14; k++) { const d = 1 + Math.round(Math.abs(Math.sin((k + i * 2) * 0.8)) * 2); g.rect(sx + 1 + k, 8 + h, 1, d, g.shade8(c, 0.62)); }
   });
   /* pannello degli attrezzi a sinistra: sega, martello, squadra, pialla */
-  g.rect(18, 10, 70, 40, g.shade8('#b8955f', 0.34)); g.rect(19, 11, 68, 38, '#b8955f');
+  boxr(g, 18, 10, 70, 40, '#b8955f', 3);                                                            // pannello degli attrezzi
   for (let yy = 15; yy < 48; yy += 6) for (let xx = 23; xx < 86; xx += 6) g.px(xx, yy, '#8a6a3a');
-  g.rect(24, 16, 22, 8, g.shade8('#c9ced3', 0.34)); g.rect(25, 17, 20, 6, '#c9ced3'); for (let i = 0; i < 20; i += 2) g.px(25 + i, 23, '#8f9aa3'); g.rect(44, 15, 6, 10, '#8a3f3a');   // sega
+  boxr(g, 24, 16, 22, 8, '#c9ced3', 2); for (let i = 0; i < 20; i += 2) g.px(25 + i, 23, '#8f9aa3'); boxr(g, 44, 15, 6, 10, '#8a3f3a', 2);   // sega, col manico sagomato
   g.rect(56, 14, 3, 20, '#6e4a2e'); g.rect(52, 13, 11, 5, g.shade8('#8f9aa3', 0.34)); g.rect(53, 14, 9, 3, '#8f9aa3');                                                                 // martello
   g.rect(68, 14, 2, 18, '#c9a227'); g.rect(68, 30, 14, 2, '#c9a227'); for (let i = 0; i < 16; i += 3) g.px(69, 16 + i, '#6b4f14');                                       // squadra
-  g.rect(24, 34, 26, 9, g.shade8('#a97a4c', 0.34)); g.rect(25, 35, 24, 7, '#a97a4c'); g.rect(30, 32, 6, 4, '#6e4a2e'); g.rect(42, 33, 5, 3, '#8a3f3a');                                  // pialla
+  boxr(g, 24, 34, 26, 9, '#a97a4c', 2); g.rect(30, 32, 6, 4, '#6e4a2e'); g.rect(42, 33, 5, 3, '#8a3f3a');                                    // pialla
   g.rect(58, 38, 24, 4, '#e8c34a'); for (let i = 0; i < 24; i += 3) g.px(58 + i, 38, '#2a2016');                                                                        // metro
   /* orologio a muro in fondo a destra */
   g.rect(rw - 32, 12, 16, 16, g.shade8('#8a5f38', 0.34)); g.rect(rw - 31, 13, 14, 14, '#8a5f38'); g.rect(rw - 29, 15, 10, 10, '#f3ecda');
@@ -1046,17 +1046,21 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* BANCO DA FALEGNAME con morsa, pialla e trucioli (228..296 × 92..136) */
   g.shadow(262, 136, 36);
   gamba(g, 230, 108, 6, 28); gamba(g, 288, 108, 6, 28); g.rect(231, 126, 62, 3, '#4a3624');
-  g.rect(226, 98, 72, 12, g.shade8('#c49a63', 0.34)); g.rect(227, 99, 70, 10, '#c49a63'); g.rect(227, 99, 70, 2, '#dcb880');
+  boxr(g, 226, 98, 72, 12, '#c49a63', 2, { light: '#dcb880' });                                     // piano del banco
   for (let i = 0; i < 70; i += 12) g.rect(227 + i, 101, 1, 8, '#a97a4c');
-  g.rect(222, 100, 8, 12, g.shade8('#5a5248', 0.34)); g.rect(223, 101, 6, 10, '#5a5248'); g.rect(218, 104, 5, 2, '#8f9aa3');                                    // morsa
-  g.rect(236, 90, 30, 9, g.shade8('#e0b890', 0.34)); g.rect(237, 91, 28, 7, '#e0b890'); g.rect(237, 91, 28, 1, '#f3d8b0');                                     // asse sul banco
-  g.rect(254, 84, 16, 8, g.shade8('#a97a4c', 0.34)); g.rect(255, 85, 14, 6, '#a97a4c'); g.rect(258, 82, 4, 3, '#6e4a2e');                                      // pialla
+  boxr(g, 222, 100, 8, 12, '#5a5248', 2); disco(g, 218, 105, 3, 2, '#8f9aa3');                       // morsa, con la manovella tonda
+  boxr(g, 236, 90, 30, 9, '#e0b890', 2, { light: '#f3d8b0' });                                      // asse sul banco
+  boxr(g, 254, 84, 16, 8, '#a97a4c', 2); g.rect(258, 82, 4, 3, '#6e4a2e');                          // pialla
   const tr2 = Math.floor(t / 400) % 3;
   for (let i = 0; i < 3; i++) { const sx = 240 + i * 5 + tr2; g.rect(sx, 88 - i, 3, 1, '#f3d8b0'); g.px(sx + 3, 87 - i, '#e0b890'); }        // truciolo che esce
-  g.rect(278, 88, 14, 10, g.shade8('#8a6ab0', 0.34)); g.rect(279, 89, 12, 8, '#8a6ab0'); g.rect(279, 89, 12, 2, '#a88ad0');                                     // barattolo di vernice
+  boxr(g, 278, 88, 14, 10, '#8a6ab0', 3, { light: '#a88ad0' }); disco(g, 285, 88, 6, 2, '#6b5a86');  // barattolo di vernice, col bordo tondo
   g.rect(283, 80, 2, 10, '#6e4a2e'); g.rect(282, 78, 4, 3, '#e8dcc0');
   /* assi appoggiate al muro e trucioli sparsi */
-  for (let i = 0; i < 3; i++) { g.rect(300 - i * 4, 150 + i * 2, 5, 50 - i * 2, g.shade8('#c49a63', 0.34)); g.rect(301 - i * 4, 151 + i * 2, 3, 48 - i * 2, ['#c49a63', '#a97a4c', '#dcb880'][i]); }
+  /* le ASSI appoggiate al muro sono inclinate, non tre colonne a piombo */
+  for (let i = 0; i < 3; i++) {
+    const col = ['#c49a63', '#a97a4c', '#dcb880'][i], h2 = 50 - i * 2;
+    for (let k = 0; k < h2; k++) { const ax = 300 - i * 4 - Math.round(k * 0.12); g.rect(ax, 150 + i * 2 + k, 5, 1, g.shade8(col, 0.34)); g.rect(ax + 1, 150 + i * 2 + k, 3, 1, col); }
+  }
   for (let i = 0; i < 9; i++) { const x = 110 + (i * 41) % 110, y = 150 + (i * 29) % 44; g.rect(x, y, 3, 1, '#e0b890'); g.px(x + 3, y - 1, '#e0b890'); g.px(x - 1, y + 1, '#c49a63'); }
   /* SCOIATTOLO sul ceppo in basso a sinistra, con la ghianda: la coda a pennacchio; coccolato si alza e
      rigira la ghianda fra le zampine */
