@@ -237,11 +237,15 @@ export function roundMask(shapes, w = MW, h = MH) {
   return m;
 }
 /* dipinge la maschera: contorno, corpo, luce a sinistra, ombra a destra */
+/* `line = null` = NIENTE CONTORNO: è il segno del paesaggio. Nel gioco il contorno scuro vuol
+   dire "ci puoi fare qualcosa" (si raccoglie, si spacca, si abbatte); quello che è solo
+   scenografia — balle di fieno, ceppi, funghetti marroni — resta senza, come i fiori del prato,
+   e non invita a premere niente (segnalato). */
 export function paintMask(m, fill, light, dark, w = MW, h = MH, line = LN) {
   const dentro = (x, y) => x >= 0 && y >= 0 && x < w && y < h && m[y * w + x];
   for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
     if (!dentro(x, y)) {
-      if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) px(x, y, line);
+      if (line && (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1))) px(x, y, line);
       continue;
     }
     const bordoL = !dentro(x - 1, y) || !dentro(x - 2, y), bordoR = !dentro(x + 1, y);
@@ -345,7 +349,7 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   const mm = new Uint8Array(32 * 32), setm = (x, y) => { const lx = x - sx, ly = y - sy; if (lx >= 0 && ly >= 0 && lx < 32 && ly < 32) mm[ly * 32 + lx] = 1; };
   for (let y = -2; y <= 3; y++) for (let x = -1; x <= 1; x++) setm(bx + x, by - 1 + y);                                   // gambo
   for (let y = -4; y <= 0; y++) for (let x = -5; x <= 5; x++) if ((x * x) / 25 + (y * y) / 16 <= 1) setm(bx + x, by - 4 + y);   // cupola
-  paintMask(mm, '#7a6448', '#8f7a5a', '#5f4d36');
+  paintMask(mm, '#7a6448', '#8f7a5a', '#5f4d36', 32, 32, null);   // paesaggio: niente contorno
   rect(bx - 4, by - 4, 9, 1, '#5f4d36');                                           // il bordo sotto il cappello
   erbetta(bx - 7, bx + 8, by + 3, tx, ty);
   ctx.restore();
@@ -356,9 +360,9 @@ export function drawStump(sx, sy, tx = 0, ty = 0) {
   const cx = 16, base = 27; shadow(cx, base, 11);
   /* corpo e radici in una sagoma sola, con gli angoli smussati (stile del saguaro) */
   paintMask(roundMask([[cx - 9, base - 12, 18, 12, 4], [cx - 13, base - 5, 6, 5, 2], [cx + 7, base - 5, 6, 5, 2]]),
-    '#7a5230', '#9a6a40', '#5c3d22');
+    '#7a5230', '#9a6a40', '#5c3d22', 32, 32, null);   // paesaggio: niente contorno
   for (let i = -6; i < 7; i += 4) rect(cx + i, base - 8, 1, 7, '#5c3d22');       // solchi della corteccia
-  ellipseF(cx, base - 12, 10, 4, LN); ellipseF(cx, base - 12, 9, 3, '#d8b582');
+  ellipseF(cx, base - 12, 10, 4, '#5c3d22'); ellipseF(cx, base - 12, 9, 3, '#d8b582');
   ellipseF(cx, base - 12, 6, 2, '#c49a63'); ellipseF(cx, base - 12, 3, 1, '#d8b582'); px(cx, base - 12, '#8a5f38');
   if (vhash(tx, ty, 91) < 0.5) { rect(cx + 4, base - 8, 4, 3, '#6f8a52'); }   // muschio sul taglio
   erbetta(cx - 13, cx + 12, base + 1, tx, ty);
@@ -431,9 +435,9 @@ export function drawHay(sx, sy, tx = 0, ty = 0) {
   /* ROTOBALLA di fieno: il cerchio della spirale sul fronte, i fili che spuntano */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 27; shadow(cx, base, 12);
-  paintMask(roundMask([[cx - 12, base - 18, 21, 18, 7]]), '#c9a227', '#e0c25c', '#b08a20');
+  paintMask(roundMask([[cx - 12, base - 18, 21, 18, 7]]), '#c3a03a', '#d9bb62', '#a8862a', 32, 32, null);   // paesaggio: senza contorno
   for (let i = 3; i < 19; i += 3) rect(cx - 12 + i, base - 14, 1, 11, '#b08a20');   // i fili stretti in tondo
-  disc(cx + 8, base - 9, 9, LN); disc(cx + 8, base - 9, 8, '#e0c25c');
+  disc(cx + 8, base - 9, 9, '#a8862a'); disc(cx + 8, base - 9, 8, '#d9bb62');   // la spirale sul fronte, senza contorno nero
   for (let q = 0; q < 40; q++) { const a = q * 0.45, r = 7 - q * 0.17; if (r < 1) break; px(cx + 8 + Math.round(Math.cos(a) * r), base - 9 + Math.round(Math.sin(a) * r), '#b08a20'); }
   for (let j = 0; j < 5; j++) { const fx = cx - 12 + Math.floor(vhash(tx, ty, 102 + j) * 28), fy = base - 18 - Math.floor(vhash(tx, ty, 103 + j) * 3); rect(fx, fy, 1, 3, '#f0d888'); }
   erbetta(cx - 14, cx + 12, base + 1, tx, ty);   // sta nel prato: non è roba da raccogliere

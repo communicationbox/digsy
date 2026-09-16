@@ -219,15 +219,53 @@ function drawBoard(sx, sy, time) {
    senza scriverlo. */
 const STATUE_LOOK = { acc: 'grandpa', hat: '#b6ae9d', shirt: '#9a9384', pants: '#8a8376', skin: '#c6bfae',
   hairStyle: 'short', hairColor: '#d6cfbe', hatStyle: 'explorer', eyeColor: '#3e3a34' };
+/* LA STATUA È LO SPRITE DEL GIOCO, ma scolpito: si disegna il personaggio su una tela a parte e
+   poi si RIDIPINGE — dentro restano solo tre toni di pietra (secondo quanto era chiaro il pixel
+   di partenza) e il contorno scuro rimane SOLO sul bordo esterno. Con le linee interne dello
+   sprite sembrava un personaggio colorato di grigio (segnalato); così sembra scolpito.
+   La tela si costruisce una volta sola: il monumento non cambia mai. */
+let statueCv = null;
+function statueSprite() {
+  if (statueCv !== null) return statueCv;
+  statueCv = false;                                    // se qualcosa manca, si rinuncia una volta per tutte
+  try {
+    const cv = document.createElement('canvas'); cv.width = 32; cv.height = 34;
+    const c2 = cv.getContext('2d'); if (!c2 || !c2.getImageData) return statueCv;
+    c2.imageSmoothingEnabled = false;
+    const keep = S.look;
+    S.look = STATUE_LOOK; applyLook();
+    try { drawHero(c2, 0, 2, 'down', 0, false, 'lift'); } finally { S.look = keep; applyLook(); }
+    const im = c2.getImageData(0, 0, 32, 34), d = im.data;
+    const op = (x, y) => x >= 0 && y >= 0 && x < 32 && y < 34 && d[(y * 32 + x) * 4 + 3] > 40;
+    const out = c2.createImageData(32, 34), o = out.data;
+    const TONI = [[62, 58, 52], [125, 118, 106], [154, 147, 132], [182, 174, 157], [207, 199, 180]];
+    for (let y = 0; y < 34; y++) for (let x = 0; x < 32; x++) {
+      const i = (y * 32 + x) * 4;
+      if (!op(x, y)) continue;
+      const bordo = !op(x - 1, y) || !op(x + 1, y) || !op(x, y - 1) || !op(x, y + 1);
+      let t;
+      if (bordo) t = 0;                                 // contorno: solo il bordo esterno
+      else {
+        const lum = (d[i] * 0.3 + d[i + 1] * 0.59 + d[i + 2] * 0.11) / 255;   // quanto era chiaro
+        const luce = !op(x - 1, y - 1) || !op(x - 2, y);                       // spalla verso la luce
+        t = luce ? 4 : lum > 0.62 ? 3 : lum > 0.42 ? 2 : 1;
+      }
+      o[i] = TONI[t][0]; o[i + 1] = TONI[t][1]; o[i + 2] = TONI[t][2]; o[i + 3] = 255;
+    }
+    c2.putImageData(out, 0, 0);
+    statueCv = cv;
+  } catch (e) { statueCv = false; }
+  return statueCv;
+}
 function drawStatue(sx, sy, time) {
   ctx.save(); ctx.translate(sx, sy);
   statueArt(BRUSH, time, !hasLetter('statua'));
-  /* LA FIGURA È LO SPRITE DEL GIOCO, ridipinto in pietra: una statua costruita a blocchi non
-     somigliava a nessuno (segnalato). Così il monumento è davvero "il vecchio archeologo". */
-  const keep = S.look;
-  S.look = STATUE_LOOK; applyLook();
-  try { drawHero(null, STATUE_FEET.x - 16, STATUE_FEET.y - 32, 'down', 0, false, 'lift'); }
-  finally { S.look = keep; applyLook(); }
+  const cv = statueSprite();
+  if (cv) ctx.drawImage(cv, STATUE_FEET.x - 16, STATUE_FEET.y - 34);
+  else {                                               // senza tela a parte: almeno la figura c'è
+    const keep = S.look; S.look = STATUE_LOOK; applyLook();
+    try { drawHero(null, STATUE_FEET.x - 16, STATUE_FEET.y - 32, 'down', 0, false, 'lift'); } finally { S.look = keep; applyLook(); }
+  }
   /* il piccone di pietra, piantato accanto */
   rect(STATUE_FEET.x + 9, STATUE_FEET.y - 26, 2, 26, '#9a9384');
   rect(STATUE_FEET.x + 10, STATUE_FEET.y - 26, 1, 26, '#b6ae9d');
