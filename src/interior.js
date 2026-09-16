@@ -286,7 +286,7 @@ function stepCut(dt) {
 export function exitInterior() {
   /* tutorial: uscire di casa è un passo suo. `ui.js` si chiama a runtime (import dinamico):
      interior↔ui a top-level sarebbe un ciclo */
-  if (INT.type === 'house' && tutBump('out') === 'step') import('./ui.js').then(u => u.announceTutStep());
+  if (INT.b && INT.b.type === 'house' && tutBump('out') === 'step') import('./ui.js').then(u => u.announceTutStep());   // `INT.type` non esiste: il tipo sta in INT.b
   INT.active = false; INT.justLeft = true;
   if (CUT.on) { CUT.on = false; CUT.phase = null; CUT.line = null; CUT.thanks = null; } cutBars(false);
   if (!INT.b) return;

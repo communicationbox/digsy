@@ -43,13 +43,20 @@ export function tutPurse() {
 export function spadeCost() { return TOOL_COST.spade; }
 
 /* GLI OTTO PASSI = il giro completo del gioco, nell'ordine in cui lo si impara facendolo:
-   il letto di casa → esci → raccogli le monete → compra la pala → scava → consegna al Museo →
+   il letto di casa → arreda la Sala → esci → raccogli le monete → compra la pala → scava → consegna al Museo →
    ritira i reperti identificati → torna a casa a dormire.
    Chi li finisce ha fatto una partita intera in piccolo e sa dove tornare per ognuna delle cose.
    `auto` = il passo si spunta da solo guardando lo stato; senza `auto` lo spunta un'azione di
    gioco che chiama `tutBump`. */
+/* quanti mobili ci sono in Sala: il letto c'è già, quindi il secondo pezzo è quello posato dal
+   giocatore */
+function furnInSala() {
+  const r = S.house && S.house.rooms && S.house.rooms[0];
+  return r ? (r.furn || []).length : 0;
+}
 export const STEPS = [
   { id: 'bed', need: () => 1 },                     // premi {act} sul letto: si impara dove si dorme
+  { id: 'furn', auto: () => furnInSala() >= 2, have: () => Math.min(1, Math.max(0, furnInSala() - 1)), need: () => 1 },
   { id: 'out', need: () => 1 },                     // esci di casa
   { id: 'pick', auto: () => tutPurse() >= spadeCost(), have: () => Math.min(tutPurse(), spadeCost()), need: () => spadeCost() },
   { id: 'shop', auto: () => !!(S.tools || {}).spade, have: () => ((S.tools || {}).spade ? 1 : 0), need: () => 1 },
@@ -67,6 +74,8 @@ export const STEP_IDS = STEPS.map(s => s.id);
 const TEXT = {
   bed: () => [tr('Questo è il tuo letto', 'This is your bed'),
     tr('Premi {act} sul letto: qui dormi gratis quando finisci l\'energia ⚡.', 'Press {act} on the bed: you sleep here for free when your energy ⚡ runs out.')],
+  furn: () => [tr('Arreda la Sala', 'Furnish the room'),
+    tr('Premi {act} su una casella libera e posa la poltrona: una stanza curata ti fa dormire meglio.', 'Press {act} on an empty tile and put down the armchair: a well kept room gives you a better sleep.')],
   out: () => [tr('Esci di casa', 'Head outside'),
     tr('Cammina sulla porta in basso: il mondo è tutto da scavare.', 'Walk onto the door below: the whole world is there to dig.')],
   pick: () => [tr('Raccogli ciò che luccica', 'Pick up what sparkles'),

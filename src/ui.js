@@ -93,7 +93,7 @@ function syncModalCoins() {
    nell'HTML ma qui, perché deve cambiare lingua e mostrare il tasto giusto per il dispositivo
    (su un telefono il tasto E non esiste). */
 /* un'icona per obiettivo: si capisce cosa fare prima di aver letto la riga */
-const TUT_ICON = { pick: '🌾', shop: '🏪', dig: '🪏', museum: '🏛️' };
+const TUT_ICON = { furn: '🎨', pick: '🌾', shop: '🏪', dig: '🪏', museum: '🏛️' };
 function syncTutorial() {
   const box = document.getElementById('tutbox'); if (!box || !box.style) return;
   if (!tutActive() || splashOpen()) { box.style.display = 'none'; return; }

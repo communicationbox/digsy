@@ -7928,14 +7928,14 @@ sprites.applyLook();
   const dataT = await import('../src/data.js');
   const house = await import('../src/house.js');
   const S = state.S, P5 = state.P;
-  check('gli otto passi sono il giro completo, in ordine',
-    tut.STEP_IDS.join('>') === 'bed>out>pick>shop>dig>museum>collect>sleep');
+  check('i nove passi sono il giro completo, in ordine',
+    tut.STEP_IDS.join('>') === 'bed>furn>out>pick>shop>dig>museum>collect>sleep');
   /* si nasce senza pala: il passo dello scavo NON può venire prima di quello del Negozio */
   check('lo scavo viene DOPO aver comprato la pala',
     tut.STEP_IDS.indexOf('shop') < tut.STEP_IDS.indexOf('dig'));
   /* il letto è il primissimo gesto: si è già in Sala, prima ancora di uscire in strada */
-  check('il letto è il primissimo passo',
-    tut.STEP_IDS.indexOf('bed') === 0 && tut.STEP_IDS.indexOf('out') === 1);
+  check('il letto è il primissimo passo, poi si arreda e si esce',
+    tut.STEP_IDS.indexOf('bed') === 0 && tut.STEP_IDS.indexOf('furn') === 1 && tut.STEP_IDS.indexOf('out') === 2);
   /* IL LETTO C'È GIÀ in Sala alla prima partita: senza, il primo passo chiederebbe una cosa che
      non esiste e si dormirebbe solo pagando la Locanda */
   {
@@ -7960,7 +7960,10 @@ sprites.applyLook();
       letti.filter(id => (dataT.FURN_BY_ID[id] || {}).slot !== 'letto').join(','));
     check('e il letto di partenza è uno di quelli', letti.includes(dataT.STARTER_BED_ID));
   }  check('scavare durante il letto non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'bed');
-  check('provato il letto → si esce di casa', tut.tutBump('bed') === 'step' && tut.tutStepId() === 'out');
+  check('provato il letto → si arreda la stanza', tut.tutBump('bed') === 'step' && tut.tutStepId() === 'furn');
+  check('finché in Sala c\'è solo il letto, il passo non avanza', tut.tutTick() === false && tut.tutStepId() === 'furn');
+  S.house.rooms[0].furn.push({ itemId: dataT.STARTER_FURN_ID, gx: 6, gy: 4 });
+  check('posato un secondo mobile → si esce di casa', tut.tutTick() === 'step' && tut.tutStepId() === 'out');
   check('uscito di casa → si passa alla raccolta', tut.tutBump('out') === 'step' && tut.tutStepId() === 'pick');
   check('la soglia della raccolta è il prezzo della pala', tut.tutProgress().need === gp5.TOOL_COST.spade);
   /* raccolta: conta il VALORE (monete + merce), non il numero di oggetti — con valori da 1 a 5
@@ -8014,7 +8017,8 @@ sprites.applyLook();
     S.tut = null; S.coins = 0; S.goods = []; S.tools = {};   // torna al primo passo
     check('il passo del letto non manda da nessuna parte (sei già lì)',
       tut.tutStepId() === 'bed' && tut.tutTarget(start.x, start.y) === null);
-    tut.tutBump('bed'); tut.tutBump('out');           // fuori di casa → passo 'pick'
+    if (!(S.house.rooms[0].furn || []).some(f => f.itemId === dataT.STARTER_FURN_ID)) S.house.rooms[0].furn.push({ itemId: dataT.STARTER_FURN_ID, gx: 6, gy: 4 });
+    tut.tutBump('bed'); tut.tutTick(); tut.tutBump('out');           // fuori di casa → passo 'pick'
     const gPick = tut.tutTarget(start.x, start.y);
     check('il passo della raccolta indica DOVE andare', !!gPick && Number.isFinite(gPick.x));
     S.goods = [{ id: 'spiga', val: gp5.TOOL_COST.spade, n: 1, good: true }]; tut.tutTick();
@@ -8041,7 +8045,7 @@ sprites.applyLook();
     const w5 = await import('../src/world.js');
     const orig = Math.random;
     S.tut = null; S.tools = { spade: true }; S.coins = 999; S.goods = [];
-    tut.tutBump('bed'); tut.tutBump('out');         // fuori di casa → passo 'pick'
+    tut.tutBump('bed'); tut.tutTick(); tut.tutBump('out');         // fuori di casa → passo 'pick'
     tut.tutTick();                                  // le monete pagano la pala → passo 'shop'
     tut.tutTick();                                  // pala comprata → passo 'dig'
     check('si parte dal passo dello scavo', tut.tutStepId() === 'dig');
@@ -8112,7 +8116,7 @@ sprites.applyLook();
     check('al primo passo il Museo è chiuso', tut.tutStepId() === 'bed' && tut.museumOpen() === false);
     check('e la porta lo dice invece di non fare niente', tut.museumClosedText().length > 20);
     S.tools = { spade: true }; S.coins = 999;
-    tut.tutBump('bed'); tut.tutBump('out'); tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
+    tut.tutBump('bed'); tut.tutTick(); tut.tutBump('out'); tut.tutTick(); tut.tutTick(); tut.tutBump('dig');
     check('arrivati al suo passo, il Museo apre', tut.tutStepId() === 'museum' && tut.museumOpen() === true);
     check('e resta aperto anche per il ritiro', (tut.tutBump('museum'), tut.tutStepId() === 'collect' && tut.museumOpen() === true));
     /* SALTARE RESTITUISCE IL GIOCO INTERO: nessuna porta resta chiusa dietro di sé */
@@ -8124,7 +8128,7 @@ sprites.applyLook();
     check('rifacendolo torna chiuso finché non serve', tut.museumOpen() === false);
     /* e finito per bene, resta aperto */
     S.tools = { spade: true }; S.coins = 999;
-    tut.tutBump('bed'); tut.tutBump('out'); tut.tutTick(); tut.tutTick();
+    tut.tutBump('bed'); tut.tutTick(); tut.tutBump('out'); tut.tutTick(); tut.tutTick();
     tut.tutBump('dig'); tut.tutBump('museum'); tut.tutBump('collect'); tut.tutBump('sleep');
     check('finito: il Museo resta aperto', tut.tutDone() && tut.museumOpen() === true);
     /* la porta del Museo passa DAVVERO da museumOpen, non è solo una funzione che nessuno usa */

@@ -46,12 +46,17 @@ check('e dice cosa farci', /dorm/i.test(tut.tutHint('bed')) && /energia|⚡/.tes
 const dataBed = data.FURN_BY_ID[data.STARTER_BED_ID] || {};
 check('il letto è riconosciuto come letto, non come soprammobile', dataBed.slot === 'letto');
 ui.openBed(0, letto.gx, letto.gy);
-check('provato il letto, il passo dopo è uscire', tut.tutStepId() === 'out');
-check('e spiega dov\'è la porta', /porta/i.test(tut.tutHint('out')), tut.tutHint('out'));
+check('provato il letto, il passo dopo è arredare', tut.tutStepId() === 'furn');
+check('e dice cosa ci si guadagna', /dorm/i.test(tut.tutHint('furn')), tut.tutHint('furn'));
 ui.closeModal(true);
+/* la poltrona è già nel vassoio dalla prima partita: si posa in una casella libera */
+check('la poltrona di partenza è nel vassoio', S.furnOwned.includes(data.STARTER_FURN_ID));
+house.tryPlaceFurniture(0, 6, 4, data.STARTER_FURN_ID);
+check('posata in Sala, il passo dopo è uscire', tut.tutTick() === 'step' && tut.tutStepId() === 'out');
+check('e spiega dov\'è la porta', /porta/i.test(tut.tutHint('out')), tut.tutHint('out'));
 
 titolo('2 · fuori, a raccogliere le prime monete');
-interior.INT.type = 'house'; interior.exitInterior();
+interior.INT.b = { type: 'house' }; interior.exitInterior();
 check('uscendo di casa il tutorial passa alla raccolta', tut.tutStepId() === 'pick');
 check('dice quante monete servono', tut.tutHint('pick').includes(String(gameplay.TOOL_COST.spade)), tut.tutHint('pick'));
 check('e indica dove andare', !!tut.tutTarget(P.x, P.y));
