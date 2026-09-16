@@ -273,7 +273,13 @@ function critter(g, outline) {
       for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; this.oval(Math.round(x), Math.round(y), w / 2, w / 2, col); }
     },
     paint() {
-      for (const [x, y] of m.values()) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!m.has((x + dx) + ',' + (y + dy))) g.px(x + dx, y + dy, outline);
+      /* IL CONTORNO PRENDE IL COLORE DI CHI TOCCA. Prima era una tinta scura sola per tutta la
+         bestiola: muso, guscio e zampe finivano dentro lo stesso filo quasi nero e l'animale
+         sembrava ritagliato. `outline` resta come ripiego se il colore non è un esagono. */
+      for (const [x, y, c] of m.values()) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+        if (m.has((x + dx) + ',' + (y + dy))) continue;
+        g.px(x + dx, y + dy, typeof c === 'string' && c[0] === '#' ? g.shade8(c, 0.34) : outline);
+      }
       for (const [x, y, c] of m.values()) g.px(x, y, c);
     },
   };

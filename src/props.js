@@ -212,7 +212,9 @@ function pickupSprite(id) {
   try {
     cv = document.createElement('canvas'); cv.width = 32; cv.height = 32;
     paintPickup(makeCanvasBrush(cv.getContext('2d')), id, 16, 24);
-    outlinePx(cv, '#2a2118');
+    /* il contorno prende la tinta MEDIA dell'oggetto, non un grigio-nero fisso: una spiga
+       dorata cerchiata di nero sembra un adesivo, e con venti oggetti diversi si vedeva */
+    outlinePx(cv, tintaMedia(cv, 0.34));
   } catch (e) { cv = null; /* stub nei test */ }
   pkCache.set(id, cv); return cv;
 }
@@ -223,6 +225,18 @@ export function drawPickup(id, sx, sy, time, tx, ty) {
   else { ctx.save(); ctx.translate(sx, sy); paintPickup(BRUSH, id, 16, 24); ctx.restore(); }
   glint(sx + 22, sy + 6, time, tx, ty);
   ctx.restore();
+}
+/* la tinta media dei pixel pieni di una canvas, scurita: serve a dare a ogni oggetto un
+   contorno del SUO colore invece di un nero buono per tutti */
+function tintaMedia(cv, k) {
+  try {
+    const c2 = cv.getContext('2d'); const d = c2.getImageData(0, 0, cv.width, cv.height).data;
+    let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 128) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    if (!n) return '#2a2118';
+    const f = v => Math.max(0, Math.min(255, Math.round((v / n) * k)));
+    return '#' + ((1 << 24) | (f(r) << 16) | (f(g) << 8) | f(b)).toString(16).slice(1);
+  } catch (e) { return '#2a2118'; }
 }
 /* CONTORNO AGGRAPPATO ALLA SAGOMA di una canvas: si legge il canale alpha e si accende solo
    il pixel VUOTO adiacente a uno pieno. Un riquadro attorno alla tela darebbe una cornice

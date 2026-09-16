@@ -25,8 +25,12 @@ const TONES = {
   F: ['N', 'F', 'f'], S: ['T', 'S', 's'], P: ['U', 'P', 'p'], E: ['E', 'E', 'E'], C: ['c', 'c', 'c'],   // cuoio (grembiule del falegname, npcArt.js)   // capelli (hairArt.js): luce, base, ombra del colore scelto
 };
 /* contorno per materiale (vince il primo trovato in quest'ordine: il più scuro) */
-const OUTLINE_ORDER = ['H', 'J', 'A', 'B', 'G', 'Y', 'R', 'Q', 'D', 'W'];
-const OUTLINE = { H: 'J', J: 'K', A: 'I', B: 'K', G: 'j', Y: 'j', R: 'r', Q: 'q', D: 'd', W: 'v' };
+/* Nell'elenco vanno anche i toni di LUCE e di OMBRA, non solo il tono base: i capelli sul
+   bordo della sagoma sono spesso il tono d'ombra ('a') o di luce ('M'), e quei pixel
+   restavano senza contorno — il profilo si apriva proprio lì (trovato misurando Digsy di
+   spalle). Stessa cosa per il cappello ('h', 'L'). */
+const OUTLINE_ORDER = ['H', 'h', 'L', 'J', 'A', 'a', 'M', 'B', 'G', 'Y', 'R', 'Q', 'D', 'W'];
+const OUTLINE = { H: 'J', h: 'J', L: 'J', J: 'J', A: 'I', a: 'I', M: 'I', B: 'w', G: 'j', Y: 'j', R: 'r', Q: 'q', D: 'd', W: 'v' };
 
 /* arrotondamento SIMMETRICO: un mezzo pixel va verso il centro della testa (15.5), non sempre a
    destra — con Math.round le due metà di una forma centrata non erano più una lo specchio dell'altra */

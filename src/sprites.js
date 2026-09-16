@@ -19,6 +19,9 @@ export const PAL = {
   'G': '#e8b93c', 'g': '#a8842a', 'Y': '#f8dd82', 'R': '#c65a54', 'D': '#8fe7dd', 'Q': '#5fa04e',
   /* contorni e ombre dei cappelli nativi: J contorno del colore scelto (applyLook), j contorno
      dell'oro, V/v ombra e contorno del bianco, q/r/d ombre di alloro, gemma e vetro */
+  /* CONTORNI del corpo, uno per materiale (bodyArt.BORDO): x pelle · y maglia · z pantaloni.
+     Con un contorno nero solo per tutto, il viso sembrava cerchiato a pennarello. */
+  'x': '#a86a44', 'y': '#2f5a4c', 'z': '#6b4a24', 'w': '#33230f',   // w = contorno del cuoio (scarpe, zaino): di RETRO è quasi tutto zaino
   'J': '#4a2416', 'I': '#3a2616', 'X': '#2e2219', 'c': '#e89a8a', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
 };
 /* schiarisce/scurisce un hex, CLAMPATO (k>1 senza clamp sfora il byte e il colore vira, es.
@@ -40,7 +43,9 @@ export function applyLook() {
   PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.65); PAL.T = shade(L.shirt, 1.42);
   PAL.P = L.pants; PAL.p = shade(L.pants, 0.68); PAL.U = shade(L.pants, 1.4);
   PAL.F = L.skin; PAL.f = shade(L.skin, 0.78); PAL.N = shade(L.skin, 1.18); PAL.c = mix(L.skin, '#e0605a', 0.38);
-  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48); PAL.I = shade(L.hairColor, 0.4);
+  /* i contorni seguono il materiale: scuri quanto basta a tenere la sagoma, mai nero */
+  PAL.x = shade(L.skin, 0.40); PAL.y = shade(L.shirt, 0.32); PAL.z = shade(L.pants, 0.30);
+  PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48); PAL.I = shade(L.hairColor, 0.3);
   PAL.E = L.eyeColor || '#33291f';
 }
 

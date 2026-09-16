@@ -245,17 +245,33 @@ export function buildPoses(shirt) {
   return out;
 }
 
-/* contorno scuro attorno alla sagoma (dopo i vestiti): coppie [riga, 32 caratteri] da -1 a 32 */
+/* IL CONTORNO PRENDE IL COLORE DI CIÒ CHE TOCCA. Prima era una sola lettera nera ('X') tutt'
+   attorno alla sagoma: il viso finiva cerchiato di nero come un adesivo (segnalato). Ora ogni
+   pixel di contorno guarda il materiale del vicino e usa la sua versione scura — pelle,
+   maglia, pantaloni, capelli, cappello, scarpe hanno ognuno la propria linea. */
+const BORDO = {
+  F: 'x', f: 'x', N: 'x', c: 'x',            // pelle
+  S: 'y', s: 'y', T: 'y',                    // maglia
+  P: 'z', p: 'z', U: 'z',                    // pantaloni
+  A: 'I', a: 'I', M: 'I', I: 'I',            // capelli
+  H: 'J', h: 'J', L: 'J', J: 'J',            // cappello
+  B: 'w', b: 'w',                            // scarpe, zaino, cuoio
+  W: 'v', V: 'v',                            // bianco
+};
+/* contorno attorno alla sagoma (dopo i vestiti): coppie [riga, 32 caratteri] da -1 a 32 */
 export function outlineRows(rows) {
   const H = rows.length, Wd = rows[0].length;
-  const on = (x, y) => y >= 0 && y < H && x >= 0 && x < Wd && rows[y][x] !== '.';
+  const at = (x, y) => (y >= 0 && y < H && x >= 0 && x < Wd && rows[y][x] !== '.') ? rows[y][x] : null;
   const out = [];
   for (let y = -1; y <= H; y++) {
     let s = '', any = false;
     for (let x = 0; x < Wd; x++) {
-      if (on(x, y)) { s += '.'; continue; }
-      const edge = on(x - 1, y) || on(x + 1, y) || on(x, y - 1) || on(x, y + 1);
-      s += edge ? 'X' : '.'; if (edge) any = true;
+      if (at(x, y)) { s += '.'; continue; }
+      /* si guardano i quattro vicini; vince il primo materiale che ha una linea propria */
+      const nb = [at(x, y + 1), at(x, y - 1), at(x - 1, y), at(x + 1, y)].filter(Boolean);
+      if (!nb.length) { s += '.'; continue; }
+      const m = nb.map(c => BORDO[c]).find(Boolean);
+      s += m || 'X'; any = true;
     }
     if (any) out.push([y, s]);
   }
