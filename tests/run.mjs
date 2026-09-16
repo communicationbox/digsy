@@ -5166,7 +5166,7 @@ sprites.applyLook();
     let drawnOk = true, missing = '';
     /* colore-firma di ciascuna: se la funzione smette di dipingerlo, la decorazione è sparita
        dal mondo pur restando "presente" nella logica */
-    for (const [type, col] of [['redspire', '#cc7854'], ['orecrystal', '#9ad0c8'], ['icecrystal', '#9fd4e6'], ['hay', '#b08a20']]) {
+    for (const [type, col] of [['redspire', '#cc7854'], ['orecrystal', '#9ad0c8'], ['icecrystal', '#9fd4e6'], ['hay', '#a8862a']]) {
       const p = wanted[type]; if (!p) { drawnOk = false; missing += type + ' '; continue; }
       const f = frame(p[0], p[1]);
       if (!f.has(col)) { drawnOk = false; missing += type + ' '; }
@@ -5176,7 +5176,7 @@ sprites.applyLook();
        dal mondo (le usano anche le pagine di prova /sprites) */
     const direct = [
       ['drawRedspire', '#b05e3e'], ['drawOrecrystal', '#eaf6fa'],
-      ['drawIcecrystal', '#9fd4e6'], ['drawHay', '#c9a227'], ['drawHole', '#2a1d12'],
+      ['drawIcecrystal', '#9fd4e6'], ['drawHay', '#c3a03a'], ['drawHole', '#2a1d12'],
     ];
     let dOk = true, dBad = '';
     for (const [fn, col] of direct) { const s = spy(() => props[fn](0, 0)); if (!s.has(col)) { dOk = false; dBad += fn + ' '; } }
