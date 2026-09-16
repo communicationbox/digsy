@@ -6306,8 +6306,8 @@ sprites.applyLook();
     const fs2 = (await import('node:fs'));
     const rsrc = fs2.readFileSync('src/render.js', 'utf8') + fs2.readFileSync('src/props.js', 'utf8');
     const ok = ['drawMushroom(sx, sy, time, tx, ty, ripe)', 'drawFlower(sx, sy, tx, ty, ripe)',
-      'drawShell(sx, sy, ripe)', 'drawReed(sx, sy, time, tx, ty, ripe)'].every(f => rsrc.includes(f));
-    const passed = (rsrc.match(/draw(Mushroom|Flower|Shell|Reed)\([^)]*\brip\)/g) || []).length;
+      'drawShell(sx, sy, ripe, tx = 0, ty = 0)', 'drawReed(sx, sy, time, tx, ty, ripe)'].every(f => rsrc.includes(f));
+    const passed = (rsrc.match(/draw(Mushroom|Flower|Shell|Reed)\([^)]*\brip\b[^)]*\)/g) || []).length;
     check('le decorazioni mature hanno un disegno diverso, non solo la stellina', ok && passed === 4);
     const shad = (rsrc.match(/if \(rip\) shadow\(/g) || []).length;
     check('e tutte e 4 hanno ombra di contatto quando sono mature', shad === 4);

@@ -117,23 +117,85 @@ export function drawFlower(sx, sy, tx, ty, ripe) {
 }
 /* CONCHIGLIA — la scenografia è una valva rotta appiattita nella sabbia; quella raccoglibile
    è intera, a ventaglio, con le costole e la cerniera in basso. */
-export function drawShell(sx, sy, ripe) {
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const bx = sx + 16, by = sy + 18;
-  if (ripe) {
-    const base = sy + 24;
-    /* CONTORNO: la conchiglia intera si raccoglie, quella rotta no. La linea attorno è il
-       segno che lo dice, prima ancora della stellina */
-    const LNC = '#8a4f4c';
-    rect(bx - 9, base - 9, 20, 10, LNC); rect(bx - 7, base - 13, 16, 6, LNC); rect(bx - 1, base - 15, 4, 4, LNC);
-    rect(bx - 8, base - 8, 18, 8, '#f2c9c4'); rect(bx - 6, base - 12, 14, 4, '#f2c9c4');
-    rect(bx, base - 14, 2, 2, '#f2c9c4');
-    for (const ox of [-6, 0, 6]) { rect(bx + ox, base - 10, 2, 2, '#d99a97'); rect(bx + ox, base - 6, 2, 2, '#d99a97'); }
-    rect(bx - 4, base - 12, 2, 2, '#fbeae7'); rect(bx + 2, base - 12, 2, 2, '#fbeae7');
-    rect(bx - 2, base - 2, 6, 2, '#c98481'); rect(bx - 2, base - 2, 6, 1, shade8('#c98481', 0.8)); // cerniera con un filo d'ombra sotto
+/* QUATTRO CONCHIGLIE, una diversa dall'altra: ventaglio (capasanta), spirale (lumaca di mare),
+   torre (turritella), tonda (vongola). Prima la conchiglia raccoglibile era una pila di tre
+   rettangoli rosa: non si capiva cosa fosse, ed era sempre la stessa su tutta la spiaggia. */
+/* QUATTRO CONCHIGLIE DISEGNATE A MANO, pixel per pixel.
+   Erano generate (ellissi, spirali calcolate, ombreggiatura sui bordi): a grandezza vera —
+   undici pixel, una conchiglia sta in una mano e Digsy è alto venti — la generazione diventava
+   poltiglia, e ingrandirle per farle leggere le faceva grosse quanto il giocatore (segnalato
+   con foto). A questa scala l'unico modo è la griglia scritta a mano: `o` contorno, `b` corpo,
+   `d` segno (coste, anelli, spirale), `l` luce.
+   Le sagome ricalcano le conchiglie vere: capasanta a ventaglio con l'orlo festonato, chiocciola
+   coi giri concentrici, turritella a torre obliqua, vongola tonda con gli anelli di crescita. */
+const SHELLS = [
+  /* CAPASANTA: cerniera in alto, coste che si aprono a raggiera, orlo ONDULATO in basso */
+  { col: ['#e79a93', '#f6ccc4', '#a4514c', '#c4736d'], px: [
+    '....ooo....',
+    '...olbbo...',
+    '..oldbdbo..',
+    '.oldbdbdbo.',
+    'oldbdbdbdbo',
+    'olbdbdbdbdo',
+    '.obdbdbdbo.',
+    '.o.o.o.o.o.'] },
+  /* CHIOCCIOLA: i giri concentrici e l'apertura chiara in basso */
+  { col: ['#e3bc7e', '#f6e2b6', '#96683a', '#c49659'], px: [
+    '...ooooo...',
+    '..obbbbbo..',
+    '.obdddddbo.',
+    'obdbbbbbdbo',
+    'obdbdddbdbo',
+    'obdbdbbdbbo',
+    '.obdbdddbo.',
+    '..ollllbo..',
+    '...ooooo...'] },
+  /* TURRITELLA: torre di anelli che si stringe verso la punta */
+  { col: ['#d5add0', '#f0daec', '#8a5f86', '#b287ad'], px: [
+    '.....oo....',
+    '....olbo...',
+    '....oddo...',
+    '...olbbo...',
+    '...odddo...',
+    '..olbbbo...',
+    '..oddddo...',
+    '.olbbbbbo..',
+    '.oddddddo..',
+    '..oooooo...'] },
+  /* VONGOLA: valva tonda e liscia con due anelli di crescita */
+  { col: ['#9dc0d6', '#d8eaf4', '#43708c', '#6e9ab4'], px: [
+    '...ooooo...',
+    '..olbbbbo..',
+    '.olbbbbbbo.',
+    'olbbbbbbbbo',
+    'olbdddddbbo',
+    '.obbbbbbbo.',
+    '..obbbbbo..',
+    '...ooooo...'] },
+];
+export function drawShell(sx, sy, ripe, tx = 0, ty = 0) {
+  ctx.save(); ctx.translate(sx, sy);
+  if (!ripe) {
+    /* il GUSCIO ROTTO è scenografia: toni vicini alla sabbia, niente contorno — non deve
+       invitare a premere niente */
+    const m = roundMask([['ell', 16, 21, 8, 6]], 32, 32);
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if ((x - 14) * 1.1 + (20 - y) * 1.6 > 6) m[y * 32 + x] = 0;   // spaccatura netta di traverso
+    const d2 = paintMask(m, '#cdb193', '#d8bfa4', '#c0a487', 32, 32, null);
+    for (const q of [3, 6, 9]) for (let a2 = 0.2; a2 < 1.5; a2 += 0.12) {
+      const x = 15 - Math.round(Math.cos(a2) * q), y = 22 - Math.round(Math.sin(a2) * q * 0.9);
+      if (d2(x, y)) px(x, y, '#b59a7e');
+    }
     ctx.restore(); return;
   }
-  rect(bx - 4, by - 4, 8, 8, '#e7c6a0'); rect(bx - 2, by - 2, 3, 3, '#f5e4cf'); rect(bx, by - 6, 2, 2, '#d3a97f'); px(bx + 2, by + 2, shade8('#e7c6a0', 0.8));
+  const bp = SHELLS[Math.floor(vhash(tx, ty, 118) * SHELLS.length) % SHELLS.length];
+  const flip = vhash(tx, ty, 119) < 0.5;
+  const [C1, C2, LN, CD] = bp.col;
+  const COL = { o: LN, b: C1, l: C2, d: CD };
+  const W = bp.px[0].length, H = bp.px.length, x0 = 16 - (W >> 1), y0 = 26 - H;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const c = COL[bp.px[y][x]];
+    if (c) px(x0 + (flip ? W - 1 - x : x), y0 + y, c);
+  }
   ctx.restore();
 }
 export function drawHole(sx, sy, tx = 0, ty = 0) {

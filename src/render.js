@@ -1734,7 +1734,7 @@ export function render(time) {
     if (d === 'tree') ents.push({ y: sy + 15, f: () => drawTree(sx, sy, time, tx, ty) });
     else if (d === 'boulder') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy, tx, ty) });
     else if (d === 'flower') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 3); drawFlower(sx, sy, tx, ty, rip); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
-    else if (d === 'shell') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 4); drawShell(sx, sy, rip); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
+    else if (d === 'shell') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 4); drawShell(sx, sy, rip, tx, ty); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
     else if (d === 'cactus') ents.push({ y: sy + 15, f: () => drawCactus(sx, sy, tx, ty) });
     else if (d === 'sandspire') ents.push({ y: sy + 15, f: () => drawSandspire(sx, sy, tx, ty) });
     else if (d === 'deadtree') ents.push({ y: sy + 15, f: () => drawDeadtree(sx, sy, tx, ty) });
