@@ -476,7 +476,7 @@ export function drawReed(sx, sy, time, tx, ty, ripe) {
   });
   if (ripe) {
     const x = cx + 2 + Math.round(sw2 * 2);
-    rect(x - 2, base - 31, 6, 11, '#2a1e12'); rect(x - 1, base - 30, 4, 9, '#8a5f38'); rect(x - 1, base - 30, 1, 9, '#a97a4c'); rect(x, base - 34, 2, 4, '#6f8a4a');
+    rect(x - 2, base - 31, 6, 11, shade8('#8a5f38', 0.34)); rect(x - 1, base - 30, 4, 9, '#8a5f38'); rect(x - 1, base - 30, 1, 9, '#a97a4c'); rect(x, base - 34, 2, 4, '#6f8a4a');
   }
   ctx.restore();
 }
@@ -530,7 +530,7 @@ export function drawSayBalloon(sx, sy, text) {
   const tcx = Math.max(bx + 4, Math.min(bx + bw - 4, Math.round(sx)));
   ctx.fillStyle = '#241a10'; ctx.fillRect(bx - 1, by - 1, bw + 2, bh + 2);   // bordo
   ctx.fillStyle = '#f6efdd'; ctx.fillRect(bx, by, bw, bh);                    // carta
-  ctx.fillStyle = '#241a10'; ctx.fillRect(tcx - 2, by + bh, 4, 3); ctx.fillStyle = '#f6efdd'; ctx.fillRect(tcx - 1, by + bh, 2, 2); // codina verso il basso
+  ctx.fillStyle = shade8('#f6efdd', 0.34); ctx.fillRect(tcx - 2, by + bh, 4, 3); ctx.fillStyle = '#f6efdd'; ctx.fillRect(tcx - 1, by + bh, 2, 2); // codina verso il basso
   ctx.fillStyle = '#2a2016';
   lines.forEach((l, i) => ctx.fillText(l, bx + padX, by + padY + i * lh));
   ctx.restore();

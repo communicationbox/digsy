@@ -222,7 +222,7 @@ export function drawBackDoor(g, x0, x1, fy0, fy1, open, id, floorCol) {
     g.rect(ox, oy + oh - 12, ow, 1, g.shade8(floorCol || '#b8894f', 0.4));
     for (let i = 0; i < 4; i++) g.rect(ox + 4 + i * 2, oy + oh - 11 + i * 3, ow - 8 - i * 4, 3, 'rgba(255,236,190,.10)');
     /* battente spalancato verso l'interno, di scorcio sul lato sinistro */
-    g.rect(ox, oy, 6, oh, '#3a2a1c'); g.rect(ox + 1, oy + 1, 4, oh - 1, '#8a5f38'); g.rect(ox + 1, oy + 1, 1, oh - 1, '#b07c4a');
+    g.rect(ox, oy, 6, oh, g.shade8('#8a5f38', 0.34)); g.rect(ox + 1, oy + 1, 4, oh - 1, '#8a5f38'); g.rect(ox + 1, oy + 1, 1, oh - 1, '#b07c4a');
     g.px(ox + 4, oy + Math.floor(oh / 2), '#e8c34a');
   } else {
     doorLeafFront(g, ox, oy, ow, oh);
@@ -247,13 +247,13 @@ export function drawSideDoor(g, wx, ww, y0, y1, side, open, id, floorCol) {
     g.rect(side === 'left' ? wx + ww - 2 : wx, gy, 2, gh, '#9a9285');      // soglia
     /* battente aperto, appoggiato allo stipite in alto, visto dall'alto */
     const lx = side === 'left' ? wx + 2 : wx + ww - 16;
-    g.rect(lx, gy, 14, 4, '#3a2a1c'); g.rect(lx + 1, gy + 1, 12, 2, '#8a5f38'); g.rect(lx + 1, gy + 1, 12, 1, '#b07c4a');
+    g.rect(lx, gy, 14, 4, g.shade8('#8a5f38', 0.34)); g.rect(lx + 1, gy + 1, 12, 2, '#8a5f38'); g.rect(lx + 1, gy + 1, 12, 1, '#b07c4a');
   } else {
     /* chiusa: soglia di pietra piena e il battente, una lama di legno lungo il varco */
     g.rect(wx, gy, ww, gh, '#8a8276');
     for (let i = 6; i < gh; i += 8) g.rect(wx, gy + i, ww, 1, '#6f685c');
     const lx = wx + Math.floor(ww / 2) - 4;
-    g.rect(lx, gy, 8, gh, '#3a2a1c'); g.rect(lx + 1, gy, 6, gh, '#8a5f38'); g.rect(lx + 1, gy, 2, gh, '#b07c4a');
+    g.rect(lx, gy, 8, gh, g.shade8('#8a5f38', 0.34)); g.rect(lx + 1, gy, 6, gh, '#8a5f38'); g.rect(lx + 1, gy, 2, gh, '#b07c4a');
     for (let i = 8; i < gh; i += 8) g.rect(lx + 1, gy + i, 6, 1, '#6e4a2e');
     drawPadlock(g, side === 'left' ? wx + ww + 6 : wx - 6, gy + Math.floor(gh / 2));
   }
@@ -297,7 +297,7 @@ export function drawCoatHooks(g, x, y) {
   g.rect(x + 17, y + 5, 4, 10, '#c65a54'); g.rect(x + 17, y + 13, 4, 2, '#e8dcc0');
 }
 export function drawWallPlant(g, cx, baseY) {
-  g.rect(cx - 5, baseY - 8, 11, 8, '#2a1e14'); g.rect(cx - 4, baseY - 7, 9, 7, '#c86a4a'); g.rect(cx - 4, baseY - 7, 9, 2, '#e08a62');
+  g.rect(cx - 5, baseY - 8, 11, 8, g.shade8('#c86a4a', 0.34)); g.rect(cx - 4, baseY - 7, 9, 7, '#c86a4a'); g.rect(cx - 4, baseY - 7, 9, 2, '#e08a62');
   g.rect(cx - 7, baseY - 16, 6, 7, '#3f7a3a'); g.rect(cx + 2, baseY - 18, 6, 9, '#4f9a48'); g.rect(cx - 2, baseY - 22, 5, 12, '#5fae52');
   g.px(cx, baseY - 20, '#8fd07a'); g.px(cx + 4, baseY - 15, '#8fd07a');
 }

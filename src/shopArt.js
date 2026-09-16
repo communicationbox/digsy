@@ -39,7 +39,7 @@ function bottle(g, x, y, w, h, c, cap) {
 }
 /* mensola a parete con due staffe */
 function shelf(g, x, y, w) {
-  g.rect(x, y, w, 4, '#3a2a1c'); g.rect(x, y, w, 2, '#8a5f38'); g.rect(x, y, w, 1, '#b07c4a');
+  g.rect(x, y, w, 4, g.shade8('#8a5f38', 0.34)); g.rect(x, y, w, 2, '#8a5f38'); g.rect(x, y, w, 1, '#b07c4a');
   g.rect(x + 3, y + 4, 2, 4, '#3a2a1c'); g.rect(x + w - 5, y + 4, 2, 4, '#3a2a1c');
 }
 function frame(g, x, y, w, h, gold) {
@@ -48,12 +48,12 @@ function frame(g, x, y, w, h, gold) {
   g.rect(x + 1, y + 1, w - 2, 1, gold ? '#f0d470' : '#b07c4a');
 }
 function candle(g, x, y, time) {
-  g.rect(x, y, 4, 8, '#2a2016'); g.rect(x + 1, y, 2, 7, '#f3ecda');
+  g.rect(x, y, 4, 8, g.shade8('#f3ecda', 0.34)); g.rect(x + 1, y, 2, 7, '#f3ecda');
   const f = Math.floor((time || 0) / 250) % 2;
   g.rect(x + 1, y - 4 + f, 2, 3 - f, '#e8873a'); g.px(x + 1, y - 2, '#f6dc78');
 }
 function mug(g, x, y, c) {
-  g.rect(x, y, 8, 10, '#2a2016'); g.rect(x + 1, y + 1, 6, 8, c || '#c9a06a'); g.rect(x + 1, y + 1, 6, 2, '#f3ecda');
+  g.rect(x, y, 8, 10, g.shade8('#c9a06a', 0.34)); g.rect(x + 1, y + 1, 6, 8, c || '#c9a06a'); g.rect(x + 1, y + 1, 6, 2, '#f3ecda');
   g.rect(x + 8, y + 3, 2, 5, '#2a2016');
 }
 
@@ -251,7 +251,7 @@ export function drawStoreProps(g, rw, rh, time) {
   /* lanterna appesa */
   const lf = Math.floor((time || 0) / 300) % 2;
   g.rect(sx - 12, 0, 1, 14, '#3a2e20');
-  g.rect(sx - 17, 14, 11, 14, '#2a2016'); g.rect(sx - 16, 16, 9, 10, lf ? '#f2c53d' : '#e8862e'); g.rect(sx - 15, 17, 2, 8, '#fff3c8');
+  g.rect(sx - 17, 14, 11, 14, g.shade8('#f2c53d', 0.34)); g.rect(sx - 16, 16, 9, 10, lf ? '#f2c53d' : '#e8862e'); g.rect(sx - 15, 17, 2, 8, '#fff3c8');
   g.rect(sx - 18, 13, 13, 2, '#5a5248'); g.rect(sx - 18, 27, 13, 2, '#5a5248');
 }
 /* ANIMALETTI TONDI. Fatti a rettangoli sembravano scatole con le orecchie ("gli animali sono molto
@@ -297,7 +297,7 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
   g.rect(bx - 12, 54, 28, 2, '#8f887a');
   for (const [dx, dy] of [[-14, tilt], [10, -tilt]]) { g.rect(bx + dx, 56 + dy, 1, 6, '#5a5248'); g.rect(bx + dx - 4, 62 + dy, 10, 3, '#c9a227'); g.rect(bx + dx - 4, 62 + dy, 10, 1, '#f0d470'); }
   for (let i = 0; i < 3; i++) { g.rect(rw / 2 - 64 + i * 3, 66 - i * 3, 10, 3, '#8a6a1e'); g.rect(rw / 2 - 64 + i * 3, 66 - i * 3, 10, 1, '#f0d470'); }
-  g.rect(rw / 2 - 42, 62, 24, 9, '#2a2016'); g.rect(rw / 2 - 41, 63, 10, 7, '#f3ecda'); g.rect(rw / 2 - 29, 63, 10, 7, '#e8dcc0');
+  g.rect(rw / 2 - 42, 62, 24, 9, g.shade8('#f3ecda', 0.34)); g.rect(rw / 2 - 41, 63, 10, 7, '#f3ecda'); g.rect(rw / 2 - 29, 63, 10, 7, '#e8dcc0');
   g.rect(rw / 2 - 31, 63, 2, 8, '#8a3f3a'); for (let i = 0; i < 3; i++) { g.rect(rw / 2 - 39, 65 + i * 2, 6, 1, '#8f887a'); g.rect(rw / 2 - 27, 65 + i * 2, 6, 1, '#8f887a'); }
   bottle(g, rw / 2 + 20, 58, 10, 12, '#e8a0b8', '#c65a54'); g.px(rw / 2 + 23, 64, '#e8c34a'); g.px(rw / 2 + 26, 66, '#7ec069');
   /* casse, sacco di grano e GATTO che dorme (24..92 × 92..136) */
@@ -325,7 +325,7 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
     g.rect(58, 100 - lift, 6, 3, '#f7d8b0');                                                                                    // muso chiaro
     g.px(60, 100 - lift, '#e07a8a');                                                                                             // nasino
     if (petCat) {
-      g.rect(58, 96 - lift, 2, 2, '#2a1e18'); g.rect(63, 96 - lift, 2, 2, '#2a1e18'); g.px(58, 96 - lift, '#ffffff'); g.px(63, 96 - lift, '#ffffff');
+      g.rect(58, 96 - lift, 2, 2, '#2a1e18'); g.rect(63, 96 - lift, 2, 2, g.shade8('#ffffff', 0.34)); g.px(58, 96 - lift, '#ffffff'); g.px(63, 96 - lift, '#ffffff');
       const WC = '#fff6e6', wh = Math.floor(pet.t * 6) % 2;
       for (const [x, y] of [[54, 100], [53, 100], [52, 99 - wh], [54, 102], [53, 102], [52, 103 + wh]]) g.px(x, y - lift, WC);
       hearts(g, 66, 84, pet);
@@ -340,7 +340,7 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
     g.rect(ox + 1, 101, 28, 34, '#8a5f38');
     g.rect(ox + 1, 101, 5, 34, '#a97a4c'); g.rect(ox + 23, 101, 6, 34, '#6e4a2e');
     for (const hy of [106, 126]) { g.rect(ox, hy, 30, 3, '#4a4640'); g.rect(ox, hy, 30, 1, '#8f9aa3'); }
-    g.rect(ox + 2, 96, 26, 6, '#3a2a1c'); g.rect(ox + 3, 97, 24, 4, '#b07c4a');
+    g.rect(ox + 2, 96, 26, 6, g.shade8('#b07c4a', 0.34)); g.rect(ox + 3, 97, 24, 4, '#b07c4a');
   }
   for (const [ax, ay, c] of [[234, 90, '#c65a54'], [242, 91, '#d8603c'], [250, 90, '#c65a54'], [238, 86, '#e0873a'], [246, 86, '#c65a54'],
     [268, 90, '#7ec069'], [276, 91, '#9ac24a'], [284, 90, '#7ec069'], [272, 86, '#9ac24a'], [280, 86, '#7ec069']]) {
@@ -360,7 +360,7 @@ export function drawInnProps(g, rw, rh, time) {
     const col = ['#8f887a', '#9a9285', '#7f776a'][(r + c) % 3];
     g.rect(bx, by, 9, 8, col); g.rect(bx, by, 9, 1, g.shade8(col, 1.18));
   }
-  g.rect(cx - 38, 20, 76, 6, '#3a2a1c'); g.rect(cx - 37, 21, 74, 3, '#8a5f38'); g.rect(cx - 37, 21, 74, 1, '#b07c4a');  // mensola
+  g.rect(cx - 38, 20, 76, 6, g.shade8('#8a5f38', 0.34)); g.rect(cx - 37, 21, 74, 3, '#8a5f38'); g.rect(cx - 37, 21, 74, 1, '#b07c4a');  // mensola
   g.rect(cx - 20, 28, 40, 32, '#2a2016'); g.rect(cx - 18, 30, 36, 30, '#1a1410');
   const ff = Math.floor(t / 150) % 3;
   g.rect(cx - 12, 52, 24, 5, '#5c3d22'); g.rect(cx - 10, 49, 20, 4, '#6e4a2e');                // ceppi
@@ -371,13 +371,13 @@ export function drawInnProps(g, rw, rh, time) {
   /* sulla mensola: candele e un vaso */
   candle(g, cx - 32, 13, t); candle(g, cx + 28, 13, t); bottle(g, cx - 4, 10, 8, 11, '#4e8d7c', '#c9a227');
   /* trofeo: cranio su scudo di legno */
-  g.rect(28, 12, 24, 22, '#2a1e14'); g.rect(29, 13, 22, 20, '#8a5f38'); g.rect(29, 13, 22, 2, '#b07c4a');
+  g.rect(28, 12, 24, 22, g.shade8('#8a5f38', 0.34)); g.rect(29, 13, 22, 20, '#8a5f38'); g.rect(29, 13, 22, 2, '#b07c4a');
   g.rect(33, 16, 14, 11, '#ece5d2'); g.rect(35, 27, 10, 3, '#cbbfa4'); g.rect(35, 19, 3, 3, '#2a2016'); g.rect(42, 19, 3, 3, '#2a2016'); g.px(40, 23, '#2a2016');
   g.rect(30, 14, 3, 4, '#ece5d2'); g.rect(47, 14, 3, 4, '#ece5d2');
   /* mensola dei boccali e botte sul cavalletto */
   shelf(g, rw - 96, 22, 50);
   for (let i = 0; i < 4; i++) mug(g, rw - 92 + i * 12, 12, i % 2 ? '#c9a06a' : '#8f887a');
-  g.rect(rw - 44, 30, 28, 22, '#3a2a1c'); g.rect(rw - 43, 31, 26, 20, '#8a5f38'); g.rect(rw - 43, 31, 26, 3, '#a97a4c');
+  g.rect(rw - 44, 30, 28, 22, g.shade8('#8a5f38', 0.34)); g.rect(rw - 43, 31, 26, 20, '#8a5f38'); g.rect(rw - 43, 31, 26, 3, '#a97a4c');
   g.rect(rw - 44, 36, 28, 2, '#4a4640'); g.rect(rw - 44, 46, 28, 2, '#4a4640');
   g.rect(rw - 40, 52, 3, 6, '#3a2a1c'); g.rect(rw - 23, 52, 3, 6, '#3a2a1c');
   g.rect(rw - 50, 39, 6, 3, '#c9a227'); if (Math.floor(t / 700) % 3 === 0) g.px(rw - 49, 43 + (Math.floor(t / 230) % 3), '#e8c34a');
@@ -390,7 +390,7 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* sul bancone: boccali, bottiglie, tagliere col pane */
   mug(g, cx - 64, 60, '#d4a24a'); mug(g, cx - 52, 60, '#d4a24a');
   bottle(g, cx + 44, 56, 6, 14, '#5f7a52', '#c9a227'); bottle(g, cx + 52, 58, 6, 12, '#8a3f3a', '#c9a227');
-  g.rect(cx + 60, 66, 20, 5, '#3a2a1c'); g.rect(cx + 61, 66, 18, 3, '#b07c4a'); g.rect(cx + 63, 62, 12, 5, '#c98a4a'); g.rect(cx + 64, 62, 10, 2, '#e0a86a');
+  g.rect(cx + 60, 66, 20, 5, g.shade8('#b07c4a', 0.34)); g.rect(cx + 61, 66, 18, 3, '#b07c4a'); g.rect(cx + 63, 62, 12, 5, '#c98a4a'); g.rect(cx + 64, 62, 10, 2, '#e0a86a');
   /* tappeto al centro */
   const rx = cx - 38, ry = 146;
   g.rect(rx, ry, 76, 40, '#5c2a26'); g.rect(rx + 1, ry + 1, 74, 38, '#a8453c'); g.rect(rx + 4, ry + 4, 68, 32, '#d8b23c'); g.rect(rx + 5, ry + 5, 66, 30, '#8a3a32');
@@ -414,7 +414,7 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
     g.rect(44, 194, 10, 3, CR);                                                               // pancia chiara
     g.px(19, 194 - lift, '#2a1e18'); g.px(20, 194 - lift, '#2a1e18');                         // tartufo
     if (petDog) {
-      g.rect(27, 189 - lift, 2, 2, '#2a1e18'); g.px(27, 189 - lift, '#ffffff');
+      g.rect(27, 189 - lift, 2, 2, g.shade8('#ffffff', 0.34)); g.px(27, 189 - lift, '#ffffff');
       g.rect(21, 198 - lift, 2, 3, '#e8607a');
       hearts(g, 32, 176, pet);
     } else {
@@ -425,14 +425,14 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* tavoli con tovaglia, sgabelli, boccali e candela (28..96 e 224..292 × 96..136) */
   for (const ox of [30, 226]) {
     g.shadow(ox + 34, 136, 34);
-    for (const sx of [ox - 2, ox + 58]) { g.rect(sx, 112, 12, 16, '#2a2016'); g.rect(sx + 1, 113, 10, 5, '#6e4a2e'); g.rect(sx + 1, 113, 10, 1, '#8a5f38'); g.rect(sx + 2, 118, 2, 9, '#4c3320'); g.rect(sx + 8, 118, 2, 9, '#4c3320'); }
+    for (const sx of [ox - 2, ox + 58]) { g.rect(sx, 112, 12, 16, g.shade8('#6e4a2e', 0.34)); g.rect(sx + 1, 113, 10, 5, '#6e4a2e'); g.rect(sx + 1, 113, 10, 1, '#8a5f38'); g.rect(sx + 2, 118, 2, 9, '#4c3320'); g.rect(sx + 8, 118, 2, 9, '#4c3320'); }
     g.rect(ox + 6, 122, 5, 14, '#2a1e14'); g.rect(ox + 57, 122, 5, 14, '#2a1e14');
-    g.rect(ox + 2, 100, 64, 24, '#2a1e14'); g.rect(ox + 3, 101, 62, 22, '#5c3d22'); g.rect(ox + 3, 101, 62, 3, '#7a5636');
+    g.rect(ox + 2, 100, 64, 24, g.shade8('#5c3d22', 0.34)); g.rect(ox + 3, 101, 62, 22, '#5c3d22'); g.rect(ox + 3, 101, 62, 3, '#7a5636');
     g.rect(ox + 12, 101, 44, 26, '#b9a57a'); g.rect(ox + 13, 101, 42, 24, '#e8dcc0'); g.rect(ox + 13, 101, 42, 2, '#f6efdd');
     for (let i = 0; i < 42; i += 6) g.rect(ox + 13 + i, 125, 3, 2, '#b9a57a');
     mug(g, ox + 18, 94, '#d4a24a');
     const st = Math.floor(t / 400) % 3; g.px(ox + 21, 90 - st, '#f6efdd'); g.px(ox + 23, 88 - st, '#e8e2d0');
-    g.rect(ox + 32, 104, 12, 6, '#2a2016'); g.rect(ox + 33, 105, 10, 4, '#f3ecda'); g.rect(ox + 35, 104, 6, 3, '#c98a4a');
+    g.rect(ox + 32, 104, 12, 6, g.shade8('#f3ecda', 0.34)); g.rect(ox + 33, 105, 10, 4, '#f3ecda'); g.rect(ox + 35, 104, 6, 3, '#c98a4a');
     candle(g, ox + 48, 96, t);
   }
 }
@@ -441,7 +441,7 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
 export function drawBarberProps(g, rw, rh, time) {
   const t = time || 0, mx = rw / 2 - 44;
   /* grande specchio con cornice dorata */
-  g.rect(mx, 4, 88, 40, '#2a1e14'); g.rect(mx + 1, 5, 86, 38, '#c9a227'); g.rect(mx + 1, 5, 86, 1, '#f0d470');
+  g.rect(mx, 4, 88, 40, g.shade8('#c9a227', 0.34)); g.rect(mx + 1, 5, 86, 38, '#c9a227'); g.rect(mx + 1, 5, 86, 1, '#f0d470');
   g.rect(mx + 3, 7, 82, 34, '#8a6a1e'); g.rect(mx + 4, 8, 80, 32, '#bfe3ef');
   g.rect(mx + 4, 30, 80, 10, '#a9d3df');
   const sh = Math.floor(t / 260) % 20;
@@ -450,13 +450,13 @@ export function drawBarberProps(g, rw, rh, time) {
   /* mensola con flaconi e asciugamani */
   shelf(g, mx - 4, 44, 96);
   ['#5a86c8', '#e8a0b8', '#5fa04e', '#e8c34a'].forEach((c, i) => bottle(g, mx + 6 + i * 14, 33, 7, 11, c, '#f3ecda'));
-  for (let i = 0; i < 2; i++) { g.rect(mx + 66, 38 - i * 5, 18, 5, '#2a2016'); g.rect(mx + 67, 39 - i * 5, 16, 3, i ? '#f3ecda' : '#4e8d9c'); }
+  for (let i = 0; i < 2; i++) { g.rect(mx + 66, 38 - i * 5, 18, 5, g.shade8('#f3ecda', 0.34)); g.rect(mx + 67, 39 - i * 5, 16, 3, i ? '#f3ecda' : '#4e8d9c'); }
   /* orologio a pendolo */
   const pd = Math.round(Math.sin(t / 380) * 3);
-  g.rect(24, 6, 26, 50, '#2a1e14'); g.rect(25, 7, 24, 48, '#8a5f38'); g.rect(25, 7, 24, 2, '#b07c4a');
-  g.rect(28, 10, 18, 16, '#2a2016'); g.rect(29, 11, 16, 14, '#f3ecda');
+  g.rect(24, 6, 26, 50, g.shade8('#8a5f38', 0.34)); g.rect(25, 7, 24, 48, '#8a5f38'); g.rect(25, 7, 24, 2, '#b07c4a');
+  g.rect(28, 10, 18, 16, g.shade8('#f3ecda', 0.34)); g.rect(29, 11, 16, 14, '#f3ecda');
   g.rect(36, 13, 1, 6, '#2a2016'); g.rect(37, 18, 4, 1, '#2a2016');
-  g.rect(29, 30, 16, 22, '#3a2a1c'); g.rect(36 + pd, 30, 1, 16, '#c9a227'); g.rect(34 + pd, 45, 5, 5, '#c9a227'); g.px(35 + pd, 46, '#f0d470');
+  g.rect(29, 30, 16, 22, g.shade8('#c9a227', 0.34)); g.rect(36 + pd, 30, 1, 16, '#c9a227'); g.rect(34 + pd, 45, 5, 5, '#c9a227'); g.px(35 + pd, 46, '#f0d470');
   /* palo del barbiere: strisce che scorrono */
   const px0 = rw - 42, off = Math.floor(t / 90) % 12;
   g.rect(px0 - 1, 4, 20, 56, '#2a2016');
@@ -483,12 +483,12 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* POLTRONA da barbiere (28..88 × 92..136) */
   const x = 34;
   g.shadow(x + 22, 136, 20);
-  g.rect(x + 4, 130, 36, 6, '#2a2016'); g.rect(x + 5, 131, 34, 4, '#8f9aa3'); g.rect(x + 5, 131, 34, 1, '#dfe6ea');       // base
-  g.rect(x + 16, 116, 12, 15, '#2a2016'); g.rect(x + 17, 116, 10, 15, '#cfd6da'); g.rect(x + 18, 116, 3, 15, '#ffffff');   // colonna
+  g.rect(x + 4, 130, 36, 6, g.shade8('#8f9aa3', 0.34)); g.rect(x + 5, 131, 34, 4, '#8f9aa3'); g.rect(x + 5, 131, 34, 1, '#dfe6ea');       // base
+  g.rect(x + 16, 116, 12, 15, g.shade8('#cfd6da', 0.34)); g.rect(x + 17, 116, 10, 15, '#cfd6da'); g.rect(x + 18, 116, 3, 15, '#ffffff');   // colonna
   g.rect(x + 12, 88, 20, 6, '#2a2016'); g.rect(x + 13, 89, 18, 4, '#3a3a44');                                             // poggiatesta
   g.rect(x + 6, 94, 32, 22, '#5c2226'); g.rect(x + 7, 95, 30, 20, '#c65a54'); g.rect(x + 7, 95, 30, 2, '#e08a84');         // schienale
   for (const bx of [x + 14, x + 22, x + 30]) g.rect(bx, 99, 1, 14, '#a3494e');
-  g.rect(x, 104, 8, 14, '#2a2016'); g.rect(x + 1, 105, 6, 4, '#8f9aa3'); g.rect(x + 36, 104, 8, 14, '#2a2016'); g.rect(x + 37, 105, 6, 4, '#8f9aa3');
+  g.rect(x, 104, 8, 14, g.shade8('#8f9aa3', 0.34)); g.rect(x + 1, 105, 6, 4, '#8f9aa3'); g.rect(x + 36, 104, 8, 14, g.shade8('#8f9aa3', 0.34)); g.rect(x + 37, 105, 6, 4, '#8f9aa3');
   g.rect(x + 4, 112, 36, 8, '#5c2226'); g.rect(x + 5, 113, 34, 6, '#c65a54'); g.rect(x + 5, 113, 34, 2, '#e08a84');         // seduta
   g.rect(x + 12, 124, 20, 3, '#5a5248');                                                                                    // poggiapiedi
   /* scopa appoggiata vicino alla poltrona */
@@ -501,17 +501,17 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* panca d'attesa con cuscino e giornale (228..296 × 100..132) + pianta */
   g.shadow(262, 132, 32);
   g.rect(232, 116, 5, 16, '#2a1e14'); g.rect(284, 116, 5, 16, '#2a1e14');
-  g.rect(228, 100, 64, 18, '#2a1e14'); g.rect(229, 101, 62, 16, '#a97a4c'); g.rect(229, 101, 62, 3, '#c49a63'); g.rect(229, 113, 62, 3, '#8a5f38');
+  g.rect(228, 100, 64, 18, g.shade8('#a97a4c', 0.34)); g.rect(229, 101, 62, 16, '#a97a4c'); g.rect(229, 101, 62, 3, '#c49a63'); g.rect(229, 113, 62, 3, '#8a5f38');
   g.rect(232, 96, 26, 8, '#2f5f6a'); g.rect(233, 97, 24, 6, '#4e8d9c'); g.rect(233, 97, 24, 2, '#7fb6c3');
   g.rect(264, 100, 14, 9, '#8f887a'); g.rect(265, 100, 12, 8, '#f3ecda'); g.rect(267, 102, 8, 1, '#5a5248'); g.rect(267, 105, 6, 1, '#8f887a');
-  g.rect(294, 108, 12, 12, '#2a1e14'); g.rect(295, 109, 10, 11, '#c86a4a'); g.rect(295, 109, 10, 2, '#e08a62');
+  g.rect(294, 108, 12, 12, g.shade8('#c86a4a', 0.34)); g.rect(295, 109, 10, 11, '#c86a4a'); g.rect(295, 109, 10, 2, '#e08a62');
   g.rect(292, 94, 7, 14, '#3f7a3a'); g.rect(299, 90, 7, 18, '#4f9a48'); g.rect(296, 86, 5, 12, '#5fae52'); g.px(298, 88, '#8fd07a');
   /* PAPPAGALLO sul trespolo in basso a sinistra: dondola la testa; coccolato apre le ali e fischietta */
   {
     const t = time || 0, pp = pet && pet.kind === 'pappagallo';
     g.shadow(40, 204, 12);
-    g.rect(38, 170, 3, 34, '#2a1e14'); g.rect(39, 171, 1, 32, '#8a5f38'); g.rect(30, 202, 20, 3, '#2a1e14'); g.rect(31, 202, 18, 2, '#6e4a2e');
-    g.rect(28, 168, 24, 3, '#2a1e14'); g.rect(29, 168, 22, 2, '#a97a4c');
+    g.rect(38, 170, 3, 34, g.shade8('#8a5f38', 0.34)); g.rect(39, 171, 1, 32, '#8a5f38'); g.rect(30, 202, 20, 3, g.shade8('#6e4a2e', 0.34)); g.rect(31, 202, 18, 2, '#6e4a2e');
+    g.rect(28, 168, 24, 3, g.shade8('#a97a4c', 0.34)); g.rect(29, 168, 22, 2, '#a97a4c');
     const bob = pp ? (Math.floor(pet.t * 8) % 2) : (Math.floor(t / 900) % 2), fl = pp ? Math.floor(pet.t * 10) % 2 : 0;
     const c = critter(g, '#2a2420');
     if (pp) { c.oval(30, 156 - fl * 2, 5, 8, (u, v) => v > 0.4 ? '#e0873a' : '#4fae5a'); c.oval(50, 156 - fl * 2, 5, 8, (u, v) => v > 0.4 ? '#5a86c8' : '#4fae5a'); }
@@ -521,7 +521,7 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
     c.oval(47, 150 + bob, 2.5, 2.5, '#e8dcc0');                                               // becco ricurvo
     c.paint();
     g.rect(37, 159 + bob, 6, 5, '#e8c34a'); g.rect(38, 158 + bob, 4, 1, '#e8c34a');           // petto giallo
-    g.rect(43, 146 + bob, 2, 2, '#1a120a'); g.px(43, 146 + bob, '#ffffff');
+    g.rect(43, 146 + bob, 2, 2, g.shade8('#ffffff', 0.34)); g.px(43, 146 + bob, '#ffffff');
     g.px(48, 152 + bob, '#8f887a');
     if (pp) { for (let i = 0; i < 3; i++) if ((Math.floor(pet.t * 5) + i) % 3 === 0) g.rect(52 + i * 4, 142 - i * 3, 2, 2, '#f3ecda'); hearts(g, 40, 136, pet); }
   }
@@ -531,7 +531,7 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
 export function drawTailorProps(g, rw, rh, time) {
   const rx = rw / 2 - 58;
   /* rastrelliera con i rotoli di stoffa */
-  g.rect(rx, 6, 116, 4, '#2a2016'); g.rect(rx + 1, 7, 114, 2, '#c9a227');
+  g.rect(rx, 6, 116, 4, g.shade8('#c9a227', 0.34)); g.rect(rx + 1, 7, 114, 2, '#c9a227');
   g.rect(rx + 2, 10, 3, 42, '#6b4a2e'); g.rect(rx + 111, 10, 3, 42, '#6b4a2e'); g.rect(rx, 50, 116, 4, '#6b4a2e');
   ['#c65a54', '#5a86c8', '#5fa04e', '#e8a0b8', '#e8c34a', '#8a6ab0'].forEach((c, i) => {
     const x = rx + 8 + i * 17, h = 30 + (i % 3) * 4;
@@ -559,28 +559,28 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* sul bancone: pila di stoffe piegate, puntaspilli, forbici */
   const pile = ['#5a86c8', '#e8a0b8', '#e8c34a', '#5fa04e'];
   pile.forEach((c, i) => { g.rect(cx - 66, 66 - i * 4, 26, 4, g.shade8(c, 0.55)); g.rect(cx - 65, 66 - i * 4, 24, 3, c); });
-  g.rect(cx + 40, 62, 12, 8, '#2a2016'); g.rect(cx + 41, 63, 10, 6, '#c65a54'); g.px(cx + 43, 61, '#8f9aa3'); g.px(cx + 48, 60, '#8f9aa3'); g.px(cx + 46, 62, '#e8c34a');
+  g.rect(cx + 40, 62, 12, 8, g.shade8('#c65a54', 0.34)); g.rect(cx + 41, 63, 10, 6, '#c65a54'); g.px(cx + 43, 61, '#8f9aa3'); g.px(cx + 48, 60, '#8f9aa3'); g.px(cx + 46, 62, '#e8c34a');
   g.rect(cx + 58, 66, 12, 2, '#8f9aa3'); g.rect(cx + 70, 64, 4, 4, '#2a2016');
   /* MANICHINO vestito (32..84 × 96..132) */
   g.shadow(58, 134, 16);
-  g.rect(48, 130, 20, 4, '#2a2016'); g.rect(49, 131, 18, 2, '#8f887a');
-  g.rect(56, 116, 4, 15, '#2a2016'); g.rect(57, 116, 2, 15, '#8f887a');
-  g.rect(50, 82, 16, 8, '#2a2016'); g.rect(51, 83, 14, 6, '#e0c49a');
+  g.rect(48, 130, 20, 4, g.shade8('#8f887a', 0.34)); g.rect(49, 131, 18, 2, '#8f887a');
+  g.rect(56, 116, 4, 15, g.shade8('#8f887a', 0.34)); g.rect(57, 116, 2, 15, '#8f887a');
+  g.rect(50, 82, 16, 8, g.shade8('#e0c49a', 0.34)); g.rect(51, 83, 14, 6, '#e0c49a');
   g.rect(42, 90, 32, 16, '#6a2e48'); g.rect(43, 91, 30, 14, '#e8a0b8'); g.rect(43, 91, 30, 2, '#f4c4d4');
   g.rect(38, 104, 40, 14, '#6a2e48'); g.rect(39, 105, 38, 12, '#d9869f'); g.rect(39, 105, 4, 12, '#e8a0b8');
   for (let i = 0; i < 38; i += 4) g.rect(39 + i, 116, 2, 2, '#f3ecda');
   g.rect(55, 91, 6, 3, '#f3ecda'); g.px(58, 97, '#c9a227'); g.px(58, 101, '#c9a227');
   g.rect(40, 94, 10, 2, '#e8c34a'); g.rect(44, 96, 2, 12, '#e8c34a');                                             // metro sulle spalle
   /* cesto di gomitoli */
-  g.rect(88, 118, 24, 14, '#2a1e14'); g.rect(89, 119, 22, 12, '#b07c4a');
+  g.rect(88, 118, 24, 14, g.shade8('#b07c4a', 0.34)); g.rect(89, 119, 22, 12, '#b07c4a');
   for (let i = 0; i < 22; i += 4) g.rect(89 + i, 119, 2, 12, '#8a5f38');
   for (const [bx, c] of [[90, '#c65a54'], [98, '#5a86c8'], [104, '#5fa04e']]) { g.rect(bx, 111, 8, 8, g.shade8(c, 0.5)); g.rect(bx + 1, 112, 6, 6, c); g.px(bx + 2, 113, g.shade8(c, 1.4)); }
   g.rect(108, 118, 1, 6, '#5a86c8'); g.rect(109, 124, 6, 1, '#5a86c8');
   /* TAVOLO da cucito con la MACCHINA (220..296 × 92..136) */
   g.shadow(258, 136, 36);
-  g.rect(222, 114, 6, 22, '#2a1e14'); g.rect(290, 114, 6, 22, '#2a1e14'); g.rect(223, 126, 72, 3, '#4a4640');
-  g.rect(218, 106, 82, 10, '#2a1e14'); g.rect(219, 107, 80, 8, '#a97a4c'); g.rect(219, 107, 80, 2, '#c49a63');
-  g.rect(236, 128, 22, 6, '#2a2016'); g.rect(237, 129, 20, 4, '#5a5248');                                          // pedale
+  g.rect(222, 114, 6, 22, '#2a1e14'); g.rect(290, 114, 6, 22, g.shade8('#4a4640', 0.34)); g.rect(223, 126, 72, 3, '#4a4640');
+  g.rect(218, 106, 82, 10, g.shade8('#a97a4c', 0.34)); g.rect(219, 107, 80, 8, '#a97a4c'); g.rect(219, 107, 80, 2, '#c49a63');
+  g.rect(236, 128, 22, 6, g.shade8('#5a5248', 0.34)); g.rect(237, 129, 20, 4, '#5a5248');                                          // pedale
   g.rect(230, 98, 60, 9, '#1a1714'); g.rect(231, 99, 58, 7, '#3a3630'); g.rect(231, 99, 58, 1, '#c9a227');           // base
   g.rect(232, 76, 12, 24, '#1a1714'); g.rect(233, 77, 10, 22, '#2f2b26'); g.rect(233, 77, 2, 22, '#4a4640');         // colonna
   g.rect(232, 74, 46, 12, '#1a1714'); g.rect(233, 75, 44, 10, '#2f2b26'); g.rect(233, 75, 44, 2, '#4a4640');         // braccio
@@ -608,8 +608,8 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
     const edge = (cx, cy, rx, ry) => oval(cx, cy, rx + 1, ry + 1, () => OUT);
     g.shadow(284, 207, 17);
     /* cesto */
-    g.rect(266, 192, 36, 15, '#2a1e14'); g.rect(267, 193, 34, 13, '#b07c4a'); for (let k = 0; k < 34; k += 4) g.rect(267 + k, 193, 2, 13, '#8a5f38');
-    g.rect(265, 189, 38, 5, '#2a1e14'); g.rect(266, 190, 36, 3, '#d9869f'); g.rect(266, 190, 36, 1, '#eaa6bb');
+    g.rect(266, 192, 36, 15, g.shade8('#b07c4a', 0.34)); g.rect(267, 193, 34, 13, '#b07c4a'); for (let k = 0; k < 34; k += 4) g.rect(267 + k, 193, 2, 13, '#8a5f38');
+    g.rect(265, 189, 38, 5, g.shade8('#d9869f', 0.34)); g.rect(266, 190, 36, 3, '#d9869f'); g.rect(266, 190, 36, 1, '#eaa6bb');
     const hop = pr ? -Math.round(Math.abs(Math.sin(pet.t * 6)) * 5) : 0;
     const bx = 288, by = 186 + hop;
     /* corpo */
@@ -627,7 +627,7 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
       g.rect(hx + 1, hy - 6, 14, 4, OUT); g.rect(hx + 2, hy - 5, 12, 2, W1); g.rect(hx + 4, hy - 5, 8, 1, PK);
     }
     /* occhio col punto di luce, guancia, naso che fremita */
-    g.rect(hx - 3, hy - 1, 2, 2, '#2a1e18'); g.px(hx - 3, hy - 1, '#ffffff');
+    g.rect(hx - 3, hy - 1, 2, 2, g.shade8('#ffffff', 0.34)); g.px(hx - 3, hy - 1, '#ffffff');
     g.px(hx - 1, hy + 2, '#f6c6cf');
     const nose = Math.floor(pr ? pet.t * 12 : t / 350) % 2;
     g.rect(hx - 7, hy + 1 - nose, 2, 2, PK);
@@ -641,7 +641,7 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
 export function drawLabProps(g, rw, rh, time) {
   const t = time || 0, bx = rw / 2 - 54;
   /* lavagna con lo scheletro e le formule */
-  g.rect(bx, 4, 108, 42, '#2a1e14'); g.rect(bx + 1, 5, 106, 40, '#8a5f38'); g.rect(bx + 1, 5, 106, 1, '#b07c4a');
+  g.rect(bx, 4, 108, 42, g.shade8('#8a5f38', 0.34)); g.rect(bx + 1, 5, 106, 40, '#8a5f38'); g.rect(bx + 1, 5, 106, 1, '#b07c4a');
   g.rect(bx + 4, 8, 100, 34, '#2e3d33'); g.rect(bx + 4, 8, 100, 2, '#27342b');
   const ch = '#e8e2d0';
   g.rect(bx + 12, 18, 10, 7, ch); g.rect(bx + 14, 20, 2, 2, '#2e3d33'); g.rect(bx + 22, 22, 22, 2, ch);
@@ -663,14 +663,14 @@ export function drawLabProps(g, rw, rh, time) {
   const shx = rw - 100;
   shelf(g, shx, 46, 84);
   [['#5a86c8', 14], ['#4e8d7c', 18], ['#c65a54', 12], ['#8a6ab0', 20], ['#e8c34a', 14]].forEach(([c, h], i) => bottle(g, shx + 6 + i * 16, 46 - h, 10, h, c, '#cfe8f2'));
-  g.rect(shx + 4, 16, 76, 3, '#2a1e14'); g.rect(shx + 4, 16, 76, 1, '#8a5f38');
+  g.rect(shx + 4, 16, 76, 3, g.shade8('#8a5f38', 0.34)); g.rect(shx + 4, 16, 76, 1, '#8a5f38');
   for (let i = 0; i < 4; i++) { g.rect(shx + 10 + i * 18, 19, 1, 4, '#5a5248'); g.rect(shx + 7 + i * 18, 23, 8, 5, ['#7ec069', '#c9a227', '#8f9aa3', '#b8574a'][i]); }
 }
 function eggTankArt(g, x, y, time, egg, ready) {
   const W = 28, H = 32;
   g.shadow(x + 14, y + H + 10, 18);
-  g.rect(x - 5, y + H, W + 10, 9, '#2a1e14'); g.rect(x - 4, y + H + 1, W + 8, 7, '#5c4229'); g.rect(x - 4, y + H + 1, W + 8, 2, '#8a5f38');
-  g.rect(x - 3, y - 5, W + 6, 6, '#2a2016'); g.rect(x - 2, y - 4, W + 4, 4, '#8f9aa3'); g.rect(x - 2, y - 4, W + 4, 1, '#dfe6ea');
+  g.rect(x - 5, y + H, W + 10, 9, g.shade8('#5c4229', 0.34)); g.rect(x - 4, y + H + 1, W + 8, 7, '#5c4229'); g.rect(x - 4, y + H + 1, W + 8, 2, '#8a5f38');
+  g.rect(x - 3, y - 5, W + 6, 6, g.shade8('#8f9aa3', 0.34)); g.rect(x - 2, y - 4, W + 4, 4, '#8f9aa3'); g.rect(x - 2, y - 4, W + 4, 1, '#dfe6ea');
   g.rect(x + 10, y - 9, 8, 5, '#5a5248');
   g.rect(x - 1, y, W + 2, H, '#3f5a6a');
   g.rect(x, y, W, H, ready ? '#dff4e0' : (egg ? '#cdeef2' : '#9fb0aa'));
@@ -689,16 +689,16 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   const t = time || 0, cx = rw / 2;
   /* sul bancone: fogli, calamaio, lente */
   g.rect(cx - 66, 64, 18, 8, '#8f887a'); g.rect(cx - 65, 64, 16, 7, '#f3ecda'); g.rect(cx - 62, 66, 10, 1, '#8f887a'); g.rect(cx - 62, 68, 8, 1, '#8f887a');
-  g.rect(cx - 42, 64, 8, 7, '#2a2016'); g.rect(cx - 41, 65, 6, 5, '#3f5a86'); g.rect(cx - 37, 56, 1, 9, '#f3ecda');
-  g.rect(cx + 44, 60, 10, 10, '#2a2016'); g.rect(cx + 45, 61, 8, 8, '#bfe3ef'); g.rect(cx + 53, 68, 8, 3, '#8a5f38');
+  g.rect(cx - 42, 64, 8, 7, g.shade8('#3f5a86', 0.34)); g.rect(cx - 41, 65, 6, 5, '#3f5a86'); g.rect(cx - 37, 56, 1, 9, '#f3ecda');
+  g.rect(cx + 44, 60, 10, 10, g.shade8('#bfe3ef', 0.34)); g.rect(cx + 45, 61, 8, 8, '#bfe3ef'); g.rect(cx + 53, 68, 8, 3, '#8a5f38');
   /* postazione ALAMBICCO (24..96 × 92..136) */
   g.shadow(60, 136, 36);
-  g.rect(24, 94, 72, 12, '#2a1e14'); g.rect(25, 95, 70, 10, '#6e4a2e'); g.rect(25, 95, 70, 2, '#8a5f38');
+  g.rect(24, 94, 72, 12, g.shade8('#6e4a2e', 0.34)); g.rect(25, 95, 70, 10, '#6e4a2e'); g.rect(25, 95, 70, 2, '#8a5f38');
   g.rect(22, 90, 76, 6, '#3f4448'); g.rect(23, 91, 74, 3, '#8f9aa3'); g.rect(23, 91, 74, 1, '#c9ced3');
-  g.rect(28, 106, 6, 30, '#2a1e14'); g.rect(86, 106, 6, 30, '#2a1e14'); g.rect(29, 120, 62, 3, '#4a4640');
-  g.rect(34, 124, 18, 10, '#2a2016'); g.rect(35, 125, 16, 8, '#bfe3ef'); g.rect(36, 128, 14, 5, '#8a6ab0');              // flacone sotto
+  g.rect(28, 106, 6, 30, '#2a1e14'); g.rect(86, 106, 6, 30, g.shade8('#4a4640', 0.34)); g.rect(29, 120, 62, 3, '#4a4640');
+  g.rect(34, 124, 18, 10, g.shade8('#bfe3ef', 0.34)); g.rect(35, 125, 16, 8, '#bfe3ef'); g.rect(36, 128, 14, 5, '#8a6ab0');              // flacone sotto
   const fl = Math.floor(t / 160) % 2;
-  g.rect(36, 82, 18, 8, '#2a2016'); g.rect(37, 83, 16, 6, '#5a5248');
+  g.rect(36, 82, 18, 8, g.shade8('#5a5248', 0.34)); g.rect(37, 83, 16, 6, '#5a5248');
   g.rect(41, 76 + fl, 8, 6 - fl, '#e8873a'); g.rect(43, 78, 4, 4, '#f6dc78'); g.px(44, 74 - fl, '#e8873a');
   g.rect(33, 54, 24, 22, '#3f5a6a'); g.rect(34, 55, 22, 20, '#bfe3ef'); g.rect(35, 62, 20, 12, '#5fa04e'); g.rect(35, 62, 20, 2, '#7ec069');
   g.rect(40, 42, 10, 13, '#3f5a6a'); g.rect(41, 43, 8, 12, '#bfe3ef'); g.rect(38, 40, 14, 3, '#8f9aa3');
@@ -709,15 +709,15 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   g.rect(72, 68, 18, 22, '#3f5a6a'); g.rect(73, 69, 16, 21, '#bfe3ef'); g.rect(74, 78, 14, 11, '#8a6ab0'); g.rect(74, 78, 14, 1, '#b39ad4');
   /* banco da studio (224..296 × 92..136): microscopio, cranio, libro, candela */
   g.shadow(260, 136, 36);
-  g.rect(224, 94, 72, 12, '#2a1e14'); g.rect(225, 95, 70, 10, '#8a5f38'); g.rect(225, 95, 70, 2, '#b07c4a');
+  g.rect(224, 94, 72, 12, g.shade8('#8a5f38', 0.34)); g.rect(225, 95, 70, 10, '#8a5f38'); g.rect(225, 95, 70, 2, '#b07c4a');
   g.rect(228, 106, 6, 30, '#2a1e14'); g.rect(286, 106, 6, 30, '#2a1e14');
-  g.rect(230, 106, 26, 20, '#2a1e14'); g.rect(231, 107, 24, 18, '#6e4a2e'); g.rect(242, 114, 3, 3, '#c9a227');           // cassettiera
+  g.rect(230, 106, 26, 20, g.shade8('#6e4a2e', 0.34)); g.rect(231, 107, 24, 18, '#6e4a2e'); g.rect(242, 114, 3, 3, '#c9a227');           // cassettiera
   g.rect(232, 86, 20, 6, '#1a1714'); g.rect(233, 87, 18, 4, '#3f3a33');
   g.rect(238, 64, 6, 24, '#1a1714'); g.rect(239, 65, 4, 22, '#5a5248'); g.rect(239, 65, 1, 22, '#8f887a');
   g.rect(236, 60, 10, 8, '#1a1714'); g.rect(237, 61, 8, 6, '#3f3a33'); g.px(240, 70, '#8fd0e6'); g.rect(234, 74, 14, 2, '#8f887a');
-  g.rect(256, 74, 18, 16, '#2a2016'); g.rect(257, 75, 16, 12, '#ece5d2'); g.rect(257, 75, 16, 2, '#f6f3ea'); g.rect(259, 87, 12, 3, '#cbbfa4');
+  g.rect(256, 74, 18, 16, g.shade8('#ece5d2', 0.34)); g.rect(257, 75, 16, 12, '#ece5d2'); g.rect(257, 75, 16, 2, '#f6f3ea'); g.rect(259, 87, 12, 3, '#cbbfa4');
   g.rect(260, 79, 3, 3, '#2a2016'); g.rect(267, 79, 3, 3, '#2a2016'); g.px(265, 84, '#2a2016');
-  g.rect(276, 82, 20, 12, '#2a2016'); g.rect(277, 83, 8, 10, '#f3ecda'); g.rect(286, 83, 8, 10, '#e8dcc0'); g.rect(285, 82, 1, 12, '#8a3f3a');
+  g.rect(276, 82, 20, 12, g.shade8('#f3ecda', 0.34)); g.rect(277, 83, 8, 10, '#f3ecda'); g.rect(286, 83, 8, 10, '#e8dcc0'); g.rect(285, 82, 1, 12, '#8a3f3a');
   for (let i = 0; i < 3; i++) { g.rect(279, 85 + i * 3, 5, 1, '#8f887a'); g.rect(287, 85 + i * 3, 5, 1, '#8f887a'); }
   candle(g, 250, 80, t);
   eggTankArt(g, 252, 148, t, egg, ready);
@@ -734,7 +734,7 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
     for (const e of [-1, 1]) c.oval(mx - 4 * face + e * 2, my - 6 - up, 2.2, 2.2, '#9a9288');
     c.paint();
     g.px(mx - 4 * face - 2, my - 6 - up, '#e0a8b0'); g.px(mx - 4 * face + 2, my - 6 - up, '#e0a8b0');
-    g.px(mx - 7 * face, my - 3 - up, '#1a120a'); g.px(mx - 10 * face, my - 2 - up, '#e07a8a');
+    g.px(mx - 7 * face, my - 3 - up, g.shade8('#e07a8a', 0.34)); g.px(mx - 10 * face, my - 2 - up, '#e07a8a');
   };
   const petMouse = pet && pet.kind === 'topo';
   const rt = (t / 1000) % 14, runX = rt < 2.2 ? 36 + (rt / 2.2) * 240 : null;
@@ -751,12 +751,12 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
     if (el < pet.run) {
       const k = el / pet.run, x = Math.round(pet.fromX + (46 - pet.fromX) * k);
       mouseAt(x, 200 - (Math.floor(el * 12) % 2), 0, 1);
-      g.rect(37, 197, 6, 5, '#2a2016'); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
+      g.rect(37, 197, 6, 5, g.shade8('#f2c53d', 0.34)); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
     } else {
       /* arrivato: si alza sulle zampine e sgranocchia il formaggio */
       const nib = Math.floor(pet.t * 8) % 2;
       mouseAt(46, 198, 1 + nib, 1);
-      g.rect(37, 197, 6, 5, '#2a2016'); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
+      g.rect(37, 197, 6, 5, g.shade8('#f2c53d', 0.34)); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
       hearts(g, 43, 184, { t: Math.min(2.6, pet.t) });
     }
   } else if (Math.floor(t / 2200) % 3 !== 2) { g.px(27, 200, '#f2d080'); g.px(31, 200, '#f2d080'); }
@@ -779,7 +779,7 @@ export function drawFurnitureProps(g, rw, rh, time) {
   const t = time || 0;
   /* campionario di carte da parati appese a un'asta, dietro il bancone */
   const cx = rw / 2, x0 = cx - 54;
-  g.rect(x0 - 4, 5, 116, 3, '#2a2016'); g.rect(x0 - 4, 5, 116, 1, '#8f9aa3'); g.rect(x0 - 6, 4, 3, 5, '#c9a227'); g.rect(x0 + 111, 4, 3, 5, '#c9a227');
+  g.rect(x0 - 4, 5, 116, 3, g.shade8('#8f9aa3', 0.34)); g.rect(x0 - 4, 5, 116, 1, '#8f9aa3'); g.rect(x0 - 6, 4, 3, 5, '#c9a227'); g.rect(x0 + 111, 4, 3, 5, '#c9a227');
   const carte = [
     ['#e7c9c4', 'rombi', '#d4a9a3'], ['#8fae7a', 'righe', '#7c9b68'], ['#bcd4de', 'fiocchi', '#f3ecda'],
     ['#e8dcc0', 'foglie', '#7ec069'], ['#c86a4a', 'blocchi', '#a8563a'], ['#5a5a9a', 'stelle', '#e8c34a'],
@@ -797,24 +797,24 @@ export function drawFurnitureProps(g, rw, rh, time) {
     g.rect(sx + 1, 8 + h - 3, 14, 3, g.shade8(c, 0.8)); g.rect(sx + 3, 8 + h, 10, 2, g.shade8(c, 0.62));   // bordo arrotolato
   });
   /* pannello degli attrezzi a sinistra: sega, martello, squadra, pialla */
-  g.rect(18, 10, 70, 40, '#2a1e14'); g.rect(19, 11, 68, 38, '#b8955f');
+  g.rect(18, 10, 70, 40, g.shade8('#b8955f', 0.34)); g.rect(19, 11, 68, 38, '#b8955f');
   for (let yy = 15; yy < 48; yy += 6) for (let xx = 23; xx < 86; xx += 6) g.px(xx, yy, '#8a6a3a');
-  g.rect(24, 16, 22, 8, '#2a2016'); g.rect(25, 17, 20, 6, '#c9ced3'); for (let i = 0; i < 20; i += 2) g.px(25 + i, 23, '#8f9aa3'); g.rect(44, 15, 6, 10, '#8a3f3a');   // sega
-  g.rect(56, 14, 3, 20, '#6e4a2e'); g.rect(52, 13, 11, 5, '#2a2016'); g.rect(53, 14, 9, 3, '#8f9aa3');                                                                 // martello
+  g.rect(24, 16, 22, 8, g.shade8('#c9ced3', 0.34)); g.rect(25, 17, 20, 6, '#c9ced3'); for (let i = 0; i < 20; i += 2) g.px(25 + i, 23, '#8f9aa3'); g.rect(44, 15, 6, 10, '#8a3f3a');   // sega
+  g.rect(56, 14, 3, 20, '#6e4a2e'); g.rect(52, 13, 11, 5, g.shade8('#8f9aa3', 0.34)); g.rect(53, 14, 9, 3, '#8f9aa3');                                                                 // martello
   g.rect(68, 14, 2, 18, '#c9a227'); g.rect(68, 30, 14, 2, '#c9a227'); for (let i = 0; i < 16; i += 3) g.px(69, 16 + i, '#6b4f14');                                       // squadra
-  g.rect(24, 34, 26, 9, '#2a2016'); g.rect(25, 35, 24, 7, '#a97a4c'); g.rect(30, 32, 6, 4, '#6e4a2e'); g.rect(42, 33, 5, 3, '#8a3f3a');                                  // pialla
+  g.rect(24, 34, 26, 9, g.shade8('#a97a4c', 0.34)); g.rect(25, 35, 24, 7, '#a97a4c'); g.rect(30, 32, 6, 4, '#6e4a2e'); g.rect(42, 33, 5, 3, '#8a3f3a');                                  // pialla
   g.rect(58, 38, 24, 4, '#e8c34a'); for (let i = 0; i < 24; i += 3) g.px(58 + i, 38, '#2a2016');                                                                        // metro
   /* orologio a muro in fondo a destra */
-  g.rect(rw - 32, 12, 16, 16, '#2a2016'); g.rect(rw - 31, 13, 14, 14, '#8a5f38'); g.rect(rw - 29, 15, 10, 10, '#f3ecda');
+  g.rect(rw - 32, 12, 16, 16, g.shade8('#8a5f38', 0.34)); g.rect(rw - 31, 13, 14, 14, '#8a5f38'); g.rect(rw - 29, 15, 10, 10, '#f3ecda');
   const hh = Math.floor(t / 1000) % 4; g.rect(rw - 24, 17, 1, 4, '#2a2016'); g.rect(rw - 24 + (hh < 2 ? 0 : -3), 20, 4, 1, '#2a2016');
 }
 export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
   const t = time || 0, cx = rw / 2;
   /* sul bancone: catalogo aperto, ventaglio di campioni di stoffa, matita, sedia in miniatura */
-  g.rect(cx - 70, 62, 28, 9, '#2a2016'); g.rect(cx - 69, 63, 13, 7, '#f3ecda'); g.rect(cx - 55, 63, 12, 7, '#e8dcc0'); g.rect(cx - 56, 62, 1, 9, '#8a3f3a');
+  g.rect(cx - 70, 62, 28, 9, g.shade8('#f3ecda', 0.34)); g.rect(cx - 69, 63, 13, 7, '#f3ecda'); g.rect(cx - 55, 63, 12, 7, '#e8dcc0'); g.rect(cx - 56, 62, 1, 9, '#8a3f3a');
   g.rect(cx - 67, 65, 5, 3, '#c65a54'); g.rect(cx - 61, 65, 4, 3, '#5a86c8'); g.rect(cx - 53, 65, 8, 1, '#8f887a'); g.rect(cx - 53, 67, 6, 1, '#8f887a');
   ['#c65a54', '#e8c34a', '#5fa04e', '#5a86c8', '#8a6ab0'].forEach((c, i) => { g.rect(cx - 30 + i * 4, 58 + Math.abs(2 - i), 6, 12 - Math.abs(2 - i), g.shade8(c, 0.55)); g.rect(cx - 29 + i * 4, 59 + Math.abs(2 - i), 4, 10 - Math.abs(2 - i), c); });
-  g.rect(cx - 6, 66, 14, 2, '#e8c34a'); g.px(cx + 8, 66, '#2a2016'); g.px(cx - 6, 66, '#e8a0b8');
+  g.rect(cx - 6, 66, 14, 2, '#e8c34a'); g.px(cx + 8, 66, g.shade8('#e8a0b8', 0.34)); g.px(cx - 6, 66, '#e8a0b8');
   g.rect(cx + 44, 56, 3, 14, '#6e4a2e'); g.rect(cx + 44, 62, 12, 3, '#a97a4c'); g.rect(cx + 53, 65, 3, 5, '#6e4a2e'); g.rect(cx + 44, 56, 3, 1, '#b07c4a');
   /* POLTRONA in esposizione su un tappeto, con lampada da terra (24..92 × 92..136) */
   g.rect(22, 112, 70, 26, '#5c2a26'); g.rect(23, 113, 68, 24, '#b8574a'); g.rect(26, 116, 62, 18, '#e0a24a'); g.rect(27, 117, 60, 16, '#a8453c');
@@ -826,32 +826,32 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
   g.rect(60, 104, 8, 22, '#2f4a2a'); g.rect(61, 105, 6, 20, '#4f8a45'); g.rect(61, 105, 6, 2, '#7ec069');
   g.rect(32, 112, 30, 12, '#2f4a2a'); g.rect(33, 113, 28, 10, '#6aa85c'); g.rect(33, 113, 28, 2, '#8fd07a');                                 // cuscino
   g.rect(28, 126, 4, 6, '#3a2a1c'); g.rect(62, 126, 4, 6, '#3a2a1c');
-  g.rect(36, 88, 22, 6, '#2a2016'); g.rect(37, 89, 20, 4, '#f3ecda'); g.rect(44, 89, 6, 4, '#c9a227');                                        // cartellino del prezzo
+  g.rect(36, 88, 22, 6, g.shade8('#f3ecda', 0.34)); g.rect(37, 89, 20, 4, '#f3ecda'); g.rect(44, 89, 6, 4, '#c9a227');                                        // cartellino del prezzo
   const on = Math.floor(t / 2000) % 5 !== 0;
-  g.rect(80, 94, 1, 38, '#2a2016'); g.rect(81, 94, 1, 38, '#8f887a'); g.rect(75, 132, 12, 3, '#2a2016');
-  g.rect(73, 82, 16, 13, '#2a2016'); g.rect(74, 83, 14, 11, on ? '#f6dc78' : '#e8dcc0'); g.rect(74, 83, 14, 2, '#fff3c8');
+  g.rect(80, 94, 1, 38, g.shade8('#8f887a', 0.34)); g.rect(81, 94, 1, 38, '#8f887a'); g.rect(75, 132, 12, 3, '#2a2016');
+  g.rect(73, 82, 16, 13, g.shade8('#f6dc78', 0.34)); g.rect(74, 83, 14, 11, on ? '#f6dc78' : '#e8dcc0'); g.rect(74, 83, 14, 2, '#fff3c8');
   if (on) g.rect(66, 96, 30, 14, 'rgba(255,230,150,.10)');
   /* BANCO DA FALEGNAME con morsa, pialla e trucioli (228..296 × 92..136) */
   g.shadow(262, 136, 36);
   g.rect(230, 108, 6, 28, '#2a1e14'); g.rect(288, 108, 6, 28, '#2a1e14'); g.rect(231, 126, 62, 3, '#4a3624');
-  g.rect(226, 98, 72, 12, '#2a1e14'); g.rect(227, 99, 70, 10, '#c49a63'); g.rect(227, 99, 70, 2, '#dcb880');
+  g.rect(226, 98, 72, 12, g.shade8('#c49a63', 0.34)); g.rect(227, 99, 70, 10, '#c49a63'); g.rect(227, 99, 70, 2, '#dcb880');
   for (let i = 0; i < 70; i += 12) g.rect(227 + i, 101, 1, 8, '#a97a4c');
-  g.rect(222, 100, 8, 12, '#2a2016'); g.rect(223, 101, 6, 10, '#5a5248'); g.rect(218, 104, 5, 2, '#8f9aa3');                                    // morsa
-  g.rect(236, 90, 30, 9, '#2a2016'); g.rect(237, 91, 28, 7, '#e0b890'); g.rect(237, 91, 28, 1, '#f3d8b0');                                     // asse sul banco
-  g.rect(254, 84, 16, 8, '#2a2016'); g.rect(255, 85, 14, 6, '#a97a4c'); g.rect(258, 82, 4, 3, '#6e4a2e');                                      // pialla
+  g.rect(222, 100, 8, 12, g.shade8('#5a5248', 0.34)); g.rect(223, 101, 6, 10, '#5a5248'); g.rect(218, 104, 5, 2, '#8f9aa3');                                    // morsa
+  g.rect(236, 90, 30, 9, g.shade8('#e0b890', 0.34)); g.rect(237, 91, 28, 7, '#e0b890'); g.rect(237, 91, 28, 1, '#f3d8b0');                                     // asse sul banco
+  g.rect(254, 84, 16, 8, g.shade8('#a97a4c', 0.34)); g.rect(255, 85, 14, 6, '#a97a4c'); g.rect(258, 82, 4, 3, '#6e4a2e');                                      // pialla
   const tr2 = Math.floor(t / 400) % 3;
   for (let i = 0; i < 3; i++) { const sx = 240 + i * 5 + tr2; g.rect(sx, 88 - i, 3, 1, '#f3d8b0'); g.px(sx + 3, 87 - i, '#e0b890'); }        // truciolo che esce
-  g.rect(278, 88, 14, 10, '#2a2016'); g.rect(279, 89, 12, 8, '#8a6ab0'); g.rect(279, 89, 12, 2, '#a88ad0');                                     // barattolo di vernice
+  g.rect(278, 88, 14, 10, g.shade8('#8a6ab0', 0.34)); g.rect(279, 89, 12, 8, '#8a6ab0'); g.rect(279, 89, 12, 2, '#a88ad0');                                     // barattolo di vernice
   g.rect(283, 80, 2, 10, '#6e4a2e'); g.rect(282, 78, 4, 3, '#e8dcc0');
   /* assi appoggiate al muro e trucioli sparsi */
-  for (let i = 0; i < 3; i++) { g.rect(300 - i * 4, 150 + i * 2, 5, 50 - i * 2, '#2a1e14'); g.rect(301 - i * 4, 151 + i * 2, 3, 48 - i * 2, ['#c49a63', '#a97a4c', '#dcb880'][i]); }
+  for (let i = 0; i < 3; i++) { g.rect(300 - i * 4, 150 + i * 2, 5, 50 - i * 2, g.shade8('#c49a63', 0.34)); g.rect(301 - i * 4, 151 + i * 2, 3, 48 - i * 2, ['#c49a63', '#a97a4c', '#dcb880'][i]); }
   for (let i = 0; i < 9; i++) { const x = 110 + (i * 41) % 110, y = 150 + (i * 29) % 44; g.rect(x, y, 3, 1, '#e0b890'); g.px(x + 3, y - 1, '#e0b890'); g.px(x - 1, y + 1, '#c49a63'); }
   /* SCOIATTOLO sul ceppo in basso a sinistra, con la ghianda: la coda a pennacchio; coccolato si alza e
      rigira la ghianda fra le zampine */
   {
     const t = time || 0, ps = pet && pet.kind === 'scoiattolo';
     g.shadow(38, 206, 16);
-    g.rect(24, 190, 28, 16, '#2a1e14'); g.rect(25, 191, 26, 14, '#8a5f38'); g.rect(25, 189, 26, 4, '#2a1e14'); g.rect(26, 190, 24, 2, '#dcb880'); g.rect(33, 190, 10, 2, '#c49a63');
+    g.rect(24, 190, 28, 16, g.shade8('#8a5f38', 0.34)); g.rect(25, 191, 26, 14, '#8a5f38'); g.rect(25, 189, 26, 4, g.shade8('#dcb880', 0.34)); g.rect(26, 190, 24, 2, '#dcb880'); g.rect(33, 190, 10, 2, '#c49a63');
     const up = ps ? 3 : 0, tw = Math.floor((ps ? pet.t * 8 : t / 700)) % 2;
     const c = critter(g, '#3a2418');
     c.oval(46, 174 - up - tw, 6, 11, tone3('#f0a060', '#d0742e', '#a8561e'));               // coda a pennacchio
@@ -861,7 +861,7 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
     c.oval(28, 167 - up, 1.6, 2.2, '#b55a26'); c.oval(33, 166 - up, 1.6, 2.2, '#b55a26');     // orecchie
     c.paint();
     g.rect(34, 181 - up, 5, 7, '#f2d2a8');                                                    // pancia chiara
-    g.rect(29, 171 - up, 2, 2, '#1a120a'); g.px(29, 171 - up, '#ffffff'); g.px(26, 174 - up, '#3a2418');
+    g.rect(29, 171 - up, 2, 2, g.shade8('#ffffff', 0.34)); g.px(29, 171 - up, '#ffffff'); g.px(26, 174 - up, '#3a2418');
     const ax = ps ? 31 + (Math.floor(pet.t * 6) % 2) : 32;
     const a = critter(g, '#3a2418'); a.oval(ax + 2, 183 - up, 2.5, 3, '#b8843a'); a.paint(); g.rect(ax, 180 - up, 5, 2, '#6e4a2e');   // ghianda
     if (ps) hearts(g, 36, 156, pet);
@@ -894,6 +894,6 @@ export function drawMuseumPet(g, x, y, time, pet) {
   /* occhio: chiuso quando sonnecchia, aperto quando la coccoli */
   const ex = x - collo - 13, ey = y - 9 - resp;
   if (ps && Math.floor(pet.t * 4) % 2) { g.rect(ex, ey, 2, 1, '#1a120a'); }
-  else { g.rect(ex, ey - 1, 2, 2, '#1a120a'); g.px(ex, ey - 1, '#ffffff'); }
+  else { g.rect(ex, ey - 1, 2, 2, g.shade8('#ffffff', 0.34)); g.px(ex, ey - 1, '#ffffff'); }
   if (ps) hearts(g, x - 4, y - 28, pet);
 }

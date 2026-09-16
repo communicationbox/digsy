@@ -103,9 +103,9 @@ export function drawRope(g, x0, x1, y, col) {
   const scuro = shadeHex(col, 0.5), chiaro = shadeHex(col, 0.95);
   for (const x of [x0, x1]) {
     g.rect(x - 4, y + 6, 9, 3, 'rgba(40,30,20,.22)');                       // ombra
-    g.rect(x - 3, y + 4, 7, 4, '#241a10'); g.rect(x - 2, y + 5, 5, 2, '#8a6a1e');   // base
-    g.rect(x - 1, y - 12, 4, 17, '#241a10'); g.rect(x, y - 12, 2, 16, '#c9a227'); g.rect(x, y - 12, 1, 16, '#f0d470');
-    g.rect(x - 2, y - 15, 6, 4, '#241a10'); g.rect(x - 1, y - 14, 4, 2, '#e8c34a');  // pomello
+    g.rect(x - 3, y + 4, 7, 4, g.shade8('#8a6a1e', 0.34)); g.rect(x - 2, y + 5, 5, 2, '#8a6a1e');   // base
+    g.rect(x - 1, y - 12, 4, 17, g.shade8('#c9a227', 0.34)); g.rect(x, y - 12, 2, 16, '#c9a227'); g.rect(x, y - 12, 1, 16, '#f0d470');
+    g.rect(x - 2, y - 15, 6, 4, g.shade8('#e8c34a', 0.34)); g.rect(x - 1, y - 14, 4, 2, '#e8c34a');  // pomello
   }
   const n = Math.max(1, x1 - x0);
   for (let i = 0; i <= n; i++) {                                            // la fune scende a catenaria
@@ -122,7 +122,7 @@ export function drawBench(g, x, y, col) {
   const scuro = shadeHex(col, 0.55), medio = shadeHex(col, 0.78), chiaro = shadeHex(col, 1.0);
   g.rect(x + 3, y + 15, 42, 4, 'rgba(40,30,20,.22)');                     // ombra
   for (const lx of [x + 5, x + 37]) {                                     // gambe tornite
-    g.rect(lx, y + 7, 6, 10, '#2a1e14'); g.rect(lx + 1, y + 7, 4, 9, '#6e4a2e'); g.rect(lx + 1, y + 7, 1, 9, '#8a5f38');
+    g.rect(lx, y + 7, 6, 10, g.shade8('#6e4a2e', 0.34)); g.rect(lx + 1, y + 7, 4, 9, '#6e4a2e'); g.rect(lx + 1, y + 7, 1, 9, '#8a5f38');
     g.rect(lx - 1, y + 10, 8, 2, '#5c3d22'); g.rect(lx, y + 16, 6, 2, '#2a1e14');
   }
   g.rect(x, y + 4, 48, 7, '#2a1e14');                                     // cornice di legno
@@ -220,7 +220,7 @@ export function drawDeskArt(g, x0, y0, x1, y1, time) {
   for (let r = 0; r < 3; r++) { g.rect(cx - 38, y0 - 10 + r * 2, 8, 1, '#b9ad91'); g.rect(cx - 25, y0 - 10 + r * 2, 7, 1, '#b9ad91'); }
   const shine = Math.floor(time / 900) % 4 === 0;
   g.rect(cx + 20, y0 - 6, 14, 2, '#6b4f14');                                    // base del campanello
-  g.rect(cx + 22, y0 - 13, 10, 8, '#241a10'); g.rect(cx + 23, y0 - 12, 8, 6, '#e8c34a'); g.rect(cx + 23, y0 - 12, 8, 2, '#f8e08a');
+  g.rect(cx + 22, y0 - 13, 10, 8, g.shade8('#e8c34a', 0.34)); g.rect(cx + 23, y0 - 12, 8, 6, '#e8c34a'); g.rect(cx + 23, y0 - 12, 8, 2, '#f8e08a');
   g.rect(cx + 26, y0 - 16, 2, 3, '#6b4f14');
   if (shine) g.rect(cx + 25, y0 - 11, 2, 2, '#fff8d0');
   g.rect(cx - 9, y0 - 12, 12, 8, '#241a10');                                    // lente

@@ -57,10 +57,10 @@ export function exhibitSprite(spId, parts) {
     const zr = Math.max(1, mxz - mnz);
     for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
       const zt = (v.z - mnz) / zr;
-      c2.fillStyle = v.k === 'eye' ? '#201a14' : zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
+      c2.fillStyle = v.k === 'eye' ? '#3a352c' : zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
       c2.fillRect(ox + (v.x - mnx), oy + (mxy - v.y), 1, 1); // un pixel per voxel: il modello è già a risoluzione doppia (R in bones.js)
     }
-    outlineSprite(cv, '#1c160f');
+    outlineSprite(cv, '#5e574a');                              // contorno d'osso scuro, non nero
   } catch (e) { cv = null; /* stub nei test */ }
   exCache.set(key, cv); return cv;
 }
@@ -87,12 +87,13 @@ export function centrepieceSprite() {
     const c2 = cv.getContext('2d'); const zr = Math.max(1, mxz - mnz);
     for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
       const zt = (v.z - mnz) / zr;
-      c2.fillStyle = v.k === 'eye' ? '#201a14' : zt < 0.34 ? '#9a9283' : zt < 0.67 ? '#ded7c7' : '#fffdf5';
+      c2.fillStyle = v.k === 'eye' ? '#3a352c' : zt < 0.34 ? '#9a9283' : zt < 0.67 ? '#ded7c7' : '#fffdf5';
       c2.fillRect(4 + (v.x - mnx) * S2, 4 + (mxy - v.y) * S2, S2, S2);
     }
-    /* contorno DOPPIO: su un pavimento di marmo chiaro un filo di un pixel sparisce e le ossa
-       bianche si sciolgono nel fondo (visto in foto). Due passate = un profilo che si legge. */
-    outlineSprite(cv, '#1c160f'); outlineSprite(cv, '#1c160f');
+    /* contorno D'OSSO, non nero, e una passata sola: due passate di nero davano una crosta
+       scura tutt'attorno alla montatura, la prima cosa che si vedeva entrando (segnalato con
+       foto). Un bruno caldo scuro stacca lo stesso dal marmo e non sembra un ritaglio. */
+    outlineSprite(cv, '#57503f');
   } catch (e) { cv = null; /* stub nei test */ }
   cpCache.set(sp.id, cv); return cv;
 }
@@ -486,7 +487,7 @@ function drawRotateHandle(x, y, d, time) {
   for (let yy = 0; yy < d; yy++) for (let xx = 0; xx < d; xx++) {
     const dx = xx + 0.5 - r, dy = yy + 0.5 - r, q = dx * dx + dy * dy;
     if (q > r * r) continue;
-    px(x + xx, y + yy, q > (r - 1.2) * (r - 1.2) ? '#2a2016' : '#f6efdd');
+    px(x + xx, y + yy, q > (r - 1.2) * (r - 1.2) ? shadeHex('#f6efdd', 0.42) : '#f6efdd');
   }
   /* un respiro lento dell'inchiostro, fase dal tempo: si fa notare senza ballare */
   const ink = Math.floor(time / 600) % 2 ? '#3a2f1e' : '#6b4a22';

@@ -459,7 +459,7 @@ export function drawGate(sx, sy, side, open = true, closeT = 1) {
 }
 function drawGateLock(sx, sy) {
   rect(sx - 3, sy - 3, 6, 1, '#2a2016'); rect(sx - 3, sy - 2, 1, 3, '#2a2016'); rect(sx + 2, sy - 2, 1, 3, '#2a2016');
-  rect(sx - 4, sy + 1, 9, 8, '#2a2016'); rect(sx - 3, sy + 2, 7, 6, '#c9a227'); rect(sx - 3, sy + 2, 7, 1, '#f0d470'); px(sx, sy + 4, '#2a2016');
+  rect(sx - 4, sy + 1, 9, 8, shade8('#c9a227', 0.34)); rect(sx - 3, sy + 2, 7, 6, '#c9a227'); rect(sx - 3, sy + 2, 7, 1, '#f0d470'); px(sx, sy + 4, '#2a2016');
 }
 /* STAGNO del parco (3×2): ACQUA VERA del gioco (stesse onde/riflessi del mondo) — ma è solo
    decorazione su una casella di parco, quindi NON ci si pesca. Riva scura tutt'attorno + ninfea. */

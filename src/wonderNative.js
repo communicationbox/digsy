@@ -273,17 +273,17 @@ function disegna_totem(g, t) {
     dipingi(-16, y0 + 2, 32, H - 3, c);                       // fascia colorata del volto
     dipingi(-16, y0 + 2, 6, H - 3, l); dipingi(10, y0 + 2, 6, H - 3, d);   // cilindro: luce e ombra
     dipingi(-16, y0, 32, 2, '#2a1e14'); dipingi(-16, y0 + 2, 32, 1, shade(c, 1.4));   // anello inciso fra un volto e l'altro
-    for (const ex of [-9, 4]) { disc(g, ex + 2, y0 + 11, 5, '#2a1e14'); disc(g, ex + 2, y0 + 11, 4, '#f6efdd'); disc(g, ex + 2, y0 + 11, 2, '#201a14'); }   // occhi tondi
+    for (const ex of [-9, 4]) { disc(g, ex + 2, y0 + 11, 5, g.shade8('#f6efdd', 0.34)); disc(g, ex + 2, y0 + 11, 4, '#f6efdd'); disc(g, ex + 2, y0 + 11, 2, '#201a14'); }   // occhi tondi
     dipingi(-12, y0 + 5, 9, 2, d); dipingi(3, y0 + 5, 9, 2, d);                        // sopracciglia
     if (f.kind === 'becco') forma(g, [C(0, y0 + 16, 0, y0 + 25, 5), E(0, y0 + 17, 6, 4)], '#f2c53d', '#ffe08a', '#c9a227', '#2a1e14');
-    if (f.kind === 'zanne') { forma(g, [E(0, y0 + 20, 10, 4)], '#5a2a22', '#7a4436', '#3f1c18', '#2a1e14'); for (const zx of [-7, 5]) forma(g, [C(zx, y0 + 19, zx + 1, y0 + 26, 2)], '#f6efdd', '#ffffff', '#c9bda4', '#2a1e14'); }
-    if (f.kind === 'corna') { forma(g, [E(0, y0 + 20, 8, 3)], '#2a1e14', '#4a3524', '#201a14', '#2a1e14'); for (const hx of [-14, 14]) forma(g, [C(hx, y0 + 8, hx + (hx < 0 ? -8 : 8), y0 - 8, 4), E(hx, y0 + 8, 5, 4)], '#e8dcb8', '#ffffff', '#b8a882', '#2a1e14'); }
-    if (f.kind === 'occhi') { forma(g, [E(0, y0 + 21, 9, 4)], '#2a1e14', '#4a3524', '#201a14', '#2a1e14'); for (let k = -6; k < 8; k += 4) g.rect(k, y0 + 19, 2, 3, '#f6efdd'); }
+    if (f.kind === 'zanne') { forma(g, [E(0, y0 + 20, 10, 4)], '#5a2a22', '#7a4436', '#3f1c18', g.shade8('#f6efdd', 0.34)); for (const zx of [-7, 5]) forma(g, [C(zx, y0 + 19, zx + 1, y0 + 26, 2)], '#f6efdd', '#ffffff', '#c9bda4', '#2a1e14'); }
+    if (f.kind === 'corna') { forma(g, [E(0, y0 + 20, 8, 3)], '#2a1e14', '#4a3524', '#201a14', g.shade8('#e8dcb8', 0.34)); for (const hx of [-14, 14]) forma(g, [C(hx, y0 + 8, hx + (hx < 0 ? -8 : 8), y0 - 8, 4), E(hx, y0 + 8, 5, 4)], '#e8dcb8', '#ffffff', '#b8a882', '#2a1e14'); }
+    if (f.kind === 'occhi') { forma(g, [E(0, y0 + 21, 9, 4)], '#2a1e14', '#4a3524', '#201a14', g.shade8('#f6efdd', 0.34)); for (let k = -6; k < 8; k += 4) g.rect(k, y0 + 19, 2, 3, '#f6efdd'); }
   });
   /* UCCELLO DEL TUONO in cima: testa tonda, cresta, becco */
   forma(g, [E(0, top - 9, 15, 11), E(0, top - 20, 6, 6)], '#c9a227', '#f0d470', '#9a7a18', '#2a1e14');
   forma(g, [E(0, top - 26, 5, 5)], '#c65a54', '#e07a70', '#9a3f3a', '#2a1e14');       // ciuffo
-  for (const ex of [-6, 6]) { disc(g, ex, top - 11, 4, '#2a1e14'); disc(g, ex, top - 11, 3, '#f6efdd'); disc(g, ex, top - 11, 1, '#201a14'); }
+  for (const ex of [-6, 6]) { disc(g, ex, top - 11, 4, g.shade8('#f6efdd', 0.34)); disc(g, ex, top - 11, 3, '#f6efdd'); disc(g, ex, top - 11, 1, '#201a14'); }
   forma(g, [C(0, top - 5, 0, top + 2, 4)], '#e0873a', '#f2a55a', '#b06a28', '#2a1e14');
   if (Math.floor(t / 700) % 4 === 0) for (const ex of [-6, 6]) disc(g, ex, top - 11, 2, '#fff3a0');   // gli occhi si accendono
   tufts(g, -26, 26, '#6e8f5a', '#5a7a4a', 3);
@@ -634,7 +634,7 @@ function disegna_aurora(g, t) {
   /* OMETTO DI PIETRE: sassi tondi impilati, ognuno col suo contorno e la luce da sinistra */
   for (const [y, w, c] of [[-10, 18, '#6e7680'], [-20, 14, '#8a929a'], [-28, 10, '#7a828a'], [-35, 7, '#9aa2aa']])
     forma(g, [E(0, y + 3, w / 2, 5)], c, shade(c, 1.3), shade(c, 0.7), '#2a3038');
-  g.rect(-4, -48, 9, 11, '#2a2016'); const lf = Math.floor(t / 250) % 2; g.rect(-3, -46, 7, 8, lf ? '#f2c53d' : '#e8862e'); g.rect(-2, -45, 2, 6, '#fff3c8');
+  g.rect(-4, -48, 9, 11, g.shade8('#f2c53d', 0.34)); const lf = Math.floor(t / 250) % 2; g.rect(-3, -46, 7, 8, lf ? '#f2c53d' : '#e8862e'); g.rect(-2, -45, 2, 6, '#fff3c8');
   disc(g, 0, -42, 14, 'rgba(255,220,140,.12)');
   /* CORTINE di luce: bande verticali che ondeggiano, raggi più chiari in alto */
   const cols = [[90, 235, 170], [130, 250, 200], [120, 180, 250], [205, 130, 240]];
@@ -855,7 +855,7 @@ function disegna_hollowstump(g, t) {
   /* radici */
   for (const [x, dir, len] of [[-40, -1, 26], [-20, -1, 16], [26, 1, 18], [42, 1, 28]]) for (let k = 0; k < len; k++) {
     const w = Math.max(3, 12 - (k >> 2)), xx = x + dir * k, yy = -8 + (k >> 2);
-    g.rect(xx - 1, yy - (w >> 1) - 1, 3, w + 2, '#241a10'); g.rect(xx, yy - (w >> 1), 2, w, k % 8 < 4 ? '#6e4a2a' : '#5c3d22');
+    g.rect(xx - 1, yy - (w >> 1) - 1, 3, w + 2, g.shade8('#6e4a2a', 0.34)); g.rect(xx, yy - (w >> 1), 2, w, k % 8 < 4 ? '#6e4a2a' : '#5c3d22');
   }
   /* corpo del ceppo con la cima spezzata a denti */
   const top = x => -112 + Math.round(Math.abs(Math.sin(x / 9.3)) * 16 + Math.abs(Math.sin(x / 4.1)) * 6 + (x > 20 ? 14 : 0));
