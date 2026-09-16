@@ -8,7 +8,7 @@ import { drawReturnPortal } from './render.js'; // ciclo sicuro: chiamata solo a
 import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
-import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, SHOP_PETS} from './interior.js';
+import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
@@ -243,7 +243,7 @@ export function drawMuseumGallery(time) {
   }
   for (const pxo of [GAL_DESK.x0 - 16, GAL_DESK.x1 + 6]) ents.push({ y: GAL_DESK.y1 + 8, f: () => drawPlant(pxo) });
   /* LA TARTARUGA dell'atrio: anche il Museo ha la sua bestiola da coccolare */
-  { const tp = SHOP_PETS.museum;
+  { const tp = museumPetSpot(S.day);
     ents.push({ y: tp.y, f: () => drawMuseumPet(BRUSH, tp.x, tp.y, time, INT.pet) }); }
   ents.push({ y: GAL_DESK.y1 - 2, f: drawDesk });
   for (const [ccx, ccy] of roomCols) if (ccx - camx > -40 && ccx - camx < W + 40 && ccy - camy > -20 && ccy - camy < H + 110) ents.push({ y: ccy, f: () => drawColumn(BRUSH, ccx, ccy) });

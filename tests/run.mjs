@@ -4262,7 +4262,8 @@ sprites.applyLook();
   const keep = { active: it.INT.active, b: it.INT.b, x: it.INT.x, y: it.INT.y, pet: it.INT.pet };
   const keepS = { energy: S.energy, petDay: S.petDay };
   for (const [type, kind] of [['store', 'gatto'], ['inn', 'cane'], ['lab', 'topo'], ['barber', 'pappagallo'], ['tailor', 'coniglio'], ['furniture', 'scoiattolo'], ['museum', 'tartaruga']]) {
-    const p = it.SHOP_PETS[type];
+    /* la tartaruga del Museo cambia posto ogni giorno: il punto si chiede alla funzione */
+    const p = type === 'museum' ? it.museumPetSpot(S.day) : it.SHOP_PETS[type];
     Object.assign(it.INT, { active: true, b: { type }, x: p.x, y: p.y + 20, pet: null });
     S.petDay = {}; S.energy = 5;
     const ok = gpP.petShopAnimal();
@@ -4273,6 +4274,13 @@ sprites.applyLook();
     check('coccola ' + kind + ': la reazione finisce da sola', it.INT.pet === null);
     it.INT.x = p.x + 200;
     check('coccola ' + kind + ': da lontano non si coccola', it.nearPet() === null);
+  }
+
+  /* e cambia davvero posto da un giorno all'altro, invece di stare sempre nello stesso angolo */
+  {
+    const posti = new Set();
+    for (let d = 1; d <= 8; d++) { const q = it.museumPetSpot(d); posti.add(q.x + ',' + q.y); }
+    check('la tartaruga del Museo gira per la galleria', posti.size >= 3, [...posti].join(' '));
   }
   const shop = await import('../src/shopArt.js');
   const { BRUSH } = await import('../src/brush.js');

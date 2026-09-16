@@ -66,6 +66,12 @@ async function main() {
        mondo. Vale solo per la pagina della foto, il gioco non la vede mai. */
     /* 'tutorial' = il gioco col passo N del tutorial d'apertura (passo=0..4), per leggere la
        scheda del passo com'è davvero a schermo */
+    /* 'statua' = il monumento del nonno accanto al Museo, inquadrato da vicino */
+    if (${JSON.stringify(vista)} === 'statua') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if (G.cmd) G.cmd('go=city').then(function(){ return G.townHere(); }).then(function(t){
+        if (t && t.statue) { var P = G.player(); P.x = t.statue.x * 32 + 8; P.y = (t.statue.y + 3) * 32 + 2; }
+        if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1400);
+      }); }
     /* cmd=<comando>: esegue un comando della console prima dello scatto (es. cmd=go=boschi) */
     var qcmd = new URLSearchParams(location.search).get('cmd');
     if (qcmd && G.cmd) G.cmd(qcmd).then(function(){ if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1200); });

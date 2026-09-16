@@ -133,32 +133,24 @@ export function boardArt(g, time) {
 
 /* STATUA DEL NONNO: tutta pietra, così si legge come monumento e non come un personaggio */
 export function statueArt(g, time, envelope) {
+  /* STATUA DEL NONNO — qui c'è solo il BASAMENTO: gradino, plinto, targa, muschio e la busta
+     infilata dietro. La figura la disegna render.js con lo sprite VERO del personaggio in
+     tinte di pietra: una statua fatta di blocchi a mano non somigliava a nessuno (segnalato),
+     mentre lo sprite del gioco è già un personaggio e basta ridipingerlo. */
   const D = '#3e3a34', P1 = '#7d766a', P2 = '#9a9384', P3 = '#b6ae9d', P4 = '#cfc7b4';
   shadowE(g, 16, 30, 15, 3);
-  g.rect(1, 22, 30, 10, D); g.rect(2, 23, 28, 8, P1); g.rect(2, 23, 28, 2, P3);                                                    // gradino
-  g.rect(6, 12, 20, 12, D); g.rect(7, 12, 18, 11, P2); g.rect(7, 12, 18, 2, P4); g.rect(22, 14, 3, 9, P1);                         // plinto
-  g.rect(9, 16, 14, 5, '#6b5a2a'); g.rect(10, 17, 12, 3, '#c9a24a'); g.rect(10, 17, 12, 1, '#e8c86a');                             // targa
+  volume(g, [DR(1, 23, 30, 9)], P1, P3, '#6a6458', D);                       // gradino
+  volume(g, [DR(6, 13, 20, 11)], P2, P4, P1, D);                             // plinto
+  volume(g, [DR(9, 16, 14, 5)], '#c9a24a', '#e8c86a', '#8a6a2a', '#6b5a2a');  // targa incisa
   if (Math.floor(time / 520) % 4 === 0) g.rect(11, 17, 3, 1, '#fff8e0');
-  /* la BUSTA del nonno infilata dietro la targa, finché non la prendi: un angolo di carta che spunta e
-     brilla, così la statua chiama il clic senza scriverlo */
-  if (envelope) {
-    g.rect(22, 18, 7, 5, D); g.rect(23, 19, 5, 3, '#f3ecda'); g.px(25, 20, '#c65a54');
+  if (envelope) {                                                            // la busta del nonno dietro la targa
+    volume(g, [DR(22, 18, 7, 5, 1)], '#f3ecda', '#ffffff', '#cdc4ad', D); g.px(25, 20, '#c65a54');
     if (Math.floor(time / 380) % 3 === 0) { g.rect(28, 15, 1, 3, '#fff3a0'); g.rect(27, 16, 3, 1, '#fff3a0'); }
   }
-  /* il nonno: cappotto lungo che si allarga in fondo, spalle, braccio sulla pala, barba a
-     punta e cappello da esploratore a tesa larga */
-  for (let y = -10; y < 12; y++) { const w = 12 + Math.round(((y + 10) / 22) * 6); g.rect(16 - (w >> 1) - 1, y, w + 2, 1, D); g.rect(16 - (w >> 1), y, w, 1, y < -6 ? P3 : P2); g.rect(16 - (w >> 1), y, 3, 1, P3); g.rect(16 + (w >> 1) - 3, y, 3, 1, P1); }
-  g.rect(15, -8, 2, 19, P1);                                                                                                        // abbottonatura
-  g.rect(6, -9, 5, 12, D); g.rect(7, -8, 3, 10, P2);                                                                                // braccio sinistro lungo il fianco
-  g.rect(21, -9, 5, 6, D); g.rect(22, -8, 3, 4, P2); g.rect(24, -4, 4, 4, D); g.rect(24, -3, 3, 2, P3);                             // braccio destro sulla pala
-  g.rect(12, -19, 9, 10, D); g.rect(13, -18, 7, 5, P3); g.px(14, -16, D); g.px(18, -16, D);                                         // viso con gli occhi
-  for (let k = 0; k < 6; k++) g.rect(14 + (k >> 1), -13 + k, 5 - k, 1, P4);                                                          // barba a punta
-  g.rect(6, -22, 21, 4, D); g.rect(7, -21, 19, 2, P3);                                                                              // tesa larga
-  g.rect(11, -28, 11, 7, D); g.rect(12, -27, 9, 5, P2); g.rect(12, -27, 9, 1, P4); g.rect(12, -23, 9, 1, P1);                       // cupola con la fascia
-  g.rect(27, -16, 3, 29, D); g.rect(28, -15, 1, 27, P3);                                                                            // manico della pala
-  g.rect(25, -24, 7, 8, D); g.rect(26, -23, 5, 6, P3); g.rect(26, -23, 1, 6, P4);                                                   // lama
-  g.rect(3, 26, 4, 2, '#5f7a4a'); g.rect(24, 28, 5, 2, '#5f7a4a');                                                                  // muschio
+  g.rect(3, 27, 4, 2, '#5f7a4a'); g.rect(24, 29, 5, 2, '#5f7a4a');             // muschio alla base
 }
+/* la statua in cima al plinto: dove appoggiano i piedi della figura (coordinate della casella) */
+export const STATUE_FEET = { x: 16, y: 14 };
 
 /* CASSETTA DELLA POSTA: cassetta tonda su palo, fessura, bandierina */
 export function mailboxArt(g) {

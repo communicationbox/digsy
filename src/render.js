@@ -33,7 +33,7 @@ import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
 import { caveWall, caveFloor, caveCrystal } from './caveArt.js';
-import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, mailboxArt, siteArt } from './decoArt.js';
+import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, STATUE_FEET, mailboxArt, siteArt } from './decoArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
 import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
 
@@ -217,8 +217,23 @@ function drawBoard(sx, sy, time) {
    — è l'unica cosa in piazza senza colori vivi, così si legge come monumento e non come un NPC
    con cui parlare per sbaglio. La targa manda un riflesso ogni tanto: dice "qui c'è da leggere"
    senza scriverlo. */
+const STATUE_LOOK = { acc: 'grandpa', hat: '#b6ae9d', shirt: '#9a9384', pants: '#8a8376', skin: '#c6bfae',
+  hairStyle: 'short', hairColor: '#d6cfbe', hatStyle: 'explorer', eyeColor: '#3e3a34' };
 function drawStatue(sx, sy, time) {
-  ctx.save(); ctx.translate(sx, sy); statueArt(BRUSH, time, !hasLetter('statua')); ctx.restore();
+  ctx.save(); ctx.translate(sx, sy);
+  statueArt(BRUSH, time, !hasLetter('statua'));
+  /* LA FIGURA È LO SPRITE DEL GIOCO, ridipinto in pietra: una statua costruita a blocchi non
+     somigliava a nessuno (segnalato). Così il monumento è davvero "il vecchio archeologo". */
+  const keep = S.look;
+  S.look = STATUE_LOOK; applyLook();
+  try { drawHero(null, STATUE_FEET.x - 16, STATUE_FEET.y - 32, 'down', 0, false, 'lift'); }
+  finally { S.look = keep; applyLook(); }
+  /* il piccone di pietra, piantato accanto */
+  rect(STATUE_FEET.x + 9, STATUE_FEET.y - 26, 2, 26, '#9a9384');
+  rect(STATUE_FEET.x + 10, STATUE_FEET.y - 26, 1, 26, '#b6ae9d');
+  rect(STATUE_FEET.x + 5, STATUE_FEET.y - 28, 11, 3, '#b6ae9d');
+  rect(STATUE_FEET.x + 5, STATUE_FEET.y - 27, 11, 1, '#cfc7b4');
+  ctx.restore();
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {

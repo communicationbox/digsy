@@ -64,27 +64,52 @@ export function foundation(g, x, y, w) {
 }
 /* ---------- tetto visto di fronte, con la gronda che sporge ---------- */
 export function roof(g0, x, y, w, h, BB) {
-  /* il motivo delle tegole si ripete a passo fisso: tutto resta dentro la falda */
-  const L = x - 6, Rr = x + w + 6;
-  const g = { shade8: g0.shade8, px: (px2, py2, c) => { if (px2 >= L && px2 < Rr) g0.px(px2, py2, c); },
-    rect: (rx, ry, rw, rh, c) => { const a = Math.max(rx, L - 1), b = Math.min(rx + rw, Rr + 1); if (b > a) g0.rect(a, ry, b - a, rh, c); } };
+  /* TETTO A FALDA, non una lastra: la copertura si stringe salendo (5 px per lato) e le due
+     linee oblique si vedono. Con la lastra dritta ogni casa era una scatola col coperchio
+     (segnalato: "case, panchine, cartelli e tutto il resto restano molto squadrate").
+     Il motivo delle tegole resta quello di prima: ogni riga viene ritagliata dentro la falda,
+     così i materiali non si toccano e non serve riscriverli. */
+  const OV = 6, RAKE = 5;                                   // sporto della gronda · rientro del colmo
+  const bordoL = (ry) => x - OV + Math.round(RAKE * (1 - Math.max(0, Math.min(1, (ry - y) / Math.max(1, h - 1)))));
+  const bordoR = (ry) => x + w + OV - Math.round(RAKE * (1 - Math.max(0, Math.min(1, (ry - y) / Math.max(1, h - 1)))));
+  const g = {
+    shade8: g0.shade8,
+    px: (px2, py2, c) => { if (px2 >= bordoL(py2) && px2 < bordoR(py2)) g0.px(px2, py2, c); },
+    rect: (rx, ry, rw, rh, c) => {                          // una riga per volta: il taglio segue la falda
+      for (let yy = ry; yy < ry + rh; yy++) {
+        const a = Math.max(rx, bordoL(yy)), b = Math.min(rx + rw, bordoR(yy));
+        if (b > a) g0.rect(a, yy, b - a, 1, c);
+      }
+    },
+  };
   const r1 = BB.roof, r2 = BB.roof2 || sh(g, BB.roof, 1.2);
-  g.rect(x - 7, y + h, w + 14, 4, 'rgba(20,12,6,.35)');              // ombra della gronda sul muro
-  g.rect(x - 7, y - 1, w + 14, h + 2, LN);
-  g.rect(x - 6, y, w + 12, h, r1);
+  g0.rect(x - 7, y + h, w + 14, 4, 'rgba(20,12,6,.35)');     // ombra della gronda sul muro
+  /* contorno: le due oblique, il colmo e la linea di gronda */
+  for (let yy = y - 1; yy <= y + h; yy++) {
+    const a = bordoL(yy), b = bordoR(yy);
+    g0.rect(a - 1, yy, 1, 1, LN); g0.rect(b, yy, 1, 1, LN);
+  }
+  g0.rect(bordoL(y) - 1, y - 1, bordoR(y) - bordoL(y) + 2, 1, LN);
+  g0.rect(bordoL(y + h) - 1, y + h, bordoR(y + h) - bordoL(y + h) + 2, 1, LN);
+  g.rect(x - OV, y, w + OV * 2, h, r1);
   const d = sh(g, r1, 0.72), l = sh(g, r2, 1.1);
   switch (BB.mat) {
     case 'coppi': for (let r = 0; r * 6 < h; r++) for (let i = (r % 2) * 5; i < w + 12; i += 10) { g.rect(x - 6 + i, y + r * 6 + 3, 7, 3, d); g.rect(x - 6 + i, y + r * 6, 7, 2, l); } break;
     case 'stone': for (let r = 0; r * 7 < h; r++) { g.rect(x - 6, y + r * 7 + 6, w + 12, 1, d); for (let i = (r % 2) * 7; i < w + 12; i += 14) g.rect(x - 6 + i, y + r * 7, 1, 6, d); } break;
-    case 'shingle': for (let r = 0; r * 5 < h; r++) { g.rect(x - 6, y + r * 5 + 4, w + 12, 1, d); for (let i = (r % 2) * 4; i < w + 12; i += 8) { g.rect(x - 6 + i, y + r * 5, 1, 4, d); g.px(x - 5 + i, y + r * 5, l); } } break;
+    case 'shingle': for (let r = 0; r * 5 < h; r++) { g.rect(x - 6, y + r * 5 + 4, w + 12, 1, d); for (let i = (r % 2) * 4; i < w + 12; i += 8) { g.rect(x - 6 + i, y + r * 5, 1, 4, d); g.rect(x - 6 + i + 1, y + r * 5, 2, 1, l); } } break;
     case 'tile': for (let r = 0; r * 6 < h; r++) { g.rect(x - 6, y + r * 6 + 5, w + 12, 1, d); for (let i = 0; i < w + 12; i += 6) g.rect(x - 6 + i, y + r * 6, 1, 5, d); } break;
-    case 'slate': for (let r = 0; r * 6 < h; r++) { g.rect(x - 6, y + r * 6 + 5, w + 12, 1, d); for (let i = (r & 1) * 9; i < w + 12; i += 18) g.rect(x - 6 + i, y + r * 6, 1, 5, d); g.px(x - 2 + ((r * 7) % (w + 4)), y + r * 6 + 1, l); } break;
+    case 'slate': for (let r = 0; r * 6 < h; r++) { g.rect(x - 6, y + r * 6 + 5, w + 12, 1, d); for (let i = (r & 1) * 9; i < w + 12; i += 18) g.rect(x - 6 + i, y + r * 6, 1, 5, d); } break;
     case 'thatch': for (let i = 0; i < w + 12; i += 3) { g.rect(x - 6 + i, y, 2, h + (i % 9 ? 0 : 3), i % 6 ? d : l); } break;
     default: for (let r = 0; r * 6 < h; r++) g.rect(x - 6, y + r * 6 + 5, w + 12, 1, d);
   }
-  g.rect(x - 6, y, w + 12, 3, l); g.rect(x - 6, y, w + 12, 1, sh(g, l, 1.15));                    // colmo
-  g.rect(x - 6, y + h - 3, w + 12, 3, sh(g, r1, 0.55));                                           // gronda
-  if (BB.snow) { g.rect(x - 8, y - 3, w + 16, 5, '#eef7fa'); for (let i = 0; i < w + 12; i += 9) g.rect(x - 6 + i, y + 2, 4, 2 + (i % 3), '#dfeef2'); }
+  /* COLMO in cima (sporge un filo) e gronda spessa in basso */
+  g0.rect(bordoL(y) - 1, y, bordoR(y) - bordoL(y) + 2, 3, l);
+  g0.rect(bordoL(y) - 1, y, bordoR(y) - bordoL(y) + 2, 1, sh(g, l, 1.15));
+  g.rect(x - OV, y + h - 3, w + OV * 2, 3, sh(g, r1, 0.55));
+  if (BB.snow) {
+    g0.rect(bordoL(y) - 2, y - 3, bordoR(y) - bordoL(y) + 4, 5, '#eef7fa');
+    for (let i = 0; i < w + 12; i += 9) g.rect(x - 6 + i, y + 2, 4, 2 + (i % 3), '#dfeef2');
+  }
 }
 /* ---------- finestra con telaio, davanzale, persiane ---------- */
 export function windowBox(g, x, y, w, h, glass, shutter, night) {

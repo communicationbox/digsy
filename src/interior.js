@@ -342,9 +342,10 @@ export function interiorSolid(x, y) {
    una reazione di due secondi e mezzo coi cuoricini, e la prima coccola del giorno regala 1 ⚡.
    (x, y) = dove sta l'animale, in pixel della stanza. */
 export const SHOP_PETS = {
-  /* IL MUSEO ha la sua bestiola come le botteghe: una tartaruga che sonnecchia nell'atrio,
-     accanto alla pianta a destra del bancone (lontana dal Curatore, o i due prompt si
-     pesterebbero). Coordinate della GALLERIA, non della stanzetta. */
+  /* IL MUSEO ha la sua bestiola come le botteghe: una tartaruga. Non sta sempre nello stesso
+     angolo — ogni giorno la si ritrova da un'altra parte della galleria (`museumPetSpot`), così
+     incontrarla è una piccola sorpresa invece di un soprammobile. Le coordinate qui sono solo
+     quelle di partenza: chi disegna e chi coccola passano dalla funzione. */
   museum: { kind: 'tartaruga', x: (GAL_W / 2 + 5) * TS, y: (GAL_H - 3) * TS },
   store: { kind: 'gatto', x: 74, y: 102 },
   inn: { kind: 'cane', x: 40, y: 190 },
@@ -354,9 +355,22 @@ export const SHOP_PETS = {
   furniture: { kind: 'scoiattolo', x: 38, y: 190 },
 };
 export const PET_SEC = 2.6;
+/* i posti dove può capitare la tartaruga: l'atrio ai due lati del bancone e l'imbocco dei
+   corridoi fra le sale. Tutti su pavimento libero, lontani dal Curatore e dai piedistalli. */
+const PET_SPOTS = [
+  [(GAL_W / 2 + 5) * TS, (GAL_H - 3) * TS], [(GAL_W / 2 - 6) * TS, (GAL_H - 3) * TS],
+  [(GAL_W / 2 + 7) * TS, (GAL_H - 7) * TS], [(GAL_W / 2 - 8) * TS, (GAL_H - 8) * TS],
+  [(GAL_W / 2 - 2) * TS, (GAL_H - 10) * TS], [(GAL_W / 2 + 3) * TS, (GAL_H - 12) * TS],
+];
+export function museumPetSpot(day) {
+  const d = Math.max(0, Math.floor(day || 0));
+  const [x, y] = PET_SPOTS[(d * 7 + 3) % PET_SPOTS.length];
+  return { x, y };
+}
 export function nearPet() {
   if (!INT.active || !INT.b || CUT.on) return null;
-  const p = SHOP_PETS[INT.b.type]; if (!p) return null;
+  const base = SHOP_PETS[INT.b.type]; if (!base) return null;
+  const p = INT.b.type === 'museum' ? { ...base, ...museumPetSpot(S.day) } : base;
   return (Math.abs(INT.x - p.x) < 46 && Math.abs(INT.y + 12 - p.y) < 58) ? p : null;
 }
 /* la coccola: ritorna il tipo di animale se è partita, `firstToday` se ha dato l'energia */
