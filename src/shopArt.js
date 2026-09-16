@@ -38,6 +38,37 @@ export function box(g, x, y, w, h, c) {
   if (h > 6) g.rect(x + 1, y + h - 3, w - 2, 2, g.shade8(c, 0.76));
   if (w > 4) g.rect(x + w - 2, y + 1, 1, h - 2, g.shade8(c, 0.82));
 }
+/* SCATOLA CON GLI ANGOLI SMUSSATI — il pennello base di ogni mobile.
+   Prima ogni mobile era una pila di rettangoli: spigoli a novanta gradi dappertutto, e in una
+   stanza dove anche il pavimento e i muri sono griglie il risultato è un disegno tecnico
+   (segnalato: «i mobili tutti gli angoli a 90 gradi... NON VA BENE»). Qui gli angoli si
+   mangiano di qualche pixel, c'è un contorno solo e la luce viene sempre da sopra-sinistra.
+   Si disegna per RIGHE, non per pixel: un mobile costa una cinquantina di rettangoli. */
+function boxr(g, x, y, w, h, fill, r = 3, o = {}) {
+  x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+  const line = o.line || g.shade8(fill, 0.45), light = o.light || g.shade8(fill, 1.16), dark = o.dark || g.shade8(fill, 0.82);
+  const ins = dy => (dy >= r ? 0 : Math.max(0, Math.ceil(r - Math.sqrt(Math.max(0, r * r + r - (r - dy) * (r - dy))))));
+  for (let yy = 0; yy < h; yy++) {
+    const dy = Math.min(yy, h - 1 - yy), i = ins(dy), x0 = x + i, ww = w - i * 2;
+    if (ww <= 0) continue;
+    const primo = yy === 0 || i > ins(Math.min(yy - 1, h - yy)), ultimo = yy === h - 1;
+    g.rect(x0, y + yy, ww, 1, line);                                  // il contorno, tutt'intorno
+    if (primo || ultimo || ww <= 2) continue;
+    const c = yy <= 1 ? light : yy >= h - 2 ? dark : fill;
+    g.rect(x0 + 1, y + yy, ww - 2, 1, c);
+    if (!o.piatto) { g.px(x0 + 1, y + yy, light); g.px(x0 + ww - 2, y + yy, dark); }
+  }
+}
+/* DISCO/ellisse piena con contorno: basi tonde, cuscini, pomelli */
+function disco(g, cx, cy, rx, ry, fill, o = {}) {
+  const line = o.line || g.shade8(fill, 0.45), light = o.light || g.shade8(fill, 1.16);
+  for (let dy = -ry; dy <= ry; dy++) {
+    const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (dy * dy) / (ry * ry))));
+    if (w <= 0) continue;
+    g.rect(Math.round(cx - w), Math.round(cy + dy), w * 2, 1, line);
+    if (w > 1 && dy > -ry && dy < ry) g.rect(Math.round(cx - w) + 1, Math.round(cy + dy), w * 2 - 2, 1, dy < 0 ? light : fill);
+  }
+}
 /* bottiglia/barattolo: vetro colorato con tappo e riflesso */
 function bottle(g, x, y, w, h, c, cap) {
   g.rect(x, y + 3, w, h - 3, g.shade8(c, 0.45));
@@ -47,12 +78,12 @@ function bottle(g, x, y, w, h, c, cap) {
 }
 /* mensola a parete con due staffe */
 function shelf(g, x, y, w) {
-  g.rect(x, y, w, 4, g.shade8('#8a5f38', 0.34)); g.rect(x, y, w, 2, '#8a5f38'); g.rect(x, y, w, 1, '#b07c4a');
-  g.rect(x + 3, y + 4, 2, 4, '#3a2a1c'); g.rect(x + w - 5, y + 4, 2, 4, '#3a2a1c');
+  boxr(g, x, y, w, 4, '#8a5f38', 2);
+  /* le staffe sono mensoline a squadra, non due stecchini: una riga in meno a ogni pixel */
+  for (const bx of [x + 3, x + w - 6]) for (let k = 0; k < 4; k++) g.rect(bx, y + 4 + k, 3 - k, 1, '#3a2a1c');
 }
 function frame(g, x, y, w, h, gold) {
-  g.rect(x, y, w, h, '#2a1e14');
-  g.rect(x + 1, y + 1, w - 2, h - 2, gold ? '#c9a227' : '#8a5f38');
+  boxr(g, x, y, w, h, gold ? '#c9a227' : '#8a5f38', 2, { line: '#2a1e14' });
   g.rect(x + 1, y + 1, w - 2, 1, gold ? '#f0d470' : '#b07c4a');
 }
 function candle(g, x, y, time) {
@@ -199,8 +230,7 @@ function passatoia(g, cx, y0, y1, w, col) {
   const x0 = Math.round(cx - w / 2), h = Math.round(y1 - y0);
   if (h < 20) return;
   const chiaro = g.shade8(col, 1.28), scuro = g.shade8(col, 0.68);
-  g.rect(x0 - 1, y0 - 1, w + 2, h + 2, scuro);
-  g.rect(x0, y0, w, h, col);
+  boxr(g, x0, y0, w, h, col, 3, { line: scuro, light: col, dark: col, piatto: true });   // anche il tappeto ha gli angoli smussi
   g.rect(x0 + 4, y0 + 4, w - 8, 1, chiaro); g.rect(x0 + 4, y0 + h - 5, w - 8, 1, chiaro);
   g.rect(x0 + 4, y0 + 4, 1, h - 8, chiaro); g.rect(x0 + w - 5, y0 + 4, 1, h - 8, chiaro);
   for (let y = y0 + 16; y < y0 + h - 14; y += 22) for (let r = 0; r < 5; r++) {   // rombo
@@ -245,18 +275,16 @@ export function drawShopFront(g, rw, rh) {
 export function drawCounter(g, type, x, y, w, h) {
   const st = shopStyle(type), c = st.counter, t = st.top;
   g.rect(x + 2, y + h, w - 4, 3, 'rgba(30,18,8,.22)');
-  g.rect(x, y, w, h, g.shade8(c, 0.4));
-  g.rect(x + 1, y + 7, w - 2, h - 8, c);
+  /* il CORPO del bancone ha le testate raccordate: una barra che finisce di netto contro i due
+     muri è la riga più lunga della stanza, e teneva insieme tutta la squadratura */
+  boxr(g, x, y + 5, w, h - 5, c, 4, { light: g.shade8(c, 1.1), dark: g.shade8(c, 0.7) });
   for (let px2 = x + 6; px2 + 26 <= x + w - 4; px2 += 32) {
     g.rect(px2, y + 9, 26, h - 14, g.shade8(c, 0.78));
     g.rect(px2 + 1, y + 10, 24, h - 16, g.shade8(c, 1.06));
     g.rect(px2 + 1, y + 10, 24, 1, g.shade8(c, 1.28));
   }
-  g.rect(x + 1, y + h - 4, w - 2, 3, g.shade8(c, 0.6));
-  g.rect(x - 2, y, w + 4, 7, g.shade8(t, 0.45));                   // piano, sporge un filo
-  g.rect(x - 1, y + 1, w + 2, 5, t);
-  g.rect(x - 1, y + 1, w + 2, 1, g.shade8(t, 1.2));
-  g.rect(x - 1, y + 5, w + 2, 1, g.shade8(t, 0.78));
+  g.rect(x + 3, y + h - 4, w - 6, 3, g.shade8(c, 0.6));
+  boxr(g, x - 2, y, w + 4, 7, t, 3, { light: g.shade8(t, 1.2), dark: g.shade8(t, 0.78) });   // piano: sporge un filo, spigoli tondi
   if (type === 'barber') for (let i = 8; i < w; i += 22) g.rect(x + i, y + 2, 6, 1, '#d7dad2'); // venature del marmo
   if (type === 'tailor') for (let i = 0; i < w; i += 4) g.rect(x + i, y + 6, 2, 1, i % 16 ? '#e8c34a' : '#2a2016'); // metro sul bordo
 }
@@ -553,20 +581,26 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
   g.rect(cx - 44, 66, 16, 3, '#2a2016'); for (let i = 0; i < 16; i += 2) g.px(cx - 44 + i, 69, '#2a2016');
   g.rect(cx + 40, 62, 4, 8, '#8a5f38'); g.rect(cx + 38, 58, 8, 5, '#f3ecda');
   bottle(g, cx + 52, 56, 8, 14, '#4e8d9c', '#f3ecda');
-  /* POLTRONA da barbiere (28..88 × 92..136) */
+  /* POLTRONA da barbiere (28..88 × 92..136): tutta curve — testata tonda, braccioli a rullo,
+     seduta imbottita, piede a disco. Prima era una pila di rettangoli. */
   const x = 34;
   g.shadow(x + 22, 136, 20);
-  g.rect(x + 4, 130, 36, 6, g.shade8('#8f9aa3', 0.34)); g.rect(x + 5, 131, 34, 4, '#8f9aa3'); g.rect(x + 5, 131, 34, 1, '#dfe6ea');       // base
-  g.rect(x + 16, 116, 12, 15, g.shade8('#cfd6da', 0.34)); g.rect(x + 17, 116, 10, 15, '#cfd6da'); g.rect(x + 18, 116, 3, 15, '#ffffff');   // colonna
-  g.rect(x + 12, 88, 20, 6, '#2a2016'); g.rect(x + 13, 89, 18, 4, '#3a3a44');                                             // poggiatesta
-  g.rect(x + 6, 94, 32, 22, '#5c2226'); g.rect(x + 7, 95, 30, 20, '#c65a54'); g.rect(x + 7, 95, 30, 2, '#e08a84');         // schienale
-  for (const bx of [x + 14, x + 22, x + 30]) g.rect(bx, 99, 1, 14, '#a3494e');
-  g.rect(x, 104, 8, 14, g.shade8('#8f9aa3', 0.34)); g.rect(x + 1, 105, 6, 4, '#8f9aa3'); g.rect(x + 36, 104, 8, 14, g.shade8('#8f9aa3', 0.34)); g.rect(x + 37, 105, 6, 4, '#8f9aa3');
-  g.rect(x + 4, 112, 36, 8, '#5c2226'); g.rect(x + 5, 113, 34, 6, '#c65a54'); g.rect(x + 5, 113, 34, 2, '#e08a84');         // seduta
-  g.rect(x + 12, 124, 20, 3, '#5a5248');                                                                                    // poggiapiedi
-  /* scopa appoggiata vicino alla poltrona */
-  g.rect(92, 92, 3, 34, '#8a5f38'); g.rect(92, 92, 1, 34, '#b07c4a'); g.rect(87, 124, 13, 10, '#6b5238'); g.rect(88, 125, 11, 9, '#d4b13c');
-  for (let i = 0; i < 5; i++) g.rect(88 + i * 2, 132, 1, 3, '#b8955f');
+  disco(g, x + 22, 133, 19, 4, '#8f9aa3');                                                   // piede a disco
+  boxr(g, x + 16, 114, 12, 18, '#cfd6da', 3); g.rect(x + 18, 116, 2, 14, '#ffffff');          // colonna
+  boxr(g, x + 10, 86, 24, 10, '#3a3a44', 5);                                                  // poggiatesta, tondo
+  boxr(g, x + 5, 93, 34, 24, '#c65a54', 7, { dark: '#8f3a38' });                               // schienale con la cima curva
+  for (const bx of [x + 14, x + 22, x + 30]) g.rect(bx, 99, 1, 13, '#a3494e');                 // cuciture
+  boxr(g, x - 1, 103, 9, 16, '#8f9aa3', 4); boxr(g, x + 36, 103, 9, 16, '#8f9aa3', 4);         // braccioli a rullo
+  boxr(g, x + 3, 111, 38, 11, '#c65a54', 5, { dark: '#8f3a38' });                              // seduta imbottita
+  disco(g, x + 22, 126, 11, 3, '#5a5248');                                                     // poggiapiedi
+  /* SCOPA appoggiata di sbieco: un manico verticale attaccato al muro era l'ennesima riga a
+     piombo. Qui pende contro la parete e le setole si aprono a ventaglio. */
+  for (let k = 0; k < 34; k++) {
+    const mx2 = 96 - Math.round(k * 0.22);
+    g.rect(mx2, 92 + k, 3, 1, '#8a5f38'); g.px(mx2, 92 + k, '#b07c4a');
+  }
+  boxr(g, 84, 124, 14, 6, '#6b5238', 2);
+  for (let i = 0; i < 12; i++) { const hh = 5 + ((i * 5) % 4); g.rect(84 + i, 129, 1, hh, i % 2 ? '#d4b13c' : '#b8955f'); }
   /* ciuffi di capelli a terra */
   for (const [c, hx, hy] of [['#33291f', 106, 146], ['#caa25a', 118, 150], ['#b5622e', 100, 156], ['#6e4a2a', 122, 142]]) {
     g.rect(hx, hy, 4, 1, c); g.rect(hx + 1, hy + 1, 4, 1, c); g.px(hx + 5, hy, c);
@@ -574,17 +608,19 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* panca d'attesa con cuscino e giornale (228..296 × 100..132) + pianta */
   g.shadow(262, 132, 32);
   gamba(g, 232, 116, 5, 16); gamba(g, 284, 116, 5, 16);
-  g.rect(228, 100, 64, 18, g.shade8('#a97a4c', 0.34)); g.rect(229, 101, 62, 16, '#a97a4c'); g.rect(229, 101, 62, 3, '#c49a63'); g.rect(229, 113, 62, 3, '#8a5f38');
-  g.rect(232, 96, 26, 8, '#2f5f6a'); g.rect(233, 97, 24, 6, '#4e8d9c'); g.rect(233, 97, 24, 2, '#7fb6c3');
-  g.rect(264, 100, 14, 9, '#8f887a'); g.rect(265, 100, 12, 8, '#f3ecda'); g.rect(267, 102, 8, 1, '#5a5248'); g.rect(267, 105, 6, 1, '#8f887a');
-  g.rect(294, 108, 12, 12, g.shade8('#c86a4a', 0.34)); g.rect(295, 109, 10, 11, '#c86a4a'); g.rect(295, 109, 10, 2, '#e08a62');
+  boxr(g, 228, 100, 64, 18, '#a97a4c', 4);                                   // seduta con gli spigoli smussati
+  g.rect(230, 112, 60, 2, '#8a5f38');
+  boxr(g, 232, 95, 26, 9, '#4e8d9c', 4);                                     // cuscino
+  boxr(g, 264, 99, 14, 10, '#f3ecda', 2); g.rect(267, 102, 8, 1, '#5a5248'); g.rect(267, 105, 6, 1, '#8f887a');   // giornale
+  boxr(g, 294, 108, 12, 12, '#c86a4a', 3);                                   // vaso: anche lui senza spigoli
   g.rect(292, 94, 7, 14, '#3f7a3a'); g.rect(299, 90, 7, 18, '#4f9a48'); g.rect(296, 86, 5, 12, '#5fae52'); g.px(298, 88, '#8fd07a');
   /* PAPPAGALLO sul trespolo in basso a sinistra: dondola la testa; coccolato apre le ali e fischietta */
   {
     const t = time || 0, pp = pet && pet.kind === 'pappagallo';
     g.shadow(40, 204, 12);
-    g.rect(38, 170, 3, 34, g.shade8('#8a5f38', 0.34)); g.rect(39, 171, 1, 32, '#8a5f38'); g.rect(30, 202, 20, 3, g.shade8('#6e4a2e', 0.34)); g.rect(31, 202, 18, 2, '#6e4a2e');
-    g.rect(28, 168, 24, 3, g.shade8('#a97a4c', 0.34)); g.rect(29, 168, 22, 2, '#a97a4c');
+    g.rect(38, 170, 3, 34, g.shade8('#8a5f38', 0.34)); g.rect(39, 171, 1, 32, '#8a5f38');
+    disco(g, 40, 203, 11, 3, '#6e4a2e');                                     // base tonda del trespolo
+    boxr(g, 28, 167, 24, 4, '#a97a4c', 2);                                   // il posatoio
     const bob = pp ? (Math.floor(pet.t * 8) % 2) : (Math.floor(t / 900) % 2), fl = pp ? Math.floor(pet.t * 10) % 2 : 0;
     const c = critter(g, '#2a2420');
     if (pp) { c.oval(30, 156 - fl * 2, 5, 8, (u, v) => v > 0.4 ? '#e0873a' : '#4fae5a'); c.oval(50, 156 - fl * 2, 5, 8, (u, v) => v > 0.4 ? '#5a86c8' : '#4fae5a'); }

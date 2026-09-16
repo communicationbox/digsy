@@ -156,11 +156,18 @@ export function drawWindow(g, x, y, style, nightK, time) {
   g.rect(x - 4, y + H + 3, W + 8, 1, WALL_LINE);
   /* tende legate ai lati, del colore della stanza */
   const c = s.accent;
-  for (const tx of [x - 7, x + W - 1]) {
-    g.rect(tx, y - 3, 8, H + 3, g.shade8(c, 0.55));
-    g.rect(tx + 1, y - 3, 6, H + 2, c);
-    g.rect(tx + 2, y - 3, 1, H + 2, g.shade8(c, 1.25));
-    g.rect(tx + 5, y - 3, 1, H + 2, g.shade8(c, 0.78));
+  /* LE TENDE CADONO: stringono al fermatenda, si allargano sotto e l'orlo è ondulato. Due
+     rettangoli verticali ai lati della finestra erano altre due righe a piombo. */
+  for (const [tx, verso] of [[x - 7, -1], [x + W - 1, 1]]) {
+    for (let k = 0; k < H + 3; k++) {
+      const yy = y - 3 + k;
+      const largo = k < 12 ? 8 - Math.round(k * 0.28) : 5 + Math.round((k - 12) * 0.45);   // stretta in vita, larga sotto
+      const x0 = verso < 0 ? tx : tx + 8 - largo;
+      if (k >= H - 1 && ((x0 + k) % 3 === 0)) continue;                                     // orlo mosso
+      g.rect(x0, yy, largo, 1, g.shade8(c, 0.55));
+      if (largo > 2) g.rect(x0 + 1, yy, largo - 2, 1, c);
+      g.px(x0 + (verso < 0 ? 1 : largo - 2), yy, g.shade8(c, 1.25));
+    }
     g.rect(tx, y + 9, 8, 2, s.accent2);                        // fermatenda
   }
   g.rect(x - 10, y - 5, W + 20, 2, '#3a2e20');                  // bastone
