@@ -307,6 +307,10 @@ export function updatePrompt() {
           return;
         }
         if (cell.itemId === PEDESTAL_ID) { setPrompt(withIcons(actKey() + ' ' + tr('Piedistallo 🏛️', 'Pedestal 🏛️'))); return; }
+        /* IL LETTO non si raccoglie col tasto azione: ci si dorme. Spostarlo si può, ma dal suo
+           pannello — premendo {act} sul letto partiva il trascinamento e il primo passo del
+           tutorial restava fermo lì (segnalato). */
+        if (cell.itemId && (FURN_BY_ID[cell.itemId] || {}).slot === 'letto') { setPrompt(withIcons(actKey() + ' ' + tr('Dormi 😴', 'Sleep 😴'))); return; }
         if (cell.itemId) { setPrompt(withIcons(actKey() + ' ' + (cell.wall ? tr('Stacca ', 'Take down ') : tr('Raccogli ', 'Pick up ')) + furnLabel(cell.itemId) + ' 🎨')); return; }
         if (cell.unlocked) { setPrompt(withIcons(actKey() + ' ' + tr('Arreda 🎨', 'Furnish 🎨'))); return; }
       }

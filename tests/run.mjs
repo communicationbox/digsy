@@ -7949,7 +7949,17 @@ sprites.applyLook();
 
   S.tut = null; S.coins = 0; S.goods = []; S.tools = {}; S.raw = [];
   check('si parte dal passo del letto', tut.tutStepId() === 'bed' && tut.tutActive());
-  check('scavare durante il letto non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'bed');
+
+  /* OGNI LETTO È UN LETTO: i pezzi del catalogo (Bottega d'arredo) nascevano senza `slot`, quindi
+     il gioco li trattava da soprammobili — il tasto azione li prendeva in mano invece di far
+     dormire, e il primo passo del tutorial restava fermo lì (segnalato). */
+  {
+    const letti = ['camera_letto', 'camera_baldacchino', 'rustico_giaciglio', 'marinaro_amaca'];
+    check('i letti del catalogo si riconoscono come letti',
+      letti.every(id => (dataT.FURN_BY_ID[id] || {}).slot === 'letto'),
+      letti.filter(id => (dataT.FURN_BY_ID[id] || {}).slot !== 'letto').join(','));
+    check('e il letto di partenza è uno di quelli', letti.includes(dataT.STARTER_BED_ID));
+  }  check('scavare durante il letto non sblocca niente', tut.tutBump('dig') === false && tut.tutStepId() === 'bed');
   check('provato il letto → si esce di casa', tut.tutBump('bed') === 'step' && tut.tutStepId() === 'out');
   check('uscito di casa → si passa alla raccolta', tut.tutBump('out') === 'step' && tut.tutStepId() === 'pick');
   check('la soglia della raccolta è il prezzo della pala', tut.tutProgress().need === gp5.TOOL_COST.spade);

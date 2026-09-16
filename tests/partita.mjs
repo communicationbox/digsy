@@ -41,6 +41,10 @@ const letto = (S.house.rooms[0].furn || []).find(f => f.itemId === data.STARTER_
 check('la Sala ha già un letto, senza comprarlo', !!letto);
 check('il tutorial parte dal letto', tut.tutStepId() === 'bed');
 check('e dice cosa farci', /dorm/i.test(tut.tutHint('bed')) && /energia|⚡/.test(tut.tutHint('bed')), tut.tutHint('bed'));
+/* il tasto azione SUL letto deve aprire il pannello del letto, non prenderlo in mano: con
+   l'arredo trascinabile il primo passo del tutorial restava fermo lì (segnalato) */
+const dataBed = data.FURN_BY_ID[data.STARTER_BED_ID] || {};
+check('il letto è riconosciuto come letto, non come soprammobile', dataBed.slot === 'letto');
 ui.openBed(0, letto.gx, letto.gy);
 check('provato il letto, il passo dopo è uscire', tut.tutStepId() === 'out');
 check('e spiega dov\'è la porta', /porta/i.test(tut.tutHint('out')), tut.tutHint('out'));
