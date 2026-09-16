@@ -198,6 +198,29 @@ const isLandT = t => t === SAND || t === GRASS || t === FOREST || t === DIRT || 
 /* BORDI fra terreni (nb = tipi dei vicini [su, destra, giù, sinistra]): riva bagnata e schiuma
    dove la terra tocca l'acqua, erba che sconfina sulla sabbia, ombra al limite del bosco.
    Senza, ogni terreno finiva di netto sul bordo della casella e il mondo era a quadretti. */
+/* FRANGIA DI UN LATO — la usano sia i confini fra TERRENI sia quelli fra BIOMI, perché sono
+   lo stesso problema: una casella finisce e comincia l'altra, e senza frangia si vedono i
+   gradini da 32 px. La profondità viene da un noise CONTINUO lungo il lato, così due strisce
+   vicine si somigliano e il bordo fa onde; con un valore a caso per striscia vengono fuori
+   rettangoli tutti diversi appiccicati — "un caos geometrico" (segnalato con foto).
+   `i` = lato (0 su · 1 destra · 2 giù · 3 sinistra). */
+function frangiaLato(tx, ty, sx, sy, i, col, colFronte, prof, seme) {
+  const orizz = i === 0 || i === 2;
+  for (let k = 0; k < TS;) {
+    const u = (orizz ? tx * TS + k : ty * TS + k);
+    const onda = smooth(u * 0.16, (orizz ? ty : tx) * 3.1 + i * 7, seme);
+    const w = 1 + Math.floor(vhash(u, i + seme, seme + 3) * 3);
+    const salta = vhash(u, i + seme + 9, seme + 4) < 0.12;      // un pezzo di bordo resta com'è
+    const d = Math.max(0, Math.round(1 + onda * prof));
+    if (!salta && d > 0) {
+      if (i === 0) { rect(sx + k, sy, w, d, col); if (colFronte) rect(sx + k, sy + d, w, 1, colFronte); }
+      else if (i === 2) { rect(sx + k, sy + TS - d, w, d, col); if (colFronte) rect(sx + k, sy + TS - d - 1, w, 1, colFronte); }
+      else if (i === 1) { rect(sx + TS - d, sy + k, d, w, col); if (colFronte) rect(sx + TS - d - 1, sy + k, 1, w, colFronte); }
+      else { rect(sx, sy + k, d, w, col); if (colFronte) rect(sx + d, sy + k, 1, w, colFronte); }
+    }
+    k += w;
+  }
+}
 function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
   if (!nb) return;
   const side = (i, band, col) => {
@@ -251,12 +274,7 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
   if (t === SAND) {
     const SP = ZP || SEA_TILE;
     for (let i = 0; i < 4; i++) if (nb[i] === GRASS || nb[i] === FOREST) {
-      for (let k = 0; k < TS; k += 4) {
-        const d = 1 + Math.floor(vhash(tx * 4 + k, ty * 4 + i, 91) * 5);
-        const c = nb[i] === FOREST ? SP.f[0] : SP.g[0];
-        if (i === 0) rect(sx + k, sy, 4, d, c); else if (i === 2) rect(sx + k, sy + TS - d, 4, d, c);
-        else if (i === 1) rect(sx + TS - d, sy + k, d, 4, c); else rect(sx, sy + k, d, 4, c);
-      }
+      frangiaLato(tx, ty, sx, sy, i, nb[i] === FOREST ? SP.f[0] : SP.g[0], null, 6, 91);
     }
   } else if (t === GRASS) {
     for (let i = 0; i < 4; i++) if (nb[i] === FOREST) side(i, 3, 'rgba(20,40,20,.18)');
@@ -272,13 +290,7 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
     if (!isLandT(n) || n === t || (t === SAND && (n === GRASS || n === FOREST))) continue;
     if ((LAND_RANK[n] || 0) <= rank) continue;
     const c = landColor(n, ZP, zi), cd = shade8(c, 0.82);
-    for (let k = 0; k < TS; k += 4) {
-      const d = 1 + Math.floor(vhash(tx * 4 + k * 3, ty * 4 + i * 7, 93) * 6);
-      if (i === 0) { rect(sx + k, sy, 4, d, c); rect(sx + k, sy + d, 4, 1, cd); }
-      else if (i === 2) { rect(sx + k, sy + TS - d, 4, d, c); rect(sx + k, sy + TS - d - 1, 4, 1, cd); }
-      else if (i === 1) { rect(sx + TS - d, sy + k, d, 4, c); rect(sx + TS - d - 1, sy + k, 1, 4, cd); }
-      else { rect(sx, sy + k, d, 4, c); rect(sx + d, sy + k, 1, 4, cd); }
-    }
+    frangiaLato(tx, ty, sx, sy, i, c, cd, 8, 93);
   }
 }
 const LAND_RANK = { [SAND]: 1, [DIRT]: 2, [GRASS]: 3, [FOREST]: 4, [MTN]: 5 };
@@ -315,26 +327,7 @@ function zoneBlend(t, tx, ty, sx, sy, zi, nbz) {
     if (zj == null || zj === zi) continue;
     const ZPj = ZONE_TILES[zj] || null;
     const c1 = landColor(t, ZPj, zj), c2 = shade8(c1, 0.93), c3 = shade8(c1, 1.05);
-    /* FRANGIA ONDULATA, non un pettine. La profondità viene da un noise CONTINUO lungo il
-       lato, quindi due strisce vicine si somigliano e il bordo fa onde; con un valore a caso
-       per striscia venivano fuori denti tutti uguali e regolari (guardato in foto). La
-       larghezza della striscia cambia da 1 a 3 px, e ogni tanto un pezzo resta scoperto. */
-    const lungoLato = (k) => (i === 0 || i === 2) ? tx * TS + k : ty * TS + k;
-    for (let k = 0; k < TS;) {
-      const u = lungoLato(k);
-      const onda = smooth(u * 0.16, (i === 0 || i === 2 ? ty : tx) * 3.1 + i * 7, 181);
-      const w = 1 + Math.floor(vhash(u, i, 184) * 3);
-      const salta = vhash(u, i + 9, 185) < 0.12;       // un pezzo di bordo resta com'è
-      const d = Math.max(0, Math.round(1 + onda * 9));
-      if (!salta && d > 0) {
-        const col = onda > 0.68 ? c3 : onda > 0.36 ? c1 : c2;
-        if (i === 0) rect(sx + k, sy, w, d, col);
-        else if (i === 2) rect(sx + k, sy + TS - d, w, d, col);
-        else if (i === 1) rect(sx + TS - d, sy + k, d, w, col);
-        else rect(sx, sy + k, d, w, col);
-      }
-      k += w;
-    }
+    frangiaLato(tx, ty, sx, sy, i, c1, null, 9, 181);
     /* SPRUZZI: pixel isolati più addentro, sempre più radi. Sono loro a far sembrare le due
        terre mescolate invece che semplicemente frastagliate. */
     for (let s2 = 0; s2 < 14; s2++) {

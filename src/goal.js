@@ -54,9 +54,9 @@ export function milestoneReached(st) {
    cui scatta, nominando la cosa comparsa — è l'unico modo perché "5 di 66" smetta di essere
    un numero e diventi un posto che è cambiato per merito suo. */
 export function milestoneGift(n) {
-  if (n === 1) return tr('Il parco ha il suo primo albero.', 'The park has its first tree.');
+  if (n === 1) return tr('Il cortile ha il suo primo albero.', 'Your yard has its first tree.');
   if (n === 5) return tr('Si è riempito lo stagno.', 'The pond has filled.');
-  if (n === 15) return tr('Cespugli e sassi lungo il recinto.', 'Bushes and rocks along the fence.');
+  if (n === 15) return tr('Cespugli e sassi lungo la staccionata.', 'Bushes and rocks along the fence.');
   if (n === 30) return tr('Sono spuntate le aiuole fiorite.', 'Flower beds have come up.');
   if (n === 50) return tr('Alberi ovunque: è un bosco.', 'Trees everywhere: it\'s a forest.');
   if (n === aliveTotal()) return tr('Tutte! Il mondo del nonno cammina di nuovo.', 'All of them! Grandpa\'s world walks again.');
@@ -69,8 +69,8 @@ export function goalEnd() {
      composta a runtime, il traduttore non la troverebbe mai e la voce russa resterebbe orfana
      (è successo scrivendo questa riga). Si spezza in due pezzi letterali, come altrove. */
   return tr('Riportale tutte e ', 'Bring back all ') + aliveTotal()
-    + tr(' e il parco prenderà vita.',
-      ' and the park comes alive.');
+    + tr(' e il cortile si riempirà di vita.',
+      ' and your yard comes alive.');
 }
 
 /* la riga che dice lo scopo. Sta qui e non nelle schermate perché va scritta UNA volta: tre

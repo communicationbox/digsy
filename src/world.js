@@ -369,16 +369,20 @@ export function townForCell(cx, cy) {
         const fnt2 = decos.find(d => d.type === 'fountain');
         const lontano = (x, y) => (!fnt2 || Math.max(Math.abs(x - (fnt2.x + 0.5)), Math.abs(y - (fnt2.y + 0.5))) >= 3)
           && B.every(b => Math.max(b.x0 - x, 0, x - b.x1) + Math.max(b.y0 - 2 - y, 0, y - b.y1) >= 3);
-        /* si cerca a cerchi dal centro della piazza: il primo posto libero e lontano da tutto */
-        let messa = false;
-        for (let r = 3; r <= 9 && !messa; r++) {
-          for (let dy = -r; dy <= r && !messa; dy++) for (let dx = -r; dx <= r && !messa; dx++) {
-            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-            const x = C.x + dx, y = C.y + dy;
-            if (forb(x, y) || occupiedByDeco(x, y) || !lontano(x, y)) continue;
-            town.statue = { x, y }; decos.push({ type: 'statue', x, y }); messa = true;
-          }
+        /* UN POSTO UN PO' APPARTATO, non il primo libero al centro: una statua in mezzo alla
+           piazza finisce ammucchiata con fontana e bacheca, e diventa una cosa fra le altre.
+           Qui si guarda tutta la piazza e si tiene il punto che sta PIÙ LONTANO da quello che
+           c'è già — è così che un monumento si fa notare, stando per conto suo. */
+        let best = null, bestD = -1;
+        for (let dy = -9; dy <= 9; dy++) for (let dx = -9; dx <= 9; dx++) {
+          const x = C.x + dx, y = C.y + dy;
+          if (forb(x, y) || occupiedByDeco(x, y) || !lontano(x, y)) continue;
+          /* distanza dalla cosa più vicina fra decorazioni ed edifici: si massimizza */
+          let d = Math.min(...decos.map(o => Math.max(Math.abs(o.x - x), Math.abs(o.y - y))));
+          for (const b of B) d = Math.min(d, Math.max(b.x0 - x, 0, x - b.x1) + Math.max(b.y0 - 2 - y, 0, y - b.y1));
+          if (d > bestD) { bestD = d; best = [x, y]; }
         }
+        if (best) { town.statue = { x: best[0], y: best[1] }; decos.push({ type: 'statue', x: best[0], y: best[1] }); }
       }
       town.board = board;
       if (board) decos.push({ type: 'board', x: board.x, y: board.y });

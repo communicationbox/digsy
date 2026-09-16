@@ -2267,6 +2267,20 @@ sprites.applyLook();
     check(`ogni città grande ha la statua (${conStatua}/${citta})`, citta > 0 && conStatua === citta);
     check('e nessun borgo o paese ce l\'ha', fuoriPosto === 0);
     check('la statua non chiude mai una porta né sta su un edificio', porteChiuse === 0);
+  /* LA STATUA STA PER CONTO SUO: in mezzo alla piazza finiva ammucchiata con fontana e
+     bacheca e diventava una cosa fra le altre (segnalato con foto). */
+  {
+    let vicine = 0, quali = '';
+    for (let cx = -8; cx < 8; cx++) for (let cy = -8; cy < 8; cy++) {
+      const t = world.townForCell(cx, cy); if (!t || !t.statue) continue;
+      for (const d of t.decos || []) {
+        if (d.type === 'statue') continue;
+        const dd = Math.max(Math.abs(d.x - t.statue.x), Math.abs(d.y - t.statue.y));
+        if (dd < 3) { vicine++; if (!quali) quali = d.type + ' a ' + dd; }
+      }
+    }
+    check('la statua ha spazio attorno: niente arredo attaccato', vicine === 0, vicine + ' (' + quali + ')');
+  }
     check('e non finisce in mezzo a una strada', sopraStrada === 0);
     /* la targa si apre e dice le due cose: chi era lui, e a che punto sei TU */
     {

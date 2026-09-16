@@ -35,6 +35,7 @@ const furnArt = await import('../src/furnArt.js');
 const interiors = await import('../src/interiors.js');
 const museumArt = await import('../src/museumArt.js');
 const caveArt = await import('../src/caveArt.js');
+const mapui = await import('../src/mapui.js');
 const data = await import('../src/data.js');
 const state = await import('../src/state.js');
 const noise = await import('../src/noise.js');
@@ -198,6 +199,31 @@ SPRITE.push(['grotta: giacimento', true, conOrigine(60, 150, () => caveArt.caveC
 SPRITE.push(['X del tesoro', 'grande', () => render.drawXmark(40, 60, 0)]);
 SPRITE.push(['imbocco della grotta', 'grande', () => render.drawCaveEntrance(40, 60, 0)]);
 SPRITE.push(['statua del nonno', true, () => render.drawStatue(40, 80, 0)]);
+/* LA GROTTA: parete e pavimento sono architettura, non oggetti — di loro si pretende solo
+   che la linea non sia nera (il buio ci sta, il nero piatto attorno no) */
+/* `info.solid` dice quali caselle attorno sono roccia: qui si finge una parete con il vuoto
+   sotto, cioè il caso che si vede davvero camminando in grotta */
+const grotta = { solid: (x, y) => y <= 5, nodeNear: () => false, nearEntrance: () => false };
+SPRITE.push(['grotta: parete', 'arredo', () => caveArt.caveWall(g, 3, 5, 40, 60, grotta, 0)]);
+SPRITE.push(['grotta: pavimento', 'arredo', () => caveArt.caveFloor(g, 3, 7, 40, 60, grotta, 0)]);
+/* CAPELLI E CAPPELLI: ogni taglio e ogni forma, sul personaggio. La loro linea viene dal
+   colore scelto, e basta un tono sbagliato perché uno solo dei tagli torni nero. */
+for (const h of data.HAIR_STYLES) SPRITE.push(['capelli: ' + h.id, 'pg', () => {
+  const vecchio = state.S.look.hairStyle; state.S.look.hairStyle = h.id; sprites.applyLook();
+  try { sprites.drawHero(null, 32, 32, 'down', 0); } finally { state.S.look.hairStyle = vecchio; sprites.applyLook(); }
+}]);
+for (const c of data.HAT_STYLES.concat([{ id: 'none' }])) SPRITE.push(['cappello: ' + c.id, 'pg', () => {
+  const vecchio = state.S.look.hatStyle; state.S.look.hatStyle = c.id; sprites.applyLook();
+  try { sprites.drawHero(null, 32, 32, 'down', 0); } finally { state.S.look.hatStyle = vecchio; sprites.applyLook(); }
+}]);
+/* LE CREATURE DEL CORTILE: il contorno se lo ricavano dal colore della specie */
+for (const vista of ['side', 'front', 'back']) SPRITE.push(['creatura di ' + vista, 'pg', () => {
+  const sp = data.ALL_SPECIES[3], a = { c: { skull: sp.id, torso: sp.id, leg: sp.id } };
+  const cv = render.creatureSprite(a, vista, {});
+  if (cv) { try { g.ctx.drawImage(cv, 20, 20); } catch (e) { /* stub */ } }
+}]);
+/* I SEGNI DELLA MAPPA: sono il modo in cui si legge dove andare */
+for (const k of Object.keys(mapui.MAP_SIGNS)) SPRITE.push(['mappa: ' + k, 'arredo', () => mapui.drawSign(g.ctx, k, 40, 40, 2)]);
 /* I MEZZI: barca, motoscafo, bici, pattini, cavalcatura */
 for (const k of ['boat', 'motorboat', 'bike', 'skates', 'mount'])
   for (const d of ['down', 'side'])
@@ -223,10 +249,16 @@ for (const [nome, tocca, fn] of SPRITE) {
        'grande'   meraviglie, segni ·   che si coprono, e l'anello chiuso non vuol dir nulla */
   const soglia = sottile ? (tocca ? 0.08 : 0.03) : tocca === 'pg' ? 0.5 : tocca ? 0.7 : 0.35;
   const senzaAnello = tocca === 'grande' || tocca === 'arredo';
-  const passa = senzaAnello ? true : tocca ? voto >= soglia : voto <= soglia;
+  /* UNO SPRITE CHE NON DISEGNA NIENTE NON PASSA. Senza questa riga bastava sbagliare gli
+     argomenti di una funzione per avere una tela vuota — e una tela vuota supera qualunque
+     soglia «paesaggio» a occhi chiusi. */
+  /* un fiore di prato sono quattro petali: venti pixel bastano. Sotto quella soglia, invece,
+     la tela è vuota davvero. */
+  const vuoto = m.area < 18;
+  const passa = vuoto ? false : senzaAnello ? true : tocca ? voto >= soglia : voto <= soglia;
   if (m.linea >= 20) neriTrovati.push([nome, Math.round(m.chiarezza * 100)]);
   check((tocca === 'grande' ? 'in grande ' : tocca === 'pg' ? 'personaggio ' : tocca === 'arredo' ? 'arredo    ' : tocca ? 'SI TOCCA  ' : 'paesaggio ') + nome, passa,
-    (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '% · corpo ' + m.corpo + ' area ' + m.area);
+    (vuoto ? 'non ha disegnato niente (area ' + m.area + ') · ' : '') + (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '% · corpo ' + m.corpo + ' area ' + m.area);
 }
 
 /* ---- LA LINEART NON DEVE ESSERE NERA ----

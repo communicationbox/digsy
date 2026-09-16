@@ -345,7 +345,7 @@ const OLD = {
       return '🐞 ' + tr('Stress livello ', 'Stress level ') + lv + ': ' + N + tr(' creature · ', ' creatures · ')
         + CHUNKS.toLocaleString() + tr(' blocchi di mappa · ', ' map blocks · ') + dugSet.size.toLocaleString() + tr(' scavi', ' digs')
         + '\n' + tr('salvataggio compresso: ', 'compressed save: ') + (bytes / 1048576).toFixed(2) + ' MB'
-        + '\n' + tr('vai in un parco di città per vedere le creature · `vanilla` per tornare normale',
+        + '\n' + tr('vai nel cortile di casa per vedere le creature · `vanilla` per tornare normale',
                     'go to a city park to see the creatures · `vanilla` to go back to normal');
     } },
   /* apre il TAVOLO DI PREPARAZIONE senza dover cercare un museo e avere il pezzo giusto:
@@ -473,7 +473,7 @@ const OLD = {
       if (!S.creatures) S.creatures = [];
       const name = chimeraName(a, c, S.creatures.map(x => x.name));
       S.creatures.push({ uid: S.uid++, name, skull: a.id, torso: b.id, leg: c.id, q: 'raro' });
-      return '🐾 ' + name + ' — ' + tr('chimera creata: passeggia nel parco (sceglila come compagno)', 'chimera created: it roams the park (pick it as companion)');
+      return '🐾 ' + name + ' — ' + tr('chimera creata: passeggia nel cortile (sceglila come compagno)', 'chimera created: it roams your yard (pick it as companion)');
     } },
   /* ALLEVAMENTO: due genitori (ne crea se mancano) + doppioni + energia, poi depone davvero —
      stessa strada di un giocatore vero, solo senza dover scavare o cercare i pezzi a mano */

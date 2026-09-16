@@ -266,16 +266,39 @@ export function drawStatue(sx, sy, time) {
     const keep = S.look; S.look = STATUE_LOOK; applyLook();
     try { drawHero(null, STATUE_FEET.x - 16, STATUE_FEET.y - 32, 'down', 0, false, 'lift'); } finally { S.look = keep; applyLook(); }
   }
-  /* IL PICCONE di pietra, piantato accanto alla statua: manico col contorno e la testa a due
-     punte ricurve, come quello del gioco. Senza contorno e con la testa dritta sembrava un
-     tergivetro (segnalato). Sta staccato dalla figura, o si legge come un bastone sul cappello. */
-  const px0 = STATUE_FEET.x + 13, py0 = STATUE_FEET.y;
-  rect(px0 - 1, py0 - 23, 4, 23, '#3e3a34');
-  rect(px0, py0 - 22, 2, 22, '#9a9384'); rect(px0, py0 - 22, 1, 22, '#c6bfae');
-  rect(px0 - 6, py0 - 26, 14, 4, '#3e3a34');                       // testa
-  rect(px0 - 5, py0 - 25, 12, 2, '#b6ae9d'); rect(px0 - 5, py0 - 25, 12, 1, '#d8d1c0');
-  rect(px0 - 7, py0 - 24, 2, 3, '#3e3a34'); rect(px0 + 6, py0 - 24, 2, 3, '#3e3a34');    // le punte che scendono
-  rect(px0 - 6, py0 - 23, 1, 1, '#b6ae9d'); rect(px0 + 7, py0 - 23, 1, 1, '#b6ae9d');
+  /* IL PICCONE DI PIETRA, TENUTO IN MANO. Prima stava piantato accanto alla figura e sembrava
+     che volasse (segnalato con foto): un attrezzo appoggiato nel vuoto non lo regge nessuno.
+     Il punto dove passa il manico è la PRESA VERA dello sprite (GRIP della posa 'lift', la
+     stessa che usa il gioco), quindi la mano ci finisce sopra per costruzione; poi sopra il
+     manico si rimettono due dita di pietra, ed è quello che fa leggere «lo tiene». */
+  const [gx, gy] = GRIP.lift.down;
+  const hx = STATUE_FEET.x - 16 + gx, hy = STATUE_FEET.y - 34 + gy;
+  /* manico: dalla mano verso il basso fino a terra, e un pezzo che spunta sopra */
+  /* corto: la testa sta POCO sopra la mano. Alto com'era, il piccone arrivava all'altezza del
+     cappello e si leggeva come un oggetto per conto suo appeso sopra la spalla. */
+  rect(hx - 2, hy - 10, 4, 27, '#3e3a34');
+  rect(hx - 1, hy - 9, 2, 26, '#9a9384'); rect(hx - 1, hy - 9, 1, 26, '#c6bfae');
+  /* LA TESTA È LA STESSA DEL PICCONE VERO: una lama CURVA a due punte che si piega verso il
+     manico (la formula è quella di toolHeadAt). Con una barra dritta e due dentini restava un
+     tergicristallo — detto due volte, e aveva ragione: un piccone si riconosce dalla curva. */
+  {
+    const tp = new Map();
+    for (let q = -6.5; q <= 6.5; q += 0.5) {
+      const bend = -(q * q) * 0.075, th = Math.abs(q) > 4.5 ? 0.5 : 1.5;
+      for (let t2 = -th; t2 <= th; t2 += 0.5) {
+        const x = Math.round(hx + q), y = Math.round(hy - 10 - (bend + t2));
+        tp.set(x + ',' + y, Math.abs(q) > 5 ? '#6f685c' : t2 < 0 ? '#d8d1c0' : '#9a9384');
+      }
+    }
+    for (let t2 = -1.5; t2 <= 1.5; t2 += 0.5) for (let w = -1.5; w <= 1.5; w += 0.5)  // occhio del manico
+      tp.set(Math.round(hx + w) + ',' + Math.round(hy - 10 + t2), '#8b8474');
+    for (const k of tp.keys()) { const [x, y] = k.split(',').map(Number); for (const [ex, ey] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) if (!tp.has((x + ex) + ',' + (y + ey))) rect(x + ex, y + ey, 1, 1, '#3e3a34'); }
+    for (const [k, c] of tp) { const [x, y] = k.split(',').map(Number); rect(x, y, 1, 1, c); }
+  }
+  /* LE DITA sopra il manico: due pixel di pietra chiara col loro contorno */
+  rect(hx - 3, hy - 1, 6, 4, '#3e3a34');
+  rect(hx - 2, hy, 4, 2, '#b6ae9d'); rect(hx - 2, hy, 4, 1, '#d8d1c0');
+  rect(hx - 2, hy + 2, 4, 1, '#8b8474');
   ctx.restore();
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */

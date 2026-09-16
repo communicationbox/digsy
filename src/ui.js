@@ -438,7 +438,7 @@ export function showIdleWelcome(r) {
   if (r.coins > 0) bits.push('🪙 ' + r.coins);
   if (r.dnaSp) { const sp = spById[r.dnaSp]; if (sp) bits.push('🧬 ' + tr('una fialetta di ', 'a vial of ') + sp.name); }
   if (!bits.length) return;
-  toast('🐾 ' + tr('Bentornato! Il parco ha reso: ', 'Welcome back! The park earned: ') + bits.join(' · '));
+  toast('🐾 ' + tr('Bentornato! Il cortile ha reso: ', 'Welcome back! Your yard earned: ') + bits.join(' · '));
 }
 
 /* ---------- modale ---------- */
@@ -1473,8 +1473,8 @@ const NPC_FIRST = {
     'Bring me your RAW finds and I identify them right away. New pieces stay on display; complete a case (5 of 5) and you earn a DNA vial — the Laboratory needs two of them to bring a species back.'],
   inn: ['Dormi qui per recuperare le energie: ti sveglierai all\'alba del giorno dopo. Utile prima di una lunga battuta di scavo.',
     'Sleep here to restore your energy: you\'ll wake at dawn the next day. Handy before a long dig.'],
-  barber: ['Ti cambio taglio e colore di capelli. Prova quanto vuoi gratis: paghi solo quando confermi. In ogni zona c\'è uno stile esclusivo da scoprire.',
-    'I change your haircut and hair color. Try as much as you like for free: you only pay on confirm. Each region hides an exclusive style.'],
+  barber: ['Taglio, colore e pelle. Prova quanto vuoi: paghi solo alla conferma. Ogni zona ha uno stile esclusivo da scoprire.',
+    'Haircut, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.'],
   furniture: ['Qui si compra tutto per la casa: mobili, quadri, tappeti, carta da parati e pavimenti. Scegli un argomento; ogni giorno arrivano pezzi nuovi, e lo stile di questa zona costa un quarto in meno.',
     'Everything for your home is here: furniture, pictures, rugs, wallpaper and floors. Pick a topic; new pieces arrive every day, and this area\'s style is a quarter cheaper.'],
   tailor: ['Qui scegli maglia, pantaloni e cappello. Prova liberamente e paghi alla conferma; alcuni cappelli speciali si sbloccano a parte.',
@@ -1544,7 +1544,7 @@ function renderLab() {
         h += `<div class="row"><span class="em">🥚</span><div><div class="nm">${tr('In cova', 'Incubating')}</div><div class="sub">${tr('Figlio di', 'Child of')} ${e.p1} × ${e.p2} · ${tr('ancora', '')} ${eggDaysLeft()} ${tr('giorni', 'days left')}</div></div></div>`;
       }
     } else if (S.creatures.length < 2) {
-      h += `<div class="center muted">${tr('Servono 2 creature nel parco.', 'You need 2 creatures in the park.')}</div>`;
+      h += `<div class="center muted">${tr('Servono 2 creature nel cortile.', 'You need 2 creatures in your yard.')}</div>`;
     } else {
       const optC = S.creatures.map(c => `<option value="${c.uid}">${c.name} (${rarLabel(c.q)})</option>`).join('');
       /* selP2 parte dal SECONDO in elenco: coi due select uguali di default il bottone nasce
@@ -2397,8 +2397,14 @@ function renderBarber() {
   let h = previewHtml();
   h += `<div class="bighead">${tr('Taglio', 'Haircut')}</div>` + styleRow('hairStyle', hairStylesAvail());
   h += `<div class="bighead">${tr('Colore', 'Color')}</div>` + swatchRow('hairColor', HAIR_COLORS);
-  h += confirmBar(['hairStyle', 'hairColor']);
-  mBody.innerHTML = withIcons(h); wireLook(false, renderBarber); wireConfirm(['hairStyle', 'hairColor'], renderBarber); drawPreview(true);
+  /* LA PELLE si cambia QUI. Prima si sceglieva solo nell'editor della prima partita: chi
+     cambiava idea dopo dieci minuti non aveva più modo di tornare indietro, e non c'è ragione
+     perché il proprio aspetto sia una decisione irreversibile presa prima di giocare.
+     Stesso patto di tutto il resto del barbiere: si prova gratis, si paga alla conferma. */
+  h += `<div class="bighead">${lookLabel('skin')}</div>` + swatchRow('skin', LOOKS.skin);
+  const BF = ['hairStyle', 'hairColor', 'skin'];
+  h += confirmBar(BF);
+  mBody.innerHTML = withIcons(h); wireLook(false, renderBarber); wireConfirm(BF, renderBarber); drawPreview(true);
 }
 function renderTailor() {
   beginLook();

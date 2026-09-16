@@ -100,8 +100,14 @@ async function main() {
       if(G.cmd) G.cmd('gotobone').then(function(){ if(G.updateHUD) G.updateHUD(); }); }
     /* 'museo' = il banco del Curatore: e' dove si vede quanto manca alle sale, cioe' l'unico
        traguardo lungo del gioco. Va guardato, non solo misurato da un test */
+    /* 'statua': si va nella citta' col Museo e ci si mette DAVANTI al monumento. Il vecchio
+       gotoStatue non esiste piu' da un pezzo e questo ramo non faceva niente: la foto usciva
+       in mezzo a un bosco (visto scattando dopo aver spostato la statua). */
     else if (${JSON.stringify(vista)} === 'statua') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
-      if(G.gotoStatue) G.gotoStatue().then(function(){ if(G.frame) G.frame(1000); }); }
+      if (G.cmd) G.cmd('go=city').then(function(){ return G.townHere(); }).then(function(t){
+        if (t && t.statue) { var P2 = G.player(); P2.x = t.statue.x * 32 + 8; P2.y = (t.statue.y + 3) * 32 + 2; }
+        if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1400);
+      }); }
     /* 'lab' = il banco del Laboratorio con tre pezzi e NIENTE DNA: è lo stato in cui il
        bottone "Risveglia!" non può partire, e si deve leggere il perché senza cliccare */
     else if (${JSON.stringify(vista)} === 'lab') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

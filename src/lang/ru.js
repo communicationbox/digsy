@@ -13,6 +13,14 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "Haircut, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.": "Причёска, цвет и кожа. Примеряй сколько хочешь: платишь только при подтверждении. В каждом краю свой особый стиль.",
+
+  "chimera created: it roams your yard (pick it as companion)": "химера создана: гуляет во дворе (выбери её спутником)",
+  "Your yard has its first tree.": "Во дворе появилось первое дерево.",
+  " and your yard comes alive.": " — и двор оживёт.",
+  "Welcome back! Your yard earned: ": "С возвращением! Двор принёс: ",
+  "You need 2 creatures in your yard.": "Нужно 2 существа во дворе.",
+
   "{act} to dig: costs 1 ⚡, one spot only once.": "{act} — копать: 1 ⚡, каждое место один раз.",
   "Raw finds get identified at the <b>Museum</b>.": "Необработанные находки определяют в <b>Музее</b>.",
   "Out of energy: sleep, or eat a snack (+15 ⚡).": "Энергия кончилась: поспи или перекуси (+15 ⚡).",
@@ -620,7 +628,6 @@ export const RU = {
   'Hatch!': 'Вылупить!',
   'Incubating': 'Высиживается',
   'days left': 'дней осталось',
-  "You need 2 creatures in the park.": "Нужно 2 существа в парке.",
 
 
 
@@ -646,7 +653,6 @@ export const RU = {
   'Not ready yet': 'Ещё не готово',
 
   /* ---- parco che rende (idle) ---- */
-  'Welcome back! The park earned: ': 'С возвращением! Парк заработал: ',
 
 
   /* ---- gioca col compagno (lancia e riporta) ---- */
@@ -1099,8 +1105,6 @@ export const RU = {
   'Riding ': 'Верхом на ',
   'fly over the map (land from the bag)': 'летай над картой (приземлиться из рюкзака)',
   'No flying in caves: leave first': 'В пещерах не летают: сначала выйди',
-
-  'chimera created: it roams the park (pick it as companion)': 'химера создана: гуляет в парке (выбери её спутником)',
   'Sleep until dawn 🌙': 'Спать до рассвета 🌙',
 
 
@@ -1115,9 +1119,6 @@ export const RU = {
   'He never saw a single one alive.': 'Он не увидел ни одного живым.',
   'the townsfolk': 'горожане',
   'Bring back all ': 'Верни все ',
-  " and the park comes alive.":
-    " и парк оживёт.",
-  'The park has its first tree.': 'В парке появилось первое дерево.',
   'The pond has filled.': 'Пруд наполнился.',
   'Bushes and rocks along the fence.': 'Кусты и камни вдоль ограды.',
   'Flower beds have come up.': 'Поднялись цветочные клумбы.',
@@ -1568,8 +1569,6 @@ export const RU = {
     'Здесь продают определённые находки и покупают всё нужное: инструменты, рюкзаки побольше, карты сокровищ, перекусы и транспорт. Осмотрись.',
   "Sleep here to restore your energy: you'll wake at dawn the next day. Handy before a long dig.":
     'Здесь спят, чтобы восстановить энергию: проснётесь на рассвете следующего дня. Удобно перед долгими раскопками.',
-  'I change your haircut and hair color. Try as much as you like for free: you only pay on confirm. Each region hides an exclusive style.':
-    'Здесь меняют стрижку и цвет волос. Примеряйте сколько угодно бесплатно: платите только при подтверждении. В каждой зоне спрятан свой особый стиль.',
   'Here you pick shirt, trousers and hat. Try freely and pay on confirm; some special hats are unlocked separately.':
     'Здесь выбирают рубашку, штаны и шляпу. Примеряйте свободно, платите при подтверждении; некоторые особые шляпы открываются отдельно.',
 
