@@ -110,6 +110,29 @@ export function roof(g0, x, y, w, h, BB) {
     g0.rect(bordoL(y) - 2, y - 3, bordoR(y) - bordoL(y) + 4, 5, '#eef7fa');
     for (let i = 0; i < w + 12; i += 9) g.rect(x - 6 + i, y + 2, 4, 2 + (i % 3), '#dfeef2');
   }
+  /* IL COLMO VA CONTORNATO PER ULTIMO. Il filo di luce della cresta (e la neve) venivano
+     dipinti SOPRA la linea scura: la casa restava senza contorno proprio in cima, cioè sul
+     lato che si staglia contro il terreno chiaro. Nel gioco la lineart vuol dire "ci puoi
+     fare qualcosa", e in una casa si entra. */
+  {
+    const cima = BB.snow ? y - 4 : y - 1;
+    const a0 = bordoL(y) - (BB.snow ? 3 : 2), b0 = bordoR(y) + (BB.snow ? 2 : 1);
+    g0.rect(a0, cima, b0 - a0, 1, LN);
+    if (BB.snow) { g0.rect(a0, cima, 1, 4, LN); g0.rect(b0 - 1, cima, 1, 4, LN); }
+    /* LE OBLIQUE SONO UNA SCALA, e ogni gradino ha anche un lato in ALTO: mettendo la linea
+       solo di fianco, guardando la casa dall'alto lo spiovente restava scoperto proprio dove
+       si staglia sul terreno. Qui si chiude il gradino: dal bordo di questa riga a quello
+       della riga sopra. */
+    let pa = null, pb = null;
+    for (let yy = y; yy <= y + h; yy++) {
+      const a = bordoL(yy), b = bordoR(yy);
+      if (pa !== null) {
+        if (a < pa) g0.rect(a - 1, yy - 1, pa - a + 1, 1, LN);
+        if (b > pb) g0.rect(pb, yy - 1, b - pb + 1, 1, LN);
+      }
+      pa = a; pb = b;
+    }
+  }
 }
 /* ---------- finestra con telaio, davanzale, persiane ---------- */
 export function windowBox(g, x, y, w, h, glass, shutter, night) {
@@ -290,7 +313,10 @@ export function drawLabFront(g, w, h, BB, glass, night, an = NOAN) {
   if (bub < 3) g.px(w - 19 + (bub % 3) * 4, h - 18 - bub, 'rgba(255,255,255,.8)');
 }
 export function drawFurnitureFront(g, w, h, BB, glass, night, an = NOAN) {
-  base(g, w, h, '#c9a07a', 'planks', BB, 18);
+  /* il muro parte a 16, cioè esattamente sotto la gronda: a 18 restava una riga vuota fra
+     tetto e muro e il bordo alto del muro finiva scoperto, senza contorno, per tutta la
+     larghezza della bottega (le altre botteghe quella riga ce l'hanno coperta dalla tenda) */
+  base(g, w, h, '#c9a07a', 'planks', BB, 16);
   roof(g, 3, -6, w - 6, 22, BB);
   g.rect(6, 26, 30, 28, LN); g.rect(7, 27, 28, 26, '#6e4a2e'); g.rect(9, 29, 24, 22, glass);
   g.rect(13, 38, 16, 9, '#5f9a52'); g.rect(12, 40, 3, 9, '#4f8a45'); g.rect(27, 40, 3, 9, '#4f8a45'); g.rect(15, 43, 12, 4, '#7ec069');
@@ -306,7 +332,17 @@ export function drawMuseumFront(g, w, h, BB, glass, night, an = NOAN) {
   /* scalinata */
   for (let i = 0; i < 3; i++) { g.rect(2 + i * 3, h - 8 + i * 3, w - 4 - i * 6, 3, LN); g.rect(3 + i * 3, h - 8 + i * 3, w - 6 - i * 6, 2, ['#d9d0bb', '#e8e2d0', '#f4eedf'][i]); }
   /* frontone */
-  for (let k = 0; k < 30; k++) { const ww = Math.round((w + 10) * (k / 30)); g.rect(Math.round(w / 2 - ww / 2), -10 + k, ww, 1, k === 29 ? LN : k < 2 ? LN : '#e8e2d0'); }
+  /* il frontone ha il contorno anche sulle due OBLIQUE: prima la linea c'era solo in cima e
+     in basso, e i due spioventi — la sagoma che dice "museo" da lontano — restavano senza */
+  for (let k = 0; k < 30; k++) {
+    const ww = Math.round((w + 10) * (k / 30)), x0m = Math.round(w / 2 - ww / 2);
+    g.rect(x0m, -10 + k, ww, 1, k === 29 ? LN : k < 2 ? LN : '#e8e2d0');
+    /* anche qui gli spioventi sono una scala: si chiude il gradino verso l'alto, o la linea
+       resta solo di fianco e il frontone si sfrangia contro il cielo */
+    const wPrev = Math.round((w + 10) * ((k - 1) / 30)), xPrev = Math.round(w / 2 - wPrev / 2);
+    g.rect(x0m - 2, -10 + k, 2, 1, LN); g.rect(x0m + ww, -10 + k, 2, 1, LN);
+    if (k > 0) { g.rect(x0m - 2, -11 + k, xPrev - x0m + 2, 1, LN); g.rect(xPrev + wPrev, -11 + k, x0m + ww - xPrev - wPrev + 2, 1, LN); }
+  }
   for (let k = 4; k < 26; k++) { const ww = Math.round((w - 14) * ((k - 4) / 22)); g.rect(Math.round(w / 2 - ww / 2), -10 + k + 2, ww, 1, '#d9d0bb'); }
   g.rect(w / 2 - 12, 6, 24, 6, '#c9a227'); g.rect(w / 2 - 14, 7, 4, 4, '#c9a227'); g.rect(w / 2 + 10, 7, 4, 4, '#c9a227');             // osso in rilievo
   g.rect(-4, 18, w + 8, 7, LN); g.rect(-3, 19, w + 6, 5, '#c9a227'); g.rect(-3, 19, w + 6, 1, '#f0d470');                             // architrave d'oro

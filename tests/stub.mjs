@@ -3,10 +3,11 @@ export function installStubs() {
   const els = {};
   /* La canvas finta di solito butta via tutto. Ma alcuni controlli hanno bisogno dei PIXEL
      VERI — per esempio la regola "se ha il contorno si interagisce, se non ce l'ha è
-     paesaggio": senza leggere il disegno si può solo sperare che sia giusto. Con REC acceso
-     fillRect dipinge davvero dentro un buffer RGBA, con tanto di trasparenza. */
-  const REC = { on: false, w: 0, h: 0, buf: null };
-  const parse = c => {
+     paesaggio": senza leggere il disegno si può solo sperare che sia giusto. Qui c'è una
+     canvas 2D minima ma onesta: fillRect con la trasparenza, getImageData/putImageData e
+     drawImage, così funzionano anche gli sprite che il gioco disegna su una tela a parte e
+     poi contorna leggendosi l'alpha. */
+  const parseCol = c => {
     if (typeof c !== 'string') return null;
     if (c[0] === '#') {
       const h = c.length === 4 ? c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c.slice(1, 7);
@@ -18,32 +19,75 @@ export function installStubs() {
     const v = m[1].split(',').map(Number);
     return [v[0] | 0, v[1] | 0, v[2] | 0, v.length > 3 ? v[3] : 1];
   };
-  const ctxStub = new Proxy({
-    fillStyle: '',
-    fillRect(x, y, w, h) {
-      if (!REC.on) return;
-      const col = parse(this.fillStyle); if (!col) return;
-      const [r, g, b, a] = col;
-      x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
-      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
-        if (i < 0 || j < 0 || i >= REC.w || j >= REC.h) continue;
-        const o = (j * REC.w + i) * 4, da = REC.buf[o + 3] / 255;
-        const na = a + da * (1 - a);                       // sopra il fondo, come sulla canvas vera
-        if (na <= 0) continue;
-        REC.buf[o] = (r * a + REC.buf[o] * da * (1 - a)) / na;
-        REC.buf[o + 1] = (g * a + REC.buf[o + 1] * da * (1 - a)) / na;
-        REC.buf[o + 2] = (b * a + REC.buf[o + 2] * da * (1 - a)) / na;
-        REC.buf[o + 3] = Math.round(na * 255);
-      }
-    },
-  }, {
-    get: (t, k) => k in t ? t[k] : () => {},
-    set: (t, k, v) => { t[k] = v; return true; },
-  });
-  globalThis.__rec = {
-    start(w, h) { REC.on = true; REC.w = w; REC.h = h; REC.buf = new Uint8ClampedArray(w * h * 4); },
-    stop() { REC.on = false; return { w: REC.w, h: REC.h, buf: REC.buf }; },
-  };
+  function makeCtx(owner) {
+    const st = { buf: null, w: 0, h: 0, tx: 0, ty: 0, pila: [] };
+    const assicura = () => {
+      const w = Math.max(1, owner.width | 0), h = Math.max(1, owner.height | 0);
+      if (!st.buf || st.w !== w || st.h !== h) { st.w = w; st.h = h; st.buf = new Uint8ClampedArray(w * h * 4); }
+      return st;
+    };
+    const dipingi = (x, y, r, g, b, a) => {
+      if (x < 0 || y < 0 || x >= st.w || y >= st.h || a <= 0) return;
+      const o = (y * st.w + x) * 4, da = st.buf[o + 3] / 255, na = a + da * (1 - a);
+      if (na <= 0) return;
+      st.buf[o] = (r * a + st.buf[o] * da * (1 - a)) / na;
+      st.buf[o + 1] = (g * a + st.buf[o + 1] * da * (1 - a)) / na;
+      st.buf[o + 2] = (b * a + st.buf[o + 2] * da * (1 - a)) / na;
+      st.buf[o + 3] = Math.round(na * 255);
+    };
+    const api = {
+      fillStyle: '', strokeStyle: '', font: '', textBaseline: '', globalAlpha: 1, canvas: owner,
+      fillRect(x, y, w, h) {
+        assicura(); const col = parseCol(this.fillStyle); if (!col) return;
+        x = Math.round(x + st.tx); y = Math.round(y + st.ty); w = Math.round(w); h = Math.round(h);
+        for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) dipingi(i, j, col[0], col[1], col[2], col[3]);
+      },
+      clearRect(x, y, w, h) {
+        assicura();
+        x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+        for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
+          if (i < 0 || j < 0 || i >= st.w || j >= st.h) continue;
+          const o = (j * st.w + i) * 4; st.buf[o] = st.buf[o + 1] = st.buf[o + 2] = st.buf[o + 3] = 0;
+        }
+      },
+      getImageData(x, y, w, h) {
+        assicura(); const out = new Uint8ClampedArray(w * h * 4);
+        for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+          const sxp = x + i, syp = y + j; if (sxp < 0 || syp < 0 || sxp >= st.w || syp >= st.h) continue;
+          const a2 = (syp * st.w + sxp) * 4, b2 = (j * w + i) * 4;
+          out[b2] = st.buf[a2]; out[b2 + 1] = st.buf[a2 + 1]; out[b2 + 2] = st.buf[a2 + 2]; out[b2 + 3] = st.buf[a2 + 3];
+        }
+        return { width: w, height: h, data: out };
+      },
+      putImageData(im, x, y) {
+        assicura();
+        for (let j = 0; j < im.height; j++) for (let i = 0; i < im.width; i++) {
+          const dx = x + i, dy = y + j; if (dx < 0 || dy < 0 || dx >= st.w || dy >= st.h) continue;
+          const a2 = (j * im.width + i) * 4, b2 = (dy * st.w + dx) * 4;
+          st.buf[b2] = im.data[a2]; st.buf[b2 + 1] = im.data[a2 + 1]; st.buf[b2 + 2] = im.data[a2 + 2]; st.buf[b2 + 3] = im.data[a2 + 3];
+        }
+      },
+      drawImage(src, x = 0, y = 0) {
+        assicura(); const sc = src && src.__ctx && src.__ctx.__st; if (!sc || !sc.buf) return;
+        x += st.tx; y += st.ty;
+        for (let j = 0; j < sc.h; j++) for (let i = 0; i < sc.w; i++) {
+          const o = (j * sc.w + i) * 4, a2 = sc.buf[o + 3] / 255;
+          if (a2 > 0) dipingi(Math.round(x) + i, Math.round(y) + j, sc.buf[o], sc.buf[o + 1], sc.buf[o + 2], a2);
+        }
+      },
+      /* TRASLAZIONE VERA. Prima era un no-op: ogni sprite che fa `ctx.translate(sx, sy)` e poi
+         disegna in coordinate locali finiva tutto sull'origine, e le misure sui pixel (la
+         regola del contorno) leggevano un disegno tagliato dal bordo della tela. */
+      save() { st.pila.push([st.tx, st.ty]); },
+      restore() { const p = st.pila.pop(); if (p) { st.tx = p[0]; st.ty = p[1]; } },
+      translate(x, y) { st.tx += x; st.ty += y; },
+      setTransform() { st.tx = 0; st.ty = 0; },
+      resetTransform() { st.tx = 0; st.ty = 0; },
+      measureText: t => ({ width: (t || '').length * 5.4 }),
+      __st: st,
+    };
+    return new Proxy(api, { get: (t, k) => k in t ? t[k] : () => {}, set: (t, k, v) => { t[k] = v; return true; } });
+  }
   /* gli elementi RICORDANO i listener e le classi: senza, i test non potevano simulare un
      tasto o un tocco, e moduli come input.js restavano completamente non provati */
   const el = id => {
@@ -68,7 +112,9 @@ export function installStubs() {
       appendChild(child) { if (child && child.id) els[child.id] = child; return child; },
       setPointerCapture() {}, releasePointerCapture() {}, isConnected: true,
       getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 }),
-      disabled: false, getContext: () => ctxStub, querySelectorAll: () => [],
+      disabled: false, width: 300, height: 150,
+      getContext() { if (!this.__ctx) this.__ctx = makeCtx(this); return this.__ctx; },
+      querySelectorAll: () => [],
       querySelector: sel => globalThis.document.querySelector(sel),
       focus() {}, blur() {},
     };
@@ -115,7 +161,26 @@ export function installStubs() {
   globalThis.setTimeout = globalThis.setTimeout || ((fn) => { fn(); return 0; });
   globalThis.requestAnimationFrame = () => {};
   globalThis.setInterval = () => {};
+  /* IL REGISTRATORE: punta la canvas VERA del gioco (#cv, quella che screen.js si è preso) e
+     la azzera a una misura nota. Serve ai controlli che devono LEGGERE il disegno invece di
+     fidarsi — per esempio la regola del contorno. */
+  globalThis.__rec = {
+    start(w, h) {
+      const cv = globalThis.document.getElementById('cv');
+      cv.width = w; cv.height = h;
+      const c2 = cv.getContext('2d');
+      c2.__st.buf = null;                      // rialloca alla misura nuova
+      c2.clearRect(0, 0, w, h);
+      return c2;
+    },
+    stop() {
+      const cv = globalThis.document.getElementById('cv');
+      const st = cv.getContext('2d').__st;
+      return { w: st.w, h: st.h, buf: st.buf };
+    },
+  };
   return els;
+
 }
 
 /* mini harness */
@@ -128,4 +193,5 @@ export function summary(suite) {
   console.log(`${suite}: ${pass} ok, ${fail} fail\n`);
   const f = fail; pass = 0; fail = 0;
   return f;
+
 }

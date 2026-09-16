@@ -6,7 +6,7 @@
    Le fasi delle animazioni vengono dal TEMPO o dalle coordinate TILE, mai da sx/sy. */
 import { TS, spColor } from './data.js';
 import { vhash } from './noise.js';
-import { px, rect, shadow, shade8, snap } from './brush.js';
+import { px, rect, shadow, shade8, snap, BRUSH, makeCanvasBrush } from './brush.js';
 import { ctx, view } from './screen.js';
 import { seaTree, zoneTree } from './tiles.js';
 import { zoneIdxAt } from './regions.js';
@@ -145,60 +145,97 @@ export function drawHole(sx, sy, tx = 0, ty = 0) {
 }
 /* OGGETTI di superficie: sprite VERI riconoscibili (non quadrati), FERMI (niente rimbalzo).
    Ogni tanto una stellina appare sopra per attirare l'occhio (fase stabile per tile). */
-export function drawPickup(id, sx, sy, time, tx, ty) {
-  /* FASE 2: nativo, coordinate raddoppiate a mano (non uno scale automatico) — icone
-     piccole e transitorie, ma ognuna riceve almeno un tocco di luce/ombra in più oltre al
-     semplice raddoppio, usando lo spazio ora disponibile. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
-  const cx = sx + 16, y = sy + 24;   // posato a terra, fermo
-  shadow(cx, sy + 26, 8);
+/* IL DISEGNO di un oggetto raccoglibile, su un pennello qualsiasi (`g`), con la base in
+   (cx, y). Sta a parte perché lo stesso disegno serve due volte: qui e nello sprite con il
+   contorno (vedi `pickupSprite`). */
+export function paintPickup(g, id, cx, y) {
   const gem = () => {};              // niente glint continuo: ci pensa la stellina
   switch (id) {
     /* ---- PRATI ---- */
-    case 'fiordaliso': { rect(cx, y - 2, 2, 8, '#3f7a44'); px(cx - 2, y, '#3f7a44'); px(cx + 2, y + 2, '#3f7a44'); // stelo+foglie
-      rect(cx, y - 10, 2, 2, '#6f92dd'); rect(cx - 2, y - 8, 2, 2, '#6f92dd'); rect(cx + 2, y - 8, 2, 2, '#6f92dd'); rect(cx - 4, y - 6, 2, 2, '#6f92dd'); rect(cx + 4, y - 6, 2, 2, '#6f92dd'); rect(cx, y - 4, 2, 2, '#6f92dd'); // petali
-      rect(cx - 2, y - 6, 2, 2, '#3f5fb0'); rect(cx + 2, y - 6, 2, 2, '#3f5fb0'); rect(cx, y - 6, 2, 2, '#f2d24a'); px(cx - 1, y - 9, shade8('#6f92dd', 1.3)); break; } // cuore giallo + filo di luce
-    case 'spiga': { rect(cx, y - 12, 2, 16, '#c9a24a'); px(cx, y - 14, '#e8c860'); // stelo lungo
-      for (let i = 0; i < 5; i++) { rect(cx - 2, y - 12 + i * 4, 2, 2, '#e8c860'); rect(cx + 2, y - 10 + i * 4, 2, 2, '#d8b450'); } // chicchi a spiga
-      px(cx - 4, y - 10, '#c9a24a'); px(cx + 4, y - 6, '#c9a24a'); break; } // reste
-    case 'ambra': { px(cx, y - 8, '#f0b451'); rect(cx - 2, y - 6, 6, 4, '#e0932e'); rect(cx - 2, y - 2, 6, 2, '#c9761e'); px(cx, y, '#c9761e'); // goccia
-      rect(cx, y - 6, 2, 2, '#ffe6a8'); px(cx + 2, y - 4, '#a85e14'); gem(); break; }
+    case 'fiordaliso': { g.rect(cx, y - 2, 2, 8, '#3f7a44'); g.px(cx - 2, y, '#3f7a44'); g.px(cx + 2, y + 2, '#3f7a44'); // stelo+foglie
+      g.rect(cx, y - 10, 2, 2, '#6f92dd'); g.rect(cx - 2, y - 8, 2, 2, '#6f92dd'); g.rect(cx + 2, y - 8, 2, 2, '#6f92dd'); g.rect(cx - 4, y - 6, 2, 2, '#6f92dd'); g.rect(cx + 4, y - 6, 2, 2, '#6f92dd'); g.rect(cx, y - 4, 2, 2, '#6f92dd'); // petali
+      g.rect(cx - 2, y - 6, 2, 2, '#3f5fb0'); g.rect(cx + 2, y - 6, 2, 2, '#3f5fb0'); g.rect(cx, y - 6, 2, 2, '#f2d24a'); g.px(cx - 1, y - 9, g.shade8('#6f92dd', 1.3)); break; } // cuore giallo + filo di luce
+    case 'spiga': { g.rect(cx, y - 12, 2, 16, '#c9a24a'); g.px(cx, y - 14, '#e8c860'); // stelo lungo
+      for (let i = 0; i < 5; i++) { g.rect(cx - 2, y - 12 + i * 4, 2, 2, '#e8c860'); g.rect(cx + 2, y - 10 + i * 4, 2, 2, '#d8b450'); } // chicchi a spiga
+      g.px(cx - 4, y - 10, '#c9a24a'); g.px(cx + 4, y - 6, '#c9a24a'); break; } // reste
+    case 'ambra': { g.px(cx, y - 8, '#f0b451'); g.rect(cx - 2, y - 6, 6, 4, '#e0932e'); g.rect(cx - 2, y - 2, 6, 2, '#c9761e'); g.px(cx, y, '#c9761e'); // goccia
+      g.rect(cx, y - 6, 2, 2, '#ffe6a8'); g.px(cx + 2, y - 4, '#a85e14'); gem(); break; }
     /* ---- DUNE ---- */
     case 'conchiglia': { // ventaglio con coste che partono dalla punta in basso
-      rect(cx, y - 8, 2, 2, '#f8e6d4'); rect(cx - 2, y - 6, 2, 2, '#f0c0a0'); rect(cx, y - 6, 2, 2, '#f8e6d4'); rect(cx + 2, y - 6, 2, 2, '#f0c0a0');
-      rect(cx - 4, y - 4, 2, 2, '#f0c0a0'); rect(cx - 2, y - 4, 2, 2, '#f8e6d4'); rect(cx, y - 4, 2, 2, '#f0c0a0'); rect(cx + 2, y - 4, 2, 2, '#f8e6d4'); rect(cx + 4, y - 4, 2, 2, '#f0c0a0');
-      rect(cx - 4, y - 2, 2, 2, '#d89570'); rect(cx - 2, y - 2, 2, 2, '#f0c0a0'); rect(cx, y - 2, 2, 2, '#d89570'); rect(cx + 2, y - 2, 2, 2, '#f0c0a0'); rect(cx + 4, y - 2, 2, 2, '#d89570');
-      rect(cx, y, 2, 2, '#c07a55'); break; }
-    case 'vetro': { rect(cx - 4, y - 4, 8, 6, '#6fc0b0'); px(cx - 4, y - 4, '#4e9a8a'); px(cx + 2, y, '#4e9a8a'); rect(cx - 2, y - 4, 2, 2, '#bfeee0'); gem(); break; }
-    case 'scarabeo': { rect(cx - 4, y - 4, 8, 6, '#e6dcc0'); rect(cx, y - 4, 2, 2, '#b8ad8c'); rect(cx, y - 2, 2, 2, '#b8ad8c'); rect(cx, y, 2, 2, '#b8ad8c');
-      rect(cx - 4, y - 6, 2, 2, '#b8ad8c'); rect(cx + 2, y - 6, 2, 2, '#b8ad8c'); rect(cx - 6, y, 2, 2, '#b8ad8c'); rect(cx + 4, y, 2, 2, '#b8ad8c'); break; }
+      g.rect(cx, y - 8, 2, 2, '#f8e6d4'); g.rect(cx - 2, y - 6, 2, 2, '#f0c0a0'); g.rect(cx, y - 6, 2, 2, '#f8e6d4'); g.rect(cx + 2, y - 6, 2, 2, '#f0c0a0');
+      g.rect(cx - 4, y - 4, 2, 2, '#f0c0a0'); g.rect(cx - 2, y - 4, 2, 2, '#f8e6d4'); g.rect(cx, y - 4, 2, 2, '#f0c0a0'); g.rect(cx + 2, y - 4, 2, 2, '#f8e6d4'); g.rect(cx + 4, y - 4, 2, 2, '#f0c0a0');
+      g.rect(cx - 4, y - 2, 2, 2, '#d89570'); g.rect(cx - 2, y - 2, 2, 2, '#f0c0a0'); g.rect(cx, y - 2, 2, 2, '#d89570'); g.rect(cx + 2, y - 2, 2, 2, '#f0c0a0'); g.rect(cx + 4, y - 2, 2, 2, '#d89570');
+      g.rect(cx, y, 2, 2, '#c07a55'); break; }
+    case 'vetro': { g.rect(cx - 4, y - 4, 8, 6, '#6fc0b0'); g.px(cx - 4, y - 4, '#4e9a8a'); g.px(cx + 2, y, '#4e9a8a'); g.rect(cx - 2, y - 4, 2, 2, '#bfeee0'); gem(); break; }
+    case 'scarabeo': { g.rect(cx - 4, y - 4, 8, 6, '#e6dcc0'); g.rect(cx, y - 4, 2, 2, '#b8ad8c'); g.rect(cx, y - 2, 2, 2, '#b8ad8c'); g.rect(cx, y, 2, 2, '#b8ad8c');
+      g.rect(cx - 4, y - 6, 2, 2, '#b8ad8c'); g.rect(cx + 2, y - 6, 2, 2, '#b8ad8c'); g.rect(cx - 6, y, 2, 2, '#b8ad8c'); g.rect(cx + 4, y, 2, 2, '#b8ad8c'); break; }
     /* ---- BOSCHI ---- */
-    case 'ghianda': { rect(cx - 2, y - 4, 6, 6, '#c68a4a'); px(cx - 2, y + 2, '#8a5a2a'); px(cx + 2, y + 2, '#8a5a2a');
-      rect(cx - 2, y - 6, 6, 2, '#6e4a2a'); px(cx, y - 8, '#6e4a2a'); px(cx - 1, y - 3, shade8('#c68a4a', 1.2)); break; }
-    case 'funghetto': { rect(cx - 4, y - 4, 10, 4, '#d0453a'); px(cx - 4, y - 2, '#a83329'); px(cx + 4, y - 2, '#a83329');
-      rect(cx - 2, y - 4, 2, 2, '#f2ead8'); rect(cx + 2, y - 4, 2, 2, '#f2ead8'); rect(cx, y, 2, 4, '#f2ead8'); px(cx - 1, y - 3, shade8('#d0453a', 1.25)); break; }
-    case 'resina': { rect(cx - 2, y - 4, 6, 6, '#7a3f1e'); px(cx, y - 6, '#7a3f1e'); px(cx, y + 2, '#5a2c12'); rect(cx - 2, y - 4, 2, 2, '#b5713a'); break; }
+    case 'ghianda': { g.rect(cx - 2, y - 4, 6, 6, '#c68a4a'); g.px(cx - 2, y + 2, '#8a5a2a'); g.px(cx + 2, y + 2, '#8a5a2a');
+      g.rect(cx - 2, y - 6, 6, 2, '#6e4a2a'); g.px(cx, y - 8, '#6e4a2a'); g.px(cx - 1, y - 3, g.shade8('#c68a4a', 1.2)); break; }
+    case 'funghetto': { g.rect(cx - 4, y - 4, 10, 4, '#d0453a'); g.px(cx - 4, y - 2, '#a83329'); g.px(cx + 4, y - 2, '#a83329');
+      g.rect(cx - 2, y - 4, 2, 2, '#f2ead8'); g.rect(cx + 2, y - 4, 2, 2, '#f2ead8'); g.rect(cx, y, 2, 4, '#f2ead8'); g.px(cx - 1, y - 3, g.shade8('#d0453a', 1.25)); break; }
+    case 'resina': { g.rect(cx - 2, y - 4, 6, 6, '#7a3f1e'); g.px(cx, y - 6, '#7a3f1e'); g.px(cx, y + 2, '#5a2c12'); g.rect(cx - 2, y - 4, 2, 2, '#b5713a'); break; }
     /* ---- TERRE ---- */
-    case 'sassorosso': { rect(cx - 4, y - 2, 10, 4, '#b5623a'); px(cx - 4, y, '#8a4326'); px(cx + 4, y, '#8a4326');
-      rect(cx - 2, y - 4, 2, 2, '#b5623a'); rect(cx + 2, y - 4, 2, 2, '#b5623a'); rect(cx - 2, y - 2, 2, 2, '#d08a5a'); break; }
-    case 'ferro': { px(cx - 2, y - 4, '#9aa0a6'); rect(cx - 4, y - 2, 8, 4, '#9aa0a6'); px(cx + 4, y, '#6a7076'); px(cx - 4, y, '#6a7076'); rect(cx - 2, y - 2, 2, 2, '#c8cdd2'); break; }
-    case 'granato': { rect(cx - 2, y - 4, 6, 6, '#8a2434'); px(cx - 2, y - 4, '#5a1420'); px(cx + 2, y, '#5a1420'); rect(cx, y - 2, 2, 2, '#c0405a'); rect(cx - 2, y - 2, 2, 2, '#e06078'); gem(); break; }
+    case 'sassorosso': { g.rect(cx - 4, y - 2, 10, 4, '#b5623a'); g.px(cx - 4, y, '#8a4326'); g.px(cx + 4, y, '#8a4326');
+      g.rect(cx - 2, y - 4, 2, 2, '#b5623a'); g.rect(cx + 2, y - 4, 2, 2, '#b5623a'); g.rect(cx - 2, y - 2, 2, 2, '#d08a5a'); break; }
+    case 'ferro': { g.px(cx - 2, y - 4, '#9aa0a6'); g.rect(cx - 4, y - 2, 8, 4, '#9aa0a6'); g.px(cx + 4, y, '#6a7076'); g.px(cx - 4, y, '#6a7076'); g.rect(cx - 2, y - 2, 2, 2, '#c8cdd2'); break; }
+    /* il granato era quasi nero: sulla terra rossa delle Terre spariva, e il contorno scuro
+       non aveva più niente da cui staccare. Alzato di tono: resta un rosso cupo, ma si vede */
+    case 'granato': { g.rect(cx - 2, y - 4, 6, 6, '#a8304a'); g.px(cx - 2, y - 4, '#6f1a2c'); g.px(cx + 2, y, '#6f1a2c'); g.rect(cx, y - 2, 2, 2, '#d4526e'); g.rect(cx - 2, y - 2, 2, 2, '#f07890'); gem(); break; }
     /* ---- PALUDE ---- */
-    case 'giunco': { rect(cx - 2, y - 8, 2, 12, '#4e8d5a'); rect(cx + 2, y - 6, 2, 10, '#3a6a44'); rect(cx, y - 10, 2, 14, '#4e8d5a');
-      px(cx - 2, y - 10, '#8a5a3a'); px(cx, y - 12, '#8a5a3a'); px(cx, y - 6, shade8('#4e8d5a', 1.3)); break; }
-    case 'lumaca': { rect(cx - 4, y - 4, 8, 6, '#c69a5a'); px(cx - 4, y, '#8a5a2a'); px(cx + 2, y - 4, '#8a5a2a');
-      rect(cx, y - 2, 2, 2, '#e0b878'); px(cx - 2, y - 2, '#8a5a2a'); px(cx, y - 4, '#8a5a2a'); px(cx + 4, y + 2, '#8a5a2a'); break; }
-    case 'ninfea': { rect(cx - 4, y + 2, 10, 2, '#4e8d5a'); rect(cx, y - 4, 2, 2, '#e08ab0'); rect(cx - 2, y - 2, 2, 2, '#e08ab0'); rect(cx + 2, y - 2, 2, 2, '#e08ab0'); rect(cx, y - 2, 2, 2, '#f6d0e0'); px(cx, y - 6, '#c06a90'); break; }
+    case 'giunco': { g.rect(cx - 2, y - 8, 2, 12, '#4e8d5a'); g.rect(cx + 2, y - 6, 2, 10, '#3a6a44'); g.rect(cx, y - 10, 2, 14, '#4e8d5a');
+      g.px(cx - 2, y - 10, '#8a5a3a'); g.px(cx, y - 12, '#8a5a3a'); g.px(cx, y - 6, g.shade8('#4e8d5a', 1.3)); break; }
+    case 'lumaca': { g.rect(cx - 4, y - 4, 8, 6, '#c69a5a'); g.px(cx - 4, y, '#8a5a2a'); g.px(cx + 2, y - 4, '#8a5a2a');
+      g.rect(cx, y - 2, 2, 2, '#e0b878'); g.px(cx - 2, y - 2, '#8a5a2a'); g.px(cx, y - 4, '#8a5a2a'); g.px(cx + 4, y + 2, '#8a5a2a'); break; }
+    case 'ninfea': { g.rect(cx - 4, y + 2, 10, 2, '#4e8d5a'); g.rect(cx, y - 4, 2, 2, '#e08ab0'); g.rect(cx - 2, y - 2, 2, 2, '#e08ab0'); g.rect(cx + 2, y - 2, 2, 2, '#e08ab0'); g.rect(cx, y - 2, 2, 2, '#f6d0e0'); g.px(cx, y - 6, '#c06a90'); break; }
     /* ---- LANDE GELIDE ---- */
-    case 'scheggia': { rect(cx, y - 8, 2, 12, '#9fe0ee'); px(cx - 2, y - 4, '#9fe0ee'); px(cx + 2, y - 2, '#6fb8cc'); rect(cx, y - 8, 2, 2, '#eafcff'); px(cx, y - 2, '#6fb8cc'); gem(); break; }
-    case 'pigna': { rect(cx - 2, y - 6, 6, 8, '#8a5a2a'); px(cx - 2, y - 6, '#6e4420'); px(cx + 4, y - 6, '#6e4420'); rect(cx, y - 4, 2, 2, '#a8763a'); px(cx, y + 2, '#6e4420'); px(cx - 2, y - 2, '#6e4420'); px(cx + 2, y - 2, '#6e4420'); break; }
-    case 'zaffiro': { rect(cx - 2, y - 4, 6, 6, '#3a6ad0'); px(cx - 2, y - 4, '#244a9a'); px(cx + 2, y, '#244a9a'); rect(cx, y - 2, 2, 2, '#8ab0ff'); rect(cx - 2, y - 2, 2, 2, '#c0d8ff'); gem(); break; }
+    case 'scheggia': { g.rect(cx, y - 8, 2, 12, '#9fe0ee'); g.px(cx - 2, y - 4, '#9fe0ee'); g.px(cx + 2, y - 2, '#6fb8cc'); g.rect(cx, y - 8, 2, 2, '#eafcff'); g.px(cx, y - 2, '#6fb8cc'); gem(); break; }
+    case 'pigna': { g.rect(cx - 2, y - 6, 6, 8, '#8a5a2a'); g.px(cx - 2, y - 6, '#6e4420'); g.px(cx + 4, y - 6, '#6e4420'); g.rect(cx, y - 4, 2, 2, '#a8763a'); g.px(cx, y + 2, '#6e4420'); g.px(cx - 2, y - 2, '#6e4420'); g.px(cx + 2, y - 2, '#6e4420'); break; }
+    case 'zaffiro': { g.rect(cx - 2, y - 4, 6, 6, '#3a6ad0'); g.px(cx - 2, y - 4, '#244a9a'); g.px(cx + 2, y, '#244a9a'); g.rect(cx, y - 2, 2, 2, '#8ab0ff'); g.rect(cx - 2, y - 2, 2, 2, '#c0d8ff'); gem(); break; }
     /* ---- fossile lasciato a terra (drop) ---- */
-    case 'fossil': { rect(cx - 4, y - 2, 10, 4, '#e9e2cf'); px(cx - 6, y - 4, '#f4eeda'); px(cx + 4, y - 4, '#f4eeda'); px(cx - 6, y + 2, '#f4eeda'); px(cx + 4, y + 2, '#f4eeda'); rect(cx, y, 2, 2, '#bcb39a'); break; }
-    default: { rect(cx - 2, y - 2, 4, 4, '#e2b24a'); }
+    case 'fossil': { g.rect(cx - 4, y - 2, 10, 4, '#e9e2cf'); g.px(cx - 6, y - 4, '#f4eeda'); g.px(cx + 4, y - 4, '#f4eeda'); g.px(cx - 6, y + 2, '#f4eeda'); g.px(cx + 4, y + 2, '#f4eeda'); g.rect(cx, y, 2, 2, '#bcb39a'); break; }
+    default: { g.rect(cx - 2, y - 2, 4, 4, '#e2b24a'); }
   }
-  glint(cx + 6, y - 18, time, tx, ty);
+}
+/* SPRITE di un raccoglibile, col CONTORNO SCURO attorno. Gli oggetti a terra si raccolgono
+   con {act}: per la regola del gioco devono avere la lineart, o si confondono col paesaggio.
+   Sono fatti di una ventina di rettangolini ciascuno, e contornarli a mano uno per uno
+   sarebbe una ventina di occasioni di sbagliare: si disegnano una volta su una tela a parte,
+   si traccia il contorno leggendo la sagoma vera, e si tiene in cache. */
+const pkCache = new Map();
+function pickupSprite(id) {
+  let cv = pkCache.get(id); if (cv !== undefined) return cv;
+  cv = null;
+  try {
+    cv = document.createElement('canvas'); cv.width = 32; cv.height = 32;
+    paintPickup(makeCanvasBrush(cv.getContext('2d')), id, 16, 24);
+    outlinePx(cv, '#2a2118');
+  } catch (e) { cv = null; /* stub nei test */ }
+  pkCache.set(id, cv); return cv;
+}
+export function drawPickup(id, sx, sy, time, tx, ty) {
+  const cv = pickupSprite(id);
+  shadow(sx + 16, sy + 26, 8);
+  if (cv) { try { ctx.drawImage(cv, sx, sy); } catch (e) { /* stub */ } }
+  else { ctx.save(); ctx.translate(sx, sy); paintPickup(BRUSH, id, 16, 24); ctx.restore(); }
+  glint(sx + 22, sy + 6, time, tx, ty);
   ctx.restore();
+}
+/* CONTORNO AGGRAPPATO ALLA SAGOMA di una canvas: si legge il canale alpha e si accende solo
+   il pixel VUOTO adiacente a uno pieno. Un riquadro attorno alla tela darebbe una cornice
+   nera grande quanto la canvas, non una lineart. */
+function outlinePx(cv, col) {
+  const c2 = cv.getContext('2d'); if (!c2 || !c2.getImageData) return;
+  const im = c2.getImageData(0, 0, cv.width, cv.height), d = im.data, W2 = cv.width, H2 = cv.height;
+  const pieno = (x, y) => x >= 0 && y >= 0 && x < W2 && y < H2 && d[(y * W2 + x) * 4 + 3] > 40;
+  const n = parseInt(col.slice(1), 16), R = (n >> 16) & 255, G = (n >> 8) & 255, B = n & 255;
+  const out = new Uint8ClampedArray(d);
+  for (let y = 0; y < H2; y++) for (let x = 0; x < W2; x++) {
+    if (pieno(x, y)) continue;
+    if (!(pieno(x + 1, y) || pieno(x - 1, y) || pieno(x, y + 1) || pieno(x, y - 1))) continue;
+    const o = (y * W2 + x) * 4; out[o] = R; out[o + 1] = G; out[o + 2] = B; out[o + 3] = 255;
+  }
+  im.data.set(out); c2.putImageData(im, 0, 0);
 }
 /* SEGNALE DI RACCOGLIBILE: stellina che appare ogni tanto (fase sfalsata per tile, così non
    lampeggiano tutte insieme). Chi la porta si raccoglie con E: è la promessa che facciamo al

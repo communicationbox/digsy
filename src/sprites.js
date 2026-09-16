@@ -19,7 +19,7 @@ export const PAL = {
   'G': '#e8b93c', 'g': '#a8842a', 'Y': '#f8dd82', 'R': '#c65a54', 'D': '#8fe7dd', 'Q': '#5fa04e',
   /* contorni e ombre dei cappelli nativi: J contorno del colore scelto (applyLook), j contorno
      dell'oro, V/v ombra e contorno del bianco, q/r/d ombre di alloro, gemma e vetro */
-  'J': '#6e3a24', 'I': '#3a2616', 'X': '#2e2219', 'c': '#e89a8a', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
+  'J': '#4a2416', 'I': '#3a2616', 'X': '#2e2219', 'c': '#e89a8a', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
 };
 /* schiarisce/scurisce un hex, CLAMPATO (k>1 senza clamp sfora il byte e il colore vira, es.
    arancio→verde: bug reale trovato e corretto qui, non solo nell'esperimento HD abbandonato) */
@@ -36,7 +36,7 @@ function mix(a, b, k) {
 }
 export function applyLook() {
   const L = S.look;
-  PAL.H = L.hat; PAL.h = shade(L.hat, 0.65); PAL.L = shade(L.hat, 1.45); PAL.J = shade(L.hat, 0.38);
+  PAL.H = L.hat; PAL.h = shade(L.hat, 0.65); PAL.L = shade(L.hat, 1.45); PAL.J = shade(L.hat, 0.28);   // contorno del cappello: di RETRO il corpo è già scuro (zaino, capelli) e a 0.38 la linea non staccava più — Digsy perdeva il profilo sopra la testa
   PAL.S = L.shirt; PAL.s = shade(L.shirt, 0.65); PAL.T = shade(L.shirt, 1.42);
   PAL.P = L.pants; PAL.p = shade(L.pants, 0.68); PAL.U = shade(L.pants, 1.4);
   PAL.F = L.skin; PAL.f = shade(L.skin, 0.78); PAL.N = shade(L.skin, 1.18); PAL.c = mix(L.skin, '#e0605a', 0.38);

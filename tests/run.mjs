@@ -4772,10 +4772,11 @@ sprites.applyLook();
   {
     const cv = document.createElement('canvas'); cv.width = 44; cv.height = 40;
     const painted = new Set();
-    ctx.fillRect = () => painted.add(String(ctx.fillStyle));
+    const tctx = cv.getContext('2d');
+    tctx.fillRect = () => painted.add(String(tctx.fillStyle));
     let crash = null;
     try { furnArt.drawFurnThumb(cv, 'prati_table', 1000); } catch (e) { crash = e.message; }
-    delete ctx.fillRect;
+    delete tctx.fillRect;
     check('la miniatura di un mobile si disegna senza crash', crash === null, crash || '');
     check('e dipinge dei pixel (non resta bianca)', painted.size > 0);
   }
@@ -4979,15 +4980,19 @@ sprites.applyLook();
      preparate una volta sola e poi TIMBRATE, quindi il pennello a colori non le vedrebbe
      e un recinto pieno risulterebbe identico a uno vuoto. */
   const crashes = [];
-  const spy = fn => {
+  /* `c` = su quale contesto spiare. Di serie è la canvas del gioco; le prove che disegnano su
+     una tela a parte (miniature, pagine del Libro) devono passare LA LORO, perché ogni canvas
+     ha il suo contesto — prima erano tutte lo stesso oggetto finto e la distinzione non
+     serviva. */
+  const spy = (fn, c = ctx) => {
     seen.clear();
     let img = 0;
-    ctx.fillRect = () => seen.add(String(ctx.fillStyle));
-    ctx.drawImage = () => seen.add('<sprite ' + (++img) + '>');
+    c.fillRect = () => seen.add(String(c.fillStyle));
+    c.drawImage = () => seen.add('<sprite ' + (++img) + '>');
     /* un disegno che esplode viene ANNOTATO, non lasciato salire: se buttasse giù il
        processo si perderebbero tutte le prove successive, e col crash di una sola entità
        non si saprebbe più nulla di tutte le altre */
-    try { fn(); } catch (e) { crashes.push(e.message); } finally { delete ctx.fillRect; delete ctx.drawImage; }
+    try { fn(); } catch (e) { crashes.push(e.message); } finally { delete c.fillRect; delete c.drawImage; }
     return new Set(seen);
   };
   const at = (tx, ty) => { P.x = tx * TS + 8; P.y = ty * TS + 8; cam.x = P.x; cam.y = P.y; };
@@ -5220,19 +5225,20 @@ sprites.applyLook();
     const { ALL_SPECIES } = await import('../src/data.js');
     const sp = ALL_SPECIES[0];
     const cv = document.createElement('canvas'); cv.width = 220; cv.height = 165;
-    const bones = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, false, null));
-    const sil = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), true, false, null));
-    const flesh = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, true, null));
+    const bctx = cv.getContext('2d');
+    const bones = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, false, null), bctx);
+    const sil = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), true, false, null), bctx);
+    const flesh = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, true, null), bctx);
     check('libro: la proiezione 2D dipinge le ossa a tre toni', bones.has('#ffffff') && bones.has('#8f887a'));
     check('libro: la specie non identificata resta una silhouette', sil.has('#4a4438') && !sil.has('#ffffff'));
     check('libro: la vista VIVA usa i colori della specie, non le ossa', flesh.size > 1 && !flesh.has('#d6d0c2'));
     /* remount3D → mount3D: l'import di Three riesce anche in Node, ma senza WebGL
        mountSkeleton esplode e va preso il ramo di ripiego. È asincrono: si aspetta. */
     const painted = new Set();
-    ctx.fillRect = () => painted.add(String(ctx.fillStyle));
+    bctx.fillRect = () => painted.add(String(bctx.fillStyle));
     const target = bookui.remount3D(cv, baseSpec(sp), false, false, null);
     for (let i = 0; i < 200 && !painted.size; i++) await new Promise(r => setTimeout(r, 10));
-    delete ctx.fillRect;
+    delete bctx.fillRect;
     bookui.disposeViews();
     check('libro: senza WebGL il 3D ripiega sulla proiezione 2D (e disegna)', painted.has('#ffffff'), [...painted].join(' '));
     check('libro: il rimontaggio riusa la canvas quando non c\'è un genitore', target === cv);
@@ -5254,7 +5260,8 @@ sprites.applyLook();
     const keepCodex = S.codex, keepMuseum = S.museum[sp.id];
     S.codex = ALL_SPECIES.slice(0, 4).map(x => x.id);   // 4 specie = 2 pagine: si può sfogliare
     S.museum[sp.id] = ['cranio'];              // un solo pezzo consegnato: il resto resta spento
-    const page = spy(() => bookui.openBook(0));
+    /* openBook dipinge sulle canvas della pagina: si spia QUELLA, non la tela del gioco */
+    const page = spy(() => bookui.openBook(0), cvSketch.getContext('2d'));
     check('libro: aprendo una pagina lo schizzo della specie viene dipinto', page.has('#ffffff') || page.has('#d6d0c2'));
     /* il senso dell'oscuramento: si accende solo ciò che hai davvero portato al Museo */
     check('libro: i pezzi non ancora consegnati restano spenti', page.has('#403a55') || page.has('#332e42'));

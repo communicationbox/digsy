@@ -28,9 +28,13 @@ const props = await import('../src/props.js');
 const deco = await import('../src/decoArt.js');
 const brush = await import('../src/brush.js');
 const render = await import('../src/render.js');
+const sprites = await import('../src/sprites.js');
+const data = await import('../src/data.js');
+const state = await import('../src/state.js');
+state.initState();                                   // Digsy ha bisogno del suo aspetto per esistere
 const g = brush.BRUSH;
 
-const W = 96, H = 96;
+const W = 260, H = 300;   // ci deve stare anche il museo (5 caselle + gronda), o il taglio falsa la misura
 const luma = (r, gg, b) => 0.299 * r + 0.587 * gg + 0.114 * b;
 /* disegna lo sprite e ne misura il contorno */
 function misura(fn) {
@@ -64,7 +68,7 @@ function misura(fn) {
   /* sprite SOTTILI (un fiore, degli steli): non hanno un "dentro" da confrontare. Per loro la
      domanda diventa più semplice: c'è o no un tono molto più scuro del corpo, cioè una linea? */
   let scuri = 0;
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (solid(x, y) && L(x, y) <= med - 40) scuri++;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (solid(x, y) && L(x, y) <= med - 30) scuri++;
   return { cop: quote.length ? Math.min(...quote) : 0, corpo: dentroL.length, area, scuri };
 }
 
@@ -108,6 +112,20 @@ const SPRITE = [
   ['lampione', false, () => deco.lampArt(g, 0)],
   ['staccionata', false, () => render.drawFence(32, 40, false, true)],
 ];
+/* gli OGGETTI A TERRA da raccogliere: uno per zona, tutti raccoglibili con {act} */
+for (const zona of Object.keys(data.GOODS)) for (const g2 of data.GOODS[zona])
+  SPRITE.push(['a terra: ' + g2[1], true, () => props.drawPickup(g2[0], 24, 32, 0, 3, 5)]);
+/* IL PERSONAGGIO e gli NPC: sono vivi e ci si parla — devono staccare dal fondo sempre,
+   in tutti e quattro i versi (su un prato scuro o sulla neve il contorno è l'unica cosa
+   che tiene insieme la sagoma) */
+for (const dir of ['down', 'up', 'left', 'right'])
+  SPRITE.push(['Digsy verso ' + dir, true, () => sprites.drawHero(null, 32, 32, dir, 0)]);
+/* LE CASE: si entra camminando sulla porta, quindi sono a tutti gli effetti cose con cui si
+   interagisce — e sono anche la sagoma più grande del paesaggio urbano. Devono staccare dal
+   lastricato su tutti e quattro i lati, tetto compreso. */
+for (const tipo of ['store', 'inn', 'lab', 'barber', 'tailor', 'furniture', 'museum'])
+  SPRITE.push(['bottega: ' + tipo, true, () => render.drawBuilding({ type: tipo, x0: 0, y0: 0, x1: tipo === 'museum' ? 4 : 2, y1: 1 }, 26, 190)]);
+SPRITE.push(['casa di Digsy', true, () => render.drawHouse({ x0: 0, y0: 0, x1: 2, y1: 1 }, 26, 190)]);
 
 console.log('\ncontorno = si tocca · niente contorno = paesaggio');
 for (const [nome, tocca, fn] of SPRITE) {
