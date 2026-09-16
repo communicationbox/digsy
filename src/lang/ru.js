@@ -13,6 +13,8 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "The tortoise stretches its neck and looks at you": "Черепаха вытягивает шею и смотрит на тебя",
+  "Pet the tortoise": "Погладить черепаху",
   "Furnish the room": "Обставь комнату",
   "Press {act} on an empty tile and put down the armchair: a well kept room gives you a better sleep.": "Нажми {act} на свободной клетке и поставь кресло: в уютной комнате спится лучше.",
   "Sleep 😴": "Спать 😴",

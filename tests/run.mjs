@@ -4261,7 +4261,7 @@ sprites.applyLook();
   const gpP = await import('../src/gameplay.js');
   const keep = { active: it.INT.active, b: it.INT.b, x: it.INT.x, y: it.INT.y, pet: it.INT.pet };
   const keepS = { energy: S.energy, petDay: S.petDay };
-  for (const [type, kind] of [['store', 'gatto'], ['inn', 'cane'], ['lab', 'topo'], ['barber', 'pappagallo'], ['tailor', 'coniglio'], ['furniture', 'scoiattolo']]) {
+  for (const [type, kind] of [['store', 'gatto'], ['inn', 'cane'], ['lab', 'topo'], ['barber', 'pappagallo'], ['tailor', 'coniglio'], ['furniture', 'scoiattolo'], ['museum', 'tartaruga']]) {
     const p = it.SHOP_PETS[type];
     Object.assign(it.INT, { active: true, b: { type }, x: p.x, y: p.y + 20, pet: null });
     S.petDay = {}; S.energy = 5;
@@ -4285,9 +4285,10 @@ sprites.applyLook();
       shop.drawBarberFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'pappagallo', t: k });
       shop.drawTailorFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'coniglio', t: k });
       shop.drawFurnitureFloorProps(BRUSH, 320, 224, 1000, null, false, { kind: 'scoiattolo', t: k });
+      shop.drawMuseumPet(BRUSH, 200, 200, 1000, { kind: 'tartaruga', t: k });
     }
   } catch (e) { crash = e.message; }
-  check('coccole: le sei reazioni si disegnano', crash === null, crash || '');
+  check('coccole: le sette reazioni si disegnano', crash === null, crash || '');
   /* il topolino che sta correndo torna indietro fino al formaggio, non ci compare sopra */
   {
     const pm = { kind: 'topo', t: 2.6 };

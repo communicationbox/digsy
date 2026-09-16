@@ -342,6 +342,10 @@ export function interiorSolid(x, y) {
    una reazione di due secondi e mezzo coi cuoricini, e la prima coccola del giorno regala 1 ⚡.
    (x, y) = dove sta l'animale, in pixel della stanza. */
 export const SHOP_PETS = {
+  /* IL MUSEO ha la sua bestiola come le botteghe: una tartaruga che sonnecchia nell'atrio,
+     accanto alla pianta a destra del bancone (lontana dal Curatore, o i due prompt si
+     pesterebbero). Coordinate della GALLERIA, non della stanzetta. */
+  museum: { kind: 'tartaruga', x: (GAL_W / 2 + 5) * TS, y: (GAL_H - 3) * TS },
   store: { kind: 'gatto', x: 74, y: 102 },
   inn: { kind: 'cane', x: 40, y: 190 },
   lab: { kind: 'topo', x: 34, y: 200 },

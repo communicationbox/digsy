@@ -867,3 +867,33 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
     if (ps) hearts(g, 36, 156, pet);
   }
 }
+
+/* LA TARTARUGA DEL MUSEO — sta nell'atrio, accanto alla pianta: carapace a piastre, zampe
+   corte, e quando la si coccola tira fuori il collo e sbatte gli occhi. Disegnata con lo
+   stesso pennello degli altri animaletti (ovali e un contorno solo). Coordinate ASSOLUTE
+   della galleria: chi chiama passa il punto dove poggia. */
+export function drawMuseumPet(g, x, y, time, pet) {
+  const t = time || 0, ps = pet && pet.kind === 'tartaruga';
+  const resp = Math.round(Math.sin(t / 1400) * 1);                 // respiro lento
+  const collo = ps ? 7 : 2 + Math.round(Math.sin(t / 1800) * 1);    // coccolata: allunga il collo
+  g.shadow(x, y + 2, 16);
+  const c = critter(g, '#3a2f1c');
+  c.oval(x - collo - 12, y - 8 - resp, 4.5, 4, tone3('#a8c064', '#87a049', '#5f7a33'));      // testa, fuori dal guscio
+  c.line(x - collo - 10, y - 8 - resp, x - 6, y - 8 - resp, 4, '#87a049');                    // collo
+  c.oval(x, y - 10 - resp, 14, 8.5, tone3('#9a7a3a', '#7a5a26', '#553c18'));                 // carapace
+  for (const dx of [-9, 9]) c.oval(x + dx, y - 2, 4, 2.6, tone3('#a8c064', '#87a049', '#5f7a33'));   // zampe
+  c.oval(x + 13, y - 6, 3, 2, tone3('#a8c064', '#87a049', '#5f7a33'));                        // coda
+  c.paint();
+  /* piastre del carapace: esagoni scuri e bordo chiaro */
+  for (const [dx, dy, r] of [[0, -12, 4], [-7, -10, 3], [7, -10, 3], [-3, -6, 3], [4, -6, 3]]) {
+    for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) {
+      if (Math.abs(xx) + Math.abs(yy) > r + 1) continue;
+      g.px(x + dx + xx, y + dy + yy - resp, Math.abs(xx) + Math.abs(yy) === r + 1 ? '#4a3418' : (xx + yy < -1 ? '#b08a44' : '#7a5a26'));
+    }
+  }
+  /* occhio: chiuso quando sonnecchia, aperto quando la coccoli */
+  const ex = x - collo - 13, ey = y - 9 - resp;
+  if (ps && Math.floor(pet.t * 4) % 2) { g.rect(ex, ey, 2, 1, '#1a120a'); }
+  else { g.rect(ex, ey - 1, 2, 2, '#1a120a'); g.px(ex, ey - 1, '#ffffff'); }
+  if (ps) hearts(g, x - 4, y - 28, pet);
+}

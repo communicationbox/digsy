@@ -360,7 +360,8 @@ export function petShopAnimal() {
       : r.kind === 'topo' ? tr('Squit! Il topolino si gode il formaggio', 'Squeak! The mouse enjoys the cheese')
         : r.kind === 'pappagallo' ? tr('Il pappagallo fischietta contento', 'The parrot whistles happily')
           : r.kind === 'coniglio' ? tr('Il coniglietto saltella', 'The bunny hops around')
-            : tr('Lo scoiattolo ti mostra la sua ghianda', 'The squirrel shows you its acorn');
+            : r.kind === 'tartaruga' ? tr('La tartaruga allunga il collo e ti guarda', 'The tortoise stretches its neck and looks at you')
+              : tr('Lo scoiattolo ti mostra la sua ghianda', 'The squirrel shows you its acorn');
   toast('🐾 ' + msg + (first ? ' · +1 ⚡' : ''));
   playSfx('found');
   return true;

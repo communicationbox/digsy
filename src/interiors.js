@@ -8,12 +8,12 @@ import { drawReturnPortal } from './render.js'; // ciclo sicuro: chiamata solo a
 import { S, P } from './state.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
-import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT } from './interior.js';
+import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, SHOP_PETS} from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
 import { EMAP, iconPaths } from './icons.js';
-import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps } from './shopArt.js';
+import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps, drawMuseumPet} from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
 import { composedPartsVox, shadeHex } from './bones.js';
 import { zoneName } from './i18n.js';
@@ -242,6 +242,9 @@ export function drawMuseumGallery(time) {
     ents.push({ y: by + 15, f: () => drawCase(pd) });
   }
   for (const pxo of [GAL_DESK.x0 - 16, GAL_DESK.x1 + 6]) ents.push({ y: GAL_DESK.y1 + 8, f: () => drawPlant(pxo) });
+  /* LA TARTARUGA dell'atrio: anche il Museo ha la sua bestiola da coccolare */
+  { const tp = SHOP_PETS.museum;
+    ents.push({ y: tp.y, f: () => drawMuseumPet(BRUSH, tp.x, tp.y, time, INT.pet) }); }
   ents.push({ y: GAL_DESK.y1 - 2, f: drawDesk });
   for (const [ccx, ccy] of roomCols) if (ccx - camx > -40 && ccx - camx < W + 40 && ccy - camy > -20 && ccy - camy < H + 110) ents.push({ y: ccy, f: () => drawColumn(BRUSH, ccx, ccy) });
   const npx = CUT.on ? CUT.x : deskCx;
