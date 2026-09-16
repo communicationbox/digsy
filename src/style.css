@@ -786,6 +786,10 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
 #introend.show .et{opacity:1}
 /* card più larga per Trofei/Novità */
 .sp-card.wide{max-width:min(860px,96vw);padding:24px 26px 28px}
+/* il menu del titolo è una COLONNA di voci: largo quanto lo schermo diventava un rettangolo
+   vuoto con tre scritte in mezzo. Le schermate piene (salvataggi, impostazioni, trofei) usano
+   `.wide` e restano larghe. */
+.sp-card:not(.wide){max-width:min(520px,96vw)}
 /* SOTTOMENU della splash: X sempre in alto a destra e contenuto che scorre DENTRO la card,
    così il pulsante di uscita non finisce mai sotto il bordo dello schermo (bug su mobile). */
 .sp-card{position:relative}

@@ -197,18 +197,46 @@ export function glint(sx2, sy2, time, tx, ty) {
 
 
 /* ---------- decorazioni di zona ---------- */
+/* SAGUARO ARROTONDATO — fusto e braccia sono capsule con gli angoli smussati, non scatole.
+   Si compone prima una maschera di tutta la pianta e poi si dipinge una volta sola: così il
+   contorno segue la sagoma tonda e nei gomiti non restano spigoli o doppi bordi. */
+function roundMask(shapes, w, h) {
+  const m = new Uint8Array(w * h);
+  for (const [x0, y0, sw, sh, r] of shapes) {
+    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
+      const dx = Math.min(x, sw - 1 - x), dy = Math.min(y, sh - 1 - y);
+      if (dx < r && dy < r && (r - dx) ** 2 + (r - dy) ** 2 > r * r + r) continue;   // angolo smussato
+      const px2 = x0 + x, py2 = y0 + y;
+      if (px2 >= 0 && py2 >= 0 && px2 < w && py2 < h) m[py2 * w + px2] = 1;
+    }
+  }
+  return m;
+}
 export function drawCactus(sx, sy, tx = 0, ty = 0) {
-  /* SAGUARO: fusto a coste con due braccia, spine e un fiore in cima */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 30; shadow(cx, base, 9);
-  const arm = (x, y, w, h) => { rect(x - 1, y - 1, w + 2, h + 2, LN); rect(x, y, w, h, '#4a9a55'); rect(x, y, 2, h, '#6fbf78'); rect(x + w - 2, y, 2, h, '#357a42'); };
-  const flip = vhash(tx, ty, 84) < 0.5;
-  arm(cx - 5, base - 28, 10, 28);
-  for (const cxr of [cx - 2, cx + 2]) rect(cxr, base - 26, 1, 24, '#3d8a48');
-  arm(flip ? cx - 13 : cx + 5, base - 18, 8, 4); arm(flip ? cx - 13 : cx + 9, base - 26, 4, 10);
-  arm(flip ? cx + 5 : cx - 13, base - 13, 8, 4); arm(flip ? cx + 9 : cx - 13, base - 20, 4, 9);
-  for (let i = 0; i < 6; i++) px(cx - 4 + ((i * 7) % 9), base - 24 + i * 4, '#e0f0d8');
-  rect(cx - 2, base - 31, 4, 3, '#e08aa8'); px(cx - 1, base - 32, '#f6c0d4');
+  const flip = vhash(tx, ty, 84) < 0.5, W = 32, H = 32;
+  const braccio = (dir, y0, alt) => ([                       // spalla orizzontale + braccio che sale
+    [dir < 0 ? cx - 12 : cx + 4, y0, 8, 6, 3],
+    [dir < 0 ? cx - 13 : cx + 9, y0 - alt, 5, alt + 6, 2],
+  ]);
+  const shapes = [[cx - 5, base - 28, 10, 28, 5]]              // fusto
+    .concat(braccio(flip ? -1 : 1, base - 19, 9))
+    .concat(braccio(flip ? 1 : -1, base - 14, 8));
+  const m = roundMask(shapes, W, H);
+  const dentro = (x, y) => x >= 0 && y >= 0 && x < W && y < H && m[y * W + x];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!dentro(x, y)) {
+      if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) px(x, y, LN);   // contorno
+      continue;
+    }
+    /* luce da sinistra: due colonne chiare sul bordo illuminato, una scura sull'altro */
+    const bordoL = !dentro(x - 1, y) || !dentro(x - 2, y), bordoR = !dentro(x + 1, y);
+    px(x, y, bordoL ? '#6fbf78' : bordoR ? '#357a42' : '#4a9a55');
+  }
+  for (const cxr of [cx - 2, cx + 1]) for (let y = base - 25; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
+  for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - 24 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
+  rect(cx - 2, base - 31, 4, 3, '#e08aa8'); px(cx - 1, base - 32, '#f6c0d4');   // fiore in cima
   ctx.restore();
 }
 export function drawBonespire(sx, sy, tx = 0, ty = 0) {
