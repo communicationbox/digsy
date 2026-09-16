@@ -396,10 +396,12 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
   bottle(g, rw / 2 + 20, 58, 10, 12, '#e8a0b8', '#c65a54'); g.px(rw / 2 + 23, 64, '#e8c34a'); g.px(rw / 2 + 26, 66, '#7ec069');
   /* casse, sacco di grano e GATTO che dorme (24..92 × 92..136) */
   g.shadow(58, 136, 32);
-  box(g, 26, 100, 34, 34, '#a97a4c');
+  boxr(g, 26, 100, 34, 34, '#a97a4c', 2);
   g.rect(30, 110, 26, 2, '#6e4a2e'); g.rect(30, 122, 26, 2, '#6e4a2e'); g.rect(41, 104, 4, 28, '#6e4a2e');
-  box(g, 60, 106, 30, 28, '#8a5f38'); g.rect(64, 112, 22, 2, '#5c4229'); g.rect(64, 122, 22, 2, '#5c4229');
-  g.rect(28, 120, 22, 16, '#6b5238'); g.rect(29, 121, 20, 15, '#d8b58a'); g.rect(31, 117, 16, 5, '#6b5238'); g.rect(32, 118, 14, 3, '#c9a06a'); g.rect(33, 126, 12, 1, '#b8955f');
+  boxr(g, 60, 106, 30, 28, '#8a5f38', 2); g.rect(64, 112, 22, 2, '#5c4229'); g.rect(64, 122, 22, 2, '#5c4229');
+  /* il SACCO è pieno e gonfio: fianchi tondi e collo strozzato dallo spago */
+  for (let k = 0; k < 16; k++) { const u = k / 15, w = 9 + Math.round(Math.sin(u * 2.4) * 2); g.rect(39 - w, 120 + k, w * 2, 1, k ? '#d8b58a' : '#6b5238'); }
+  g.rect(28, 135, 22, 1, '#6b5238'); g.rect(33, 117, 12, 4, '#6b5238'); g.rect(34, 118, 10, 2, '#c9a06a'); g.rect(33, 126, 12, 1, '#b8955f');
   for (let i = 0; i < 4; i++) g.px(34 + i * 3, 116 - (i % 2), '#e8c34a');
   /* GATTO acciambellato sulla cassa: pagnotta tonda a righe, coda arrotolata davanti alle zampe. Coccolato
      alza la testa, apre gli occhi, drizza la coda che ondeggia e muove i baffi */
@@ -429,16 +431,25 @@ export function drawStoreFloorProps(g, rw, rh, time, _e, _r, pet) {
   }
   /* botti con mele (228..296 × 92..136) */
   g.shadow(262, 136, 34);
+  /* BOTTI BOMBATE: una botte dritta è un parallelepipedo, e si vedeva. La pancia si allarga a
+     metà altezza, i cerchi la seguono e il coperchio è un'ellisse. */
   for (const ox of [230, 264]) {
-    g.rect(ox, 100, 30, 36, '#3a2a1c');
-    g.rect(ox + 1, 101, 28, 34, '#8a5f38');
-    g.rect(ox + 1, 101, 5, 34, '#a97a4c'); g.rect(ox + 23, 101, 6, 34, '#6e4a2e');
-    for (const hy of [106, 126]) { g.rect(ox, hy, 30, 3, '#4a4640'); g.rect(ox, hy, 30, 1, '#8f9aa3'); }
-    g.rect(ox + 2, 96, 26, 6, g.shade8('#b07c4a', 0.34)); g.rect(ox + 3, 97, 24, 4, '#b07c4a');
+    const cx2 = ox + 15;
+    for (let k = 0; k < 36; k++) {
+      const u = k / 35, pancia = Math.round(Math.sin(u * Math.PI) * 2.5), w = 13 + pancia;
+      const y = 100 + k;
+      g.rect(cx2 - w, y, w * 2, 1, '#3a2a1c');
+      g.rect(cx2 - w + 1, y, w * 2 - 2, 1, '#8a5f38');
+      g.rect(cx2 - w + 1, y, 4, 1, '#a97a4c'); g.rect(cx2 + w - 6, y, 5, 1, '#6e4a2e');
+      /* i cerchi di ferro: due righe scure con un filo di luce sopra, non due bande chiare */
+      if (k === 6 || k === 26) g.rect(cx2 - w, y, w * 2, 1, '#6b5a48');
+      if (k === 7 || k === 27) g.rect(cx2 - w, y, w * 2, 1, '#3d3128');
+    }
+    disco(g, cx2, 99, 14, 4, '#b07c4a');                                   // coperchio, visto di tre quarti
   }
   for (const [ax, ay, c] of [[234, 90, '#c65a54'], [242, 91, '#d8603c'], [250, 90, '#c65a54'], [238, 86, '#e0873a'], [246, 86, '#c65a54'],
     [268, 90, '#7ec069'], [276, 91, '#9ac24a'], [284, 90, '#7ec069'], [272, 86, '#9ac24a'], [280, 86, '#7ec069']]) {
-    g.rect(ax, ay, 7, 7, g.shade8(c, 0.5)); g.rect(ax + 1, ay + 1, 5, 5, c); g.px(ax + 2, ay + 2, g.shade8(c, 1.4)); g.px(ax + 3, ay, '#5c4229');
+    disco(g, ax + 3, ay + 3, 4, 4, c); g.px(ax + 2, ay + 2, g.shade8(c, 1.4)); g.px(ax + 3, ay - 1, '#5c4229');   // le mele sono TONDE
   }
   for (let i = 0; i < 7; i++) g.rect(112 + (i * 37) % 100, 156 + (i * 23) % 36, 3, 1, '#d4b13c');
 }
@@ -484,10 +495,12 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* sul bancone: boccali, bottiglie, tagliere col pane */
   mug(g, cx - 64, 60, '#d4a24a'); mug(g, cx - 52, 60, '#d4a24a');
   bottle(g, cx + 44, 56, 6, 14, '#5f7a52', '#c9a227'); bottle(g, cx + 52, 58, 6, 12, '#8a3f3a', '#c9a227');
-  g.rect(cx + 60, 66, 20, 5, g.shade8('#b07c4a', 0.34)); g.rect(cx + 61, 66, 18, 3, '#b07c4a'); g.rect(cx + 63, 62, 12, 5, '#c98a4a'); g.rect(cx + 64, 62, 10, 2, '#e0a86a');
+  boxr(g, cx + 60, 65, 20, 5, '#b07c4a', 2);                                  // tagliere
+  for (let k = 0; k < 5; k++) { const w2 = 12 - Math.abs(k - 2) * 2; g.rect(cx + 69 - (w2 >> 1), 61 + k, w2, 1, k ? '#c98a4a' : '#e0a86a'); }   // pagnotta tonda
   /* tappeto al centro */
   const rx = cx - 38, ry = 146;
-  g.rect(rx, ry, 76, 40, '#5c2a26'); g.rect(rx + 1, ry + 1, 74, 38, '#a8453c'); g.rect(rx + 4, ry + 4, 68, 32, '#d8b23c'); g.rect(rx + 5, ry + 5, 66, 30, '#8a3a32');
+  boxr(g, rx, ry, 76, 40, '#a8453c', 4, { line: '#5c2a26', light: '#a8453c', dark: '#a8453c', piatto: true });
+  boxr(g, rx + 4, ry + 4, 68, 32, '#8a3a32', 3, { line: '#d8b23c', light: '#8a3a32', dark: '#8a3a32', piatto: true });
   for (let k = 0; k < 6; k++) { g.rect(cx - k * 2, ry + 9 + k * 2, k * 4 + 1, 2, '#e0a24a'); g.rect(cx - k * 2, ry + 29 - k * 2, k * 4 + 1, 2, '#e0a24a'); }
   for (let i = 2; i < 74; i += 3) { g.px(rx + i, ry - 1, '#e8dcc0'); g.px(rx + i, ry + 40, '#e8dcc0'); }
   /* CANE acciambellato davanti al camino: corpo tondo che respira, testa appoggiata sulle zampe, orecchio
@@ -535,9 +548,9 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
 export function drawBarberProps(g, rw, rh, time) {
   const t = time || 0, mx = rw / 2 - 44;
   /* grande specchio con cornice dorata */
-  g.rect(mx, 4, 88, 40, g.shade8('#c9a227', 0.34)); g.rect(mx + 1, 5, 86, 38, '#c9a227'); g.rect(mx + 1, 5, 86, 1, '#f0d470');
-  g.rect(mx + 3, 7, 82, 34, '#8a6a1e'); g.rect(mx + 4, 8, 80, 32, '#bfe3ef');
-  g.rect(mx + 4, 30, 80, 10, '#a9d3df');
+  boxr(g, mx, 4, 88, 40, '#c9a227', 6, { light: '#f0d470', dark: '#8a6a1e' });   // cornice con gli angoli tondi
+  boxr(g, mx + 4, 8, 80, 32, '#bfe3ef', 5, { line: '#8a6a1e', light: '#dff2f8', dark: '#a9d3df' });
+  g.rect(mx + 6, 30, 76, 8, '#a9d3df');
   const sh = Math.floor(t / 260) % 20;
   if (sh < 14) { g.rect(mx + 6 + sh * 5, 8, 3, 32, '#e8f6fb'); g.rect(mx + 11 + sh * 5, 8, 1, 32, '#e8f6fb'); }
   g.px(mx + 44, 2, '#c9a227'); g.rect(mx + 42, 3, 5, 2, '#c9a227');
@@ -547,10 +560,11 @@ export function drawBarberProps(g, rw, rh, time) {
   for (let i = 0; i < 2; i++) { g.rect(mx + 66, 38 - i * 5, 18, 5, g.shade8('#f3ecda', 0.34)); g.rect(mx + 67, 39 - i * 5, 16, 3, i ? '#f3ecda' : '#4e8d9c'); }
   /* orologio a pendolo */
   const pd = Math.round(Math.sin(t / 380) * 3);
-  g.rect(24, 6, 26, 50, g.shade8('#8a5f38', 0.34)); g.rect(25, 7, 24, 48, '#8a5f38'); g.rect(25, 7, 24, 2, '#b07c4a');
-  g.rect(28, 10, 18, 16, g.shade8('#f3ecda', 0.34)); g.rect(29, 11, 16, 14, '#f3ecda');
+  boxr(g, 24, 6, 26, 50, '#8a5f38', 5);                                   // cassa con la cimasa tonda
+  disco(g, 37, 19, 9, 9, '#f3ecda');                                       // quadrante ROTONDO
   g.rect(36, 13, 1, 6, '#2a2016'); g.rect(37, 18, 4, 1, '#2a2016');
-  g.rect(29, 30, 16, 22, g.shade8('#c9a227', 0.34)); g.rect(36 + pd, 30, 1, 16, '#c9a227'); g.rect(34 + pd, 45, 5, 5, '#c9a227'); g.px(35 + pd, 46, '#f0d470');
+  g.rect(29, 30, 16, 22, g.shade8('#c9a227', 0.34)); g.rect(36 + pd, 30, 1, 16, '#c9a227');
+  disco(g, 36 + pd, 47, 3, 3, '#c9a227');                                  // lente del pendolo
   /* palo del barbiere: strisce che scorrono */
   /* IL PALO GIRA DAVVERO. Il ciclo dell'animazione era lungo 12 pixel ma le bande si alternano
      a due a due: ogni giro il disegno saltava di mezza banda e si vedeva lo scatto. Il periodo
@@ -647,7 +661,8 @@ export function drawTailorProps(g, rw, rh, time) {
     g.rect(x, 10, 15, h, g.shade8(c, 0.5)); g.rect(x + 1, 11, 13, h - 2, c);
     g.rect(x + 1, 11, 3, h - 2, g.shade8(c, 1.25)); g.rect(x + 11, 11, 3, h - 2, g.shade8(c, 0.8));
     for (let yy = 16; yy < h + 6; yy += 8) g.rect(x + 1, yy, 13, 1, g.shade8(c, 0.85));
-    g.rect(x + 4, 10 + h - 1, 7, 3, g.shade8(c, 0.62));
+    /* l'ORLO cade a onda: la stoffa non finisce con un taglio netto */
+    for (let k = 0; k < 13; k++) { const d = 1 + Math.round(Math.abs(Math.sin((k + i) * 0.9)) * 3); g.rect(x + 1 + k, 10 + h - 1, 1, d, g.shade8(c, 0.62)); }
   });
   /* bozzetti d'abito incorniciati */
   frame(g, 22, 10, 26, 32); g.rect(25, 13, 20, 26, '#f3ecda');
@@ -668,20 +683,25 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* sul bancone: pila di stoffe piegate, puntaspilli, forbici */
   const pile = ['#5a86c8', '#e8a0b8', '#e8c34a', '#5fa04e'];
   pile.forEach((c, i) => { g.rect(cx - 66, 66 - i * 4, 26, 4, g.shade8(c, 0.55)); g.rect(cx - 65, 66 - i * 4, 24, 3, c); });
-  g.rect(cx + 40, 62, 12, 8, g.shade8('#c65a54', 0.34)); g.rect(cx + 41, 63, 10, 6, '#c65a54'); g.px(cx + 43, 61, '#8f9aa3'); g.px(cx + 48, 60, '#8f9aa3'); g.px(cx + 46, 62, '#e8c34a');
+  disco(g, cx + 46, 66, 6, 4, '#c65a54');                                     // puntaspilli TONDO g.px(cx + 43, 61, '#8f9aa3'); g.px(cx + 48, 60, '#8f9aa3'); g.px(cx + 46, 62, '#e8c34a');
   g.rect(cx + 58, 66, 12, 2, '#8f9aa3'); g.rect(cx + 70, 64, 4, 4, '#2a2016');
   /* MANICHINO vestito (32..84 × 96..132) */
   g.shadow(58, 134, 16);
-  g.rect(48, 130, 20, 4, g.shade8('#8f887a', 0.34)); g.rect(49, 131, 18, 2, '#8f887a');
+  disco(g, 58, 131, 11, 3, '#8f887a');                                        // piede tondo del manichino
   g.rect(56, 116, 4, 15, g.shade8('#8f887a', 0.34)); g.rect(57, 116, 2, 15, '#8f887a');
-  g.rect(50, 82, 16, 8, g.shade8('#e0c49a', 0.34)); g.rect(51, 83, 14, 6, '#e0c49a');
-  g.rect(42, 90, 32, 16, '#6a2e48'); g.rect(43, 91, 30, 14, '#e8a0b8'); g.rect(43, 91, 30, 2, '#f4c4d4');
-  g.rect(38, 104, 40, 14, '#6a2e48'); g.rect(39, 105, 38, 12, '#d9869f'); g.rect(39, 105, 4, 12, '#e8a0b8');
+  disco(g, 58, 87, 7, 5, '#e0c49a'); g.rect(56, 84, 4, 4, '#c9a97e');         // pomello e collo del manichino
+  /* il BUSTO è un volume tondo: spalle arrotondate e vita stretta, non due rettangoli */
+  for (let k = 0; k < 28; k++) {
+    const u = k / 27, w = Math.round(15 + Math.sin(u * Math.PI * 0.9) * 5 - u * 2);
+    const y = 90 + k, c = k < 15 ? '#e8a0b8' : '#d9869f';
+    g.rect(58 - w, y, w * 2, 1, '#6a2e48');
+    g.rect(58 - w + 1, y, w * 2 - 2, 1, k < 2 ? '#f4c4d4' : c);
+  }
   for (let i = 0; i < 38; i += 4) g.rect(39 + i, 116, 2, 2, '#f3ecda');
   g.rect(55, 91, 6, 3, '#f3ecda'); g.px(58, 97, '#c9a227'); g.px(58, 101, '#c9a227');
   g.rect(40, 94, 10, 2, '#e8c34a'); g.rect(44, 96, 2, 12, '#e8c34a');                                             // metro sulle spalle
   /* cesto di gomitoli */
-  g.rect(88, 118, 24, 14, g.shade8('#b07c4a', 0.34)); g.rect(89, 119, 22, 12, '#b07c4a');
+  boxr(g, 88, 118, 24, 14, '#b07c4a', 4);                                     // cesto: bocca tonda
   for (let i = 0; i < 22; i += 4) g.rect(89 + i, 119, 2, 12, '#8a5f38');
   for (const [bx, c] of [[90, '#c65a54'], [98, '#5a86c8'], [104, '#5fa04e']]) { g.rect(bx, 111, 8, 8, g.shade8(c, 0.5)); g.rect(bx + 1, 112, 6, 6, c); g.px(bx + 2, 113, g.shade8(c, 1.4)); }
   g.rect(108, 118, 1, 6, '#5a86c8'); g.rect(109, 124, 6, 1, '#5a86c8');
@@ -805,17 +825,20 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   g.rect(24, 94, 72, 12, g.shade8('#6e4a2e', 0.34)); g.rect(25, 95, 70, 10, '#6e4a2e'); g.rect(25, 95, 70, 2, '#8a5f38');
   g.rect(22, 90, 76, 6, '#3f4448'); g.rect(23, 91, 74, 3, '#8f9aa3'); g.rect(23, 91, 74, 1, '#c9ced3');
   gamba(g, 28, 106, 6, 30, '#4a4640'); g.rect(86, 106, 6, 30, g.shade8('#4a4640', 0.34)); g.rect(29, 120, 62, 3, '#4a4640');
-  g.rect(34, 124, 18, 10, g.shade8('#bfe3ef', 0.34)); g.rect(35, 125, 16, 8, '#bfe3ef'); g.rect(36, 128, 14, 5, '#8a6ab0');              // flacone sotto
+  boxr(g, 34, 124, 18, 10, '#bfe3ef', 3, { line: '#6e8f9c' }); g.rect(36, 128, 14, 5, '#8a6ab0');              // flacone sotto
   const fl = Math.floor(t / 160) % 2;
   g.rect(36, 82, 18, 8, g.shade8('#5a5248', 0.34)); g.rect(37, 83, 16, 6, '#5a5248');
   g.rect(41, 76 + fl, 8, 6 - fl, '#e8873a'); g.rect(43, 78, 4, 4, '#f6dc78'); g.px(44, 74 - fl, '#e8873a');
-  g.rect(33, 54, 24, 22, '#3f5a6a'); g.rect(34, 55, 22, 20, '#bfe3ef'); g.rect(35, 62, 20, 12, '#5fa04e'); g.rect(35, 62, 20, 2, '#7ec069');
+  /* l'AMPOLLA è una boccia di vetro: pancia tonda, liquido che segue la curva */
+  disco(g, 45, 65, 12, 11, '#bfe3ef', { line: '#3f5a6a' });
+  for (let k = 0; k < 12; k++) { const w2 = Math.round(12 * Math.sqrt(Math.max(0, 1 - ((k - 1) * (k - 1)) / 121))); if (w2 > 1) g.rect(45 - w2 + 1, 64 + k, w2 * 2 - 2, 1, k ? '#5fa04e' : '#7ec069'); }
   g.rect(40, 42, 10, 13, '#3f5a6a'); g.rect(41, 43, 8, 12, '#bfe3ef'); g.rect(38, 40, 14, 3, '#8f9aa3');
   g.rect(35, 56, 2, 14, 'rgba(255,255,255,.55)');
   const bb = Math.floor(t / 260) % 3; g.px(42, 70 - bb * 3, '#c8f0b0'); g.px(49, 67 - ((bb + 1) % 3) * 3, '#c8f0b0');
   for (let i = 0; i < 7; i++) g.rect(50 + i * 4, 44 + i * 2, 4, 2, '#8fb7c6');
   const drop = Math.floor(t / 340) % 4; g.px(78, 60 + drop * 3, '#8fd0e6');
-  g.rect(72, 68, 18, 22, '#3f5a6a'); g.rect(73, 69, 16, 21, '#bfe3ef'); g.rect(74, 78, 14, 11, '#8a6ab0'); g.rect(74, 78, 14, 1, '#b39ad4');
+  boxr(g, 72, 68, 18, 22, '#bfe3ef', 5, { line: '#3f5a6a', dark: '#9cc8d8' });
+  for (let k = 0; k < 11; k++) { const w2 = 7 - Math.max(0, k - 8); g.rect(81 - w2, 78 + k, w2 * 2, 1, k ? '#8a6ab0' : '#b39ad4'); }
   /* banco da studio (224..296 × 92..136): microscopio, cranio, libro, candela */
   g.shadow(260, 136, 36);
   g.rect(224, 94, 72, 12, g.shade8('#8a5f38', 0.34)); g.rect(225, 95, 70, 10, '#8a5f38'); g.rect(225, 95, 70, 2, '#b07c4a');
