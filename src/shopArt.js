@@ -901,6 +901,21 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
     g.px(mx - 4 * face - 2, my - 6 - up, '#e0a8b0'); g.px(mx - 4 * face + 2, my - 6 - up, '#e0a8b0');
     g.px(mx - 7 * face, my - 3 - up, g.shade8('#e07a8a', 0.34)); g.px(mx - 10 * face, my - 2 - up, '#e07a8a');
   };
+  /* TOPOLINO DI FRONTE, seduto, che tiene il formaggio fra le zampine. Di profilo, con il
+     formaggio dietro, la scena si leggeva malissimo (segnalato). Chi mangia guarda in avanti. */
+  const mouseFront = (mx, my, up) => {
+    const c = critter(g, '#3a3430');
+    c.line(mx + 5, my + 2, mx + 11, my + 5, 1.4, '#c0a8a0');                      // coda che esce di lato
+    c.oval(mx, my - up, 5.5, 5 + up * 0.5, tone3('#b8b0a6', '#9a9288', '#7a7268'));   // corpo seduto
+    c.oval(mx, my - 6 - up, 4, 3.4, tone3('#b8b0a6', '#9a9288', '#7a7268'));      // testa
+    for (const e of [-1, 1]) c.oval(mx + e * 4, my - 9 - up, 2.4, 2.4, '#9a9288');    // orecchie tonde
+    for (const e of [-1, 1]) c.oval(mx + e * 3, my + 3 - up, 1.6, 1.3, '#9a9288');    // zampine
+    c.paint();
+    for (const e of [-1, 1]) g.px(mx + e * 4, my - 9 - up, '#e0a8b0');            // interno delle orecchie
+    for (const e of [-2, 1]) g.px(mx + e, my - 7 - up, '#241f1c');                // occhietti
+    g.px(mx, my - 4 - up, '#e07a8a');                                             // nasino
+    g.px(mx - 3, my - 4 - up, '#c0a8a0'); g.px(mx + 3, my - 4 - up, '#c0a8a0');    // baffi
+  };
   const petMouse = pet && pet.kind === 'topo';
   const rt = (t / 1000) % 14, runX = rt < 2.2 ? 36 + (rt / 2.2) * 240 : null;
   if (petMouse) {
@@ -920,9 +935,10 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
     } else {
       /* arrivato: si alza sulle zampine e sgranocchia il formaggio */
       const nib = Math.floor(pet.t * 8) % 2;
-      mouseAt(46, 198, 1 + nib, 1);
-      g.rect(37, 197, 6, 5, g.shade8('#f2c53d', 0.34)); g.rect(38, 198, 4, 3, '#f2c53d'); g.px(39, 198, '#c9a227');
-      hearts(g, 43, 184, { t: Math.min(2.6, pet.t) });
+      mouseFront(44, 200, 1 + nib);
+      /* il formaggio sta DAVANTI a lui, fra le zampine */
+      g.rect(41, 199 + nib, 7, 5, g.shade8('#f2c53d', 0.34)); g.rect(42, 200 + nib, 5, 3, '#f2c53d'); g.px(43, 200 + nib, '#c9a227'); g.px(45, 201 + nib, '#c9a227');
+      hearts(g, 44, 184, { t: Math.min(2.6, pet.t) });
     }
   } else if (Math.floor(t / 2200) % 3 !== 2) { g.px(27, 200, '#f2d080'); g.px(31, 200, '#f2d080'); }
   /* topolino che attraversa lungo il muro basso */
