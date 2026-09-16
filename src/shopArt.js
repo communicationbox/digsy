@@ -293,7 +293,7 @@ export function drawCounter(g, type, x, y, w, h) {
 export function drawStoreProps(g, rw, rh, time) {
   /* scaffale grande dietro il bancone */
   const sx = rw / 2 - 60;
-  box(g, sx, 6, 120, 52, '#6e4a2e');
+  boxr(g, sx, 6, 120, 52, '#6e4a2e', 3);                                            // scaffale con gli spigoli smussati
   g.rect(sx + 4, 10, 112, 44, '#3a2a1c');
   for (const sy of [24, 40, 54]) { g.rect(sx + 3, sy, 114, 3, '#8a5f38'); g.rect(sx + 3, sy, 114, 1, '#b07c4a'); }
   const goods = [
@@ -304,13 +304,13 @@ export function drawStoreProps(g, rw, rh, time) {
     const x = sx + 4 + ox;
     if (k === 'jar') bottle(g, x, 13, 9, 11, c, '#c9a06a');
     else if (k === 'bottle') bottle(g, x, 11, 6, 13, c, '#6b4a2e');
-    else if (k === 'box') box(g, x, 15, 13, 9, c);
+    else if (k === 'box') boxr(g, x, 15, 13, 9, c, 2);
     else { g.rect(x, 14, 11, 10, '#6b5238'); g.rect(x + 1, 15, 9, 9, c); g.rect(x + 3, 13, 5, 2, '#6b5238'); }
     const y2 = 29, c2 = ['#c65a54', '#e8c34a', '#5a86c8', '#5fa04e', '#e0873a', '#8a6ab0'][(i * 5) % 6];
-    if (i % 3 === 0) box(g, x, y2 + 3, 12, 8, c2); else if (i % 3 === 1) bottle(g, x + 2, y2, 7, 11, c2); else { g.rect(x, y2 + 5, 10, 6, '#2a2016'); g.rect(x + 1, y2 + 6, 8, 4, c2); }
+    if (i % 3 === 0) boxr(g, x, y2 + 3, 12, 8, c2, 2); else if (i % 3 === 1) bottle(g, x + 2, y2, 7, 11, c2); else { g.rect(x, y2 + 5, 10, 6, '#2a2016'); g.rect(x + 1, y2 + 6, 8, 4, c2); }
   });
   for (let i = 0; i < 5; i++) { g.rect(sx + 8 + i * 22, 44, 14, 9, '#5c4229'); g.rect(sx + 9 + i * 22, 45, 12, 7, ['#e8dcc0', '#c86a4a', '#d8b58a', '#7ec069', '#e8c34a'][i]); }
-  box(g, sx + 96, 2, 20, 12, '#f3ecda'); g.rect(sx + 100, 6, 3, 3, '#c9a227'); g.rect(sx + 105, 6, 8, 1, '#6b4a2e'); g.rect(sx + 105, 9, 6, 1, '#6b4a2e'); // cartellino prezzi
+  boxr(g, sx + 96, 2, 20, 12, '#f3ecda', 2); g.rect(sx + 100, 6, 3, 3, '#c9a227'); g.rect(sx + 105, 6, 8, 1, '#6b4a2e'); g.rect(sx + 105, 9, 6, 1, '#6b4a2e'); // cartellino prezzi
   /* lavagnetta dei prezzi sulla destra */
   frame(g, rw - 64, 10, 40, 28);
   g.rect(rw - 61, 13, 34, 22, '#2e3d33');
@@ -319,13 +319,13 @@ export function drawStoreProps(g, rw, rh, time) {
   const sw = Math.round(Math.sin((time || 0) / 700));
   for (const [hx, c, n] of [[rw - 80, '#8a3f3a', 3], [22, '#f3ecda', 4]]) {
     g.rect(hx, 0, 1, 10, '#5c4229');
-    for (let i = 0; i < n; i++) { g.rect(hx - 3 + sw, 10 + i * 7, 7, 7, g.shade8(c, 0.55)); g.rect(hx - 2 + sw, 11 + i * 7, 5, 5, c); g.px(hx - 1 + sw, 12 + i * 7, g.shade8(c, 1.3)); }
+    for (let i = 0; i < n; i++) { disco(g, hx + sw, 13 + i * 7, 4, 4, c); g.px(hx - 1 + sw, 12 + i * 7, g.shade8(c, 1.3)); }   // teste d'aglio e salami: tondi
   }
   /* lanterna appesa */
   const lf = Math.floor((time || 0) / 300) % 2;
   g.rect(sx - 12, 0, 1, 14, '#3a2e20');
-  g.rect(sx - 17, 14, 11, 14, g.shade8('#f2c53d', 0.34)); g.rect(sx - 16, 16, 9, 10, lf ? '#f2c53d' : '#e8862e'); g.rect(sx - 15, 17, 2, 8, '#fff3c8');
-  g.rect(sx - 18, 13, 13, 2, '#5a5248'); g.rect(sx - 18, 27, 13, 2, '#5a5248');
+  boxr(g, sx - 17, 14, 11, 14, lf ? '#f2c53d' : '#e8862e', 3, { line: '#5a5248' }); g.rect(sx - 15, 17, 2, 8, '#fff3c8');
+  disco(g, sx - 11, 13, 7, 2, '#5a5248'); disco(g, sx - 11, 28, 7, 2, '#5a5248');   // cupola e piatto della lanterna
 }
 /* ANIMALETTI TONDI. Fatti a rettangoli sembravano scatole con le orecchie ("gli animali sono molto
    squadrati"): qui si posano OVALI e linee spesse in una mappa di celle, e alla fine un solo contorno
@@ -465,8 +465,14 @@ export function drawInnProps(g, rw, rh, time) {
     const col = ['#8f887a', '#9a9285', '#7f776a'][(r + c) % 3];
     g.rect(bx, by, 9, 8, col); g.rect(bx, by, 9, 1, g.shade8(col, 1.18));
   }
-  g.rect(cx - 38, 20, 76, 6, g.shade8('#8a5f38', 0.34)); g.rect(cx - 37, 21, 74, 3, '#8a5f38'); g.rect(cx - 37, 21, 74, 1, '#b07c4a');  // mensola
-  g.rect(cx - 20, 28, 40, 32, '#2a2016'); g.rect(cx - 18, 30, 36, 30, '#1a1410');
+  boxr(g, cx - 38, 20, 76, 6, '#8a5f38', 2);                                        // mensola del camino
+  /* la BOCCA del camino è un ARCO, non un buco quadrato */
+  for (let k = 0; k < 32; k++) {
+    const y = 28 + k, w = k < 10 ? Math.round(20 * Math.sqrt(Math.max(0, 1 - ((10 - k) * (10 - k)) / 121))) : 20;
+    if (w <= 0) continue;
+    g.rect(cx - w, y, w * 2, 1, '#2a2016');
+    if (w > 2) g.rect(cx - w + 2, y, w * 2 - 4, 1, '#1a1410');
+  }
   const ff = Math.floor(t / 150) % 3;
   g.rect(cx - 12, 52, 24, 5, '#5c3d22'); g.rect(cx - 10, 49, 20, 4, '#6e4a2e');                // ceppi
   g.rect(cx - 10, 38 + ff, 20, 12 - ff, '#c9502a'); g.rect(cx - 7, 41 + (ff % 2), 14, 9, '#e8873a'); g.rect(cx - 3, 44, 6, 6, '#f6dc78');
@@ -476,14 +482,22 @@ export function drawInnProps(g, rw, rh, time) {
   /* sulla mensola: candele e un vaso */
   candle(g, cx - 32, 13, t); candle(g, cx + 28, 13, t); bottle(g, cx - 4, 10, 8, 11, '#4e8d7c', '#c9a227');
   /* trofeo: cranio su scudo di legno */
-  g.rect(28, 12, 24, 22, g.shade8('#8a5f38', 0.34)); g.rect(29, 13, 22, 20, '#8a5f38'); g.rect(29, 13, 22, 2, '#b07c4a');
+  boxr(g, 28, 12, 24, 22, '#8a5f38', 5);                                            // scudo del trofeo, sagomato
   g.rect(33, 16, 14, 11, '#ece5d2'); g.rect(35, 27, 10, 3, '#cbbfa4'); g.rect(35, 19, 3, 3, '#2a2016'); g.rect(42, 19, 3, 3, '#2a2016'); g.px(40, 23, '#2a2016');
   g.rect(30, 14, 3, 4, '#ece5d2'); g.rect(47, 14, 3, 4, '#ece5d2');
   /* mensola dei boccali e botte sul cavalletto */
   shelf(g, rw - 96, 22, 50);
   for (let i = 0; i < 4; i++) mug(g, rw - 92 + i * 12, 12, i % 2 ? '#c9a06a' : '#8f887a');
-  g.rect(rw - 44, 30, 28, 22, g.shade8('#8a5f38', 0.34)); g.rect(rw - 43, 31, 26, 20, '#8a5f38'); g.rect(rw - 43, 31, 26, 3, '#a97a4c');
-  g.rect(rw - 44, 36, 28, 2, '#4a4640'); g.rect(rw - 44, 46, 28, 2, '#4a4640');
+  /* BOTTE DEL SIDRO coricata: cerchio di doghe, pancia al centro */
+  {
+    const bx = rw - 30;
+    for (let k = 0; k < 22; k++) {
+      const u = k / 21, w = 13 + Math.round(Math.sin(u * Math.PI) * 2), y = 30 + k;
+      g.rect(bx - w, y, w * 2, 1, '#3a2a1c');
+      g.rect(bx - w + 1, y, w * 2 - 2, 1, k < 3 ? '#a97a4c' : '#8a5f38');
+      if (k === 5 || k === 16) g.rect(bx - w, y, w * 2, 1, '#4a4640');
+    }
+  }
   g.rect(rw - 40, 52, 3, 6, '#3a2a1c'); g.rect(rw - 23, 52, 3, 6, '#3a2a1c');
   g.rect(rw - 50, 39, 6, 3, '#c9a227'); if (Math.floor(t / 700) % 3 === 0) g.px(rw - 49, 43 + (Math.floor(t / 230) % 3), '#e8c34a');
 }
@@ -532,10 +546,13 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   /* tavoli con tovaglia, sgabelli, boccali e candela (28..96 e 224..292 × 96..136) */
   for (const ox of [30, 226]) {
     g.shadow(ox + 34, 136, 34);
-    for (const sx of [ox - 2, ox + 58]) { g.rect(sx, 112, 12, 16, g.shade8('#6e4a2e', 0.34)); g.rect(sx + 1, 113, 10, 5, '#6e4a2e'); g.rect(sx + 1, 113, 10, 1, '#8a5f38'); g.rect(sx + 2, 118, 2, 9, '#4c3320'); g.rect(sx + 8, 118, 2, 9, '#4c3320'); }
+    /* SGABELLI TONDI: la seduta è un disco, non un rettangolo */
+    for (const sx of [ox - 2, ox + 58]) { disco(g, sx + 6, 115, 7, 3, '#6e4a2e'); g.rect(sx + 2, 117, 2, 10, '#4c3320'); g.rect(sx + 8, 117, 2, 10, '#4c3320'); }
     gamba(g, ox + 6, 122, 5, 14); gamba(g, ox + 57, 122, 5, 14);
-    g.rect(ox + 2, 100, 64, 24, g.shade8('#5c3d22', 0.34)); g.rect(ox + 3, 101, 62, 22, '#5c3d22'); g.rect(ox + 3, 101, 62, 3, '#7a5636');
-    g.rect(ox + 12, 101, 44, 26, '#b9a57a'); g.rect(ox + 13, 101, 42, 24, '#e8dcc0'); g.rect(ox + 13, 101, 42, 2, '#f6efdd');
+    boxr(g, ox + 2, 100, 64, 24, '#5c3d22', 5, { light: '#7a5636' });                 // piano del tavolo, spigoli tondi
+    /* la TOVAGLIA cade sul bordo e l'orlo ondeggia */
+    boxr(g, ox + 12, 100, 44, 22, '#e8dcc0', 4, { line: '#b9a57a', light: '#f6efdd', dark: '#d3c4a2' });
+    for (let k = 0; k < 44; k++) { const d = 2 + ((k + ox) % 3); g.rect(ox + 12 + k, 122, 1, d, '#d3c4a2'); }
     for (let i = 0; i < 42; i += 6) g.rect(ox + 13 + i, 125, 3, 2, '#b9a57a');
     mug(g, ox + 18, 94, '#d4a24a');
     const st = Math.floor(t / 400) % 3; g.px(ox + 21, 90 - st, '#f6efdd'); g.px(ox + 23, 88 - st, '#e8e2d0');
@@ -685,21 +702,42 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
   pile.forEach((c, i) => { g.rect(cx - 66, 66 - i * 4, 26, 4, g.shade8(c, 0.55)); g.rect(cx - 65, 66 - i * 4, 24, 3, c); });
   disco(g, cx + 46, 66, 6, 4, '#c65a54');                                     // puntaspilli TONDO g.px(cx + 43, 61, '#8f9aa3'); g.px(cx + 48, 60, '#8f9aa3'); g.px(cx + 46, 62, '#e8c34a');
   g.rect(cx + 58, 66, 12, 2, '#8f9aa3'); g.rect(cx + 70, 64, 4, 4, '#2a2016');
-  /* MANICHINO vestito (32..84 × 96..132) */
-  g.shadow(58, 134, 16);
-  disco(g, 58, 131, 11, 3, '#8f887a');                                        // piede tondo del manichino
-  g.rect(56, 116, 4, 15, g.shade8('#8f887a', 0.34)); g.rect(57, 116, 2, 15, '#8f887a');
-  disco(g, 58, 87, 7, 5, '#e0c49a'); g.rect(56, 84, 4, 4, '#c9a97e');         // pomello e collo del manichino
-  /* il BUSTO è un volume tondo: spalle arrotondate e vita stretta, non due rettangoli */
-  for (let k = 0; k < 28; k++) {
-    const u = k / 27, w = Math.round(15 + Math.sin(u * Math.PI * 0.9) * 5 - u * 2);
-    const y = 90 + k, c = k < 15 ? '#e8a0b8' : '#d9869f';
-    g.rect(58 - w, y, w * 2, 1, '#6a2e48');
-    g.rect(58 - w + 1, y, w * 2 - 2, 1, k < 2 ? '#f4c4d4' : c);
+  /* MANICHINO = un OMINO DI LEGNO CON L'ABITO ADDOSSO: testa tonda senza faccia, spalle,
+     maniche corte, vita e gonna che si apre. Il busto-e-basta sembrava una campana rosa
+     (segnalato): un manichino si riconosce perché ha la forma di una persona. */
+  {
+    const cx2 = 58, LEG = '#d8b48a', LEGD = '#a9825a', AB = '#e8a0b8', ABD = '#cf7b96', LN = '#6a2e48';
+    g.shadow(cx2, 134, 16);
+    disco(g, cx2, 131, 11, 3, '#8f887a');                                      // base tonda
+    g.rect(cx2 - 2, 114, 4, 17, LEGD); g.rect(cx2 - 1, 114, 2, 17, '#8f887a'); // asta
+    disco(g, cx2, 80, 6, 7, LEG, { line: LEGD });                              // testa di legno, senza faccia
+    g.rect(cx2 - 2, 86, 4, 4, LEGD);                                           // collo
+    /* SPALLE E MANICHE: il taglio dell'abito parte da qui */
+    for (let k = 0; k < 8; k++) {
+      const w = 13 - Math.abs(k - 3), y = 90 + k;
+      g.rect(cx2 - w, y, w * 2, 1, LN);
+      g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k < 2 ? g.shade8(AB, 1.14) : AB);
+    }
+    for (const sgn of [-1, 1]) {                                               // il braccio di legno che spunta dalla manica
+      const bx = cx2 + sgn * 13;
+      g.rect(sgn < 0 ? bx - 3 : bx, 97, 3, 6, LEGD); g.rect(sgn < 0 ? bx - 2 : bx, 97, 2, 5, LEG);
+    }
+    /* BUSTO che si stringe in vita e GONNA che si apre: due tronchi di cono, non una palla */
+    for (let k = 0; k < 14; k++) {
+      const w = 12 - Math.round(k * 0.35), y = 98 + k;
+      g.rect(cx2 - w, y, w * 2, 1, LN); g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k > 10 ? ABD : AB);
+    }
+    for (let k = 0; k < 16; k++) {
+      const w = 8 + Math.round(k * 0.75), y = 112 + k;
+      const orlo = k === 15 && ((y + w) % 3 === 0);                            // l'orlo non è una riga netta
+      if (orlo) continue;
+      g.rect(cx2 - w, y, w * 2, 1, LN); g.rect(cx2 - w + 1, y, w * 2 - 2, 1, k < 3 ? AB : ABD);
+    }
+    g.rect(cx2 - 3, 92, 6, 3, '#f3ecda');                                      // collo dell'abito
+    for (const by of [101, 105, 109]) g.px(cx2, by, '#c9a227');                // bottoncini
+    for (let i = 0; i < 5; i++) g.rect(cx2 - 10 + i * 5, 127, 3, 1, '#f3ecda'); // merletto sull'orlo
+    g.rect(cx2 - 16, 94, 10, 2, '#e8c34a'); g.rect(cx2 - 14, 96, 2, 12, '#e8c34a');   // metro appeso alla spalla
   }
-  for (let i = 0; i < 38; i += 4) g.rect(39 + i, 116, 2, 2, '#f3ecda');
-  g.rect(55, 91, 6, 3, '#f3ecda'); g.px(58, 97, '#c9a227'); g.px(58, 101, '#c9a227');
-  g.rect(40, 94, 10, 2, '#e8c34a'); g.rect(44, 96, 2, 12, '#e8c34a');                                             // metro sulle spalle
   /* cesto di gomitoli */
   boxr(g, 88, 118, 24, 14, '#b07c4a', 4);                                     // cesto: bocca tonda
   for (let i = 0; i < 22; i += 4) g.rect(89 + i, 119, 2, 12, '#8a5f38');
@@ -770,7 +808,7 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
 export function drawLabProps(g, rw, rh, time) {
   const t = time || 0, bx = rw / 2 - 54;
   /* lavagna con lo scheletro e le formule */
-  g.rect(bx, 4, 108, 42, g.shade8('#8a5f38', 0.34)); g.rect(bx + 1, 5, 106, 40, '#8a5f38'); g.rect(bx + 1, 5, 106, 1, '#b07c4a');
+  boxr(g, bx, 4, 108, 42, '#8a5f38', 3);                                            // cornice della lavagna
   g.rect(bx + 4, 8, 100, 34, '#2e3d33'); g.rect(bx + 4, 8, 100, 2, '#27342b');
   const ch = '#e8e2d0';
   g.rect(bx + 12, 18, 10, 7, ch); g.rect(bx + 14, 20, 2, 2, '#2e3d33'); g.rect(bx + 22, 22, 22, 2, ch);
@@ -783,7 +821,8 @@ export function drawLabProps(g, rw, rh, time) {
   shelf(g, 18, 46, 68);
   for (let i = 0; i < 3; i++) {
     const jx = 22 + i * 21;
-    g.rect(jx, 24, 16, 22, '#3f5a6a'); g.rect(jx + 1, 25, 14, 21, '#bfe3ef'); g.rect(jx + 1, 22, 14, 3, '#5a5248'); g.rect(jx + 1, 22, 14, 1, '#8f887a');
+    boxr(g, jx, 24, 16, 22, '#bfe3ef', 4, { line: '#3f5a6a', dark: '#9cc8d8' });      // barattolo: vetro con spalle tonde
+    disco(g, jx + 8, 23, 8, 3, '#5a5248');                                            // tappo
     g.rect(jx + 4, 31, 8, 10, ['#5fa04e', '#c65a54', '#8a6ab0'][i]); g.rect(jx + 5, 32, 2, 3, '#f3ecda');
     g.rect(jx + 2, 26, 2, 16, 'rgba(255,255,255,.5)');
     const jb = (Math.floor(t / 300) + i) % 5; g.px(jx + 11, 43 - jb * 3, '#e8f6fb');
@@ -926,7 +965,9 @@ export function drawFurnitureProps(g, rw, rh, time) {
       else if (motivo === 'foglie') { g.rect(sx + xx - 1, yy, 3, 2, c2); g.px(sx + xx, yy + 2, g.shade8(c2, 0.7)); }
       else g.px(sx + xx, yy + 1, c2);
     }
-    g.rect(sx + 1, 8 + h - 3, 14, 3, g.shade8(c, 0.8)); g.rect(sx + 3, 8 + h, 10, 2, g.shade8(c, 0.62));   // bordo arrotolato
+    /* il rotolo finisce ARROTOLATO e l'orlo ondeggia: erano quattordici pixel tagliati netti */
+    g.rect(sx + 1, 8 + h - 3, 14, 3, g.shade8(c, 0.8));
+    for (let k = 0; k < 14; k++) { const d = 1 + Math.round(Math.abs(Math.sin((k + i * 2) * 0.8)) * 2); g.rect(sx + 1 + k, 8 + h, 1, d, g.shade8(c, 0.62)); }
   });
   /* pannello degli attrezzi a sinistra: sega, martello, squadra, pialla */
   g.rect(18, 10, 70, 40, g.shade8('#b8955f', 0.34)); g.rect(19, 11, 68, 38, '#b8955f');
@@ -949,19 +990,21 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
   g.rect(cx - 6, 66, 14, 2, '#e8c34a'); g.px(cx + 8, 66, g.shade8('#e8a0b8', 0.34)); g.px(cx - 6, 66, '#e8a0b8');
   g.rect(cx + 44, 56, 3, 14, '#6e4a2e'); g.rect(cx + 44, 62, 12, 3, '#a97a4c'); g.rect(cx + 53, 65, 3, 5, '#6e4a2e'); g.rect(cx + 44, 56, 3, 1, '#b07c4a');
   /* POLTRONA in esposizione su un tappeto, con lampada da terra (24..92 × 92..136) */
-  g.rect(22, 112, 70, 26, '#5c2a26'); g.rect(23, 113, 68, 24, '#b8574a'); g.rect(26, 116, 62, 18, '#e0a24a'); g.rect(27, 117, 60, 16, '#a8453c');
+  boxr(g, 22, 112, 70, 26, '#b8574a', 4, { line: '#5c2a26', light: '#b8574a', dark: '#b8574a', piatto: true });
+  boxr(g, 26, 116, 62, 18, '#a8453c', 3, { line: '#e0a24a', light: '#a8453c', dark: '#a8453c', piatto: true });
   for (let i = 25; i < 91; i += 3) { g.px(i, 111, '#e8dcc0'); g.px(i, 138, '#e8dcc0'); }
   g.shadow(48, 132, 20);
-  g.rect(30, 92, 34, 24, '#2f4a2a'); g.rect(31, 93, 32, 22, '#5f9a52'); g.rect(31, 93, 32, 3, '#7ec069');                                   // schienale
+  boxr(g, 30, 91, 34, 25, '#5f9a52', 7, { line: '#2f4a2a', light: '#7ec069', dark: '#4a7f40' });   // schienale imbottito
   for (const bx of [39, 47, 55]) g.px(bx, 100, '#3f6a38');
-  g.rect(26, 104, 8, 22, '#2f4a2a'); g.rect(27, 105, 6, 20, '#4f8a45'); g.rect(27, 105, 6, 2, '#7ec069');                                    // braccioli
-  g.rect(60, 104, 8, 22, '#2f4a2a'); g.rect(61, 105, 6, 20, '#4f8a45'); g.rect(61, 105, 6, 2, '#7ec069');
-  g.rect(32, 112, 30, 12, '#2f4a2a'); g.rect(33, 113, 28, 10, '#6aa85c'); g.rect(33, 113, 28, 2, '#8fd07a');                                 // cuscino
+  boxr(g, 26, 103, 9, 23, '#4f8a45', 4, { line: '#2f4a2a', light: '#7ec069' });                   // braccioli a rullo
+  boxr(g, 60, 103, 9, 23, '#4f8a45', 4, { line: '#2f4a2a', light: '#7ec069' });
+  boxr(g, 32, 111, 30, 13, '#6aa85c', 5, { line: '#2f4a2a', light: '#8fd07a', dark: '#4f8a45' }); // cuscino
   g.rect(28, 126, 4, 6, '#3a2a1c'); g.rect(62, 126, 4, 6, '#3a2a1c');
-  g.rect(36, 88, 22, 6, g.shade8('#f3ecda', 0.34)); g.rect(37, 89, 20, 4, '#f3ecda'); g.rect(44, 89, 6, 4, '#c9a227');                                        // cartellino del prezzo
+  boxr(g, 36, 88, 22, 6, '#f3ecda', 2); g.rect(44, 89, 6, 4, '#c9a227');                                        // cartellino del prezzo
   const on = Math.floor(t / 2000) % 5 !== 0;
   g.rect(80, 94, 1, 38, g.shade8('#8f887a', 0.34)); g.rect(81, 94, 1, 38, '#8f887a'); g.rect(75, 132, 12, 3, '#2a2016');
-  g.rect(73, 82, 16, 13, g.shade8('#f6dc78', 0.34)); g.rect(74, 83, 14, 11, on ? '#f6dc78' : '#e8dcc0'); g.rect(74, 83, 14, 2, '#fff3c8');
+  /* PARALUME a tronco di cono: il rettangolo giallo sembrava una scatola accesa */
+  for (let k = 0; k < 13; k++) { const w = 5 + k, y = 82 + k; g.rect(81 - w, y, w * 2, 1, g.shade8('#f6dc78', 0.34)); g.rect(81 - w + 1, y, w * 2 - 2, 1, k < 2 ? '#fff3c8' : (on ? '#f6dc78' : '#e8dcc0')); }
   if (on) g.rect(66, 96, 30, 14, 'rgba(255,230,150,.10)');
   /* BANCO DA FALEGNAME con morsa, pialla e trucioli (228..296 × 92..136) */
   g.shadow(262, 136, 36);
