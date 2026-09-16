@@ -1504,7 +1504,10 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
   box-shadow:0 0 0 3px var(--c-deep);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
 #mp-sub{position:absolute;left:14px;top:18px;margin:0;color:var(--c-line-3)}
 /* la ✕ della carta è quella di tutte le altre finestre (niente sigillo rosso: sembrava la X del tesoro) */
-.mp-x{position:absolute;right:12px;top:8px;width:42px;height:42px;border-radius:8px;border:2px solid var(--c-line);background:var(--c-ink);color:var(--c-wood);box-shadow:0 0 0 3px var(--c-deep);font-size:16px}
+/* LA X È UNA SOLA IN TUTTO IL GIOCO: stessa misura, stesso bordo, stesso colore di `.st .x`
+   (modali, zaino, libro). Qui aveva in più un alone scuro di 3px e sembrava un altro bottone. */
+.mp-x{position:absolute;right:12px;top:8px;width:42px;height:42px;min-width:42px;min-height:42px;border-radius:8px;
+  border:2px solid var(--c-line);background:var(--c-ink);color:var(--c-wood);box-shadow:none;font-weight:800;font-size:16px}
 .mp-x .pxi{width:16px;height:16px}
 #mapcv{box-shadow:0 0 0 2px rgba(92,58,24,.5)}
 .mp-zoom button{border-radius:50%;background:var(--c-parch-2);color:var(--c-line-3);box-shadow:0 0 0 2px var(--c-line-3)}

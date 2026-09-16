@@ -2333,7 +2333,10 @@ export function revertLook() { if (lookOrig) { S.look = { ...lookOrig }; applyLo
    5s persisteva l'anteprima). Chiudere/ESC/fuori già ripristina (closeModal→revertLook). */
 export function lookPreviewPending() { return !!lookOrig; }
 /* campi cambiati DA PAGARE: diversi dall'originale, escluso "togliere il cappello" (gratis) */
-export function lookPaidFields(orig, cur, fields) { return fields.filter(f => cur[f] !== orig[f] && !(f === 'hatStyle' && cur[f] === 'none')); }
+/* LA PELLE NON SI PAGA: è chi sei, non un taglio di capelli. Si sceglie nell'editor iniziale
+   gratis e cambiarla dal barbiere resta gratis; si pagano taglio, colore e vestiti.
+   Togliere il cappello è gratis anche lui. */
+export function lookPaidFields(orig, cur, fields) { return fields.filter(f => cur[f] !== orig[f] && f !== 'skin' && !(f === 'hatStyle' && cur[f] === 'none')); }
 function changedPaid(fields) { return lookPaidFields(lookOrig, S.look, fields); }
 /* cosmetici bloccati attualmente INDOSSATI → da sbloccare alla conferma */
 function pendingUnlocks() {
@@ -2400,8 +2403,9 @@ function renderBarber() {
   /* LA PELLE si cambia QUI. Prima si sceglieva solo nell'editor della prima partita: chi
      cambiava idea dopo dieci minuti non aveva più modo di tornare indietro, e non c'è ragione
      perché il proprio aspetto sia una decisione irreversibile presa prima di giocare.
-     Stesso patto di tutto il resto del barbiere: si prova gratis, si paga alla conferma. */
-  h += `<div class="bighead">${lookLabel('skin')}</div>` + swatchRow('skin', LOOKS.skin);
+     La pelle è l'unica cosa GRATIS del barbiere (vedi lookPaidFields): non è un servizio, è
+     tornare a somigliarsi. */
+  h += `<div class="bighead">${lookLabel('skin')} · ${tr('gratis', 'free')}</div>` + swatchRow('skin', LOOKS.skin);
   const BF = ['hairStyle', 'hairColor', 'skin'];
   h += confirmBar(BF);
   mBody.innerHTML = withIcons(h); wireLook(false, renderBarber); wireConfirm(BF, renderBarber); drawPreview(true);
