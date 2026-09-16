@@ -156,12 +156,25 @@ const DRAW = {
   punk: {
     /* cresta: di fronte si vede STRETTA e alta, a punte; i lati sono rasati (ombra corta) */
     down(g) {
+      /* i lati sono RASATI, non pelati: un velo scuro sulla calotta. Senza, di fronte la testa
+         era nuda e da dietro invece scura: due teste diverse. */
+      [[0, 11], [1, 10], [2, 9], [3, 9]].forEach(([y, x]) => g.span(y, x, 31 - x, 'A', { t: 2 }));
+      for (let y = 4; y <= 6; y++) { g.span(y, 7, 8, 'A', { t: 2 }); g.span(y, 23, 24, 'A', { t: 2 }); }
+      stubble(g);
       for (const [x, yt] of [[13.5, -7], [15.5, -9], [17.5, -7]]) spike(g, x, 1, x + (x - 15.5) * 0.3, yt, 2.2);
-      g.fillBlock(13, 1, 18, 3, 'A', 1);
+      g.fillBlock(13, 0, 18, 4, 'A', 1);
     },
+    /* DA DIETRO la cresta è una striscia che scende dalla sommità e si ferma a metà nuca, e i
+       lati NON sono nudi: c'è la rasatura, un velo scuro sul cranio. Prima la striscia arrivava
+       fino al collo e il resto restava pelle: si leggeva come due colori appiccicati sulla nuca
+       (segnalato con foto). */
     up(g) {
       for (const [x, yt] of [[13.5, -7], [15.5, -9], [17.5, -7]]) spike(g, x, 1, x + (x - 15.5) * 0.3, yt, 2.2);
-      g.fillBlock(13, 1, 18, 14, 'A', 1); strands(g, [[15, 1, 15, 14]]);
+      [[0, 11], [1, 9], [2, 8], [3, 7]].forEach(([y, x]) => g.span(y, x, 31 - x, 'A', { t: 2 }));
+      for (let y = 4; y <= 10; y++) g.span(y, y > 8 ? 8 : 6, y > 8 ? 23 : 25, 'A', { t: 2 });
+      stubble(g);
+      g.fillBlock(13, 0, 18, 9, 'A', 1); strands(g, [[15, 1, 15, 8]]);
+      g.span(10, 13, 18, 'A', { t: 2 });
     },
     /* di profilo la cresta è una PINNA che segue la curva della testa dalla fronte alla nuca, con
        punte che salgono all'indietro, più alte al centro. Prima era un pettine basso e piatto sopra

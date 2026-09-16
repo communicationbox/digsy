@@ -4446,6 +4446,40 @@ sprites.applyLook();
   S.companion = keep; comp9.resetCompanionTrail();
 }
 
+/* ---------- il compagno non resta incastrato ----------
+   il passo che finisce in un solido viene rifiutato, e senza uno sblocco il compagno restava lì
+   per sempre: il bersaglio si allontanava ma ogni passo continuava a sbattere («il buddy si
+   blocca sulle case»). Qui lo si mette DENTRO un edificio e si controlla che ne esca. */
+{
+  const S = state.S, P = state.P;
+  const comp10 = await import('../src/companion.js');
+  const { COMP } = comp10;
+  /* una casella solida di città con attorno il posto per stare */
+  /* un muro di città con una striscia LIBERA davanti, dove Digsy possa camminare */
+  let muro = null;
+  for (let r = 1; r < 400 && !muro; r++) for (let x = -r; x <= r && !muro; x++)
+    for (const y of [r, -r]) {
+      if (muro || !world.isSolidTile(x, y) || !world.townInfo(x, y)) continue;
+      let libero = true;
+      for (let k = 0; k < 8 && libero; k++) if (world.isSolidTile(x + k, y + 3)) libero = false;
+      if (libero) muro = [x, y];
+    }
+  const keep = S.companion, kx = P.x, ky = P.y;
+  S.companion = { key: 'test10', skull: 'abissodonte', torso: 'abissodonte', leg: 'abissodonte', q: 'raro' };
+  comp10.resetCompanionTrail(); COMP.job = null;
+  if (muro) {
+    P.x = muro[0] * TS + 16; P.y = (muro[1] + 3) * TS;          // Digsy appena sotto l'edificio
+    comp10.updateCompanion(1 / 30, false);
+    for (let i = 0; i < 40; i++) { P.x += 1.5; comp10.updateCompanion(1 / 30, false); }
+    COMP.x = muro[0] * TS + 16; COMP.y = muro[1] * TS + 16;     // lo piantiamo dentro il muro
+    for (let i = 0; i < 40; i++) { P.x += 1.5; comp10.updateCompanion(1 / 30, false); }
+    const tx = Math.floor(COMP.x / TS), ty = Math.floor((COMP.y + 13) / TS);
+    check('il compagno piantato in un edificio ne esce da solo', !world.isSolidTile(tx, ty), 'resta a ' + tx + ',' + ty);
+    check('e torna vicino a Digsy', Math.hypot(COMP.x - P.x, COMP.y - P.y) < TS * 4, Math.round(Math.hypot(COMP.x - P.x, COMP.y - P.y)) + 'px');
+  } else check('il compagno piantato in un edificio ne esce da solo', false, 'nessun edificio trovato per la prova');
+  S.companion = keep; P.x = kx; P.y = ky; comp10.resetCompanionTrail();
+}
+
 /* ---------- salvataggio a pezzi: l'autosave non rifà tutto ogni 5 secondi ----------
    con stress=5 impacchettare mappa e scavi da capo costava 300 ms a ogni autosave ("ogni tanto tira
    una laggata"), e gli scavi in chiaro erano 10 MB. Qui: stesso risultato del calcolo da capo dopo

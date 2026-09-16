@@ -17,7 +17,7 @@ import { isSolidTile, baseTerrain, townInfo, houseDoorAt, DEEP, WATER } from './
 
 /* job/cool/fx pilotati dal raccoglitore leggendario (gameplay.companionWorkTick, Fase 1):
    job = lavoro in corso · cool = pausa fra un fossile e l'altro · fx = "+fossile" che sale. */
-export const COMP = { x: 0, y: 0, dir: -1, face: 'right', anim: 0, init: false, job: null, cool: 0, fx: [] };
+export const COMP = { x: 0, y: 0, dir: -1, face: 'right', anim: 0, init: false, job: null, cool: 0, fx: [], stuck: 0 };
 
 /* i cinque tipi (fonti). 'any'/assente → terra (lo Scavatore è il default sempre valido) */
 export const COMP_TYPES = ['terra', 'acqua', 'albero', 'roccia', 'grotta'];
@@ -123,6 +123,12 @@ export function updateCompanion(dt, mounted) {
     if (!compBlocked(sx2, ty)) tx = sx2;
     else if (!compBlocked(tx - side * 22, ty)) tx -= side * 22;
   }
+  /* se si ritrova DENTRO un solido (spinto lì da un salto, o perché la casa è comparsa mentre
+     era fermo) non ci si prova nemmeno a camminare: si torna subito sulla scia */
+  if (compBlocked(COMP.x, COMP.y)) {
+    const p0 = puntoLiberoSullaScia() || freeSpotNear(P.x, P.y);
+    COMP.x = p0.x; COMP.y = p0.y; COMP.stuck = 0;
+  }
   const dx = tx - COMP.x, dy = ty - COMP.y, d = Math.hypot(dx, dy);
   /* segue SEMPRE, con passo min(d, velocità): tocca il bersaglio senza scavalcarlo. La vecchia
      deadzone `d > 2` faceva stop-and-go attorno al bersaglio mentre il player camminava → la
@@ -131,11 +137,23 @@ export function updateCompanion(dt, mounted) {
   if (d > 0.01) {
     const sp = Math.min(d, (d > TS * 3 ? 180 : 90) * dt);
     const nx = COMP.x + dx / d * sp, ny = COMP.y + dy / d * sp;
+    const px0 = COMP.x, py0 = COMP.y;
     /* un passo che finirebbe in un solido non si fa (può succedere solo tagliando un angolo
        fra due punti della scia): si prova un asse per volta, altrimenti si resta */
     if (!compBlocked(nx, ny)) { COMP.x = nx; COMP.y = ny; }
     else if (!compBlocked(nx, COMP.y)) COMP.x = nx;
     else if (!compBlocked(COMP.x, ny)) COMP.y = ny;
+    /* SBLOCCO. Se il passo non riesce (angolo di una casa, spigolo di una staccionata) il
+       compagno resta lì e non riparte più: il bersaglio si allontana ma ogni passo verso di lui
+       continua a finire nel solido — «il buddy si blocca sulle case» (segnalato). Dopo mezzo
+       secondo di immobilità, o se si ritrova dentro un solido, si riporta sulla SCIA: il punto
+       più recente dove Digsy è passato davvero e che sia libero. */
+    const fermo = Math.hypot(COMP.x - px0, COMP.y - py0) < sp * 0.2;
+    COMP.stuck = fermo && d > 3 ? COMP.stuck + dt : 0;
+    if (COMP.stuck > 0.5) {
+      const p2 = puntoLiberoSullaScia() || freeSpotNear(P.x, P.y);
+      COMP.x = p2.x; COMP.y = p2.y; COMP.stuck = 0;
+    }
     if (d > 0.5) {                         // anima/gira solo quando si muove davvero (niente flicker da fermo)
       COMP.anim += dt;
       /* ISTERESI sul verso: cambio SOLO se un asse domina di ×1.3. In diagonale dx≈dy: senza
@@ -153,7 +171,13 @@ const TRAIL_MAX = 80;
 /* a che distanza (di cammino, non in linea d'aria) sta il compagno: poco più di una casella,
    così non si sovrappone a Digsy ma resta vicino */
 export const FOLLOW_PX = 40;
-export function resetCompanionTrail() { trail.length = 0; COMP.init = false; }
+export function resetCompanionTrail() { trail.length = 0; COMP.init = false; COMP.stuck = 0; }
+/* il punto della scia più recente dove il compagno ci sta: è dove Digsy è passato davvero,
+   quindi è raggiungibile, ed è vicino a lui */
+function puntoLiberoSullaScia() {
+  for (let i = trail.length - 1; i >= 0; i--) if (!compBlocked(trail[i].x, trail[i].y)) return trail[i];
+  return null;
+}
 function trailPointBehind(dist) {
   let acc = 0;
   for (let i = trail.length - 1; i > 0; i--) {
