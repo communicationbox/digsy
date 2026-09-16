@@ -1019,21 +1019,30 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
      rigira la ghianda fra le zampine */
   {
     const t = time || 0, ps = pet && pet.kind === 'scoiattolo';
-    g.shadow(38, 206, 16);
-    g.rect(24, 190, 28, 16, g.shade8('#8a5f38', 0.34)); g.rect(25, 191, 26, 14, '#8a5f38'); g.rect(25, 189, 26, 4, g.shade8('#dcb880', 0.34)); g.rect(26, 190, 24, 2, '#dcb880'); g.rect(33, 190, 10, 2, '#c49a63');
+    const cx2 = 38;
+    g.shadow(cx2, 206, 16);
+    boxr(g, 24, 189, 28, 17, '#8a5f38', 3); disco(g, cx2, 190, 13, 3, '#dcb880'); g.rect(33, 189, 10, 2, '#c49a63');   // ceppo
+    /* SCOIATTOLO DI FRONTE: guarda chi entra, tiene la ghianda con tutte e due le zampine e la
+       coda gli spunta dietro. Di profilo dava le spalle al giocatore (segnalato con foto). */
     const up = ps ? 3 : 0, tw = Math.floor((ps ? pet.t * 8 : t / 700)) % 2;
     const c = critter(g, '#3a2418');
-    c.oval(46, 174 - up - tw, 6, 11, tone3('#f0a060', '#d0742e', '#a8561e'));               // coda a pennacchio
-    c.oval(48, 164 - up - tw, 4, 4, '#d0742e');                                               // ricciolo in cima
-    c.oval(36, 182 - up, 6.5, 7, tone3('#d8803a', '#b55a26', '#8a4218'));                   // corpo
-    c.oval(31, 172 - up, 5.5, 5, tone3('#d8803a', '#b55a26', '#8a4218'));                   // testa
-    c.oval(28, 167 - up, 1.6, 2.2, '#b55a26'); c.oval(33, 166 - up, 1.6, 2.2, '#b55a26');     // orecchie
+    /* misure da SCOIATTOLO: sta su un ceppo e Digsy è alto trentaquattro pixel, quindi lui
+       ne fa una ventina scarsi, coda compresa */
+    c.oval(cx2 + 7, 180 - up - tw, 4.5, 8, tone3('#f0a060', '#d0742e', '#a8561e'));           // coda a pennacchio, dietro
+    c.oval(cx2 + 8, 172 - up - tw, 3, 3, '#d0742e');                                          // ricciolo in cima
+    c.oval(cx2, 184 - up, 5.5, 6, tone3('#d8803a', '#b55a26', '#8a4218'));                    // corpo
+    c.oval(cx2, 177 - up, 4.5, 4.3, tone3('#d8803a', '#b55a26', '#8a4218'));                  // testa
+    c.oval(cx2 - 4, 173 - up, 1.5, 2, '#b55a26'); c.oval(cx2 + 4, 173 - up, 1.5, 2, '#b55a26');   // orecchie
+    c.oval(cx2 - 3, 188 - up, 1.8, 1.5, '#b55a26'); c.oval(cx2 + 3, 188 - up, 1.8, 1.5, '#b55a26');   // zampine
     c.paint();
-    g.rect(34, 181 - up, 5, 7, '#f2d2a8');                                                    // pancia chiara
-    g.rect(29, 171 - up, 2, 2, g.shade8('#ffffff', 0.34)); g.px(29, 171 - up, '#ffffff'); g.px(26, 174 - up, '#3a2418');
-    const ax = ps ? 31 + (Math.floor(pet.t * 6) % 2) : 32;
-    const a = critter(g, '#3a2418'); a.oval(ax + 2, 183 - up, 2.5, 3, '#b8843a'); a.paint(); g.rect(ax, 180 - up, 5, 2, '#6e4a2e');   // ghianda
-    if (ps) hearts(g, 36, 156, pet);
+    g.rect(cx2 - 2, 183 - up, 4, 6, '#f2d2a8');                                                // pancia chiara
+    for (const ex of [cx2 - 3, cx2 + 2]) { g.rect(ex, 176 - up, 2, 2, '#3a2418'); g.px(ex, 176 - up, '#ffffff'); }   // due occhi
+    g.px(cx2, 179 - up, '#3a2418'); g.px(cx2 - 1, 180 - up, '#3a2418'); g.px(cx2 + 1, 180 - up, '#3a2418');           // musetto
+    /* la GHIANDA fra le zampine, rigirata quando lo coccoli */
+    const gh = ps ? (Math.floor(pet.t * 6) % 2) : 0;
+    const a2 = critter(g, '#3a2418'); a2.oval(cx2, 187 - up + gh, 2.2, 2.6, '#b8843a'); a2.paint();
+    g.rect(cx2 - 2, 185 - up + gh, 4, 2, '#6e4a2e');
+    if (ps) hearts(g, cx2, 162, pet);
   }
 }
 
