@@ -1,10 +1,49 @@
 /* Stub DOM/canvas minimale per far girare i moduli di gioco in Node */
 export function installStubs() {
   const els = {};
-  const ctxStub = new Proxy({ fillStyle: '' }, {
+  /* La canvas finta di solito butta via tutto. Ma alcuni controlli hanno bisogno dei PIXEL
+     VERI — per esempio la regola "se ha il contorno si interagisce, se non ce l'ha è
+     paesaggio": senza leggere il disegno si può solo sperare che sia giusto. Con REC acceso
+     fillRect dipinge davvero dentro un buffer RGBA, con tanto di trasparenza. */
+  const REC = { on: false, w: 0, h: 0, buf: null };
+  const parse = c => {
+    if (typeof c !== 'string') return null;
+    if (c[0] === '#') {
+      const h = c.length === 4 ? c[1] + c[1] + c[2] + c[2] + c[3] + c[3] : c.slice(1, 7);
+      const n = parseInt(h, 16);
+      return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 1];
+    }
+    const m = c.match(/rgba?\(([^)]+)\)/);
+    if (!m) return null;
+    const v = m[1].split(',').map(Number);
+    return [v[0] | 0, v[1] | 0, v[2] | 0, v.length > 3 ? v[3] : 1];
+  };
+  const ctxStub = new Proxy({
+    fillStyle: '',
+    fillRect(x, y, w, h) {
+      if (!REC.on) return;
+      const col = parse(this.fillStyle); if (!col) return;
+      const [r, g, b, a] = col;
+      x = Math.round(x); y = Math.round(y); w = Math.round(w); h = Math.round(h);
+      for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) {
+        if (i < 0 || j < 0 || i >= REC.w || j >= REC.h) continue;
+        const o = (j * REC.w + i) * 4, da = REC.buf[o + 3] / 255;
+        const na = a + da * (1 - a);                       // sopra il fondo, come sulla canvas vera
+        if (na <= 0) continue;
+        REC.buf[o] = (r * a + REC.buf[o] * da * (1 - a)) / na;
+        REC.buf[o + 1] = (g * a + REC.buf[o + 1] * da * (1 - a)) / na;
+        REC.buf[o + 2] = (b * a + REC.buf[o + 2] * da * (1 - a)) / na;
+        REC.buf[o + 3] = Math.round(na * 255);
+      }
+    },
+  }, {
     get: (t, k) => k in t ? t[k] : () => {},
     set: (t, k, v) => { t[k] = v; return true; },
   });
+  globalThis.__rec = {
+    start(w, h) { REC.on = true; REC.w = w; REC.h = h; REC.buf = new Uint8ClampedArray(w * h * 4); },
+    stop() { REC.on = false; return { w: REC.w, h: REC.h, buf: REC.buf }; },
+  };
   /* gli elementi RICORDANO i listener e le classi: senza, i test non potevano simulare un
      tasto o un tocco, e moduli come input.js restavano completamente non provati */
   const el = id => {

@@ -8,7 +8,7 @@
     "build": "vite build",
     "watch": "vite build --watch",
     "preview": "vite preview",
-    "test": "node tests/run.mjs",
+    "test": "node tests/run.mjs && node tests/lineart.mjs",
     "e2e": "node tests/e2e.mjs",
     "cov": "node tests/coverage.mjs",
     "stress": "node --expose-gc tests/stress.mjs",
@@ -21,7 +21,8 @@
     "tester": "node tests/tester.mjs",
     "mobile": "node tests/mobile.mjs",
     "pacing": "node tests/pacing.mjs",
-    "partita": "node tests/partita.mjs"
+    "partita": "node tests/partita.mjs",
+    "lineart": "node tests/lineart.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"

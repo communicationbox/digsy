@@ -76,26 +76,30 @@ export function fountainArt(g, time) {
 
 /* PANCHINA: assi di legno su gambe di ferro battuto */
 export function benchArt(g) {
-  /* PANCHINA: gambe di ferro tonde, assi con le teste smussate. Prima erano rettangoli
-     sovrapposti e gli spigoli vivi la facevano sembrare una cassa. */
+  /* PANCHINA: gambe di ferro tonde, assi con le teste smussate. SENZA CONTORNO — nel gioco la
+     linea attorno vuol dire "ci puoi fare qualcosa", e su una panchina non si fa niente. A
+     tenerla staccata dal lastricato bastano l'ombra di contatto e i toni più cupi del legno:
+     è la stessa regola dei fiori del prato e delle rotoballe. */
   shadowE(g, 16, 28, 14, 3);
-  for (const lx of [5, 26]) volume(g, [DC(lx, 27, lx, 13, 1), DE(lx, 28, 3, 1)], '#4a4a52', '#6e6e78', '#2e2e36');   // gambe di ferro, sottili
+  for (const lx of [5, 26]) volume(g, [DC(lx, 27, lx, 13, 1), DE(lx, 28, 3, 1)], '#4a4a52', '#6e6e78', '#2e2e36', null);   // gambe di ferro, sottili
   /* le ASSI sono legno segato: spigoli vivi. Si stonda solo il ferro battuto delle gambe e dei
      braccioli — dove non serve stondare, gli spigoli restano. */
-  volume(g, [DR(2, 4, 28, 4)], '#c79a66', '#e0c090', '#a97a4c');           // schienale, asse alta
-  volume(g, [DR(2, 9, 28, 4)], '#b8895a', '#d0a878', '#96683e');           // schienale, asse bassa
-  volume(g, [DR(1, 15, 30, 5)], '#dcb27e', '#f0cc98', '#b8895a');          // seduta
-  volume(g, [DR(1, 20, 30, 3)], '#c79a66', '#dcb27e', '#a97a4c');
-  for (const ax of [1, 28]) volume(g, [DC(ax + 1, 10, ax + 1, 16, 1)], '#4a4a52', '#6e6e78', '#2e2e36');   // braccioli, sottili
+  volume(g, [DR(2, 4, 28, 4)], '#a97a4c', '#c79a66', '#7d5630', null);     // schienale, asse alta
+  volume(g, [DR(2, 9, 28, 4)], '#9a6c42', '#b8895a', '#6f4a28', null);     // schienale, asse bassa
+  volume(g, [DR(1, 15, 30, 5)], '#c09262', '#dcb27e', '#8a5f38', null);    // seduta
+  volume(g, [DR(1, 20, 30, 3)], '#a97a4c', '#c09262', '#7d5630', null);
+  for (const ax of [1, 28]) volume(g, [DC(ax + 1, 10, ax + 1, 16, 1)], '#4a4a52', '#6e6e78', '#2e2e36', null);   // braccioli, sottili
   for (const x of [10, 22]) { g.px(x, 6, '#8a5f38'); g.px(x + 1, 17, '#a97a4c'); }                          // chiodi
 }
 
 /* CESPUGLIO: grumi tondi con luce, bacche */
 export function bushArt(g) {
   shadowE(g, 16, 28, 13, 3);
+  /* niente anello scuro attorno: il cespuglio è paesaggio, non si raccoglie e non si spacca.
+     Il volume lo danno i grumi, ognuno con la sua luce in alto a sinistra. */
   const blobs = [[10, 20, 8], [22, 20, 8], [16, 13, 9], [9, 14, 6], [23, 14, 6]];
-  for (const [x, y, r] of blobs) disc(g, x, y, r + 1, '#1f4a26');
-  for (const [x, y, r] of blobs) { disc(g, x, y, r, '#3f8a4a'); disc(g, x - 2, y - 2, Math.round(r * 0.6), '#54ab5f'); disc(g, x - 3, y - 4, Math.round(r * 0.25), '#7cd07f'); }
+  for (const [x, y, r] of blobs) disc(g, x, y, r, '#35753f');
+  for (const [x, y, r] of blobs) { disc(g, x - 1, y - 1, r - 1, '#3f8a4a'); disc(g, x - 2, y - 2, Math.round(r * 0.6), '#54ab5f'); disc(g, x - 3, y - 4, Math.round(r * 0.25), '#7cd07f'); }
   for (const [x, y, c] of [[12, 18, '#e05a7a'], [20, 14, '#f2dd7a'], [8, 13, '#e05a7a'], [24, 20, '#e05a7a']]) { g.rect(x, y, 2, 2, c); g.px(x, y, '#ffffff'); }
 }
 
@@ -104,11 +108,13 @@ export function lampArt(g, night) {
   /* LAMPIONE: base tonda, palo cilindrico, braccio a ricciolo e lanterna con gli spigoli
      smussati — il ferro battuto non ha angoli vivi. */
   shadowE(g, 16, 30, 7, 2);
-  volume(g, [DE(16, 29, 8, 3), DR(12, 24, 9, 5, 1)], '#5a5248', '#847a6c', '#3a342c');      // base
-  volume(g, [DC(16, 26, 16, 2, 2)], '#5a5248', '#847a6c', '#3a342c');                        // palo
-  volume(g, [DE(16, 15, 5, 2)], '#5a5248', '#847a6c', '#3a342c');                            // anello
-  volume(g, [DR(9, -10, 15, 3), DR(15, -13, 4, 4)], '#5a5248', '#847a6c', '#3a342c');         // cappello: lamiera, squadrata
-  const dentro = volume(g, [DR(10, -7, 13, 12, 1)], night ? '#ffe08a' : '#c9d6d8', night ? '#fff6c8' : '#e8f0f2', night ? '#e8b84a' : '#9aacae');   // lanterna a gabbia
+  /* SENZA CONTORNO: al lampione non si fa niente. Il ferro è già scuro di suo e l'ombra di
+     contatto lo tiene staccato dal lastricato. */
+  volume(g, [DE(16, 29, 8, 3), DR(12, 24, 9, 5, 1)], '#4a443c', '#6e6558', '#332e28', null);  // base
+  volume(g, [DC(16, 26, 16, 2, 2)], '#4a443c', '#6e6558', '#332e28', null);                    // palo
+  volume(g, [DE(16, 15, 5, 2)], '#4a443c', '#6e6558', '#332e28', null);                        // anello
+  volume(g, [DR(9, -10, 15, 3), DR(15, -13, 4, 4)], '#4a443c', '#6e6558', '#332e28', null);    // cappello: lamiera, squadrata
+  const dentro = volume(g, [DR(10, -7, 13, 12, 1)], night ? '#ffe08a' : '#b6c4c6', night ? '#fff6c8' : '#d6e0e2', night ? '#e8b84a' : '#8a9c9e', null);   // lanterna a gabbia
   for (let y = -6; y < 4; y++) if (dentro(16, y)) g.rect(16, y, 1, 1, '#3a342c');             // montante del vetro
   if (!night) for (let y = -5; y < 2; y++) if (dentro(12, y)) g.rect(12, y, 2, 1, 'rgba(255,255,255,.7)');
   if (night) { ellipse(g, 16, -2, 13, 11, 'rgba(255,220,120,.18)'); g.rect(14, -4, 5, 5, '#fff6c8'); }

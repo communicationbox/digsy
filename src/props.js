@@ -99,6 +99,11 @@ export function drawFlower(sx, sy, tx, ty, ripe) {
     rect(bx - 4, y - 6, 2, 2, '#6f92dd'); rect(bx + 4, y - 6, 2, 2, '#6f92dd'); rect(bx, y - 4, 2, 2, '#6f92dd');
     rect(bx - 2, y - 6, 2, 2, '#3f5fb0'); rect(bx + 2, y - 6, 2, 2, '#3f5fb0'); rect(bx, y - 6, 2, 2, '#f2d24a');
     px(bx - 1, y - 9, shade8('#6f92dd', 1.3)); // petalo alto con un filo di luce
+    /* CONTORNO della corolla: il fiordaliso si raccoglie, i fiori del prato no. Senza linea
+       i due si somigliano troppo e il giocatore prova su quello sbagliato */
+    const LNF = '#26356b';
+    for (const [ox, oy] of [[-1, -10], [1, -10], [-3, -9], [3, -9], [-5, -7], [5, -7], [-5, -4], [5, -4], [-3, -2], [3, -2], [-1, -2], [1, -2], [-1, -11], [1, -11]])
+      px(bx + ox, y + oy, LNF);
     ctx.restore(); return;
   }
   const k = (((tx * 5 + ty * 3) % 3) + 3) % 3;
@@ -114,6 +119,10 @@ export function drawShell(sx, sy, ripe) {
   const bx = sx + 16, by = sy + 18;
   if (ripe) {
     const base = sy + 24;
+    /* CONTORNO: la conchiglia intera si raccoglie, quella rotta no. La linea attorno è il
+       segno che lo dice, prima ancora della stellina */
+    const LNC = '#8a4f4c';
+    rect(bx - 9, base - 9, 20, 10, LNC); rect(bx - 7, base - 13, 16, 6, LNC); rect(bx - 1, base - 15, 4, 4, LNC);
     rect(bx - 8, base - 8, 18, 8, '#f2c9c4'); rect(bx - 6, base - 12, 14, 4, '#f2c9c4');
     rect(bx, base - 14, 2, 2, '#f2c9c4');
     for (const ox of [-6, 0, 6]) { rect(bx + ox, base - 10, 2, 2, '#d99a97'); rect(bx + ox, base - 6, 2, 2, '#d99a97'); }
@@ -375,18 +384,24 @@ export function drawRedspire(sx, sy, tx = 0, ty = 0) {
   /* il profilo è una curva, non una scala di rettangoli: la maschera si costruisce riga per
      riga e il contorno la seghe */
   const m = new Uint8Array(32 * 32);
-  for (let y = 0; y < 27; y++) {
+  /* la sagoma deve stare DENTRO la casella con un pixel di margine: il cappello arrivava
+     sopra il bordo e lì il contorno non ci stava — la guglia risultava tagliata in cima e
+     senza linea proprio dove si guarda per prima cosa */
+  for (let y = 0; y < 24; y++) {
     const w = 6 + Math.round(Math.sin(y / 4.2) * 1.6) + (y < 5 ? 4 - y : 0), yy = base - y - 1;
     for (let x = cx - w; x <= cx + w; x++) if (x >= 0 && x < 32 && yy >= 0 && yy < 32) m[yy * 32 + x] = 1;
   }
   for (let y = -4; y <= 3; y++) for (let x = -9; x <= 9; x++) {            // il cappello di roccia, tondo
-    const yy = base - 28 + y; if ((x * x) / 81 + (y * y) / 16 > 1 || yy < 0 || yy > 31) continue;
+    const yy = base - 25 + y; if ((x * x) / 81 + (y * y) / 16 > 1 || yy < 1 || yy > 31) continue;
     m[yy * 32 + cx + x] = 1;
   }
   const dentroSp = paintMask(m, '#c06a48', '#e0a37e', '#8a3f2e');
-  for (let y = 0; y < 26; y += 5) { const c = (y / 5) % 2 ? '#cc7854' : '#b05e3e';   // strati d'arenaria, chiari e scuri
-    for (let x = cx - 8; x <= cx + 8; x++) if (dentroSp(x, base - y - 1)) px(x, base - y - 1, c); }
-  for (let y = -3; y <= 2; y++) for (let x = -8; x <= 8; x++) if (dentroSp(cx + x, base - 28 + y) && (x * x) / 64 + (y * y) / 9 <= 1) px(cx + x, base - 28 + y, y < -1 ? '#a8887a' : '#8a6a58');
+  /* strati e cappello si fermano UN PIXEL PRIMA del bordo: dipinti fin sopra il profilo
+     cancellavano il contorno, e una guglia picconabile senza contorno sembra paesaggio */
+  const internoSp = (x, y) => dentroSp(x, y) && dentroSp(x - 1, y) && dentroSp(x + 1, y) && dentroSp(x, y - 1) && dentroSp(x, y + 1);
+  for (let y = 0; y < 23; y += 5) { const c = (y / 5) % 2 ? '#cc7854' : '#b05e3e';   // strati d'arenaria, chiari e scuri
+    for (let x = cx - 8; x <= cx + 8; x++) if (internoSp(x, base - y - 1)) px(x, base - y - 1, c); }
+  for (let y = -3; y <= 2; y++) for (let x = -8; x <= 8; x++) if (internoSp(cx + x, base - 25 + y) && (x * x) / 64 + (y * y) / 9 <= 1) px(cx + x, base - 25 + y, y < -1 ? '#a8887a' : '#8a6a58');
   if (vhash(tx, ty, 92) < 0.5) rect(cx - 2, base - 14, 3, 3, '#6e2f1e');
   ctx.restore();
 }
@@ -427,7 +442,9 @@ export function drawIcecrystal(sx, sy, tx = 0, ty = 0) {
     for (let k = 0; k < h; k++) { const u = k / h, ww = u > 0.7 ? Math.max(1, Math.round(w * (1 - u) * 3.3)) : w, xx = x + Math.round(lean * k); rect(xx - (ww >> 1) - 1, base - 2 - k, ww + 2, 1, '#3f7890'); rect(xx - (ww >> 1), base - 2 - k, ww >> 1, 1, '#e8f6fb'); rect(xx, base - 2 - k, ww - (ww >> 1), 1, '#9fd4e6'); }
   };
   prism(cx - 8, 12, 6, -0.25); prism(cx + 8, 14, 6, 0.3); prism(cx, 22, 8, 0);
-  ellipseF(cx, base - 1, 12, 3, '#eef7fa'); rect(cx - 8, base - 2, 16, 1, '#ffffff');
+  /* la brina alla base va contornata come il resto: era l'unico lato della sagoma senza
+     linea, e bastava quello a far leggere la scheggia come paesaggio */
+  ellipseF(cx, base - 1, 13, 4, '#2c5568'); ellipseF(cx, base - 1, 12, 3, '#eef7fa'); rect(cx - 8, base - 2, 16, 1, '#ffffff');
   if (vhash(tx, ty, 98) < 0.5) { rect(cx, base - 18, 1, 5, '#ffffff'); rect(cx - 2, base - 16, 5, 1, '#ffffff'); }
   ctx.restore();
 }

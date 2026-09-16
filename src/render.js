@@ -409,7 +409,10 @@ export function drawFence(sx, sy, fv, fh) {
      Toni del legno tenui: è un bordo, non deve rubare l'occhio alle creature. */
   ctx.save(); ctx.translate(sx, sy);
   if (fh === undefined) fh = true;
-  const L = '#3a2818', W = '#a97a4c', WL = '#c49a63', WD = '#7a5230';
+  /* SENZA CONTORNO SCURO: alla staccionata non si fa niente (il cancello è un'altra cosa e ce
+     l'ha). Resta staccata dall'erba con toni di legno più cupi e l'ombra a terra — stessa
+     regola di rotoballe, ceppi e panchine. */
+  const L = '#7a5230', W = '#9a6c42', WL = '#b8895a', WD = '#6f4a28';
   const post = (x, y, h) => { rect(x - 1, y - 1, 7, h + 1, L); rect(x, y, 5, h, WD); rect(x, y, 2, h, W); rect(x - 1, y - 2, 7, 3, L); rect(x, y - 1, 5, 1, WL); };
   if (fh) {
     for (const y of [11, 20]) { rect(0, y - 1, TS, 6, L); rect(0, y, TS, 4, W); rect(0, y, TS, 1, WL); rect(0, y + 3, TS, 1, WD); }
