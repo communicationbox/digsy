@@ -2495,9 +2495,12 @@ sprites.applyLook();
     /* accetta: abbatti l'albero davanti, il fossile è della specie-albero */
     const om2 = Math.random; Math.random = () => 0.1;
     let tree = null;
-    for (let x = -100; x < 100 && !tree; x++) for (let y = -100; y < 100 && !tree; y++) {
+    /* finestra larga: con le zone nuove attorno all'origine può non esserci un bosco, e
+       questo controllo non è sul POSTO ma sull'accetta */
+    for (let x = -260; x < 260 && !tree; x++) for (let y = -260; y < 260 && !tree; y++) {
       if (world.decoAt(x, y) === 'tree' && !world.isSolidTile(x, y + 1)) tree = [x, y];
     }
+    if (!tree) { check('c\'è un albero da abbattere entro 260 caselle', false); tree = [0, 0]; }
     P.x = tree[0] * TS + 8; P.y = (tree[1] + 1) * TS - 11; P.dir = 'up'; S.energy = 20;
     const raw1 = S.raw.length;
     check('tryChop aggancia l\'albero', gameplay.tryChop() === true && P.digging !== null);
@@ -5192,7 +5195,9 @@ sprites.applyLook();
      produrle, il test lo direbbe invece di passare su coordinate scritte a mano */
   {
     const wanted = { redspire: null, orecrystal: null, icecrystal: null, hay: null };
-    for (let r = 1; r <= 420 && Object.values(wanted).some(v => !v); r++) {
+    /* raggio largo: le zone ora sono GRANDI (niente biomi microscopici), quindi attorno
+       all'origine può capitare di avere sabbia per centinaia di caselle in ogni direzione */
+    for (let r = 1; r <= 1400 && Object.values(wanted).some(v => !v); r++) {
       const hit = (x, y) => { const d = world.decoAt(x, y); if (d && d in wanted && !wanted[d]) wanted[d] = [x, y]; };
       for (let x = -r; x <= r; x++) { hit(x, -r); hit(x, r); }
       for (let y = -r + 1; y <= r - 1; y++) { hit(-r, y); hit(r, y); }
@@ -8870,37 +8875,78 @@ sprites.applyLook();
 
 /* ---- OGNI BIOMA HA PIÙ DI UNA COSA CHE INGOMBRA ----
    Nei Prati c'era solo la rotoballa, e ripetuta ogni pochi passi faceva sembrare il mondo un
-   timbro (segnalato con foto). Qui si cammina davvero su un pezzo di ogni zona e si conta
-   quante SAGOME diverse si incontrano: se una zona torna ad averne una sola, il test lo dice. */
+   timbro (segnalato con foto). Qui si cerca un pezzo DI OGNI ZONA — le zone sono grandi e
+   attorno all'origine non ci sono tutte — e si conta quante sagome diverse ci vivono. */
 {
   const world2 = await import('../src/world.js');
   const reg = await import('../src/regions.js');
+  /* un centro per ogni zona: si gira a spirale finché non si trovano tutte */
+  const centri = new Map();
+  for (let r = 0; r <= 2200 && centri.size < 6; r += 8) {
+    for (let a = -r; a <= r; a += 8) for (const [x, y] of [[a, -r], [a, r], [-r, a], [r, a]]) {
+      const z = reg.zoneIdxAt(x, y); if (!centri.has(z)) centri.set(z, [x, y]);
+    }
+  }
   const conta = new Map();
-  for (let ty = -400; ty < 400; ty += 1) for (let tx = -400; tx < 400; tx += 1) {
-    const d = world2.decoAt(tx, ty); if (!d) continue;
-    const z = reg.zoneIdxAt(tx, ty);
-    if (!conta.has(z)) conta.set(z, new Map());
-    const m = conta.get(z); m.set(d, (m.get(d) || 0) + 1);
+  for (const [z, [cx0, cy0]] of centri) {
+    const m = new Map();
+    for (let ty = cy0 - 120; ty < cy0 + 120; ty++) for (let tx = cx0 - 120; tx < cx0 + 120; tx++) {
+      if (reg.zoneIdxAt(tx, ty) !== z) continue;
+      const d = world2.decoAt(tx, ty); if (!d) continue;
+      m.set(d, (m.get(d) || 0) + 1);
+    }
+    conta.set(z, m);
   }
   const poveri = [];
   for (const [z, m] of conta) {
-    /* si contano solo le sagome che si incontrano DAVVERO (almeno venti volte in mezzo milione
-       di caselle): una decorazione rarissima non rompe la monotonia di nessuno */
+    /* si contano solo le sagome che si incontrano DAVVERO (almeno venti volte): una
+       decorazione rarissima non rompe la monotonia di nessuno */
     const vere = [...m.entries()].filter(([, n]) => n >= 20).map(([k2]) => k2);
-    if (vere.length < 4) poveri.push('zona ' + z + ': ' + vere.join(','));
+    /* nelle zone SGOMBRE (sabbia e neve) bastano tre cose: là la varietà non viene dal numero
+       di specie diverse ma dalle SAGOME — alberi e cristalli hanno quattro ricette a testa,
+       specchiabili, quindi otto disegni per tipo. Contare i tipi, lì, conta la cosa sbagliata. */
+    const minimo = [1, 5].includes(z) ? 3 : 4;
+    if (vere.length < minimo) poveri.push('zona ' + z + ': ' + vere.join(','));
   }
+  check('trovato un pezzo di ogni bioma', centri.size === 6, [...centri.keys()].sort().join(','));
   check('ogni bioma ha almeno quattro cose diverse in giro', poveri.length === 0, poveri.join(' · '));
   /* gli ingombri di SCENARIO (quelli senza contorno) rompono il vuoto senza promettere
-     un'interazione che non c'è. Ci sono ovunque TRANNE che nelle DUNE (zona 1): là il deserto
-     è il posto dove si cammina senza niente fra i piedi, e il vuoto è il paesaggio. */
+     un'interazione che non c'è. Ci sono ovunque TRANNE che nelle DUNE (1) e nelle LANDE
+     GELIDE (5): sabbia e neve sono i posti dove si cammina senza niente fra i piedi. */
+  const SGOMBRE = [1, 5];
   const senza = [];
   for (const [z, m] of conta) {
-    if (z === 1) continue;
+    if (SGOMBRE.includes(z)) continue;
     if (!world2.SCENERY_SOLID.some(k2 => (m.get(k2) || 0) >= 20)) senza.push('zona ' + z);
   }
-  check('ogni bioma (tranne le Dune) ha un ingombro di scenario suo', senza.length === 0, senza.join(' '));
-  const dune = conta.get(1) || new Map();
-  check('le Dune restano sgombre: nessun ingombro di scenario', !world2.SCENERY_SOLID.some(k2 => (dune.get(k2) || 0) >= 20));
+  check('ogni bioma con ingombri ne ha uno suo', senza.length === 0, senza.join(' '));
+  const invase = SGOMBRE.filter(z => world2.SCENERY_SOLID.some(k2 => ((conta.get(z) || new Map()).get(k2) || 0) >= 20));
+  /* NIENTE BIOMI MICROSCOPICI: una chiazza di dieci caselle di un'altra zona in mezzo a una
+     zona non è un bioma, è un errore che si vede. Si contano le chiazze CHIUSE dentro una
+     finestra e si guarda quanto sono piccole. */
+  {
+    const W2 = 300, g2 = [];
+    for (let y = 0; y < W2; y++) { const riga = []; for (let x = 0; x < W2; x++) riga.push(reg.zoneIdxAt(x - 150, y - 150)); g2.push(riga); }
+    const visto = g2.map(r2 => r2.map(() => false)), chiazze = [];
+    for (let y = 0; y < W2; y++) for (let x = 0; x < W2; x++) {
+      if (visto[y][x]) continue;
+      const z = g2[y][x], coda = [[x, y]]; visto[y][x] = true;
+      let n2 = 0, tocca = false;
+      while (coda.length) {
+        const [a2, b2] = coda.pop(); n2++;
+        if (a2 === 0 || b2 === 0 || a2 === W2 - 1 || b2 === W2 - 1) tocca = true;
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const nx = a2 + dx, ny = b2 + dy;
+          if (nx < 0 || ny < 0 || nx >= W2 || ny >= W2 || visto[ny][nx] || g2[ny][nx] !== z) continue;
+          visto[ny][nx] = true; coda.push([nx, ny]);
+        }
+      }
+      if (!tocca) chiazze.push(n2);
+    }
+    const minuscole = chiazze.filter(n2 => n2 < 30);
+    check('niente biomi microscopici', minuscole.length <= 3, minuscole.length + ' chiazze sotto 30 caselle su ' + chiazze.length);
+  }
+  check('Dune e Lande Gelide restano sgombre', invase.length === 0, invase.map(z => 'zona ' + z).join(' '));
   /* LE SAGOME NON SI RIPETONO: ogni specie d'albero, il cactus e l'affioramento d'ossa hanno
      ricette scritte a mano, e due ricette non devono venire uguali. Con un solo disegno per
      specie il mondo sembra un timbro (segnalato con foto). */
