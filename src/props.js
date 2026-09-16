@@ -499,20 +499,6 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   erbetta(bx - 7, bx + 8, by + 3, tx, ty);
   ctx.restore();
 }
-export function drawStump(sx, sy, tx = 0, ty = 0) {
-  /* CEPPO: faccia tagliata con gli anelli, corteccia, radici */
-  ctx.save(); ctx.translate(sx, sy);
-  const cx = 16, base = 27; shadow(cx, base, 11);
-  /* corpo e radici in una sagoma sola, con gli angoli smussati (stile del saguaro) */
-  paintMask(roundMask([[cx - 9, base - 12, 18, 12, 4], [cx - 13, base - 5, 6, 5, 2], [cx + 7, base - 5, 6, 5, 2]]),
-    '#7a5230', '#9a6a40', '#5c3d22', 32, 32, null);   // paesaggio: niente contorno
-  for (let i = -6; i < 7; i += 4) rect(cx + i, base - 8, 1, 7, '#5c3d22');       // solchi della corteccia
-  ellipseF(cx, base - 12, 10, 4, '#5c3d22'); ellipseF(cx, base - 12, 9, 3, '#d8b582');
-  ellipseF(cx, base - 12, 6, 2, '#c49a63'); ellipseF(cx, base - 12, 3, 1, '#d8b582'); px(cx, base - 12, '#8a5f38');
-  if (vhash(tx, ty, 91) < 0.5) { rect(cx + 4, base - 8, 4, 3, '#6f8a52'); }   // muschio sul taglio
-  erbetta(cx - 13, cx + 12, base + 1, tx, ty);
-  ctx.restore();
-}
 export function drawRedspire(sx, sy, tx = 0, ty = 0) {
   /* CAMINO DI FATA delle Terre Rosse: colonna d'arenaria a strati con il cappello di roccia */
   ctx.save(); ctx.translate(sx, sy);
@@ -604,19 +590,6 @@ export function drawIcecrystal(sx, sy, tx = 0, ty = 0) {
   if (vhash(tx, ty, 98) < 0.5) { const [ox, h] = ordinate[ordinate.length - 1]; rect(cx + flip * ox, base - h, 1, 4, '#ffffff'); rect(cx + flip * ox - 2, base - h + 2, 5, 1, '#ffffff'); }
   ctx.restore();
 }
-export function drawHay(sx, sy, tx = 0, ty = 0) {
-  /* ROTOBALLA di fieno: il cerchio della spirale sul fronte, i fili che spuntano */
-  ctx.save(); ctx.translate(sx, sy);
-  const cx = 16, base = 27; shadow(cx, base, 12);
-  paintMask(roundMask([[cx - 12, base - 18, 21, 18, 7]]), '#c3a03a', '#d9bb62', '#a8862a', 32, 32, null);   // paesaggio: senza contorno
-  for (let i = 3; i < 19; i += 3) rect(cx - 12 + i, base - 14, 1, 11, '#b08a20');   // i fili stretti in tondo
-  disc(cx + 8, base - 9, 9, '#a8862a'); disc(cx + 8, base - 9, 8, '#d9bb62');   // la spirale sul fronte, senza contorno nero
-  for (let q = 0; q < 40; q++) { const a = q * 0.45, r = 7 - q * 0.17; if (r < 1) break; px(cx + 8 + Math.round(Math.cos(a) * r), base - 9 + Math.round(Math.sin(a) * r), '#b08a20'); }
-  for (let j = 0; j < 5; j++) { const fx = cx - 12 + Math.floor(vhash(tx, ty, 102 + j) * 28), fy = base - 18 - Math.floor(vhash(tx, ty, 103 + j) * 3); rect(fx, fy, 1, 3, '#f0d888'); }
-  erbetta(cx - 14, cx + 12, base + 1, tx, ty);   // sta nel prato: non è roba da raccogliere
-  ctx.restore();
-}
-
 /* fumetto di dialogo. sx,sy = coordinate SCHERMO (game-px) di chi parla (testa).
    Disegna in coordinate schermo (reset del transform): così il clamp è corretto SEMPRE,
    indipendente dalle traslazioni della scena (centratura stanza / camera). Il baloon sta
@@ -660,122 +633,3 @@ const MR = (flip, x0, w) => (flip > 0 ? x0 : 32 - (x0 + w));
    "ci puoi fare qualcosa". Ognuno ha due o tre sagome scritte a mano e può essere
    specchiato, così in giro non si vede il copia-incolla. */
 
-/* TRONCO CADUTO: un fusto lungo a terra, la testa tagliata con gli anelli da una parte e i
-   monconi dei rami dall'altra. Boschi e Palude. */
-export function drawLogfall(sx, sy, tx = 0, ty = 0, palude = false) {
-  ctx.save(); ctx.translate(sx, sy);
-  const base = 24, flip = vhash(tx, ty, 190) < 0.5 ? 1 : -1;
-  const v = Math.floor(vhash(tx, ty, 191) * 3) % 3;
-  const inc = [2, -1, 0][v];                                   // quanto è inclinato
-  const X = x => MX(flip, x);
-  shadow(16, base + 5, 13);
-  const y0 = base - 6 + inc, y1 = base - 6 - inc;
-  const corpo = [['cap', X(3), y0, X(28), y1, 5]];
-  if (v === 2) corpo.push(['cap', X(20), y1 + 1, X(26), y1 - 6, 2]);   // un moncone che si alza
-  const fill = palude ? '#5e5a42' : '#7a5230';
-  const dentro = paintMask(roundMask(corpo), fill, shade8(fill, 1.28), shade8(fill, 0.68), 32, 32, null);
-  /* corteccia: solchi lungo il fusto, non a caso */
-  for (let k = 0; k < 7; k++) {
-    const x = X(6 + k * 3), y = Math.round(y0 + (y1 - y0) * (k / 7));
-    for (let j = 1; j <= 4; j++) if (dentro(x, y + j)) px(x, y + j, shade8(fill, 0.78));   // il solco si ferma DENTRO il tronco
-  }
-  /* la testa tagliata: anelli concentrici, sempre dal lato del piede */
-  const cxT = X(4), cyT = y0;
-  ellipseF(cxT, cyT, 3, 5, shade8(fill, 0.8));
-  ellipseF(cxT, cyT, 2, 4, palude ? '#8f8a66' : '#c49a63');
-  ellipseF(cxT, cyT, 1, 2, palude ? '#a9a37c' : '#d8b582');
-  /* muschio o alghe sopra, a chiazze */
-  const verde = palude ? '#4f7a4a' : '#6f8a52';
-  for (let k = 0; k < 4; k++) if (vhash(tx, ty, 192 + k) < 0.7) {
-    const x = X(8 + k * 5), y = Math.round(y0 + (y1 - y0) * ((k + 1) / 6)) - 4;
-    if (dentro(x, y + 1)) { rect(x, y, 4, 2, verde); px(x + 1, y - 1, shade8(verde, 1.2)); }
-  }
-  if (palude) { for (let k = 0; k < 3; k++) rect(X(9 + k * 7), base + 1, 3, 1, '#4a6340'); }   // acqua bassa attorno
-  else erbetta(3, 28, base + 2, tx, ty);
-  ctx.restore();
-}
-/* MASSO PIATTO COL MUSCHIO: una lastra bassa e larga, il cappello di muschio sopra e
-   qualche sasso appoggiato. Prati e Boschi. */
-export function drawMossrock(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy);
-  const base = 26, flip = vhash(tx, ty, 194) < 0.5 ? 1 : -1;
-  const v = Math.floor(vhash(tx, ty, 195) * 3) % 3;
-  const X = x => MX(flip, x);
-  shadow(16, base + 3, 12);
-  const sagome = [
-    [['ell', X(15), base - 6, 12, 6], ['ell', X(23), base - 4, 5, 3]],
-    [['ell', X(16), base - 7, 11, 7], ['ell', X(8), base - 3, 5, 3]],
-    [[MR(flip, 4, 22), base - 12, 22, 12, 6], ['ell', X(24), base - 5, 4, 3]],
-  ];
-  const dentro = paintMask(roundMask(sagome[v]), '#8a8578', '#a8a396', '#63604f', 32, 32, null);
-  /* venature della pietra: righe corte che seguono la lastra */
-  for (let k = 0; k < 5; k++) { const x = X(7 + k * 4), y = base - 8 + (k % 2); if (dentro(x, y)) rect(x, y, 3, 1, '#6f6b5c'); }
-  /* MUSCHIO: solo sul dorso, dove batte la luce */
-  /* MUSCHIO sul dorso: una fascia continua che segue il profilo (prima erano tre puntini
-     e il masso restava un sasso grigio qualunque) */
-  for (let x = 2; x < 30; x++) {
-    let y = base - 14;
-    while (y < base && !dentro(X(x), y)) y++;                   // trova il dorso in questa colonna
-    if (y >= base) continue;
-    const sp = 2 + Math.floor(vhash(tx + x, ty, 196) * 3);      // spessore della zolla
-    for (let j = 0; j < sp; j++) if (dentro(X(x), y + j)) px(X(x), y + j, j === 0 ? '#6f9e52' : '#4f7f3c');
-    if (vhash(tx + x, ty, 197) < 0.22) px(X(x), y - 1, '#86b466');   // ciuffetto che sporge
-  }
-  erbetta(3, 28, base + 1, tx, ty);
-  ctx.restore();
-}
-/* TUMULO D'ARGILLA SCREPOLATA: la terra secca delle Terre Rosse che si alza a gobba e si
-   spacca. Nessun cristallo, nessuna guglia: solo terra. */
-export function drawClaymound(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy);
-  const base = 27, flip = vhash(tx, ty, 200) < 0.5 ? 1 : -1;
-  const v = Math.floor(vhash(tx, ty, 201) * 3) % 3;
-  const X = x => MX(flip, x);
-  shadow(16, base + 3, 12);
-  const sagome = [
-    [['ell', X(14), base - 7, 12, 8], ['ell', X(24), base - 4, 6, 4]],
-    [['ell', X(16), base - 9, 10, 9]],
-    [['ell', X(11), base - 5, 8, 5], ['ell', X(20), base - 8, 9, 7]],
-  ];
-  const dentro = paintMask(roundMask(sagome[v]), '#a8613f', '#bb7a53', '#8d5136', 32, 32, null);
-  /* CREPE: scendono dal dorso come acqua, mai a righello */
-  for (let k = 0; k < 3; k++) {
-    let x = X(9 + k * 7), y = base - 13 + k;
-    for (let s = 0; s < 9; s++) {
-      if (dentro(x, y)) px(x, y, '#6a3823');
-      x += vhash(tx + s, ty + k, 202) < 0.5 ? 1 : -1; y++;
-    }
-  }
-  for (let k = 0; k < 5; k++) { const x = X(6 + k * 5); if (dentro(x, base - 3)) rect(x, base - 3, 2, 1, '#8a4a30'); }
-  ctx.restore();
-}
-/* TUMULO DI TORBA: la palude che si gonfia in un'isoletta, con i ciuffi d'erba alta sopra e
-   l'acqua scura che la circonda. */
-export function drawPeatmound(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy);
-  const base = 26, flip = vhash(tx, ty, 203) < 0.5 ? 1 : -1;
-  const v = Math.floor(vhash(tx, ty, 204) * 3) % 3;
-  const X = x => MX(flip, x);
-  ellipseF(16, base + 1, 14, 4, 'rgba(30,46,34,.35)');                      // acqua scura attorno
-  const sagome = [
-    [['ell', X(15), base - 6, 12, 7]],
-    [['ell', X(13), base - 5, 9, 5], ['ell', X(22), base - 7, 7, 6]],
-    [[MR(flip, 5, 21), base - 12, 21, 12, 7]],
-  ];
-  const dentro = paintMask(roundMask(sagome[v]), '#4e4634', '#5d553f', '#3e392a', 32, 32, null);
-  for (let k = 0; k < 6; k++) { const x = X(6 + k * 4), y = base - 5 + (k % 2); if (dentro(x, y)) rect(x, y, 3, 1, '#3d3826'); }   // strati di torba
-  /* CIUFFI d'erba alta sul dorso: la cosa che si vede da lontano */
-  for (let k = 0; k < 9; k++) {
-    const x = X(5 + k * 3);
-    let y = base - 14;
-    while (y < base && !dentro(x, y)) y++;
-    if (y >= base) continue;
-    const h = 7 + Math.floor(vhash(tx + k, ty, 205) * 7);
-    const piega = k % 2 ? 1 : -1;
-    for (let j = 0; j < h; j++) {
-      const xx = x + (j > h - 4 ? piega : 0) + (j > h - 2 ? piega : 0);
-      px(xx, y - j, j > h - 4 ? '#8aa86c' : j > h - 8 ? '#6d8f56' : '#5f7a4a');
-    }
-  }
-  ctx.restore();
-}

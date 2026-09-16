@@ -126,17 +126,10 @@ const SPRITE = [
   ['fiordaliso', true, () => props.drawFlower(32, 40, 3, 5, true)],
   ['giunco maturo', true, () => props.drawReed(32, 40, 0, 3, 5, true)],
   // PAESAGGIO — non si tocca niente
-  ['ceppo', false, () => props.drawStump(32, 40, 3, 5)],
-  ['rotoballa', false, () => props.drawHay(32, 40, 3, 5)],
   ['fungo marrone', false, () => props.drawMushroom(32, 40, 0, 3, 5, false)],
   ['conchiglia rotta', false, () => props.drawShell(32, 40, false)],
   ['fiore di prato', false, () => props.drawFlower(32, 40, 3, 5, false)],
   ['canne', false, () => props.drawReed(32, 40, 0, 3, 5, false)],
-  ['tronco caduto', false, () => props.drawLogfall(32, 40, 3, 5, false)],
-  ['tronco nella palude', false, () => props.drawLogfall(32, 40, 4, 7, true)],
-  ['masso muschiato', false, () => props.drawMossrock(32, 40, 3, 5)],
-  ['tumulo d\'argilla', false, () => props.drawClaymound(32, 40, 3, 5)],
-  ['tumulo di torba', false, () => props.drawPeatmound(32, 40, 3, 5)],
   /* la BUCA non è in elenco di proposito: non è un oggetto posato sul terreno ma un incavo
      NEL terreno — è scura tutta, e il "contorno" non vuol dire niente. */
   // CITTÀ — pannello con {act}

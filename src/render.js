@@ -28,7 +28,7 @@ import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
-import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay, drawLogfall, drawMossrock, drawClaymound, drawPeatmound } from './props.js';
+import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
@@ -1716,17 +1716,10 @@ export function render(time) {
     else if (d === 'sandspire') ents.push({ y: sy + 15, f: () => drawSandspire(sx, sy, tx, ty) });
     else if (d === 'deadtree') ents.push({ y: sy + 15, f: () => drawDeadtree(sx, sy, tx, ty) });
     else if (d === 'mushroom') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 8, f: () => { if (rip) shadow(sx + 8, sy + 12, 4); drawMushroom(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 2, time, tx, ty); } }); }
-    else if (d === 'stump') ents.push({ y: sy + 13, f: () => drawStump(sx, sy, tx, ty) });
     else if (d === 'redspire') ents.push({ y: sy + 15, f: () => drawRedspire(sx, sy, tx, ty) });
     else if (d === 'orecrystal') ents.push({ y: sy + 13, f: () => drawOrecrystal(sx, sy, tx, ty) });
     else if (d === 'reed') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 14, f: () => { if (rip) shadow(sx + 8, sy + 14, 4); drawReed(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 1, time, tx, ty); } }); }
     else if (d === 'icecrystal') ents.push({ y: sy + 13, f: () => drawIcecrystal(sx, sy, tx, ty) });
-    else if (d === 'hay') ents.push({ y: sy + 13, f: () => drawHay(sx, sy, tx, ty) });
-    /* ingombri di SCENARIO: fermano il passo ma non si toccano (niente contorno) */
-    else if (d === 'logfall') ents.push({ y: sy + 12, f: () => drawLogfall(sx, sy, tx, ty, zoneIdxAt(tx, ty) === 4) });
-    else if (d === 'mossrock') ents.push({ y: sy + 12, f: () => drawMossrock(sx, sy, tx, ty) });
-    else if (d === 'claymound') ents.push({ y: sy + 13, f: () => drawClaymound(sx, sy, tx, ty) });
-    else if (d === 'peatmound') ents.push({ y: sy + 12, f: () => drawPeatmound(sx, sy, tx, ty) });
   }
   // X delle mappe del tesoro in vista
   for (const m of (S.maps || [])) {

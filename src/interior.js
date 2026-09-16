@@ -370,10 +370,14 @@ export const SHOP_PETS = {
 export const PET_SEC = 2.6;
 /* i posti dove può capitare la tartaruga: l'atrio ai due lati del bancone e l'imbocco dei
    corridoi fra le sale. Tutti su pavimento libero, lontani dal Curatore e dai piedistalli. */
+/* I POSTI DELLA TARTARUGA. Devono stare su pavimento LIBERO: uno finiva addosso al bancone
+   del Curatore e la bestiola si vedeva ma non si poteva coccolare — il giocatore ci prova e
+   non succede niente (segnalato con foto). Un test controlla che nessuno di questi punti cada
+   dentro un solido. */
 const PET_SPOTS = [
-  [(ATRIO.x0 + 2) * TS, (ATRIO.y1 - 2) * TS], [(ATRIO.x1 - 3) * TS, (ATRIO.y1 - 6) * TS],
+  [(ATRIO.x0 + 2) * TS, (ATRIO.y1 - 2) * TS], [(ATRIO.x0 + 5) * TS, (ATRIO.y0 + 3) * TS],
   [(ROT.x0 + 3) * TS, (ROT.y0 + 4) * TS], [(ROT.x1 - 4) * TS, (ROT.y0 + 15) * TS],
-  [(ROT.x0 + 4) * TS, (ROT.y1 - 3) * TS], [(GAL_W - 14) * TS, (ATRIO.y0 + 6) * TS],
+  [(ROT.x0 + 4) * TS, (ROT.y1 - 3) * TS], [(ROT.x1 - 3) * TS, (ROT.y1 - 4) * TS],
 ];
 export function museumPetSpot(day) {
   const d = Math.max(0, Math.floor(day || 0));

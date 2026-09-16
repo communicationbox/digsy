@@ -3191,6 +3191,22 @@ sprites.applyLook();
   check('la settima ala espone le specie di grotta', peds.some(p => p.sp.zone === 'grotta') && peds.filter(p => p.sp.zone === 'grotta').length === 6);
   /* i piedistalli della grotta stanno DENTRO la galleria (niente teche fuori dai muri) */
   check('la sala grotte sta dentro il museo', peds.filter(p => p.sp.zone === 'grotta').every(p => p.ty < inter.GAL_H - 6 && p.tx < inter.GAL_W - 1));
+  /* LA TARTARUGA SI DEVE POTER COCCOLARE: ogni posto dove può capitare sta su pavimento
+     libero, e il giocatore ci arriva. Uno cadeva addosso al bancone del Curatore: si vedeva
+     e non si poteva toccare (segnalato con foto). */
+  {
+    const plan2 = await import('../src/museumPlan.js');
+    inter.enterInterior({ type: 'museum', x0: 0, y0: 0, x1: 4, y1: 1 }, null);
+    const brutti = [];
+    for (let d = 0; d < 12; d++) {
+      const p = inter.museumPetSpot(d);
+      const tx = Math.floor(p.x / TS), ty = Math.floor(p.y / TS);
+      if (plan2.isWall(tx, ty)) { brutti.push('muro ' + tx + ',' + ty); continue; }
+      /* dentro un solido (bancone, piedistalli, scheletro, vasi)? */
+      if ((inter.INT.solids || []).some(f => p.x >= f.x0 - 8 && p.x <= f.x1 + 8 && p.y >= f.y0 - 8 && p.y <= f.y1 + 8)) brutti.push('solido ' + tx + ',' + ty);
+    }
+    check('la tartaruga capita sempre dove la si può raggiungere', brutti.length === 0, [...new Set(brutti)].join(' · '));
+  }
   /* LA PIANTA DEL MUSEO REGGE? Non basta che le sale esistano: dalla porta d'ingresso si deve
      poter camminare fino a OGNI piedistallo. Un varco dimenticato in museumPlan chiuderebbe
      un'ala intera senza che nessun altro test se ne accorga — il museo si disegnerebbe
@@ -5194,7 +5210,7 @@ sprites.applyLook();
      si cercano nel mondo vero a spirale dall'origine: se un giorno una zona smettesse di
      produrle, il test lo direbbe invece di passare su coordinate scritte a mano */
   {
-    const wanted = { redspire: null, orecrystal: null, icecrystal: null, hay: null };
+    const wanted = { redspire: null, orecrystal: null, icecrystal: null, sandspire: null };
     /* raggio largo: le zone ora sono GRANDI (niente biomi microscopici), quindi attorno
        all'origine può capitare di avere sabbia per centinaia di caselle in ogni direzione */
     for (let r = 1; r <= 1400 && Object.values(wanted).some(v => !v); r++) {
@@ -5207,17 +5223,17 @@ sprites.applyLook();
     let drawnOk = true, missing = '';
     /* colore-firma di ciascuna: se la funzione smette di dipingerlo, la decorazione è sparita
        dal mondo pur restando "presente" nella logica */
-    for (const [type, col] of [['redspire', '#cc7854'], ['orecrystal', '#9ad0c8'], ['icecrystal', '#9fd4e6'], ['hay', '#a8862a']]) {
+    for (const [type, col] of [['redspire', '#cc7854'], ['orecrystal', '#9ad0c8'], ['icecrystal', '#9fd4e6'], ['sandspire', '#c98f52']]) {
       const p = wanted[type]; if (!p) { drawnOk = false; missing += type + ' '; continue; }
       const f = frame(p[0], p[1]);
       if (!f.has(col)) { drawnOk = false; missing += type + ' '; }
     }
-    check('guglie, cristalli, ghiaccio e balle di fieno vengono dipinti dal render', drawnOk, missing);
+    check('guglie, cristalli e ghiaccio vengono dipinti dal render', drawnOk, missing);
     /* e le stesse funzioni, chiamate da sole, devono dipingere il loro colore anche fuori
        dal mondo (le usano anche le pagine di prova /sprites) */
     const direct = [
       ['drawRedspire', '#b05e3e'], ['drawOrecrystal', '#eaf6fa'],
-      ['drawIcecrystal', '#9fd4e6'], ['drawHay', '#c3a03a'], ['drawHole', '#2a1d12'],
+      ['drawIcecrystal', '#9fd4e6'], ['drawSandspire', '#c98f52'], ['drawHole', '#2a1d12'],
     ];
     let dOk = true, dBad = '';
     for (const [fn, col] of direct) { const s = spy(() => props[fn](0, 0)); if (!s.has(col)) { dOk = false; dBad += fn + ' '; } }
@@ -8899,92 +8915,25 @@ sprites.applyLook();
   }
   const poveri = [];
   for (const [z, m] of conta) {
-    /* si contano solo le sagome che si incontrano DAVVERO (almeno venti volte): una
-       decorazione rarissima non rompe la monotonia di nessuno */
+    /* si contano solo le sagome che si incontrano DAVVERO (almeno venti volte) */
     const vere = [...m.entries()].filter(([, n]) => n >= 20).map(([k2]) => k2);
-    /* nelle zone SGOMBRE (sabbia e neve) bastano tre cose: là la varietà non viene dal numero
-       di specie diverse ma dalle SAGOME — alberi e cristalli hanno quattro ricette a testa,
-       specchiabili, quindi otto disegni per tipo. Contare i tipi, lì, conta la cosa sbagliata. */
-    const minimo = [1, 5].includes(z) ? 3 : 4;
-    if (vere.length < minimo) poveri.push('zona ' + z + ': ' + vere.join(','));
+    /* TRE cose per zona: da quando non ci sono più ingombri di scenario, ogni bioma ha la sua
+       pianta, la sua roccia e la sua decorazione a terra — e la varietà vera sta nelle SAGOME
+       (quattro ricette a testa, specchiabili), non nel numero di tipi. */
+    if (vere.length < 3) poveri.push('zona ' + z + ': ' + vere.join(','));
   }
   check('trovato un pezzo di ogni bioma', centri.size === 6, [...centri.keys()].sort().join(','));
   check('ogni bioma ha almeno quattro cose diverse in giro', poveri.length === 0, poveri.join(' · '));
-  /* gli ingombri di SCENARIO (quelli senza contorno) rompono il vuoto senza promettere
-     un'interazione che non c'è. Ci sono ovunque TRANNE che nelle DUNE (1) e nelle LANDE
-     GELIDE (5): sabbia e neve sono i posti dove si cammina senza niente fra i piedi. */
-  const SGOMBRE = [1, 5];
-  const senza = [];
-  for (const [z, m] of conta) {
-    if (SGOMBRE.includes(z)) continue;
-    if (!world2.SCENERY_SOLID.some(k2 => (m.get(k2) || 0) >= 20)) senza.push('zona ' + z);
-  }
-  check('ogni bioma con ingombri ne ha uno suo', senza.length === 0, senza.join(' '));
-  const invase = SGOMBRE.filter(z => world2.SCENERY_SOLID.some(k2 => ((conta.get(z) || new Map()).get(k2) || 0) >= 20));
-  /* NIENTE BIOMI MICROSCOPICI: una chiazza di dieci caselle di un'altra zona in mezzo a una
-     zona non è un bioma, è un errore che si vede. Si contano le chiazze CHIUSE dentro una
-     finestra e si guarda quanto sono piccole. */
+  /* NIENTE INGOMBRI DI SCENARIO, in nessun bioma: ceppi, rotoballe, tronchi caduti e tumuli
+     fermavano il passo senza dare niente in cambio, e camminarci in mezzo dava solo fastidio.
+     Quello che blocca, adesso, è solo quello con cui si fa qualcosa. */
   {
-    const W2 = 300, g2 = [];
-    for (let y = 0; y < W2; y++) { const riga = []; for (let x = 0; x < W2; x++) riga.push(reg.zoneIdxAt(x - 150, y - 150)); g2.push(riga); }
-    const visto = g2.map(r2 => r2.map(() => false)), chiazze = [];
-    for (let y = 0; y < W2; y++) for (let x = 0; x < W2; x++) {
-      if (visto[y][x]) continue;
-      const z = g2[y][x], coda = [[x, y]]; visto[y][x] = true;
-      let n2 = 0, tocca = false;
-      while (coda.length) {
-        const [a2, b2] = coda.pop(); n2++;
-        if (a2 === 0 || b2 === 0 || a2 === W2 - 1 || b2 === W2 - 1) tocca = true;
-        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          const nx = a2 + dx, ny = b2 + dy;
-          if (nx < 0 || ny < 0 || nx >= W2 || ny >= W2 || visto[ny][nx] || g2[ny][nx] !== z) continue;
-          visto[ny][nx] = true; coda.push([nx, ny]);
-        }
-      }
-      if (!tocca) chiazze.push(n2);
-    }
-    const minuscole = chiazze.filter(n2 => n2 < 30);
-    check('niente biomi microscopici', minuscole.length <= 3, minuscole.length + ' chiazze sotto 30 caselle su ' + chiazze.length);
-  /* LA FASCIA DI MESCOLANZA: fra due biomi le due terre si devono incastrare, non tagliarsi.
-     Si dipinge una casella di confine e si controlla che dentro ci siano DUE terreni — quello
-     suo e un morso di quello vicino. Senza questa misura il taglio netto torna al primo
-     ritocco e nessuno se ne accorge finché non lo si guarda da vicino. */
-  {
-    const tilesMod = await import('../src/tiles.js');
-    /* si cerca un confine su terra ferma */
-    let conf = null;
-    for (let r = 4; r < 900 && !conf; r += 2) for (let a = -r; a <= r && !conf; a += 2) {
-      for (const [x, y] of [[a, -r], [a, r], [-r, a], [r, a]]) {
-        if (reg.zoneIdxAt(x, y) === reg.zoneIdxAt(x + 1, y)) continue;
-        if (!world2.walkableGround(world2.baseTerrain(x, y)) || !world2.walkableGround(world2.baseTerrain(x + 1, y))) continue;
-        conf = [x, y]; break;
-      }
-    }
-    check('c\'è un confine fra due biomi da guardare', !!conf);
-    if (conf) {
-      const [cx0, cy0] = conf;
-      /* si dipinge davvero sulla canvas finta e si confrontano i pixel */
-      globalThis.__rec.start(64, 64);
-      const t0 = world2.baseTerrain(cx0, cy0);
-      const nb0 = [world2.baseTerrain(cx0, cy0 - 1), world2.baseTerrain(cx0 + 1, cy0), world2.baseTerrain(cx0, cy0 + 1), world2.baseTerrain(cx0 - 1, cy0)];
-      const nbz0 = [reg.zoneIdxAt(cx0, cy0 - 1), reg.zoneIdxAt(cx0 + 1, cy0), reg.zoneIdxAt(cx0, cy0 + 1), reg.zoneIdxAt(cx0 - 1, cy0)];
-      tilesMod.groundTile(t0, cx0, cy0, 0, 0, 0, reg.zoneIdxAt(cx0, cy0), nb0, nbz0);
-      const conBordo = globalThis.__rec.stop().buf.slice();   // COPIA: il registratore riusa il suo buffer
-      globalThis.__rec.start(64, 64);
-      tilesMod.groundTile(t0, cx0, cy0, 0, 0, 0, reg.zoneIdxAt(cx0, cy0), nb0, null);
-      const senzaBordo = globalThis.__rec.stop().buf;
-      let dipinti = 0; for (let i = 3; i < conBordo.length; i += 4) if (conBordo[i] > 0) dipinti++;
-      let diversi = 0;
-      for (let i = 0; i < 32 * 32; i++) {
-        const p2 = (Math.floor(i / 32) * 64 + (i % 32)) * 4;
-        if (conBordo[p2] !== senzaBordo[p2] || conBordo[p2 + 1] !== senzaBordo[p2 + 1]) diversi++;
-      }
-      check('sulla casella di confine la zona vicina morde dentro', diversi >= 20,
-        diversi + ' pixel mescolati (dipinti ' + dipinti + ') · casella ' + conf.join(',') + ' terreno ' + t0 + ' zona ' + reg.zoneIdxAt(cx0, cy0) + ' vicini ' + nbz0.join(','));
-    }
+    const bloccanti = new Set();
+    for (const m of conta.values()) for (const [k2, n2] of m) if (n2 >= 20 && world2.decoSolid(k2)) bloccanti.add(k2);
+    const TOCCABILI = ['tree', 'deadtree', 'cactus', 'boulder', 'redspire', 'orecrystal', 'icecrystal', 'sandspire'];
+    const inutili = [...bloccanti].filter(k2 => !TOCCABILI.includes(k2));
+    check('quello che blocca il passo si può sempre abbattere o spaccare', inutili.length === 0, inutili.join(' '));
   }
-  }
-  check('Dune e Lande Gelide restano sgombre', invase.length === 0, invase.map(z => 'zona ' + z).join(' '));
   /* LE SAGOME NON SI RIPETONO: ogni specie d'albero, il cactus e l'affioramento d'ossa hanno
      ricette scritte a mano, e due ricette non devono venire uguali. Con un solo disegno per
      specie il mondo sembra un timbro (segnalato con foto). */

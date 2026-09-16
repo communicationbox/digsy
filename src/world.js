@@ -111,13 +111,9 @@ function decoCompute(tx, ty) {
       if (vhash(tx, ty, 11) < 0.09) return 'deadtree';
       if (vhash(tx, ty, 12) < 0.06) return 'mushroom';
     }
-    if (t === FOREST && vhash(tx, ty, 181) < 0.05) return 'logfall';
     if (t === GRASS) {
       if (vhash(tx, ty, 7) < 0.08) return 'deadtree';
       if (vhash(tx, ty, 12) < 0.05) return 'mushroom';
-      if (vhash(tx, ty, 13) < 0.035) return 'stump';
-      if (vhash(tx, ty, 182) < 0.03) return 'mossrock';
-      if (vhash(tx, ty, 183) < 0.025) return 'logfall';
     }
     if ((t === MTN || t === DIRT) && vhash(tx, ty, 8) < 0.22) return 'boulder';
     return null;
@@ -126,7 +122,6 @@ function decoCompute(tx, ty) {
     if (t === DIRT || t === GRASS) {
       if (vhash(tx, ty, 7) < 0.05) return 'redspire';
       if (vhash(tx, ty, 11) < 0.028) return 'orecrystal';
-      if (vhash(tx, ty, 184) < 0.04) return 'claymound';
     }
     if (t === FOREST && vhash(tx, ty, 7) < 0.16) return 'tree';
     if (t === MTN && vhash(tx, ty, 8) < 0.45) return 'boulder';
@@ -136,8 +131,6 @@ function decoCompute(tx, ty) {
     if (t === GRASS) {
       if (vhash(tx, ty, 7) < 0.11) return 'reed';
       if (vhash(tx, ty, 11) < 0.05) return 'deadtree';
-      if (vhash(tx, ty, 185) < 0.035) return 'peatmound';
-      if (vhash(tx, ty, 186) < 0.025) return 'logfall';
     }
     if (t === FOREST) {
       if (vhash(tx, ty, 7) < 0.22) return 'tree';
@@ -160,9 +153,6 @@ function decoCompute(tx, ty) {
   if (t === GRASS && vhash(tx, ty, 7) < 0.045) return 'tree';
   /* PRATI: la rotoballa non è più l'unica cosa che rompe il prato — con un solo ingombro
      ripetuto ogni pochi passi il mondo sembrava un timbro (segnalato con foto) */
-  if (t === GRASS && vhash(tx, ty, 14) < 0.010) return 'hay';
-  if (t === GRASS && vhash(tx, ty, 188) < 0.012) return 'mossrock';
-  if (t === GRASS && vhash(tx, ty, 189) < 0.008) return 'logfall';
   if (t === DIRT && vhash(tx, ty, 8) < 0.11) return 'boulder';
   if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
   if (t === SAND && vhash(tx, ty, 9) < 0.05) return 'shell';
@@ -184,13 +174,16 @@ export function harvestDecoAt(tx, ty) {
 }
 /* gli ingombri di SCENARIO fermano il passo come gli altri: sono ostacoli veri, solo che non
    ci si fa niente (niente accetta, niente piccone) e quindi non hanno il contorno */
-/* DUNE e LANDE GELIDE non hanno un ingombro di scenario, ed è voluto: sabbia e neve sono i
-   posti dove si cammina senza niente fra i piedi. Nelle altre zone il vuoto è noia; lì il
-   vuoto è il paesaggio, e quello che ingombra senza dare niente in cambio è solo un fastidio. */
-export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'claymound', 'peatmound'];
+/* NIENTE INGOMBRI DI SCENARIO, in nessun bioma. Ceppi, rotoballe, tronchi caduti, massi
+   muschiati, tumuli: erano cose che fermavano il passo senza dare niente in cambio, e a
+   camminarci in mezzo davano solo fastidio. Quello che blocca, adesso, è solo quello con cui
+   si fa qualcosa: gli alberi si abbattono, le rocce si spaccano. Il resto del paesaggio —
+   fiori, funghi, conchiglie, canne — non ferma nessuno. */
+export const SCENERY_SOLID = [];
 export function decoSolid(d) {
+  /* blocca SOLO quello con cui si può fare qualcosa: alberi (accetta) e rocce (piccone) */
   return d === 'tree' || d === 'boulder' || d === 'cactus' || d === 'sandspire' || d === 'deadtree' ||
-    d === 'redspire' || d === 'orecrystal' || d === 'icecrystal' || SCENERY_SOLID.includes(d);
+    d === 'redspire' || d === 'orecrystal' || d === 'icecrystal';
 }
 
 /* ---------- OGGETTI di superficie raccoglibili con E (oggetti VERI del bioma, da vendere) ----------

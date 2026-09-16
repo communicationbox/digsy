@@ -250,10 +250,20 @@ export function drawMuseumSign(g, cx, y) {
     g.rect(cx + dx, y + 8, 4, H - 7, '#efe7d4'); g.rect(cx + dx, y + 8, 1, H - 7, '#fbf8ef');
     g.rect(cx + dx - 2, y + 6, 8, 3, '#d9d0bb'); g.rect(cx + dx - 2, y + H, 8, 3, '#d9d0bb');
   }
-  /* emblema: un osso incrociato al martelletto, in ottone */
-  g.rect(cx - 16, y + 12, 32, 10, '#8f8670'); g.rect(cx - 15, y + 13, 30, 8, '#c9a227'); g.rect(cx - 15, y + 13, 30, 2, '#f0d470');
-  g.rect(cx - 10, y + 15, 20, 2, '#6b4f14'); g.rect(cx - 12, y + 14, 4, 4, '#6b4f14'); g.rect(cx + 8, y + 14, 4, 4, '#6b4f14');
-  g.rect(cx - 2, y + 11, 4, 12, '#6b4f14'); g.rect(cx - 1, y + 12, 2, 10, '#f0d470');
+  /* EMBLEMA: un OSSO, lo stesso segno delle insegne là fuori. Prima era un rettangolo d'ottone
+     con due tacche e una barra in mezzo: da sotto sembrava un bilanciere (segnalato con foto).
+     Le teste sono DUE BOZZE TONDE per capo — è quello che fa leggere «osso» invece di
+     «manubrio»: con due quadrati resta un attrezzo da palestra. */
+  const oy = y + 17, OL = '#6b4f14', OS = '#f6efdd', OM = '#cabb96';
+  const bozza = (bx, by, r, col) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + r) g.rect(bx + i, by + j, 1, 1, col); };
+  for (const sx2 of [cx - 12, cx + 12]) for (const dy of [-3, 3]) bozza(sx2, oy + dy, 4, OL);
+  g.rect(cx - 13, oy - 3, 26, 7, OL);
+  for (const sx2 of [cx - 12, cx + 12]) for (const dy of [-3, 3]) bozza(sx2, oy + dy, 3, OS);
+  g.rect(cx - 12, oy - 2, 24, 5, OS);
+  /* ombra sotto e luce sopra: l'osso non è una sagoma piatta */
+  g.rect(cx - 12, oy + 2, 24, 1, OM);
+  for (const sx2 of [cx - 12, cx + 12]) { bozza(sx2 - 1, oy - 4, 1, '#ffffff'); bozza(sx2 + 1, oy + 4, 1, OM); }
+  g.rect(cx - 8, oy - 2, 9, 1, '#ffffff');
 }
 export function drawGalleryTopWall(g, x0, x1, H) {
   /* LA PARETE IN FONDO alla galleria: zoccolo di marmo, intonaco chiaro, cornice d'oro in alto
