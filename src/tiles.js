@@ -178,14 +178,32 @@ export function soilDetail(tx, ty, sx, sy, kind, pal) {
 function patches(tx, ty, sx, sy, cols, salt, scale) {
   const Q = TS >> 2;
   rect(sx, sy, TS, TS, cols[0]);
+  /* la categoria di tono di una cella da 8 px, in coordinate GLOBALI: così una cella sa cosa
+     ha di fianco anche oltre il bordo della casella */
+  const cat = (gx, gy) => { const n = smooth(gx * 0.25 * scale, gy * 0.25 * scale, salt); return n < 0.36 ? 2 : n < 0.64 ? 0 : 1; };
   for (let cy = 0; cy < 4; cy++) for (let cx = 0; cx < 4; cx++) {
-    const n = smooth((tx + cx * 0.25) * scale, (ty + cy * 0.25) * scale, salt);
-    if (n >= 0.36 && n < 0.64) continue;
-    const c = cols[n < 0.36 ? 2 : 1];
-    const jx = (vhash(tx * 4 + cx, ty * 4 + cy, salt + 7) * 3) | 0, jy = (vhash(tx * 4 + cx, ty * 4 + cy, salt + 9) * 3) | 0;
-    rect(sx + cx * Q, sy + cy * Q, Q, Q, c);
-    if (jx === 1 && cx > 0) rect(sx + cx * Q - 1, sy + cy * Q + 2, 1, Q - 4, c);   // mai fuori dalla casella
-    if (jy === 1 && cy > 0) rect(sx + cx * Q + 2, sy + cy * Q - 1, Q - 4, 1, c);
+    const gx = tx * 4 + cx, gy = ty * 4 + cy, k = cat(gx, gy);
+    const x0 = sx + cx * Q, y0 = sy + cy * Q;
+    if (k) rect(x0, y0, Q, Q, cols[k]);
+    /* DENTI SUL CONFINE. Le chiazze erano quadrati da 8 px affiancati: dove il tono cambiava
+       restava una riga dritta lunga anche cento pixel, e fra due toni vicini era l'unica cosa
+       che si vedeva (segnalato con foto). Qui ogni lato che confina con un tono diverso si
+       mangia e si allunga di due o tre pixel a morsi, e la riga sparisce. */
+    for (let i = 0; i < 4; i++) {
+      const [dx, dy] = [[0, -1], [1, 0], [0, 1], [-1, 0]][i];
+      const kv = cat(gx + dx, gy + dy);
+      if (kv === k) continue;
+      const cv = cols[kv];
+      for (let d = 0; d < 3; d++) {
+        const h = vhash(gx * 4 + d, gy * 4 + i, salt + 11);
+        if (h < 0.42) continue;
+        const pos = Math.floor(vhash(gx * 3 + d, gy * 5 + i, salt + 13) * (Q - 2)), len = 2 + (h > 0.8 ? 1 : 0), spes = 1 + (h > 0.7 ? 1 : 0);
+        if (i === 0) rect(x0 + pos, y0, len, spes, cv);
+        else if (i === 2) rect(x0 + pos, y0 + Q - spes, len, spes, cv);
+        else if (i === 1) rect(x0 + Q - spes, y0 + pos, spes, len, cv);
+        else rect(x0, y0 + pos, spes, len, cv);
+      }
+    }
   }
 }
 /* ciuffo d'erba: tre fili di altezza diversa, lato in ombra e punta in luce */
@@ -204,27 +222,39 @@ const isLandT = t => t === SAND || t === GRASS || t === FOREST || t === DIRT || 
    vicine si somigliano e il bordo fa onde; con un valore a caso per striscia vengono fuori
    rettangoli tutti diversi appiccicati — "un caos geometrico" (segnalato con foto).
    `i` = lato (0 su · 1 destra · 2 giù · 3 sinistra). */
+/* IL CONFINE È UNA LINEA SOLA, condivisa dalle due caselle.
+   Prima ogni casella si disegnava la sua frangia per conto suo e solo il terreno "più alto"
+   sconfinava: veniva una linea dentellata da una parte e netta dall'altra, cioè il contrario
+   di quello che serve (segnalato con foto: «ci deve essere del marrone sul giallo e il giallo
+   sul marrone»).
+   Qui il profilo si calcola sul BORDO, non sulla casella: le due vicine ricavano la stessa
+   curva dalle stesse coordinate. Dove la curva pende da una parte, quella casella dipinge
+   dentro di sé il colore dell'altra; dove pende dall'altra, tocca alla vicina. Le due metà si
+   incastrano e il confine serpeggia a cavallo del bordo. */
 function frangiaLato(tx, ty, sx, sy, i, col, colFronte, prof, seme) {
-  /* UNA SCALINATA, non un muro a mattoni. Prima il profilo saltava da 1 a 8 pixel fra un
-     tratto e l'altro (onda a periodo corto), certi tratti restavano indietro apposta e davanti
-     correva una riga più scura: il risultato era un reticolo di blocchi e di tessere staccate
-     (segnalato con foto). Il bordo che si vuole è quello dei giochi 16-bit: una linea continua
-     che scende a gradini piccoli, senza pezzi sospesi e senza bordino. */
   const orizz = i === 0 || i === 2;
+  /* la coordinata del bordo condiviso: sopra e a sinistra è la casella stessa, sotto e a
+     destra è quella dopo. Le due vicine arrivano così allo stesso numero. */
+  const bordo = i === 0 ? ty : i === 2 ? ty + 1 : i === 3 ? tx : tx + 1;
+  /* "prima del bordo" = sto sopra o a sinistra della linea: il mio lato è quello che perde
+     terreno quando la curva pende verso di me */
+  const primaDelBordo = i === 1 || i === 2;
   let dPrec = null;
   for (let k = 0; k < TS;) {
     const u = (orizz ? tx * TS + k : ty * TS + k);
-    const onda = smooth(u * 0.075, (orizz ? ty : tx) * 3.1 + i * 7, seme);
-    const w = 2 + Math.floor(vhash(u, i + seme, seme + 3) * 3);          // gradini da 2 a 4 px
-    let d = Math.max(1, Math.round(1 + onda * prof));
-    /* il gradino successivo non si allontana mai più di uno da quello prima: è questo che
-       trasforma i denti in una scalinata */
-    if (dPrec !== null) d = Math.max(dPrec - 1, Math.min(dPrec + 1, d));
+    const onda = smooth(u * 0.16, bordo * 3.1 + (orizz ? 0 : 511), seme);
+    const w = 1 + Math.floor(vhash(u, bordo + seme, seme + 3) * 3);       // dentelli da 1 a 3 px
+    /* profilo CON SEGNO: positivo = il terreno di sotto/destra sale dentro l'altro */
+    let d = Math.round((onda - 0.5) * prof);
+    if (dPrec !== null) d = Math.max(dPrec - 1, Math.min(dPrec + 1, d));  // gradini piccoli: una scalinata
     dPrec = d;
-    if (i === 0) rect(sx + k, sy, w, d, col);
-    else if (i === 2) rect(sx + k, sy + TS - d, w, d, col);
-    else if (i === 1) rect(sx + TS - d, sy + k, d, w, col);
-    else rect(sx, sy + k, d, w, col);
+    const mio = primaDelBordo ? d : -d;                                   // quanto entra da me
+    if (mio > 0) {
+      if (i === 0) rect(sx + k, sy, w, mio, col);
+      else if (i === 2) rect(sx + k, sy + TS - mio, w, mio, col);
+      else if (i === 1) rect(sx + TS - mio, sy + k, mio, w, col);
+      else rect(sx, sy + k, mio, w, col);
+    }
     k += w;
   }
 }
@@ -278,29 +308,33 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
       rect(X, Y, 1, 1, wc);
     }
   }
-  if (t === SAND) {
+  /* SABBIA ED ERBA: la frangia la disegnano TUTTE E DUE, ognuna la sua metà della stessa linea.
+     Finché la faceva solo la sabbia, metà confine restava il bordo netto della casella e in
+     mezzo alla spiaggia comparivano righe dritte lunghe (segnalato con foto).
+     Via anche la fascia scura dritta che il prato metteva verso il bosco: era una riga a
+     righello, e a colori vicini è l'unica cosa che si vedeva. */
+  {
     const SP = ZP || SEA_TILE;
-    for (let i = 0; i < 4; i++) if (nb[i] === GRASS || nb[i] === FOREST) {
-      frangiaLato(tx, ty, sx, sy, i, nb[i] === FOREST ? SP.f[0] : SP.g[0], null, 6, 91);
+    const erba = t === GRASS || t === FOREST;
+    for (let i = 0; i < 4; i++) {
+      const n = nb[i];
+      if (t === SAND && (n === GRASS || n === FOREST)) frangiaLato(tx, ty, sx, sy, i, n === FOREST ? SP.f[0] : SP.g[0], null, 6, 91);
+      else if (erba && n === SAND) frangiaLato(tx, ty, sx, sy, i, landColor(SAND, ZP, zi), null, 6, 91);
     }
-  } else if (t === GRASS) {
-    for (let i = 0; i < 4; i++) if (nb[i] === FOREST) side(i, 3, 'rgba(20,40,20,.18)');
   }
   /* BORDI FRASTAGLIATI fra tutti gli altri terreni di terra: prima prato, bosco, terra e roccia
      finivano di netto sul bordo della casella e il mondo si leggeva a scalini da 32 pixel (visto nelle
      foto dei biomi). Il terreno "più alto" (roccia > bosco > prato > terra) sconfina nel vicino a
      linguette di 4 pixel di profondità diversa, con un filo più scuro sul fronte; lo disegna chi le
      riceve, quindi ogni confine si disegna una volta sola. Fase dalle coordinate della casella. */
-  const rank = LAND_RANK[t] || 0;
   for (let i = 0; i < 4; i++) {
     const n = nb[i];
-    if (!isLandT(n) || n === t || (t === SAND && (n === GRASS || n === FOREST))) continue;
-    if ((LAND_RANK[n] || 0) <= rank) continue;
+    if (!isLandT(n) || n === t || (t === SAND && (n === GRASS || n === FOREST)) || (n === SAND && (t === GRASS || t === FOREST))) continue;
+    /* NIENTE RANGO: disegnano tutte e due le caselle, ognuna la sua metà della stessa linea */
     const c = landColor(n, ZP, zi);
-    frangiaLato(tx, ty, sx, sy, i, c, null, 10, 93);
+    frangiaLato(tx, ty, sx, sy, i, c, null, 6, 93);
   }
 }
-const LAND_RANK = { [SAND]: 1, [DIRT]: 2, [GRASS]: 3, [FOREST]: 4, [MTN]: 5 };
 function waterColor(t, zi) {
   if (t === DEEP) return zi === 5 ? '#6a9abd' : zi === 4 ? '#2f5148' : '#3a7aa2';
   return zi === 5 ? '#8abad6' : zi === 4 ? '#3a6154' : '#56b0d2';
@@ -334,7 +368,7 @@ function zoneBlend(t, tx, ty, sx, sy, zi, nbz) {
     if (zj == null || zj === zi) continue;
     const ZPj = ZONE_TILES[zj] || null;
     const c1 = landColor(t, ZPj, zj);
-    frangiaLato(tx, ty, sx, sy, i, c1, null, 11, 181);
+    frangiaLato(tx, ty, sx, sy, i, c1, null, 6, 181);
     /* NIENTE PIXEL SPARSI più addentro: erano lì per «mescolare» le due terre, ma da vicino
        sembravano tessere staccate in mezzo al terreno (segnalato con foto). Il passaggio lo fa
        la scalinata e basta. */
