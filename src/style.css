@@ -280,11 +280,13 @@ kbd + .pxi{margin-left:2px}
 #tutbox .tut-pips i{width:14px;height:6px;background:#e0cda0;box-shadow:inset 0 0 0 1px #c2a86f}
 #tutbox .tut-pips i.ok{background:var(--c-teal);box-shadow:inset 0 0 0 1px var(--c-teal-sh)}
 #tutbox .tut-pips i.on{background:var(--c-amber);box-shadow:inset 0 0 0 1px var(--c-amber-sh)}
-#tutbox .tut-skip{background:none;border:0;color:#6b4a22;font:inherit;font-size:var(--fs-note);
+/* un dito non centra un bersaglio da 20px: la freccina e «salta» hanno l'area grande anche
+   se il segno resta piccolo (misurato con npm run mobile) */
+#tutbox .tut-skip{background:none;border:0;color:#6b4a22;font:inherit;font-size:var(--fs-note);min-width:44px;min-height:38px;padding:8px 6px;
   cursor:pointer;padding:2px 4px;text-decoration:underline}
 /* la freccina che richiude la scheda: aperta occupa un terzo di un telefono, e chi ha letto
    il passo vuole vedere il gioco. Richiusa restano i quadratini e il titolo. */
-#tutbox .tut-fold{background:none;border:0;color:#6b4a22;font:inherit;cursor:pointer;
+#tutbox .tut-fold{background:none;border:0;color:#6b4a22;font:inherit;cursor:pointer;min-width:42px;min-height:38px;
   padding:2px 6px;margin-left:auto;line-height:1}
 #tutbox.small{padding-bottom:var(--sp-2)}
 #tutbox.small .tut-main{align-items:center}
@@ -451,7 +453,8 @@ body:has(#cmd.on) #touch{display:none!important}
   .sheet{max-height:calc(100dvh - 16px);width:100%}
 }
 .st{position:sticky;top:0;background:#e7d9b6;border-bottom:3px solid var(--c-line);padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:1}
-.st h2{margin:0;font-size:17px}.st .x{margin-left:auto;border:2px solid var(--c-line);background:var(--c-ink);border-radius:8px;width:34px;height:34px;font-weight:800;cursor:pointer;font-size:16px}
+/* il ✕ della modale: un dito ha bisogno di 42px anche sullo schermo più stretto */
+.st h2{margin:0;font-size:17px}.st .x{margin-left:auto;min-width:42px;min-height:42px;border:2px solid var(--c-line);background:var(--c-ink);border-radius:8px;width:42px;height:42px;font-weight:800;cursor:pointer;font-size:16px}
 .sb{padding:14px}
 .row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:2px solid #d8c79c;border-radius:9px;margin-bottom:7px;background:#fbf5e4}
 .row .em{font-size:22px}.row .nm{font-weight:800;font-size:13px}.row .sub{font-size:11px;color:#8a755a}
@@ -899,13 +902,13 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
 .mp-hd{display:flex;align-items:center;gap:10px;padding:8px 12px 6px;font-weight:800;letter-spacing:1px;color:var(--c-line-3);
   border-bottom:3px solid var(--c-parch)}
 #mp-sub{margin-left:auto;font-size:11px;font-weight:700;color:#7a6242}
-.mp-x{width:34px;height:34px;background:var(--c-line-2);color:var(--c-ink);border:0;box-shadow:0 0 0 2px var(--c-deep);cursor:pointer;font-weight:800;flex:none}
+.mp-x{width:42px;height:42px;background:var(--c-line-2);color:var(--c-ink);border:0;box-shadow:0 0 0 2px var(--c-deep);cursor:pointer;font-weight:800;flex:none}
 .mp-view{position:relative;flex:1 1 auto;min-height:0;padding:8px;background:var(--c-parch-3)}
 #mapcv{width:100%;height:auto;max-height:64vh;image-rendering:pixelated;background:#d9c393;
   box-shadow:0 0 0 3px #a98a54;touch-action:none;cursor:grab;display:block}
 #mapcv:active{cursor:grabbing}
 .mp-zoom{position:absolute;right:16px;bottom:16px;display:flex;flex-direction:column;gap:5px}
-.mp-zoom button{width:34px;height:34px;background:var(--c-line-2);color:var(--c-ink);border:0;box-shadow:0 0 0 2px var(--c-deep);
+.mp-zoom button{width:42px;height:42px;background:var(--c-line-2);color:var(--c-ink);border:0;box-shadow:0 0 0 2px var(--c-deep);
   font:800 17px ui-monospace,monospace;cursor:pointer;line-height:1}
 .mp-zoom button:active{transform:translate(1px,1px)}
 .mp-legend{display:flex;flex-wrap:wrap;gap:6px 14px;padding:8px 12px;font-size:13px;background:#dcc79a;color:var(--c-line-3);
@@ -1038,7 +1041,7 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
 /* MONETE nell'intestazione dei pannelli: aperta una modale l'HUD sparisce sotto, e su
    mobile non si vedeva più quanto si poteva spendere proprio mentre si comprava. */
 .st-coins{margin-left:auto;display:inline-flex;align-items:center;justify-content:center;gap:5px;
-  font-weight:800;font-size:14px;height:34px;box-sizing:border-box;   /* stessa altezza della X */
+  font-weight:800;font-size:14px;height:42px;box-sizing:border-box;   /* stessa altezza della X (che ora è da dito) */
   color:#3b2f1e;background:var(--c-ink);border:2px solid var(--c-line);border-radius:8px;padding:0 10px;white-space:nowrap}
 .st-coins .pxi{width:1.1em;height:1.1em}
 .st .x{margin-left:8px}
@@ -1262,7 +1265,7 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 /* SCHEDE come linguette che vanno a capo (niente scorrimento orizzontale dentro al pannello:
    REGOLA #14) — vassoio dell'arredo */
 .cat-temi{display:flex;flex-wrap:wrap;gap:var(--sp-1);margin:0 0 var(--sp-2)}
-.cat-tema{font:inherit;font-size:var(--fs-note);font-weight:700;padding:5px 8px;border-radius:var(--r-1);cursor:pointer;
+.cat-tema{font:inherit;font-size:var(--fs-note);font-weight:700;padding:10px 10px;min-height:38px;border-radius:var(--r-1);cursor:pointer;
   background:var(--c-paper);color:var(--c-wood-2);border:2px solid #cbb488}
 .cat-tema.on{background:var(--c-amber);color:var(--c-dark);border-color:var(--c-amber-sh)}
 /* ricerca del vassoio: il campo prende lo spazio, il selettore "in questa scheda / ovunque"
@@ -1501,11 +1504,11 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
   box-shadow:0 0 0 3px var(--c-deep);clip-path:polygon(10px 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,10px 100%,0 50%)}
 #mp-sub{position:absolute;left:14px;top:18px;margin:0;color:var(--c-line-3)}
 /* la ✕ della carta è quella di tutte le altre finestre (niente sigillo rosso: sembrava la X del tesoro) */
-.mp-x{position:absolute;right:12px;top:8px;width:34px;height:34px;border-radius:8px;border:2px solid var(--c-line);background:var(--c-ink);color:var(--c-wood);box-shadow:0 0 0 3px var(--c-deep);font-size:16px}
+.mp-x{position:absolute;right:12px;top:8px;width:42px;height:42px;border-radius:8px;border:2px solid var(--c-line);background:var(--c-ink);color:var(--c-wood);box-shadow:0 0 0 3px var(--c-deep);font-size:16px}
 .mp-x .pxi{width:16px;height:16px}
 #mapcv{box-shadow:0 0 0 2px rgba(92,58,24,.5)}
 .mp-zoom button{border-radius:50%;background:var(--c-parch-2);color:var(--c-line-3);box-shadow:0 0 0 2px var(--c-line-3)}
-.mp-legbtn{align-self:flex-start;margin:6px 12px 8px;font:800 13px ui-monospace,monospace;background:transparent;color:var(--c-line-3);border:0;
+.mp-legbtn{align-self:flex-start;margin:6px 12px 8px;min-width:44px;min-height:38px;font:800 13px ui-monospace,monospace;background:transparent;color:var(--c-line-3);border:0;
   box-shadow:inset 0 -2px 0 var(--c-line-3);padding:4px 2px;cursor:pointer}
 .mp-legend{display:none}
 .mp-legend.open{display:flex}
@@ -1583,4 +1586,4 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
 /* sotto la carta: la legenda ripiegata a sinistra e il teletrasporto a casa a destra */
 .mp-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 12px 8px}
 .mp-foot .mp-legbtn{margin:0}
-.mp-homebtn{font:800 13px ui-monospace,monospace;background:var(--c-line-2);color:var(--c-paper);border:0;padding:6px 10px;cursor:pointer;box-shadow:0 0 0 2px var(--c-line-3)}
+.mp-homebtn{font:800 13px ui-monospace,monospace;background:var(--c-line-2);color:var(--c-paper);border:0;padding:10px 12px;min-height:38px;cursor:pointer;box-shadow:0 0 0 2px var(--c-line-3)}

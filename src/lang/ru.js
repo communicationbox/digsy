@@ -13,6 +13,18 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  "{act} to dig: costs 1 ⚡, one spot only once.": "{act} — копать: 1 ⚡, каждое место один раз.",
+  "Raw finds get identified at the <b>Museum</b>.": "Необработанные находки определяют в <b>Музее</b>.",
+  "Out of energy: sleep, or eat a snack (+15 ⚡).": "Энергия кончилась: поспи или перекуси (+15 ⚡).",
+  "Bag full: finds stay <b>on the ground</b>. Bigger bags at the Shop.": "Рюкзак полон: находки остаются <b>на земле</b>. Большие рюкзаки — в Лавке.",
+  "Complete case = 1 DNA vial. With 2 you awaken the species at the Lab.": "Полная витрина = 1 пробирка ДНК. С двумя пробуди вид в Лаборатории.",
+  "After a complete case, <b>amber</b> pieces ✨ turn up: a second case.": "После полной витрины появляются кусочки <b>янтаря</b> ✨: вторая витрина.",
+  "The board 📋 has missions that pay.": "На доске 📋 есть задания с наградой.",
+  "Each wonder gives a gift, then rests a few days.": "Каждое чудо даёт подарок, потом отдыхает пару дней.",
+  "The <b>boat</b> takes you on the water: {act} to fish.": "На <b>лодке</b> выходишь на воду: {act} — рыбачить.",
+  "Caves open with the <b>pickaxe</b>: 6 species only there.": "Пещеры открывает <b>кирка</b>: 6 видов только там.",
+  "A day lasts 20 minutes; the season changes every 3.": "День длится 20 минут; сезон меняется каждые 3 дня.",
+
   'Choose': 'Выбрать',
   'No creatures yet. Awaken one at the Lab.': 'Существ пока нет. Пробуди одно в Лаборатории.',
   'With you': 'С тобой',
@@ -45,9 +57,6 @@ export const RU = {
   "I spent my life looking for them. And I always dreamed of seeing one alive, even just one.": "Я всю жизнь их искал. И всегда мечтал увидеть хоть одно живым, хотя бы одно.",
   "This is for you, {n}. I'm tired now… but you have the whole road ahead of you.": "Это тебе, {n}. Я уже устал… а у тебя впереди вся дорога.",
   "I promise, Grandpa: I'll bring them back to life. Every single one.": "Обещаю, дедушка: я верну их к жизни. Всех до одного.",
-  "Every dig uses energy ⚡. When it runs out, sleep at the <b>Inn</b> or eat a snack (+15 ⚡).": "Каждый раскоп тратит энергию ⚡. Когда она кончится, поспи в <b>Таверне</b> или съешь перекус (+15 ⚡).",
-  "When your bag is full, new finds stay <b>on the ground</b>. The Shop sells bigger bags.": "Когда рюкзак полон, новые находки остаются <b>на земле</b>. В Лавке есть рюкзаки побольше.",
-  "Once a case is complete, <b>amber</b> pieces ✨ of that species can turn up: a second case to fill.": "Когда витрина заполнена, могут попадаться <b>янтарные</b> ✨ части этого вида: вторая витрина ждёт.",
   "Blessing: 10 digs with double experience": "Благословение: 10 раскопок с двойным опытом",
   "Sparkling platinum hat and golden aura!": "Сверкающая платиновая шляпа и золотая аура!",
   "worth up to 50% more": "стоит до 50% дороже",
@@ -75,19 +84,8 @@ export const RU = {
   "The game here and the online one are different. Which do you want to keep?": "Игра здесь и игра в сети отличаются. Какую оставить?",
   "No Google sign-in on itch.io: the game stays on this device.": "На itch.io нельзя войти через Google: игра остаётся на этом устройстве.",
   "Sign in to have the same game on phone and computer.": "Войди, чтобы играть в одну игру на телефоне и компьютере.",
-  "Press {act} to dig: it costs 1 ⚡. Each spot can be dug only once, then move on.": "Нажми {act}, чтобы копать: это стоит 1 ⚡. Каждое место копается один раз, потом иди дальше.",
-  "Take raw finds to the <b>Museum</b>: they identify them there.": "Неопознанные находки неси в <b>Музей</b>: там их определят.",
-
-
-  "With the Shop's <b>boat</b> you can go on the water. Press {act} to fish.": "С <b>лодкой</b> из Лавки можно выйти на воду. Нажми {act}, чтобы рыбачить.",
-  "You need the <b>pickaxe</b> to enter caves. Inside live 6 species found nowhere else.": "Чтобы войти в пещеру, нужна <b>кирка</b>. Внутри живут 6 видов, которых больше нигде нет.",
-  "Each wonder gives you a gift, then needs to rest a few days.": "Каждое чудо дарит подарок, а потом отдыхает несколько дней.",
   "The map{key:M} reveals itself as you walk.": "Карта{key:M} открывается по мере того, как ты ходишь.",
   "DNA and awakening": "ДНК и пробуждение",
-  "A complete case at the Museum gives you a <b>DNA vial</b>. With <b>2</b> vials you awaken the species at the Lab.": "Полная витрина в Музее даёт <b>пробирку ДНК</b>. С <b>2</b> пробирками вид пробуждается в Лаборатории.",
-  "The board 📋 has missions that pay coins and experience.": "На доске 📋 есть задания за монеты и опыт.",
-
-  "A day lasts 20 minutes and the season changes every 3 days. At night the <b>torch</b> lets you see farther.": "День длится 20 минут, а сезон меняется каждые 3 дня. Ночью <b>фонарь</b> помогает видеть дальше.",
   "Pick up what sparkles": "Собери то, что блестит",
   "Follow the arrow and press {act}. You need 15 coins for the spade.": "Иди по стрелке и нажми {act}. На лопату нужно 15 монет.",
   "Sell what you picked up and buy the spade 🪏.": "Продай собранное и купи лопату 🪏.",

@@ -321,81 +321,109 @@ export function paintMask(m, fill, light, dark, w = MW, h = MH, line) {
   }
   return dentro;
 }
-/* QUATTRO SAGUARI DIVERSI, scritti a mano (e specchiabili: otto in giro per le Dune). Prima
-   era sempre lo stesso fusto con due braccia alle stesse altezze: un timbro ripetuto. */
+/* QUATTRO CACTUS, e non sono quattro saguari. La colonna nuda, senza braccia, era solo un
+   cilindro verde: brutto e ambiguo (segnalato). Due sono saguari con le braccia, gli altri due
+   sono piante di forma completamente diversa — il fico d'India a pale e il cactus a barile —
+   così nelle Dune non si vede mai la stessa sagoma due volte di fila. */
 const CACTI = [
-  { h: 28, bracci: [[1, 19, 9], [-1, 14, 8]] },        // classico: due braccia sfalsate
-  { h: 30, bracci: [[-1, 21, 12]] },                    // alto con un braccio solo, lungo
-  { h: 24, bracci: [] },                                // colonna nuda, tozza
-  { h: 26, bracci: [[1, 20, 6], [-1, 16, 5], [1, 11, 4]] },   // candelabro a tre braccia corte
+  { tipo: 'saguaro', h: 28, bracci: [[1, 19, 9], [-1, 14, 8]] },      // due braccia sfalsate
+  { tipo: 'saguaro', h: 30, bracci: [[-1, 21, 12]] },                  // alto con un braccio lungo
+  { tipo: 'pale' },                                                    // fico d'India: pale piatte
+  { tipo: 'barile' },                                                  // barile basso a costole, col fiore
 ];
 export function drawCactus(sx, sy, tx = 0, ty = 0) {
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 30; shadow(cx, base, 9);
   const flip = vhash(tx, ty, 84) < 0.5 ? 1 : -1, W = 32, H = 32;
+  const MXC = x => (flip > 0 ? x : 31 - x);
   const bp = CACTI[Math.floor(vhash(tx, ty, 174) * CACTI.length) % CACTI.length];
-  const braccio = (dir, y0, alt) => ([                       // spalla orizzontale + braccio che sale
-    [dir < 0 ? cx - 12 : cx + 4, base - y0, 8, 6, 3],
-    [dir < 0 ? cx - 13 : cx + 9, base - y0 - alt, 5, alt + 6, 2],
-  ]);
-  let shapes = [[cx - 5, base - bp.h, 10, bp.h, 5]];         // fusto
-  for (const [dir, y0, alt] of bp.bracci) shapes = shapes.concat(braccio(dir * flip, y0, alt));
-  if (flip < 0) shapes = shapes.map(sh => (sh[0] === 'disc' || sh[0] === 'ell' || sh[0] === 'cap') ? sh : [W - (sh[0] + sh[2]), sh[1], sh[2], sh[3], sh[4]]);
-  const dentro = paintMask(roundMask(shapes, W, H), '#4a9a55', '#6fbf78', '#357a42', W, H);
-  for (const cxr of [cx - 2, cx + 1]) for (let y = base - bp.h + 3; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
-  for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - bp.h + 4 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
-  /* fiore in cima: solo su certi, e solo su una variante o l'altra */
-  if (vhash(tx, ty, 175) < 0.4) { rect(cx - 2, base - bp.h - 3, 4, 3, '#e08aa8'); px(cx - 1, base - bp.h - 4, '#f6c0d4'); }
+  const V = '#4a9a55', VL = '#6fbf78', VD = '#357a42';
+  let dentro;
+  if (bp.tipo === 'pale') {
+    /* FICO D'INDIA: pale ovali piatte, una che spunta dall'altra. Si riconosce a colpo d'occhio
+       e non somiglia a nessun'altra cosa del gioco. */
+    const pale = [['ell', MXC(cx - 1), base - 7, 6, 7], ['ell', MXC(cx + 7), base - 13, 5, 6], ['ell', MXC(cx - 8), base - 12, 4, 5], ['ell', MXC(cx + 2), base - 19, 4, 5]];
+    dentro = paintMask(roundMask(pale, W, H), V, VL, VD, W, H);
+    for (const [, pcx, pcy] of pale) for (let i = 0; i < 5; i++) {      // areole a righe sulle pale
+      const ax = pcx - 2 + (i % 3) * 2, ay = pcy - 3 + Math.floor(i / 3) * 4;
+      if (dentro(ax, ay)) px(ax, ay, '#e0f0d8');
+    }
+    if (vhash(tx, ty, 175) < 0.5) { rect(MXC(cx + 2) - 1, base - 25, 3, 3, '#efc23a'); px(MXC(cx + 2), base - 26, '#fbe79a');   /* giallo del fiore, NON quello del segnalino di meta */ }   // fiore giallo
+  } else if (bp.tipo === 'barile') {
+    /* BARILE: tozzo e tondo, costole verticali e la corona di fiori sopra */
+    dentro = paintMask(roundMask([['ell', MXC(cx), base - 9, 9, 10]], W, H), V, VL, VD, W, H);
+    for (const ox of [-6, -3, 0, 3, 6]) for (let y = base - 18; y < base - 1; y++) if (dentro(MXC(cx + ox), y)) px(MXC(cx + ox), y, '#3d8a48');
+    for (let i = 0; i < 7; i++) { const x = MXC(cx - 6 + i * 2), y = base - 18 + (i % 2); if (dentro(x, y + 1)) px(x, y, '#e0f0d8'); }
+    for (const ox of [-4, 0, 4]) if (vhash(tx + ox, ty, 175) < 0.7) { rect(MXC(cx + ox) - 1, base - 21, 3, 2, '#e8607a'); px(MXC(cx + ox), base - 22, '#f6a0b4'); }
+  } else {
+    /* il braccio finisce con una PUNTA TONDA: con il solo rettangolo la cima usciva squadrata
+       e sembrava tagliata di netto (segnalato con foto) */
+    const braccio = (dir, y0, alt) => ([
+      [dir < 0 ? cx - 12 : cx + 4, base - y0, 8, 6, 3],                 // spalla
+      [dir < 0 ? cx - 13 : cx + 9, base - y0 - alt, 5, alt + 6, 2],     // braccio che sale
+      ['disc', (dir < 0 ? cx - 11 : cx + 11), base - y0 - alt + 2, 2],  // punta arrotondata
+    ]);
+    let shapes = [[cx - 5, base - bp.h, 10, bp.h, 5]];                  // fusto
+    for (const [dir, y0, alt] of bp.bracci) shapes = shapes.concat(braccio(dir, y0, alt));
+    if (flip < 0) shapes = shapes.map(sh => sh[0] === 'disc' ? ['disc', W - 1 - sh[1], sh[2], sh[3]] : [W - (sh[0] + sh[2]), sh[1], sh[2], sh[3], sh[4]]);
+    dentro = paintMask(roundMask(shapes, W, H), V, VL, VD, W, H);
+    for (const cxr of [cx - 2, cx + 1]) for (let y = base - bp.h + 3; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
+    for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - bp.h + 4 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
+    if (vhash(tx, ty, 175) < 0.4) { rect(cx - 2, base - bp.h - 3, 4, 3, '#e08aa8'); px(cx - 1, base - bp.h - 4, '#f6c0d4'); }
+  }
   erbetta(cx - 10, cx + 9, base + 1, tx, ty, '#8a9a5a', '#6f7f45');
   ctx.restore();
 }
-/* QUATTRO AFFIORAMENTI D'OSSA DIVERSI: tre costole, un cranio che spunta, una zanna curva,
-   una fila di vertebre. Prima erano sempre le stesse tre costole nella stessa sabbia. */
-export function drawBonespire(sx, sy, tx = 0, ty = 0) {
+/* ROCCE DELLE DUNE — quattro guglie d'arenaria scolpite dal vento, da spaccare col piccone.
+   Prima qui c'erano delle OSSA che affioravano, e sbagliavano due volte: le ossa sono quello
+   che si SCAVA (il premio), non l'ostacolo, e messe in piedi sembravano fossili già dissotterrati
+   (segnalato). La regola del gioco è una sola e vale per tutti i biomi: i fossili vengono dalla
+   TERRA, dalle ROCCE e dalle PIANTE — nelle Dune la pianta è il saguaro, la roccia è questa.
+   Ognuna ha la sua sagoma e si può specchiare: otto guglie in giro per la sabbia. */
+export function drawSandspire(sx, sy, tx = 0, ty = 0) {
   ctx.save(); ctx.translate(sx, sy);
-  const cx = 16, base = 28; shadow(cx, base, 12);
-  const flip = vhash(tx, ty, 176) < 0.5 ? 1 : -1, X = x => Math.round(cx + flip * (x - cx));
+  const cx = 16, base = 30; shadow(cx, base, 12);
+  const flip = vhash(tx, ty, 176) < 0.5 ? 1 : -1, X = x => (flip > 0 ? x : 31 - x);
   const v = Math.floor(vhash(tx, ty, 177) * 4) % 4;
-  const OS = '#ece5d2', OM = '#c9bd9f', OD = '#4a4234';
-  /* la sabbia ammucchiata sotto: c'è sempre, è ciò che tiene insieme le quattro versioni */
-  ellipseF(cx, base - 1, 14, 3, '#d8c9a0'); ellipseF(cx - 3, base - 2, 8, 1, '#e8dcb8');
-  const osso = (x, y, w, h) => { rect(x - 1, y, w + 2, h, OD); rect(x, y, w, h, OS); rect(x, y, w, 1, '#fbf6e8'); };
-  if (v === 0) {                                             // tre costole ad arco
-    [[-9, 14, -1], [0, 21, 1], [9, 12, 1]].forEach(([ox, h, bend], i) => {
-      for (let k = 0; k < h; k++) {
-        const x = X(cx + ox) + Math.round(Math.sin((k / h) * 1.6) * 3 * bend * flip), y = base - 2 - k, w = k > h - 4 ? 2 : 4;
-        rect(x - (w >> 1) - 1, y, w + 2, 1, OD); rect(x - (w >> 1), y, w, 1, OS); px(x - (w >> 1), y, '#fbf6e8');
-      }
-      if (vhash(tx, ty, 88 + i) < 0.5) rect(X(cx + ox) - 1, base - Math.floor(h / 2), 3, 1, OM);
-    });
-  } else if (v === 1) {                                      // CRANIO mezzo sepolto, con un corno
-    /* la calotta è tonda e il muso si allunga: a rettangoli sembrava una cassetta con due
-       buchi. Sagoma unica, contorno unico, e la sabbia lo copre fino a metà mandibola. */
-    const hx = X(cx - 1), hy = base - 12;
-    const forme = [['ell', hx, hy + 2, 9, 7], ['ell', hx + flip * 7, hy + 7, 6, 4], ['ell', hx - flip * 6, hy - 1, 5, 4]];
-    const dentro = paintMask(roundMask(forme.map(f => ['ell', f[1], f[2], f[3], f[4]])), OS, '#fbf6e8', OM, 32, 32, OD);
-    /* orbite: due incavi tondi, con un filo di luce sotto */
-    for (const ox of [-4, 3]) {
-      const ex = hx + flip * ox;
-      ellipseF(ex, hy + 1, 3, 3, '#2e2a22'); px(ex, hy + 3, '#5a5448');
-    }
-    for (let i = 0; i < 4; i++) { const dx2 = hx + flip * (4 + i * 3); if (dentro(dx2, hy + 9)) rect(dx2, hy + 9, 2, 2, '#fbf6e8'); }   // denti
-    for (let k = 0; k < 10; k++) rect(X(cx + 7 + Math.round(k * 0.5)), hy - 5 - k, 3, 1, k > 7 ? OM : OS);   // corno che sale
-    rect(X(cx - 13), base - 6, 8, 3, OM); rect(X(cx - 13), base - 6, 8, 1, OS);           // una scheggia accanto
-  } else if (v === 2) {                                      // ZANNA lunga e curva
-    for (let k = 0; k < 24; k++) {
-      const t2 = k / 24, x = X(cx - 10 + Math.round(t2 * t2 * 18)), y = base - 3 - Math.round(Math.sin(t2 * 1.5) * 20);
-      const w = Math.max(1, Math.round(5 - t2 * 4));
-      rect(x - 1, y, w + 2, 2, OD); rect(x, y, w, 2, t2 > 0.7 ? '#fbf6e8' : OS);
-    }
-    osso(X(cx + 2), base - 6, 9, 3);                                                     // un pezzo di mandibola a terra
-  } else {                                                   // FILA DI VERTEBRE che affiorano
-    for (let i = 0; i < 5; i++) {
-      const x = X(cx - 11 + i * 5), y = base - 5 - Math.round(Math.sin(i * 0.8) * 5);
-      ellipseF(x, y, 4, 3, OD); ellipseF(x, y - 1, 3, 2, OS); px(x, y - 1, OM);
-      rect(x - 1, y - 6, 2, 4, OS); rect(x - 2, y - 7, 4, 2, OD); rect(x - 1, y - 6, 2, 1, '#fbf6e8');   // apofisi
+  const R = '#c98f52', RL = '#e8b87c', RD = '#8a5a30', LN2 = '#5e3a1e';
+  const m = new Uint8Array(32 * 32);
+  const set = (x, y) => { if (x >= 0 && y >= 0 && x < 32 && y < 32) m[y * 32 + x] = 1; };
+  const disco = (cxd, cyd, rx, ry) => { for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx + 0.5) + (y * y) / (ry * ry + 0.5) <= 1) set(cxd + x, cyd + y); };
+  const blocco = (x0, y0, w, h) => { for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) set(x, y); };
+  /* LARGHE, NON COLONNE. Il primo giro le aveva fatte alte e sottili e sembravano tutt'altro
+     (segnalato due volte). Una roccia del deserto si legge dal MASSICCIO: un arco scavato dal
+     vento, una mesa a strati, una pila di massi, una lama piegata. */
+  let alt = 18;
+  if (v === 0) {                                             // ARCO scavato dal vento
+    alt = 20;
+    blocco(X(4), base - 20, 6, 20); blocco(X(21), base - 20, 6, 20);
+    for (let x = 4; x <= 27; x++) { const y = base - 20 - Math.round(Math.sin((x - 4) / 23 * Math.PI) * 3); for (let k = 0; k < 6; k++) set(X(x), y + k); }
+  } else if (v === 1) {                                      // MESA a strati: larga e piatta
+    alt = 15;
+    for (let y = 0; y < 15; y++) { const w = 12 - Math.round(y / 5); for (let x = -w; x <= w; x++) set(X(cx + x), base - y - 1); }
+    disco(X(cx), base - 16, 9, 3);
+  } else if (v === 2) {                                      // PILA DI MASSI, uno sull'altro
+    alt = 19;
+    disco(X(cx), base - 5, 10, 5); disco(X(cx + 2), base - 13, 7, 5); disco(X(cx - 2), base - 19, 4, 4);
+  } else {                                                   // LAMA piegata, larga alla base
+    alt = 18;
+    for (let y = 0; y < 18; y++) {
+      const w = Math.max(3, 10 - Math.round(y * 0.45)), off = Math.round(Math.sin(y / 10) * 4);
+      for (let x = -w; x <= w; x++) set(X(cx + x + off), base - y - 1);
     }
   }
+  const dentro = paintMask(m, R, RL, RD, 32, 32, LN2);
+  /* STRATI di sedimento: righe orizzontali chiare e scure, la firma dell'arenaria */
+  for (let y = 2; y < alt; y += 3) {
+    const c = (y % 6) ? '#d9a468' : '#b57a45';
+    for (let x = 1; x < 31; x++) if (dentro(x, base - y) && dentro(x - 1, base - y) && dentro(x + 1, base - y)) px(x, base - y, c);
+  }
+  /* qualche buco scavato dal vento */
+  for (let k = 0; k < 3; k++) {
+    const hx = X(cx - 6 + k * 6), hy = base - 5 - k * 4;
+    if (vhash(tx + k, ty, 178) < 0.45 && dentro(hx, hy) && dentro(hx + 1, hy) && dentro(hx - 1, hy)) { px(hx, hy, '#6e4326'); px(hx + 1, hy, '#8a5a30'); px(hx, hy + 1, '#8a5a30'); }
+  }
+  ellipseF(cx, base - 1, 13, 3, '#d8c9a0'); ellipseF(cx - 3, base - 2, 7, 1, '#e8dcb8');
   ctx.restore();
 }
 /* QUATTRO ALBERI SECCHI DIVERSI, scritti a mano (la regola del progetto per "N cose tutte
@@ -677,28 +705,50 @@ export function drawMossrock(sx, sy, tx = 0, ty = 0) {
   erbetta(3, 28, base + 1, tx, ty);
   ctx.restore();
 }
-/* MUCCHIO D'OSSA MEZZO SEPOLTO: sabbia ammucchiata con due o tre vertebre che affiorano.
-   È la scenografia delle Dune — non si piccona (quello è l'affioramento di costole). */
-export function drawBonepile(sx, sy, tx = 0, ty = 0) {
+/* STERPAGLIA SECCA — il groviglio di rami che rotola nel deserto e si impiglia. È il
+   paesaggio delle Dune: solido, ma senza contorno, perché non ci si fa niente.
+   Qui ci sono passate due idee sbagliate, e vale la pena scriverle. Prima un mucchio d'ossa:
+   sbagliato perché le ossa sono il PREMIO che si scava, non l'ostacolo. Poi una duna di sabbia
+   con gli sterpi sopra: la sabbia aveva lo stesso colore del terreno, quindi si vedevano solo
+   gli sterpi e sembravano meduse rovesciate (segnalato con foto). Un groviglio di rami chiari
+   non somiglia a nient'altro nel gioco, e si capisce al volo che è un ingombro. */
+export function drawDrybush(sx, sy, tx = 0, ty = 0) {
   ctx.save(); ctx.translate(sx, sy);
-  const base = 26, flip = vhash(tx, ty, 198) < 0.5 ? 1 : -1;
+  const cx = 16, base = 28, flip = vhash(tx, ty, 198) < 0.5 ? 1 : -1;
   const X = x => MX(flip, x);
-  shadow(16, base + 3, 12);
-  paintMask(roundMask([['ell', X(15), base - 5, 13, 6], ['ell', X(22), base - 8, 7, 4]]),
-    '#d8c9a0', '#eddfba', '#b8a87e', 32, 32, null);
-  /* le vertebre: dischi con il foro, appoggiate una accanto all'altra */
   const v = Math.floor(vhash(tx, ty, 199) * 3) % 3;
-  /* le vertebre: dischi larghi appoggiati di taglio, mezzi sepolti nella sabbia. Con le
-     apofisi in cima sembravano ciuffi d'erba bianchi, non ossa. */
-  const gruppi = [[[10, 0], [18, -2], [25, 1]], [[12, -1], [21, 0]], [[8, 1], [15, -2], [22, -1], [27, 2]]];
-  for (const [ox, dy] of gruppi[v]) {
-    const cxo = X(ox), cy = base - 8 + dy;
-    ellipseF(cxo, cy, 5, 4, '#b0a68c');
-    ellipseF(cxo, cy - 1, 4, 3, '#ece5d2');
-    ellipseF(cxo, cy - 1, 2, 2, '#b0a68c'); px(cxo, cy - 1, '#8f8670');    // il foro del midollo
-    rect(cxo - 5, cy + 2, 10, 2, '#d8c9a0');                                // sabbia che la copre al piede
+  shadow(cx, base, 12);
+  /* MASSA, non rami. Il giro prima erano fili da un pixel: alla scala del gioco si leggevano
+     come uno scarabocchio sulla sabbia (segnalato con foto). Un cespuglio si legge dalla
+     SAGOMA piena, come tutto il resto del mondo; i rametti servono solo a sfrangiarne il
+     bordo. Niente contorno: è paesaggio, non ci si fa niente. */
+  const sagome = [
+    [['disc', X(11), base - 8, 7], ['disc', X(20), base - 9, 6], ['disc', X(16), base - 13, 5], ['disc', X(23), base - 5, 4]],
+    [['disc', X(15), base - 9, 8], ['disc', X(23), base - 6, 5], ['disc', X(9), base - 5, 5]],
+    [['disc', X(13), base - 6, 6], ['disc', X(19), base - 11, 7], ['disc', X(25), base - 7, 4], ['disc', X(10), base - 12, 4]],
+  ];
+  const dentro = paintMask(roundMask(sagome[v]), '#a89055', '#bda56c', '#8d7845', 32, 32, null);
+  /* RAMETTI dentro la massa: poche righe scure che si incrociano, come sterpi compressi */
+  for (let k = 0; k < 7; k++) {
+    const x0 = X(8 + k * 3), y0 = base - 3 - (k % 3) * 3;
+    /* i rametti stanno DENTRO: toccando il bordo facevano da contorno, e un contorno vuol dire
+       "ci puoi fare qualcosa" — qui non c'è niente da fare */
+    for (let j = 0; j < 7; j++) {
+      const x = x0 + Math.round(j * 0.5) * flip, y = y0 - j;
+      if (dentro(x, y) && dentro(x - 1, y) && dentro(x + 1, y) && dentro(x, y - 1) && dentro(x, y + 1)) px(x, y, '#7d6a3e');
+    }
   }
-  for (let k = 0; k < 4; k++) rect(X(5 + k * 6), base - 1, 3, 1, '#c9b892');          // increspature di sabbia
+  /* il bordo si SFRANGIA: qualche punta che esce di uno o due pixel, mai di più */
+  for (let x = 2; x < 30; x++) {
+    let y = base - 18;
+    while (y < base && !dentro(X(x), y)) y++;
+    if (y >= base) continue;
+    if (vhash(tx + x, ty, 201) > 0.42) continue;
+    const h = 1 + Math.floor(vhash(tx + x, ty, 202) * 3);
+    for (let j = 1; j <= h; j++) px(X(x), y - j, j === h ? '#bda56c' : '#a89055');
+  }
+  /* sabbia accumulata contro il ceppo */
+  ellipseF(cx, base + 1, 10, 2, '#d8c9a0'); ellipseF(cx - 2, base, 5, 1, '#e8dcb8');
   ctx.restore();
 }
 /* TUMULO D'ARGILLA SCREPOLATA: la terra secca delle Terre Rosse che si alza a gobba e si

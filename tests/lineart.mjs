@@ -119,7 +119,7 @@ const SPRITE = [
   ['guglia rossa', true, () => props.drawRedspire(32, 40, 3, 5)],
   ['cristallo di minerale', true, () => props.drawOrecrystal(32, 40, 3, 5)],
   ['cristallo di ghiaccio', true, () => props.drawIcecrystal(32, 40, 3, 5)],
-  ['costole nella sabbia', true, () => props.drawBonespire(32, 40, 3, 5)],
+  ['guglia d\'arenaria', true, () => props.drawSandspire(32, 40, 3, 5)],
   // NATURA — si raccoglie (solo la versione MATURA)
   ['fungo maturo', true, () => props.drawMushroom(32, 40, 0, 3, 5, true)],
   ['conchiglia intera', true, () => props.drawShell(32, 40, true)],
@@ -135,7 +135,7 @@ const SPRITE = [
   ['tronco caduto', false, () => props.drawLogfall(32, 40, 3, 5, false)],
   ['tronco nella palude', false, () => props.drawLogfall(32, 40, 4, 7, true)],
   ['masso muschiato', false, () => props.drawMossrock(32, 40, 3, 5)],
-  ['mucchio d\'ossa', false, () => props.drawBonepile(32, 40, 3, 5)],
+  ['sterpaglia secca', false, () => props.drawDrybush(32, 40, 3, 5)],
   ['tumulo d\'argilla', false, () => props.drawClaymound(32, 40, 3, 5)],
   ['tumulo di torba', false, () => props.drawPeatmound(32, 40, 3, 5)],
   ['cumulo di neve', false, () => props.drawSnowmound(32, 40, 3, 5)],

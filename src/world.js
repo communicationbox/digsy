@@ -26,7 +26,11 @@ export const digChance = { 2: 0.46, 3: 0.2, 4: 0.32, 5: 0.4 }; // sabbia/prato/f
 
 /* alberi abbattibili con l'accetta, rocce spaccabili col piccone */
 export const CHOPPABLE = ['tree', 'deadtree', 'cactus'];
-export const MINEABLE = ['boulder', 'redspire', 'orecrystal', 'icecrystal', 'bonespire'];
+/* LA REGOLA, valida in ogni bioma: i fossili vengono dalla TERRA (si scava), dalle ROCCE (si
+   piccona) e dalle PIANTE (si abbatte). Ogni zona ha le SUE tre cose, diverse da quelle delle
+   altre, ma sono sempre quelle tre — nelle Dune il saguaro e la guglia d'arenaria, nei Boschi
+   l'albero e il masso, nelle Terre l'albero e il camino di fata, e così via. */
+export const MINEABLE = ['boulder', 'redspire', 'orecrystal', 'icecrystal', 'sandspire'];
 /* decorazioni deterministiche FIRMATE PER ZONA: ogni bioma ha i suoi oggetti.
    Cache per tile (deterministica): decoAt gira ogni frame per ogni tile in vista. */
 const decoCache = new Map();
@@ -95,9 +99,9 @@ function decoCompute(tx, ty) {
   if (zi === 1) { // DUNE OSSEE: cactus, costole che affiorano, conchiglie
     if (t === SAND || t === GRASS || t === DIRT) {
       if (vhash(tx, ty, 7) < 0.04) return 'cactus';
-      if (vhash(tx, ty, 8) < 0.025) return 'bonespire';
+      if (vhash(tx, ty, 8) < 0.03) return 'sandspire';
       if (vhash(tx, ty, 9) < 0.05) return 'shell';
-      if (vhash(tx, ty, 180) < 0.035) return 'bonepile';        // ingombro di scenario
+      if (vhash(tx, ty, 180) < 0.04) return 'drybush';         // ingombro di scenario
     }
     if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
     return null;
@@ -182,9 +186,9 @@ export function harvestDecoAt(tx, ty) {
 }
 /* gli ingombri di SCENARIO fermano il passo come gli altri: sono ostacoli veri, solo che non
    ci si fa niente (niente accetta, niente piccone) e quindi non hanno il contorno */
-export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'bonepile', 'claymound', 'peatmound', 'snowmound'];
+export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'drybush', 'claymound', 'peatmound', 'snowmound'];
 export function decoSolid(d) {
-  return d === 'tree' || d === 'boulder' || d === 'cactus' || d === 'bonespire' || d === 'deadtree' ||
+  return d === 'tree' || d === 'boulder' || d === 'cactus' || d === 'sandspire' || d === 'deadtree' ||
     d === 'redspire' || d === 'orecrystal' || d === 'icecrystal' || SCENERY_SOLID.includes(d);
 }
 

@@ -376,6 +376,14 @@ if (typeof window !== 'undefined') {
       enterCave: () => import('./cave.js').then(m => { m.enterCave(1, Math.floor(P.x / 16), Math.floor(P.y / 16)); return true; }),
       leaveCave: () => import('./cave.js').then(m => m.exitCave()),
       inRoom: () => import('./interior.js').then(m => !!m.INT.active),
+      /* DOVE SI TROVA CHI SI STA GUIDANDO: fuori è il giocatore del mondo, dentro una stanza o
+         una grotta è un altro personaggio con le sue coordinate. Serve alla prova col dito su
+         telefono: senza, quella prova leggeva il personaggio sbagliato e diceva «non ci si
+         muove» mentre in casa ci si muoveva benissimo. */
+      heroPos: () => Promise.all([import('./interior.js'), import('./cave.js')]).then(([i, c]) =>
+        i.INT.active ? { x: i.INT.x, y: i.INT.y, dove: 'stanza' }
+          : c.CAVE.active ? { x: c.CAVE.x, y: c.CAVE.y, dove: 'grotta' }
+            : { x: P.x, y: P.y, dove: 'mondo' }),
       /* palloncino di dialogo: va acceso per forza nei test, altrimenti il ramo che lo
          disegna non viene mai eseguito (ed è proprio lì che si era rotto) */
       say: (t) => import('./interior.js').then(m => { m.INT.say = t ? { text: t } : null; }),
