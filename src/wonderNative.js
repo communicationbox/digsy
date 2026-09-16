@@ -11,6 +11,26 @@
    Il pennello `g` ha rect/px già convertiti (vedi drawWonder in wonderart.js). */
 
 /* ---------- primitive ---------- */
+/* RETTANGOLO TONDO — lo stile del saguaro: angoli smussati, contorno che segue il profilo,
+   filo di luce sul lato illuminato e ombra sull'altro. Le meraviglie nascevano a rettangoli
+   vivi e accanto al resto del mondo (tondo) sembravano incollate. */
+function tondo(g, x, y, w, h, r, fill, light, dark, line = '#241a10') {
+  const dentro = (px2, py2) => {
+    const dx = Math.min(px2 - x, x + w - 1 - px2), dy = Math.min(py2 - y, y + h - 1 - py2);
+    if (dx < 0 || dy < 0) return false;
+    return !(dx < r && dy < r && (r - dx) ** 2 + (r - dy) ** 2 > r * r + r);
+  };
+  for (let py2 = y - 1; py2 <= y + h; py2++) for (let px2 = x - 1; px2 <= x + w; px2++) {
+    if (!dentro(px2, py2)) {
+      if (dentro(px2 + 1, py2) || dentro(px2 - 1, py2) || dentro(px2, py2 + 1) || dentro(px2, py2 - 1)) g.rect(px2, py2, 1, 1, line);
+      continue;
+    }
+    const bordoL = !dentro(px2 - 1, py2) || !dentro(px2 - 2, py2), bordoR = !dentro(px2 + 1, py2), sopra = !dentro(px2, py2 - 1) || !dentro(px2, py2 - 2);
+    g.rect(px2, py2, 1, 1, sopra || bordoL ? light : bordoR ? dark : fill);
+  }
+  return dentro;
+}
+
 function shade(hex, k) {
   const n = parseInt(hex.slice(1), 16);
   const f = c => Math.max(0, Math.min(255, Math.round(c * k)));
@@ -483,9 +503,10 @@ function disegna_frozenbeast(g, t) {
   groundShadow(g, 96, 16);
   const X0 = -78, Y0 = -100, W = 156, H = 96;
   /* fondo del ghiaccio: più scuro dentro, così le ossa chiare staccano */
-  g.rect(X0, Y0, W, H, '#3f7c9a');
-  g.rect(X0 + 4, Y0 + 14, W - 8, H - 18, '#4f90ac');
-  g.rect(X0 + 10, Y0 + 22, W - 20, H - 34, '#5a9cb6');
+  /* il blocco ha gli spigoli smussati, come tutto il resto: un rettangolo netto in mezzo al
+     prato sembrava un acquario appoggiato lì */
+  const dentroIce = tondo(g, X0, Y0, W, H, 12, '#4f90ac', '#6aa8c0', '#3f7c9a', '#24506a');
+  for (let y = Y0 + 20; y < Y0 + H - 12; y++) for (let x = X0 + 8; x < X0 + W - 8; x++) if (dentroIce(x, y)) g.rect(x, y, 1, 1, '#5a9cb6');
   for (let i = 0; i < 9; i++) g.rect(X0 + 8 + i * 17, Y0 + 20 + ((i * 23) % 50), 10, 2, 'rgba(160,215,235,.35)');   // venature interne
   /* SCHELETRO: stesso stile delle ossa del Drago (contorno scuro, corpo chiaro, filo di luce) */
   const LN = '#2a3440', LT = '#eee6d2', HI = '#fffaf0', SH = '#b9ad91';
@@ -679,13 +700,14 @@ function disegna_haygiant(g, t) {
   /* GIGANTE DI FIENO: covoni legati con la corda, mele al posto degli occhi, cappello di
      paglia, forcone, e un corvo che non ha paura di lui */
   groundShadow(g, 70, 14);
+  /* i covoni sono BALLE, non casse: angoli smussati (più il covone è grande, più è tondo) */
   const bale = (x, y, w, h) => {
-    g.rect(x - 1, y - 1, w + 2, h + 2, '#6b4f14');
-    g.rect(x, y, w, h, '#dcbe4c');
-    g.rect(x, y, w, 3, '#f0d070'); g.rect(x, y + h - 4, w, 4, '#c9a227'); g.rect(x + w - 4, y, 4, h, '#b8922a');
-    for (let i = 2; i < w - 2; i += 3) g.rect(x + i, y + 4 + ((i * 7) % 5), 1, h - 10, (i % 2) ? '#c9a227' : '#e8c860');   // steli
-    for (const ry of [0.3, 0.7]) { g.rect(x, y + Math.round(h * ry), w, 3, '#8a6a1a'); g.rect(x, y + Math.round(h * ry), w, 1, '#a78723'); }
-    for (let i = 0; i < w; i += 7) g.px(x + i, y - 2 - (i % 3), '#e8c860');                              // paglia che spunta
+    const r = Math.max(3, Math.round(Math.min(w, h) * 0.3));
+    const dentro = tondo(g, x, y, w, h, r, '#dcbe4c', '#f0d070', '#b8922a', '#6b4f14');
+    for (let i = 2; i < w - 2; i += 3) for (let k = 0; k < h - 10; k++) { const yy = y + 4 + ((i * 7) % 5) + k; if (dentro(x + i, yy)) g.rect(x + i, yy, 1, 1, (i % 2) ? '#c9a227' : '#e8c860'); }   // steli
+    for (const ry of [0.3, 0.7]) { const yy = y + Math.round(h * ry);                                   // corde
+      for (let i = 0; i < w; i++) if (dentro(x + i, yy)) { g.rect(x + i, yy, 1, 3, '#8a6a1a'); g.rect(x + i, yy, 1, 1, '#a78723'); } }
+    for (let i = 4; i < w - 4; i += 7) g.px(x + i, y - 1 - (i % 3), '#e8c860');                          // paglia che spunta
   };
   /* gambe */
   bale(-34, -44, 26, 44); bale(8, -44, 26, 44);
