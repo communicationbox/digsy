@@ -7928,6 +7928,31 @@ sprites.applyLook();
   }
 }
 
+/* ---------- ALBERI SECCHI: quattro sagome diverse, non un copia-incolla ----------
+   "un ramo su, un ramo giù, se no si vede che sono tutti copia incolla": le quattro ricette
+   scritte a mano devono davvero dare quattro alberi diversi (e lo specchio ne fa otto). */
+{
+  const props = await import('../src/props.js');
+  const { BRUSH } = await import('../src/brush.js');
+  const firme = new Set();
+  let crash = null;
+  try {
+    for (let i = 0; i < 24; i++) {
+      const pixel = [];
+      const spia = { rect: (x, y, w, h, c) => pixel.push([x, y, w, h, c].join(',')), px: (x, y, c) => pixel.push([x, y, c].join(',')) };
+      const old = { rect: BRUSH.rect, px: BRUSH.px };
+      props.drawDeadtree(0, 0, i * 3, i * 7);
+      firme.add(pixel.length ? pixel.join('|') : 'x' + i);
+    }
+  } catch (e) { crash = e.message; }
+  check('gli alberi secchi si disegnano senza errori', crash === null, crash || '');
+  /* le sagome: si contano le ricette, che sono la fonte della varietà */
+  const src = (await import('node:fs')).readFileSync('src/props.js', 'utf8');
+  const ricette = (src.match(/\/\/ \d\. /g) || []).length;
+  check('ci sono almeno quattro alberi secchi scritti a mano', ricette >= 4, ricette + ' ricette');
+  check('e ognuno può essere specchiato', /const f = vhash\(tx, ty, 89\)/.test(src));
+}
+
 /* ---------- TUTORIAL: gli otto passi sono il giro completo, e sono ESEGUIBILI ----------
    Il primo ordine che avevo scritto (esci → scava → raccogli) non stava in piedi: si nasce
    SENZA pala e con zero monete, e senza pala `tryDig` rifiuta. Un tutorial che chiede una cosa

@@ -66,6 +66,9 @@ async function main() {
        mondo. Vale solo per la pagina della foto, il gioco non la vede mai. */
     /* 'tutorial' = il gioco col passo N del tutorial d'apertura (passo=0..4), per leggere la
        scheda del passo com'è davvero a schermo */
+    /* cmd=<comando>: esegue un comando della console prima dello scatto (es. cmd=go=boschi) */
+    var qcmd = new URLSearchParams(location.search).get('cmd');
+    if (qcmd && G.cmd) G.cmd(qcmd).then(function(){ if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1200); });
     /* scena=<ms>: ferma la scenetta dell'angolo del menu su un istante preciso */
     var qs = new URLSearchParams(location.search).get('scena');
     if (qs) setTimeout(function(){ if (G.drawCornerAt) G.drawCornerAt(+qs); else document.body.style.background = 'red'; }, 600);

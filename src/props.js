@@ -17,6 +17,18 @@ const FIR = ['#2f5a44', '#3a6a50', '#467a5c', '#528a68', '#6aa07c', '#223f30'];
 
 
 /* ---------- primitive per la natura ---------- */
+/* CIUFFI D'ERBA alla base: il segno di ciò che NON si raccoglie. Quello che si raccoglie non
+   ha erba attorno e ha il suo luccichio (render.js), così a colpo d'occhio si capisce cosa
+   vale la pena toccare — il fungo marrone sembrava raccoglibile (segnalato con foto). */
+function erbetta(x0, x1, base, tx = 0, ty = 0, c1 = '#5f8f47', c2 = '#4a7a38') {
+  for (let x = x0; x < x1; x += 3) {
+    const j = Math.floor(vhash(tx + x, ty, 121) * 4);
+    if (j === 0) continue;
+    const h = 2 + j;
+    rect(x, base - h, 1, h, j % 2 ? c1 : c2);
+    px(x + 1, base - h + 1, j % 2 ? c2 : c1);
+  }
+}
 const LN = '#1e1a12';
 function disc(cx, cy, r, c) { for (let y = -r; y <= r; y++) { const w = Math.round(Math.sqrt(Math.max(0, r * r - y * y))); rect(cx - w, cy + y, w * 2 + 1, 1, c); } }
 function ellipseF(cx, cy, rx, ry, c) { for (let y = -ry; y <= ry; y++) { const w = Math.round(rx * Math.sqrt(Math.max(0, 1 - (y * y) / (ry * ry)))); if (w > 0) rect(cx - w, cy + y, w * 2, 1, c); } }
@@ -47,36 +59,30 @@ export function drawTree(sx, sy, time, tx, ty) {
   rect(sx + 2, sy - 6, 28, 24, T[1]); rect(sx + 4, sy - 8, 20, 6, T[3]);
 }
 export function drawBoulder(sx, sy, tx = 0, ty = 0) {
-  /* MASSO spigoloso: sagoma a poligono irregolare, faccia di sopra piatta e chiara, facce di
-     lato in ombra, una crepa di traverso. La versione tonda con la crepa al centro sembrava un
-     sedere (segnalato con foto): niente rotondità simmetriche e niente segni verticali in mezzo. */
+  /* MASSO: un sasso, non una scatola con lo spigolo. La sagoma nasce da tre gobbe sovrapposte
+     (mai simmetriche: il masso tondo e regolare "sembrava un sedere", segnalato con foto), poi
+     si dipinge in un colpo solo — faccia di sopra chiara, fianco destro in ombra, una scheggia
+     piatta e una crepa fuori centro. */
   ctx.save(); ctx.translate(sx, sy);
   const v = vhash(tx, ty, 81), flip = v < 0.5 ? 1 : -1;
   shadow(16, 27, 13);
-  /* sagoma: per ogni riga, bordo sinistro e destro presi da una spezzata irregolare */
-  const L = [[-12, 26], [-13, 20], [-10, 12], [-5, 7], [3, 6], [9, 9], [13, 16], [12, 24], [8, 27]];
-  const left = y => { let best = -12; for (const [x, yy] of L) if (x < 0 && Math.abs(yy - y) < 5) best = Math.min(best, x); return best; };
-  const edgeAt = (y, side) => {
-    const pts = side < 0 ? [[-8, 6], [-11, 10], [-13, 17], [-12, 24], [-9, 27]] : [[4, 5], [10, 8], [13, 15], [12, 22], [8, 27]];
-    for (let k = 0; k < pts.length - 1; k++) { const [x0, y0] = pts[k], [x1, y1] = pts[k + 1]; if (y >= y0 && y <= y1) return Math.round(x0 + (x1 - x0) * ((y - y0) / Math.max(1, y1 - y0))); }
-    return side < 0 ? -8 : 4;
-  };
-  for (let y = 5; y <= 27; y++) {
-    const xl = 16 + flip * edgeAt(y, -flip) * -flip, xr = 16 + flip * edgeAt(y, flip) * flip;
-    const a0 = Math.min(16 + edgeAt(y, -1) * (flip), 16 + edgeAt(y, 1) * (flip)), a1 = Math.max(16 + edgeAt(y, -1) * (flip), 16 + edgeAt(y, 1) * (flip));
-    const x0 = Math.min(a0, a1), x1 = Math.max(a0, a1);
-    rect(x0 - 1, y, x1 - x0 + 2, 1, LN);
-    const topFace = y < 13, w = x1 - x0;
-    rect(x0, y, w, 1, topFace ? '#b3ab9d' : '#8f887b');                                     // faccia di sopra chiara, fianco medio
-    if (!topFace) { rect(flip > 0 ? x1 - Math.round(w * 0.38) : x0, y, Math.round(w * 0.38), 1, '#6f685d'); }   // fianco in ombra
-    if (y === 12) rect(x0, y, w, 1, '#d0c9bb');                                              // spigolo fra le facce
-  }
-  const cx = 16 + flip * 3;                                                                   // crepa di traverso, fuori centro
-  for (let k = 0; k < 7; k++) px(cx + flip * k, 15 + k, '#55504a');
-  if (vhash(tx, ty, 83) < 0.45) { rect(4, 22, 7, 4, '#6f8a52'); rect(5, 21, 4, 1, '#8aa86a'); }                                 // muschio
-  if (vhash(tx, ty, 84) < 0.4) {                                                                                                // sassolino accanto
-    const qx = flip > 0 ? 27 : 4;
-    rect(qx - 3, 23, 7, 5, LN); rect(qx - 2, 23, 5, 3, '#a39c90'); rect(qx - 2, 23, 5, 1, '#c4bdb0');
+  const gobbe = [
+    ['ell', 16 + flip * 2, 19, 13, 9],
+    ['ell', 16 - flip * 6, 21, 8, 6],
+    ['ell', 16 + flip * 7, 20, 7, 7],
+    ['ell', 16 + flip * 3, 14, 9, 5],
+  ];
+  const dentro = paintMask(roundMask(gobbe), '#8f887b', '#b3ab9d', '#6f685d');
+  /* faccia di sopra: schiarita fin dove la pietra "guarda il cielo" */
+  for (let y = 8; y <= 15; y++) for (let x = 2; x < 30; x++)
+    if (dentro(x, y) && dentro(x - 1, y) && dentro(x + 1, y) && dentro(x, y + 1)) px(x, y, y < 12 ? '#c4bdb0' : '#a39c90');
+  for (let k = 0; k < 8; k++) { const x = 16 + flip * (2 + k), y = 14 + k; if (dentro(x, y)) px(x, y, '#55504a'); }   // crepa di traverso
+  for (let k = 0; k < 5; k++) { const x = 16 - flip * (6 + k), y = 17 + Math.round(k * 0.6); if (dentro(x, y)) px(x, y, '#7d766a'); }   // scheggia piatta
+  if (vhash(tx, ty, 83) < 0.45) for (let x = 4; x < 11; x++) for (let y = 21; y < 25; y++)   // muschio nella parte bassa
+    if (dentro(x, y)) px(x, y, y < 22 ? '#8aa86a' : '#6f8a52');
+  if (vhash(tx, ty, 84) < 0.4) {                                                             // sassolino accanto
+    const qx = flip > 0 ? 27 : 5;
+    paintMask(roundMask([['ell', qx, 25, 4, 3]]), '#a39c90', '#c4bdb0', '#7d766a');
   }
   ctx.restore();
 }
@@ -210,6 +216,17 @@ export function roundMask(shapes, w = MW, h = MH) {
   const set = (x, y) => { if (x >= 0 && y >= 0 && x < w && y < h) m[y * w + x] = 1; };
   for (const sh of shapes) {
     if (sh[0] === 'disc') { const [, cx, cy, r] = sh; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r) set(cx + x, cy + y); continue; }
+    if (sh[0] === 'ell') { const [, cx, cy, rx, ry] = sh; for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx + 0.5) + (y * y) / (ry * ry + 0.5) <= 1) set(cx + x, cy + y); continue; }
+    if (sh[0] === 'cap') {                       // CAPSULA fra due punti: tronchi, rami, radici
+      const [, ax, ay, bx, by, r] = sh, vx = bx - ax, vy = by - ay, L2 = vx * vx + vy * vy || 1;
+      const x0 = Math.min(ax, bx) - r, x1 = Math.max(ax, bx) + r, y0 = Math.min(ay, by) - r, y1 = Math.max(ay, by) + r;
+      for (let y = y0; y <= y1; y++) for (let x = x0; x <= x1; x++) {
+        let u = ((x - ax) * vx + (y - ay) * vy) / L2; u = Math.max(0, Math.min(1, u));
+        const dx = x - (ax + vx * u), dy = y - (ay + vy * u);
+        if (dx * dx + dy * dy <= r * r + r) set(x, y);
+      }
+      continue;
+    }
     const [x0, y0, sw, shh, r = 0] = sh;
     for (let y = 0; y < shh; y++) for (let x = 0; x < sw; x++) {
       const dx = Math.min(x, sw - 1 - x), dy = Math.min(y, shh - 1 - y);
@@ -260,22 +277,50 @@ export function drawBonespire(sx, sy, tx = 0, ty = 0) {
   ellipseF(cx, base - 1, 14, 3, '#d8c9a0'); ellipseF(cx - 3, base - 2, 8, 1, '#e8dcb8');
   ctx.restore();
 }
+/* QUATTRO ALBERI SECCHI DIVERSI, scritti a mano (la regola del progetto per "N cose tutte
+   diverse": ricette curate, non parametri che ricolorano la stessa sagoma). Ognuno ha il suo
+   tronco e i suoi rami — uno storto a sinistra, uno con la forca alta, uno mozzato con un solo
+   braccio, uno basso e panciuto — e ognuno può essere specchiato: otto sagome in giro per il
+   bosco invece di un copia-incolla. Coordinate relative alla base (cx = 16, base = 30).
+   [x0, y0, x1, y1, r0, r1] con y in negativo verso l'alto. */
+const DEAD_TREES = [
+  [ // 1. alto e dritto, forca a Y in cima
+    [0, 0, 1, -19, 3, 2], [1, -13, -8, -23, 2, 1], [1, -14, 9, -24, 2, 1], [1, -19, 2, -26, 2, 1],
+  ],
+  [ // 2. piegato dal vento: un ramo lungo e basso, uno spezzato in cima
+    [0, 0, -3, -11, 3, 2], [-3, -11, 2, -22, 2, 2], [-2, -14, -12, -12, 2, 1], [2, -18, 10, -22, 2, 1],
+  ],
+  [ // 3. spezzato: tronco tozzo col cimo rotto e un braccio solo
+    [0, 0, 1, -14, 4, 3], [1, -14, 3, -17, 3, 2], [1, -11, 11, -19, 2, 1], [9, -17, 12, -24, 1, 1],
+  ],
+  [ // 4. due braccia opposte, tronco sottile
+    [0, 0, 0, -21, 3, 1], [0, -12, -11, -18, 2, 1], [0, -16, 10, -24, 2, 1],
+  ],
+];
 export function drawDeadtree(sx, sy, tx = 0, ty = 0) {
-  /* ALBERO SECCO nodoso: tronco storto, rami che si biforcano, un nodo cavo */
+  /* ALBERO SECCO: tronco e rami sono UN volume solo — capsule che si assottigliano salendo,
+     con un contorno unico che segue la sagoma. Prima erano segmenti dritti disegnati uno sopra
+     l'altro: si vedevano i blocchi attaccati e i gomiti avevano il bordo doppio (segnalato). */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 30; shadow(cx, base, 10);
-  const limb = (x0, y0, x1, y1, w) => {
-    const n = Math.max(1, Math.round(Math.hypot(x1 - x0, y1 - y0)));
-    for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); rect(x - (w >> 1) - 1, y - 1, w + 2, 3, LN); }
-    for (let i = 0; i <= n; i++) { const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n); rect(x - (w >> 1), y, w, 1, '#6e5138'); if (w > 2) px(x - (w >> 1), y, '#9a7550'); }
-  };
   const f = vhash(tx, ty, 89) < 0.5 ? 1 : -1;
-  limb(cx, base, cx + f * 2, base - 18, 6);
-  limb(cx + f * 2, base - 16, cx - f * 12, base - 26, 3); limb(cx - f * 8, base - 23, cx - f * 12, base - 31, 2);
-  limb(cx + f * 2, base - 18, cx + f * 10, base - 30, 3); limb(cx + f * 7, base - 26, cx + f * 14, base - 28, 2);
-  limb(cx + f * 2, base - 18, cx + f * 2, base - 32, 2);
-  rect(cx - 5, base - 3, 12, 3, LN); rect(cx - 4, base - 3, 10, 2, '#5c4229');
-  rect(cx - 1, base - 11, 3, 3, '#2a1e12');
+  const bp = DEAD_TREES[Math.floor(vhash(tx, ty, 173) * DEAD_TREES.length) % DEAD_TREES.length];
+  const ramo = (x0, y0, x1, y1, r0, r1) => {                 // ramo che si assottiglia: tre capsule
+    const out = [];
+    for (let k = 0; k < 3; k++) {
+      const a = k / 3, b = (k + 1) / 3;
+      out.push(['cap', Math.round(x0 + (x1 - x0) * a), Math.round(y0 + (y1 - y0) * a),
+        Math.round(x0 + (x1 - x0) * b), Math.round(y0 + (y1 - y0) * b), Math.max(1, Math.round(r0 + (r1 - r0) * b))]);
+    }
+    return out;
+  };
+  const shapes = [['ell', cx, base - 2, 6, 3]];               // il piede allargato
+  for (const [x0, y0, x1, y1, r0, r1] of bp) shapes.push(...ramo(cx + f * x0, base + y0, cx + f * x1, base + y1, r0, r1));
+  const dentro = paintMask(roundMask(shapes), '#6e5138', '#8a6a48', '#4a3520');
+  for (let y = base - 18; y < base - 2; y += 4) for (let x = cx - 5; x <= cx + 5; x++)   // venature della corteccia
+    if (dentro(x, y) && dentro(x - 1, y) && dentro(x + 1, y)) px(x, y, '#5c4229');
+  erbetta(cx - 8, cx + 8, base + 1, tx, ty);
+  if (dentro(cx, base - 9)) { px(cx, base - 9, '#2a1e12'); px(cx - 1, base - 8, '#2a1e12'); px(cx, base - 8, '#2a1e12'); px(cx + 1, base - 9, '#3a2a18'); }   // nodo cavo
   ctx.restore();
 }
 /* FUNGO — la scenografia è un fungo bruno piccolo e spento (non si raccoglie mai); quello
@@ -295,12 +340,14 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
     for (const [dx, dy] of [[-4, -12], [3, -10], [0, -14], [6, -9]]) rect(bx + dx, by + dy, 2, 2, '#fdf3e0');   // i puntini
     ctx.restore(); return;
   }
-  /* gambo e CUPOLA: un mezzo disco, non un rettangolo con due pixel sopra */
+  /* FUNGO DI SCENA: piccolo, spento e mezzo nascosto nell'erba — non si raccoglie e si deve
+     vedere. Quello buono è rosso, grosso e luccica. */
   const mm = new Uint8Array(32 * 32), setm = (x, y) => { const lx = x - sx, ly = y - sy; if (lx >= 0 && ly >= 0 && lx < 32 && ly < 32) mm[ly * 32 + lx] = 1; };
-  for (let y = -3; y <= 3; y++) for (let x = -2; x <= 2; x++) if (Math.abs(x) < 2 || Math.abs(y) < 3) setm(bx + x, by - 1 + y);   // gambo
-  for (let y = -6; y <= 0; y++) for (let x = -7; x <= 7; x++) if ((x * x) / 49 + (y * y) / 36 <= 1) setm(bx + x, by - 6 + y);     // cupola
-  paintMask(mm, '#8f7350', '#ab8c62', '#6f5a3e');
-  rect(bx - 5, by - 6, 11, 1, '#6f5a3e');                                          // il bordo sotto il cappello
+  for (let y = -2; y <= 3; y++) for (let x = -1; x <= 1; x++) setm(bx + x, by - 1 + y);                                   // gambo
+  for (let y = -4; y <= 0; y++) for (let x = -5; x <= 5; x++) if ((x * x) / 25 + (y * y) / 16 <= 1) setm(bx + x, by - 4 + y);   // cupola
+  paintMask(mm, '#7a6448', '#8f7a5a', '#5f4d36');
+  rect(bx - 4, by - 4, 9, 1, '#5f4d36');                                           // il bordo sotto il cappello
+  erbetta(bx - 7, bx + 8, by + 3, tx, ty);
   ctx.restore();
 }
 export function drawStump(sx, sy, tx = 0, ty = 0) {
@@ -313,7 +360,8 @@ export function drawStump(sx, sy, tx = 0, ty = 0) {
   for (let i = -6; i < 7; i += 4) rect(cx + i, base - 8, 1, 7, '#5c3d22');       // solchi della corteccia
   ellipseF(cx, base - 12, 10, 4, LN); ellipseF(cx, base - 12, 9, 3, '#d8b582');
   ellipseF(cx, base - 12, 6, 2, '#c49a63'); ellipseF(cx, base - 12, 3, 1, '#d8b582'); px(cx, base - 12, '#8a5f38');
-  if (vhash(tx, ty, 91) < 0.5) { rect(cx + 4, base - 8, 4, 3, '#6f8a52'); }
+  if (vhash(tx, ty, 91) < 0.5) { rect(cx + 4, base - 8, 4, 3, '#6f8a52'); }   // muschio sul taglio
+  erbetta(cx - 13, cx + 12, base + 1, tx, ty);
   ctx.restore();
 }
 export function drawRedspire(sx, sy, tx = 0, ty = 0) {
@@ -388,6 +436,7 @@ export function drawHay(sx, sy, tx = 0, ty = 0) {
   disc(cx + 8, base - 9, 9, LN); disc(cx + 8, base - 9, 8, '#e0c25c');
   for (let q = 0; q < 40; q++) { const a = q * 0.45, r = 7 - q * 0.17; if (r < 1) break; px(cx + 8 + Math.round(Math.cos(a) * r), base - 9 + Math.round(Math.sin(a) * r), '#b08a20'); }
   for (let j = 0; j < 5; j++) { const fx = cx - 12 + Math.floor(vhash(tx, ty, 102 + j) * 28), fy = base - 18 - Math.floor(vhash(tx, ty, 103 + j) * 3); rect(fx, fy, 1, 3, '#f0d888'); }
+  erbetta(cx - 14, cx + 12, base + 1, tx, ty);   // sta nel prato: non è roba da raccogliere
   ctx.restore();
 }
 
