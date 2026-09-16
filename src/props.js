@@ -197,20 +197,40 @@ export function glint(sx2, sy2, time, tx, ty) {
 
 
 /* ---------- decorazioni di zona ---------- */
-/* SAGUARO ARROTONDATO — fusto e braccia sono capsule con gli angoli smussati, non scatole.
-   Si compone prima una maschera di tutta la pianta e poi si dipinge una volta sola: così il
-   contorno segue la sagoma tonda e nei gomiti non restano spigoli o doppi bordi. */
-function roundMask(shapes, w, h) {
+/* SAGOME TONDE — lo stile del saguaro, buono per tutto quello che nel mondo è fatto di
+   volumi morbidi (ceppi, rotoballe, funghi, guglie). Si compone una MASCHERA con rettangoli
+   dagli angoli smussati e dischi, poi si dipinge una volta sola: il contorno segue il profilo,
+   un filo di luce resta sul lato illuminato e l'ombra sull'altro. Disegnare le stesse forme a
+   colpi di rettangoli lasciava spigoli vivi e doppi bordi nei punti in cui si toccano.
+   Quello che è spigoloso PER NATURA — massi, cristalli, ossa — resta com'è: tondo, il masso
+   sembrava un sedere (segnalato). */
+const MW = 32, MH = 32;
+export function roundMask(shapes, w = MW, h = MH) {
   const m = new Uint8Array(w * h);
-  for (const [x0, y0, sw, sh, r] of shapes) {
-    for (let y = 0; y < sh; y++) for (let x = 0; x < sw; x++) {
-      const dx = Math.min(x, sw - 1 - x), dy = Math.min(y, sh - 1 - y);
+  const set = (x, y) => { if (x >= 0 && y >= 0 && x < w && y < h) m[y * w + x] = 1; };
+  for (const sh of shapes) {
+    if (sh[0] === 'disc') { const [, cx, cy, r] = sh; for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) if (x * x + y * y <= r * r + r) set(cx + x, cy + y); continue; }
+    const [x0, y0, sw, shh, r = 0] = sh;
+    for (let y = 0; y < shh; y++) for (let x = 0; x < sw; x++) {
+      const dx = Math.min(x, sw - 1 - x), dy = Math.min(y, shh - 1 - y);
       if (dx < r && dy < r && (r - dx) ** 2 + (r - dy) ** 2 > r * r + r) continue;   // angolo smussato
-      const px2 = x0 + x, py2 = y0 + y;
-      if (px2 >= 0 && py2 >= 0 && px2 < w && py2 < h) m[py2 * w + px2] = 1;
+      set(x0 + x, y0 + y);
     }
   }
   return m;
+}
+/* dipinge la maschera: contorno, corpo, luce a sinistra, ombra a destra */
+export function paintMask(m, fill, light, dark, w = MW, h = MH, line = LN) {
+  const dentro = (x, y) => x >= 0 && y >= 0 && x < w && y < h && m[y * w + x];
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    if (!dentro(x, y)) {
+      if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) px(x, y, line);
+      continue;
+    }
+    const bordoL = !dentro(x - 1, y) || !dentro(x - 2, y), bordoR = !dentro(x + 1, y);
+    px(x, y, bordoL ? light : bordoR ? dark : fill);
+  }
+  return dentro;
 }
 export function drawCactus(sx, sy, tx = 0, ty = 0) {
   ctx.save(); ctx.translate(sx, sy);
@@ -223,17 +243,7 @@ export function drawCactus(sx, sy, tx = 0, ty = 0) {
   const shapes = [[cx - 5, base - 28, 10, 28, 5]]              // fusto
     .concat(braccio(flip ? -1 : 1, base - 19, 9))
     .concat(braccio(flip ? 1 : -1, base - 14, 8));
-  const m = roundMask(shapes, W, H);
-  const dentro = (x, y) => x >= 0 && y >= 0 && x < W && y < H && m[y * W + x];
-  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
-    if (!dentro(x, y)) {
-      if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) px(x, y, LN);   // contorno
-      continue;
-    }
-    /* luce da sinistra: due colonne chiare sul bordo illuminato, una scura sull'altro */
-    const bordoL = !dentro(x - 1, y) || !dentro(x - 2, y), bordoR = !dentro(x + 1, y);
-    px(x, y, bordoL ? '#6fbf78' : bordoR ? '#357a42' : '#4a9a55');
-  }
+  const dentro = paintMask(roundMask(shapes, W, H), '#4a9a55', '#6fbf78', '#357a42', W, H);
   for (const cxr of [cx - 2, cx + 1]) for (let y = base - 25; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
   for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - 24 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
   rect(cx - 2, base - 31, 4, 3, '#e08aa8'); px(cx - 1, base - 32, '#f6c0d4');   // fiore in cima
@@ -275,27 +285,34 @@ export function drawMushroom(sx, sy, time, tx, ty, ripe) {
   ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const bx = sx + 16, by = sy + 22;
   if (ripe) {
-    rect(bx - 2, by - 6, 6, 8, '#f2e6c8'); px(bx - 4, by, '#d9c9a4'); rect(bx - 1, by - 4, 2, 4, shade8('#f2e6c8', 0.9)); // gambo con un filo d'ombra
-    rect(bx - 8, by - 14, 18, 8, '#d8443c'); rect(bx - 6, by - 16, 14, 2, '#e05a50'); px(bx, by - 18, '#e05a50');
-    rect(bx - 4, by - 14, 2, 2, '#fdf3e0'); rect(bx + 4, by - 12, 2, 2, '#fdf3e0'); rect(bx, by - 16, 2, 2, '#fdf3e0'); rect(bx + 6, by - 8, 2, 2, '#fdf3e0');
-    rect(bx - 8, by - 8, 18, 2, '#a5302c'); rect(bx - 8, by - 14, 4, 4, shade8('#d8443c', 0.8)); // ombra sotto il bordo del cappello
+    /* CUPOLA ROSSA e gambo, nella stessa sagoma tonda del resto del mondo */
+    const mr = new Uint8Array(32 * 32), setr = (x, y) => { const lx = x - sx, ly = y - sy; if (lx >= 0 && ly >= 0 && lx < 32 && ly < 32) mr[ly * 32 + lx] = 1; };
+    for (let y = -5; y <= 4; y++) for (let x = -3; x <= 3; x++) if (Math.abs(x) < 3 || Math.abs(y) < 4) setr(bx + x, by - 2 + y);      // gambo
+    for (let y = -8; y <= 0; y++) for (let x = -9; x <= 9; x++) if ((x * x) / 81 + (y * y) / 64 <= 1) setr(bx + x, by - 8 + y);        // cappello
+    paintMask(mr, '#d8443c', '#e05a50', '#a5302c');
+    for (let y = -5; y <= 3; y++) for (let x = -2; x <= 2; x++) if (Math.abs(x) < 2) px(bx + x, by - 2 + y, x < 0 ? '#f2e6c8' : '#d9c9a4');   // il gambo è chiaro
+    rect(bx - 7, by - 8, 15, 1, '#a5302c');                                     // il bordo sotto il cappello
+    for (const [dx, dy] of [[-4, -12], [3, -10], [0, -14], [6, -9]]) rect(bx + dx, by + dy, 2, 2, '#fdf3e0');   // i puntini
     ctx.restore(); return;
   }
-  rect(bx, by - 4, 4, 6, '#b8ab8e'); rect(bx, by - 2, 2, 4, shade8('#b8ab8e', 0.85));
-  rect(bx - 4, by - 8, 12, 4, '#8f7350'); px(bx - 2, by - 10, '#8f7350'); px(bx + 4, by - 10, '#8f7350');
-  rect(bx - 4, by - 6, 2, 2, '#6f5a3e'); rect(bx - 2, by - 8, 2, 2, '#ab8c62'); // luce sul cappello, lato sx
-  rect(bx + 6, by - 6, 2, 2, shade8('#8f7350', 0.7)); // ombra sul cappello, lato dx
+  /* gambo e CUPOLA: un mezzo disco, non un rettangolo con due pixel sopra */
+  const mm = new Uint8Array(32 * 32), setm = (x, y) => { const lx = x - sx, ly = y - sy; if (lx >= 0 && ly >= 0 && lx < 32 && ly < 32) mm[ly * 32 + lx] = 1; };
+  for (let y = -3; y <= 3; y++) for (let x = -2; x <= 2; x++) if (Math.abs(x) < 2 || Math.abs(y) < 3) setm(bx + x, by - 1 + y);   // gambo
+  for (let y = -6; y <= 0; y++) for (let x = -7; x <= 7; x++) if ((x * x) / 49 + (y * y) / 36 <= 1) setm(bx + x, by - 6 + y);     // cupola
+  paintMask(mm, '#8f7350', '#ab8c62', '#6f5a3e');
+  rect(bx - 5, by - 6, 11, 1, '#6f5a3e');                                          // il bordo sotto il cappello
   ctx.restore();
 }
 export function drawStump(sx, sy, tx = 0, ty = 0) {
   /* CEPPO: faccia tagliata con gli anelli, corteccia, radici */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 27; shadow(cx, base, 11);
-  rect(cx - 10, base - 12, 20, 12, LN); rect(cx - 9, base - 12, 18, 11, '#7a5230'); rect(cx - 9, base - 12, 4, 11, '#9a6a40'); rect(cx + 5, base - 12, 4, 11, '#5c3d22');
-  for (let i = -8; i < 9; i += 4) rect(cx + i, base - 9, 1, 8, '#5c3d22');
+  /* corpo e radici in una sagoma sola, con gli angoli smussati (stile del saguaro) */
+  paintMask(roundMask([[cx - 9, base - 12, 18, 12, 4], [cx - 13, base - 5, 6, 5, 2], [cx + 7, base - 5, 6, 5, 2]]),
+    '#7a5230', '#9a6a40', '#5c3d22');
+  for (let i = -6; i < 7; i += 4) rect(cx + i, base - 8, 1, 7, '#5c3d22');       // solchi della corteccia
   ellipseF(cx, base - 12, 10, 4, LN); ellipseF(cx, base - 12, 9, 3, '#d8b582');
   ellipseF(cx, base - 12, 6, 2, '#c49a63'); ellipseF(cx, base - 12, 3, 1, '#d8b582'); px(cx, base - 12, '#8a5f38');
-  rect(cx - 13, base - 3, 5, 3, LN); rect(cx + 8, base - 3, 5, 3, LN); rect(cx - 12, base - 3, 3, 2, '#6a4428'); rect(cx + 9, base - 3, 3, 2, '#6a4428');
   if (vhash(tx, ty, 91) < 0.5) { rect(cx + 4, base - 8, 4, 3, '#6f8a52'); }
   ctx.restore();
 }
@@ -303,12 +320,21 @@ export function drawRedspire(sx, sy, tx = 0, ty = 0) {
   /* CAMINO DI FATA delle Terre Rosse: colonna d'arenaria a strati con il cappello di roccia */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 30; shadow(cx, base, 11);
-  for (let y = 0; y < 26; y++) {
-    const w = 7 + Math.round(Math.sin(y / 4.2) * 1.5) + (y < 5 ? 4 - y : 0), yy = base - y - 1;
-    const c = ['#c06a48', '#b05e3e', '#cc7854'][Math.floor(y / 5) % 3];
-    rect(cx - w - 1, yy, w * 2 + 2, 1, LN); rect(cx - w, yy, w * 2, 1, c); rect(cx - w, yy, 2, 1, '#e0a37e'); rect(cx + w - 2, yy, 2, 1, '#8a3f2e');
+  /* il profilo è una curva, non una scala di rettangoli: la maschera si costruisce riga per
+     riga e il contorno la seghe */
+  const m = new Uint8Array(32 * 32);
+  for (let y = 0; y < 27; y++) {
+    const w = 6 + Math.round(Math.sin(y / 4.2) * 1.6) + (y < 5 ? 4 - y : 0), yy = base - y - 1;
+    for (let x = cx - w; x <= cx + w; x++) if (x >= 0 && x < 32 && yy >= 0 && yy < 32) m[yy * 32 + x] = 1;
   }
-  ellipseF(cx, base - 28, 9, 4, LN); ellipseF(cx, base - 28, 8, 3, '#8a6a58'); rect(cx - 5, base - 31, 6, 1, '#b09080');
+  for (let y = -4; y <= 3; y++) for (let x = -9; x <= 9; x++) {            // il cappello di roccia, tondo
+    const yy = base - 28 + y; if ((x * x) / 81 + (y * y) / 16 > 1 || yy < 0 || yy > 31) continue;
+    m[yy * 32 + cx + x] = 1;
+  }
+  const dentroSp = paintMask(m, '#c06a48', '#e0a37e', '#8a3f2e');
+  for (let y = 0; y < 26; y += 5) { const c = (y / 5) % 2 ? '#cc7854' : '#b05e3e';   // strati d'arenaria, chiari e scuri
+    for (let x = cx - 8; x <= cx + 8; x++) if (dentroSp(x, base - y - 1)) px(x, base - y - 1, c); }
+  for (let y = -3; y <= 2; y++) for (let x = -8; x <= 8; x++) if (dentroSp(cx + x, base - 28 + y) && (x * x) / 64 + (y * y) / 9 <= 1) px(cx + x, base - 28 + y, y < -1 ? '#a8887a' : '#8a6a58');
   if (vhash(tx, ty, 92) < 0.5) rect(cx - 2, base - 14, 3, 3, '#6e2f1e');
   ctx.restore();
 }
@@ -357,8 +383,8 @@ export function drawHay(sx, sy, tx = 0, ty = 0) {
   /* ROTOBALLA di fieno: il cerchio della spirale sul fronte, i fili che spuntano */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 27; shadow(cx, base, 12);
-  rect(cx - 13, base - 18, 22, 18, LN); rect(cx - 12, base - 17, 20, 16, '#c9a227'); rect(cx - 12, base - 17, 20, 3, '#e0c25c');
-  for (let i = 0; i < 20; i += 3) rect(cx - 12 + i, base - 14, 1, 12, '#b08a20');
+  paintMask(roundMask([[cx - 12, base - 18, 21, 18, 7]]), '#c9a227', '#e0c25c', '#b08a20');
+  for (let i = 3; i < 19; i += 3) rect(cx - 12 + i, base - 14, 1, 11, '#b08a20');   // i fili stretti in tondo
   disc(cx + 8, base - 9, 9, LN); disc(cx + 8, base - 9, 8, '#e0c25c');
   for (let q = 0; q < 40; q++) { const a = q * 0.45, r = 7 - q * 0.17; if (r < 1) break; px(cx + 8 + Math.round(Math.cos(a) * r), base - 9 + Math.round(Math.sin(a) * r), '#b08a20'); }
   for (let j = 0; j < 5; j++) { const fx = cx - 12 + Math.floor(vhash(tx, ty, 102 + j) * 28), fy = base - 18 - Math.floor(vhash(tx, ty, 103 + j) * 3); rect(fx, fy, 1, 3, '#f0d888'); }
