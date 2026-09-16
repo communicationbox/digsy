@@ -22,7 +22,7 @@ export const RU = {
   "This is your bed": "Это твоя кровать",
   "Press {act} on the bed: you sleep here for free when your energy ⚡ runs out.": "Нажми {act} на кровати: здесь спишь бесплатно, когда кончается энергия ⚡.",
   "Head outside": "Выйди из дома",
-  "Walk onto the door below: the whole world is there to dig.": "Наступи на дверь внизу: весь мир ждёт раскопок.",
+  "Walk to the door below: the whole world is there to dig.": "Наступи на дверь внизу: весь мир ждёт раскопок.",
   "Away from the plaza, press {act}: each dig costs 1 ⚡ and may turn up a find.": "За пределами площади нажми {act}: каждый раскоп стоит 1 ⚡ и может дать находку.",
   "Hand them to the Curator: they get identified right away.": "Отдай их Хранителю: он определит их сразу.",
   "Collect your finds from the Curator": "Забери находки у Хранителя",

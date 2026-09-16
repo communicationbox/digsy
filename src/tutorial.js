@@ -77,7 +77,7 @@ const TEXT = {
   furn: () => [tr('Arreda la Sala', 'Furnish the room'),
     tr('Premi {act} su una casella libera e posa la poltrona: una stanza curata ti fa dormire meglio.', 'Press {act} on an empty tile and put down the armchair: a well kept room gives you a better sleep.')],
   out: () => [tr('Esci di casa', 'Head outside'),
-    tr('Cammina sulla porta in basso: il mondo è tutto da scavare.', 'Walk onto the door below: the whole world is there to dig.')],
+    tr('Cammina verso la porta in basso: il mondo è tutto da scavare.', 'Walk to the door below: the whole world is there to dig.')],
   pick: () => [tr('Raccogli ciò che luccica', 'Pick up what sparkles'),
     tr('Segui la freccia e premi {act}. Ti servono 15 monete per la pala.', 'Follow the arrow and press {act}. You need 15 coins for the spade.')],
   shop: () => [tr('Vai al Negozio', 'Go to the Shop'),
