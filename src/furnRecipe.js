@@ -28,7 +28,8 @@
 export const FURN_PALETTE = {
   W: '#8a5f38', WL: '#b07c4a', WD: '#5c4027', ST: '#9a9285', SD: '#6f685c', ME: '#8f9aa3',
   GO: '#d8b23c', RE: '#c65a54', BL: '#5a86c8', GR: '#5f9a52', YE: '#e8c34a', PK: '#e8a0b8',
-  WH: '#f3ecda', BK: '#2a2016', BR: '#7a5636', OR: '#e0873a', PU: '#8a6ab0', TE: '#4e8d7c',
+  /* IN = inchiostro: scuro ma BLU, non nero — le carte sono disegnate a mano, non stampate */
+  WH: '#f3ecda', BK: '#2a2016', IN: '#2f3a52', BR: '#7a5636', OR: '#e0873a', PU: '#8a6ab0', TE: '#4e8d7c',
   IC: '#bfe3ef', CR: '#e8dcc0', CL: '#c86a4a', LF: '#7ec069', NV: '#3f5a86', SN: '#f6f6f2',
 };
 
@@ -97,14 +98,23 @@ export function recipeShape(src) {
 export function drawRecipe(g, src, x, y, pal, time) {
   const t = (time || 0) / 1000;
   const col = c => resolveColor(String(c), pal);
+  /* IL CONTORNO di un pezzo: la sua tinta molto scurita. Ma su un pezzo GIÀ scuro — un
+     pianoforte nero, una stufa, un calderone — scurire ancora non si vede: il contorno
+     sparisce dentro il corpo e l'oggetto diventa una macchia senza forma. Lì la linea va
+     nell'altro verso, più CHIARA: un filo di luce attorno, che è come si legge il nero. */
+  const bordo = c => {
+    const n = parseInt(String(c).slice(1), 16);
+    const l = 0.299 * ((n >> 16) & 255) + 0.587 * ((n >> 8) & 255) + 0.114 * (n & 255);
+    return shade(c, l < 62 ? 2.1 : 0.42);
+  };
   const R = (rx, ry, rw, rh, c) => { if (rw > 0 && rh > 0) g.rect(x + rx, y + ry, rw, rh, c); };
   for (const { op, a } of parseRecipe(src)) {
     switch (op) {
       case 'F': R(a[0], a[1], a[2], a[3], col(a[4])); break;
-      case 'R': { const c = col(a[4]); R(a[0], a[1], a[2], a[3], shade(c, 0.42)); R(a[0] + 1, a[1] + 1, a[2] - 2, a[3] - 2, c); break; }
+      case 'R': { const c = col(a[4]); R(a[0], a[1], a[2], a[3], bordo(c)); R(a[0] + 1, a[1] + 1, a[2] - 2, a[3] - 2, c); break; }
       case 'B': {
         const c = col(a[4]), [bx, by, bw, bh] = a;
-        R(bx, by, bw, bh, shade(c, 0.42));
+        R(bx, by, bw, bh, bordo(c));
         R(bx + 1, by + 1, bw - 2, bh - 2, c);
         R(bx + 1, by + 1, bw - 2, Math.min(3, bh - 2), shade(c, 1.25));
         if (bh > 6) R(bx + 1, by + bh - 3, bw - 2, 2, shade(c, 0.74));
@@ -112,7 +122,7 @@ export function drawRecipe(g, src, x, y, pal, time) {
       }
       case 'C': {
         const c = col(a[4]), [bx, by, bw, bh] = a;
-        R(bx, by, bw, bh, shade(c, 0.42));
+        R(bx, by, bw, bh, bordo(c));
         R(bx + 1, by + 1, bw - 2, bh - 2, c);
         if (bw > 4) { R(bx + 1, by + 1, 2, bh - 2, shade(c, 1.22)); R(bx + bw - 3, by + 1, 2, bh - 2, shade(c, 0.72)); }
         R(bx + 1, by + 1, bw - 2, Math.min(3, bh - 2), shade(c, 1.35));
@@ -123,7 +133,7 @@ export function drawRecipe(g, src, x, y, pal, time) {
         for (let yy = -r; yy <= r; yy++) for (let xx = -r; xx <= r; xx++) {
           const q = xx * xx + yy * yy;
           if (q > r * r + r) continue;
-          R(cx + xx, cy + yy, 1, 1, q > (r - 1) * (r - 1) + (r - 1) ? shade(c, 0.42) : c);
+          R(cx + xx, cy + yy, 1, 1, q > (r - 1) * (r - 1) + (r - 1) ? bordo(c) : c);
         }
         if (r >= 2) R(cx - Math.ceil(r / 2), cy - Math.ceil(r / 2), 1, 1, shade(c, 1.4));
         break;
@@ -140,7 +150,7 @@ export function drawRecipe(g, src, x, y, pal, time) {
         for (let i = 0; i < bh; i++) {
           const k = op === 'T' ? (i + 1) / bh : (bh - i) / bh;
           const ww = Math.max(1, Math.round(bw * k)), xx = bx + Math.floor((bw - ww) / 2);
-          R(xx, by + i, ww, 1, shade(c, 0.42));
+          R(xx, by + i, ww, 1, bordo(c));
           if (ww > 2) R(xx + 1, by + i, ww - 2, 1, c);
         }
         break;

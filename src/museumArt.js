@@ -236,7 +236,7 @@ export function drawMuseumSign(g, cx, y) {
      in mezzo. Prima era una tabella scura con dei puntini: nessuno capiva cosa fosse (segnalato).
      La forma è la stessa della facciata del Museo là fuori, così si riconosce al volo. */
   const W = 92, X = cx - W / 2, H = 26;
-  g.rect(X - 2, y + 4, W + 4, H, '#241a10');                                 // contorno
+  g.rect(X - 2, y + 4, W + 4, H, g.shade8('#e6ddc8', 0.46));                 // contorno: marmo scurito, non nero
   g.rect(X - 1, y + 5, W + 2, H - 2, '#e6ddc8');                             // fascia di marmo
   g.rect(X - 1, y + 5, W + 2, 2, '#f6f1e4'); g.rect(X - 1, y + H + 1, W + 2, 2, '#b3a78c');
   for (let k = 0; k < 5; k++) {                                              // timpano: un triangolo di lastre

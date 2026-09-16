@@ -19,6 +19,14 @@ export const SHOP_WALL = 64;        // altezza della parete di fondo (come prima
 export const SHOP_TOP = 10;         // la cresta del muro sale sopra la stanza
 
 /* ---------- primitive ---------- */
+/* GAMBA di un mobile: non un rettangolo quasi nero ma legno vero — contorno della sua tinta,
+   corpo, filo di luce a sinistra. I tavoli e le sedie delle botteghe avevano le gambe dipinte
+   col nero pieno e in mezzo alla stanza si vedevano come due sbarre (segnalato con foto). */
+export function gamba(g, x, y, w, h, c = '#5c3d22') {
+  g.rect(x, y, w, h, g.shade8(c, 0.38));
+  g.rect(x + 1, y, w - 2, h - 1, c);
+  g.rect(x + 1, y, 1, h - 1, g.shade8(c, 1.28));
+}
 /* scatola in 3/4: contorno scuro, luce sopra e a sinistra, ombra sotto e a destra */
 export function box(g, x, y, w, h, c) {
   if (w <= 0 || h <= 0) return;
@@ -276,9 +284,24 @@ function critter(g, outline) {
       /* IL CONTORNO PRENDE IL COLORE DI CHI TOCCA. Prima era una tinta scura sola per tutta la
          bestiola: muso, guscio e zampe finivano dentro lo stesso filo quasi nero e l'animale
          sembrava ritagliato. `outline` resta come ripiego se il colore non è un esagono. */
-      for (const [x, y, c] of m.values()) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        if (m.has((x + dx) + ',' + (y + dy))) continue;
-        g.px(x + dx, y + dy, typeof c === 'string' && c[0] === '#' ? g.shade8(c, 0.34) : outline);
+      /* ogni pixel di contorno è la MEDIA di quello che tocca, non l'ultimo arrivato: così la
+         linea segue la luce del pelo (chiara sul dorso, scura sotto) invece di risultare un
+         unico bordo piatto tutt'attorno alla bestiola (segnalato con foto). */
+      const bordo = new Map();
+      for (const [x, y, c] of m.values()) {
+        if (typeof c !== 'string' || c[0] !== '#') continue;
+        const n = parseInt(c.slice(1), 16);
+        for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const k = (x + dx) + ',' + (y + dy); if (m.has(k)) continue;
+          const a = bordo.get(k) || [0, 0, 0, 0];
+          a[0] += (n >> 16) & 255; a[1] += (n >> 8) & 255; a[2] += n & 255; a[3]++;
+          bordo.set(k, a);
+        }
+      }
+      for (const [k, a] of bordo) {
+        const [x, y] = k.split(',').map(Number);
+        const f = v => Math.max(0, Math.min(255, Math.round((v / a[3]) * 0.46)));
+        g.px(x, y, a[3] ? '#' + ((1 << 24) | (f(a[0]) << 16) | (f(a[1]) << 8) | f(a[2])).toString(16).slice(1) : outline);
       }
       for (const [x, y, c] of m.values()) g.px(x, y, c);
     },
@@ -432,7 +455,7 @@ export function drawInnFloorProps(g, rw, rh, time, _e, _r, pet) {
   for (const ox of [30, 226]) {
     g.shadow(ox + 34, 136, 34);
     for (const sx of [ox - 2, ox + 58]) { g.rect(sx, 112, 12, 16, g.shade8('#6e4a2e', 0.34)); g.rect(sx + 1, 113, 10, 5, '#6e4a2e'); g.rect(sx + 1, 113, 10, 1, '#8a5f38'); g.rect(sx + 2, 118, 2, 9, '#4c3320'); g.rect(sx + 8, 118, 2, 9, '#4c3320'); }
-    g.rect(ox + 6, 122, 5, 14, '#2a1e14'); g.rect(ox + 57, 122, 5, 14, '#2a1e14');
+    gamba(g, ox + 6, 122, 5, 14); gamba(g, ox + 57, 122, 5, 14);
     g.rect(ox + 2, 100, 64, 24, g.shade8('#5c3d22', 0.34)); g.rect(ox + 3, 101, 62, 22, '#5c3d22'); g.rect(ox + 3, 101, 62, 3, '#7a5636');
     g.rect(ox + 12, 101, 44, 26, '#b9a57a'); g.rect(ox + 13, 101, 42, 24, '#e8dcc0'); g.rect(ox + 13, 101, 42, 2, '#f6efdd');
     for (let i = 0; i < 42; i += 6) g.rect(ox + 13 + i, 125, 3, 2, '#b9a57a');
@@ -465,7 +488,7 @@ export function drawBarberProps(g, rw, rh, time) {
   g.rect(29, 30, 16, 22, g.shade8('#c9a227', 0.34)); g.rect(36 + pd, 30, 1, 16, '#c9a227'); g.rect(34 + pd, 45, 5, 5, '#c9a227'); g.px(35 + pd, 46, '#f0d470');
   /* palo del barbiere: strisce che scorrono */
   const px0 = rw - 42, off = Math.floor(t / 90) % 12;
-  g.rect(px0 - 1, 4, 20, 56, '#2a2016');
+  g.rect(px0 - 1, 4, 20, 56, g.shade8('#8f887a', 0.34));
   g.rect(px0, 9, 18, 46, '#f3ecda');
   for (let yy = -12 + off; yy < 46; yy += 12) {
     for (let k = 0; k < 18; k++) {
@@ -506,7 +529,7 @@ export function drawBarberFloorProps(g, rw, rh, time, _e, _r, pet) {
   }
   /* panca d'attesa con cuscino e giornale (228..296 × 100..132) + pianta */
   g.shadow(262, 132, 32);
-  g.rect(232, 116, 5, 16, '#2a1e14'); g.rect(284, 116, 5, 16, '#2a1e14');
+  gamba(g, 232, 116, 5, 16); gamba(g, 284, 116, 5, 16);
   g.rect(228, 100, 64, 18, g.shade8('#a97a4c', 0.34)); g.rect(229, 101, 62, 16, '#a97a4c'); g.rect(229, 101, 62, 3, '#c49a63'); g.rect(229, 113, 62, 3, '#8a5f38');
   g.rect(232, 96, 26, 8, '#2f5f6a'); g.rect(233, 97, 24, 6, '#4e8d9c'); g.rect(233, 97, 24, 2, '#7fb6c3');
   g.rect(264, 100, 14, 9, '#8f887a'); g.rect(265, 100, 12, 8, '#f3ecda'); g.rect(267, 102, 8, 1, '#5a5248'); g.rect(267, 105, 6, 1, '#8f887a');
@@ -584,7 +607,7 @@ export function drawTailorFloorProps(g, rw, rh, time, _e, _r, pet) {
   g.rect(108, 118, 1, 6, '#5a86c8'); g.rect(109, 124, 6, 1, '#5a86c8');
   /* TAVOLO da cucito con la MACCHINA (220..296 × 92..136) */
   g.shadow(258, 136, 36);
-  g.rect(222, 114, 6, 22, '#2a1e14'); g.rect(290, 114, 6, 22, g.shade8('#4a4640', 0.34)); g.rect(223, 126, 72, 3, '#4a4640');
+  gamba(g, 222, 114, 6, 22, '#4a4640'); g.rect(290, 114, 6, 22, g.shade8('#4a4640', 0.34)); g.rect(223, 126, 72, 3, '#4a4640');
   g.rect(218, 106, 82, 10, g.shade8('#a97a4c', 0.34)); g.rect(219, 107, 80, 8, '#a97a4c'); g.rect(219, 107, 80, 2, '#c49a63');
   g.rect(236, 128, 22, 6, g.shade8('#5a5248', 0.34)); g.rect(237, 129, 20, 4, '#5a5248');                                          // pedale
   g.rect(230, 98, 60, 9, '#1a1714'); g.rect(231, 99, 58, 7, '#3a3630'); g.rect(231, 99, 58, 1, '#c9a227');           // base
@@ -701,7 +724,7 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   g.shadow(60, 136, 36);
   g.rect(24, 94, 72, 12, g.shade8('#6e4a2e', 0.34)); g.rect(25, 95, 70, 10, '#6e4a2e'); g.rect(25, 95, 70, 2, '#8a5f38');
   g.rect(22, 90, 76, 6, '#3f4448'); g.rect(23, 91, 74, 3, '#8f9aa3'); g.rect(23, 91, 74, 1, '#c9ced3');
-  g.rect(28, 106, 6, 30, '#2a1e14'); g.rect(86, 106, 6, 30, g.shade8('#4a4640', 0.34)); g.rect(29, 120, 62, 3, '#4a4640');
+  gamba(g, 28, 106, 6, 30, '#4a4640'); g.rect(86, 106, 6, 30, g.shade8('#4a4640', 0.34)); g.rect(29, 120, 62, 3, '#4a4640');
   g.rect(34, 124, 18, 10, g.shade8('#bfe3ef', 0.34)); g.rect(35, 125, 16, 8, '#bfe3ef'); g.rect(36, 128, 14, 5, '#8a6ab0');              // flacone sotto
   const fl = Math.floor(t / 160) % 2;
   g.rect(36, 82, 18, 8, g.shade8('#5a5248', 0.34)); g.rect(37, 83, 16, 6, '#5a5248');
@@ -716,7 +739,7 @@ export function drawLabFloorProps(g, rw, rh, time, egg, ready, pet) {
   /* banco da studio (224..296 × 92..136): microscopio, cranio, libro, candela */
   g.shadow(260, 136, 36);
   g.rect(224, 94, 72, 12, g.shade8('#8a5f38', 0.34)); g.rect(225, 95, 70, 10, '#8a5f38'); g.rect(225, 95, 70, 2, '#b07c4a');
-  g.rect(228, 106, 6, 30, '#2a1e14'); g.rect(286, 106, 6, 30, '#2a1e14');
+  gamba(g, 228, 106, 6, 30, '#4a4640'); gamba(g, 286, 106, 6, 30, '#4a4640');
   g.rect(230, 106, 26, 20, g.shade8('#6e4a2e', 0.34)); g.rect(231, 107, 24, 18, '#6e4a2e'); g.rect(242, 114, 3, 3, '#c9a227');           // cassettiera
   g.rect(232, 86, 20, 6, '#1a1714'); g.rect(233, 87, 18, 4, '#3f3a33');
   g.rect(238, 64, 6, 24, '#1a1714'); g.rect(239, 65, 4, 22, '#5a5248'); g.rect(239, 65, 1, 22, '#8f887a');
@@ -839,7 +862,7 @@ export function drawFurnitureFloorProps(g, rw, rh, time, _e, _r, pet) {
   if (on) g.rect(66, 96, 30, 14, 'rgba(255,230,150,.10)');
   /* BANCO DA FALEGNAME con morsa, pialla e trucioli (228..296 × 92..136) */
   g.shadow(262, 136, 36);
-  g.rect(230, 108, 6, 28, '#2a1e14'); g.rect(288, 108, 6, 28, '#2a1e14'); g.rect(231, 126, 62, 3, '#4a3624');
+  gamba(g, 230, 108, 6, 28); gamba(g, 288, 108, 6, 28); g.rect(231, 126, 62, 3, '#4a3624');
   g.rect(226, 98, 72, 12, g.shade8('#c49a63', 0.34)); g.rect(227, 99, 70, 10, '#c49a63'); g.rect(227, 99, 70, 2, '#dcb880');
   for (let i = 0; i < 70; i += 12) g.rect(227 + i, 101, 1, 8, '#a97a4c');
   g.rect(222, 100, 8, 12, g.shade8('#5a5248', 0.34)); g.rect(223, 101, 6, 10, '#5a5248'); g.rect(218, 104, 5, 2, '#8f9aa3');                                    // morsa

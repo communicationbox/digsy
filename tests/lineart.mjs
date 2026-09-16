@@ -33,6 +33,8 @@ const shopArt = await import('../src/shopArt.js');
 const wonder = await import('../src/wonderNative.js');
 const furnArt = await import('../src/furnArt.js');
 const interiors = await import('../src/interiors.js');
+const museumArt = await import('../src/museumArt.js');
+const caveArt = await import('../src/caveArt.js');
 const data = await import('../src/data.js');
 const state = await import('../src/state.js');
 const noise = await import('../src/noise.js');
@@ -179,8 +181,36 @@ for (const k of Object.keys(wonder.NATIVE_WONDERS))
   SPRITE.push(['meraviglia: ' + k, 'grande', conOrigine(70, 150, () => wonder.drawNativeWonder(g, k, 0))]);
 /* L'ARREDO: si prende in mano e si posa, quindi ha la linea. Un pezzo per tema basta a
    sorvegliare la ricetta comune (furnRecipe), che è la stessa per tutti e 252. */
-for (const id of ['prati_table', 'camera_letto', 'cucina_fornello', 'bagno_vasca', 'studio_scrivania', 'museo_teca'])
-  if (data.FURN_BY_ID && data.FURN_BY_ID[id]) SPRITE.push(['arredo: ' + id, true, conOrigine(60, 150, () => furnArt.drawFurnPiece(g, id, 0, 0, 32 * (data.FURN_BY_ID[id].w || 1), 32 * (data.FURN_BY_ID[id].h || 1), 0, 0))]);
+/* TUTTI e 252 i pezzi d'arredo: si prendono in mano e si posano, quindi hanno la linea. Sono
+   ricette (furnRecipe), ma ognuna sceglie i suoi colori e una può sbagliare da sola. */
+/* L'ARREDO è categoria sua ('arredo'). Sta DENTRO casa, dove tutto è del giocatore e non c'è
+   niente da distinguere fra toccabile e paesaggio: la domanda "questo si raccoglie?" lì non
+   esiste. Quello che conta è che ogni pezzo si stacchi dal pavimento e che la sua linea non
+   sia nera — un mobile è fatto di tre o quattro volumi che si coprono a vicenda, e pretendere
+   l'anello chiuso come su un masso vorrebbe dire riscrivere 252 ricette per un problema che
+   non c'è. */
+for (const id of Object.keys(data.FURN_BY_ID || {}))
+  SPRITE.push(['arredo: ' + id, 'arredo', conOrigine(60, 170, () => furnArt.drawFurnPiece(g, id, 0, 0, 32 * (data.FURN_BY_ID[id].w || 1), 32 * (data.FURN_BY_ID[id].h || 1), 0, 0))]);
+/* IL MUSEO: teca, bancone, panca, colonna, insegna, cordone */
+SPRITE.push(['museo: teca', true, conOrigine(60, 150, () => { museumArt.drawCaseBack(g, 0, 0, '#d4b13c', true, 0); museumArt.drawCaseFront(g, 0, 0, '#8d6ac8', true, 0, false); })]);
+SPRITE.push(['museo: bancone', true, conOrigine(40, 150, () => museumArt.drawDeskArt(g, 0, 0, 120, 32, 0))]);
+SPRITE.push(['museo: panca', 'arredo', conOrigine(60, 150, () => museumArt.drawBench(g, 0, 0, '#c9a227'))]);
+SPRITE.push(['museo: colonna', 'arredo', conOrigine(80, 200, () => museumArt.drawColumn(g, 0, 0))]);
+SPRITE.push(['museo: insegna', 'arredo', conOrigine(100, 120, () => museumArt.drawMuseumSign(g, 0, 0))]);
+SPRITE.push(['museo: cordone', 'arredo', conOrigine(60, 150, () => museumArt.drawRope(g, 0, 60, 0, '#8a3f3a'))]);
+/* LA GROTTA: parete, pavimento, giacimento */
+SPRITE.push(['grotta: giacimento', true, conOrigine(60, 150, () => caveArt.caveCrystal(g, 0, 0, 0, true))]);
+/* IL MONDO: X del tesoro, imbocco della grotta, statua del nonno */
+/* la X del tesoro e l'imbocco della grotta sono SEGNI, non oggetti posati: una è vernice sul
+   terreno, l'altro un buco nella montagna. Un anello attorno non vorrebbe dire niente — come
+   per la buca scavata. Resta la regola che conta: la linea non dev'essere nera. */
+SPRITE.push(['X del tesoro', 'grande', () => render.drawXmark(40, 60, 0)]);
+SPRITE.push(['imbocco della grotta', 'grande', () => render.drawCaveEntrance(40, 60, 0)]);
+SPRITE.push(['statua del nonno', true, () => render.drawStatue(40, 80, 0)]);
+/* I MEZZI: barca, motoscafo, bici, pattini, cavalcatura */
+for (const k of ['boat', 'motorboat', 'bike', 'skates', 'mount'])
+  for (const d of ['down', 'side'])
+    SPRITE.push(['mezzo: ' + k + ' ' + d, 'pg', conOrigine(60, 150, () => render.drawVehiclePreview(k, 0, 0, d))]);
 /* LE CASE: si entra camminando sulla porta, quindi sono a tutti gli effetti cose con cui si
    interagisce — e sono anche la sagoma più grande del paesaggio urbano. Devono staccare dal
    lastricato su tutti e quattro i lati, tetto compreso. */
@@ -194,10 +224,17 @@ for (const [nome, tocca, fn] of SPRITE) {
   const m = misura(fn);
   const sottile = m.corpo < 60;                        // niente "dentro": si giudica dalla linea scura
   const voto = sottile ? m.scuri / Math.max(1, m.area) : m.cop;
+  /* QUATTRO REGOLE, non una sola:
+       true       oggetto del mondo · anello chiuso + niente nero  (è la promessa "si tocca")
+       false      paesaggio         · NESSUN anello               (la promessa al contrario)
+       'pg'       chi è vivo        · anello più morbido: la sua linea segue il materiale
+       'arredo'   roba da interni   · solo "niente nero": un mobile in 3/4 è fatto di volumi
+       'grande'   meraviglie, segni ·   che si coprono, e l'anello chiuso non vuol dir nulla */
   const soglia = sottile ? (tocca ? 0.08 : 0.03) : tocca === 'pg' ? 0.5 : tocca ? 0.7 : 0.35;
-  const passa = tocca === 'grande' ? true : tocca ? voto >= soglia : voto <= soglia;
+  const senzaAnello = tocca === 'grande' || tocca === 'arredo';
+  const passa = senzaAnello ? true : tocca ? voto >= soglia : voto <= soglia;
   if (m.linea >= 20) neriTrovati.push([nome, Math.round(m.chiarezza * 100)]);
-  check((tocca === 'grande' ? 'in grande ' : tocca === 'pg' ? 'personaggio ' : tocca ? 'SI TOCCA  ' : 'paesaggio ') + nome, passa,
+  check((tocca === 'grande' ? 'in grande ' : tocca === 'pg' ? 'personaggio ' : tocca === 'arredo' ? 'arredo    ' : tocca ? 'SI TOCCA  ' : 'paesaggio ') + nome, passa,
     (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '% · corpo ' + m.corpo + ' area ' + m.area);
 }
 

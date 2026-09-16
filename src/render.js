@@ -257,7 +257,7 @@ function statueSprite() {
   } catch (e) { statueCv = false; }
   return statueCv;
 }
-function drawStatue(sx, sy, time) {
+export function drawStatue(sx, sy, time) {
   ctx.save(); ctx.translate(sx, sy);
   statueArt(BRUSH, time, !hasLetter('statua'));
   const cv = statueSprite();
@@ -674,7 +674,7 @@ export function drawCaveEntrance(sx, sy, time) {
      e un luccichio di cristallo in fondo. Stessa pietra della grotta, così si capisce che è lei. */
   ctx.save(); ctx.translate(sx, sy);
   shadow(16, 30, 16);
-  const L = '#15110d';
+  const L = '#3a3129';   // contorno della roccia, non nero: il nero resta al BUIO dentro l'imbocco
   for (let y = -6; y < 30; y++) {                                           // sagoma della roccia, più larga alla base
     const u = (y + 6) / 36, w = Math.round(9 + u * 7 + Math.sin(y * 0.9) * 1);
     rect(16 - w - 1, y, w * 2 + 2, 1, L); rect(16 - w, y, w * 2, 1, y < 2 ? '#8a7f70' : '#6e6358'); rect(16 - w, y, 3, 1, '#8a7f70'); rect(16 + w - 3, y, 3, 1, '#4a4239');
@@ -999,7 +999,7 @@ export function drawSkates(sx, sy, fr) {
    cestino di vimini davanti. Era fatta di anelli da un pixel e una linea rossa ("la bici è la più
    indietro"). Coordinate dello sprite (0..31, stesso spazio di drawHero); `flip` per la sinistra. */
 const BK = { tire: '#2a2622', tread: '#4d463e', rim: '#c3cad0', spoke: '#8f989e', hub: '#6d757b', red: '#c94f4a', redHi: '#e27a70', redDk: '#8e3530',
-  seat: '#2f2722', seatHi: '#4a4038', metal: '#9aa2a8', chain: '#5a5550', grip: '#3a2f28', bask: '#c89b5a', baskDk: '#9a7040', baskHi: '#e2bf82', out: '#1d1612' };
+  seat: '#2f2722', seatHi: '#4a4038', metal: '#9aa2a8', chain: '#5a5550', grip: '#3a2f28', bask: '#c89b5a', baskDk: '#9a7040', baskHi: '#e2bf82', out: '#40211d' };   // contorno: il rosso del telaio scurito, non il nero
 function bikePaint(ox, oy, flip, cells) {
   const has = new Set(cells.map(([x, y]) => x + ',' + y));
   const X = x => ox + (flip ? 31 - x : x);

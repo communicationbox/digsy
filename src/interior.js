@@ -184,7 +184,9 @@ export function cutAdvance() {
 export function cutSkip() { if (CUT.on && CUT.phase !== 'back') cutStartBack(); }
 function cutStartBack() {
   CUT.phase = 'back'; CUT.pi = 0; CUT.line = null; CUT.thanks = null; cutHint(false);
-  CUT.path = [[GAL_DESK.x1 + 52, GAL_DESK.y1 + 28], [GAL_DESK.x1 + 52, GAL_DESK.y0 - 12], [(GAL_DESK.x0 + GAL_DESK.x1) / 2, GAL_DESK.y0 - 12]];
+  /* torna al banco girandoci attorno DA SINISTRA: a destra c'è il muro dell'atrio (il banco
+     sta nell'angolo accanto alla porta) e il Curatore ci camminava dentro */
+  CUT.path = [[GAL_DESK.x0 - 26, GAL_DESK.y1 + 28], [GAL_DESK.x0 - 26, GAL_DESK.y0 - 12], [(GAL_DESK.x0 + GAL_DESK.x1) / 2, GAL_DESK.y0 - 12]];
 }
 export function enterInterior(b, town) {
   INT.fromX = P.x; INT.fromY = P.y;      // da dove si è entrati: via di ritorno sicura
@@ -216,9 +218,10 @@ export function enterInterior(b, town) {
       CUT.line = CUT.letter
         ? tr('Fermo lì! Devo darti una cosa che custodivo da anni.', 'Hold on! I must give you something I have kept for years.')
         : tr('Aspetta! Ho qualcosa per te.', 'Wait! I have something for you.');
-      /* parte a DESTRA del banco e DELLA PIANTA (mai sopra), poi scende verso il player */
-      CUT.x = GAL_DESK.x1 + 26; CUT.y = GAL_DESK.y0 - 6;
-      CUT.path = [[GAL_DESK.x1 + 52, GAL_DESK.y1 + 28], [INT.x, INT.y - 44]];
+      /* esce dal banco A SINISTRA — da quella parte c'è l'atrio libero; a destra c'è il muro
+         e lo si vedeva passare dentro (segnalato) — poi scende verso il giocatore */
+      CUT.x = GAL_DESK.x0 - 10; CUT.y = GAL_DESK.y0 - 6;
+      CUT.path = [[GAL_DESK.x0 - 26, GAL_DESK.y1 + 28], [INT.x, INT.y - 44]];
       cutBars(true);
     }
   }
