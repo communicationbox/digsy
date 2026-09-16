@@ -48,6 +48,50 @@ function ellipse(g, cx, cy, rx, ry, col) {
     if (w > 0) g.rect(Math.round(cx - w), Math.round(cy + y), w * 2, 1, col);
   }
 }
+/* ---------- IL PENNELLO DELLE MERAVIGLIE ----------
+   Ogni meraviglia è fatta di VOLUMI: rettangoli con gli angoli smussati, ellissi, capsule fra
+   due punti. Si compone la sagoma di un pezzo e la si dipinge in un colpo solo: un contorno
+   solo tutt'intorno, la luce dove batte il sole (in alto a sinistra), l'ombra dall'altra parte.
+   Prima ogni meraviglia era una pila di rettangoli tinti a mano: spigoli vivi, bordi doppi dove
+   si toccavano, e nessuna luce coerente da un pezzo all'altro. */
+export const R = (x, y, w, h, r = 0) => ({ k: 'r', x, y, w, h, r });
+export const E = (cx, cy, rx, ry) => ({ k: 'e', cx, cy, rx, ry });
+export const C = (x0, y0, x1, y1, r) => ({ k: 'c', x0, y0, x1, y1, r });   // capsula: tronco, ramo, arco
+function inShape(s, x, y) {
+  if (s.k === 'r') {
+    const dx = Math.min(x - s.x, s.x + s.w - 1 - x), dy = Math.min(y - s.y, s.y + s.h - 1 - y);
+    if (dx < 0 || dy < 0) return false;
+    return !(dx < s.r && dy < s.r && (s.r - dx) ** 2 + (s.r - dy) ** 2 > s.r * s.r + s.r);
+  }
+  if (s.k === 'e') return ((x - s.cx) ** 2) / (s.rx * s.rx + 0.5) + ((y - s.cy) ** 2) / (s.ry * s.ry + 0.5) <= 1;
+  const vx = s.x1 - s.x0, vy = s.y1 - s.y0, L2 = vx * vx + vy * vy || 1;
+  let u = ((x - s.x0) * vx + (y - s.y0) * vy) / L2; u = Math.max(0, Math.min(1, u));
+  const dx = x - (s.x0 + vx * u), dy = y - (s.y0 + vy * u);
+  return dx * dx + dy * dy <= s.r * s.r + s.r;
+}
+/* dipinge una sagoma composta. `tint(x, y, dentro)` può cambiare il colore del corpo (venature,
+   anelli, strati); torna la funzione `dentro` così i dettagli si possono ritagliare sul pezzo. */
+export function forma(g, shapes, fill, light, dark, line = '#241a10', tint) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of shapes) {
+    const b = s.k === 'r' ? [s.x, s.y, s.x + s.w, s.y + s.h]
+      : s.k === 'e' ? [s.cx - s.rx, s.cy - s.ry, s.cx + s.rx + 1, s.cy + s.ry + 1]
+        : [Math.min(s.x0, s.x1) - s.r, Math.min(s.y0, s.y1) - s.r, Math.max(s.x0, s.x1) + s.r + 1, Math.max(s.y0, s.y1) + s.r + 1];
+    x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]);
+  }
+  const dentro = (x, y) => shapes.some(s => inShape(s, x, y));
+  for (let y = Math.round(y0) - 1; y <= Math.round(y1) + 1; y++) for (let x = Math.round(x0) - 1; x <= Math.round(x1) + 1; x++) {
+    if (!dentro(x, y)) {
+      if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) g.rect(x, y, 1, 1, line);
+      continue;
+    }
+    const luce = !dentro(x - 1, y) || !dentro(x, y - 1) || !dentro(x - 2, y);
+    const ombra = !dentro(x + 1, y) || !dentro(x, y + 1);
+    const c = tint && tint(x, y);
+    g.rect(x, y, 1, 1, luce ? light : ombra ? dark : (c || fill));
+  }
+  return dentro;
+}
 /* ombra morbida a terra: tre ellissi trasparenti */
 function groundShadow(g, rx, ry) {
   ellipse(g, 0, 0, rx, ry, 'rgba(20,16,10,.14)');
@@ -128,9 +172,9 @@ function disegna_oasis(g, t) {
   /* GRANDE CRANIO sul lato destro: il riparo che dà l'ombra (è la parte solida) */
   const sx = 62, sy = -18;
   ellipse(g, sx, sy + 20, 36, 8, 'rgba(20,16,10,.25)');
-  disc(g, sx, sy - 14, 30, '#5f5642'); disc(g, sx, sy - 14, 28, '#e3d9c1'); disc(g, sx - 8, sy - 24, 14, '#f3ecda');
-  g.rect(sx - 26, sy - 6, 52, 24, '#5f5642'); g.rect(sx - 24, sy - 6, 48, 22, '#d8ccb0');
-  g.rect(sx - 24, sy + 10, 48, 6, '#b9ad91');
+  /* il cranio è UN volume: calotta tonda e muso smussato, un contorno solo */
+  const dentroS = forma(g, [E(sx, sy - 14, 30, 28), R(sx - 25, sy - 8, 50, 26, 10)], '#e3d9c1', '#f3ecda', '#b9ad91', '#5f5642');
+  for (let y = sy + 6; y < sy + 16; y++) for (let x = sx - 26; x <= sx + 26; x++) if (dentroS(x, y) && dentroS(x - 1, y) && dentroS(x + 1, y)) g.rect(x, y, 1, 1, '#c9bda4');
   ellipse(g, sx - 11, sy - 8, 8, 7, '#2e2618'); ellipse(g, sx + 11, sy - 8, 8, 7, '#2e2618');       // orbite
   ellipse(g, sx - 11, sy - 6, 5, 4, '#15100a'); ellipse(g, sx + 11, sy - 6, 5, 4, '#15100a');
   g.rect(sx - 2, sy + 2, 5, 6, '#2e2618');
@@ -138,17 +182,20 @@ function disegna_oasis(g, t) {
   g.rect(sx - 20, sy - 30, 4, 12, '#c9bd9f'); g.rect(sx + 14, sy - 34, 3, 9, '#c9bd9f');           // crepe
   /* PALME: tronco ad anelli che si piega, fronde a raggiera con foglioline */
   const palm = (bx, h, lean, sw) => {
-    let x = bx, y = 0;
-    const top = [];
-    for (let k = 0; k <= h; k += 2) {
-      const tt = k / h, xx = bx + Math.round(lean * tt * tt * 26), w = tt > 0.7 ? 7 : tt > 0.35 ? 9 : 11;
-      g.rect(xx - (w >> 1) - 1, -k - 2, w + 2, 3, '#3f2a17');
-      g.rect(xx - (w >> 1), -k - 2, w, 2, k % 6 < 2 ? '#8a5f38' : '#a97a4c');
-      g.rect(xx - (w >> 1), -k - 2, 2, 2, '#c49a63');
-      x = xx; y = -k;
+    /* il TRONCO è una curva continua, non una scaletta di mattoncini: capsule che si
+       inseguono, una sagoma sola, e gli anelli incisi sopra */
+    const nodi = [];
+    for (let k = 0; k <= h; k += 6) { const tt = k / h; nodi.push([bx + Math.round(lean * tt * tt * 26), -k]); }
+    const pezzi = [];
+    for (let i = 0; i < nodi.length - 1; i++) {
+      const tt = i / (nodi.length - 1), r = Math.round(6 - tt * 2.5);
+      pezzi.push(C(nodi[i][0], nodi[i][1], nodi[i + 1][0], nodi[i + 1][1], r));
     }
-    top.push(x, y - 2);
-    const [tx, ty] = top;
+    pezzi.push(E(bx, -2, 9, 4));                                   // il piede allargato
+    const dentroT = forma(g, pezzi, '#a97a4c', '#c49a63', '#7a5230', '#3f2a17');
+    for (let k = 4; k < h; k += 7) { const tt = k / h, xx = bx + Math.round(lean * tt * tt * 26);
+      for (let d = -7; d <= 7; d++) if (dentroT(xx + d, -k)) g.rect(xx + d, -k, 1, 1, '#8a5f38'); }
+    const [tx, ty] = [nodi[nodi.length - 1][0], nodi[nodi.length - 1][1] - 2];
     const swy = Math.round(Math.sin(t / 900 + sw) * 2);
     for (const [dx, up, len] of [[-1, 0.7, 34], [-1, 0.1, 30], [1, 0.7, 34], [1, 0.1, 30], [-0.4, 1.2, 22], [0.5, 1.1, 24]]) {
       for (let k = 0; k <= len; k++) {
@@ -198,47 +245,47 @@ function disegna_mushring(g, t) {
 }
 
 function disegna_totem(g, t) {
+  /* TOTEM: un TRONCO, quindi un cilindro — non una pila di casse. Il palo è una capsula sola
+     con la luce a sinistra e l'ombra a destra; i quattro volti sono fasce di colore ritagliate
+     dentro la stessa sagoma, separate da un anello inciso. */
   groundShadow(g, 30, 8);
-  /* sassi e terra smossa alla base */
   ellipse(g, 0, -2, 24, 7, '#4a3a28'); ellipse(g, 0, -3, 20, 5, '#6b5238');
   for (const [x, r] of [[-20, 5], [18, 4], [-8, 3]]) { disc(g, x, -2, r + 1, '#3a342c'); disc(g, x, -3, r, '#8a8378'); g.px(x - 1, -r - 2, '#aaa294'); }
   const faces = [
     { col: '#6f5a94', kind: 'occhi' }, { col: '#d8973c', kind: 'corna' }, { col: '#4e8d7c', kind: 'zanne' }, { col: '#c94f4a', kind: 'becco' },
   ];
-  const H = 30;
-  faces.forEach((f, i) => {
-    const y0 = -6 - (i + 1) * H, c = f.col, d = shade(c, 0.6), l = shade(c, 1.25);
-    g.rect(-16, y0, 32, H, '#2a1e14');
-    g.rect(-15, y0 + 1, 30, H - 2, c);
-    g.rect(-15, y0 + 1, 8, H - 2, l); g.rect(9, y0 + 1, 6, H - 2, d);                              // volume del palo
-    g.rect(-15, y0 + H - 5, 30, 4, d); g.rect(-15, y0 + 1, 30, 2, l);
-    for (let k = 4; k < H - 4; k += 6) g.rect(-12, y0 + k, 1, 3, shade(c, 0.8));                   // venature del legno
-    /* occhi scolpiti: incavo scuro, bulbo chiaro, pupilla */
-    for (const ex of [-10, 3]) { g.rect(ex, y0 + 7, 8, 7, '#2a1e14'); g.rect(ex + 1, y0 + 8, 6, 5, '#f6efdd'); g.rect(ex + 3, y0 + 9, 3, 3, '#201a14'); }
-    g.rect(-12, y0 + 5, 10, 2, d); g.rect(2, y0 + 5, 10, 2, d);                                    // sopracciglia
-    if (f.kind === 'becco') { g.rect(-5, y0 + 15, 11, 10, '#2a1e14'); g.rect(-4, y0 + 15, 9, 7, '#f2c53d'); g.rect(-2, y0 + 22, 5, 3, '#c9a227'); g.rect(-4, y0 + 15, 3, 7, '#f8dc70'); }
-    if (f.kind === 'zanne') { g.rect(-9, y0 + 17, 19, 6, '#2a1e14'); g.rect(-8, y0 + 18, 17, 4, '#5a2a22'); g.rect(-8, y0 + 18, 3, 8, '#f6efdd'); g.rect(6, y0 + 18, 3, 8, '#f6efdd'); }
-    if (f.kind === 'corna') { g.rect(-6, y0 + 18, 13, 3, '#2a1e14'); for (const hx of [-22, 16]) { g.rect(hx, y0 - 4, 7, 12, '#2a1e14'); g.rect(hx + 1, y0 - 3, 5, 10, '#e8e0cc'); g.rect(hx + 1, y0 - 3, 2, 10, '#fbf6ea'); } }
-    if (f.kind === 'occhi') { g.rect(-8, y0 + 18, 17, 5, '#2a1e14'); for (let k = -7; k < 8; k += 4) g.rect(k, y0 + 19, 2, 3, '#f6efdd'); }
-  });
-  /* ali spiegate in cima, piuma per piuma */
-  const top = -6 - 4 * H;
-  for (const side of [-1, 1]) {
-    for (let k = 0; k < 5; k++) {
-      const x = side * (16 + k * 7), y = top + 2 + k * 2, len = 22 - k * 3;
-      g.rect(side < 0 ? x - 7 : x, y, 8, len + 2, '#2a1e14');
-      g.rect(side < 0 ? x - 6 : x + 1, y + 1, 6, len, k % 2 ? '#a97a4c' : '#8a5f38');
-      g.rect(side < 0 ? x - 6 : x + 1, y + 1, 6, 3, '#d8973c');
-      g.rect(side < 0 ? x - 3 : x + 3, y + 4, 1, len - 4, '#6e4a2e');
-    }
+  const H = 30, top = -6 - 4 * H;
+  /* le ALI stanno dietro al palo: piume tonde che si aprono a ventaglio */
+  for (const side of [-1, 1]) for (let k = 4; k >= 0; k--) {
+    const x = side * (15 + k * 7), y = top + 3 + k * 3, len = 22 - k * 3;
+    forma(g, [C(x, y, x + side * 3, y + len, 4)], k % 2 ? '#a97a4c' : '#8a5f38', '#d8973c', '#6e4a2e', '#2a1e14');
   }
-  /* uccello del tuono in cima */
-  g.rect(-14, top - 20, 28, 22, '#2a1e14'); g.rect(-13, top - 19, 26, 20, '#c9a227'); g.rect(-13, top - 19, 26, 4, '#f0d470');
-  g.rect(-8, top - 12, 5, 5, '#2a1e14'); g.rect(4, top - 12, 5, 5, '#2a1e14');
-  g.rect(-3, top - 6, 7, 8, '#2a1e14'); g.rect(-2, top - 6, 5, 6, '#e0873a');
-  g.rect(-4, top - 28, 9, 9, '#2a1e14'); g.rect(-3, top - 27, 7, 7, '#c65a54');
-  /* gli occhi si accendono ogni tanto */
-  if (Math.floor(t / 700) % 4 === 0) { g.rect(-7, top - 11, 3, 3, '#fff3a0'); g.rect(5, top - 11, 3, 3, '#fff3a0'); }
+  /* IL PALO, tutto in un pezzo */
+  const dentro = forma(g, [R(-16, top, 32, -6 - top, 12), E(0, -6, 17, 7)], '#8a5f38', '#b08a58', '#5c3d22', '#2a1e14');
+  /* dipinge DENTRO il palo lasciando intatto il pixel di bordo: il filo di luce e l'ombra del
+     cilindro devono sopravvivere alle fasce colorate */
+  const dipingi = (x0, y0, w, h, c) => {
+    for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++)
+      if (dentro(x, y) && dentro(x - 1, y) && dentro(x + 1, y)) g.rect(x, y, 1, 1, c);
+  };
+  faces.forEach((f, i) => {
+    const y0 = -6 - (i + 1) * H, c = f.col, d = shade(c, 0.62), l = shade(c, 1.24);
+    dipingi(-16, y0 + 2, 32, H - 3, c);                       // fascia colorata del volto
+    dipingi(-16, y0 + 2, 6, H - 3, l); dipingi(10, y0 + 2, 6, H - 3, d);   // cilindro: luce e ombra
+    dipingi(-16, y0, 32, 2, '#2a1e14'); dipingi(-16, y0 + 2, 32, 1, shade(c, 1.4));   // anello inciso fra un volto e l'altro
+    for (const ex of [-9, 4]) { disc(g, ex + 2, y0 + 11, 5, '#2a1e14'); disc(g, ex + 2, y0 + 11, 4, '#f6efdd'); disc(g, ex + 2, y0 + 11, 2, '#201a14'); }   // occhi tondi
+    dipingi(-12, y0 + 5, 9, 2, d); dipingi(3, y0 + 5, 9, 2, d);                        // sopracciglia
+    if (f.kind === 'becco') forma(g, [C(0, y0 + 16, 0, y0 + 25, 5), E(0, y0 + 17, 6, 4)], '#f2c53d', '#ffe08a', '#c9a227', '#2a1e14');
+    if (f.kind === 'zanne') { forma(g, [E(0, y0 + 20, 10, 4)], '#5a2a22', '#7a4436', '#3f1c18', '#2a1e14'); for (const zx of [-7, 5]) forma(g, [C(zx, y0 + 19, zx + 1, y0 + 26, 2)], '#f6efdd', '#ffffff', '#c9bda4', '#2a1e14'); }
+    if (f.kind === 'corna') { forma(g, [E(0, y0 + 20, 8, 3)], '#2a1e14', '#4a3524', '#201a14', '#2a1e14'); for (const hx of [-14, 14]) forma(g, [C(hx, y0 + 8, hx + (hx < 0 ? -8 : 8), y0 - 8, 4), E(hx, y0 + 8, 5, 4)], '#e8dcb8', '#ffffff', '#b8a882', '#2a1e14'); }
+    if (f.kind === 'occhi') { forma(g, [E(0, y0 + 21, 9, 4)], '#2a1e14', '#4a3524', '#201a14', '#2a1e14'); for (let k = -6; k < 8; k += 4) g.rect(k, y0 + 19, 2, 3, '#f6efdd'); }
+  });
+  /* UCCELLO DEL TUONO in cima: testa tonda, cresta, becco */
+  forma(g, [E(0, top - 9, 15, 11), E(0, top - 20, 6, 6)], '#c9a227', '#f0d470', '#9a7a18', '#2a1e14');
+  forma(g, [E(0, top - 26, 5, 5)], '#c65a54', '#e07a70', '#9a3f3a', '#2a1e14');       // ciuffo
+  for (const ex of [-6, 6]) { disc(g, ex, top - 11, 4, '#2a1e14'); disc(g, ex, top - 11, 3, '#f6efdd'); disc(g, ex, top - 11, 1, '#201a14'); }
+  forma(g, [C(0, top - 5, 0, top + 2, 4)], '#e0873a', '#f2a55a', '#b06a28', '#2a1e14');
+  if (Math.floor(t / 700) % 4 === 0) for (const ex of [-6, 6]) disc(g, ex, top - 11, 2, '#fff3a0');   // gli occhi si accendono
   tufts(g, -26, 26, '#6e8f5a', '#5a7a4a', 3);
 }
 
@@ -614,23 +661,24 @@ function disegna_gianttree(g, t) {
      sopra l'ancora), radici larghe, chioma a piani sovrapposti come nel disegno dello Studio. */
   groundShadow(g, 110, 20);
   const TX = -16;
-  /* radici che si allargano sul prato */
+  /* RADICI E TRONCO in un volume solo: capsule che si inseguono dalla base alla cima, con la
+     base allargata. Prima il tronco era una pila di righe da un pixel: bordi seghettati e
+     nessuna forma, e le radici erano trattini staccati. */
+  const nodi = [[TX, 6], [TX, -30], [TX + 2, -70], [TX - 2, -110], [TX + 1, -150], [TX, -176]];
+  const pezzi = [];
+  for (let i = 0; i < nodi.length - 1; i++) pezzi.push(C(nodi[i][0], nodi[i][1], nodi[i + 1][0], nodi[i + 1][1], Math.round(24 - i * 3)));
   for (const [dx, len, dir] of [[-20, 46, -1], [-8, 30, -1], [10, 40, 1], [22, 56, 1], [0, 24, 1]]) {
-    for (let k = 0; k < len; k++) {
-      const x = TX + dx + dir * k, y = -18 + Math.round(k * 0.42) + Math.round(Math.sin(k / 6) * 2), w = Math.max(3, 12 - Math.round(k / 5));
-      g.rect(x - 1, y - (w >> 1) - 1, 3, w + 2, '#2f2318'); g.rect(x, y - (w >> 1), 2, w, k % 9 < 5 ? '#6e4a2a' : '#5c3d22'); g.rect(x, y - (w >> 1), 2, 2, '#8a6440');
+    /* ogni radice si assottiglia: tre capsule sempre più magre, non un tubo dritto */
+    for (let k = 0; k < 3; k++) {
+      const a = k / 3, b = (k + 1) / 3;
+      pezzi.push(C(TX + dx + dir * len * a, -14 + Math.round(len * 0.42 * a),
+        TX + dx + dir * len * b, -14 + Math.round(len * 0.42 * b), Math.round(7 - k * 2)));
     }
   }
-  /* tronco: si allarga alla base, corteccia a placche verticali */
-  for (let y = 8; y > -170; y--) {
-    const u = (8 - y) / 178, w = Math.round(44 - u * 14 + (u < 0.14 ? (0.14 - u) * 120 : 0)), wob = Math.round(Math.sin(y / 23) * 2);
-    const x0 = TX - (w >> 1) + wob;
-    g.rect(x0 - 2, y, w + 4, 1, '#1d150e');
-    g.rect(x0, y, w, 1, '#6e4a2a');
-    g.rect(x0, y, Math.round(w * 0.3), 1, '#805a36'); g.rect(x0, y, 3, 1, '#9a7048');
-    g.rect(x0 + w - Math.round(w * 0.25), y, Math.round(w * 0.25), 1, '#563820');
-    for (let f = 0; f < 5; f++) { const fx = x0 + 5 + f * Math.round(w / 5) + ((Math.floor((y + f * 13) / 17)) % 3); if (((y + f * 31) % 40 + 40) % 40 < 30) g.px(fx, y, '#3f2a17'); }
-  }
+  pezzi.push(E(TX, -8, 34, 11));
+  const dentroT = forma(g, pezzi, '#6e4a2a', '#9a7048', '#563820', '#1d150e');
+  for (let y = -170; y < 6; y += 9) for (let x = TX - 44; x <= TX + 44; x++)        // placche di corteccia
+    if (dentroT(x, y) && dentroT(x - 1, y) && dentroT(x + 1, y) && ((x + y) % 23) < 12) g.rect(x, y, 1, 2, '#5c3d22');
   /* cavità con una lucina dentro */
   ellipse(g, TX + 4, -92, 9, 13, '#1d150e'); ellipse(g, TX + 4, -91, 7, 11, '#0e0a06');
   if (Math.floor(t / 900) % 3) { g.rect(TX + 3, -94, 3, 3, '#f2e07a'); g.rect(TX + 1, -96, 7, 7, 'rgba(242,224,122,.25)'); }
@@ -663,35 +711,33 @@ function disegna_gianttree(g, t) {
 }
 
 function disegna_menhir(g, t) {
+  /* CERCHIO DI PIETRE: sette menhir, ognuno un volume unico con la cima arrotondata dal tempo
+     e il corpo che si assottiglia salendo. Prima erano lastre disegnate riga per riga: bordi
+     seghettati e nessuna forma. */
   ellipse(g, 0, -28, 100, 34, 'rgba(20,16,10,.14)'); ellipse(g, 0, -28, 75, 24, 'rgba(20,16,10,.10)');
-  /* un cerchio di erba calpestata dentro l'anello */
   ellipse(g, 0, -28, 88, 36, 'rgba(60,90,40,.25)'); ellipse(g, 0, -28, 60, 22, 'rgba(210,200,140,.18)');
-  /* le sette pietre sulle loro caselle solide (dx, dy), da dietro in avanti */
   const stones = [[-1, -2, 70, 26, 1], [1, -2, 64, 24, -1], [-2, -1, 58, 24, -1], [2, -1, 62, 25, 1], [-1, 0, 52, 22, 1], [0, 0, 80, 30, 0], [2, 0, 48, 22, -1]];
   stones.sort((a, b) => a[1] - b[1]);
   stones.forEach(([dx, dy, h, w, lean], i) => {
     const bx = dx * 32, by = dy * 32 - 6;
     ellipse(g, bx + 4, by + 2, w - 2, 6, 'rgba(20,20,10,.28)');
-    for (let k = 0; k < h; k++) {
-      const u = k / h, xo = Math.round(lean * u * 5);
-      const ww = Math.round(w * (u > 0.82 ? 1 - (u - 0.82) * 2.4 : 1 - u * 0.12)) - ((i + k) % 11 === 0 ? 2 : 0);
-      const x0 = bx - (ww >> 1) + xo, y = by - k;
-      g.rect(x0 - 1, y, ww + 2, 1, '#3a3c48');
-      g.rect(x0, y, ww, 1, '#8b8a86');
-      g.rect(x0, y, Math.round(ww * 0.35), 1, '#a8a696'); g.rect(x0, y, 2, 1, '#c6c2ae');
-      g.rect(x0 + ww - Math.round(ww * 0.28), y, Math.round(ww * 0.28), 1, '#5f6376');
+    /* il masso: una capsula inclinata (base larga, cima stretta e tonda) più lo zoccolo a terra */
+    const cima = [bx + Math.round(lean * 6), by - h + 6], piede = [bx, by - 6];
+    const dentro = forma(g, [
+      C(piede[0], piede[1], cima[0], cima[1], Math.round(w * 0.48)),
+      E(bx, by - 5, Math.round(w * 0.62), 8),
+      E(cima[0], cima[1] - 3, Math.round(w * 0.4), Math.round(w * 0.34)),
+    ], '#8b8a86', '#b6b2a2', '#5f6376', '#3a3c48');
+    /* venature e macchie di lichene, ritagliate sulla pietra */
+    for (let k = 4; k < h; k += 9) for (let x = bx - w; x <= bx + w; x++) if (dentro(x, by - k)) g.rect(x, by - k, 1, 1, '#7a7a78');
+    for (const [lx, lq, lw] of [[-6, 0.3, 7], [4, 0.6, 5], [-2, 0.12, 9]]) {
+      for (let x = 0; x < lw; x++) for (let y = 0; y < 3; y++) { const px2 = bx + lx + x, py2 = by - Math.round(h * lq) + y; if (dentro(px2, py2)) g.rect(px2, py2, 1, 1, y ? '#6f8a52' : '#7d9a5c'); }
     }
-    g.rect(bx - (w >> 1) + 3 + Math.round(lean * 4), by - h, w - 8, 2, '#d6d2bc');                      // cima in luce
-    /* licheni e muschio */
-    for (const [lx, ly, lw] of [[-6, 0.3, 6], [4, 0.6, 4], [-2, 0.12, 8]]) { g.rect(bx + lx, by - Math.round(h * ly), lw, 3, '#7d9a5c'); g.px(bx + lx + 1, by - Math.round(h * ly), '#a8c07a'); }
-    /* spirale incisa sulla pietra centrale, che si accende piano */
-    if (dx === 0 && dy === 0) {
+    if (dx === 0 && dy === 0) {                      // la spirale incisa, che si accende piano
       const glow = Math.floor(t / 600) % 4 === 0 ? '#f2e3a8' : '#5e606c';
-      const cx = bx, cy = by - 44;
-      for (let a = 0; a < 26; a++) { const ang = a * 0.5, r = 1 + a * 0.36; g.px(cx + Math.round(Math.cos(ang) * r), cy + Math.round(Math.sin(ang) * r), glow); }
+      for (let a = 0; a < 26; a++) { const ang = a * 0.5, r = 1 + a * 0.36, px2 = bx + Math.round(Math.cos(ang) * r), py2 = by - 44 + Math.round(Math.sin(ang) * r); if (dentro(px2, py2)) g.px(px2, py2, glow); }
     }
   });
-  /* erba alta attorno alle basi e fiori */
   for (const [dx, dy] of stones.map(s2 => [s2[0], s2[1]])) tufts(g, dx * 32 - 18, dx * 32 + 18, '#5fa04e', '#4e8d3f', dx * 5 + dy);
   for (const [x, y, c] of [[-60, -8, '#f2e3a8'], [44, -40, '#e8a0b8'], [-30, -70, '#f2e3a8'], [70, -16, '#ffffff']]) { g.rect(x, y, 3, 3, c); g.px(x + 1, y + 3, '#4e8d3f'); }
 }

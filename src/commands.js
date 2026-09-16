@@ -213,15 +213,30 @@ function teleportToWreck() {
 }
 /* teletrasporto al LANDMARK più vicino NON ancora visitato (cicla su tutti, non sempre lo stesso) */
 const landmarkSeen = new Set();
+/* `go=wonder` porta sempre a una meraviglia NUOVA: prima quelle di un tipo che non è ancora
+   nel Libro (S.wonders), e solo quando il Libro è pieno si ricomincia il giro per posizione.
+   Prima saltava alla più vicina mai visitata in questa sessione, quindi rimandava per mezz'ora
+   sulle stesse tre che si avevano già. */
 function teleportToLandmark() {
   const ptx = Math.floor(P.x / TS), pty = Math.floor(P.y / TS);
-  for (let r = 1; r <= LCELL * 8; r += 2) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-    if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-    const x = ptx + dx, y = pty + dy, t = landmarkAt(x, y);
-    if (t) { const k = x + ',' + y; if (landmarkSeen.has(k)) continue; landmarkSeen.add(k); P.x = x * TS + 8; P.y = (y + 1) * TS + 2; return t; }
-  }
-  landmarkSeen.clear(); // visti tutti qui intorno → ricomincia il giro al prossimo uso
-  return null;
+  const viste = new Set(S.wonders || []);
+  const cerca = (soloNuove) => {
+    for (let r = 1; r <= LCELL * 10; r += 2) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
+      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+      const x = ptx + dx, y = pty + dy, t = landmarkAt(x, y);
+      if (!t) continue;
+      if (soloNuove && viste.has(t)) continue;                 // questa è già nel Libro
+      const k = x + ',' + y;
+      if (!soloNuove && landmarkSeen.has(k)) continue;         // Libro pieno: si gira in tondo, una per volta
+      landmarkSeen.add(k); P.x = x * TS + 8; P.y = (y + 1) * TS + 2;
+      return t;
+    }
+    return null;
+  };
+  const nuova = cerca(true); if (nuova) return nuova;          // 1. una che manca nel Libro
+  const altra = cerca(false); if (altra) return altra;         // 2. finite: si ricomincia il giro
+  landmarkSeen.clear();                                        // 3. viste tutte anche stavolta: si riparte
+  return cerca(false);
 }
 
 /* TOUR: salta alla "cosa speciale" più vicina NON ancora visitata (landmark, grotta,

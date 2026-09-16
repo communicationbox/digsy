@@ -5536,7 +5536,22 @@ sprites.applyLook();
   check('console: godmode sblocca+completa tutto (incl. volo + cappelli-trofeo glitter)', dbg2.isDebug() === true && ach2G.TROPHY_HATS.every(h => S.unlocked.hats.includes(h)) && S.glitterHats.length === ach2G.TROPHY_HATS.length &&
     S.unlocked.hairs.length === THEMED_HAIR.length && P.speedMul === 5 && P.fly === true && S.items.length > 0 && S.tools.boat && SPECIES.every(sp => S.awakened.includes(sp.id)) && ZONESc.every(z => S.book[z.id]));
   check('console: suggest per goto', cmds.suggest('go=pal').includes('go=palude'));
+
   {
+    /* `go=wonder` deve portare a una meraviglia che NON è ancora nel Libro: cinque salti di
+       fila non devono ridare quelle che si hanno già */
+    const keepW = [...(S.wonders || [])], keepX = P.x, keepY = P.y;
+    S.wonders = [];
+    const viste = [];
+    for (let i = 0; i < 5; i++) { const out = String(cmds.runCommand('go=wonder') || ''); const t = out.replace(/^[^\w]*/, '').trim(); if (t) { viste.push(t); S.wonders.push(t); } }
+    check('go=wonder porta ogni volta a una meraviglia diversa', viste.length >= 3 && new Set(viste).size === viste.length, viste.join(','));
+    /* col Libro pieno si ricomincia il giro invece di dire "non trovata" */
+    const tuttiTipi = Object.keys((await import('../src/wonders.js')).WONDERS);
+    S.wonders = [...new Set([...viste, ...tuttiTipi])];
+    const dopo = String(cmds.runCommand('go=wonder') || '');
+    check('finite tutte, il comando continua a portarti in giro', dopo.length > 2, dopo);
+    S.wonders = keepW; P.x = keepX; P.y = keepY;
+  }  {
     /* console riordinata: nomi inglesi corti, valori in tutte e due le lingue, nomi vecchi ancora validi */
     check('console: nomi dei comandi tutti in inglese corto', Object.keys(cmds.COMMANDS).every(k => /^[a-z]{2,8}$/.test(k)) && Object.keys(cmds.COMMANDS).length <= 24);
     S.weatherOverride = null; cmds.runCommand('weather=pioggia'); const w1 = S.weatherOverride; cmds.runCommand('weather=rain');
