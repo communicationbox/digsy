@@ -838,20 +838,39 @@ function eggTankArt(g, x, y, time, egg, ready) {
   g.rect(x + 1, y + H - 8, W - 2, 7, ready ? '#c8ecca' : (egg ? '#b4e0e6' : '#8a9a94'));
   for (let k = 0; k < 12; k++) g.rect(x + 3 + k, y + H - 10 - k, 2, 2, 'rgba(255,255,255,.35)');   // riflesso in diagonale sul vetro
   if (egg) {
-    /* L'UOVO È UN UOVO: ovale, stretto in cima e pieno in basso, col guscio maculato e la luce
-       da sopra-sinistra. Era un rettangolo arancione con un bordo (segnalato). */
-    const bob = Math.round(Math.sin(time / 480) * 3), ecx = x + W / 2, ecy = y + H / 2 - 1 + bob;
-    for (let dy = -10; dy <= 8; dy++) {
-      const q = dy < 0 ? dy / 10 * 1.2 : dy / 8;                       // in alto si stringe
-      const w = Math.round(5 * Math.sqrt(Math.max(0, 1 - q * q)));
-      if (w <= 0) continue;
-      g.rect(ecx - w, ecy + dy, w * 2, 1, '#8a5a1e');                  // guscio scuro attorno
-      if (w > 1) g.rect(ecx - w + 1, ecy + dy, w * 2 - 2, 1, dy < -5 ? '#e8ab55' : '#d8973c');
+    /* L'UOVO. Si costruisce la SAGOMA e poi la si dipinge: corpo a tre toni lungo la curva,
+       contorno tirato dopo (così il profilo è pulito e non a scaletta) e un riflesso ovale in
+       alto a sinistra. A due colori piatti, e con il bordo disegnato riga per riga, sembrava
+       una patata (segnalato). */
+    const bob = Math.round(Math.sin(time / 480) * 3), ecx = x + W / 2, ecy = y + H / 2 + bob;
+    /* GUSCIO D'AVORIO con le maculature, non un sasso marrone: sul liquido azzurro il marrone
+       arancio faceva «patata» (segnalato due volte). */
+    const LN = '#7d6242', DK = '#d3c3a6', MID = '#f0e6cd', LT = '#fbf6e8', HI = '#ffffff';
+    const RX = 6.6, RT = 12.5, RB = 9.5;
+    const dentro = (dx, dy) => {
+      const q = dy < 0 ? dy / RT : dy / RB;
+      return (dx * dx) / (RX * RX) + q * q <= 1;
+    };
+    for (let dy = -14; dy <= 11; dy++) for (let dx = -9; dx <= 9; dx++) {
+      if (!dentro(dx, dy)) {
+        if (dentro(dx + 1, dy) || dentro(dx - 1, dy) || dentro(dx, dy + 1) || dentro(dx, dy - 1)) g.px(ecx + dx, ecy + dy, LN);
+        continue;
+      }
+      /* il tono si misura dalla LUCE, che sta in alto a sinistra: anelli concentrici attorno a
+         quel punto, non bande diagonali (venivano righe oblique dure) */
+      const lx2 = (dx + 3.2) / RX, ly2 = (dy + 6.5) / (RT * 0.85), dl = Math.sqrt(lx2 * lx2 + ly2 * ly2);
+      g.px(ecx + dx, ecy + dy, dl < 0.58 ? LT : dl < 1.08 ? MID : DK);
     }
-    for (const [lx, ly] of [[-2, -6], [-3, -5], [-3, -4], [-2, -3]]) g.px(ecx + lx, ecy + ly, '#f6dc9c');   // luce che segue la curva
-    for (const [mx, my] of [[1, -3], [2, -2], [-2, 1], [0, 3], [2, 4], [-1, 6]]) g.px(ecx + mx, ecy + my, '#b8752a');   // puntini del guscio
+    for (const [hx, hy, hw] of [[-4, -8, 2], [-5, -7, 2], [-5, -6, 2], [-4, -5, 1]])   // riflesso: una virgola netta
+      if (dentro(hx, hy)) g.rect(ecx + hx, ecy + hy, hw, 1, HI);
+    /* MACULATURE: chiazze piccole sparse, più fitte verso il fondo — la firma di un uovo vero */
+    for (const [mx, my, mw] of [[3, -5, 2], [1, 0, 1], [3, 4, 2], [-2, 6, 1]])
+      if (dentro(mx, my)) g.rect(ecx + mx, ecy + my, mw, 1, '#c0a480');
+    /* immerso: il liquido tinge il fondo dell'uovo */
+    for (let dy = 6; dy <= 11; dy++) for (let dx = -8; dx <= 8; dx++) if (dentro(dx, dy) && dentro(dx, dy + 1)) g.px(ecx + dx, ecy + dy, dy > 8 ? '#c3c9b4' : '#dcd7bd');
+    if (ready) for (const [cx3, cy3] of [[1, -10], [2, -9], [1, -8], [2, -7], [3, -6]]) g.px(ecx + cx3, ecy + cy3, LN);   // la crepa, in cima: sta per aprirsi
     const b = Math.floor(time / 260) % 6; g.px(x + 6, y + H - 4 - b * 4, '#ffffff'); g.px(x + 21, y + H - 6 - ((b + 3) % 6) * 4, '#ffffff');
-    if (ready) { const sp = Math.floor(time / 200) % 2; g.rect(ecx - 10, ecy - 3 + sp * 2, 1, 3, '#fff3c8'); g.rect(ecx + 9, ecy + 3 - sp * 2, 1, 3, '#fff3c8'); }
+    if (ready) { const sp = Math.floor(time / 200) % 2; g.rect(ecx - 11, ecy - 4 + sp * 2, 1, 3, '#fff3c8'); g.rect(ecx + 10, ecy + 2 - sp * 2, 1, 3, '#fff3c8'); }
   }
   g.px(x + W - 4, y + H + 4, egg ? (ready ? '#7ec069' : '#e8c34a') : '#5a5248');
 }
