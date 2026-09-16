@@ -9,7 +9,7 @@ import { S, P } from './state.js';
 import { isWall, areaAt, roomBox, roomDoor, ROT, ATRIO, CAVE_Y1 } from './museumPlan.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
-import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
+import { INT, NPCS, FURN, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawMuseumSign, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
@@ -598,6 +598,17 @@ export function drawHouseRoomScene(time, id) {
 export function drawHouseRooms(time) {
   if (INT.houseRoom == null) drawHouseCorridor(time); else drawHouseRoomScene(time, INT.houseRoom);
 }
+/* un'ellisse morbida e schiacciata: due passate, la seconda più stretta, così sfuma */
+function ombraArredo(cx, cy, rx) {
+  for (const [k, a] of [[1, 0.07], [0.62, 0.07]]) {
+    const r = Math.max(3, Math.round(rx * k));
+    for (let i = -r; i <= r; i++) {
+      const h = Math.round(3 * Math.sqrt(Math.max(0, 1 - (i * i) / (r * r))));
+      if (h > 0) rect(Math.round(cx) + i, Math.round(cy) - h, 1, h * 2, 'rgba(15,25,15,' + a + ')');
+    }
+  }
+}
+
 export function drawInteriorScene(time) {
   const W = view.W, H = view.H;
   ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
@@ -617,6 +628,10 @@ export function drawInteriorScene(time) {
   drawShopShell(g, type, rw, rh, nk, wins);
   const wallProps = { store: drawStoreProps, inn: drawInnProps, barber: drawBarberProps, tailor: drawTailorProps, lab: drawLabProps, furniture: drawFurnitureProps }[type];
   const floorProps = { store: drawStoreFloorProps, inn: drawInnFloorProps, barber: drawBarberFloorProps, tailor: drawTailorFloorProps, lab: drawLabFloorProps, furniture: drawFurnitureFloorProps }[type];
+  /* OMBRA DI CONTATTO sotto ogni arredo, come ce l'ha Digsy: senza, i mobili sembrano
+     appiccicati al muro invece che poggiati sul pavimento. Va sotto tutto quello che sta nella
+     stanza, quindi si posa prima dei mobili. */
+  for (const f of (FURN[type] || [])) ombraArredo((f.x0 + f.x1) / 2, f.y1 + 1, (f.x1 - f.x0) / 2 + 2);
   if (wallProps) wallProps(g, rw, rh, time);
   /* bancone davanti all'NPC, poi l'NPC, poi quello che sta sul bancone e sul pavimento
      (davanti a lui: l'NPC non cammina davanti alla merce) */

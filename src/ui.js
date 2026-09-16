@@ -10,7 +10,7 @@ import { playerLevel, playerXp, xpToNext, digDurationMul, rareBonus } from './pr
 import { TRACKS, checkAchievements, trackLabel, trackGoal, trackTier, trophyTier, trophyCount, nextThreshold, tierLabel, tierCol, TIER_TOTAL, TIERS } from './achievements.js';
 import { weatherAt, weatherLabel } from './weather.js';
 import { marketPrice, marketLabel } from './market.js';
-import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
+import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, breeders, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal , amberReward } from './gameplay.js';
 import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
@@ -1543,14 +1543,16 @@ function renderLab() {
       } else {
         h += `<div class="row"><span class="em">🥚</span><div><div class="nm">${tr('In cova', 'Incubating')}</div><div class="sub">${tr('Figlio di', 'Child of')} ${e.p1} × ${e.p2} · ${tr('ancora', '')} ${eggDaysLeft()} ${tr('giorni', 'days left')}</div></div></div>`;
       }
-    } else if (S.creatures.length < 2) {
-      h += `<div class="center muted">${tr('Servono 2 creature nel cortile.', 'You need 2 creatures in your yard.')}</div>`;
+    } else if (breeders().length < 2) {
+      h += `<div class="center muted">${tr('Servono 2 creature: chimere o specie risvegliate.', 'You need 2 creatures: chimeras or awakened species.')}</div>`;
     } else {
-      const optC = S.creatures.map(c => `<option value="${c.uid}">${c.name} (${rarLabel(c.q)})</option>`).join('');
+      /* i genitori sono TUTTI gli abitanti del cortile: chimere e specie risvegliate */
+      const gen = breeders();
+      const optC = gen.map(c => `<option value="${c.uid}">${c.name} (${rarLabel(c.q)})</option>`).join('');
       /* selP2 parte dal SECONDO in elenco: coi due select uguali di default il bottone nasce
          spento e il primo avviso che si vede è "scegli due genitori diversi" — vero ma inutile
          come prima impressione, quando basta un default sensato */
-      const optC2 = S.creatures.map((c, i) => `<option value="${c.uid}"${i === 1 ? ' selected' : ''}>${c.name} (${rarLabel(c.q)})</option>`).join('');
+      const optC2 = gen.map((c, i) => `<option value="${c.uid}"${i === 1 ? ' selected' : ''}>${c.name} (${rarLabel(c.q)})</option>`).join('');
       h += `<div class="muted" style="margin-bottom:6px">🦴 ${EGG_FOOD} ${tr('doppioni', 'duplicates')} · ⏳ ${EGG_DAYS} ${tr('giorni', 'days')}</div>`;
       h += `<div class="row" style="flex-wrap:wrap;gap:6px">
         <select id="selP1" class="sel">${optC}</select><select id="selP2" class="sel">${optC2}</select></div>`;
@@ -1604,8 +1606,10 @@ function renderLab() {
       const refreshEgg = () => {
         const box = document.getElementById('eggPreview'), btn = document.getElementById('doLay');
         if (!box) return;
-        const p1 = S.creatures.find(c => c.uid === parseInt(selP1.value, 10));
-        const p2 = S.creatures.find(c => c.uid === parseInt(selP2.value, 10));
+        /* l'uid può essere un numero (chimera) o 'sp<id>' (specie risvegliata): si confronta
+           come TESTO, o i risvegli non si trovano mai */
+        const gen2 = breeders(), trova = v => gen2.find(c => String(c.uid) === v);
+        const p1 = trova(selP1.value), p2 = trova(selP2.value);
         const inh = { skull: parseInt(document.getElementById('selInhS').value, 10),
           torso: parseInt(document.getElementById('selInhT').value, 10),
           leg: parseInt(document.getElementById('selInhL').value, 10) };
@@ -1630,7 +1634,8 @@ function renderLab() {
       refreshEgg();
       const doLay = document.getElementById('doLay');
       if (doLay) doLay.onclick = () => {
-        const p1 = parseInt(selP1.value, 10), p2 = parseInt(selP2.value, 10);
+        const gen2 = breeders(), trova = v => gen2.find(c => String(c.uid) === v);
+        const p1 = (trova(selP1.value) || {}).uid, p2 = (trova(selP2.value) || {}).uid;
         const inh = { skull: parseInt(document.getElementById('selInhS').value, 10),
           torso: parseInt(document.getElementById('selInhT').value, 10),
           leg: parseInt(document.getElementById('selInhL').value, 10) };

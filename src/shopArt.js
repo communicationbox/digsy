@@ -85,13 +85,25 @@ function floorFlags(g, sx, sy, tx, ty) {
   }
 }
 /* PIASTRELLE a scacchi con fuga e riflesso (barbiere) */
+/* numerello stabile per casella: serve a consumare il pavimento sempre allo stesso modo */
+function h2(a, b) { const n = Math.sin(a * 127.1 + b * 311.7) * 43758.5453; return n - Math.floor(n); }
 function floorChecker(g, sx, sy, tx, ty) {
   for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) {
-    const x0 = sx + c * 16, y0 = sy + r * 16, col = (tx * 2 + c + ty * 2 + r) % 2 ? '#eef4f5' : '#8fb7c6';
+    const x0 = sx + c * 16, y0 = sy + r * 16, chiara = (tx * 2 + c + ty * 2 + r) % 2;
+    const q = h2(tx * 2 + c, ty * 2 + r);
+    /* NON SONO TUTTE UGUALI: ogni piastrella scarta di un filo dal suo tono. A due colori esatti
+       ripetuti il pavimento diventa un foglio a quadretti e la stanza sembra disegnata col
+       righello (segnalato: «sono tutte troppo squadrate»). */
+    const col = g.shade8(chiara ? '#eef4f5' : '#8fb7c6', 0.96 + q * 0.08);
     g.rect(x0, y0, 16, 16, '#6f95a3');
     g.rect(x0 + 1, y0 + 1, 15, 15, col);
     g.rect(x0 + 1, y0 + 1, 14, 1, g.shade8(col, 1.08));
     g.rect(x0 + 1, y0 + 15, 15, 1, g.shade8(col, 0.86));
+    /* gli SPIGOLI si consumano: un pixel di fuga in due angoli su quattro */
+    for (let k = 0; k < 4; k++) if (h2(tx * 8 + c * 4 + k, ty * 8 + r * 4) > 0.55)
+      g.px(x0 + 1 + (k & 1) * 14, y0 + 1 + (k >> 1) * 14, '#6f95a3');
+    if (q > 0.88) { g.rect(x0 + 4, y0 + 7, 7, 1, g.shade8(col, 0.9)); g.px(x0 + 10, y0 + 8, g.shade8(col, 0.9)); }   // crepa
+    else if (q < 0.10) { g.rect(x0 + 5, y0 + 5, 4, 3, g.shade8(col, 0.94)); }                                        // alone di consumo
     if ((tx + ty + r + c) % 3 === 0) g.px(x0 + 4, y0 + 4, '#ffffff');
   }
 }
@@ -159,12 +171,12 @@ function wainscot(g, kind, x, y, w, h) {
 
 /* ogni mestiere: materiali e colori */
 export const SHOP_STYLE = {
-  store: { floor: 'plank', wall: 'stripe', wains: 'panel', accent: '#b8574a', accent2: '#e0a24a', mat: '#8a6a3a', counter: '#8a5f38', top: '#b07c4a' },
-  inn: { floor: 'plank', wall: 'timber', wains: 'dark', accent: '#8a3f3a', accent2: '#d8b23c', mat: '#6e3a30', counter: '#5c3d22', top: '#7a5636' },
-  barber: { floor: 'checker', wall: 'mint', wains: 'tile', accent: '#4e8d9c', accent2: '#f3ecda', mat: '#3f6f7c', counter: '#3f7f86', top: '#eef0ea' },
-  tailor: { floor: 'plank', wall: 'damask', wains: 'light', accent: '#8a6ab0', accent2: '#e8c34a', mat: '#a0526a', counter: '#b07c4a', top: '#d8b58a' },
-  furniture: { floor: 'plank', wall: 'boards', wains: 'panel', accent: '#5f7a52', accent2: '#e8c34a', mat: '#6b5a3a', counter: '#a97a4c', top: '#d8b58a' },
-  lab: { floor: 'flags', wall: 'stone', wains: 'slab', accent: '#4e8d7c', accent2: '#c9a227', mat: '#4a5a4e', counter: '#4e3a28', top: '#8f9aa3' },
+  store: { rug: '#8a4b3a', floor: 'plank', wall: 'stripe', wains: 'panel', accent: '#b8574a', accent2: '#e0a24a', mat: '#8a6a3a', counter: '#8a5f38', top: '#b07c4a' },
+  inn: { rug: '#7a3b30', floor: 'plank', wall: 'timber', wains: 'dark', accent: '#8a3f3a', accent2: '#d8b23c', mat: '#6e3a30', counter: '#5c3d22', top: '#7a5636' },
+  barber: { rug: '#8f4a46', floor: 'checker', wall: 'mint', wains: 'tile', accent: '#4e8d9c', accent2: '#f3ecda', mat: '#3f6f7c', counter: '#3f7f86', top: '#eef0ea' },
+  tailor: { rug: '#7a4f86', floor: 'plank', wall: 'damask', wains: 'light', accent: '#8a6ab0', accent2: '#e8c34a', mat: '#a0526a', counter: '#b07c4a', top: '#d8b58a' },
+  furniture: { rug: '#5f6f42', floor: 'plank', wall: 'boards', wains: 'panel', accent: '#5f7a52', accent2: '#e8c34a', mat: '#6b5a3a', counter: '#a97a4c', top: '#d8b58a' },
+  lab: { rug: '#3f5a54', floor: 'flags', wall: 'stone', wains: 'slab', accent: '#4e8d7c', accent2: '#c9a227', mat: '#4a5a4e', counter: '#4e3a28', top: '#8f9aa3' },
 };
 export function shopStyle(type) { return SHOP_STYLE[type] || SHOP_STYLE.store; }
 
@@ -177,6 +189,25 @@ export function drawShopFloor(g, type, rw, rh, wood, groundTile) {
     else if (st.floor === 'checker') floorChecker(g, sx, sy, tx, ty);
     else groundTile(g, null, sx, sy, tx, ty, { c1: wood[0], c2: wood[1], kind: 'plank' });
   }
+  passatoia(g, rw / 2, SHOP_WALL + 30, rh - 30, 42, st.rug || st.mat);
+}
+/* PASSATOIA dalla porta al bancone. Una stanza tutta a piastrelle o tutte assi è una griglia:
+   il tappeto è la cosa che la spezza e che dice dove si cammina. Il primo giro aveva righe
+   ogni sei pixel e sembrava una grata: qui ci sono un bordo chiaro e pochi rombi radi, e il
+   colore è CALDO, in contrasto col pavimento, o il tappeto sparisce dentro le piastrelle. */
+function passatoia(g, cx, y0, y1, w, col) {
+  const x0 = Math.round(cx - w / 2), h = Math.round(y1 - y0);
+  if (h < 20) return;
+  const chiaro = g.shade8(col, 1.28), scuro = g.shade8(col, 0.68);
+  g.rect(x0 - 1, y0 - 1, w + 2, h + 2, scuro);
+  g.rect(x0, y0, w, h, col);
+  g.rect(x0 + 4, y0 + 4, w - 8, 1, chiaro); g.rect(x0 + 4, y0 + h - 5, w - 8, 1, chiaro);
+  g.rect(x0 + 4, y0 + 4, 1, h - 8, chiaro); g.rect(x0 + w - 5, y0 + 4, 1, h - 8, chiaro);
+  for (let y = y0 + 16; y < y0 + h - 14; y += 22) for (let r = 0; r < 5; r++) {   // rombo
+    g.rect(Math.round(cx) - r, y - 4 + r, r * 2 + 1, 1, chiaro);
+    g.rect(Math.round(cx) - r, y + 4 - r, r * 2 + 1, 1, chiaro);
+  }
+  for (let k = 1; k < w - 2; k += 4) { g.rect(x0 + k, y0 - 3, 2, 3, scuro); g.rect(x0 + k, y0 + h, 2, 3, scuro); }   // frange
 }
 /* parete di fondo con le sue finestre (in `wins`, coordinate x) */
 export function drawShopWall(g, type, rw, rh, nightK, time, wins) {
@@ -193,6 +224,12 @@ export function drawShopShell(g, type, rw, rh, nightK, wins) {
   floorShadow(g, 12, W, rw - 24, 0, 'down');
   floorShadow(g, 12, W, 0, rh - W, 'right');
   floorShadow(g, rw - 17, W, 5, rh - W, 'left');
+  /* GLI ANGOLI NON SONO SPIGOLI VIVI: dove due pareti si incontrano l'ombra si raccoglie e fa
+     una curva. È quello che toglie alla stanza l'aria di rettangolo disegnato col righello. */
+  for (const [ax, sxg] of [[12, 1], [rw - 12, -1]]) for (let i = 0; i < 22; i++) {
+    const h = Math.round(Math.sqrt(Math.max(0, 1 - (i * i) / 484)) * 22);
+    if (h > 0) g.rect(ax + (sxg > 0 ? i : -i - 1), W, 1, h, i < 8 ? 'rgba(30,18,8,.13)' : 'rgba(30,18,8,.07)');
+  }
   wallCap(g, 0, -SHOP_TOP, rw, SHOP_TOP, 'bottom');
   wallCap(g, 0, -1, 12, rh + 1, 'right');
   wallCap(g, rw - 12, -1, 12, rh + 1, 'left');

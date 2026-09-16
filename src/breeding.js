@@ -54,9 +54,22 @@ function relatedPool(spId) {
   return SPECIES.filter(s => s.id !== spId && (s.src || 'terra') === (sp.src || 'terra'));
 }
 
+/* CHI PUÒ FARE UOVA: tutto quello che cammina nel cortile — le chimere E le specie
+   risvegliate. Il pannello guardava solo S.creatures, così chi aveva cinque animali risvegliati
+   nel cortile si sentiva dire «servono 2 creature» e non poteva fare niente (segnalato).
+   parkPopulation fa la stessa unione per disegnarle: lì e qui la popolazione è la stessa. */
+export function breeders() {
+  const out = [...(S.creatures || [])];
+  for (const id of (S.awakened || [])) {
+    const sp = spById[id]; if (!sp) continue;
+    out.push({ uid: 'sp' + id, name: sp.name, skull: id, torso: id, leg: id, q: sp.r, puro: true });
+  }
+  return out;
+}
 export function canLay(p1uid, p2uid) {
   if (egg()) return { ok: false, why: 'busy' };
-  const p1 = (S.creatures || []).find(c => c.uid === p1uid), p2 = (S.creatures || []).find(c => c.uid === p2uid);
+  const lista = breeders();
+  const p1 = lista.find(c => c.uid === p1uid), p2 = lista.find(c => c.uid === p2uid);
   if (!p1 || !p2 || p1uid === p2uid) return { ok: false, why: 'parents' };
   if (isDebug()) return { ok: true, p1, p2 };
   if ((S.items || []).length < EGG_FOOD) return { ok: false, why: 'food' };

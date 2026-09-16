@@ -19,7 +19,7 @@ export const RU = {
   "Your yard has its first tree.": "Во дворе появилось первое дерево.",
   " and your yard comes alive.": " — и двор оживёт.",
   "Welcome back! Your yard earned: ": "С возвращением! Двор принёс: ",
-  "You need 2 creatures in your yard.": "Нужно 2 существа во дворе.",
+  "You need 2 creatures: chimeras or awakened species.": "Нужно 2 существа: химеры или пробуждённые виды.",
 
   "{act} to dig: costs 1 ⚡, one spot only once.": "{act} — копать: 1 ⚡, каждое место один раз.",
   "Raw finds get identified at the <b>Museum</b>.": "Необработанные находки определяют в <b>Музее</b>.",

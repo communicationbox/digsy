@@ -121,7 +121,8 @@ export const NPCS = {
 export function npcName(type) { const n = (NPCS[type] || NPCS.store).name; return tr(n[0], n[1]); }
 
 /* mobili solidi per mestiere (px, stanza 320×224) — corridoio centrale sempre libero */
-const FURN = {
+/* gli INGOMBRI degli arredi, usati anche per posare l'ombra di contatto sotto ognuno */
+export const FURN = {
   lab: [
     { x0: 24, y0: 92, x1: 96, y1: 136 },    // postazione alambicco
     { x0: 224, y0: 92, x1: 296, y1: 136 },  // banco da lavoro

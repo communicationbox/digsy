@@ -7771,6 +7771,20 @@ sprites.applyLook();
   S.energy = 30;
   check('genitori diversi + doppioni + energia: via libera', br.canLay(p1.uid, p2.uid).ok === true);
 
+  /* CHI VIVE NEL CORTILE PUÒ FARE UOVA, anche se non è una chimera: con cinque specie
+     risvegliate e zero chimere il pannello diceva «servono 2 creature» e non si poteva fare
+     niente (segnalato con foto). parkPopulation e breeders devono contare la stessa gente. */
+  {
+    const keepAwk = S.awakened;
+    S.creatures = []; S.awakened = [water3.id, tree3.id];
+    const gen = br.breeders();
+    check('le specie risvegliate sono genitori validi', gen.length === 2 && gen.every(c => c.skull && c.uid));
+    check('due risvegli, zero chimere: si può deporre', br.canLay(gen[0].uid, gen[1].uid).ok === true);
+    const park3 = await import('../src/park.js');
+    check('cortile e allevamento contano la stessa popolazione', park3.parkPopulation().length === gen.length);
+    S.creatures = [p1, p2]; S.awakened = keepAwk;
+  }
+
   /* il cibo previsto sono i MENO preziosi (protegge quelli buoni), come la commissione */
   S.items = [{ uid: 200, s: water3.id, t: 'coda', q: 'leggendario', val: 90 }, ...S.items];
   const food = br.foodPreview();
