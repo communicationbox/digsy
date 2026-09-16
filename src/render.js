@@ -28,7 +28,7 @@ import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
-import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay, drawLogfall, drawMossrock, drawClaymound, drawPeatmound, drawSnowmound } from './props.js';
+import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay, drawLogfall, drawMossrock, drawClaymound, drawPeatmound, drawSnowdrift } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
@@ -1722,7 +1722,7 @@ export function render(time) {
     else if (d === 'mossrock') ents.push({ y: sy + 12, f: () => drawMossrock(sx, sy, tx, ty) });
     else if (d === 'claymound') ents.push({ y: sy + 13, f: () => drawClaymound(sx, sy, tx, ty) });
     else if (d === 'peatmound') ents.push({ y: sy + 12, f: () => drawPeatmound(sx, sy, tx, ty) });
-    else if (d === 'snowmound') ents.push({ y: sy + 13, f: () => drawSnowmound(sx, sy, tx, ty) });
+    else if (d === 'snowdrift') ents.push({ y: sy + 13, f: () => drawSnowdrift(sx, sy, tx, ty) });
   }
   // X delle mappe del tesoro in vista
   for (const m of (S.maps || [])) {

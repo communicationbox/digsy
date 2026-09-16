@@ -150,7 +150,7 @@ function decoCompute(tx, ty) {
     if (t === GRASS || t === DIRT) {
       if (vhash(tx, ty, 7) < 0.05) return 'icecrystal';
       if (vhash(tx, ty, 11) < 0.03) return 'tree';
-      if (vhash(tx, ty, 187) < 0.045) return 'snowmound';
+      if (vhash(tx, ty, 187) < 0.045) return 'snowdrift';
     }
     if (t === FOREST && vhash(tx, ty, 7) < 0.22) return 'tree';
     if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
@@ -188,7 +188,7 @@ export function harvestDecoAt(tx, ty) {
 /* Le DUNE non hanno un ingombro di scenario, ed è voluto: il deserto è il posto dove si
    cammina senza niente fra i piedi. Le altre zone ce l'hanno perché lì il vuoto è noia; qui
    il vuoto è il paesaggio. */
-export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'claymound', 'peatmound', 'snowmound'];
+export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'claymound', 'peatmound', 'snowdrift'];
 export function decoSolid(d) {
   return d === 'tree' || d === 'boulder' || d === 'cactus' || d === 'sandspire' || d === 'deadtree' ||
     d === 'redspire' || d === 'orecrystal' || d === 'icecrystal' || SCENERY_SOLID.includes(d);

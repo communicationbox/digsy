@@ -571,18 +571,37 @@ export function drawReed(sx, sy, time, tx, ty, ripe) {
   }
   ctx.restore();
 }
+/* QUATTRO GRUPPI DI SCHEGGE DI GHIACCIO, scritti a mano. Prima era sempre lo stesso gruppo —
+   una lama alta in mezzo e due basse ai lati — e in una landa gelata se ne vedono venti di
+   fila: sembrava un timbro (segnalato). Ogni ricetta è un elenco di schegge
+   [x, altezza, larghezza, inclinazione], e si può specchiare. */
+const ICE = [
+  [[-8, 12, 6, -0.25], [8, 14, 6, 0.3], [0, 22, 8, 0]],                        // gruppo classico: la lama alta in mezzo
+  [[2, 26, 7, 0.18], [-7, 9, 5, -0.3], [-2, 6, 4, 0]],                          // una lama sola, altissima e storta
+  [[-10, 8, 4, -0.4], [-4, 12, 5, -0.15], [2, 11, 5, 0.1], [8, 9, 4, 0.35], [13, 6, 3, 0.5]],   // ventaglio di schegge basse
+  [[-5, 16, 9, 0], [6, 10, 7, 0.12]],                                           // due blocchi tozzi, spaccati
+];
 export function drawIcecrystal(sx, sy, tx = 0, ty = 0) {
-  /* SCHEGGE DI GHIACCIO: prismi trasparenti con la faccia in luce e la brina alla base */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 27; shadow(cx, base, 10);
-  const prism = (x, h, w, lean) => {
-    for (let k = 0; k < h; k++) { const u = k / h, ww = u > 0.7 ? Math.max(1, Math.round(w * (1 - u) * 3.3)) : w, xx = x + Math.round(lean * k); rect(xx - (ww >> 1) - 1, base - 2 - k, ww + 2, 1, '#3f7890'); rect(xx - (ww >> 1), base - 2 - k, ww >> 1, 1, '#e8f6fb'); rect(xx, base - 2 - k, ww - (ww >> 1), 1, '#9fd4e6'); }
-  };
-  prism(cx - 8, 12, 6, -0.25); prism(cx + 8, 14, 6, 0.3); prism(cx, 22, 8, 0);
-  /* la brina alla base va contornata come il resto: era l'unico lato della sagoma senza
-     linea, e bastava quello a far leggere la scheggia come paesaggio */
+  const flip = vhash(tx, ty, 96) < 0.5 ? 1 : -1;
+  const bp = ICE[Math.floor(vhash(tx, ty, 97) * ICE.length) % ICE.length];
+  /* la brina alla base: c'è sempre, ed è quello che tiene insieme il gruppo */
   ellipseF(cx, base - 1, 13, 4, '#2c5568'); ellipseF(cx, base - 1, 12, 3, '#eef7fa'); rect(cx - 8, base - 2, 16, 1, '#ffffff');
-  if (vhash(tx, ty, 98) < 0.5) { rect(cx, base - 18, 1, 5, '#ffffff'); rect(cx - 2, base - 16, 5, 1, '#ffffff'); }
+  const scheggia = (x, h, w, lean) => {
+    for (let k = 0; k < h; k++) {
+      const u = k / h, ww = u > 0.68 ? Math.max(1, Math.round(w * (1 - u) * 3.1)) : w;
+      const xx = Math.round(x + lean * k);
+      rect(xx - (ww >> 1) - 1, base - 2 - k, ww + 2, 1, '#3f7890');            // contorno: si piccona
+      rect(xx - (ww >> 1), base - 2 - k, ww >> 1, 1, '#e8f6fb');               // faccia in luce
+      rect(xx, base - 2 - k, ww - (ww >> 1), 1, '#9fd4e6');                    // faccia in ombra
+      if (k === h - 1) px(xx, base - 2 - k, '#ffffff');                        // la punta brilla
+    }
+  };
+  /* dalla più bassa alla più alta: quelle davanti coprono, e il gruppo prende profondità */
+  const ordinate = bp.slice().sort((p1, p2) => p1[1] - p2[1]);
+  for (const [ox, h, w, lean] of ordinate) scheggia(cx + flip * ox, h, w, lean * flip);
+  if (vhash(tx, ty, 98) < 0.5) { const [ox, h] = ordinate[ordinate.length - 1]; rect(cx + flip * ox, base - h, 1, 4, '#ffffff'); rect(cx + flip * ox - 2, base - h + 2, 5, 1, '#ffffff'); }
   ctx.restore();
 }
 export function drawHay(sx, sy, tx = 0, ty = 0) {
@@ -760,36 +779,62 @@ export function drawPeatmound(sx, sy, tx = 0, ty = 0) {
   }
   ctx.restore();
 }
-/* CUMULO DI NEVE CON I SASSI: quello che nelle Lande Gelide fa da masso senza essere un
-   masso — neve compatta, la crosta lucida in cima e due pietre scure che spuntano. */
-export function drawSnowmound(sx, sy, tx = 0, ty = 0) {
+/* CONGERA — il cumulo che il vento scolpisce nella neve: una cresta affilata da una parte e
+   la pancia in ombra dall'altra. Prima era una palla bianca con due sassi scuri sopra, e i
+   sassi sembravano due occhi (segnalato). Una congera non ha bisogno di niente addosso: la
+   forma è già il disegno. Niente contorno: è paesaggio. */
+export function drawSnowdrift(sx, sy, tx = 0, ty = 0) {
   ctx.save(); ctx.translate(sx, sy);
-  const base = 27, flip = vhash(tx, ty, 206) < 0.5 ? 1 : -1;
+  const cx = 16, base = 27, flip = vhash(tx, ty, 206) < 0.5 ? 1 : -1;
   const v = Math.floor(vhash(tx, ty, 207) * 3) % 3;
   const X = x => MX(flip, x);
-  shadow(16, base + 3, 12);
-  const sagome = [
-    [['ell', X(14), base - 6, 12, 7], ['ell', X(23), base - 4, 6, 4]],
-    [['ell', X(16), base - 8, 11, 8]],
-    [['ell', X(10), base - 5, 8, 5], ['ell', X(20), base - 7, 9, 6]],
-  ];
-  const dentro = paintMask(roundMask(sagome[v]), '#dfeaf0', '#f8fcff', '#b4c6d2', 32, 32, null);
-  /* i sassi che affiorano dalla neve */
-  /* i sassi spuntano DALLA neve: si vede solo la calotta, e attorno la neve si rialza. Prima
-     erano due ellissi scure piatte in mezzo al cumulo e sembravano un occhio. */
-  const pietre = [[[10, 5], [21, 4]], [[16, 6]], [[11, 4], [22, 5]]][v];
-  for (const [ox, r] of pietre) {
-    const cxo = X(ox); let y = base - 12;
-    while (y < base && !dentro(cxo, y)) y++;
-    y += 2;
-    for (let dx = -r; dx <= r; dx++) {
-      const hh = Math.round(Math.sqrt(Math.max(0, r * r - dx * dx)) * 0.8);
-      if (hh <= 0) continue;
-      rect(cxo + dx, y - hh, 1, hh, dx < 0 ? '#79818d' : '#5d646e');
-    }
-    px(cxo - Math.max(1, r - 3), y - r + 1, '#9aa2ae');
-    for (let dx = -r - 2; dx <= r + 2; dx++) if (dentro(cxo + dx, y)) px(cxo + dx, y, '#f4fbff');   // neve rialzata al piede
+  shadow(cx, base + 1, 12);
+  /* il profilo: sale piano dal lato del vento e cade a picco dall'altro */
+  const forme = [
+    { w: 14, h: 11, cresta: 0.62 },
+    { w: 11, h: 14, cresta: 0.5 },
+    { w: 15, h: 8, cresta: 0.75 },
+  ][v];
+  const m = new Uint8Array(32 * 32);
+  const set = (x, y) => { if (x >= 0 && y >= 0 && x < 32 && y < 32) m[y * 32 + x] = 1; };
+  const x0 = cx - forme.w, x1 = cx + forme.w, xc = Math.round(x0 + (x1 - x0) * forme.cresta);
+  for (let x = x0; x <= x1; x++) {
+    /* salita dolce fino alla cresta, poi lo strapiombo */
+    const u = x <= xc ? (x - x0) / Math.max(1, xc - x0) : 1 - (x - xc) / Math.max(1, x1 - xc);
+    const h = Math.round(forme.h * (x <= xc ? Math.pow(u, 0.7) : Math.pow(u, 2.1)));
+    for (let k = 0; k <= h; k++) set(X(x), base - k);
   }
-  for (let k = 0; k < 4; k++) { const x = X(6 + k * 5); if (dentro(x, base - 2)) rect(x, base - 2, 3, 1, '#c3d3de'); }
+  /* il fianco in ombra è BLU, non grigio: sulla neve bianca una congera bianca sparisce, e
+   quello che la fa vedere è l'azzurro dell'ombra */
+  const dentro = paintMask(m, '#dbe8f2', '#ffffff', '#a2bdd4', 32, 32, null);
+  /* la CRESTA in luce: il filo che fa capire da che parte soffia il vento */
+  for (let x = x0; x <= x1; x++) {
+    let y = base - forme.h - 2;
+    while (y < base && !dentro(X(x), y)) y++;
+    if (y >= base) continue;
+    px(X(x), y, '#ffffff'); if (x > xc) px(X(x), y + 1, '#f2f8fc');
+  }
+  /* onde di neve battuta sul fianco in salita, e qualche cristallo che brilla */
+  /* onde di neve battuta: TRATTINI che seguono il pendio, non puntini sparsi (sembravano pois) */
+  for (let k = 0; k < 4; k++) {
+    const y = base - 3 - k * 2;
+    for (let x = x0 + 2; x < xc - 1; x += 5) {
+      for (let j = 0; j < 3; j++) if (dentro(X(x + j), y) && dentro(X(x + j), y - 1)) px(X(x + j), y, '#c3d6e6');
+    }
+  }
+  /* lo strapiombo sottovento: una fascia d'ombra piena, è il lato che dà il volume */
+  for (let x = xc + 1; x <= x1; x++) {
+    let y = base - forme.h - 2;
+    while (y < base && !dentro(X(x), y)) y++;
+    for (let j = 1; j <= 3; j++) if (dentro(X(x), y + j)) px(X(x), y + j, j === 3 ? '#8fabc4' : '#a2bdd4');
+  }
+  for (let k = 0; k < 3; k++) { const gx = X(x0 + 4 + k * 7), gy = base - 3 - (k % 2) * 3; if (dentro(gx, gy)) px(gx, gy, '#ffffff'); }
+  /* due fili d'erba secca che bucano la neve: dicono che sotto c'è la terra */
+  if (v !== 1) for (const ox of [-6, 5]) {
+    const gx = X(cx + ox); let y = base - forme.h - 2;
+    while (y < base && !dentro(gx, y)) y++;
+    for (let j = 1; j <= 4; j++) px(gx + (j > 2 ? flip : 0), y - j, j > 2 ? '#b9a877' : '#8f8258');
+  }
   ctx.restore();
 }
+

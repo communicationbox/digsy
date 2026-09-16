@@ -137,7 +137,7 @@ const SPRITE = [
   ['masso muschiato', false, () => props.drawMossrock(32, 40, 3, 5)],
   ['tumulo d\'argilla', false, () => props.drawClaymound(32, 40, 3, 5)],
   ['tumulo di torba', false, () => props.drawPeatmound(32, 40, 3, 5)],
-  ['cumulo di neve', false, () => props.drawSnowmound(32, 40, 3, 5)],
+  ['congera', false, () => props.drawSnowdrift(32, 40, 3, 5)],
   /* la BUCA non è in elenco di proposito: non è un oggetto posato sul terreno ma un incavo
      NEL terreno — è scura tutta, e il "contorno" non vuol dire niente. */
   // CITTÀ — pannello con {act}
