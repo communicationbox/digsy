@@ -205,19 +205,26 @@ const isLandT = t => t === SAND || t === GRASS || t === FOREST || t === DIRT || 
    rettangoli tutti diversi appiccicati — "un caos geometrico" (segnalato con foto).
    `i` = lato (0 su · 1 destra · 2 giù · 3 sinistra). */
 function frangiaLato(tx, ty, sx, sy, i, col, colFronte, prof, seme) {
+  /* UNA SCALINATA, non un muro a mattoni. Prima il profilo saltava da 1 a 8 pixel fra un
+     tratto e l'altro (onda a periodo corto), certi tratti restavano indietro apposta e davanti
+     correva una riga più scura: il risultato era un reticolo di blocchi e di tessere staccate
+     (segnalato con foto). Il bordo che si vuole è quello dei giochi 16-bit: una linea continua
+     che scende a gradini piccoli, senza pezzi sospesi e senza bordino. */
   const orizz = i === 0 || i === 2;
+  let dPrec = null;
   for (let k = 0; k < TS;) {
     const u = (orizz ? tx * TS + k : ty * TS + k);
-    const onda = smooth(u * 0.16, (orizz ? ty : tx) * 3.1 + i * 7, seme);
-    const w = 1 + Math.floor(vhash(u, i + seme, seme + 3) * 3);
-    const salta = vhash(u, i + seme + 9, seme + 4) < 0.12;      // un pezzo di bordo resta com'è
-    const d = Math.max(0, Math.round(1 + onda * prof));
-    if (!salta && d > 0) {
-      if (i === 0) { rect(sx + k, sy, w, d, col); if (colFronte) rect(sx + k, sy + d, w, 1, colFronte); }
-      else if (i === 2) { rect(sx + k, sy + TS - d, w, d, col); if (colFronte) rect(sx + k, sy + TS - d - 1, w, 1, colFronte); }
-      else if (i === 1) { rect(sx + TS - d, sy + k, d, w, col); if (colFronte) rect(sx + TS - d - 1, sy + k, 1, w, colFronte); }
-      else { rect(sx, sy + k, d, w, col); if (colFronte) rect(sx + d, sy + k, 1, w, colFronte); }
-    }
+    const onda = smooth(u * 0.075, (orizz ? ty : tx) * 3.1 + i * 7, seme);
+    const w = 2 + Math.floor(vhash(u, i + seme, seme + 3) * 3);          // gradini da 2 a 4 px
+    let d = Math.max(1, Math.round(1 + onda * prof));
+    /* il gradino successivo non si allontana mai più di uno da quello prima: è questo che
+       trasforma i denti in una scalinata */
+    if (dPrec !== null) d = Math.max(dPrec - 1, Math.min(dPrec + 1, d));
+    dPrec = d;
+    if (i === 0) rect(sx + k, sy, w, d, col);
+    else if (i === 2) rect(sx + k, sy + TS - d, w, d, col);
+    else if (i === 1) rect(sx + TS - d, sy + k, d, w, col);
+    else rect(sx, sy + k, d, w, col);
     k += w;
   }
 }
@@ -289,8 +296,8 @@ function tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi) {
     const n = nb[i];
     if (!isLandT(n) || n === t || (t === SAND && (n === GRASS || n === FOREST))) continue;
     if ((LAND_RANK[n] || 0) <= rank) continue;
-    const c = landColor(n, ZP, zi), cd = shade8(c, 0.82);
-    frangiaLato(tx, ty, sx, sy, i, c, cd, 8, 93);
+    const c = landColor(n, ZP, zi);
+    frangiaLato(tx, ty, sx, sy, i, c, null, 10, 93);
   }
 }
 const LAND_RANK = { [SAND]: 1, [DIRT]: 2, [GRASS]: 3, [FOREST]: 4, [MTN]: 5 };
@@ -326,20 +333,11 @@ function zoneBlend(t, tx, ty, sx, sy, zi, nbz) {
     const zj = nbz[i];
     if (zj == null || zj === zi) continue;
     const ZPj = ZONE_TILES[zj] || null;
-    const c1 = landColor(t, ZPj, zj), c2 = shade8(c1, 0.93), c3 = shade8(c1, 1.05);
-    frangiaLato(tx, ty, sx, sy, i, c1, null, 9, 181);
-    /* SPRUZZI: pixel isolati più addentro, sempre più radi. Sono loro a far sembrare le due
-       terre mescolate invece che semplicemente frastagliate. */
-    for (let s2 = 0; s2 < 14; s2++) {
-      const a = vhash(tx * 13 + s2, ty * 29 + i, 182), b = vhash(tx * 23 + s2 * 3, ty * 11 + i, 183);
-      const prof = Math.floor(6 + b * 14);              // quanto entra
-      if (a > 0.55 - prof * 0.02) continue;             // più entra, più è raro
-      const lungo = Math.floor(b * TS), sp = 1 + (a < 0.2 ? 1 : 0);
-      if (i === 0) rect(sx + lungo, sy + prof, sp, sp, c2);
-      else if (i === 2) rect(sx + lungo, sy + TS - prof, sp, sp, c2);
-      else if (i === 1) rect(sx + TS - prof, sy + lungo, sp, sp, c2);
-      else rect(sx + prof, sy + lungo, sp, sp, c2);
-    }
+    const c1 = landColor(t, ZPj, zj);
+    frangiaLato(tx, ty, sx, sy, i, c1, null, 11, 181);
+    /* NIENTE PIXEL SPARSI più addentro: erano lì per «mescolare» le due terre, ma da vicino
+       sembravano tessere staccate in mezzo al terreno (segnalato con foto). Il passaggio lo fa
+       la scalinata e basta. */
   }
 }
 /* increspature sull'acqua: pochi archetti chiari per casella, che si accendono e si spengono */
