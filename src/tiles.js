@@ -295,10 +295,59 @@ function landColor(t, ZP, zi) {
   if (t === MTN) return '#948c7f';
   return zi === 1 ? '#e9d9a8' : zi === 5 ? '#d7dee3' : '#e6cf96';
 }
-export function groundTile(t, tx, ty, sx, sy, time, zi, nb) {
+export function groundTile(t, tx, ty, sx, sy, time, zi, nb, nbz) {
   const ZP = ZONE_TILES[zi] || null;
   groundBase(t, tx, ty, sx, sy, time, zi, ZP);
+  zoneBlend(t, tx, ty, sx, sy, zi, nbz);
   tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi);
+}
+/* IL PASSAGGIO FRA DUE ZONE. Il confine fra i biomi cade fra una casella e l'altra, quindi
+   per quanto la linea serpeggi resta un taglio netto a gradini da 32 px: da vicino si vede
+   che il prato FINISCE e comincia la neve (segnalato con foto).
+   Qui la zona vicina MORDE dentro questa casella, come già fa la terra dentro l'acqua: una
+   frangia di profondità variabile lungo il lato, più qualche pixel sparso più addentro che si
+   dirada. Siccome ogni casella lo fa verso la sua vicina, le due terre si incastrano e il
+   bordo diventa una fascia mescolata invece di una linea. */
+function zoneBlend(t, tx, ty, sx, sy, zi, nbz) {
+  if (!nbz || isWaterT(t)) return;                     // sull'acqua ci pensa già la riva
+  for (let i = 0; i < 4; i++) {
+    const zj = nbz[i];
+    if (zj == null || zj === zi) continue;
+    const ZPj = ZONE_TILES[zj] || null;
+    const c1 = landColor(t, ZPj, zj), c2 = shade8(c1, 0.93), c3 = shade8(c1, 1.05);
+    /* FRANGIA ONDULATA, non un pettine. La profondità viene da un noise CONTINUO lungo il
+       lato, quindi due strisce vicine si somigliano e il bordo fa onde; con un valore a caso
+       per striscia venivano fuori denti tutti uguali e regolari (guardato in foto). La
+       larghezza della striscia cambia da 1 a 3 px, e ogni tanto un pezzo resta scoperto. */
+    const lungoLato = (k) => (i === 0 || i === 2) ? tx * TS + k : ty * TS + k;
+    for (let k = 0; k < TS;) {
+      const u = lungoLato(k);
+      const onda = smooth(u * 0.16, (i === 0 || i === 2 ? ty : tx) * 3.1 + i * 7, 181);
+      const w = 1 + Math.floor(vhash(u, i, 184) * 3);
+      const salta = vhash(u, i + 9, 185) < 0.12;       // un pezzo di bordo resta com'è
+      const d = Math.max(0, Math.round(1 + onda * 9));
+      if (!salta && d > 0) {
+        const col = onda > 0.68 ? c3 : onda > 0.36 ? c1 : c2;
+        if (i === 0) rect(sx + k, sy, w, d, col);
+        else if (i === 2) rect(sx + k, sy + TS - d, w, d, col);
+        else if (i === 1) rect(sx + TS - d, sy + k, d, w, col);
+        else rect(sx, sy + k, d, w, col);
+      }
+      k += w;
+    }
+    /* SPRUZZI: pixel isolati più addentro, sempre più radi. Sono loro a far sembrare le due
+       terre mescolate invece che semplicemente frastagliate. */
+    for (let s2 = 0; s2 < 14; s2++) {
+      const a = vhash(tx * 13 + s2, ty * 29 + i, 182), b = vhash(tx * 23 + s2 * 3, ty * 11 + i, 183);
+      const prof = Math.floor(6 + b * 14);              // quanto entra
+      if (a > 0.55 - prof * 0.02) continue;             // più entra, più è raro
+      const lungo = Math.floor(b * TS), sp = 1 + (a < 0.2 ? 1 : 0);
+      if (i === 0) rect(sx + lungo, sy + prof, sp, sp, c2);
+      else if (i === 2) rect(sx + lungo, sy + TS - prof, sp, sp, c2);
+      else if (i === 1) rect(sx + TS - prof, sy + lungo, sp, sp, c2);
+      else rect(sx + prof, sy + lungo, sp, sp, c2);
+    }
+  }
 }
 /* increspature sull'acqua: pochi archetti chiari per casella, che si accendono e si spengono */
 function ripples(tx, ty, sx, sy, time, light) {

@@ -1653,7 +1653,12 @@ export function render(time) {
     let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : baseTerrain(tx, ty);
     /* i vicini servono ai BORDI fra terreni (riva, schiuma, erba sulla sabbia); solo per il terreno naturale */
     const nb = (ti || yd) ? null : [baseTerrain(tx, ty - 1), baseTerrain(tx + 1, ty), baseTerrain(tx, ty + 1), baseTerrain(tx - 1, ty)];
-    groundTile(t, tx, ty, sx, sy, time, (ti || yd) ? 0 : zoneIdxAt(tx, ty), nb);
+    /* le zone dei VICINI: servono alla fascia di mescolanza fra due biomi (tiles.zoneBlend),
+       che fa mordere l'una dentro l'altra invece di tagliare netto fra una casella e la
+       successiva. Quattro letture in più per casella, tutte già in cache a blocchi. */
+    const ziQui = (ti || yd) ? 0 : zoneIdxAt(tx, ty);
+    const nbz = (ti || yd) ? null : [zoneIdxAt(tx, ty - 1), zoneIdxAt(tx + 1, ty), zoneIdxAt(tx, ty + 1), zoneIdxAt(tx - 1, ty)];
+    groundTile(t, tx, ty, sx, sy, time, ziQui, nb, nbz);
     if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
     if (!ti && !yd) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */

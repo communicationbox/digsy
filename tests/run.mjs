@@ -8945,6 +8945,44 @@ sprites.applyLook();
     }
     const minuscole = chiazze.filter(n2 => n2 < 30);
     check('niente biomi microscopici', minuscole.length <= 3, minuscole.length + ' chiazze sotto 30 caselle su ' + chiazze.length);
+  /* LA FASCIA DI MESCOLANZA: fra due biomi le due terre si devono incastrare, non tagliarsi.
+     Si dipinge una casella di confine e si controlla che dentro ci siano DUE terreni — quello
+     suo e un morso di quello vicino. Senza questa misura il taglio netto torna al primo
+     ritocco e nessuno se ne accorge finché non lo si guarda da vicino. */
+  {
+    const tilesMod = await import('../src/tiles.js');
+    /* si cerca un confine su terra ferma */
+    let conf = null;
+    for (let r = 4; r < 900 && !conf; r += 2) for (let a = -r; a <= r && !conf; a += 2) {
+      for (const [x, y] of [[a, -r], [a, r], [-r, a], [r, a]]) {
+        if (reg.zoneIdxAt(x, y) === reg.zoneIdxAt(x + 1, y)) continue;
+        if (!world2.walkableGround(world2.baseTerrain(x, y)) || !world2.walkableGround(world2.baseTerrain(x + 1, y))) continue;
+        conf = [x, y]; break;
+      }
+    }
+    check('c\'è un confine fra due biomi da guardare', !!conf);
+    if (conf) {
+      const [cx0, cy0] = conf;
+      /* si dipinge davvero sulla canvas finta e si confrontano i pixel */
+      globalThis.__rec.start(64, 64);
+      const t0 = world2.baseTerrain(cx0, cy0);
+      const nb0 = [world2.baseTerrain(cx0, cy0 - 1), world2.baseTerrain(cx0 + 1, cy0), world2.baseTerrain(cx0, cy0 + 1), world2.baseTerrain(cx0 - 1, cy0)];
+      const nbz0 = [reg.zoneIdxAt(cx0, cy0 - 1), reg.zoneIdxAt(cx0 + 1, cy0), reg.zoneIdxAt(cx0, cy0 + 1), reg.zoneIdxAt(cx0 - 1, cy0)];
+      tilesMod.groundTile(t0, cx0, cy0, 0, 0, 0, reg.zoneIdxAt(cx0, cy0), nb0, nbz0);
+      const conBordo = globalThis.__rec.stop().buf.slice();   // COPIA: il registratore riusa il suo buffer
+      globalThis.__rec.start(64, 64);
+      tilesMod.groundTile(t0, cx0, cy0, 0, 0, 0, reg.zoneIdxAt(cx0, cy0), nb0, null);
+      const senzaBordo = globalThis.__rec.stop().buf;
+      let dipinti = 0; for (let i = 3; i < conBordo.length; i += 4) if (conBordo[i] > 0) dipinti++;
+      let diversi = 0;
+      for (let i = 0; i < 32 * 32; i++) {
+        const p2 = (Math.floor(i / 32) * 64 + (i % 32)) * 4;
+        if (conBordo[p2] !== senzaBordo[p2] || conBordo[p2 + 1] !== senzaBordo[p2 + 1]) diversi++;
+      }
+      check('sulla casella di confine la zona vicina morde dentro', diversi >= 20,
+        diversi + ' pixel mescolati (dipinti ' + dipinti + ') · casella ' + conf.join(',') + ' terreno ' + t0 + ' zona ' + reg.zoneIdxAt(cx0, cy0) + ' vicini ' + nbz0.join(','));
+    }
+  }
   }
   check('Dune e Lande Gelide restano sgombre', invase.length === 0, invase.map(z => 'zona ' + z).join(' '));
   /* LE SAGOME NON SI RIPETONO: ogni specie d'albero, il cactus e l'affioramento d'ossa hanno

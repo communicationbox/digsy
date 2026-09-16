@@ -26,9 +26,13 @@ export const BAND = [
    sfrangia. Prima la decisione era per blocchi di 4×4 senza sfrangiatura, e fra due zone
    restava una lama dritta (segnalato con foto). */
 const FREQ = 0.0032;          // più basso = zone più grandi
-const WARP = 90, WARP2 = 34;  // i due giri di deformazione
-const SPALMA = 46;            // quanto lontano si spalma il campo (in caselle)
-const FRANGIA = 11;           // di quante caselle ondeggia il confine
+const WARP = 90, WARP2 = 34, WARP3 = 26;   // i tre giri di deformazione: lungo, medio, corto
+/* SPALMA e WARP3 sono in tensione fra loro e i numeri vengono da una prova, non a occhio:
+   spalmare di più cancella le chiazze minuscole ma raddrizza il confine, deformare di più lo
+   fa serpeggiare ma stacca isolotti. A 70 e 26, su un'area di 500×500: 2 chiazze sotto le 30
+   caselle (erano 31) e nessun tratto dritto (il confine si sposta di 4 caselle da una riga
+   alla successiva). */
+const SPALMA = 70;            // quanto lontano si spalma il campo (in caselle)
 
 /* il CAMPO (temperatura, umidità) al centro di un blocco 4×4, già deformato e spalmato */
 function campo(cx, cy) {
@@ -36,7 +40,12 @@ function campo(cx, cy) {
   const wy = (fbm(cx * 0.02 + 51, cy * 0.02 + 77, 64) - 0.5) * WARP;
   const wx2 = (fbm((cx + wx) * 0.006 + 3, (cy + wy) * 0.006 + 29, 67) - 0.5) * WARP2;
   const wy2 = (fbm((cx + wx) * 0.006 + 83, (cy + wy) * 0.006 + 41, 68) - 0.5) * WARP2;
-  const px = cx + wx + wx2, py = cy + wy + wy2;
+  /* TERZO GIRO, corto: è questo che toglie al confine la direzione. Sta QUI dentro, prima
+     della soglia, e non sopra la decisione: deformare il campo sposta la curva e basta,
+     mentre deformare la lettura per casella stacca isolotti (provato: 31 chiazze minuscole). */
+  const wx3 = (smooth((cx + wx + wx2) * 0.055 + 11, (cy + wy + wy2) * 0.055 + 3, 69) - 0.5) * WARP3;
+  const wy3 = (smooth((cx + wx + wx2) * 0.055 + 67, (cy + wy + wy2) * 0.055 + 23, 70) - 0.5) * WARP3;
+  const px = cx + wx + wx2 + wx3, py = cy + wy + wy2 + wy3;
   /* media di cinque campioni: il centro pesa il doppio, i quattro attorno smussano le pozze */
   let a = fbm(px * FREQ, py * FREQ, 61) * 2, b = fbm(px * FREQ + 37, py * FREQ + 91, 62) * 2, peso = 2;
   for (const [dx, dy] of [[SPALMA, 0], [-SPALMA, 0], [0, SPALMA], [0, -SPALMA]]) {
@@ -76,9 +85,10 @@ export function zoneIdxAt(tx, ty) {
   /* IL BORDO ONDEGGIA PERCHÉ SI SPOSTA IL PUNTO, non perché si somma rumore alla decisione.
      Sommare rumore per casella staccava chiazzette da una casella sola; spostare di qualche
      casella il punto in cui si CHIEDE il clima deforma il confine e basta. */
-  const ox = (smooth(tx * 0.085, ty * 0.085, 65) - 0.5) * FRANGIA;
-  const oy = (smooth(tx * 0.085 + 19, ty * 0.085 + 5, 66) - 0.5) * FRANGIA;
-  const f = campoPunto(tx + ox, ty + oy);
+  /* niente deformazione QUI: la curva arriva già ondulata dal campo, e sbriciolarla per
+     casella staccherebbe isolotti. La frangia a livello di PIXEL la mette il terreno
+     (tiles.zoneBlend), dove non può creare chiazze perché non cambia di chi è la casella. */
+  const f = campoPunto(tx, ty);
   const band = Math.max(0, Math.min(2, Math.floor((f.a - 0.2) / 0.6 * 3)));
   return BAND[band][f.b > 0.5 ? 1 : 0];
 }

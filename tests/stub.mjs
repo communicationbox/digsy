@@ -86,7 +86,16 @@ export function installStubs() {
       measureText: t => ({ width: (t || '').length * 5.4 }),
       __st: st,
     };
-    return new Proxy(api, { get: (t, k) => k in t ? t[k] : () => {}, set: (t, k, v) => { t[k] = v; return true; } });
+    /* i metodi ORIGINALI, per poterli rimettere: un controllo che spia (`ctx.fillRect = spia`)
+       e poi fa `delete ctx.fillRect` cancellava il metodo vero, e da quel momento in poi OGNI
+       disegno finiva nel nulla — silenziosamente, per tutto il resto della suite. Ci è voluto
+       un controllo che leggeva i pixel per accorgersene. */
+    const originali = { ...api };
+    return new Proxy(api, {
+      get: (t, k) => k in t ? t[k] : () => {},
+      set: (t, k, v) => { t[k] = v; return true; },
+      deleteProperty: (t, k) => { if (k in originali) t[k] = originali[k]; else delete t[k]; return true; },
+    });
   }
   /* gli elementi RICORDANO i listener e le classi: senza, i test non potevano simulare un
      tasto o un tocco, e moduli come input.js restavano completamente non provati */
@@ -170,6 +179,10 @@ export function installStubs() {
       cv.width = w; cv.height = h;
       const c2 = cv.getContext('2d');
       c2.__st.buf = null;                      // rialloca alla misura nuova
+      /* AZZERA ANCHE LA TRASLAZIONE: se una prova precedente ha lasciato un translate aperto
+         (un save senza restore, o una scena che trasla la camera), tutto finirebbe disegnato
+         fuori dalla tela e la misura direbbe «non ha disegnato niente» mentre disegna benissimo. */
+      c2.__st.tx = 0; c2.__st.ty = 0; c2.__st.pila.length = 0;
       c2.clearRect(0, 0, w, h);
       return c2;
     },
