@@ -13,6 +13,17 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
+  'Choose': 'Выбрать',
+  'No creatures yet. Awaken one at the Lab.': 'Существ пока нет. Пробуди одно в Лаборатории.',
+  'With you': 'С тобой',
+  'nobody': 'никого',
+  'Leave at home': 'Оставить дома',
+  'Left at home': 'Оставлено дома',
+  'Your companion follows and helps you. The ones in the yard stay home.': 'Спутник идёт с тобой и помогает. Те, что во дворе, остаются дома.',
+  'with you': 'с тобой',
+  'Yard': 'Двор',
+  'Out of the yard': 'Убрано со двора',
+  'Now lives in your yard': 'Теперь живёт у тебя во дворе',
   "The tortoise stretches its neck and looks at you": "Черепаха вытягивает шею и смотрит на тебя",
   "Pet the tortoise": "Погладить черепаху",
   "Furnish the room": "Обставь комнату",
@@ -260,7 +271,6 @@ export const RU = {
   "Finished": "Пройдено",
   "No missions: find the board 📋": "Заданий нет: найди доску 📋",
 
-  "No creatures: awaken one at the Lab": "Существ нет: пробуди в Лаборатории",
   "tools, maps, clothes": "инструменты, карты, одежда",
 
   "dawn at 06:00": "рассвет в 06:00",
@@ -843,12 +853,8 @@ export const RU = {
   /* ---- compagno ---- */
 
   'No companion': 'Без спутника',
-  'go on your own': 'иди в одиночку',
-  'on your own': 'в одиночку',
   'with you': 'с вами',
-  'Choose': 'Выбрать',
   'Companion': 'Спутник',
-  'Companion sent home': 'Спутник отправлен домой',
   ' is with you!': ' теперь с вами!',
 
   /* ---- guida HUD ---- */
@@ -1075,12 +1081,6 @@ export const RU = {
   "I've got one in my bag already: coming!": 'У меня уже есть одно в рюкзаке — иду!',
   "Thank you! I'll fill them all.": 'Спасибо! Я заполню их все.',
   "What's new": 'Что нового',
-
-  'Companion & yard': 'Спутник и двор',
-  'in the yard': 'во дворе',
-  'add to yard': 'добавить во двор',
-  'Back to the Book': 'Обратно в Книгу',
-  'Now lives in your yard!': 'Теперь живёт у вас во дворе!',
 
   'finds ': 'находки ',
 

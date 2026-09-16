@@ -1223,6 +1223,16 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
    le DUE scelte come coppia di bottoni della stessa larghezza in fondo. Chi è scelto è ACCESO
    (ambra), non una scritta al posto del bottone: così la scheda non cambia forma cliccandola. */
 .cmp-list{display:flex;flex-direction:column;gap:var(--sp-2)}
+/* riga di stato del compagno: poche parole, e il modo per toglierlo sta lì */
+.cmp-now{display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-2);
+  padding:var(--sp-2) var(--sp-3);border:2px solid var(--c-line);border-radius:var(--r-2);background:#efe3c8}
+.cmp-now.has{border-color:var(--c-amber);background:#f7e9c8}
+.cmp-now-l{font-size:var(--fs-note);color:#8a755a;text-transform:uppercase;letter-spacing:.04em}
+.cmp-now-n{flex:1;font-size:14px;color:var(--c-wood-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cmp-now-b{padding:6px 10px;font-size:12px;white-space:nowrap}
+/* "con te" non è un bottone: è uno stato, e si vede che non c'è niente da premere */
+.cmp-on{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;
+  color:var(--c-line);background:#f0d9a2;border:2px solid var(--c-amber);border-radius:var(--r-1);padding:8px 6px}
 .cmp{display:grid;grid-template-columns:48px 1fr;gap:var(--sp-1) var(--sp-3);align-items:start;
   padding:var(--sp-2) var(--sp-3);border:2px solid #d8c79c;border-radius:var(--r-3);background:#fbf5e4}
 .cmp.chimera{border-left:5px solid #8d7ba0;background:#f3eef7}   /* le CHIMERE spiccano dai risvegli: accento e tinta DNA (viola) */

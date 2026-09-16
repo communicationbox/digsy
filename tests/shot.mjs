@@ -345,11 +345,14 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'lab-dna') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goddna'); }).then(function(){
         G.state().coins=510; if(G.openLab) G.openLab(); }); }
-    /* 'compagno' = il pannello Compagno e cortile con una decina di creature: due bottoni per
-       scheda, ed è la schermata dove si vedeva subito che i bottoni andavano a capo a scalini */
+    /* 'compagno' = il pannello del Compagno con una decina di creature. con=1 lo apre con un
+       compagno GIÀ scelto: è lo stato in cui si deve capire al volo chi si ha e come lasciarlo
+       a casa (prima non si capiva se ce l'avevi o no) */
     else if (${JSON.stringify(vista)} === 'compagno') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var conC = new URLSearchParams(location.search).get('con');
       if(G.cmd) G.cmd('godmode').then(function(){ return G.cmd('chimera'); }).then(function(){ return G.cmd('chimera'); })
         .then(function(){ var S=G.state(); S.awakened = S.awakened.slice(0, 8); return G.debug(false); })
+        .then(function(){ return conC ? G.cmd('buddy=terra raro') : null; })
         .then(function(){ if(G.openCompanion) G.openCompanion(); }); }
     else if (${JSON.stringify(vista)} === 'teca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openExhibit) G.openExhibit(); }
     /* 'scheletro' = il minigioco al banco del Museo: un pezzo nuovo, grezzo, di una specie

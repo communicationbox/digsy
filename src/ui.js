@@ -1026,13 +1026,20 @@ export function openCompanionPicker() {
   ensureHouseState();
   const cands = companionCandidates(), cur = companionSpec();
   const yard = new Set(S.house.yard || []);
+  const suo = cur && cands.find(c => isCurrentCompanion(c.key));
   let h = '';
-  if (!cands.length) h += `<div class="center muted">${tr('Nessuna creatura: risvegliane una al Lab', 'No creatures: awaken one at the Lab')}</div>`;
+  /* RIGA DI STATO in cima: dice in tre parole che cosa si ha adesso, e l'unico modo per
+     togliere il compagno sta lì. Prima "nessun compagno" era una scheda grande col bottone
+     ambra in mezzo agli altri: sembrava la scelta consigliata, e non si capiva se uno il
+     compagno ce l'aveva o no (segnalato). */
+  h += `<div class="cmp-now${suo ? ' has' : ''}">`
+    + `<span class="cmp-now-l">${tr('Con te', 'With you')}</span>`
+    + `<b class="cmp-now-n">${suo ? suo.name : tr('nessuno', 'nobody')}</b>`
+    + (suo ? `<button class="btn ghost cmp-now-b" data-comp="">${tr('Lascia a casa', 'Leave at home')}</button>` : '')
+    + `</div>`;
+  if (!cands.length) h += `<div class="center muted">${tr('Nessuna creatura. Risvegliane una al Lab.', 'No creatures yet. Awaken one at the Lab.')}</div>`;
   else {
-    h += `<div class="cmp-solo${cur ? '' : ' on'}"><span class="em">🚫</span>`
-      + `<div class="cmp-h"><span class="cmp-n">${tr('Nessun compagno', 'No companion')}</span></div>`
-      + `<div class="cmp-p">${tr('vai da solo', 'go on your own')}</div>`
-      + `<div class="cmp-a"><button class="btn ghost${cur ? '' : ' onbtn'}" data-comp="">${cur ? tr('Scegli', 'Choose') : '✓ ' + tr('da solo', 'on your own')}</button></div></div>`;
+    h += `<div class="sub" style="margin:2px 0 6px">${tr('Il compagno ti segue e ti aiuta. Quelle nel cortile restano a casa.', 'Your companion follows and helps you. The ones in the yard stay home.')}</div>`;
     h += '<div class="cmp-list">' + cands.map(c => {
       const on = isCurrentCompanion(c.key);
       const inYard = yard.has(c.key);
@@ -1045,16 +1052,17 @@ export function openCompanionPicker() {
         + `<div class="cmp-h"><span class="cmp-n">${c.name}</span><span class="cmp-k">${kind}</span>${rarSpan(c.q)}</div>`
         + `<div class="cmp-p">${abilLabel(c)}</div>`
         + `<div class="cmp-a">`
-        + `<button class="btn ghost${on ? ' onbtn' : ''}" data-comp="${on ? '' : c.key}">${on ? '✓ ' + tr('con te', 'with you') : tr('Scegli', 'Choose')}</button>`
-        + `<button class="btn ghost${inYard ? ' onbtn' : ''}" data-yard="${c.key}">🏠 ${inYard ? tr('nel cortile', 'in the yard') : tr('metti nel cortile', 'add to yard')}</button>`
+        + (on ? `<span class="cmp-on">✓ ${tr('con te', 'with you')}</span>`
+              : `<button class="btn ghost" data-comp="${c.key}">${tr('Scegli', 'Choose')}</button>`)
+        + `<button class="btn ghost cmp-yard${inYard ? ' onbtn' : ''}" data-yard="${c.key}">${inYard ? '☑' : '◻'} ${tr('Cortile', 'Yard')}</button>`
         + `</div></div>`;
     }).join('') + '</div>';
   }
-  mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno e cortile', 'Companion & yard'));
+  mTitle.innerHTML = withIcons('🐾 ' + tr('Compagno', 'Companion'));
   mBody.innerHTML = withIcons(h); openModal(); hydrateCpv();
   mBody.querySelectorAll('[data-comp]').forEach(b => b.onclick = () => {
     const key = b.dataset.comp;
-    if (!key) { clearCompanion(); toast('🚫 ' + tr('Compagno a casa', 'Companion sent home')); }
+    if (!key) { clearCompanion(); toast('🏠 ' + tr('Lasciata a casa', 'Left at home')); }
     else { const spec = cands.find(c => c.key === key); if (spec) { setCompanion(spec); toast('🐾 ' + spec.name + tr(' ti segue!', ' is with you!')); } }
     updateHUD(); openCompanionPicker();
   });
@@ -1062,8 +1070,8 @@ export function openCompanionPicker() {
     ensureHouseState();
     const key = b.dataset.yard;
     const i = S.house.yard.indexOf(key);
-    if (i >= 0) { S.house.yard.splice(i, 1); toast('🏠 ' + tr('Tornata nel Libro', 'Back to the Book')); }
-    else { S.house.yard.push(key); toast('🏠 ' + tr('Ora vive nel cortile!', 'Now lives in your yard!')); }
+    if (i >= 0) { S.house.yard.splice(i, 1); toast('🏠 ' + tr('Tolta dal cortile', 'Out of the yard')); }
+    else { S.house.yard.push(key); toast('🏠 ' + tr('Ora vive nel cortile', 'Now lives in your yard')); }
     save(); updateHUD(); openCompanionPicker();
   });
 }
