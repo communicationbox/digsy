@@ -261,6 +261,37 @@ for (const [nome, tocca, fn] of SPRITE) {
     (vuoto ? 'non ha disegnato niente (area ' + m.area + ') · ' : '') + (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '% · corpo ' + m.corpo + ' area ' + m.area);
 }
 
+/* ---- NIENTE SPRITE MOZZATO DAL BORDO DEL RIQUADRO ----
+   Le decorazioni si dipingono su una maschera grande quanto la casella (32×32): quello che
+   sborda sopra non viene sfumato, viene TRONCATO, e il braccio del cactus finisce piatto come
+   segato (segnalato con foto due volte, su due piante diverse). Qui ogni decorazione si disegna
+   in TUTTE le sue varianti e si guarda la riga in cima: se ci si appoggia della sagoma, la
+   sagoma è tagliata. */
+{
+  const varianti = {
+    cactus: (tx, ty) => props.drawCactus(0, 0, tx, ty),
+    sandspire: (tx, ty) => props.drawSandspire(0, 0, tx, ty),
+    deadtree: (tx, ty) => props.drawDeadtree(0, 0, tx, ty),
+    redspire: (tx, ty) => props.drawRedspire(0, 0, tx, ty),
+    orecrystal: (tx, ty) => props.drawOrecrystal(0, 0, tx, ty),
+    icecrystal: (tx, ty) => props.drawIcecrystal(0, 0, tx, ty),
+    boulder: (tx, ty) => props.drawBoulder(0, 0, tx, ty),
+    mushroom: (tx, ty) => props.drawMushroom(0, 0, 0, tx, ty, false),
+    reed: (tx, ty) => props.drawReed(0, 0, 0, tx, ty, false),
+  };
+  for (const [nome, f] of Object.entries(varianti)) {
+    let peggio = 0, dove = '';
+    for (let ty = 0; ty < 12; ty++) for (let tx = 0; tx < 12; tx++) {
+      globalThis.__rec.start(32, 32);
+      try { f(tx, ty); } catch (e) { globalThis.__rec.stop(); throw e; }
+      const { buf } = globalThis.__rec.stop();
+      let n = 0; for (let x = 0; x < 32; x++) if (buf[x * 4 + 3] > 40) n++;
+      if (n > peggio) { peggio = n; dove = tx + ',' + ty; }
+    }
+    check('non tocca il bordo alto  ' + nome, peggio <= 1, peggio + ' pixel sulla prima riga (casella ' + dove + '): la sagoma esce dal riquadro e viene troncata');
+  }
+}
+
 /* ---- LA LINEART NON DEVE ESSERE NERA ----
    Il contorno può essere più scuro o più chiaro, ma deve portare la TINTA dell'oggetto. Il
    nero neutro attorno a tutto appiattisce il mondo. Questo controllo lo trova da solo, in

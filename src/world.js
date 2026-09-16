@@ -1,6 +1,6 @@
 /* Mondo procedurale: terreni, decorazioni, città (con parco), collisioni, spawn */
 import { TS, GOODS, ZONES, zonePools } from './data.js';
-import { vhash, fbm } from './noise.js';
+import { vhash, fbm, smooth } from './noise.js';
 import { zoneIdxAt } from './regions.js';
 import { wonderWidth } from './wonders.js';
 import { wonderSolidTile } from './wonderart.js';
@@ -12,7 +12,15 @@ export const DEEP = 0, WATER = 1, SAND = 2, GRASS = 3, FOREST = 4, DIRT = 5, MTN
 const terrCache = new Map();
 export function baseTerrain(tx, ty) {
   const key = tx + ',' + ty; let c = terrCache.get(key); if (c !== undefined) return c;
-  const e = fbm(tx * 0.055, ty * 0.055, 1), m = fbm(tx * 0.05 + 40, ty * 0.05 + 40, 2);
+  const e = fbm(tx * 0.055, ty * 0.055, 1);
+  /* IL BORDO DEL BOSCO ONDEGGIA. L'umidità è un noise liscio e la soglia ci taglia dentro una
+     curva altrettanto liscia: per venti o trenta caselle di fila viene una linea dritta, e fra
+     prato e bosco si vede (segnalato con foto). Qui si sposta di qualche casella il PUNTO in cui
+     si chiede l'umidità — la curva si increspa e basta, senza staccare chiazze: spostare il
+     punto deforma, sommare rumore alla decisione spezza. */
+  const wx = (smooth(tx * 0.13 + 5, ty * 0.13 + 9, 11) - 0.5) * 7;
+  const wy = (smooth(tx * 0.13 + 61, ty * 0.13 + 3, 12) - 0.5) * 7;
+  const m = fbm((tx + wx) * 0.05 + 40, (ty + wy) * 0.05 + 40, 2);
   let t;
   if (e < 0.30) t = DEEP; else if (e < 0.37) t = WATER; else if (e < 0.425) t = SAND;
   else if (e > 0.80) t = MTN;

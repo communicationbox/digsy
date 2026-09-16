@@ -57,7 +57,18 @@ function ellipse(g, cx, cy, rx, ry, col) {
 export const R = (x, y, w, h, r = 0) => ({ k: 'r', x, y, w, h, r });
 export const E = (cx, cy, rx, ry) => ({ k: 'e', cx, cy, rx, ry });
 export const C = (x0, y0, x1, y1, r) => ({ k: 'c', x0, y0, x1, y1, r });   // capsula: tronco, ramo, arco
+/* POLIGONO: l'unica forma con gli SPIGOLI. Serve dove la pietra è spaccata e non levigata
+   (i menhir): con sole capsule ed ellissi ogni masso veniva una capsula tonda. */
+export const P = pts => ({ k: 'p', pts });
 function inShape(s, x, y) {
+  if (s.k === 'p') {                                   // raycast pari/dispari sul centro del pixel
+    const px2 = x + 0.5, py2 = y + 0.5, pts = s.pts; let dentro = false;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const [xi, yi] = pts[i], [xj, yj] = pts[j];
+      if ((yi > py2) !== (yj > py2) && px2 < (xj - xi) * (py2 - yi) / (yj - yi) + xi) dentro = !dentro;
+    }
+    return dentro;
+  }
   if (s.k === 'r') {
     const dx = Math.min(x - s.x, s.x + s.w - 1 - x), dy = Math.min(y - s.y, s.y + s.h - 1 - y);
     if (dx < 0 || dy < 0) return false;
@@ -78,6 +89,7 @@ export function forma(g, shapes, fill, light, dark, line, tint) {
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const s of shapes) {
     const b = s.k === 'r' ? [s.x, s.y, s.x + s.w, s.y + s.h]
+      : s.k === 'p' ? [Math.min(...s.pts.map(p => p[0])), Math.min(...s.pts.map(p => p[1])), Math.max(...s.pts.map(p => p[0])) + 1, Math.max(...s.pts.map(p => p[1])) + 1]
       : s.k === 'e' ? [s.cx - s.rx, s.cy - s.ry, s.cx + s.rx + 1, s.cy + s.ry + 1]
         : [Math.min(s.x0, s.x1) - s.r, Math.min(s.y0, s.y1) - s.r, Math.max(s.x0, s.x1) + s.r + 1, Math.max(s.y0, s.y1) + s.r + 1];
     x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]);
@@ -715,10 +727,33 @@ function disegna_gianttree(g, t) {
   tufts(g, TX - 70, TX + 80, '#4e8d3f', '#5fa04e', 7);
 }
 
+/* il PROFILO di un menhir: una lastra spaccata, non una capsula. I lati sono spezzate quasi
+   verticali con qualche scheggia, la cima è uno spigolo inclinato. Con le capsule ogni pietra
+   veniva un ovale ("sembrano dei savoiardi"): la pietra alzata dall'uomo è tagliata, non
+   levigata dal mare. */
+function lastra(bx, by, h, w, lean, seed) {
+  const j = k => (((seed * 37 + k * 101) % 5) + 5) % 5 - 2;     // scheggia -2..2, deterministica
+  const base = Math.round(w * 0.58), cima = Math.round(w * 0.38), N = 3;
+  const sx = [], dx = [];
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, y = Math.round(by - u * h);
+    const hw = Math.round(base + (cima - base) * u), cx = bx + Math.round(lean * 4 * u);
+    /* la base NON si sfrangia: una pietra piantata a terra ha il piede largo e fermo, e con
+       lo spigolo scheggiato anche lì sembrava appoggiata sulla punta. */
+    const s2 = i === 0 ? 0 : j(i), d2 = i === 0 ? 0 : j(i + 5);
+    sx.push([cx - hw + s2, y]); dx.push([cx + hw + d2, y]);
+  }
+  /* CIMA: un taglio inclinato fra i due lati, mai più largo della pietra (sporgendo diventava
+     un uncino). Il verso della pendenza cambia da pietra a pietra. */
+  const tx = bx + Math.round(lean * 4), verso = seed % 2 ? 1 : -1;
+  sx[N] = [tx - cima, by - h + (verso > 0 ? 5 : 0)];
+  dx[N] = [tx + cima, by - h + (verso > 0 ? 0 : 5)];
+  return [...sx, ...dx.reverse()];
+}
+
 function disegna_menhir(g, t) {
-  /* CERCHIO DI PIETRE: sette menhir, ognuno un volume unico con la cima arrotondata dal tempo
-     e il corpo che si assottiglia salendo. Prima erano lastre disegnate riga per riga: bordi
-     seghettati e nessuna forma. */
+  /* CERCHIO DI PIETRE: sette menhir, ognuno una lastra spaccata con la cima inclinata e una
+     faccia in ombra. Prima erano capsule: tonde, tutte uguali, senza spigoli. */
   ellipse(g, 0, -28, 100, 34, 'rgba(20,16,10,.14)'); ellipse(g, 0, -28, 75, 24, 'rgba(20,16,10,.10)');
   ellipse(g, 0, -28, 88, 36, 'rgba(60,90,40,.25)'); ellipse(g, 0, -28, 60, 22, 'rgba(210,200,140,.18)');
   const stones = [[-1, -2, 70, 26, 1], [1, -2, 64, 24, -1], [-2, -1, 58, 24, -1], [2, -1, 62, 25, 1], [-1, 0, 52, 22, 1], [0, 0, 80, 30, 0], [2, 0, 48, 22, -1]];
@@ -726,15 +761,27 @@ function disegna_menhir(g, t) {
   stones.forEach(([dx, dy, h, w, lean], i) => {
     const bx = dx * 32, by = dy * 32 - 6;
     ellipse(g, bx + 4, by + 2, w - 2, 6, 'rgba(20,20,10,.28)');
-    /* il masso: una capsula inclinata (base larga, cima stretta e tonda) più lo zoccolo a terra */
-    const cima = [bx + Math.round(lean * 6), by - h + 6], piede = [bx, by - 6];
+    /* la LASTRA: profilo spezzato più lo zoccolo di terra smossa alla base */
+    const pol = lastra(bx, by, h, w, lean, i + 1);
     const dentro = forma(g, [
-      C(piede[0], piede[1], cima[0], cima[1], Math.round(w * 0.48)),
-      E(bx, by - 5, Math.round(w * 0.62), 8),
-      E(cima[0], cima[1] - 3, Math.round(w * 0.4), Math.round(w * 0.34)),
+      P(pol),
+      R(bx - Math.round(w * 0.55), by - 8, Math.round(w * 1.1), 8, 3),
     ], '#8b8a86', '#b6b2a2', '#5f6376', '#3a3c48');
-    /* venature e macchie di lichene, ritagliate sulla pietra */
-    for (let k = 4; k < h; k += 9) for (let x = bx - w; x <= bx + w; x++) if (dentro(x, by - k)) g.rect(x, by - k, 1, 1, '#7a7a78');
+    /* SPIGOLO: la lastra ha due facce. La riga scura corre dalla cima al piede e a destra la
+       pietra è tutta in ombra: senza, una sagoma piatta resta una sagoma piatta. */
+    for (let k = 2; k < h; k++) {
+      const u = Math.min(1, k / h), sp = bx + Math.round(lean * 4 * u) + Math.round(w * (0.18 - u * 0.06));
+      const y2 = by - k;
+      if (dentro(sp, y2)) g.rect(sp, y2, 1, 1, '#6a6d7a');
+      for (let x = sp + 1; x <= bx + w; x++) if (dentro(x, y2) && dentro(x + 1, y2)) g.rect(x, y2, 1, 1, '#767880');
+    }
+    /* CREPE: tratti corti e sghembi, non righe da un bordo all'altro. Le righe piene a passo
+       fisso facevano sembrare la pietra una scala a pioli. */
+    for (let k = 6; k < h - 6; k += 7) {
+      const q = (i * 31 + k * 17) % 13, x0 = bx - Math.round(w * 0.4) + q, lw = 4 + (q % 5), dyy = q % 3 ? 0 : 1;
+      for (let x = 0; x < lw; x++) { const px2 = x0 + x, py2 = by - k - (x > lw / 2 ? dyy : 0);
+        if (dentro(px2, py2) && dentro(px2, py2 - 2)) g.rect(px2, py2, 1, 1, '#71737a'); }
+    }
     for (const [lx, lq, lw] of [[-6, 0.3, 7], [4, 0.6, 5], [-2, 0.12, 9]]) {
       for (let x = 0; x < lw; x++) for (let y = 0; y < 3; y++) { const px2 = bx + lx + x, py2 = by - Math.round(h * lq) + y; if (dentro(px2, py2)) g.rect(px2, py2, 1, 1, y ? '#6f8a52' : '#7d9a5c'); }
     }

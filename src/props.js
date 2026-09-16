@@ -325,9 +325,13 @@ export function paintMask(m, fill, light, dark, w = MW, h = MH, line) {
    cilindro verde: brutto e ambiguo (segnalato). Due sono saguari con le braccia, gli altri due
    sono piante di forma completamente diversa — il fico d'India a pale e il cactus a barile —
    così nelle Dune non si vede mai la stessa sagoma due volte di fila. */
+/* ATTENZIONE ALL'ALTEZZA: la maschera è alta 32 come la casella, e quello che sborda sopra
+   non viene tagliato in prospettiva — viene TRONCATO, e il braccio finisce piatto come
+   mozzato (segnalato con foto, due volte). Vincolo: base - y0 - alt >= 1 per ogni braccio,
+   e il fiore sta sopra il fusto solo se ci sta. */
 const CACTI = [
-  { tipo: 'saguaro', h: 28, bracci: [[1, 19, 9], [-1, 14, 8]] },      // due braccia sfalsate
-  { tipo: 'saguaro', h: 30, bracci: [[-1, 21, 12]] },                  // alto con un braccio lungo
+  { tipo: 'saguaro', h: 26, bracci: [[1, 17, 8], [-1, 13, 7]] },      // due braccia sfalsate
+  { tipo: 'saguaro', h: 28, bracci: [[-1, 17, 10]] },                  // alto con un braccio lungo
   { tipo: 'pale' },                                                    // fico d'India: pale piatte
   { tipo: 'barile' },                                                  // barile basso a costole, col fiore
 ];
@@ -369,7 +373,7 @@ export function drawCactus(sx, sy, tx = 0, ty = 0) {
     dentro = paintMask(roundMask(shapes, W, H), V, VL, VD, W, H);
     for (const cxr of [cx - 2, cx + 1]) for (let y = base - bp.h + 3; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
     for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - bp.h + 4 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
-    if (vhash(tx, ty, 175) < 0.4) { rect(cx - 2, base - bp.h - 3, 4, 3, '#e08aa8'); px(cx - 1, base - bp.h - 4, '#f6c0d4'); }
+    if (vhash(tx, ty, 175) < 0.4) { const fy = Math.max(2, base - bp.h - 3); rect(cx - 2, fy, 4, 3, '#e08aa8'); px(cx - 1, fy - 1, '#f6c0d4'); }
   }
   erbetta(cx - 10, cx + 9, base + 1, tx, ty, '#8a9a5a', '#6f7f45');
   ctx.restore();
@@ -563,7 +567,7 @@ export function drawReed(sx, sy, time, tx, ty, ripe) {
    [x, altezza, larghezza, inclinazione], e si può specchiare. */
 const ICE = [
   [[-8, 12, 6, -0.25], [8, 14, 6, 0.3], [0, 22, 8, 0]],                        // gruppo classico: la lama alta in mezzo
-  [[2, 26, 7, 0.18], [-7, 9, 5, -0.3], [-2, 6, 4, 0]],                          // una lama sola, altissima e storta
+  [[2, 23, 7, 0.18], [-7, 9, 5, -0.3], [-2, 6, 4, 0]],                          // una lama sola, altissima e storta (23: a 26 la punta toccava il bordo del riquadro)
   [[-10, 8, 4, -0.4], [-4, 12, 5, -0.15], [2, 11, 5, 0.1], [8, 9, 4, 0.35], [13, 6, 3, 0.5]],   // ventaglio di schegge basse
   [[-5, 16, 9, 0], [6, 10, 7, 0.12]],                                           // due blocchi tozzi, spaccati
 ];
