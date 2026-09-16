@@ -487,13 +487,20 @@ export function drawBarberProps(g, rw, rh, time) {
   g.rect(36, 13, 1, 6, '#2a2016'); g.rect(37, 18, 4, 1, '#2a2016');
   g.rect(29, 30, 16, 22, g.shade8('#c9a227', 0.34)); g.rect(36 + pd, 30, 1, 16, '#c9a227'); g.rect(34 + pd, 45, 5, 5, '#c9a227'); g.px(35 + pd, 46, '#f0d470');
   /* palo del barbiere: strisce che scorrono */
-  const px0 = rw - 42, off = Math.floor(t / 90) % 12;
+  /* IL PALO GIRA DAVVERO. Il ciclo dell'animazione era lungo 12 pixel ma le bande si alternano
+     a due a due: ogni giro il disegno saltava di mezza banda e si vedeva lo scatto. Il periodo
+     giusto è 24 (rossa + blu), e le bande si disegnano per COLONNA a segmenti interi, non a
+     trattini di 4 px: l'elica diventa continua e il loop non ha cuciture. */
+  const px0 = rw - 42, PER = 24, off = Math.floor(t / 70) % PER;
   g.rect(px0 - 1, 4, 20, 56, g.shade8('#8f887a', 0.34));
   g.rect(px0, 9, 18, 46, '#f3ecda');
-  for (let yy = -12 + off; yy < 46; yy += 12) {
-    for (let k = 0; k < 18; k++) {
-      const a = yy + Math.floor(k / 3);
-      if (a >= 0 && a < 46) g.rect(px0 + k, 9 + a, 1, 4, (Math.floor((yy - off) / 12) & 1) ? '#c65a54' : '#5a86c8');
+  for (let k = 0; k < 18; k++) {
+    const sh = Math.floor(k / 3);                       // l'elica: ogni tre colonne scende di uno
+    let a = 0;
+    while (a < 46) {
+      const v = a + off + sh, resto = v % (PER / 2), fine = Math.min(46, a + (PER / 2 - resto));
+      g.rect(px0 + k, 9 + a, 1, fine - a, (Math.floor(v / (PER / 2)) & 1) ? '#5a86c8' : '#c65a54');
+      a = fine;
     }
   }
   g.rect(px0 + 2, 9, 2, 46, 'rgba(255,255,255,.35)');
