@@ -101,7 +101,6 @@ function decoCompute(tx, ty) {
       if (vhash(tx, ty, 7) < 0.04) return 'cactus';
       if (vhash(tx, ty, 8) < 0.03) return 'sandspire';
       if (vhash(tx, ty, 9) < 0.05) return 'shell';
-      if (vhash(tx, ty, 180) < 0.04) return 'drybush';         // ingombro di scenario
     }
     if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
     return null;
@@ -186,7 +185,10 @@ export function harvestDecoAt(tx, ty) {
 }
 /* gli ingombri di SCENARIO fermano il passo come gli altri: sono ostacoli veri, solo che non
    ci si fa niente (niente accetta, niente piccone) e quindi non hanno il contorno */
-export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'drybush', 'claymound', 'peatmound', 'snowmound'];
+/* Le DUNE non hanno un ingombro di scenario, ed è voluto: il deserto è il posto dove si
+   cammina senza niente fra i piedi. Le altre zone ce l'hanno perché lì il vuoto è noia; qui
+   il vuoto è il paesaggio. */
+export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'claymound', 'peatmound', 'snowmound'];
 export function decoSolid(d) {
   return d === 'tree' || d === 'boulder' || d === 'cactus' || d === 'sandspire' || d === 'deadtree' ||
     d === 'redspire' || d === 'orecrystal' || d === 'icecrystal' || SCENERY_SOLID.includes(d);

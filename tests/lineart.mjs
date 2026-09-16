@@ -135,7 +135,6 @@ const SPRITE = [
   ['tronco caduto', false, () => props.drawLogfall(32, 40, 3, 5, false)],
   ['tronco nella palude', false, () => props.drawLogfall(32, 40, 4, 7, true)],
   ['masso muschiato', false, () => props.drawMossrock(32, 40, 3, 5)],
-  ['sterpaglia secca', false, () => props.drawDrybush(32, 40, 3, 5)],
   ['tumulo d\'argilla', false, () => props.drawClaymound(32, 40, 3, 5)],
   ['tumulo di torba', false, () => props.drawPeatmound(32, 40, 3, 5)],
   ['cumulo di neve', false, () => props.drawSnowmound(32, 40, 3, 5)],

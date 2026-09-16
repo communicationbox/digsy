@@ -705,52 +705,6 @@ export function drawMossrock(sx, sy, tx = 0, ty = 0) {
   erbetta(3, 28, base + 1, tx, ty);
   ctx.restore();
 }
-/* STERPAGLIA SECCA — il groviglio di rami che rotola nel deserto e si impiglia. È il
-   paesaggio delle Dune: solido, ma senza contorno, perché non ci si fa niente.
-   Qui ci sono passate due idee sbagliate, e vale la pena scriverle. Prima un mucchio d'ossa:
-   sbagliato perché le ossa sono il PREMIO che si scava, non l'ostacolo. Poi una duna di sabbia
-   con gli sterpi sopra: la sabbia aveva lo stesso colore del terreno, quindi si vedevano solo
-   gli sterpi e sembravano meduse rovesciate (segnalato con foto). Un groviglio di rami chiari
-   non somiglia a nient'altro nel gioco, e si capisce al volo che è un ingombro. */
-export function drawDrybush(sx, sy, tx = 0, ty = 0) {
-  ctx.save(); ctx.translate(sx, sy);
-  const cx = 16, base = 28, flip = vhash(tx, ty, 198) < 0.5 ? 1 : -1;
-  const X = x => MX(flip, x);
-  const v = Math.floor(vhash(tx, ty, 199) * 3) % 3;
-  shadow(cx, base, 12);
-  /* MASSA, non rami. Il giro prima erano fili da un pixel: alla scala del gioco si leggevano
-     come uno scarabocchio sulla sabbia (segnalato con foto). Un cespuglio si legge dalla
-     SAGOMA piena, come tutto il resto del mondo; i rametti servono solo a sfrangiarne il
-     bordo. Niente contorno: è paesaggio, non ci si fa niente. */
-  const sagome = [
-    [['disc', X(11), base - 8, 7], ['disc', X(20), base - 9, 6], ['disc', X(16), base - 13, 5], ['disc', X(23), base - 5, 4]],
-    [['disc', X(15), base - 9, 8], ['disc', X(23), base - 6, 5], ['disc', X(9), base - 5, 5]],
-    [['disc', X(13), base - 6, 6], ['disc', X(19), base - 11, 7], ['disc', X(25), base - 7, 4], ['disc', X(10), base - 12, 4]],
-  ];
-  const dentro = paintMask(roundMask(sagome[v]), '#a89055', '#bda56c', '#8d7845', 32, 32, null);
-  /* RAMETTI dentro la massa: poche righe scure che si incrociano, come sterpi compressi */
-  for (let k = 0; k < 7; k++) {
-    const x0 = X(8 + k * 3), y0 = base - 3 - (k % 3) * 3;
-    /* i rametti stanno DENTRO: toccando il bordo facevano da contorno, e un contorno vuol dire
-       "ci puoi fare qualcosa" — qui non c'è niente da fare */
-    for (let j = 0; j < 7; j++) {
-      const x = x0 + Math.round(j * 0.5) * flip, y = y0 - j;
-      if (dentro(x, y) && dentro(x - 1, y) && dentro(x + 1, y) && dentro(x, y - 1) && dentro(x, y + 1)) px(x, y, '#7d6a3e');
-    }
-  }
-  /* il bordo si SFRANGIA: qualche punta che esce di uno o due pixel, mai di più */
-  for (let x = 2; x < 30; x++) {
-    let y = base - 18;
-    while (y < base && !dentro(X(x), y)) y++;
-    if (y >= base) continue;
-    if (vhash(tx + x, ty, 201) > 0.42) continue;
-    const h = 1 + Math.floor(vhash(tx + x, ty, 202) * 3);
-    for (let j = 1; j <= h; j++) px(X(x), y - j, j === h ? '#bda56c' : '#a89055');
-  }
-  /* sabbia accumulata contro il ceppo */
-  ellipseF(cx, base + 1, 10, 2, '#d8c9a0'); ellipseF(cx - 2, base, 5, 1, '#e8dcb8');
-  ctx.restore();
-}
 /* TUMULO D'ARGILLA SCREPOLATA: la terra secca delle Terre Rosse che si alza a gobba e si
    spacca. Nessun cristallo, nessuna guglia: solo terra. */
 export function drawClaymound(sx, sy, tx = 0, ty = 0) {

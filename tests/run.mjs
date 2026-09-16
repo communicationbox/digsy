@@ -8890,11 +8890,17 @@ sprites.applyLook();
     if (vere.length < 4) poveri.push('zona ' + z + ': ' + vere.join(','));
   }
   check('ogni bioma ha almeno quattro cose diverse in giro', poveri.length === 0, poveri.join(' · '));
-  /* e gli ingombri di SCENARIO (quelli senza contorno) ci sono in tutte le zone: sono loro a
-     rompere il vuoto senza promettere un'interazione che non c'è */
+  /* gli ingombri di SCENARIO (quelli senza contorno) rompono il vuoto senza promettere
+     un'interazione che non c'è. Ci sono ovunque TRANNE che nelle DUNE (zona 1): là il deserto
+     è il posto dove si cammina senza niente fra i piedi, e il vuoto è il paesaggio. */
   const senza = [];
-  for (const [z, m] of conta) if (!world2.SCENERY_SOLID.some(k2 => (m.get(k2) || 0) >= 20)) senza.push('zona ' + z);
-  check('ogni bioma ha un ingombro di scenario suo', senza.length === 0, senza.join(' '));
+  for (const [z, m] of conta) {
+    if (z === 1) continue;
+    if (!world2.SCENERY_SOLID.some(k2 => (m.get(k2) || 0) >= 20)) senza.push('zona ' + z);
+  }
+  check('ogni bioma (tranne le Dune) ha un ingombro di scenario suo', senza.length === 0, senza.join(' '));
+  const dune = conta.get(1) || new Map();
+  check('le Dune restano sgombre: nessun ingombro di scenario', !world2.SCENERY_SOLID.some(k2 => (dune.get(k2) || 0) >= 20));
   /* LE SAGOME NON SI RIPETONO: ogni specie d'albero, il cactus e l'affioramento d'ossa hanno
      ricette scritte a mano, e due ricette non devono venire uguali. Con un solo disegno per
      specie il mondo sembra un timbro (segnalato con foto). */
