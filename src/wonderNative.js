@@ -631,7 +631,9 @@ function disegna_aurora(g, t) {
   /* cumulo di neve e un ometto di pietre con la lanterna: la meraviglia ha un posto a terra */
   groundShadow(g, 50, 10);
   ellipse(g, 0, -2, 54, 10, '#9cc8d8'); ellipse(g, 0, -4, 50, 8, '#dff3fa'); ellipse(g, -10, -6, 28, 4, '#ffffff');
-  for (const [y, w, c] of [[-10, 18, '#6e7680'], [-20, 14, '#8a929a'], [-28, 10, '#7a828a'], [-35, 7, '#9aa2aa']]) { g.rect(-(w >> 1) - 1, y - 1, w + 2, 9, '#2a3038'); g.rect(-(w >> 1), y, w, 7, c); g.rect(-(w >> 1), y, w, 2, shade(c, 1.2)); }
+  /* OMETTO DI PIETRE: sassi tondi impilati, ognuno col suo contorno e la luce da sinistra */
+  for (const [y, w, c] of [[-10, 18, '#6e7680'], [-20, 14, '#8a929a'], [-28, 10, '#7a828a'], [-35, 7, '#9aa2aa']])
+    forma(g, [E(0, y + 3, w / 2, 5)], c, shade(c, 1.3), shade(c, 0.7), '#2a3038');
   g.rect(-4, -48, 9, 11, '#2a2016'); const lf = Math.floor(t / 250) % 2; g.rect(-3, -46, 7, 8, lf ? '#f2c53d' : '#e8862e'); g.rect(-2, -45, 2, 6, '#fff3c8');
   disc(g, 0, -42, 14, 'rgba(255,220,140,.12)');
   /* CORTINE di luce: bande verticali che ondeggiano, raggi più chiari in alto */
@@ -743,47 +745,52 @@ function disegna_menhir(g, t) {
 }
 
 function disegna_haygiant(g, t) {
-  /* GIGANTE DI FIENO: covoni legati con la corda, mele al posto degli occhi, cappello di
-     paglia, forcone, e un corvo che non ha paura di lui */
+  /* GIGANTE DI FIENO, rifatto per intero coi volumi: le balle sono capsule tonde legate dalle
+     corde, le braccia sono bracci veri (spalla, avambraccio, mano di paglia), la testa è una
+     balla con le mele al posto degli occhi. Prima era una pila di rettangoli col cappello
+     disegnato sopra. */
   groundShadow(g, 70, 14);
-  /* i covoni sono BALLE, non casse: angoli smussati (più il covone è grande, più è tondo) */
-  const bale = (x, y, w, h) => {
-    const r = Math.max(3, Math.round(Math.min(w, h) * 0.3));
-    const dentro = tondo(g, x, y, w, h, r, '#dcbe4c', '#f0d070', '#b8922a', '#6b4f14');
-    for (let i = 2; i < w - 2; i += 3) for (let k = 0; k < h - 10; k++) { const yy = y + 4 + ((i * 7) % 5) + k; if (dentro(x + i, yy)) g.rect(x + i, yy, 1, 1, (i % 2) ? '#c9a227' : '#e8c860'); }   // steli
-    for (const ry of [0.3, 0.7]) { const yy = y + Math.round(h * ry);                                   // corde
-      for (let i = 0; i < w; i++) if (dentro(x + i, yy)) { g.rect(x + i, yy, 1, 3, '#8a6a1a'); g.rect(x + i, yy, 1, 1, '#a78723'); } }
-    for (let i = 4; i < w - 4; i += 7) g.px(x + i, y - 1 - (i % 3), '#e8c860');                          // paglia che spunta
+  const PAGLIA = ['#dcbe4c', '#f0d070', '#b8922a', '#6b4f14'];
+  /* una BALLA: capsula tonda, steli verticali e due corde che la stringono */
+  const balla = (cx, cy, w, h) => {
+    const r = Math.round(Math.min(w, h) / 2);
+    const dentro = forma(g, [C(cx, cy - h / 2 + r, cx, cy + h / 2 - r, r), E(cx, cy, w / 2, h / 2)], ...PAGLIA);
+    for (let x = cx - w / 2; x <= cx + w / 2; x += 3) for (let y = cy - h / 2; y <= cy + h / 2; y++)
+      if (dentro(x, y) && dentro(x - 1, y) && dentro(x + 1, y)) g.rect(x, y, 1, 1, ((x | 0) % 2) ? '#c9a227' : '#e8c860');
+    for (const q of [-0.22, 0.22]) { const yy = Math.round(cy + h * q);
+      for (let x = cx - w; x <= cx + w; x++) if (dentro(x, yy)) { g.rect(x, yy, 1, 3, '#8a6a1a'); g.rect(x, yy, 1, 1, '#a78723'); } }
+    for (let x = cx - w / 2 + 4; x < cx + w / 2 - 4; x += 7) g.px(x, cy - h / 2 - 1 - (x % 3), '#e8c860');   // paglia che spunta
+    return dentro;
   };
-  /* gambe */
-  bale(-34, -44, 26, 44); bale(8, -44, 26, 44);
-  /* corpo */
-  bale(-44, -104, 88, 62);
-  /* braccia: bastone con i covoncini e la paglia delle mani */
+  /* gambe, corpo, testa */
+  balla(-21, -22, 26, 44); balla(21, -22, 26, 44);
+  balla(0, -73, 88, 62);
+  /* BRACCIA: spalla e avambraccio, con la mano di paglia in fondo */
   for (const side of [-1, 1]) {
-    const x0 = side < 0 ? -84 : 44;
-    g.rect(x0, -94, 40, 6, '#3f2a17'); g.rect(x0 + 1, -93, 38, 4, '#a97a4c'); g.rect(x0 + 1, -93, 38, 1, '#c49a63');
-    bale(side < 0 ? -80 : 52, -100, 24, 18);
-    for (let k = 0; k < 6; k++) g.rect(side < 0 ? -88 - k : 84 + k, -96 + k * 2, 6, 1, '#e8c860');
+    forma(g, [C(side * 40, -88, side * 66, -80, 7), C(side * 66, -80, side * 84, -96, 6)], '#a97a4c', '#c49a63', '#7a5230', '#3f2a17');
+    forma(g, [E(side * 86, -100, 9, 8)], '#e8c860', '#f8e090', '#c9a227', '#6b4f14');
+    for (let k = 0; k < 5; k++) g.rect(side * (84 + k * 2) - (side > 0 ? 0 : 5), -104 + k * 3, 5, 1, '#e8c860');   // fili di paglia nella mano
   }
-  /* testa */
-  bale(-26, -146, 52, 42);
-  for (const ex of [-14, 12]) { disc(g, ex, -128, 7, '#8a1f18'); disc(g, ex, -128, 6, '#c94f4a'); disc(g, ex - 2, -130, 2, '#f08a80'); g.rect(ex, -136, 2, 3, '#5c3d22'); g.rect(ex + 2, -137, 3, 2, '#5fa04e'); }
-  g.rect(-12, -116, 24, 2, '#6b4f14'); for (let i = -10; i < 12; i += 4) g.rect(i, -118, 1, 6, '#6b4f14');           // bocca cucita
-  /* cappello di paglia a tesa larga, con la fascia rossa */
-  ellipse(g, 0, -146, 46, 8, '#6b4f14'); ellipse(g, 0, -147, 44, 6, '#e8c860'); ellipse(g, -8, -149, 26, 2, '#f8e090');
-  g.rect(-22, -172, 44, 26, '#6b4f14'); g.rect(-20, -170, 40, 24, '#dcbe4c'); g.rect(-20, -170, 40, 4, '#f0d070');
-  g.rect(-20, -154, 40, 6, '#8a1f18'); g.rect(-20, -154, 40, 2, '#e2604f');
-  /* forcone nella mano destra */
-  g.rect(84, -150, 5, 150, '#3f2a17'); g.rect(85, -150, 3, 150, '#a97a4c');
-  g.rect(74, -166, 25, 5, '#3f2a17'); g.rect(75, -165, 23, 3, '#8f9aa3');
-  for (const x of [75, 85, 95]) { g.rect(x - 1, -186, 5, 22, '#3f2a17'); g.rect(x, -185, 3, 20, '#c9ced3'); g.px(x, -185, '#ffffff'); }
-  /* corvo sulla spalla: saltella */
+  const dentroTesta = balla(0, -125, 52, 42);
+  for (const ex of [-14, 12]) {                                   // mele al posto degli occhi
+    forma(g, [E(ex, -128, 7, 7)], '#c94f4a', '#e8756a', '#8a1f18', '#4a1410');
+    g.rect(ex, -136, 2, 4, '#5c3d22'); g.rect(ex + 2, -137, 4, 2, '#5fa04e');
+  }
+  for (let x = -12; x <= 12; x++) if (dentroTesta(x, -112)) g.rect(x, -112, 1, 2, '#6b4f14');                  // bocca cucita
+  for (let i = -10; i < 12; i += 4) g.rect(i, -116, 1, 7, '#6b4f14');
+  /* CAPPELLO di paglia: cupola tonda e tesa larga, con la fascia rossa */
+  forma(g, [E(0, -148, 46, 9)], '#e8c860', '#f8e090', '#c9a227', '#6b4f14');
+  const dentroCap = forma(g, [E(0, -158, 21, 17), R(-20, -170, 40, 24, 9)], '#dcbe4c', '#f0d070', '#b8922a', '#6b4f14');
+  for (let y = -156; y < -150; y++) for (let x = -22; x <= 22; x++) if (dentroCap(x, y) && dentroCap(x - 1, y) && dentroCap(x + 1, y)) g.rect(x, y, 1, 1, y < -154 ? '#e2604f' : '#8a1f18');
+  /* FORCONE: manico tondo e tre rebbi */
+  forma(g, [C(80, -150, 80, 2, 3)], '#a97a4c', '#c49a63', '#7a5230', '#3f2a17');
+  forma(g, [R(69, -166, 23, 5, 2)], '#8f9aa3', '#c9ced3', '#6b727a', '#3f2a17');
+  for (const x of [71, 80, 89]) forma(g, [C(x, -184, x, -164, 2)], '#c9ced3', '#ffffff', '#8f9aa3', '#3f2a17');
+  /* CORVO sulla spalla: saltella */
   const hop = Math.floor(t / 700) % 4 === 0 ? -3 : 0, cy = -106 + hop;
-  ellipse(g, -40, cy - 6, 10, 7, '#18180f'); ellipse(g, -40, cy - 6, 9, 6, '#2a2a3a'); disc(g, -48, cy - 12, 5, '#18180f'); disc(g, -48, cy - 12, 4, '#2a2a3a');
-  g.rect(-57, cy - 12, 6, 2, '#e8c34a'); g.px(-49, cy - 13, '#ffffff'); g.rect(-32, cy - 8, 8, 3, '#18180f');
-  /* paglia sparsa a terra */
-  for (let i = 0; i < 14; i++) g.rect(-60 + ((i * 37) % 120), 2 + (i % 4), 5, 1, i % 2 ? '#e8c860' : '#c9a227');
+  forma(g, [E(-40, cy - 6, 10, 7), E(-48, cy - 12, 5, 5), C(-32, cy - 7, -24, cy - 5, 3)], '#2a2a3a', '#46465c', '#18180f', '#0f0f14');
+  g.rect(-57, cy - 12, 6, 2, '#e8c34a'); g.px(-49, cy - 13, '#ffffff');
+  for (let i = 0; i < 14; i++) g.rect(-60 + ((i * 37) % 120), 2 + (i % 4), 5, 1, i % 2 ? '#e8c860' : '#c9a227');   // paglia a terra
   tufts(g, -56, 60, '#5fa04e', '#4e8d3f', 2);
 }
 

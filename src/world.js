@@ -809,8 +809,10 @@ function computeLandmark(cx, cy) {
   const y0 = cy * LCELL + 6 + Math.floor(vhash(cx, cy, 193) * (LCELL - 12));
   const types = LANDMARKS[zoneIdxAt(x0, y0)] || LANDMARKS[0];
   let type = types[Math.floor(vhash(cx, cy, 194) * types.length)];
-  /* GIANT TREE (Yggdrasil): SUPER SUPER raro — se esce, sopravvive solo con un secondo tiro rarissimo */
-  if (type === 'gianttree' && vhash(cx, cy, 195) >= 0.05) type = 'menhir';
+  /* GIANT TREE (Yggdrasil): il più raro di tutti, ma TROVABILE. Con il secondo tiro al 5% ne
+     usciva uno ogni sessanta celle e nel Libro restava un "?" per sempre (segnalato con foto):
+     una meraviglia che di fatto non esiste non è rara, è un buco. */
+  if (type === 'gianttree' && vhash(cx, cy, 195) >= 0.3) type = 'menhir';
   /* se il punto non è adatto a QUESTA meraviglia, la si cerca lì attorno (le ninfee vogliono
      l'acqua, le altre la terra ferma): spirale corta dentro la cella, poi si rinuncia */
   /* DISTANZE MINIME: due meraviglie non devono mai capitare a due passi (e due ARCHI vicini
