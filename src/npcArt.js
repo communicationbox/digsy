@@ -9,8 +9,15 @@
    Il corpo di Digsy non si tocca: il look del giocatore non ha `acc`.
 
    Corpo (colonne 0..31): collo righe 16-17; busto 18-25 (18-19 colonne 8-23, poi 6-25); gambe 26-31.
-   Profilo verso destra: busto 18-19 colonne 10-25, poi 8-27; occhio colonne 22-23 riga 10. */
+   Profilo verso destra: il busto è MISURATO, non a occhio — occupa le colonne 7..22 (largo 16),
+   contro le 5..26 della vista frontale. I segni di mestiere seguivano i numeri del frontale e
+   sbordavano di quattro pixel: i grembiuli sembravano salvagenti e il camice del Professore era
+   enorme (segnalato). Di lato un grembiule si vede solo DAVANTI: è una striscia stretta contro
+   il petto, non una fascia che gira tutt'intorno. Occhio colonne 22-23 riga 10. */
 import { grid, finish } from './hatArt.js';
+
+/* di profilo: il davanti del busto (dove cade un grembiule) e il suo bordo esterno */
+const PROF_A = 16, PROF_B = 21;
 
 /* grembiule: pettorina, lacci al collo e in vita, tasca; m = materiale, check = quadretti */
 function apron(g, x0, x1, m, opt = {}) {
@@ -31,7 +38,7 @@ const ACC = {
     body: {
       down(g) { for (let y = 18; y <= 27; y++) { const w = y < 20 ? 8 : 6; g.span(y, w, 12, 'W', { lit: 0.4, dark: 0.95 }); g.span(y, 19, 31 - w, 'W', { lit: 0, dark: 0.6 }); } g.line(12, 18, 14, 22, 1, 'W', 2); g.line(19, 18, 17, 22, 1, 'W', 2); g.fillBlock(8, 23, 10, 24, 'D', 1); },
       up(g) { for (let y = 18; y <= 27; y++) g.span(y, y < 20 ? 8 : 6, y < 20 ? 23 : 25, 'W', { lit: 0.3, dark: 0.75 }); g.line(15.5, 22, 15.5, 27, 1, 'W', 2); },
-      side(g) { for (let y = 18; y <= 27; y++) g.span(y, y < 20 ? 10 : 8, y < 20 ? 22 : 24, 'W', { lit: 0.3, dark: 0.8 }); g.line(21, 19, 21, 27, 1, 'W', 2); },
+      side(g) { for (let y = 18; y <= 27; y++) g.span(y, y < 20 ? 10 : 9, y < 20 ? 20 : 21, 'W', { lit: 0.3, dark: 0.8 }); g.line(19, 19, 19, 27, 1, 'W', 2); },
     },
     face: {
       down(g) { ring(g, 11.5, 9.5); ring(g, 19.5, 9.5); g.span(9, 15, 16, 'K'); },
@@ -44,7 +51,7 @@ const ACC = {
     body: {
       down(g) { apron(g, 10, 21, 'W', { pocket: 'H' }); },
       up(g) { g.span(22, 6, 25, 'W', { t: 2 }); g.ball(15.5, 22, 1.5, 'W'); g.line(14, 23, 13, 26, 1, 'W', 2); g.line(17, 23, 18, 26, 1, 'W', 2); },
-      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? 22 : 20, 26, 'W', { lit: 0.2, dark: 0.85 }); g.span(22, 9, 26, 'W', { t: 2 }); },
+      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? PROF_A + 2 : PROF_A, PROF_B, 'W', { lit: 0.2, dark: 0.85 }); g.span(22, 9, PROF_B, 'W', { t: 2 }); },
     },
   },
   /* Curatore: papillon e monocolo con la catenella */
@@ -52,7 +59,7 @@ const ACC = {
     body: {
       down(g) { bow(g, 15.5, 17); },
       up() {},
-      side(g) { g.fillBlock(23, 17, 24, 18, 'R', 1); g.set(25, 16, 'R', 0); g.set(25, 19, 'R', 2); },
+      side(g) { g.fillBlock(19, 17, 20, 18, 'R', 1); g.set(21, 16, 'R', 0); g.set(21, 19, 'R', 2); },
     },
     face: {
       noOutline: true,   // il contorno cadrebbe DENTRO l'anello, sull'occhio
@@ -66,7 +73,7 @@ const ACC = {
     body: {
       down(g) { apron(g, 10, 21, 'W', { check: 'R', tie: 'W' }); },
       up(g) { g.span(22, 6, 25, 'W', { t: 2 }); g.ball(15.5, 22, 1.5, 'R'); g.line(14, 23, 13, 26, 1, 'W', 2); g.line(17, 23, 18, 26, 1, 'W', 2); },
-      side(g) { for (let y = 19; y <= 27; y++) for (let x = y < 22 ? 22 : 20; x <= 26; x++) g.set(x, y, ((x >> 1) + (y >> 1)) % 2 ? 'W' : 'R', 1); g.span(22, 9, 26, 'W', { t: 2 }); },
+      side(g) { for (let y = 19; y <= 27; y++) for (let x = y < 22 ? PROF_A + 2 : PROF_A; x <= PROF_B; x++) g.set(x, y, ((x >> 1) + (y >> 1)) % 2 ? 'W' : 'R', 1); g.span(22, 9, PROF_B, 'W', { t: 2 }); },
     },
   },
   /* Barbiere: baffi a manubrio e pettine nel taschino */
@@ -74,7 +81,7 @@ const ACC = {
     body: {
       down(g) { g.fillBlock(19, 20, 21, 20, 'W', 1); g.fillBlock(19, 21, 21, 21, 'K'); },
       up() {},
-      side(g) { g.fillBlock(22, 20, 24, 20, 'W', 1); g.fillBlock(22, 21, 24, 21, 'K'); },
+      side(g) { g.fillBlock(18, 20, 20, 20, 'W', 1); g.fillBlock(18, 21, 20, 21, 'K'); },
     },
     face: {
       down(g) { g.span(13, 12, 19, 'K'); g.span(12, 10, 11, 'K'); g.span(12, 20, 21, 'K'); g.set(12, 12, 'K'); g.set(19, 12, 'K'); },   // baffi a manubrio: le punte salgono
@@ -87,7 +94,7 @@ const ACC = {
     body: {
       down(g) { apron(g, 10, 21, 'B', { pocket: 'B' }); g.line(19, 23, 19, 26, 1, 'W', 1); g.set(19, 22, 'K'); g.fillBlock(12, 23, 12, 26, 'Y', 1); },
       up(g) { g.span(22, 6, 25, 'B', { t: 2 }); g.ball(15.5, 22, 1.5, 'B'); },
-      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? 22 : 20, 26, 'B', { lit: 0.2, dark: 0.85 }); g.span(22, 9, 26, 'B', { t: 2 }); g.fillBlock(23, 23, 23, 26, 'Y', 1); },
+      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? PROF_A + 2 : PROF_A, PROF_B, 'B', { lit: 0.2, dark: 0.85 }); g.span(22, 9, PROF_B, 'B', { t: 2 }); g.fillBlock(19, 23, 19, 26, 'Y', 1); },
     },
     face: {
       down(g) { g.line(24, 4, 27, 7, 1, 'Y', 1); g.set(28, 8, 'K'); },
@@ -100,7 +107,7 @@ const ACC = {
     body: {
       down(g) { tape(g, 10, 17, 26); tape(g, 21, 17, 23); g.span(17, 10, 21, 'Y', { t: 1 }); },
       up(g) { g.span(17, 9, 22, 'Y', { t: 1 }); },
-      side(g) { tape(g, 22, 17, 25); g.span(17, 14, 22, 'Y', { t: 1 }); },
+      side(g) { tape(g, 19, 17, 25); g.span(17, 12, 21, 'Y', { t: 1 }); },
     },
   },
   /* il nonno dell'intro: baffoni bianchi */

@@ -834,16 +834,24 @@ function eggTankArt(g, x, y, time, egg, ready) {
   g.rect(x - 5, y + H, W + 10, 9, g.shade8('#5c4229', 0.34)); g.rect(x - 4, y + H + 1, W + 8, 7, '#5c4229'); g.rect(x - 4, y + H + 1, W + 8, 2, '#8a5f38');
   g.rect(x - 3, y - 5, W + 6, 6, g.shade8('#8f9aa3', 0.34)); g.rect(x - 2, y - 4, W + 4, 4, '#8f9aa3'); g.rect(x - 2, y - 4, W + 4, 1, '#dfe6ea');
   g.rect(x + 10, y - 9, 8, 5, '#5a5248');
-  g.rect(x - 1, y, W + 2, H, '#3f5a6a');
-  g.rect(x, y, W, H, ready ? '#dff4e0' : (egg ? '#cdeef2' : '#9fb0aa'));
-  g.rect(x, y + H - 8, W, 8, ready ? '#c8ecca' : (egg ? '#b4e0e6' : '#8a9a94'));
-  g.rect(x + 2, y + 2, 3, H - 6, 'rgba(255,255,255,.45)');
+  boxr(g, x - 1, y, W + 2, H, ready ? '#dff4e0' : (egg ? '#cdeef2' : '#9fb0aa'), 4, { line: '#3f5a6a', light: '#f2fbfd', dark: '#a8ccd6' });
+  g.rect(x + 1, y + H - 8, W - 2, 7, ready ? '#c8ecca' : (egg ? '#b4e0e6' : '#8a9a94'));
+  for (let k = 0; k < 12; k++) g.rect(x + 3 + k, y + H - 10 - k, 2, 2, 'rgba(255,255,255,.35)');   // riflesso in diagonale sul vetro
   if (egg) {
-    const bob = Math.round(Math.sin(time / 480) * 3), ex = x + W / 2 - 5, ey = y + H / 2 - 8 + bob;
-    g.rect(ex + 2, ey, 6, 1, '#8a5a1e'); g.rect(ex, ey + 1, 10, 13, '#8a5a1e'); g.rect(ex + 1, ey + 1, 8, 12, '#d8973c');
-    g.rect(ex + 2, ey + 3, 2, 3, '#f2c53d'); g.px(ex + 6, ey + 8, '#b8752a');
+    /* L'UOVO È UN UOVO: ovale, stretto in cima e pieno in basso, col guscio maculato e la luce
+       da sopra-sinistra. Era un rettangolo arancione con un bordo (segnalato). */
+    const bob = Math.round(Math.sin(time / 480) * 3), ecx = x + W / 2, ecy = y + H / 2 - 1 + bob;
+    for (let dy = -10; dy <= 8; dy++) {
+      const q = dy < 0 ? dy / 10 * 1.2 : dy / 8;                       // in alto si stringe
+      const w = Math.round(5 * Math.sqrt(Math.max(0, 1 - q * q)));
+      if (w <= 0) continue;
+      g.rect(ecx - w, ecy + dy, w * 2, 1, '#8a5a1e');                  // guscio scuro attorno
+      if (w > 1) g.rect(ecx - w + 1, ecy + dy, w * 2 - 2, 1, dy < -5 ? '#e8ab55' : '#d8973c');
+    }
+    for (const [lx, ly] of [[-2, -6], [-3, -5], [-3, -4], [-2, -3]]) g.px(ecx + lx, ecy + ly, '#f6dc9c');   // luce che segue la curva
+    for (const [mx, my] of [[1, -3], [2, -2], [-2, 1], [0, 3], [2, 4], [-1, 6]]) g.px(ecx + mx, ecy + my, '#b8752a');   // puntini del guscio
     const b = Math.floor(time / 260) % 6; g.px(x + 6, y + H - 4 - b * 4, '#ffffff'); g.px(x + 21, y + H - 6 - ((b + 3) % 6) * 4, '#ffffff');
-    if (ready) { const sp = Math.floor(time / 200) % 2; g.rect(ex - 5, ey + 2 + sp * 2, 1, 3, '#fff3c8'); g.rect(ex + 13, ey + 8 - sp * 2, 1, 3, '#fff3c8'); }
+    if (ready) { const sp = Math.floor(time / 200) % 2; g.rect(ecx - 10, ecy - 3 + sp * 2, 1, 3, '#fff3c8'); g.rect(ecx + 9, ecy + 3 - sp * 2, 1, 3, '#fff3c8'); }
   }
   g.px(x + W - 4, y + H + 4, egg ? (ready ? '#7ec069' : '#e8c34a') : '#5a5248');
 }
