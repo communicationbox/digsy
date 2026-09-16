@@ -1339,7 +1339,6 @@ export function restInn() {
 export function sleepAtHome(room) {
   const bonus = restFreeFor(room);
   if (!restInn()) return false;
-  if (tutBump('sleep') === 'step') announceTutStep();   // tutorial: dormire a casa è un passo suo
   S.restFree = bonus;
   if (bonus) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + bonus + tr(' fatiche non costano energia', ' efforts cost no energy'));
   else toast('😴 ' + tr('Hai dormito. La stanza è spoglia: niente bonus', 'You slept. The room is bare: no bonus'));

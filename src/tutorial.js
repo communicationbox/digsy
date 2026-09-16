@@ -43,8 +43,11 @@ export function tutPurse() {
 export function spadeCost() { return TOOL_COST.spade; }
 
 /* GLI OTTO PASSI = il giro completo del gioco, nell'ordine in cui lo si impara facendolo:
-   il letto di casa → arreda la Sala → esci → raccogli le monete → compra la pala → scava → consegna al Museo →
-   ritira i reperti identificati → torna a casa a dormire.
+   il letto di casa → arreda la Sala → esci → raccogli le monete → compra la pala → scava →
+   consegna al Museo → ritira i reperti identificati. Finisce dove il gioco continua, cioè al
+   banco del Curatore con il primo fossile che ha un nome: mandare a dormire per chiudere era
+   un passo in più che riportava indietro e non insegnava niente (dormire lo dice già il primo
+   passo, davanti al letto).
    Chi li finisce ha fatto una partita intera in piccolo e sa dove tornare per ognuna delle cose.
    `auto` = il passo si spunta da solo guardando lo stato; senza `auto` lo spunta un'azione di
    gioco che chiama `tutBump`. */
@@ -63,7 +66,6 @@ export const STEPS = [
   { id: 'dig', need: () => 1 },
   { id: 'museum', need: () => 1 },
   { id: 'collect', need: () => 1 },
-  { id: 'sleep', need: () => 1 },
 ];
 export const STEP_IDS = STEPS.map(s => s.id);
 
@@ -88,8 +90,6 @@ const TEXT = {
     tr('Consegnali al Curatore: li identifica sul momento.', 'Hand them to the Curator: they get identified right away.')],
   collect: () => [tr('Ritira i reperti dal Curatore', 'Collect your finds from the Curator'),
     tr('Ora hanno un nome: i doppioni si vendono, i pezzi nuovi restano in teca.', 'Now they have a name: duplicates can be sold, new pieces stay on display.')],
-  sleep: () => [tr('Torna a casa e dormi', 'Go home and sleep'),
-    tr('Premi {act} sul letto: passa il giorno e l\'energia torna piena, gratis.', 'Press {act} on the bed: a day goes by and your energy fills up, for free.')],
 };
 export function tutTitle(id) { return TEXT[id] ? TEXT[id]()[0] : id; }
 export function tutHint(id) { return TEXT[id] ? TEXT[id]()[1].replace(/\{act\}/g, actKey()) : ''; }
@@ -155,7 +155,6 @@ export function tutTarget(px, py) {
   const tx = Math.floor(px / TS), ty = Math.floor(py / TS);
   if (id === 'pick') return nearestPickup(tx, ty);
   if (id === 'shop') return buildingDoor(tx, ty, 'store');
-  if (id === 'sleep') return S.home || null;            // la porta di casa (world.js: houseDoorAt)
   if (id === 'museum' || id === 'collect') return buildingDoor(tx, ty, 'museum');
   return null;                                   // 'dig': si scava dove capita, fuori città
 }

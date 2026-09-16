@@ -27,8 +27,6 @@ export const RU = {
   "Hand them to the Curator: they get identified right away.": "Отдай их Хранителю: он определит их сразу.",
   "Collect your finds from the Curator": "Забери находки у Хранителя",
   "Now they have a name: duplicates can be sold, new pieces stay on display.": "Теперь у них есть имя: дубликаты можно продать, новые части останутся в витрине.",
-  "Go home and sleep": "Иди домой спать",
-  "Press {act} on the bed: a day goes by and your energy fills up, for free.": "Нажми {act} на кровати: пройдёт день, энергия восстановится бесплатно.",
   "There you are, {n}! Come close to me: the earth has a secret to show us today.": "Вот и ты, {n}! Подойди ко мне поближе: сегодня земля хочет показать нам секрет.",
   "Gently with the spade… there it is. The bone of a creature that lived a very long time ago.": "Осторожно лопатой… вот она. Кость существа, жившего очень-очень давно.",
   "I spent my life looking for them. And I always dreamed of seeing one alive, even just one.": "Я всю жизнь их искал. И всегда мечтал увидеть хоть одно живым, хотя бы одно.",

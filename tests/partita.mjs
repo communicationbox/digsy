@@ -100,15 +100,14 @@ check('sono pronti subito, come dice il testo', gameplay.museumJobReady() === tr
 const ritirati = gameplay.museumCollect();
 check('ritirati', !!ritirati);
 check('e ora hanno un nome nel Libro', S.codex.length > 0, S.codex.length + ' specie');
-check('il tutorial manda a dormire a casa', tut.tutStepId() === 'sleep');
+check('il tutorial è finito, col primo fossile che ha un nome', tut.tutDone() && !tut.tutActive());
 
-titolo('6 · a casa, a dormire');
+titolo('6 · a casa si dorme gratis, quando serve');
 S.energy = 3; S.sleepBlockHalf = null;
 const giorno = S.day;
 check('si può dormire nel proprio letto', gameplay.sleepAtHome(0) === true);
 check('l\'energia è tornata piena', S.energy === S.maxEnergy, S.energy + '/' + S.maxEnergy);
 check('e il tempo è passato', S.day > giorno || S.tod > 0.5, 'giorno ' + giorno + ' → ' + S.day);
-check('il tutorial è finito', tut.tutDone() && !tut.tutActive());
 
 titolo('7 · e da qui si gioca da soli');
 check('il giocatore ha una pala, un reperto identificato e un letto dove dormire',
