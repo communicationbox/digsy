@@ -41,6 +41,7 @@
 
   /* TESTO */
   --fs-note:11px;           /* spiegazioni */
+  --fs-head:14px;           /* titolo di sezione dentro un pannello */
   --fs-sm:12px;             /* righe di impostazione */
   --fs-md:15px;             /* pulsanti */
   --fs-lg:18px;             /* azione principale */
@@ -455,9 +456,17 @@ body:has(#cmd.on) #touch{display:none!important}
 .st{position:sticky;top:0;background:#e7d9b6;border-bottom:3px solid var(--c-line);padding:12px 14px;display:flex;align-items:center;gap:10px;z-index:1}
 /* il ✕ della modale: un dito ha bisogno di 42px anche sullo schermo più stretto */
 .st h2{margin:0;font-size:17px}.st .x{margin-left:auto;min-width:42px;min-height:42px;border:2px solid var(--c-line);background:var(--c-ink);border-radius:8px;width:42px;height:42px;font-weight:800;cursor:pointer;font-size:16px}
-.sb{padding:14px}
+/* UNA SOLA SCALA DI TESTO NELLE MODALI.
+   Il corpo del pannello ereditava il font del documento (16px) e le note stavano a 11-13:
+   dentro la stessa schermata convivevano quattro misure senza gerarchia, e blocchi che sono
+   NOTE (l'anteprima dell'uovo) si leggevano più grandi dei titoli di sezione (segnalato con
+   foto). Qui: titolo di sezione e corpo alla stessa misura, le note un gradino sotto. */
+.sb{padding:14px;font-size:var(--fs-sm);line-height:1.5}
+.sb p,.sb div,.sb label,.sb li{font-size:inherit}
+/* `.sub` valeva solo dentro `.row`: fuori di lì restava alla misura del documento */
+.sub{font-size:var(--fs-note);color:#8a755a}
 .row{display:flex;align-items:center;gap:10px;padding:8px 10px;border:2px solid #d8c79c;border-radius:9px;margin-bottom:7px;background:#fbf5e4}
-.row .em{font-size:22px}.row .nm{font-weight:800;font-size:13px}.row .sub{font-size:11px;color:#8a755a}
+.row .em{font-size:22px}.row .nm{font-weight:800;font-size:var(--fs-sm)}.row .sub{font-size:var(--fs-note);color:#8a755a}
 .row .rt{margin-left:auto;text-align:right}
 .row.chimera{border-left:5px solid #8d7ba0;background:#f3eef7}   /* le CHIMERE spiccano dai risvegli: accento e tinta DNA (viola) */
 .tdots{display:flex;gap:5px;margin-top:5px}
@@ -481,8 +490,8 @@ body:has(#cmd.on) #touch{display:none!important}
 .rar{font-weight:800;padding:1px 6px;border-radius:5px;font-size:10px}
 .rar.comune{background:#e2d7bd;color:#6b5a3a}.rar.raro{background:#cfe6dd;color:#2f6b5a}
 .rar.eccezionale{background:#f3ddc0;color:#a5641f}.rar.leggendario{background:#efd6ea;color:#8a3f86}
-.muted{color:#8a755a;font-size:12px}.center{text-align:center;padding:18px}
-.bighead{font-size:13px;font-weight:800;margin:2px 0 8px;color:#5a4a34;text-transform:uppercase;letter-spacing:1px}
+.muted{color:#8a755a;font-size:var(--fs-note)}.center{text-align:center;padding:18px}
+.bighead{font-size:var(--fs-head);font-weight:800;margin:2px 0 8px;color:#5a4a34;text-transform:uppercase;letter-spacing:1px}
 /* colonna dell'editor: stessa larghezza dell'anteprima del Digsy (.prev = 360px) */
 .edcol{width:360px;max-width:100%;margin:0 auto;display:flex;flex-direction:column;gap:7px}
 .edcol .bighead{margin:6px 0 0}
@@ -1283,7 +1292,10 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .arg:hover{border-color:var(--c-amber)}
 .arg.casa{border-color:var(--c-amber);background:#fdf0d8}
 .arg-nm{font-weight:800;font-size:var(--fs-sm);line-height:1.2}
-.arg-sub{font-size:var(--fs-note);color:#8a755a}
+/* riga stretta: con l'interlinea del corpo il sottotitolo su due righe faceva crescere il
+   riquadro di tre pixel e le carte non erano più alte uguali (misurato dagli e2e) */
+.arg-sub{font-size:var(--fs-note);color:#8a755a;line-height:1.15}
+.arg{line-height:1.2}
 .arg-su{display:flex;align-items:center;gap:var(--sp-2);margin:0 0 var(--sp-1)}
 .arg-su .btn{padding:6px 10px;font-size:12px}
 
