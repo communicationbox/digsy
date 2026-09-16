@@ -34,22 +34,20 @@ export function drawMarbleTile(g, tx, ty) {
   if (h32(tx, ty, 7) < 0.05) g.rect(sx + 12, sy + 18, 3, 1, '#c8bda3');   // piccolo segno d'usura
 }
 export function drawParquetTile(g, tx, ty) {
-  /* PAVIMENTO IN ASSI LUNGHE: file alte 8 px, giunti sfalsati da una fila all'altra, filo di
-     luce sul bordo alto e venature. La spina di pesce a quadrotti si leggeva come un muro di
-     mattoni (si vede nelle foto della galleria): con le assi lunghe si capisce che è legno. */
+  /* ASSI IN VERTICALE, larghe 8 px e lunghe tre caselle: le file orizzontali, per quanto
+     lunghe, continuavano a leggersi come un muro di mattoni (si vede nelle foto). Girate
+     nell'altro verso il legno si capisce subito, e il pavimento "va verso il fondo" della sala. */
   const sx = tx * TS, sy = ty * TS;
-  const tones = ['#a8784a', '#a07246', '#ae7e50', '#9a6c42'];
-  for (let r = 0; r < 4; r++) {
-    const gy = ty * 4 + r, y = sy + r * 8;
-    const off = ((gy * 13) % 4) * 8;                       // sfalsamento dei giunti, fila per fila
-    g.rect(sx, y, TS, 8, tones[(gy * 5 + tx) % tones.length]);
-    g.rect(sx, y, TS, 1, '#7a5230');                       // giunto fra le file
-    g.rect(sx, y + 1, TS, 1, shadeHex(tones[(gy * 5 + tx) % tones.length], 1.09));
-    for (let x = -off; x < TS; x += 32) if (x >= 0) g.rect(sx + x, y, 1, 8, '#7a5230');   // testa dell'asse
-    for (let k = 0; k < 2; k++) {                          // venature
-      const vx = sx + ((gy * 17 + k * 23 + tx * 7) % 28) + 2;
-      g.rect(vx, y + 3 + k * 2, 5, 1, shadeHex(tones[(gy * 5 + tx) % tones.length], 0.92));
-    }
+  const tones = ['#a8784a', '#a47448', '#ab7b4d', '#a17046'];
+  for (let q = 0; q < 4; q++) {
+    const gx = tx * 4 + q, x = sx + q * 8;
+    const c = tones[(gx * 5 + (ty >> 1)) % tones.length];
+    g.rect(x, sy, 8, TS, c);
+    g.rect(x, sy, 1, TS, '#6b4728');                                  // giunto fra le assi
+    g.rect(x + 1, sy, 1, TS, shadeHex(c, 1.06));
+    const tail = (gx * 37) % 96;                                      // testa dell'asse, sfalsata
+    for (let y = -tail; y < TS; y += 96) if (y >= 0) g.rect(x, sy + y, 8, 1, '#6b4728');
+    if ((gx * 7 + ty * 11) % 5 === 0) g.rect(x + 3, sy + ((gx * 13 + ty * 7) % 24), 2, 6, shadeHex(c, 0.94));   // venatura
   }
 }
 function shadeHex(hex, k) {
@@ -96,6 +94,25 @@ export function drawColumn(g, cx, baseY) {
   for (const f of [-4, 0, 4]) g.rect(cx + f, baseY - H + 4, 1, H - 18, '#c9c0a8');                                                               // scanalature
   g.rect(cx - 13, baseY - H - 8, 26, 9, '#8f8670'); g.rect(cx - 12, baseY - H - 8, 24, 7, '#e9e2ce'); g.rect(cx - 12, baseY - H - 8, 24, 2, '#fbf8ef');  // capitello
   g.rect(cx - 15, baseY - H - 12, 30, 4, '#c9a227'); g.rect(cx - 15, baseY - H - 12, 30, 1, '#f0d470');
+}
+
+/* CORDONE DA MUSEO: paletti d'ottone e fune di velluto che scende a curva. È il segno che si
+   legge da lontano — "qui non si passa, si guarda" — e dà alla sala il carattere che le
+   mancava. */
+export function drawRope(g, x0, x1, y, col) {
+  const scuro = shadeHex(col, 0.5), chiaro = shadeHex(col, 0.95);
+  for (const x of [x0, x1]) {
+    g.rect(x - 4, y + 6, 9, 3, 'rgba(40,30,20,.22)');                       // ombra
+    g.rect(x - 3, y + 4, 7, 4, '#241a10'); g.rect(x - 2, y + 5, 5, 2, '#8a6a1e');   // base
+    g.rect(x - 1, y - 12, 4, 17, '#241a10'); g.rect(x, y - 12, 2, 16, '#c9a227'); g.rect(x, y - 12, 1, 16, '#f0d470');
+    g.rect(x - 2, y - 15, 6, 4, '#241a10'); g.rect(x - 1, y - 14, 4, 2, '#e8c34a');  // pomello
+  }
+  const n = Math.max(1, x1 - x0);
+  for (let i = 0; i <= n; i++) {                                            // la fune scende a catenaria
+    const u = i / n, x = Math.round(x0 + (x1 - x0) * u);
+    const y2 = Math.round(y - 12 + Math.sin(u * Math.PI) * 7);
+    g.rect(x, y2, 1, 3, '#241a10'); g.rect(x, y2 + 1, 1, 2, scuro); g.rect(x, y2 + 1, 1, 1, chiaro);
+  }
 }
 
 /* ---------- PANCA di velluto ---------- */
@@ -175,22 +192,43 @@ export function drawCaseFront(g, bx, by, rarCol, full, time, amber) {
 
 /* ---------- BANCONE del Curatore ---------- */
 export function drawDeskArt(g, x0, y0, x1, y1, time) {
-  const w = x1 - x0;
-  g.rect(x0 + 4, y1, w - 8, 5, 'rgba(40,30,20,.25)');
-  g.rect(x0 - 1, y0 - 6, w + 2, y1 - y0 + 7, '#241a10');
-  g.rect(x0, y0 + 2, w, y1 - y0 - 2, '#5c3d22');
-  for (let px = x0 + 8; px + 30 <= x1 - 6; px += 38) { g.rect(px, y0 + 6, 30, y1 - y0 - 12, '#4a3018'); g.rect(px + 1, y0 + 7, 28, y1 - y0 - 14, '#6e4a2e'); g.rect(px + 1, y0 + 7, 28, 1, '#8a5f38'); g.rect(px + 13, y0 + 12, 4, 4, '#c9a227'); }
-  g.rect(x0, y1 - 4, w, 4, '#3a2616');
-  g.rect(x0 - 3, y0 - 6, w + 6, 8, '#8f8670'); g.rect(x0 - 2, y0 - 5, w + 4, 6, '#ece5d2'); g.rect(x0 - 2, y0 - 5, w + 4, 1, '#fbf8ef');   // piano di marmo
-  g.rect(x0 - 2, y0 + 1, w + 4, 2, '#c9a227');
-  /* sul bancone: registro aperto, campanello, lente, un piccolo fossile */
+  /* BANCONE DEL CURATORE: mobile di noce con i pannelli incorniciati, piano di marmo che
+     sporge, bordo d'ottone e zoccolo. Prima erano tre rettangoli marroni con una riga d'oro.
+     Sopra: il registro aperto, il campanello, la lente e una cassetta di reperti. */
+  const w = x1 - x0, h = y1 - y0;
+  g.rect(x0 + 4, y1, w - 8, 5, 'rgba(40,30,20,.25)');                    // ombra a terra
+  g.rect(x0 - 1, y0 - 6, w + 2, h + 7, '#241a10');                       // contorno
+  g.rect(x0, y0 + 2, w, h - 2, '#5c3d22');                               // corpo
+  g.rect(x0, y0 + 2, 3, h - 2, '#7a5230'); g.rect(x0 + w - 3, y0 + 2, 3, h - 2, '#4a3018');   // spigoli del mobile
+  for (let px = x0 + 8; px + 30 <= x1 - 6; px += 38) {                   // pannelli incorniciati
+    g.rect(px, y0 + 6, 30, h - 12, '#4a3018');
+    g.rect(px + 2, y0 + 8, 26, h - 16, '#6e4a2e');
+    g.rect(px + 2, y0 + 8, 26, 1, '#8a5f38'); g.rect(px + 2, y0 + h - 9, 26, 1, '#3a2616');
+    g.rect(px + 13, y0 + 8 + Math.round((h - 16) / 2) - 1, 4, 3, '#c9a227');   // maniglietta d'ottone
+  }
+  g.rect(x0, y1 - 5, w, 5, '#3a2616'); g.rect(x0, y1 - 5, w, 1, '#7a5230');    // zoccolo
+  /* PIANO DI MARMO che sporge, con il filo d'ottone sotto */
+  g.rect(x0 - 4, y0 - 7, w + 8, 9, '#8f8670');
+  g.rect(x0 - 3, y0 - 6, w + 6, 7, '#ece5d2'); g.rect(x0 - 3, y0 - 6, w + 6, 2, '#fbf8ef');
+  g.rect(x0 - 3, y0 - 1, w + 6, 1, '#b8ae96');
+  g.rect(x0 - 2, y0 + 1, w + 4, 2, '#c9a227'); g.rect(x0 - 2, y0 + 1, w + 4, 1, '#f0d470');
+  /* SUL BANCONE: registro aperto, campanello d'ottone, lente, cassetta di reperti */
   const cx = x0 + w / 2;
-  g.rect(cx - 40, y0 - 12, 24, 8, '#241a10'); g.rect(cx - 39, y0 - 11, 11, 6, '#f3ecda'); g.rect(cx - 27, y0 - 11, 10, 6, '#e8dcc0'); g.rect(cx - 28, y0 - 12, 1, 8, '#8a3f3a');
+  g.rect(cx - 41, y0 - 13, 26, 9, '#241a10');                                   // registro
+  g.rect(cx - 40, y0 - 12, 12, 7, '#f3ecda'); g.rect(cx - 27, y0 - 12, 11, 7, '#e8dcc0');
+  g.rect(cx - 28, y0 - 13, 1, 9, '#8a3f3a');
+  for (let r = 0; r < 3; r++) { g.rect(cx - 38, y0 - 10 + r * 2, 8, 1, '#b9ad91'); g.rect(cx - 25, y0 - 10 + r * 2, 7, 1, '#b9ad91'); }
   const shine = Math.floor(time / 900) % 4 === 0;
-  g.rect(cx + 20, y0 - 8, 12, 3, '#6b4f14'); g.rect(cx + 22, y0 - 14, 8, 7, '#241a10'); g.rect(cx + 23, y0 - 13, 6, 6, '#e8c34a'); g.rect(cx + 25, y0 - 16, 2, 2, '#6b4f14');
-  if (shine) g.rect(cx + 24, y0 - 12, 2, 2, '#fff8d0');
-  g.rect(cx - 8, y0 - 11, 10, 7, '#241a10'); g.rect(cx - 7, y0 - 10, 8, 5, '#ece5d2'); g.rect(cx - 5, y0 - 9, 2, 2, '#8a8070'); g.rect(cx - 2, y0 - 9, 2, 2, '#8a8070');
-  g.rect(cx + 44, y0 - 12, 9, 9, '#241a10'); g.rect(cx + 45, y0 - 11, 7, 7, '#bfe3ef'); g.rect(cx + 51, y0 - 5, 8, 3, '#8a5f38');
+  g.rect(cx + 20, y0 - 6, 14, 2, '#6b4f14');                                    // base del campanello
+  g.rect(cx + 22, y0 - 13, 10, 8, '#241a10'); g.rect(cx + 23, y0 - 12, 8, 6, '#e8c34a'); g.rect(cx + 23, y0 - 12, 8, 2, '#f8e08a');
+  g.rect(cx + 26, y0 - 16, 2, 3, '#6b4f14');
+  if (shine) g.rect(cx + 25, y0 - 11, 2, 2, '#fff8d0');
+  g.rect(cx - 9, y0 - 12, 12, 8, '#241a10');                                    // lente
+  g.rect(cx - 8, y0 - 11, 10, 6, '#bfe3ef'); g.rect(cx - 7, y0 - 10, 3, 2, '#eef8fb');
+  g.rect(cx + 2, y0 - 6, 6, 2, '#8a5f38');
+  g.rect(cx + 42, y0 - 13, 14, 9, '#241a10');                                   // cassetta dei reperti
+  g.rect(cx + 43, y0 - 12, 12, 7, '#8a5f38'); g.rect(cx + 43, y0 - 12, 12, 2, '#b07c4a');
+  g.rect(cx + 45, y0 - 10, 3, 3, '#e8dcc0'); g.rect(cx + 50, y0 - 9, 3, 2, '#d8ccb0');
 }
 /* insegna del Museo sopra il bancone: tabella scura col tempio d'oro */
 export function drawMuseumSign(g, cx, y) {
@@ -208,13 +246,29 @@ export function drawMuseumSign(g, cx, y) {
 
 /* ---------- MURO di fondo della galleria ---------- */
 export function drawGalleryTopWall(g, x0, x1, H) {
+  /* LA PARETE IN FONDO alla galleria: zoccolo di marmo, intonaco chiaro, cornice d'oro in alto
+     e i quadri appesi con la loro lampadina. Prima era una fascia verde scuro a puntini con
+     tre rettangoli marroni: la parte che si vede entrando, ed era la più vecchia di tutte. */
   const w = x1 - x0;
-  g.rect(x0, 0, w, H, '#3f5448');
-  for (let x = x0 + 6; x < x1; x += 16) for (let y = 8; y < H - 24; y += 14) { g.rect(x, y, 2, 1, '#4f6658'); g.rect(x - 1, y + 1, 4, 1, '#4f6658'); g.rect(x, y + 2, 2, 1, '#4f6658'); }
-  g.rect(x0, 0, w, 4, '#efe2c4'); g.rect(x0, 4, w, 2, '#c9a227');
-  g.rect(x0, H - 22, w, 16, '#6e4a2e');
-  for (let x = x0 + 4; x + 26 <= x1; x += 32) { g.rect(x, H - 19, 26, 10, '#5c3d22'); g.rect(x + 1, H - 18, 24, 8, '#7a5236'); g.rect(x + 1, H - 18, 24, 1, '#9a6d45'); }
-  g.rect(x0, H - 24, w, 2, '#c9a227');
-  g.rect(x0, H - 6, w, 5, '#3a2616'); g.rect(x0, H - 6, w, 1, '#8a5f38');
-  g.rect(x0, H, w, 4, 'rgba(30,20,10,.25)');
+  g.rect(x0, 0, w, H, '#dcd2bb');                                        // intonaco
+  for (let x = x0; x < x1; x += 7) g.rect(x, 6 + ((x * 13) % 9), 3, 1, '#d2c7ae');   // grana
+  g.rect(x0, 0, w, 5, '#f6f1e4'); g.rect(x0, 5, w, 2, '#c9a227'); g.rect(x0, 7, w, 1, '#8a6a1e');   // cornice d'oro
+  /* ZOCCOLO di marmo con il filo scuro */
+  g.rect(x0, H - 26, w, 20, '#e6ddc8');
+  g.rect(x0, H - 26, w, 2, '#b3a78c'); g.rect(x0, H - 24, w, 1, '#f6f1e4');
+  for (let x = x0 + 4; x < x1; x += 48) { g.rect(x, H - 22, 1, 14, '#c8bda3'); g.rect(x + 1, H - 22, 1, 14, '#f2ece0'); }
+  g.rect(x0, H - 8, w, 6, '#8f8670'); g.rect(x0, H - 8, w, 1, '#b8ae96');
+  g.rect(x0, H, w, 4, 'rgba(30,20,10,.25)');                             // ombra sul pavimento
+  /* QUADRI appesi, uno ogni due caselle, con la lampadina sopra */
+  for (let x = x0 + 12; x + 40 <= x1; x += 64) {
+    g.rect(x + 16, 10, 8, 4, '#c9a227'); g.rect(x + 18, 12, 4, 3, '#fff3c8');        // lampadina
+    g.rect(x + 8, 16, 2, 4, '#8a6a1e'); g.rect(x + 30, 16, 2, 4, '#8a6a1e');          // cavetti
+    g.rect(x, 20, 40, 26, '#241a10');
+    g.rect(x + 1, 21, 38, 24, '#c9a227'); g.rect(x + 2, 22, 36, 22, '#8a6a1e');       // cornice dorata
+    const tela = ['#6f8a9a', '#8a7a6a', '#7a8a6a'][(x / 64 | 0) % 3];
+    g.rect(x + 4, 24, 32, 18, tela); g.rect(x + 4, 24, 32, 6, shadeHex(tela, 1.15));
+    g.rect(x + 8, 34, 24, 8, shadeHex(tela, 0.8));                                    // paesaggio dipinto
+    g.rect(x + 12, 30, 6, 6, shadeHex(tela, 1.3)); g.rect(x + 22, 32, 8, 5, shadeHex(tela, 0.7));
+    g.rect(x + 4, 24, 32, 1, 'rgba(255,255,255,.25)');
+  }
 }

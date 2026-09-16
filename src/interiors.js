@@ -11,7 +11,7 @@ import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
-import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
+import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawDeskArt, drawMuseumSign, drawGalleryTopWall } from './museumArt.js';
 import { EMAP, iconPaths } from './icons.js';
 import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps, drawMuseumPet} from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
@@ -128,6 +128,11 @@ export function drawMuseumGallery(time) {
     /* luce calda del lampadario al centro della sala */
     ctx.fillStyle = 'rgba(255,220,140,.07)'; ctx.fillRect(x0 + wpx / 2 - 90, y0 + 40, 180, hpx - 60);
     for (const benchx of [x0 + wpx / 2 - 64, x0 + wpx / 2 + 16]) drawBench(BRUSH, benchx, y0 + hpx - 30, col);
+    /* cordoni d'ottone lungo la passatoia: il segno che si sta guardando una collezione */
+    for (const ry2 of [y0 + 88, y0 + hpx - 132]) {
+      drawRope(BRUSH, x0 + wpx / 2 - 84, x0 + wpx / 2 - 44, ry2, col);
+      drawRope(BRUSH, x0 + wpx / 2 + 44, x0 + wpx / 2 + 84, ry2, col);
+    }
     /* TARGA della sala: icona del bioma, nome e quante specie hai esposto. Senza, le sei sale
        sono indistinguibili e non si capisce a quale zona appartengano le teche. */
     {
