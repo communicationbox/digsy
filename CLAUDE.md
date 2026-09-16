@@ -614,7 +614,13 @@ in oro maiuscolo e una riga `.sp-sep`.
 13. **Il contrasto è responsabilità di chi scrive il colore**, non del giocatore che se ne
    accorge: gli e2e misurano il rapporto WCAG su cinque schermate, avvisi accesi compresi.
    Le icone hanno un colore INLINE: sulle superfici chiare va sovrascritto con `!important`.
-14. **Niente due aree che scorrono una dentro l'altra**: su mobile si muove sempre quella
+14. **Un confine è UNA linea, disegnata da tutte e due le caselle.** Il profilo si calcola
+   sul BORDO (coordinate condivise), non sulla casella: ognuna dipinge dentro di sé il colore
+   dell'altra dove la curva pende verso di lei. Se lo disegna una sola (o solo il terreno "più
+   alto"), viene dentellato da un lato e a righello dall'altro. Dentelli di 1-3 px, mai fasce:
+   a sette pixel comparivano bande rettangolari. Vale anche per le chiazze di tono del terreno,
+   che vanno sfrangiate sui lati o fra due toni vicini si vede solo la riga dritta.
+15. **Niente due aree che scorrono una dentro l'altra**: su mobile si muove sempre quella
    sbagliata. Scorre la pagina, non il riquadro.
 
 ## Convenzioni / preferenze
