@@ -461,9 +461,21 @@ export function drawSandspire(sx, sy, tx = 0, ty = 0) {
      vento, una mesa a strati, una pila di massi, una lama piegata. */
   let alt = 18;
   if (v === 0) {                                             // ARCO scavato dal vento
-    alt = 20;
-    blocco(X(4), base - 20, 6, 20); blocco(X(21), base - 20, 6, 20);
-    for (let x = 4; x <= 27; x++) { const y = base - 20 - Math.round(Math.sin((x - 4) / 23 * Math.PI) * 3); for (let k = 0; k < 6; k++) set(X(x), y + k); }
+    /* SI SCAVA, NON SI COSTRUISCE. Prima erano due pilastri squadrati con una trave sopra: una
+       porta di legno, non una roccia (segnalato con foto). Qui si parte da un masso pieno e gli
+       si toglie l'arco da sotto, come fa il vento: il vuoto è tondo, i piedi si allargano a
+       terra, il profilo di sopra è mosso e i fianchi sono mangiati a morsi. */
+    alt = 21;
+    for (let x = 3; x <= 28; x++) {
+      const gobba = Math.round(Math.sin((x - 3) / 25 * Math.PI) * 5) + (vhash(tx + x, ty, 179) < 0.4 ? 1 : 0);
+      const cima = base - 12 - gobba;
+      for (let y = base - 1; y >= cima; y--) set(x, y);
+    }
+    for (let x = 1; x <= 30; x++) for (let y = base - 4; y < base; y++) if (Math.abs(x - cx) > 6) set(x, y);   // i piedi si allargano
+    const vuoto = (x, y) => { const dx = x - cx, dy = base - 1 - y; return dy >= -1 && (dx * dx) / 64 + (dy * dy) / 196 <= 1; };
+    for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) if (vuoto(x, y)) m[y * 32 + x] = 0;
+    for (let y = base - 20; y < base - 2; y++) for (const bx of [2, 3, 27, 28])   // morsi sui fianchi
+      if (vhash(bx, ty + y, 180) < 0.45) { m[y * 32 + bx] = 0; if (bx < 5) m[y * 32 + bx + 1] = vhash(bx, ty + y, 181) < 0.4 ? 0 : m[y * 32 + bx + 1]; }
   } else if (v === 1) {                                      // MESA a strati: larga e piatta
     alt = 15;
     for (let y = 0; y < 15; y++) { const w = 12 - Math.round(y / 5); for (let x = -w; x <= w; x++) set(X(cx + x), base - y - 1); }
@@ -480,9 +492,17 @@ export function drawSandspire(sx, sy, tx = 0, ty = 0) {
   }
   const dentro = paintMask(m, R, RL, RD, 32, 32, LN2);
   /* STRATI di sedimento: righe orizzontali chiare e scure, la firma dell'arenaria */
-  for (let y = 2; y < alt; y += 3) {
-    const c = (y % 6) ? '#d9a468' : '#b57a45';
-    for (let x = 1; x < 31; x++) if (dentro(x, base - y) && dentro(x - 1, base - y) && dentro(x + 1, base - y)) px(x, base - y, c);
+  /* gli strati sono TRATTI, non righe da un bordo all'altro: a piena larghezza e a passo fisso
+     la roccia sembrava fatta di listelli di legno (segnalato con foto) */
+  for (let y = 3; y < alt; y += 4) {
+    const c = (y % 8) ? '#d3a065' : '#b8834c';
+    let x = 1;
+    while (x < 31) {
+      const salto = 2 + Math.floor(vhash(tx + x, ty + y, 182) * 5), lung = 3 + Math.floor(vhash(tx + y, ty + x, 183) * 7);
+      for (let k = 0; k < lung; k++) { const xx = x + k, yy = base - y + (k > lung - 3 ? 1 : 0);
+        if (dentro(xx, yy) && dentro(xx - 1, yy) && dentro(xx + 1, yy)) px(xx, yy, c); }
+      x += lung + salto;
+    }
   }
   /* qualche buco scavato dal vento */
   for (let k = 0; k < 3; k++) {
