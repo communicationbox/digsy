@@ -16,8 +16,13 @@
    il petto, non una fascia che gira tutt'intorno. Occhio colonne 22-23 riga 10. */
 import { grid, finish } from './hatArt.js';
 
-/* di profilo: il davanti del busto (dove cade un grembiule) e il suo bordo esterno */
-const PROF_A = 16, PROF_B = 21;
+/* DI PROFILO il braccio sta DAVANTI, alle colonne 13..17 (righe 19..25, mano compresa: vedi
+   bodyArt.armSide). Il grembiule va messo davanti al petto ma DIETRO al braccio, cioè dalla 18
+   in poi, e il laccio in vita si spezza: passa dietro il braccio e riprende sul davanti — prima
+   ci passava sopra come una cintura dipinta sul gomito (segnalato). */
+const PROF_A = 18, PROF_B = 21, BRACCIO_A = 13, BRACCIO_B = 18;
+/* laccio in vita di profilo: due tratti, uno per lato del braccio */
+function laccioProfilo(g, m) { g.span(22, 8, BRACCIO_A - 1, m, { t: 2 }); g.span(22, BRACCIO_B, PROF_B, m, { t: 2 }); }
 
 /* grembiule: pettorina, lacci al collo e in vita, tasca; m = materiale, check = quadretti */
 function apron(g, x0, x1, m, opt = {}) {
@@ -38,7 +43,16 @@ const ACC = {
     body: {
       down(g) { for (let y = 18; y <= 27; y++) { const w = y < 20 ? 8 : 6; g.span(y, w, 12, 'W', { lit: 0.4, dark: 0.95 }); g.span(y, 19, 31 - w, 'W', { lit: 0, dark: 0.6 }); } g.line(12, 18, 14, 22, 1, 'W', 2); g.line(19, 18, 17, 22, 1, 'W', 2); g.fillBlock(8, 23, 10, 24, 'D', 1); },
       up(g) { for (let y = 18; y <= 27; y++) g.span(y, y < 20 ? 8 : 6, y < 20 ? 23 : 25, 'W', { lit: 0.3, dark: 0.75 }); g.line(15.5, 22, 15.5, 27, 1, 'W', 2); },
-      side(g) { for (let y = 18; y <= 27; y++) g.span(y, y < 20 ? 10 : 9, y < 20 ? 20 : 21, 'W', { lit: 0.3, dark: 0.8 }); g.line(19, 19, 19, 27, 1, 'W', 2); },
+      side(g) {
+        /* il camice è un capo lungo, ma la MANO resta fuori: dalla riga 24 il tessuto si apre
+           attorno al braccio invece di passarci sopra */
+        for (let y = 18; y <= 27; y++) {
+          const a = y < 20 ? 10 : 9, b = y < 20 ? 20 : 21;
+          if (y === 24 || y === 25) { g.span(y, a, BRACCIO_A - 1, 'W', { lit: 0.3, dark: 0.8 }); g.span(y, BRACCIO_B, b, 'W', { lit: 0.3, dark: 0.8 }); }   // qui esce la mano
+          else g.span(y, a, b, 'W', { lit: 0.3, dark: 0.8 });
+        }
+        g.line(19, 19, 19, 23, 1, 'W', 2);
+      },
     },
     face: {
       down(g) { ring(g, 11.5, 9.5); ring(g, 19.5, 9.5); g.span(9, 15, 16, 'K'); },
@@ -51,7 +65,7 @@ const ACC = {
     body: {
       down(g) { apron(g, 10, 21, 'W', { pocket: 'H' }); },
       up(g) { g.span(22, 6, 25, 'W', { t: 2 }); g.ball(15.5, 22, 1.5, 'W'); g.line(14, 23, 13, 26, 1, 'W', 2); g.line(17, 23, 18, 26, 1, 'W', 2); },
-      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? PROF_A + 2 : PROF_A, PROF_B, 'W', { lit: 0.2, dark: 0.85 }); g.span(22, 9, PROF_B, 'W', { t: 2 }); },
+      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? PROF_A + 1 : PROF_A, PROF_B, 'W', { lit: 0.2, dark: 0.85 }); laccioProfilo(g, 'W'); },
     },
   },
   /* Curatore: papillon e monocolo con la catenella */
@@ -73,7 +87,7 @@ const ACC = {
     body: {
       down(g) { apron(g, 10, 21, 'W', { check: 'R', tie: 'W' }); },
       up(g) { g.span(22, 6, 25, 'W', { t: 2 }); g.ball(15.5, 22, 1.5, 'R'); g.line(14, 23, 13, 26, 1, 'W', 2); g.line(17, 23, 18, 26, 1, 'W', 2); },
-      side(g) { for (let y = 19; y <= 27; y++) for (let x = y < 22 ? PROF_A + 2 : PROF_A; x <= PROF_B; x++) g.set(x, y, ((x >> 1) + (y >> 1)) % 2 ? 'W' : 'R', 1); g.span(22, 9, PROF_B, 'W', { t: 2 }); },
+      side(g) { for (let y = 19; y <= 27; y++) for (let x = y < 22 ? PROF_A + 1 : PROF_A; x <= PROF_B; x++) g.set(x, y, ((x >> 1) + (y >> 1)) % 2 ? 'W' : 'R', 1); laccioProfilo(g, 'W'); },
     },
   },
   /* Barbiere: baffi a manubrio e pettine nel taschino */
@@ -94,7 +108,7 @@ const ACC = {
     body: {
       down(g) { apron(g, 10, 21, 'B', { pocket: 'B' }); g.line(19, 23, 19, 26, 1, 'W', 1); g.set(19, 22, 'K'); g.fillBlock(12, 23, 12, 26, 'Y', 1); },
       up(g) { g.span(22, 6, 25, 'B', { t: 2 }); g.ball(15.5, 22, 1.5, 'B'); },
-      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? PROF_A + 2 : PROF_A, PROF_B, 'B', { lit: 0.2, dark: 0.85 }); g.span(22, 9, PROF_B, 'B', { t: 2 }); g.fillBlock(19, 23, 19, 26, 'Y', 1); },
+      side(g) { for (let y = 19; y <= 27; y++) g.span(y, y < 22 ? PROF_A + 1 : PROF_A, PROF_B, 'B', { lit: 0.2, dark: 0.85 }); laccioProfilo(g, 'B'); g.fillBlock(20, 23, 20, 26, 'Y', 1); },
     },
     face: {
       down(g) { g.line(24, 4, 27, 7, 1, 'Y', 1); g.set(28, 8, 'K'); },
