@@ -266,11 +266,16 @@ function drawStatue(sx, sy, time) {
     const keep = S.look; S.look = STATUE_LOOK; applyLook();
     try { drawHero(null, STATUE_FEET.x - 16, STATUE_FEET.y - 32, 'down', 0, false, 'lift'); } finally { S.look = keep; applyLook(); }
   }
-  /* il piccone di pietra, piantato accanto */
-  rect(STATUE_FEET.x + 9, STATUE_FEET.y - 26, 2, 26, '#9a9384');
-  rect(STATUE_FEET.x + 10, STATUE_FEET.y - 26, 1, 26, '#b6ae9d');
-  rect(STATUE_FEET.x + 5, STATUE_FEET.y - 28, 11, 3, '#b6ae9d');
-  rect(STATUE_FEET.x + 5, STATUE_FEET.y - 27, 11, 1, '#cfc7b4');
+  /* IL PICCONE di pietra, piantato accanto alla statua: manico col contorno e la testa a due
+     punte ricurve, come quello del gioco. Senza contorno e con la testa dritta sembrava un
+     tergivetro (segnalato). Sta staccato dalla figura, o si legge come un bastone sul cappello. */
+  const px0 = STATUE_FEET.x + 13, py0 = STATUE_FEET.y;
+  rect(px0 - 1, py0 - 23, 4, 23, '#3e3a34');
+  rect(px0, py0 - 22, 2, 22, '#9a9384'); rect(px0, py0 - 22, 1, 22, '#c6bfae');
+  rect(px0 - 6, py0 - 26, 14, 4, '#3e3a34');                       // testa
+  rect(px0 - 5, py0 - 25, 12, 2, '#b6ae9d'); rect(px0 - 5, py0 - 25, 12, 1, '#d8d1c0');
+  rect(px0 - 7, py0 - 24, 2, 3, '#3e3a34'); rect(px0 + 6, py0 - 24, 2, 3, '#3e3a34');    // le punte che scendono
+  rect(px0 - 6, py0 - 23, 1, 1, '#b6ae9d'); rect(px0 + 7, py0 - 23, 1, 1, '#b6ae9d');
   ctx.restore();
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
