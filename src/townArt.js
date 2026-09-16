@@ -31,7 +31,10 @@ function smoke(g, x, y, an, rgb, still) {
 
 /* ---------- materiali della parete ---------- */
 export function wallFace(g, x, y, w, h, base, kind) {
-  g.rect(x - 1, y, w + 2, h, LN);
+  /* il contorno del muro porta il COLORE del muro, molto scurito. Con la riga nera attorno a
+     ogni casa la città sembrava fatta di adesivi ritagliati (segnalato: "vedo ancora
+     tantissime lineart fatte con il nero"). */
+  g.rect(x - 1, y, w + 2, h, sh(g, base, 0.28));
   g.rect(x, y, w, h, base);
   if (kind === 'planks') {
     for (let i = 0; i < w; i += 8) { g.rect(x + i, y, 1, h, sh(g, base, 0.74)); g.rect(x + i + 1, y, 1, h, sh(g, base, 1.1)); if ((i * 7) % 5 === 1) g.rect(x + i + 4, y + 6 + (i % 13), 2, 2, sh(g, base, 0.7)); }
@@ -59,7 +62,7 @@ export function wallFace(g, x, y, w, h, base, kind) {
 }
 /* zoccolo di pietra: la riga che appoggia l'edificio a terra */
 export function foundation(g, x, y, w) {
-  g.rect(x - 2, y, w + 4, 8, LN);
+  g.rect(x - 2, y, w + 4, 8, sh(g, '#8f887a', 0.4));                 // pietra scura, non nero
   for (let i = 0; i < w + 2; i += 10) { const c = ['#8f887a', '#9a9285', '#7f776a'][(i / 10) % 3]; g.rect(x - 1 + i, y + 1, Math.min(9, w + 2 - i), 6, c); g.rect(x - 1 + i, y + 1, Math.min(9, w + 2 - i), 1, '#b5ad9e'); }
 }
 /* ---------- tetto visto di fronte, con la gronda che sporge ---------- */
@@ -83,14 +86,15 @@ export function roof(g0, x, y, w, h, BB) {
     },
   };
   const r1 = BB.roof, r2 = BB.roof2 || sh(g, BB.roof, 1.2);
+  const LNR = sh(g, r1, 0.34);                                       // contorno del tetto: la sua tinta, scurissima
   g0.rect(x - 7, y + h, w + 14, 4, 'rgba(20,12,6,.35)');     // ombra della gronda sul muro
   /* contorno: le due oblique, il colmo e la linea di gronda */
   for (let yy = y - 1; yy <= y + h; yy++) {
     const a = bordoL(yy), b = bordoR(yy);
-    g0.rect(a - 1, yy, 1, 1, LN); g0.rect(b, yy, 1, 1, LN);
+    g0.rect(a - 1, yy, 1, 1, LNR); g0.rect(b, yy, 1, 1, LNR);
   }
-  g0.rect(bordoL(y) - 1, y - 1, bordoR(y) - bordoL(y) + 2, 1, LN);
-  g0.rect(bordoL(y + h) - 1, y + h, bordoR(y + h) - bordoL(y + h) + 2, 1, LN);
+  g0.rect(bordoL(y) - 1, y - 1, bordoR(y) - bordoL(y) + 2, 1, LNR);
+  g0.rect(bordoL(y + h) - 1, y + h, bordoR(y + h) - bordoL(y + h) + 2, 1, LNR);
   g.rect(x - OV, y, w + OV * 2, h, r1);
   const d = sh(g, r1, 0.72), l = sh(g, r2, 1.1);
   switch (BB.mat) {
@@ -117,8 +121,8 @@ export function roof(g0, x, y, w, h, BB) {
   {
     const cima = BB.snow ? y - 4 : y - 1;
     const a0 = bordoL(y) - (BB.snow ? 3 : 2), b0 = bordoR(y) + (BB.snow ? 2 : 1);
-    g0.rect(a0, cima, b0 - a0, 1, LN);
-    if (BB.snow) { g0.rect(a0, cima, 1, 4, LN); g0.rect(b0 - 1, cima, 1, 4, LN); }
+    g0.rect(a0, cima, b0 - a0, 1, LNR);
+    if (BB.snow) { g0.rect(a0, cima, 1, 4, LNR); g0.rect(b0 - 1, cima, 1, 4, LNR); }
     /* LE OBLIQUE SONO UNA SCALA, e ogni gradino ha anche un lato in ALTO: mettendo la linea
        solo di fianco, guardando la casa dall'alto lo spiovente restava scoperto proprio dove
        si staglia sul terreno. Qui si chiude il gradino: dal bordo di questa riga a quello
@@ -127,8 +131,8 @@ export function roof(g0, x, y, w, h, BB) {
     for (let yy = y; yy <= y + h; yy++) {
       const a = bordoL(yy), b = bordoR(yy);
       if (pa !== null) {
-        if (a < pa) g0.rect(a - 1, yy - 1, pa - a + 1, 1, LN);
-        if (b > pb) g0.rect(pb, yy - 1, b - pb + 1, 1, LN);
+        if (a < pa) g0.rect(a - 1, yy - 1, pa - a + 1, 1, LNR);
+        if (b > pb) g0.rect(pb, yy - 1, b - pb + 1, 1, LNR);
       }
       pa = a; pb = b;
     }
@@ -157,8 +161,9 @@ export function flowerBox(g, x, y, w, flowers, an = NOAN) {
 /* ---------- porta con telaio, gradino, maniglia ---------- */
 export function door(g, cx, bottom, c1, c2, arched) {
   const w = 22, h = 30, x = cx - w / 2, y = bottom - h - 3;
-  g.rect(x - 4, y - 4, w + 8, h + 4, LN); g.rect(x - 3, y - 3, w + 6, h + 3, '#8f887a'); g.rect(x - 3, y - 3, w + 6, 1, '#c4bdb0');   // stipite di pietra
-  if (arched) { g.rect(x - 1, y - 6, w + 2, 4, LN); g.rect(x, y - 5, w, 3, '#8f887a'); }
+  const LND = sh(g, c1, 0.42), LNS = sh(g, '#8f887a', 0.4);          // legno e pietra scuri
+  g.rect(x - 4, y - 4, w + 8, h + 4, LNS); g.rect(x - 3, y - 3, w + 6, h + 3, '#8f887a'); g.rect(x - 3, y - 3, w + 6, 1, '#c4bdb0');   // stipite di pietra
+  if (arched) { g.rect(x - 1, y - 6, w + 2, 4, LNS); g.rect(x, y - 5, w, 3, '#8f887a'); }
   g.rect(x, y, w, h, c1);
   g.rect(x + 2, y + 2, w - 4, h - 2, c2);
   g.rect(x + 4, y + 4, (w >> 1) - 5, 10, sh(g, c2, 1.2)); g.rect(x + (w >> 1) + 1, y + 4, (w >> 1) - 5, 10, sh(g, c2, 1.2));
@@ -169,7 +174,7 @@ export function door(g, cx, bottom, c1, c2, arched) {
 }
 /* tenda a strisce con la frangia */
 export function awning(g, x, y, w, c1, c2, an = NOAN) {
-  g.rect(x - 3, y - 1, w + 6, 12, LN);
+  g.rect(x - 3, y - 1, w + 6, 12, sh(g, c1, 0.4));                   // la tenda si contorna col suo rosso scuro
   for (let i = 0; i < w + 4; i += 8) { g.rect(x - 2 + i, y, 4, 10, c1); g.rect(x + 2 + i, y, 4, 10, c2); }
   g.rect(x - 2, y, w + 4, 2, 'rgba(255,255,255,.25)');
   /* frangia nel vento: un'onda di un pixel che passa da una linguetta all'altra */
@@ -230,7 +235,7 @@ function base(g, w, h, wallCol, kind, BB, top) {
 }
 
 export function drawStoreFront(g, w, h, BB, glass, night, an = NOAN) {
-  base(g, w, h, '#7fa06a', 'planks', BB, 18);
+  base(g, w, h, '#7fa06a', 'planks', BB, 16);
   roof(g, 3, -6, w - 6, 22, BB);
   awning(g, 6, 20, w - 12, '#c65a54', '#f1e6cc', an);
   windowBox(g, 10, 36, 22, 16, glass, null, night);
@@ -257,7 +262,7 @@ export function drawInnFront(g, w, h, BB, glass, night, an = NOAN) {
   g.rect(w - 10 + sw, 30, 14, 12, LN); g.rect(w - 9 + sw, 31, 12, 10, '#d9b98a'); g.rect(w - 6 + sw, 33, 5, 6, '#c9a06a'); g.rect(w - 6 + sw, 33, 5, 2, '#f3ecda');
 }
 export function drawBarberFront(g, w, h, BB, glass, night, an = NOAN) {
-  base(g, w, h, '#eef4f6', 'tiles', BB, 18);
+  base(g, w, h, '#eef4f6', 'tiles', BB, 16);
   roof(g, 3, -6, w - 6, 22, BB);
   awning(g, 6, 20, w - 12, '#5a86c8', '#f3ecda', an);
   windowBox(g, 9, 36, 22, 16, glass, null, night);
@@ -276,7 +281,9 @@ export function drawBarberFront(g, w, h, BB, glass, night, an = NOAN) {
   g.rect(px0 - 2, h - 44, 12, 4, '#8f9aa3'); g.rect(px0 - 2, h - 8, 12, 3, '#8f9aa3'); g.rect(px0 + 2, h - 47, 4, 3, '#c9a227');
 }
 export function drawTailorFront(g, w, h, BB, glass, night, an = NOAN) {
-  base(g, w, h, '#f2e4ea', 'plaster', BB, 18);
+  /* il muro parte dove FINISCE il tetto (16): a 18 restava una riga di muro scoperta per
+     tutta la larghezza, senza contorno, proprio sotto la gronda */
+  base(g, w, h, '#f2e4ea', 'plaster', BB, 16);
   roof(g, 3, -6, w - 6, 22, BB);
   /* tenda a smerlo */
   g.rect(4, 19, w - 8, 8, LN); g.rect(5, 20, w - 10, 6, '#b06a8c');

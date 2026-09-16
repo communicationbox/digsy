@@ -31,7 +31,11 @@ function dentroForma(s, x, y) {
   const dx = x - (s.x0 + vx * u), dy = y - (s.y0 + vy * u);
   return dx * dx + dy * dy <= s.r * s.r + s.r;
 }
-export function volume(g, shapes, fill, light, dark, line = LN) {
+export function volume(g, shapes, fill, light, dark, line) {
+  /* CONTORNO A COLORE: un tono molto scuro DELLA TINTA del pezzo, non il nero. Il nero
+     attorno a tutto appiattisce e fa sembrare ogni oggetto un adesivo. `null` = niente
+     contorno, cioè paesaggio. */
+  if (line === undefined) line = g.shade8(fill, 0.42);
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const s of shapes) {
     const b = s.k === 'r' ? [s.x, s.y, s.x + s.w, s.y + s.h]
@@ -52,9 +56,10 @@ export function volume(g, shapes, fill, light, dark, line = LN) {
 export function fountainArt(g, time) {
   const cx = 32, cy = 42;
   shadowE(g, cx + 2, 60, 30, 5);
-  ellipse(g, cx, cy + 4, 31, 17, LN); ellipse(g, cx, cy + 3, 30, 16, '#8f887a'); ellipse(g, cx, cy + 1, 30, 15, '#b8b0a2');           // bordo
+  const LNP = g.shade8('#b8b0a2', 0.34);                 // pietra scura, non nero
+  ellipse(g, cx, cy + 4, 31, 17, LNP); ellipse(g, cx, cy + 3, 30, 16, '#8f887a'); ellipse(g, cx, cy + 1, 30, 15, '#b8b0a2');           // bordo
   ellipse(g, cx - 4, cy - 3, 20, 5, '#d6cfbf');
-  ellipse(g, cx, cy + 2, 24, 11, LN); ellipse(g, cx, cy + 2, 23, 10, '#3f7fa8'); ellipse(g, cx, cy + 3, 21, 8, '#4d8fb5'); ellipse(g, cx + 2, cy + 5, 15, 5, '#5ca6c8');  // acqua
+  ellipse(g, cx, cy + 2, 24, 11, g.shade8('#3f7fa8', 0.42)); ellipse(g, cx, cy + 2, 23, 10, '#3f7fa8'); ellipse(g, cx, cy + 3, 21, 8, '#4d8fb5'); ellipse(g, cx + 2, cy + 5, 15, 5, '#5ca6c8');  // acqua
   const t = time / 1000;
   for (let i = 0; i < 3; i++) {                                                          // cerchi che si allargano
     const k = (t * 0.22 + i / 3) % 1, rx = 4 + Math.round(k * 16), ry = 2 + Math.round(k * 6), a = (0.6 * (1 - k)).toFixed(2);
@@ -62,9 +67,9 @@ export function fountainArt(g, time) {
   }
   for (const [x, y] of [[cx - 12, cy + 6], [cx + 10, cy + 8], [cx + 4, cy - 1]]) { g.rect(x, y, 3, 2, '#c9a227'); if (Math.floor(time / 600 + x) % 3 === 0) g.px(x, y, '#fff3a0'); }   // monetine
   /* colonna con la coppa */
-  g.rect(cx - 5, cy - 16, 10, 20, LN); g.rect(cx - 4, cy - 16, 8, 19, '#b8b0a2'); g.rect(cx - 4, cy - 16, 3, 19, '#d6cfbf'); g.rect(cx + 2, cy - 16, 2, 19, '#8f887a');
-  ellipse(g, cx, cy - 18, 12, 4, LN); ellipse(g, cx, cy - 19, 11, 3, '#b8b0a2'); ellipse(g, cx, cy - 19, 8, 2, '#4d8fb5');
-  g.rect(cx - 2, cy - 30, 4, 10, LN); g.rect(cx - 1, cy - 30, 2, 10, '#c9c2b4');
+  g.rect(cx - 5, cy - 16, 10, 20, LNP); g.rect(cx - 4, cy - 16, 8, 19, '#b8b0a2'); g.rect(cx - 4, cy - 16, 3, 19, '#d6cfbf'); g.rect(cx + 2, cy - 16, 2, 19, '#8f887a');
+  ellipse(g, cx, cy - 18, 12, 4, LNP); ellipse(g, cx, cy - 19, 11, 3, '#b8b0a2'); ellipse(g, cx, cy - 19, 8, 2, '#4d8fb5');
+  g.rect(cx - 2, cy - 30, 4, 10, LNP); g.rect(cx - 1, cy - 30, 2, 10, '#c9c2b4');
   /* zampilli che ricadono nella vasca */
   const j = (time / 2200) % 1;                                                      // lento: una fontana, non un idrante
   for (const side of [-1, 1]) for (let k = 0; k < 14; k++) {
@@ -174,14 +179,15 @@ export function mailboxArt(g) {
 /* AFFIORAMENTO D'OSSA: montarolo di terra con il cranio e le costole che spuntano */
 export function siteArt(g, remaining, time, phase) {
   shadowE(g, 16, 28, 14, 3);
-  ellipse(g, 16, 23, 15, 8, LN); ellipse(g, 16, 22, 14, 7, '#a8824e'); ellipse(g, 14, 19, 10, 4, '#c9a06a'); ellipse(g, 12, 17, 5, 2, '#dcbc88');
+  const LNT = g.shade8('#a8824e', 0.4), LNO2 = g.shade8('#ece5d2', 0.34);   // terra e osso scuri
+  ellipse(g, 16, 23, 15, 8, LNT); ellipse(g, 16, 22, 14, 7, '#a8824e'); ellipse(g, 14, 19, 10, 4, '#c9a06a'); ellipse(g, 12, 17, 5, 2, '#dcbc88');
   const C = remaining > 0 ? '#ece5d2' : '#b8b0a2', S = remaining > 0 ? '#c3b79a' : '#8f887a';
   for (let i = 0; i < 3; i++) {                                                                  // tre costole ad arco, larghe e pulite
     const x0 = 5 + i * 5;
-    for (let k = 0; k <= 10; k++) { const x = x0 + k, y = 21 - Math.round(Math.sin((k / 10) * Math.PI) * (8 - i)); g.rect(x, y, 2, 3, LN); }
+    for (let k = 0; k <= 10; k++) { const x = x0 + k, y = 21 - Math.round(Math.sin((k / 10) * Math.PI) * (8 - i)); g.rect(x, y, 2, 3, LNO2); }
     for (let k = 0; k <= 10; k++) { const x = x0 + k, y = 21 - Math.round(Math.sin((k / 10) * Math.PI) * (8 - i)); g.rect(x, y, 2, 2, C); }
   }
-  g.rect(19, 10, 11, 10, LN); g.rect(20, 11, 9, 8, C); g.rect(20, 11, 9, 2, '#fbf6ea'); g.rect(20, 17, 9, 2, S);                   // cranio
+  g.rect(19, 10, 11, 10, LNO2); g.rect(20, 11, 9, 8, C); g.rect(20, 11, 9, 2, '#fbf6ea'); g.rect(20, 17, 9, 2, S);                   // cranio
   g.rect(22, 13, 2, 2, '#2e2618'); g.rect(26, 13, 2, 2, '#2e2618');
   for (const [x, y] of [[4, 26], [27, 25], [9, 28]]) { g.rect(x, y, 3, 2, '#7a6e58'); g.px(x, y, '#b5a982'); }
   if (remaining > 0) {

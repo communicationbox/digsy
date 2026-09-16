@@ -31,7 +31,12 @@ const render = await import('../src/render.js');
 const sprites = await import('../src/sprites.js');
 const data = await import('../src/data.js');
 const state = await import('../src/state.js');
+const noise = await import('../src/noise.js');
 state.initState();                                   // Digsy ha bisogno del suo aspetto per esistere
+/* SEME FISSO: le decorazioni scelgono la loro sagoma con vhash, che dipende dal seme del
+   mondo — e initState ne tira uno a caso. Senza fissarlo, due giri dello stesso controllo
+   misuravano due disegni diversi e il verde/rosso diventava una lotteria. */
+noise.setSeed(12345);
 const g = brush.BRUSH;
 
 const W = 260, H = 300;   // ci deve stare anche il museo (5 caselle + gronda), o il taglio falsa la misura
@@ -98,6 +103,13 @@ const SPRITE = [
   ['conchiglia rotta', false, () => props.drawShell(32, 40, false)],
   ['fiore di prato', false, () => props.drawFlower(32, 40, 3, 5, false)],
   ['canne', false, () => props.drawReed(32, 40, 0, 3, 5, false)],
+  ['tronco caduto', false, () => props.drawLogfall(32, 40, 3, 5, false)],
+  ['tronco nella palude', false, () => props.drawLogfall(32, 40, 4, 7, true)],
+  ['masso muschiato', false, () => props.drawMossrock(32, 40, 3, 5)],
+  ['mucchio d\'ossa', false, () => props.drawBonepile(32, 40, 3, 5)],
+  ['tumulo d\'argilla', false, () => props.drawClaymound(32, 40, 3, 5)],
+  ['tumulo di torba', false, () => props.drawPeatmound(32, 40, 3, 5)],
+  ['cumulo di neve', false, () => props.drawSnowmound(32, 40, 3, 5)],
   /* la BUCA non è in elenco di proposito: non è un oggetto posato sul terreno ma un incavo
      NEL terreno — è scura tutta, e il "contorno" non vuol dire niente. */
   // CITTÀ — pannello con {act}
@@ -135,7 +147,7 @@ for (const [nome, tocca, fn] of SPRITE) {
   const soglia = sottile ? (tocca ? 0.08 : 0.03) : (tocca ? 0.7 : 0.35);
   const passa = tocca ? voto >= soglia : voto <= soglia;
   check((tocca ? 'SI TOCCA  ' : 'paesaggio ') + nome, passa,
-    (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '%');
+    (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '% · corpo ' + m.corpo + ' area ' + m.area);
 }
 
 console.log(`\ncontorno: ${ok} ok, ${fail} fail`);

@@ -8865,5 +8865,51 @@ sprites.applyLook();
   S.commission = null;
 }
 
+/* ---- OGNI BIOMA HA PIÙ DI UNA COSA CHE INGOMBRA ----
+   Nei Prati c'era solo la rotoballa, e ripetuta ogni pochi passi faceva sembrare il mondo un
+   timbro (segnalato con foto). Qui si cammina davvero su un pezzo di ogni zona e si conta
+   quante SAGOME diverse si incontrano: se una zona torna ad averne una sola, il test lo dice. */
+{
+  const world2 = await import('../src/world.js');
+  const reg = await import('../src/regions.js');
+  const conta = new Map();
+  for (let ty = -400; ty < 400; ty += 1) for (let tx = -400; tx < 400; tx += 1) {
+    const d = world2.decoAt(tx, ty); if (!d) continue;
+    const z = reg.zoneIdxAt(tx, ty);
+    if (!conta.has(z)) conta.set(z, new Map());
+    const m = conta.get(z); m.set(d, (m.get(d) || 0) + 1);
+  }
+  const poveri = [];
+  for (const [z, m] of conta) {
+    /* si contano solo le sagome che si incontrano DAVVERO (almeno venti volte in mezzo milione
+       di caselle): una decorazione rarissima non rompe la monotonia di nessuno */
+    const vere = [...m.entries()].filter(([, n]) => n >= 20).map(([k2]) => k2);
+    if (vere.length < 4) poveri.push('zona ' + z + ': ' + vere.join(','));
+  }
+  check('ogni bioma ha almeno quattro cose diverse in giro', poveri.length === 0, poveri.join(' · '));
+  /* e gli ingombri di SCENARIO (quelli senza contorno) ci sono in tutte le zone: sono loro a
+     rompere il vuoto senza promettere un'interazione che non c'è */
+  const senza = [];
+  for (const [z, m] of conta) if (!world2.SCENERY_SOLID.some(k2 => (m.get(k2) || 0) >= 20)) senza.push('zona ' + z);
+  check('ogni bioma ha un ingombro di scenario suo', senza.length === 0, senza.join(' '));
+}
+
+/* ---- L'ARREDO URBANO NON FINISCE SOTTO I TETTI ----
+   Un edificio non occupa solo le sue caselle: il tetto sfora verso l'alto. Una panchina messa
+   lì sopra veniva coperta e sembrava buttata dietro la casa (segnalato con foto). */
+{
+  const world3 = await import('../src/world.js');
+  let coperti = 0, esempi = '';
+  for (let cx = 0; cx < 6; cx++) for (let cy = 0; cy < 6; cy++) {
+    const t = world3.townForCell(cx, cy); if (!t) continue;
+    for (const d of t.decos || []) for (const b of t.buildings || []) {
+      if (d.x >= b.x0 && d.x <= b.x1 && d.y >= b.y0 - 2 && d.y <= b.y1) {
+        coperti++; if (!esempi) esempi = d.type + ' in ' + t.name;
+      }
+    }
+  }
+  check('nessun arredo urbano finisce sotto il tetto di un edificio', coperti === 0, coperti + ' (' + esempi + ')');
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

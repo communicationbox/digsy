@@ -97,6 +97,7 @@ function decoCompute(tx, ty) {
       if (vhash(tx, ty, 7) < 0.04) return 'cactus';
       if (vhash(tx, ty, 8) < 0.025) return 'bonespire';
       if (vhash(tx, ty, 9) < 0.05) return 'shell';
+      if (vhash(tx, ty, 180) < 0.035) return 'bonepile';        // ingombro di scenario
     }
     if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
     return null;
@@ -107,10 +108,13 @@ function decoCompute(tx, ty) {
       if (vhash(tx, ty, 11) < 0.09) return 'deadtree';
       if (vhash(tx, ty, 12) < 0.06) return 'mushroom';
     }
+    if (t === FOREST && vhash(tx, ty, 181) < 0.05) return 'logfall';
     if (t === GRASS) {
       if (vhash(tx, ty, 7) < 0.08) return 'deadtree';
       if (vhash(tx, ty, 12) < 0.05) return 'mushroom';
       if (vhash(tx, ty, 13) < 0.035) return 'stump';
+      if (vhash(tx, ty, 182) < 0.03) return 'mossrock';
+      if (vhash(tx, ty, 183) < 0.025) return 'logfall';
     }
     if ((t === MTN || t === DIRT) && vhash(tx, ty, 8) < 0.22) return 'boulder';
     return null;
@@ -119,6 +123,7 @@ function decoCompute(tx, ty) {
     if (t === DIRT || t === GRASS) {
       if (vhash(tx, ty, 7) < 0.05) return 'redspire';
       if (vhash(tx, ty, 11) < 0.028) return 'orecrystal';
+      if (vhash(tx, ty, 184) < 0.04) return 'claymound';
     }
     if (t === FOREST && vhash(tx, ty, 7) < 0.16) return 'tree';
     if (t === MTN && vhash(tx, ty, 8) < 0.45) return 'boulder';
@@ -128,6 +133,8 @@ function decoCompute(tx, ty) {
     if (t === GRASS) {
       if (vhash(tx, ty, 7) < 0.11) return 'reed';
       if (vhash(tx, ty, 11) < 0.05) return 'deadtree';
+      if (vhash(tx, ty, 185) < 0.035) return 'peatmound';
+      if (vhash(tx, ty, 186) < 0.025) return 'logfall';
     }
     if (t === FOREST) {
       if (vhash(tx, ty, 7) < 0.22) return 'tree';
@@ -140,6 +147,7 @@ function decoCompute(tx, ty) {
     if (t === GRASS || t === DIRT) {
       if (vhash(tx, ty, 7) < 0.05) return 'icecrystal';
       if (vhash(tx, ty, 11) < 0.03) return 'tree';
+      if (vhash(tx, ty, 187) < 0.045) return 'snowmound';
     }
     if (t === FOREST && vhash(tx, ty, 7) < 0.22) return 'tree';
     if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
@@ -148,7 +156,11 @@ function decoCompute(tx, ty) {
   // PRATI DORATI: alberi, fiori, balle di fieno
   if (t === FOREST && vhash(tx, ty, 7) < 0.25) return 'tree';
   if (t === GRASS && vhash(tx, ty, 7) < 0.045) return 'tree';
-  if (t === GRASS && vhash(tx, ty, 14) < 0.016) return 'hay';
+  /* PRATI: la rotoballa non è più l'unica cosa che rompe il prato — con un solo ingombro
+     ripetuto ogni pochi passi il mondo sembrava un timbro (segnalato con foto) */
+  if (t === GRASS && vhash(tx, ty, 14) < 0.010) return 'hay';
+  if (t === GRASS && vhash(tx, ty, 188) < 0.012) return 'mossrock';
+  if (t === GRASS && vhash(tx, ty, 189) < 0.008) return 'logfall';
   if (t === DIRT && vhash(tx, ty, 8) < 0.11) return 'boulder';
   if (t === MTN && vhash(tx, ty, 8) < 0.4) return 'boulder';
   if (t === SAND && vhash(tx, ty, 9) < 0.05) return 'shell';
@@ -168,9 +180,12 @@ export function harvestDecoAt(tx, ty) {
   if (!d || !HARVEST_DECO[d]) return null;
   return vhash(tx, ty, 71) < HARVEST_SHARE ? HARVEST_DECO[d] : null;
 }
+/* gli ingombri di SCENARIO fermano il passo come gli altri: sono ostacoli veri, solo che non
+   ci si fa niente (niente accetta, niente piccone) e quindi non hanno il contorno */
+export const SCENERY_SOLID = ['stump', 'hay', 'logfall', 'mossrock', 'bonepile', 'claymound', 'peatmound', 'snowmound'];
 export function decoSolid(d) {
   return d === 'tree' || d === 'boulder' || d === 'cactus' || d === 'bonespire' || d === 'deadtree' ||
-    d === 'stump' || d === 'redspire' || d === 'orecrystal' || d === 'icecrystal' || d === 'hay';
+    d === 'redspire' || d === 'orecrystal' || d === 'icecrystal' || SCENERY_SOLID.includes(d);
 }
 
 /* ---------- OGGETTI di superficie raccoglibili con E (oggetti VERI del bioma, da vendere) ----------
@@ -304,8 +319,13 @@ export function townForCell(cx, cy) {
       }
       town.roads = roads;
       /* arredo urbano: mai su edifici, davanti alle porte, sulle strade o fuori piazza */
+      /* ROOF_BAND: l'edificio non sta solo nelle sue caselle — il tetto sfora verso l'ALTO di
+         un paio di caselle, e quello che finiva lì sopra veniva coperto dal tetto e sembrava
+         buttato dietro la casa (segnalato con foto: una panchina mezza dentro il tetto del
+         barbiere). L'arredo urbano deve vedersi tutto: quelle righe sono vietate. */
+      const ROOF_BAND = 2;
       const forb = (x, y) => {
-        for (const b of B) { if (x >= b.x0 && x <= b.x1 && y >= b.y0 && y <= b.y1) return true; if (x === b.doorx && y >= b.doory + 1 && y <= b.doory + 3) return true; }
+        for (const b of B) { if (x >= b.x0 && x <= b.x1 && y >= b.y0 - ROOF_BAND && y <= b.y1) return true; if (x === b.doorx && y >= b.doory + 1 && y <= b.doory + 3) return true; }
         if (roads.has(x + ',' + y)) return true;
         return x < town.x0 || x > town.x1 || y < town.y0 || y > town.y1;
       };
@@ -336,7 +356,11 @@ export function townForCell(cx, cy) {
       const fnt = decos.find(d => d.type === 'fountain');
       const farFromFnt = (x, y) => !fnt || Math.max(Math.abs(x - (fnt.x + 0.5)), Math.abs(y - (fnt.y + 0.5))) >= 4;
       let board = null;
-      for (const [x, y] of [[C.x + 5, C.y - 1], [C.x - 5, C.y - 1], [C.x + 6, C.y], [C.x - 6, C.y], [C.x + 5, C.y - 2], [C.x - 5, C.y - 2], [C.x + 4, C.y], [C.x - 4, C.y], [C.x + 3, C.y - 1], [C.x - 3, C.y - 1]]) {
+      for (const [x, y] of [[C.x + 5, C.y - 1], [C.x - 5, C.y - 1], [C.x + 6, C.y], [C.x - 6, C.y], [C.x + 5, C.y - 2], [C.x - 5, C.y - 2], [C.x + 4, C.y], [C.x - 4, C.y], [C.x + 3, C.y - 1], [C.x - 3, C.y - 1],
+        /* ripieghi più in basso: con la fascia del tetto vietata, nelle piazze strette le
+           posizioni alte possono essere tutte occupate e il cartello non deve mai mancare */
+        [C.x + 5, C.y + 1], [C.x - 5, C.y + 1], [C.x + 6, C.y + 1], [C.x - 6, C.y + 1],
+        [C.x + 4, C.y + 2], [C.x - 4, C.y + 2], [C.x + 7, C.y], [C.x - 7, C.y]]) {
         if (!forb(x, y) && !occupiedByDeco(x, y) && farFromFnt(x, y)) { board = { x, y }; break; }
       }
       /* STATUA DEL NONNO: solo nelle CITTÀ, accanto al Museo. È lui che chiede al giocatore di

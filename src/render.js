@@ -28,7 +28,7 @@ import { goal as goalMark } from './tapmove.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
-import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay } from './props.js';
+import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawBonespire, drawDeadtree, drawMushroom, drawStump, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal, drawHay, drawLogfall, drawMossrock, drawBonepile, drawClaymound, drawPeatmound, drawSnowmound } from './props.js';
 import { drawInteriorScene } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
@@ -1717,6 +1717,13 @@ export function render(time) {
     else if (d === 'reed') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 14, f: () => { if (rip) shadow(sx + 8, sy + 14, 4); drawReed(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 1, time, tx, ty); } }); }
     else if (d === 'icecrystal') ents.push({ y: sy + 13, f: () => drawIcecrystal(sx, sy, tx, ty) });
     else if (d === 'hay') ents.push({ y: sy + 13, f: () => drawHay(sx, sy, tx, ty) });
+    /* ingombri di SCENARIO: fermano il passo ma non si toccano (niente contorno) */
+    else if (d === 'logfall') ents.push({ y: sy + 12, f: () => drawLogfall(sx, sy, tx, ty, zoneIdxAt(tx, ty) === 4) });
+    else if (d === 'mossrock') ents.push({ y: sy + 12, f: () => drawMossrock(sx, sy, tx, ty) });
+    else if (d === 'bonepile') ents.push({ y: sy + 12, f: () => drawBonepile(sx, sy, tx, ty) });
+    else if (d === 'claymound') ents.push({ y: sy + 13, f: () => drawClaymound(sx, sy, tx, ty) });
+    else if (d === 'peatmound') ents.push({ y: sy + 12, f: () => drawPeatmound(sx, sy, tx, ty) });
+    else if (d === 'snowmound') ents.push({ y: sy + 13, f: () => drawSnowmound(sx, sy, tx, ty) });
   }
   // X delle mappe del tesoro in vista
   for (const m of (S.maps || [])) {
