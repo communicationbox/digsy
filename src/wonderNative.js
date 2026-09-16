@@ -71,7 +71,10 @@ function inShape(s, x, y) {
 }
 /* dipinge una sagoma composta. `tint(x, y, dentro)` può cambiare il colore del corpo (venature,
    anelli, strati); torna la funzione `dentro` così i dettagli si possono ritagliare sul pezzo. */
-export function forma(g, shapes, fill, light, dark, line = '#241a10', tint) {
+export function forma(g, shapes, fill, light, dark, line, tint) {
+  /* CONTORNO A COLORE: la tinta del pezzo, molto scurita. Il nero fisso attorno a una
+     meraviglia alta sei caselle si vede da lontano e la fa sembrare un ritaglio. */
+  if (line === undefined) line = g.shade8(fill, 0.4);
   let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
   for (const s of shapes) {
     const b = s.k === 'r' ? [s.x, s.y, s.x + s.w, s.y + s.h]
@@ -258,10 +261,10 @@ function disegna_totem(g, t) {
   /* le ALI stanno dietro al palo: piume tonde che si aprono a ventaglio */
   for (const side of [-1, 1]) for (let k = 4; k >= 0; k--) {
     const x = side * (15 + k * 7), y = top + 3 + k * 3, len = 22 - k * 3;
-    forma(g, [C(x, y, x + side * 3, y + len, 4)], k % 2 ? '#a97a4c' : '#8a5f38', '#d8973c', '#6e4a2e', '#2a1e14');
+    forma(g, [C(x, y, x + side * 3, y + len, 4)], k % 2 ? '#a97a4c' : '#8a5f38', '#d8973c', '#6e4a2e');
   }
   /* IL PALO, tutto in un pezzo */
-  const dentro = forma(g, [R(-16, top, 32, -6 - top, 12), E(0, -6, 17, 7)], '#8a5f38', '#b08a58', '#5c3d22', '#2a1e14');
+  const dentro = forma(g, [R(-16, top, 32, -6 - top, 12), E(0, -6, 17, 7)], '#8a5f38', '#b08a58', '#5c3d22');
   /* dipinge DENTRO il palo lasciando intatto il pixel di bordo: il filo di luce e l'ombra del
      cilindro devono sopravvivere alle fasce colorate */
   const dipingi = (x0, y0, w, h, c) => {
@@ -272,7 +275,7 @@ function disegna_totem(g, t) {
     const y0 = -6 - (i + 1) * H, c = f.col, d = shade(c, 0.62), l = shade(c, 1.24);
     dipingi(-16, y0 + 2, 32, H - 3, c);                       // fascia colorata del volto
     dipingi(-16, y0 + 2, 6, H - 3, l); dipingi(10, y0 + 2, 6, H - 3, d);   // cilindro: luce e ombra
-    dipingi(-16, y0, 32, 2, '#2a1e14'); dipingi(-16, y0 + 2, 32, 1, shade(c, 1.4));   // anello inciso fra un volto e l'altro
+    dipingi(-16, y0, 32, 2, shade(c, 0.34)); dipingi(-16, y0 + 2, 32, 1, shade(c, 1.4));   // anello inciso fra un volto e l'altro
     for (const ex of [-9, 4]) { disc(g, ex + 2, y0 + 11, 5, g.shade8('#f6efdd', 0.34)); disc(g, ex + 2, y0 + 11, 4, '#f6efdd'); disc(g, ex + 2, y0 + 11, 2, '#201a14'); }   // occhi tondi
     dipingi(-12, y0 + 5, 9, 2, d); dipingi(3, y0 + 5, 9, 2, d);                        // sopracciglia
     if (f.kind === 'becco') forma(g, [C(0, y0 + 16, 0, y0 + 25, 5), E(0, y0 + 17, 6, 4)], '#f2c53d', '#ffe08a', '#c9a227', '#2a1e14');
@@ -678,7 +681,7 @@ function disegna_gianttree(g, t) {
     }
   }
   pezzi.push(E(TX, -8, 34, 11));
-  const dentroT = forma(g, pezzi, '#6e4a2a', '#9a7048', '#563820', '#1d150e');
+  const dentroT = forma(g, pezzi, '#6e4a2a', '#9a7048', '#563820');   // contorno: la corteccia scurita, non il nero
   for (let y = -170; y < 6; y += 9) for (let x = TX - 44; x <= TX + 44; x++)        // placche di corteccia
     if (dentroT(x, y) && dentroT(x - 1, y) && dentroT(x + 1, y) && ((x + y) % 23) < 12) g.rect(x, y, 1, 2, '#5c3d22');
   /* cavità con una lucina dentro */
@@ -686,7 +689,7 @@ function disegna_gianttree(g, t) {
   if (Math.floor(t / 900) % 3) { g.rect(TX + 3, -94, 3, 3, '#f2e07a'); g.rect(TX + 1, -96, 7, 7, 'rgba(242,224,122,.25)'); }
   /* rami che escono dalla chioma */
   for (const [x, y, len, dir] of [[TX - 18, -150, 34, -1], [TX + 16, -140, 30, 1], [TX - 14, -120, 22, -1], [TX + 14, -112, 20, 1]]) {
-    for (let k = 0; k < len; k++) { const xx = x + dir * k, yy = y - Math.round(k * 0.5); g.rect(xx, yy - 3, 2, 7, '#2f2318'); g.rect(xx, yy - 2, 2, 5, '#6e4a2a'); g.rect(xx, yy - 2, 2, 1, '#8a6440'); }
+    for (let k = 0; k < len; k++) { const xx = x + dir * k, yy = y - Math.round(k * 0.5); g.rect(xx, yy - 3, 2, 7, g.shade8('#6e4a2a', 0.42)); g.rect(xx, yy - 2, 2, 5, '#6e4a2a'); g.rect(xx, yy - 2, 2, 1, '#8a6440'); }
   }
   /* CHIOMA a piani, fatta di CIUFFI: ogni piano è una fila di masse tonde di misure diverse,
      con l'ombra sotto e la luce in alto a sinistra — non una fascia liscia, che sembrava una

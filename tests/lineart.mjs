@@ -30,6 +30,9 @@ const brush = await import('../src/brush.js');
 const render = await import('../src/render.js');
 const sprites = await import('../src/sprites.js');
 const shopArt = await import('../src/shopArt.js');
+const wonder = await import('../src/wonderNative.js');
+const furnArt = await import('../src/furnArt.js');
+const interiors = await import('../src/interiors.js');
 const data = await import('../src/data.js');
 const state = await import('../src/state.js');
 const noise = await import('../src/noise.js');
@@ -80,15 +83,23 @@ function misura(fn) {
      corpo (quelli che fanno da linea) e si conta quanti sono NERI NEUTRI: scurissimi e senza
      tinta. La regola del gioco dice che la lineart deve portare il colore dell'oggetto — il
      nero piatto attorno a tutto fa sembrare ogni cosa un adesivo ritagliato. */
+  /* Quanto è scura la linea rispetto a CIÒ CHE HA ACCANTO — non rispetto alla media di tutto
+     lo sprite: su un letto bianco con la testiera di legno la media non vuol dire niente, e
+     una linea di legno sana risultava "nera". Un contorno che porta la tinta di ciò che
+     circonda resta sopra un terzo della sua luce; sotto, l'occhio legge NERO. */
   let linea = 0, somma = 0;
-  for (const arr of Object.values(lati)) for (const [x, y] of arr) {
-    if (L(x, y) > med - 18) continue;                  // non è linea, è corpo
-    linea++; somma += L(x, y);
+  for (const [lato, arr] of Object.entries(lati)) {
+    const [dx, dy] = lato === 'sx' ? [1, 0] : lato === 'dx' ? [-1, 0] : lato === 'su' ? [0, 1] : [0, -1];
+    for (const [x, y] of arr) {
+      let ix = x + dx, iy = y + dy, k = 0;
+      while (k < 3 && solid(ix, iy) && L(ix, iy) <= L(x, y) + 12) { ix += dx; iy += dy; k++; }
+      if (!solid(ix, iy)) continue;                    // non c'è un corpo dietro: non è una linea
+      const vicino = L(ix, iy);
+      if (L(x, y) > vicino - 18) continue;             // non è linea, è corpo
+      linea++; somma += L(x, y) / Math.max(1, vicino);
+    }
   }
-  /* quanto è scura la linea RISPETTO al corpo. Un contorno che porta la tinta dell'oggetto
-     resta sopra un terzo della sua luce; sotto quella soglia, qualunque sia la sfumatura,
-     l'occhio legge NERO — ed è esattamente la cosa che nel gioco non si vuole. */
-  const chiarezza = linea ? (somma / linea) / Math.max(1, med) : 1;
+  const chiarezza = linea ? somma / linea : 1;
   return { cop: quote.length ? Math.min(...quote) : 0, corpo: dentroL.length, area, scuri,
            chiarezza, linea };
 }
@@ -140,6 +151,9 @@ const SPRITE = [
   ['lampione', false, () => deco.lampArt(g, 0)],
   ['staccionata', false, () => render.drawFence(32, 40, false, true)],
 ];
+/* certi disegni usano coordinate loro, anche sopra lo zero: si traslano al centro della tela,
+   o il bordo li taglia e la misura non vuol dire niente */
+const conOrigine = (dx, dy, f) => () => { const c2 = g.ctx; c2.save(); c2.translate(dx, dy); try { f(); } finally { c2.restore(); } };
 /* gli OGGETTI A TERRA da raccogliere: uno per zona, tutti raccoglibili con {act} */
 for (const zona of Object.keys(data.GOODS)) for (const g2 of data.GOODS[zona])
   SPRITE.push(['a terra: ' + g2[1], true, () => props.drawPickup(g2[0], 24, 32, 0, 3, 5)]);
@@ -154,6 +168,19 @@ for (const dir of ['down', 'up', 'left', 'right'])
   SPRITE.push(['Digsy verso ' + dir, 'pg', () => sprites.drawHero(null, 32, 32, dir, 0)]);
 /* gli ANIMALETTI delle botteghe: stessa regola, e il contorno prende il colore del pelo */
 SPRITE.push(['tartaruga del Museo', 'pg', () => shopArt.drawMuseumPet(g, 40, 60, 0, null)]);
+for (const t of ['store', 'inn', 'barber', 'tailor', 'lab', 'museum'])
+  SPRITE.push(['bottegaio: ' + t, 'pg', () => interiors.drawNpc(40, 60, t, 0)]);
+/* LE MERAVIGLIE: si trovano girando il mondo e danno un dono con {act} */
+/* LE MERAVIGLIE sono categoria a sé ('grande'). Sono alte cinque caselle e si riconoscono da
+   mezza schermata: non hanno bisogno di una linea chiusa attorno, e per metà sono stagni,
+   blocchi di ghiaccio e chiome — roba che un contorno netto lo ucciderebbe. Di loro si
+   pretende solo la cosa che conta: che la linea, dove c'è, non sia nera. */
+for (const k of Object.keys(wonder.NATIVE_WONDERS))
+  SPRITE.push(['meraviglia: ' + k, 'grande', conOrigine(70, 150, () => wonder.drawNativeWonder(g, k, 0))]);
+/* L'ARREDO: si prende in mano e si posa, quindi ha la linea. Un pezzo per tema basta a
+   sorvegliare la ricetta comune (furnRecipe), che è la stessa per tutti e 252. */
+for (const id of ['prati_table', 'camera_letto', 'cucina_fornello', 'bagno_vasca', 'studio_scrivania', 'museo_teca'])
+  if (data.FURN_BY_ID && data.FURN_BY_ID[id]) SPRITE.push(['arredo: ' + id, true, conOrigine(60, 150, () => furnArt.drawFurnPiece(g, id, 0, 0, 32 * (data.FURN_BY_ID[id].w || 1), 32 * (data.FURN_BY_ID[id].h || 1), 0, 0))]);
 /* LE CASE: si entra camminando sulla porta, quindi sono a tutti gli effetti cose con cui si
    interagisce — e sono anche la sagoma più grande del paesaggio urbano. Devono staccare dal
    lastricato su tutti e quattro i lati, tetto compreso. */
@@ -168,9 +195,9 @@ for (const [nome, tocca, fn] of SPRITE) {
   const sottile = m.corpo < 60;                        // niente "dentro": si giudica dalla linea scura
   const voto = sottile ? m.scuri / Math.max(1, m.area) : m.cop;
   const soglia = sottile ? (tocca ? 0.08 : 0.03) : tocca === 'pg' ? 0.5 : tocca ? 0.7 : 0.35;
-  const passa = tocca ? voto >= soglia : voto <= soglia;
+  const passa = tocca === 'grande' ? true : tocca ? voto >= soglia : voto <= soglia;
   if (m.linea >= 20) neriTrovati.push([nome, Math.round(m.chiarezza * 100)]);
-  check((tocca === 'pg' ? 'personaggio ' : tocca ? 'SI TOCCA  ' : 'paesaggio ') + nome, passa,
+  check((tocca === 'grande' ? 'in grande ' : tocca === 'pg' ? 'personaggio ' : tocca ? 'SI TOCCA  ' : 'paesaggio ') + nome, passa,
     (sottile ? 'linea scura ' : 'contorno ') + Math.round(voto * 100) + '% · serve ' + (tocca ? '≥' : '≤') + Math.round(soglia * 100) + '% · corpo ' + m.corpo + ' area ' + m.area);
 }
 
