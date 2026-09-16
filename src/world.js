@@ -363,15 +363,22 @@ export function townForCell(cx, cy) {
         [C.x + 4, C.y + 2], [C.x - 4, C.y + 2], [C.x + 7, C.y], [C.x - 7, C.y]]) {
         if (!forb(x, y) && !occupiedByDeco(x, y) && farFromFnt(x, y)) { board = { x, y }; break; }
       }
-      /* STATUA DEL NONNO: solo nelle CITTÀ, accanto al Museo. È lui che chiede al giocatore di
-         riportarle in vita (goal.js) e firma le sette lettere: metterlo davanti alla porta dove
-         si consegnano le ossa chiude il cerchio senza spiegarlo. Sul FIANCO dell'edificio, mai
-         davanti alla porta — le tre caselle libere davanti sono una regola ferrea. */
+      /* STATUA DEL NONNO: solo nelle CITTÀ, IN MEZZO ALLA PIAZZA e lontana dagli edifici.
+         Stava addossata al fianco del Museo e lì si leggeva come parte della facciata — un
+         ornamento, non una cosa con cui parlare (segnalato). In mezzo allo spiazzo, da sola,
+         è evidente che ci si può andare: è la stessa regola della fontana e della bacheca. */
       if (size.id === 'città') {
-        const mus = B.find(b => b.type === 'museum');
-        if (mus) {
-          for (const [x, y] of [[mus.x1 + 2, mus.y1], [mus.x0 - 2, mus.y1], [mus.x1 + 2, mus.y1 + 1], [mus.x0 - 2, mus.y1 + 1]]) {
-            if (!forb(x, y) && !occupiedByDeco(x, y)) { town.statue = { x, y }; decos.push({ type: 'statue', x, y }); break; }
+        const fnt2 = decos.find(d => d.type === 'fountain');
+        const lontano = (x, y) => (!fnt2 || Math.max(Math.abs(x - (fnt2.x + 0.5)), Math.abs(y - (fnt2.y + 0.5))) >= 3)
+          && B.every(b => Math.max(b.x0 - x, 0, x - b.x1) + Math.max(b.y0 - 2 - y, 0, y - b.y1) >= 3);
+        /* si cerca a cerchi dal centro della piazza: il primo posto libero e lontano da tutto */
+        let messa = false;
+        for (let r = 3; r <= 9 && !messa; r++) {
+          for (let dy = -r; dy <= r && !messa; dy++) for (let dx = -r; dx <= r && !messa; dx++) {
+            if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+            const x = C.x + dx, y = C.y + dy;
+            if (forb(x, y) || occupiedByDeco(x, y) || !lontano(x, y)) continue;
+            town.statue = { x, y }; decos.push({ type: 'statue', x, y }); messa = true;
           }
         }
       }

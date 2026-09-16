@@ -321,32 +321,81 @@ export function paintMask(m, fill, light, dark, w = MW, h = MH, line) {
   }
   return dentro;
 }
+/* QUATTRO SAGUARI DIVERSI, scritti a mano (e specchiabili: otto in giro per le Dune). Prima
+   era sempre lo stesso fusto con due braccia alle stesse altezze: un timbro ripetuto. */
+const CACTI = [
+  { h: 28, bracci: [[1, 19, 9], [-1, 14, 8]] },        // classico: due braccia sfalsate
+  { h: 30, bracci: [[-1, 21, 12]] },                    // alto con un braccio solo, lungo
+  { h: 24, bracci: [] },                                // colonna nuda, tozza
+  { h: 26, bracci: [[1, 20, 6], [-1, 16, 5], [1, 11, 4]] },   // candelabro a tre braccia corte
+];
 export function drawCactus(sx, sy, tx = 0, ty = 0) {
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 30; shadow(cx, base, 9);
-  const flip = vhash(tx, ty, 84) < 0.5, W = 32, H = 32;
+  const flip = vhash(tx, ty, 84) < 0.5 ? 1 : -1, W = 32, H = 32;
+  const bp = CACTI[Math.floor(vhash(tx, ty, 174) * CACTI.length) % CACTI.length];
   const braccio = (dir, y0, alt) => ([                       // spalla orizzontale + braccio che sale
-    [dir < 0 ? cx - 12 : cx + 4, y0, 8, 6, 3],
-    [dir < 0 ? cx - 13 : cx + 9, y0 - alt, 5, alt + 6, 2],
+    [dir < 0 ? cx - 12 : cx + 4, base - y0, 8, 6, 3],
+    [dir < 0 ? cx - 13 : cx + 9, base - y0 - alt, 5, alt + 6, 2],
   ]);
-  const shapes = [[cx - 5, base - 28, 10, 28, 5]]              // fusto
-    .concat(braccio(flip ? -1 : 1, base - 19, 9))
-    .concat(braccio(flip ? 1 : -1, base - 14, 8));
+  let shapes = [[cx - 5, base - bp.h, 10, bp.h, 5]];         // fusto
+  for (const [dir, y0, alt] of bp.bracci) shapes = shapes.concat(braccio(dir * flip, y0, alt));
+  if (flip < 0) shapes = shapes.map(sh => (sh[0] === 'disc' || sh[0] === 'ell' || sh[0] === 'cap') ? sh : [W - (sh[0] + sh[2]), sh[1], sh[2], sh[3], sh[4]]);
   const dentro = paintMask(roundMask(shapes, W, H), '#4a9a55', '#6fbf78', '#357a42', W, H);
-  for (const cxr of [cx - 2, cx + 1]) for (let y = base - 25; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
-  for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - 24 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
-  rect(cx - 2, base - 31, 4, 3, '#e08aa8'); px(cx - 1, base - 32, '#f6c0d4');   // fiore in cima
+  for (const cxr of [cx - 2, cx + 1]) for (let y = base - bp.h + 3; y < base - 3; y++) if (dentro(cxr, y)) px(cxr, y, '#3d8a48');   // coste
+  for (let i = 0; i < 6; i++) { const x = cx - 4 + ((i * 7) % 9), y = base - bp.h + 4 + i * 4; if (dentro(x, y)) px(x, y, '#e0f0d8'); }   // spine
+  /* fiore in cima: solo su certi, e solo su una variante o l'altra */
+  if (vhash(tx, ty, 175) < 0.4) { rect(cx - 2, base - bp.h - 3, 4, 3, '#e08aa8'); px(cx - 1, base - bp.h - 4, '#f6c0d4'); }
+  erbetta(cx - 10, cx + 9, base + 1, tx, ty, '#8a9a5a', '#6f7f45');
   ctx.restore();
 }
+/* QUATTRO AFFIORAMENTI D'OSSA DIVERSI: tre costole, un cranio che spunta, una zanna curva,
+   una fila di vertebre. Prima erano sempre le stesse tre costole nella stessa sabbia. */
 export function drawBonespire(sx, sy, tx = 0, ty = 0) {
-  /* COSTOLE che affiorano dalla sabbia: tre archi d'osso che si piegano, con la sabbia ammucchiata */
   ctx.save(); ctx.translate(sx, sy);
   const cx = 16, base = 28; shadow(cx, base, 12);
-  [[-9, 14, -1], [0, 21, 1], [9, 12, 1]].forEach(([ox, h, bend], i) => {
-    for (let k = 0; k < h; k++) { const x = cx + ox + Math.round(Math.sin((k / h) * 1.6) * 3 * bend), y = base - 2 - k, w = k > h - 4 ? 2 : 4; rect(x - (w >> 1) - 1, y, w + 2, 1, '#4a4234'); rect(x - (w >> 1), y, w, 1, '#ece5d2'); px(x - (w >> 1), y, '#fbf6e8'); }
-    if (vhash(tx, ty, 88 + i) < 0.5) rect(cx + ox - 1, base - Math.floor(h / 2), 3, 1, '#c9bd9f');
-  });
+  const flip = vhash(tx, ty, 176) < 0.5 ? 1 : -1, X = x => Math.round(cx + flip * (x - cx));
+  const v = Math.floor(vhash(tx, ty, 177) * 4) % 4;
+  const OS = '#ece5d2', OM = '#c9bd9f', OD = '#4a4234';
+  /* la sabbia ammucchiata sotto: c'è sempre, è ciò che tiene insieme le quattro versioni */
   ellipseF(cx, base - 1, 14, 3, '#d8c9a0'); ellipseF(cx - 3, base - 2, 8, 1, '#e8dcb8');
+  const osso = (x, y, w, h) => { rect(x - 1, y, w + 2, h, OD); rect(x, y, w, h, OS); rect(x, y, w, 1, '#fbf6e8'); };
+  if (v === 0) {                                             // tre costole ad arco
+    [[-9, 14, -1], [0, 21, 1], [9, 12, 1]].forEach(([ox, h, bend], i) => {
+      for (let k = 0; k < h; k++) {
+        const x = X(cx + ox) + Math.round(Math.sin((k / h) * 1.6) * 3 * bend * flip), y = base - 2 - k, w = k > h - 4 ? 2 : 4;
+        rect(x - (w >> 1) - 1, y, w + 2, 1, OD); rect(x - (w >> 1), y, w, 1, OS); px(x - (w >> 1), y, '#fbf6e8');
+      }
+      if (vhash(tx, ty, 88 + i) < 0.5) rect(X(cx + ox) - 1, base - Math.floor(h / 2), 3, 1, OM);
+    });
+  } else if (v === 1) {                                      // CRANIO mezzo sepolto, con un corno
+    /* la calotta è tonda e il muso si allunga: a rettangoli sembrava una cassetta con due
+       buchi. Sagoma unica, contorno unico, e la sabbia lo copre fino a metà mandibola. */
+    const hx = X(cx - 1), hy = base - 12;
+    const forme = [['ell', hx, hy + 2, 9, 7], ['ell', hx + flip * 7, hy + 7, 6, 4], ['ell', hx - flip * 6, hy - 1, 5, 4]];
+    const dentro = paintMask(roundMask(forme.map(f => ['ell', f[1], f[2], f[3], f[4]])), OS, '#fbf6e8', OM, 32, 32, OD);
+    /* orbite: due incavi tondi, con un filo di luce sotto */
+    for (const ox of [-4, 3]) {
+      const ex = hx + flip * ox;
+      ellipseF(ex, hy + 1, 3, 3, '#2e2a22'); px(ex, hy + 3, '#5a5448');
+    }
+    for (let i = 0; i < 4; i++) { const dx2 = hx + flip * (4 + i * 3); if (dentro(dx2, hy + 9)) rect(dx2, hy + 9, 2, 2, '#fbf6e8'); }   // denti
+    for (let k = 0; k < 10; k++) rect(X(cx + 7 + Math.round(k * 0.5)), hy - 5 - k, 3, 1, k > 7 ? OM : OS);   // corno che sale
+    rect(X(cx - 13), base - 6, 8, 3, OM); rect(X(cx - 13), base - 6, 8, 1, OS);           // una scheggia accanto
+  } else if (v === 2) {                                      // ZANNA lunga e curva
+    for (let k = 0; k < 24; k++) {
+      const t2 = k / 24, x = X(cx - 10 + Math.round(t2 * t2 * 18)), y = base - 3 - Math.round(Math.sin(t2 * 1.5) * 20);
+      const w = Math.max(1, Math.round(5 - t2 * 4));
+      rect(x - 1, y, w + 2, 2, OD); rect(x, y, w, 2, t2 > 0.7 ? '#fbf6e8' : OS);
+    }
+    osso(X(cx + 2), base - 6, 9, 3);                                                     // un pezzo di mandibola a terra
+  } else {                                                   // FILA DI VERTEBRE che affiorano
+    for (let i = 0; i < 5; i++) {
+      const x = X(cx - 11 + i * 5), y = base - 5 - Math.round(Math.sin(i * 0.8) * 5);
+      ellipseF(x, y, 4, 3, OD); ellipseF(x, y - 1, 3, 2, OS); px(x, y - 1, OM);
+      rect(x - 1, y - 6, 2, 4, OS); rect(x - 2, y - 7, 4, 2, OD); rect(x - 1, y - 6, 2, 1, '#fbf6e8');   // apofisi
+    }
+  }
   ctx.restore();
 }
 /* QUATTRO ALBERI SECCHI DIVERSI, scritti a mano (la regola del progetto per "N cose tutte

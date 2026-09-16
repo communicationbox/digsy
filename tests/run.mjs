@@ -2257,9 +2257,12 @@ sprites.applyLook();
         if (t.statue.x >= b.x0 && t.statue.x <= b.x1 && t.statue.y >= b.y0 && t.statue.y <= b.y1) porteChiuse++;
       }
       if (t.roads && t.roads.has(t.statue.x + ',' + t.statue.y)) sopraStrada++;
-      /* è ACCANTO al Museo: il legame col posto dove si consegnano le ossa si deve leggere */
-      const mus = t.buildings.find(b => b.type === 'museum');
-      if (mus && Math.max(Math.abs(t.statue.x - mus.doorx), Math.abs(t.statue.y - mus.doory)) > 6) fuoriPosto++;
+      /* sta IN PIAZZA, staccata dagli edifici: addossata al Museo si leggeva come parte della
+         facciata, un ornamento e non una cosa con cui si può parlare (segnalato) */
+      for (const b of t.buildings) {
+        const d = Math.max(b.x0 - t.statue.x, 0, t.statue.x - b.x1) + Math.max(b.y0 - 2 - t.statue.y, 0, t.statue.y - b.y1);
+        if (d < 3) fuoriPosto++;
+      }
     }
     check(`ogni città grande ha la statua (${conStatua}/${citta})`, citta > 0 && conStatua === citta);
     check('e nessun borgo o paese ce l\'ha', fuoriPosto === 0);
@@ -8892,6 +8895,19 @@ sprites.applyLook();
   const senza = [];
   for (const [z, m] of conta) if (!world2.SCENERY_SOLID.some(k2 => (m.get(k2) || 0) >= 20)) senza.push('zona ' + z);
   check('ogni bioma ha un ingombro di scenario suo', senza.length === 0, senza.join(' '));
+  /* LE SAGOME NON SI RIPETONO: ogni specie d'albero, il cactus e l'affioramento d'ossa hanno
+     ricette scritte a mano, e due ricette non devono venire uguali. Con un solo disegno per
+     specie il mondo sembra un timbro (segnalato con foto). */
+  {
+    const tree = await import('../src/treeArt.js');
+    const doppie = [];
+    for (const [kind, lista] of Object.entries(tree.TREE_BP)) {
+      const firme = lista.map(bp => JSON.stringify(bp));
+      if (new Set(firme).size !== firme.length) doppie.push(kind);
+      if (firme.length < 4) doppie.push(kind + ' (solo ' + firme.length + ')');
+    }
+    check('ogni albero ha quattro sagome diverse', doppie.length === 0, doppie.join(' '));
+  }
 }
 
 /* ---- L'ARREDO URBANO NON FINISCE SOTTO I TETTI ----
