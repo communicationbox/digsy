@@ -188,7 +188,6 @@ SPRITE.push(['museo: teca', true, conOrigine(60, 150, () => { museumArt.drawCase
 SPRITE.push(['museo: bancone', true, conOrigine(40, 150, () => museumArt.drawDeskArt(g, 0, 0, 120, 32, 0))]);
 SPRITE.push(['museo: panca', 'arredo', conOrigine(60, 150, () => museumArt.drawBench(g, 0, 0, '#c9a227'))]);
 SPRITE.push(['museo: colonna', 'arredo', conOrigine(80, 200, () => museumArt.drawColumn(g, 0, 0))]);
-SPRITE.push(['museo: insegna', 'arredo', conOrigine(100, 120, () => museumArt.drawMuseumSign(g, 0, 0))]);
 SPRITE.push(['museo: cordone', 'arredo', conOrigine(60, 150, () => museumArt.drawRope(g, 0, 60, 0, '#8a3f3a'))]);
 /* LA GROTTA: parete, pavimento, giacimento */
 SPRITE.push(['grotta: giacimento', true, conOrigine(60, 150, () => caveArt.caveCrystal(g, 0, 0, 0, true))]);

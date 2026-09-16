@@ -230,41 +230,6 @@ export function drawDeskArt(g, x0, y0, x1, y1, time) {
   g.rect(cx + 43, y0 - 12, 12, 7, '#8a5f38'); g.rect(cx + 43, y0 - 12, 12, 2, '#b07c4a');
   g.rect(cx + 45, y0 - 10, 3, 3, '#e8dcc0'); g.rect(cx + 50, y0 - 9, 3, 2, '#d8ccb0');
 }
-/* insegna del Museo sopra il bancone: tabella scura col tempio d'oro */
-export function drawMuseumSign(g, cx, y) {
-  /* SOPRA IL BANCONE: un FRONTONE di marmo col timpano e le colonnine, e l'emblema del museo
-     in mezzo. Prima era una tabella scura con dei puntini: nessuno capiva cosa fosse (segnalato).
-     La forma è la stessa della facciata del Museo là fuori, così si riconosce al volo. */
-  const W = 92, X = cx - W / 2, H = 26;
-  g.rect(X - 2, y + 4, W + 4, H, g.shade8('#e6ddc8', 0.46));                 // contorno: marmo scurito, non nero
-  g.rect(X - 1, y + 5, W + 2, H - 2, '#e6ddc8');                             // fascia di marmo
-  g.rect(X - 1, y + 5, W + 2, 2, '#f6f1e4'); g.rect(X - 1, y + H + 1, W + 2, 2, '#b3a78c');
-  for (let k = 0; k < 5; k++) {                                              // timpano: un triangolo di lastre
-    const w2 = W - k * 16, x2 = Math.round(cx - w2 / 2), y2 = y + 3 - k * 3;
-    if (w2 <= 6) break;
-    g.rect(x2 - 1, y2 - 1, w2 + 2, 4, '#241a10');
-    g.rect(x2, y2, w2, 3, k % 2 ? '#dcd2bb' : '#e6ddc8'); g.rect(x2, y2, w2, 1, '#f6f1e4');
-  }
-  for (const dx of [-W / 2 + 6, W / 2 - 10]) {                               // due colonnine
-    g.rect(cx + dx - 1, y + 8, 6, H - 6, '#241a10');
-    g.rect(cx + dx, y + 8, 4, H - 7, '#efe7d4'); g.rect(cx + dx, y + 8, 1, H - 7, '#fbf8ef');
-    g.rect(cx + dx - 2, y + 6, 8, 3, '#d9d0bb'); g.rect(cx + dx - 2, y + H, 8, 3, '#d9d0bb');
-  }
-  /* EMBLEMA: un OSSO, lo stesso segno delle insegne là fuori. Prima era un rettangolo d'ottone
-     con due tacche e una barra in mezzo: da sotto sembrava un bilanciere (segnalato con foto).
-     Le teste sono DUE BOZZE TONDE per capo — è quello che fa leggere «osso» invece di
-     «manubrio»: con due quadrati resta un attrezzo da palestra. */
-  const oy = y + 17, OL = '#6b4f14', OS = '#f6efdd', OM = '#cabb96';
-  const bozza = (bx, by, r, col) => { for (let j = -r; j <= r; j++) for (let i = -r; i <= r; i++) if (i * i + j * j <= r * r + r) g.rect(bx + i, by + j, 1, 1, col); };
-  for (const sx2 of [cx - 12, cx + 12]) for (const dy of [-3, 3]) bozza(sx2, oy + dy, 4, OL);
-  g.rect(cx - 13, oy - 3, 26, 7, OL);
-  for (const sx2 of [cx - 12, cx + 12]) for (const dy of [-3, 3]) bozza(sx2, oy + dy, 3, OS);
-  g.rect(cx - 12, oy - 2, 24, 5, OS);
-  /* ombra sotto e luce sopra: l'osso non è una sagoma piatta */
-  g.rect(cx - 12, oy + 2, 24, 1, OM);
-  for (const sx2 of [cx - 12, cx + 12]) { bozza(sx2 - 1, oy - 4, 1, '#ffffff'); bozza(sx2 + 1, oy + 4, 1, OM); }
-  g.rect(cx - 8, oy - 2, 9, 1, '#ffffff');
-}
 export function drawGalleryTopWall(g, x0, x1, H) {
   /* LA PARETE IN FONDO alla galleria: zoccolo di marmo, intonaco chiaro, cornice d'oro in alto
      e i quadri appesi con la loro lampadina. Prima era una fascia verde scuro a puntini con

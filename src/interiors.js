@@ -12,7 +12,7 @@ import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
 import { INT, NPCS, FURN, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
-import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawMuseumSign, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
+import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
 import { EMAP, iconPaths } from './icons.js';
 import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps, drawMuseumPet} from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
@@ -222,7 +222,8 @@ export function drawMuseumGallery(time) {
   { const my = (ATRIO.y1 - 1) * TS + 4;                      // zerbino davanti alla porta
     rect(doorCx - 28, my, 56, 22, '#8a5f38'); rect(doorCx - 26, my + 2, 52, 18, '#a97a4c');
     for (let i = 0; i < 6; i++) rect(doorCx - 22 + i * 8, my + 6, 4, 10, '#8a5f38'); }
-  drawMuseumSign(BRUSH, deskCx, GAL_DESK.y0 - 58);
+  /* NIENTE INSEGNA sopra il bancone: chi è dentro il museo sa già dov'è, e quel pannello
+     appeso in aria sopra la testa del Curatore non si capiva cosa fosse (segnalato due volte). */
   ents.push({ y: GAL_DESK.y1 - 2, f: () => drawDeskArt(BRUSH, GAL_DESK.x0, GAL_DESK.y0, GAL_DESK.x1, GAL_DESK.y1, time) });
   for (const [ppx, ppy] of ATRIO_PLANTS) ents.push({ y: ppy + 18, f: () => drawPlantPot(ppx, ppy, time) });
   /* --------- LA ROTONDA: lo scheletro montato, al centro, con panche e cordoni attorno --------- */
