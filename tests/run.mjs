@@ -4415,6 +4415,18 @@ sprites.applyLook();
   const ov = document.getElementById('awakenov');
   check('risveglio: la scena si apre e dice dove ritrovarla', crash === null && uiW.isAwakeningOpen() && /giardino|garden/i.test((ov && ov.innerHTML) || ''), crash || '');
   if (ov && ov.remove) ov.remove();
+  /* LA SCHIUSA HA LA SUA SCENA: l'uovo che si apre è il momento dell'allevamento, e prima era
+     una riga di testo. La scena si disegna davvero (il canvas riceve dei pixel) e dice dove
+     ritrovare il piccolo. */
+  {
+    let crash2 = null;
+    const cr = { uid: 99, name: 'Provolone', skull: sp.id, torso: sp.id, leg: sp.id, q: 'raro' };
+    try { uiW.playHatching(cr); } catch (e) { crash2 = e.message; }
+    const ov2 = document.getElementById('hatchov');
+    check('schiusa: la scena si apre e dice dove ritrovarlo', crash2 === null && uiW.isHatchingOpen() && /cortile|yard/i.test((ov2 && ov2.innerHTML) || ''), crash2 || '');
+    check('schiusa: il nome del nato è nella scena', /Provolone/.test((ov2 && ov2.innerHTML) || ''));
+    if (ov2 && ov2.remove) ov2.remove();
+  }
   Object.assign(S, keep);
 }
 
@@ -6478,8 +6490,10 @@ sprites.applyLook();
   }
   check('esistono i suoni di festa, errore e interfaccia', true);
   const src = (await import('node:fs')).readFileSync('src/gameplay.js', 'utf8');
-  /* il risveglio ha una SCENA sua (playAwakening), la schiusa e le soglie il banner */
+  /* il risveglio e la SCHIUSA hanno una scena loro, le soglie il banner */
   check('chimera e risveglio annunciati (banner o scena)', (src.match(/bigMoment\(/g) || []).length >= 2 && /playAwakening\(/.test(src));
+  { const uisrc = (await import('node:fs')).readFileSync('src/ui.js', 'utf8');
+    check('la schiusa apre la sua scena, non un banner', /playHatching\(cr\)/.test(uisrc) && !/SCHIUSO/.test(uisrc)); }
   /* il suono POSITIVO ('found') deve accompagnare OGNI reperto, non solo lo scavo a terra:
      accetta/piccone lo davano solo col colpo dell'attrezzo, il sito non lo dava affatto */
   check('accetta/piccone: suono "found" sul reperto (non solo il colpo)', /found \? 'found' : kind === 'chop'/.test(src));

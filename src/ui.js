@@ -416,6 +416,97 @@ export function playAwakening(spId) {
     if (['Enter', ' ', 'Escape', 'e', 'E'].includes(e.key)) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Escape' || (performance.now() - t0) > 1600) { close(); document.removeEventListener('keydown', onKey, true); } } };
   if (document.addEventListener) document.addEventListener('keydown', onKey, true);
 }
+/* SCENA DELLA SCHIUSA: l'uovo traballa, si crepa, il guscio si apre in due e il piccolo salta
+   fuori. Prima la schiusa era un banner di testo e basta — il momento più atteso
+   dell'allevamento passava senza che si vedesse niente (segnalato). Stessa regola della scena
+   del risveglio: si chiude SOLO al clic, con Salta, e la fase viene dal tempo. */
+let hatchOpen = false;
+export function isHatchingOpen() { return hatchOpen; }
+/* un uovo disegnato sul contesto 2D: (cx, cy) è il CENTRO, `s` la scala, `crepa` 0..1 */
+function eggOn(g, cx, cy, s, crepa) {
+  const LN = '#7d6242', DK = '#d3c3a6', MID = '#f0e6cd', LT = '#fbf6e8';
+  const RX = 7, RT = 13, RB = 10;
+  const dentro = (dx, dy) => { const q = dy < 0 ? dy / RT : dy / RB; return (dx * dx) / (RX * RX) + q * q <= 1; };
+  for (let dy = -RT - 2; dy <= RB + 2; dy++) for (let dx = -RX - 2; dx <= RX + 2; dx++) {
+    const px2 = cx + dx * s, py2 = cy + dy * s;
+    if (!dentro(dx, dy)) {
+      /* contorno solo dove il guscio "spinge" da due lati: con un vicino solo spuntavano
+         dentini isolati sui fianchi dell'ovale */
+      const n = (dentro(dx + 1, dy) ? 1 : 0) + (dentro(dx - 1, dy) ? 1 : 0) + (dentro(dx, dy + 1) ? 1 : 0) + (dentro(dx, dy - 1) ? 1 : 0);
+      if (n >= 2) { g.fillStyle = LN; g.fillRect(px2, py2, s, s); }
+      continue;
+    }
+    const lx2 = (dx + 3.2) / RX, ly2 = (dy + 6.5) / (RT * 0.85), dl = Math.sqrt(lx2 * lx2 + ly2 * ly2);
+    g.fillStyle = dl < 0.58 ? LT : dl < 1.08 ? MID : DK;
+    g.fillRect(px2, py2, s, s);
+  }
+  /* LE CREPE crescono a scatti: prima una linea in cima, poi si ramifica e fa il giro */
+  const rami = [[[1, -10], [2, -9], [1, -8], [2, -7], [3, -6]], [[0, -6], [-1, -5], [-2, -4], [-1, -3]], [[3, -5], [4, -3], [3, -1], [4, 1]], [[-2, -2], [-3, 0], [-2, 2], [-3, 4]]];
+  const quanti = Math.min(rami.length, Math.floor(crepa * rami.length + 0.001));
+  for (let i = 0; i < quanti; i++) for (const [dx, dy] of rami[i]) { g.fillStyle = LN; g.fillRect(cx + dx * s, cy + dy * s, s, s); }
+}
+export function playHatching(cr) {
+  if (typeof document === 'undefined' || !document.body || !document.createElement || !cr) return;
+  const ov = document.createElement('div'); ov.id = 'hatchov'; ov.className = 'awaken-ov';
+  ov.innerHTML = withIcons(`<canvas id="hatchCv" width="200" height="130"></canvas>
+    <div class="aw-t">🥚 ${tr('È nato', 'It hatched')} ${cr.name}!</div>
+    <div class="aw-s">🏡 ${tr('Lo trovi nel cortile di casa', "You'll find it in your yard")}</div>
+    <div class="aw-h">${tr('clicca per continuare', 'click to continue')}</div>
+    <button class="btn ghost aw-skip" id="hcSkip">${tr('Salta', 'Skip')}</button>`);
+  document.body.appendChild(ov); hatchOpen = true; playSfx('found');
+  const cv = ov.querySelector ? ov.querySelector('#hatchCv') : null;
+  const t0 = performance.now();
+  let alive = null, raf = 0;
+  import('./render.js').then(r => { try { alive = r.creatureSprite({ c: { skull: cr.skull, torso: cr.torso, leg: cr.leg, q: cr.q } }, 'side'); } catch (e) { /* stub */ } });
+  const close = () => { if (!hatchOpen) return; hatchOpen = false; cancelAnimationFrame(raf); ov.remove(); };
+  const draw = () => {
+    if (!hatchOpen || !cv || !cv.getContext) return;
+    const g = cv.getContext('2d'); if (!g) return;
+    const t = (performance.now() - t0) / 1000;
+    g.imageSmoothingEnabled = false;
+    g.fillStyle = '#0f0c14'; g.fillRect(0, 0, 200, 130);
+    for (let i = 0; i < 20; i++) {                                    // scintille, fase dal tempo
+      const a = i * 2.39 + t * (0.5 + (i % 3) * 0.2), rr = 24 + ((i * 11 + t * 26) % 56);
+      const x = 100 + Math.cos(a) * rr, y = 62 + Math.sin(a) * rr * 0.55;
+      if (((i + Math.floor(t * 6)) % 4) === 0) { g.fillStyle = i % 2 ? '#ffe38a' : '#fff3c8'; g.fillRect(x | 0, y | 0, 2, 2); }
+    }
+    g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(84, 112, 32, 3);      // ombra a terra
+    if (t < 1.5) {
+      /* TRABALLA sempre più forte, e le crepe avanzano con lui */
+      const forza = Math.min(1, t / 1.2), scossa = Math.round(Math.sin(t * (7 + forza * 16)) * forza * 3);
+      eggOn(g, 100 + scossa, 78, 2, t < 0.35 ? 0 : (t - 0.35) / 1.1);
+    }
+    if (t >= 1.35 && t < 1.75) {                                      // il lampo della schiusa
+      const k = 1 - Math.abs(t - 1.5) / 0.2;
+      g.fillStyle = 'rgba(255,248,220,' + Math.max(0, k).toFixed(2) + ')'; g.fillRect(0, 0, 200, 130);
+    }
+    if (t >= 1.4) {
+      /* i due GUSCI si aprono e cadono ai lati, con un po' di gravità */
+      const u = Math.min(1.6, t - 1.4);
+      for (const sgn of [-1, 1]) {
+        const gx = Math.round(100 + sgn * (6 + u * 26)), gy = Math.round(96 + u * u * 26 - u * 14);
+        g.fillStyle = '#7d6242'; g.fillRect(gx - 7, gy, 14, 3);
+        g.fillStyle = '#f0e6cd'; g.fillRect(gx - 6, gy + 1, 12, 2);
+        g.fillStyle = '#d3c3a6'; g.fillRect(gx - 4, gy + 3, 8, 1);
+      }
+    }
+    if (t >= 1.5 && alive) {                                          // il piccolo salta fuori
+      const u = Math.min(1, (t - 1.5) / 0.45);
+      const hop = Math.round(Math.abs(Math.sin(t * 5)) * -6) - Math.round((1 - u) * 10);
+      const s = alive.width > 90 ? 1 : 2;
+      const w = alive.width * s, h = alive.height * s;
+      g.globalAlpha = 0.4 + u * 0.6;
+      g.drawImage(alive, Math.round(100 - w / 2), Math.round(112 - h + hop), w, h);
+      g.globalAlpha = 1;
+    }
+    raf = requestAnimationFrame(draw);
+  };
+  if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(draw);
+  ov.onclick = e => { if (e && e.target && e.target.id === 'hcSkip') { close(); return; } if ((performance.now() - t0) > 1700) close(); };
+  const onKey = e => { if (!hatchOpen) { document.removeEventListener('keydown', onKey, true); return; }
+    if (['Enter', ' ', 'Escape', 'e', 'E'].includes(e.key)) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Escape' || (performance.now() - t0) > 1700) { close(); document.removeEventListener('keydown', onKey, true); } } };
+  if (document.addEventListener) document.addEventListener('keydown', onKey, true);
+}
 /* banner centrale a tutto schermo per gli eventi importanti (consegna del Libro, ecc.) */
 export function showBanner(html, ms = 2600) {
   if (typeof document === 'undefined' || !document.createElement || !document.body) return;
@@ -1598,7 +1689,7 @@ function renderLab() {
     const doHatch = document.getElementById('doHatch');
     if (doHatch) doHatch.onclick = () => {
       const cr = hatchEgg();
-      if (cr) showBanner('🥚 ' + tr('SCHIUSO!', 'HATCHED!'), cr.name);
+      if (cr) playHatching(cr);                 // la schiusa si GUARDA, non è una riga di testo
       renderLab();
     };
     const selP1 = document.getElementById('selP1'), selP2 = document.getElementById('selP2');
