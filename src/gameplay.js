@@ -176,8 +176,12 @@ function pickPart(spId) {
    si hanno ancora monete per ingrandirlo, perché i GREZZI non si vendono e le prime monete
    arrivano solo dopo il primo Museo. 14 slot e un primo salto più economico allentano quel
    nodo senza toccare la generazione del mondo (i salvataggi restano validi). */
-export const BAG_CAPS = [14, 22, 30, 40];               // capacità per livello
-export const BAG_UPCOST = [30, 100, 240];               // costo per salire di livello
+/* OLTRE I 40. Il quarto zaino era il tetto, e a fine partita — con l'ambra, le teche complete
+   e il girovagare lontano da casa — 40 slot si riempiono in una battuta di scavo. Due taglie in
+   più, cariche: costano quanto una mappa leggendaria e più, cioè arrivano quando le monete non
+   hanno più molto da comprare (è il momento in cui servono davvero). */
+export const BAG_CAPS = [14, 22, 30, 40, 52, 66];       // capacità per livello
+export const BAG_UPCOST = [30, 100, 240, 520, 1100];    // costo per salire di livello
 export function bagCap() { return S.bagCap || BAG_CAPS[0]; }
 export function bagLevel() { return Math.max(0, BAG_CAPS.indexOf(bagCap())); }
 export function fossilCount() { return S.raw.length + S.items.length; }

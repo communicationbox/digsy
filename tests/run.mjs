@@ -2654,6 +2654,18 @@ sprites.applyLook();
     check('fossile in più → a terra', gameplay.addFossil({ uid: S.uid++, s: 'prato', t: 'zampa', q: 'comune', val: 5 }, 3, 3) === false && S.drops.length === drops0 + 1);
     S.coins = 999; const cap0 = gameplay.bagCap();
     check('zaino più grande alza la capienza', gameplay.buyBag() === true && gameplay.bagCap() > cap0);
+    /* SI SALE FINO IN FONDO: le taglie sono crescenti, i costi pure, e solo l'ultima non ha
+       un "prossimo" (a 40 il tetto arrivava troppo presto per la fine partita) */
+    {
+      const caps = gameplay.BAG_CAPS, costi = gameplay.BAG_UPCOST;
+      check('le taglie dello zaino crescono', caps.every((c, i) => i === 0 || c > caps[i - 1]) && caps[caps.length - 1] >= 66);
+      check('un costo per ogni salto', costi.length === caps.length - 1 && costi.every((c, i) => i === 0 || c > costi[i - 1]));
+      S.coins = 99999; S.bagCap = caps[0];
+      let saliti = 0;
+      while (gameplay.nextBagCost() != null && saliti < 20) { gameplay.buyBag(); saliti++; }
+      check('si arriva allo zaino più grande', gameplay.bagCap() === caps[caps.length - 1] && saliti === caps.length - 1, 'cap ' + gameplay.bagCap() + ' dopo ' + saliti);
+      check('e lì non si compra più niente', gameplay.buyBag() === false);
+    }
     // scarto: trascina fuori (discardToGround) → a terra e via dallo zaino
     const rawUid = S.raw[0].uid, dr0 = S.drops.length;
     check('scarto trascinando fuori → a terra', gameplay.discardToGround(rawUid, 'raw') === true && S.drops.length === dr0 + 1 && !S.raw.some(x => x.uid === rawUid));
