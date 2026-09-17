@@ -472,7 +472,14 @@ const OLD = {
       const a = pick(), b = pick(), c = pick();
       if (!S.creatures) S.creatures = [];
       const name = chimeraName(a, c, S.creatures.map(x => x.name));
-      S.creatures.push({ uid: S.uid++, name, skull: a.id, torso: b.id, leg: c.id, q: 'raro' });
+      const uid = S.uid++;
+      S.creatures.push({ uid, name, skull: a.id, torso: b.id, leg: c.id, q: 'raro' });
+      /* e la si METTE nel cortile: da quando gli abitanti del recinto si scelgono uno per uno
+         (S.house.yard), la chimera creata a comando restava fuori e il cortile appariva vuoto
+         anche nelle foto della vetrina. Il comando prometteva «passeggia nel cortile». */
+      if (!S.house) S.house = {};
+      if (!S.house.yard) S.house.yard = [];
+      if (!S.house.yard.includes('chi' + uid)) S.house.yard.push('chi' + uid);
       return '🐾 ' + name + ' — ' + tr('chimera creata: passeggia nel cortile (sceglila come compagno)', 'chimera created: it roams your yard (pick it as companion)');
     } },
   /* ALLEVAMENTO: due genitori (ne crea se mancano) + doppioni + energia, poi depone davvero —

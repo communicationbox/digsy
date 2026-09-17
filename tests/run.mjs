@@ -2960,6 +2960,15 @@ sprites.applyLook();
     for (const id of ['hatchov', 'awakenov']) { const o = document.getElementById(id); if (o && o.remove) o.remove(); }
     try { (await import('../src/ui.js')).closeModal(); } catch (e) { /* stub */ }
   }
+  /* il comando `chimera` la mette DAVVERO nel cortile: dal giorno in cui gli abitanti si
+     scelgono, la creatura restava in elenco ma il recinto era vuoto (visto nelle foto promo) */
+  {
+    const prima = ((S.house && S.house.yard) || []).length;
+    cmds.runCommand('chimera');
+    const dopo = (S.house.yard || []);
+    const ultima = S.creatures[S.creatures.length - 1];
+    check('chimera di prova: entra nel cortile', dopo.length === prima + 1 && dopo.includes('chi' + ultima.uid));
+  }
   check('alias italiano del comando', (S.letters = [], cmds.runCommand('lettere'), S.letters.length > 0));
   }
 

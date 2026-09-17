@@ -111,7 +111,10 @@ const SCENE = [
     ${PARTITA}
     await G.cmd('goto=city');
     await G.enterRoom('museum');
-    await G.intPos(15, 51);
+    ${''/* DENTRO UNA SALA, non nel corridoio: la novità è il museo camminabile con le teche
+          piene e il nome della sala sul muro. Sala 0 = ROOM_W 16 a sinistra dello spine
+          (SPINE_X0 17, ROW_Y[0] 10): il centro sta attorno a (9, 15). */}
+    await G.intPos(9, 15);
     ${ANIMA}
   ` },
   /* Le teche d'AMBRA accanto a quelle d'oro: la seconda collezione della v0.98, copertina del devlog */
@@ -120,7 +123,7 @@ const SCENE = [
     await G.cmd('godamber');
     await G.cmd('goto=city');
     await G.enterRoom('museum');
-    await G.intPos(15, 51);
+    await G.intPos(9, 15);
     ${ANIMA}
   ` },
   /* Un bioma che non sia il prato: dice "mondo grande" senza doverlo scrivere nel post. */
@@ -171,6 +174,15 @@ const SCENE = [
     S.egg = { uid: 99999, skull: cs[0].skull, torso: cs[0].torso, leg: cs[0].leg, q: 'raro',
       p1: cs[0].name, p2: cs[1].name, laidDay: S.day, readyDay: S.day };
     ${ANIMA}
+  ` },
+  /* LA SCHIUSA in corso: è la scena dell'aggiornamento, e si vede solo dopo due giorni di cova.
+     Il comando `anim=hatch` la fa partire subito; si aspetta il momento in cui il guscio si è
+     appena aperto (ROTTURA = 3,5 s) e il piccolo è già fuori. */
+  { nome: '11-schiusa', size: WIDE, passi: `
+    ${PARTITA}
+    await G.cmd('chimera');
+    await G.cmd('anim=hatch');
+    await new Promise(function(r){ setTimeout(r, 4200); });
   ` },
   /* Il vero USP del gioco per il marketing: due scheletri vistosi affiancati (drago alato +
      verme delle dune serpentino), non l'ennesimo screenshot dall'alto uguale a tutti i cozy
