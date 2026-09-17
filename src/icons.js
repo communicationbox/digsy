@@ -70,7 +70,7 @@ const EMAP = {
   '↑': 'arU', '↗': 'arUR', '→': 'arR', '↘': 'arDR', '↓': 'arD', '↙': 'arDL', '←': 'arL', '↖': 'arUL',
   '☰': 'menu', '▲': 'arU', '▼': 'arD', '◀': 'arL', '▶': 'arR',
   '✕': 'close', '✗': 'close', '✓': 'check', '☑': 'check',
-  '🔒': 'lock', '🔓': 'lock', '📈': 'chartup', '📉': 'chartdown', '🔥': 'fire', '🥚': 'egg',
+  '🔒': 'lock', '🔓': 'lock', '📈': 'chartup', '📉': 'chartdown', '🔥': 'fire', '🥚': 'egg', '🎬': 'sparkle',
 };
 export { EMAP };
 const EKEYS = Object.keys(EMAP).sort((a, b) => b.length - a.length);

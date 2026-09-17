@@ -590,6 +590,10 @@ const pick = (map, v) => { const k = String(v || '').toLowerCase(); for (const [
 const SEASON_V = { 0: ['spring', 'primavera', '0'], 1: ['summer', 'estate', '1'], 2: ['autumn', 'fall', 'autunno', '2'], 3: ['winter', 'inverno', '3'] };
 const GOD_V = { all: ['', 'all', 'tutto'], items: ['items', 'oggetti', 'fossili'], dna: ['dna'], amber: ['amber', 'ambra'], letters: ['letters', 'lettere'], furn: ['furniture', 'furn', 'arredo'], trophies: ['trophies', 'trofei', 'traguardi'] };
 const GO_V = { city: ['city', 'città', 'citta', 'museum', 'museo'], park: ['park', 'yard', 'home', 'parco', 'cortile', 'casa'], site: ['site', 'sito'], water: ['water', 'acqua', 'mare'], wreck: ['wreck', 'relitto'], wonder: ['wonder', 'meraviglia', 'landmark'], bones: ['bones', 'ossa', 'scheletro'], cave: ['cave', 'grotta'], next: ['next', 'tour', 'prossimo'] };
+/* LE SCENE che si possono rivedere a comando: sono animazioni che capitano una volta ogni
+   tanto (una schiusa costa due giorni di cova), e per guardarle mentre le si disegna bisognava
+   giocarsele davvero. `anim=` le fa partire subito. */
+const ANIM_V = { hatch: ['hatch', 'schiusa', 'uovo'], awaken: ['awaken', 'risveglio'], banner: ['banner', 'annuncio'], letter: ['letter', 'lettera'] };
 const PLAY_V = { prep: ['prep', 'restauro'], restore: ['restore', 'ritiro'], toss: ['toss', 'fountain', 'fontana'], skeleton: ['skeleton', 'scheletro'], egg: ['egg', 'uovo'], hatch: ['hatch', 'schiudi'], fuse: ['fuse', 'fondi', 'doppioni'] };
 const TIME_V = { night: ['night', 'notte'], dawn: ['dawn', 'alba'], day: ['day', 'giorno', 'noon', 'mezzogiorno'] };
 const WEATHER_V = { rain: ['rain', 'pioggia'], sandstorm: ['sandstorm', 'sabbia'], fog: ['fog', 'nebbia'], ash: ['ash', 'cenere'], snow: ['snow', 'neve'], clear: ['clear', 'sereno'], off: ['off', 'auto'] };
@@ -637,6 +641,22 @@ export const COMMANDS = {
       const k = pick(PLAY_V, w), rar = pick(RAR_V, extra);
       const f = { prep: OLD.prep, restore: OLD.museo, toss: OLD.toss, skeleton: OLD.skfit, egg: OLD.layegg, hatch: OLD.hatchegg, fuse: OLD.dupes }[k];
       return f ? f.run(rar || undefined) : tr('Prove: ', 'Tries: ') + words(PLAY_V);
+    } },
+  anim: { aliases: ['scena', 'animazione'], type: 'str', cheat: true,
+    help: H('anim=' + words(ANIM_V), 'rivedi una scena senza doverla aspettare', 'replay a cutscene without waiting for it'),
+    suggest: p => Object.keys(ANIM_V).map(k => ANIM_V[k][0]).filter(x => x.startsWith(p)),
+    run: v => {
+      const k = pick(ANIM_V, String(v).split(/\s+/)[0]);
+      if (!k) return tr('Scene: ', 'Scenes: ') + words(ANIM_V);
+      const sp0 = ALL_SPECIES[Math.floor(Math.random() * ALL_SPECIES.length)];
+      const cr0 = (S.creatures && S.creatures[0]) || { uid: 0, name: 'Provolone', skull: sp0.id, torso: sp0.id, leg: sp0.id, q: 'raro' };
+      import('./ui.js').then(u => {
+        if (k === 'hatch') u.playHatching(cr0);
+        else if (k === 'awaken') u.playAwakening(sp0.id);
+        else if (k === 'letter') { const l = allLetters()[0]; if (l && u.openLetter) u.openLetter(l.id); else u.showBanner('✉️ ' + l.title, 2600); }
+        else u.showBanner('🏆 ' + tr('PROVA', 'TEST') + '<br><span style="font-size:.8em">' + tr('scena di prova', 'test scene') + '</span>', 2600);
+      }).catch(() => {});
+      return '🎬 ' + tr('Scena: ', 'Scene: ') + k;
     } },
   buddy: { type: 'str', cheat: true, help: H('buddy=' + words(BUDDY_V) + ' [rarity]', 'compagno di quel tipo (leggendario se non dici)', 'companion of that type (legendary by default)'),
     suggest: p => Object.keys(BUDDY_V).map(k => BUDDY_V[k][0]).filter(x => x.startsWith(p)),

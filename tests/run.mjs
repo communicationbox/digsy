@@ -2948,7 +2948,19 @@ sprites.applyLook();
     const msg = cmds.runCommand('godletters');
     check('godletters sblocca tutte le lettere', S.letters.length === lt3.allLetters().length && /lettere|letters/i.test(msg));
     check('godletters include il finale', S.letters.includes('finale') && lt3.hasLetter('finale'));
-    check('alias italiano del comando', (S.letters = [], cmds.runCommand('lettere'), S.letters.length > 0));
+    /* LE SCENE SI POSSONO RIVEDERE: una schiusa costa due giorni di cova, un risveglio cinque
+     pezzi — per guardare l'animazione mentre la si disegna bisognava giocarsela davvero. */
+  {
+    const nomi = ['anim=hatch', 'anim=schiusa', 'scena=risveglio', 'animazione=banner', 'anim=lettera'];
+    const esiti = nomi.map(n => { try { return String(cmds.runCommand(n) || ''); } catch (e) { return 'ERRORE ' + e.message; } });
+    check('anim=: ogni scena parte senza errori', esiti.every(e => /Scena|Scene/.test(e)), esiti.join(' | '));
+    const aiuto = String(cmds.runCommand('anim') || '');
+    check('anim senza valore elenca le scene', /hatch/.test(aiuto) && /awaken/.test(aiuto), aiuto);
+    /* la scena della lettera apre una MODALE: va chiusa, o resta sopra le prove che seguono */
+    for (const id of ['hatchov', 'awakenov']) { const o = document.getElementById(id); if (o && o.remove) o.remove(); }
+    try { (await import('../src/ui.js')).closeModal(); } catch (e) { /* stub */ }
+  }
+  check('alias italiano del comando', (S.letters = [], cmds.runCommand('lettere'), S.letters.length > 0));
   }
 
   /* GODMODE deve riempire DAVVERO tutto: le 7 ali del museo, grotte comprese */
