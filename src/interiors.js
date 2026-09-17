@@ -210,11 +210,14 @@ export function drawMuseumGallery(time) {
     const col = (WINGS[zi] || WINGS[0]).acc;
     /* due panche in mezzo alla sala: ci si siede e si guarda, come in un museo */
     for (const bx of [x0 + wpx / 2 - 70, x0 + wpx / 2 + 14]) ents.push({ y: y0 + hpx / 2 + 14, f: () => drawBench(BRUSH, bx, y0 + hpx / 2, col) });
-    /* TARGA della sala, appesa sopra la sua porta */
-    const d = roomDoor(zi);
-    const tgx = d.vert ? (d.x + (zi % 2 ? 1.2 : -1.2)) * TS : (d.x + d.n / 2) * TS;
-    const tgy = d.vert ? (d.y - 1.6) * TS : (d.y - 1.4) * TS;
-    ents.push({ y: tgy + 40, f: () => drawWingPlate(z, zi, tgx, tgy, col) });
+    /* TARGA della sala APPESA AL MURO di fondo, centrata sulla sala. Stava di fianco alla porta,
+       a mezza altezza: cioè in mezzo al pavimento, davanti alle teche (segnalato con foto). In un
+       museo il nome della sala sta sopra, sul muro, e non copre niente. */
+    /* le teche della fila alta sporgono 20px sopra il bordo della sala (CASE.Y): la targa va
+       SOPRA di loro, o le taglia a metà */
+    const tgx = x0 + wpx / 2, tgy = y0 - 50;
+    /* ordinata DOPO il muro di fondo (che è un'entità anche lui) o ci finirebbe dietro */
+    ents.push({ y: y0 + 2, f: () => drawWingPlate(z, zi, tgx, tgy, col) });
   });
   /* --------- ATRIO: bancone del Curatore a sinistra, insegna, zerbino, vasi --------- */
   const deskCx = (GAL_DESK.x0 + GAL_DESK.x1) / 2;
