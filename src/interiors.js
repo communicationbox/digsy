@@ -211,10 +211,7 @@ export function drawMuseumGallery(time) {
     /* due panche in mezzo alla sala: ci si siede e si guarda, come in un museo. Le coordinate
        vengono da benchList(), la STESSA lista che le rende solide: scritte solo qui, non
        fermavano nessuno e ci si passava attraverso (segnalato con foto). */
-    for (const b2 of benchList()) {
-      if (b2.x0 < x0 || b2.x0 >= x0 + wpx || b2.y0 < y0 || b2.y0 >= y0 + hpx) continue;
-      ents.push({ y: b2.y1 - 3, f: () => drawBench(BRUSH, b2.x0, b2.y0 + 2, col) });
-    }
+    for (const b2 of benchList()) if (b2.zi === zi) ents.push({ y: b2.y1 - 3, f: () => drawBench(BRUSH, b2.x0, b2.y0 + 2, col) });
     /* TARGA della sala APPESA AL MURO di fondo, centrata sulla sala. Stava di fianco alla porta,
        a mezza altezza: cioè in mezzo al pavimento, davanti alle teche (segnalato con foto). In un
        museo il nome della sala sta sopra, sul muro, e non copre niente. */
@@ -242,8 +239,7 @@ export function drawMuseumGallery(time) {
       drawRope(BRUSH, px2 - 84, px2 - 40, py2 + 16, '#8a3f3a');
       drawRope(BRUSH, px2 + 40, px2 + 84, py2 + 16, '#8a3f3a');
     } });
-    for (const [bx, by] of [[px2 - 150, py2 - 40], [px2 + 106, py2 - 40], [px2 - 150, py2 + 54], [px2 + 106, py2 + 54]])
-      ents.push({ y: by + 14, f: () => drawBench(BRUSH, bx, by, '#c9a227') }); }
+    for (const b3 of benchList()) if (b3.rot) ents.push({ y: b3.y1 - 3, f: () => drawBench(BRUSH, b3.x0, b3.y0 + 2, '#c9a227') }); }
   /* --------- TECHE --------- */
   for (const pd of pedList()) {
     const bx = pd.tx * TS, by = pd.ty * TS;

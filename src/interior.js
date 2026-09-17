@@ -51,8 +51,15 @@ export function benchList() {
     if (zi >= 6) return;
     const b = roomBox(zi), x0 = b.rx * TS, y0 = b.ry * TS, wpx = b.rw * TS, hpx = b.rh * TS;
     for (const bx of [x0 + wpx / 2 - 70, x0 + wpx / 2 + 14])
-      out.push({ x0: bx, y0: y0 + hpx / 2 - 2, x1: bx + 48, y1: y0 + hpx / 2 + 17 });
+      out.push({ zi, x0: bx, y0: y0 + hpx / 2 - 2, x1: bx + 48, y1: y0 + hpx / 2 + 17 });
   });
+  /* e le QUATTRO della rotonda, attorno allo scheletro montato: stavano scritte solo nel
+     disegno e restavano attraversabili (seconda segnalazione sullo stesso difetto) */
+  /* più larghe rispetto al centro di prima: ora che FERMANO, sul giro del Maestro (che passa
+     di fianco allo scheletro) erano un muro in mezzo alla strada */
+  for (const [bx, by] of [[CENTRO.x - 190, CENTRO.y - 40], [CENTRO.x + 142, CENTRO.y - 40],
+    [CENTRO.x - 190, CENTRO.y + 26], [CENTRO.x + 142, CENTRO.y + 26]])
+    out.push({ rot: true, x0: bx, y0: by - 2, x1: bx + 48, y1: by + 17 });
   return out;
 }
 export function pedList() {

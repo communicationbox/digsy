@@ -3210,7 +3210,7 @@ sprites.applyLook();
      (le panche stanno in mezzo, non davanti alle teche). */
   {
     const panche = inter.benchList();
-    check('due panche per sala di bioma', panche.length === 12);
+    check('due panche per sala di bioma, più le quattro della rotonda', panche.length === 16 && panche.filter(b5 => b5.rot).length === 4);
     inter.enterInterior({ type: 'museum', x0: 0, y0: 0, x1: 4, y1: 1 }, null);
     const dentro = (inter.INT.solids || []).filter(f => panche.some(b3 => b3.x0 === f.x0 && b3.y0 === f.y0));
     check('le panche del museo fermano il giocatore', dentro.length === panche.length);

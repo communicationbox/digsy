@@ -159,7 +159,7 @@ export const RU = {
   "look at the statue by the Museum": "осмотри статую у Музея",
   "Hidden in the stone": "Спрятано в камне",
   "If you found this envelope, you looked at the statue up close. I knew you would.": "Если ты нашёл этот конверт, значит, рассмотрел статую вблизи. Я знал.",
-  "The Museum is right here: bring it every bone, even the one that looks like a stone.": "Музей совсем рядом: неси туда каждую кость, даже ту, что похожа на камень.",
+  "Look for the Museum, in town: bring it every bone, even the one that looks like a stone.": "Найди Музей в городе: неси туда каждую кость, даже ту, что похожа на камень.",
   "A letter from me is waiting in every room. I left you one for each zone.": "В каждом зале тебя ждёт моё письмо. Я оставил по одному на каждую зону.",
   "Good luck, little archaeologist.": "Удачи, маленький археолог.",
   "Amber": "Янтарь",
