@@ -456,6 +456,10 @@ export function playHatching(cr) {
   document.body.appendChild(ov); hatchOpen = true; playSfx('found');
   const cv = ov.querySelector ? ov.querySelector('#hatchCv') : null;
   const t0 = performance.now();
+  /* QUANTO DURA L'ATTESA prima che il guscio ceda. Il primo taglio rompeva l'uovo dopo un
+     secondo e mezzo: troppo presto per godersi il tremito e le crepe che si ramificano
+     (segnalato). Tre secondi e mezzo di suspense, poi il lampo. */
+  const ROTTURA = 3.5;
   let alive = null, raf = 0;
   import('./render.js').then(r => { try { alive = r.creatureSprite({ c: { skull: cr.skull, torso: cr.torso, leg: cr.leg, q: cr.q } }, 'side'); } catch (e) { /* stub */ } });
   const close = () => { if (!hatchOpen) return; hatchOpen = false; cancelAnimationFrame(raf); ov.remove(); };
@@ -471,18 +475,18 @@ export function playHatching(cr) {
       if (((i + Math.floor(t * 6)) % 4) === 0) { g.fillStyle = i % 2 ? '#ffe38a' : '#fff3c8'; g.fillRect(x | 0, y | 0, 2, 2); }
     }
     g.fillStyle = 'rgba(0,0,0,.35)'; g.fillRect(84, 112, 32, 3);      // ombra a terra
-    if (t < 1.5) {
+    if (t < ROTTURA) {
       /* TRABALLA sempre più forte, e le crepe avanzano con lui */
-      const forza = Math.min(1, t / 1.2), scossa = Math.round(Math.sin(t * (7 + forza * 16)) * forza * 3);
-      eggOn(g, 100 + scossa, 78, 2, t < 0.35 ? 0 : (t - 0.35) / 1.1);
+      const forza = Math.min(1, t / (ROTTURA - 0.3)), scossa = Math.round(Math.sin(t * (7 + forza * 16)) * forza * 3);
+      eggOn(g, 100 + scossa, 78, 2, t < 0.35 ? 0 : (t - 0.35) / (ROTTURA - 0.4));
     }
-    if (t >= 1.35 && t < 1.75) {                                      // il lampo della schiusa
-      const k = 1 - Math.abs(t - 1.5) / 0.2;
+    if (t >= ROTTURA - 0.15 && t < ROTTURA + 0.25) {                  // il lampo della schiusa
+      const k = 1 - Math.abs(t - ROTTURA) / 0.2;
       g.fillStyle = 'rgba(255,248,220,' + Math.max(0, k).toFixed(2) + ')'; g.fillRect(0, 0, 200, 130);
     }
-    if (t >= 1.4) {
+    if (t >= ROTTURA - 0.1) {
       /* i due GUSCI si aprono e cadono ai lati, con un po' di gravità */
-      const u = Math.min(1.6, t - 1.4);
+      const u = Math.min(1.6, t - (ROTTURA - 0.1));
       for (const sgn of [-1, 1]) {
         const gx = Math.round(100 + sgn * (6 + u * 26)), gy = Math.round(96 + u * u * 26 - u * 14);
         g.fillStyle = '#7d6242'; g.fillRect(gx - 7, gy, 14, 3);
@@ -490,8 +494,8 @@ export function playHatching(cr) {
         g.fillStyle = '#d3c3a6'; g.fillRect(gx - 4, gy + 3, 8, 1);
       }
     }
-    if (t >= 1.5 && alive) {                                          // il piccolo salta fuori
-      const u = Math.min(1, (t - 1.5) / 0.45);
+    if (t >= ROTTURA && alive) {                                      // il piccolo salta fuori
+      const u = Math.min(1, (t - ROTTURA) / 0.45);
       const hop = Math.round(Math.abs(Math.sin(t * 5)) * -6) - Math.round((1 - u) * 10);
       const s = alive.width > 90 ? 1 : 2;
       const w = alive.width * s, h = alive.height * s;
@@ -502,9 +506,9 @@ export function playHatching(cr) {
     raf = requestAnimationFrame(draw);
   };
   if (typeof requestAnimationFrame === 'function') raf = requestAnimationFrame(draw);
-  ov.onclick = e => { if (e && e.target && e.target.id === 'hcSkip') { close(); return; } if ((performance.now() - t0) > 1700) close(); };
+  ov.onclick = e => { if (e && e.target && e.target.id === 'hcSkip') { close(); return; } if ((performance.now() - t0) > (ROTTURA + 0.2) * 1000) close(); };
   const onKey = e => { if (!hatchOpen) { document.removeEventListener('keydown', onKey, true); return; }
-    if (['Enter', ' ', 'Escape', 'e', 'E'].includes(e.key)) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Escape' || (performance.now() - t0) > 1700) { close(); document.removeEventListener('keydown', onKey, true); } } };
+    if (['Enter', ' ', 'Escape', 'e', 'E'].includes(e.key)) { e.preventDefault(); e.stopPropagation(); if (e.key === 'Escape' || (performance.now() - t0) > (ROTTURA + 0.2) * 1000) { close(); document.removeEventListener('keydown', onKey, true); } } };
   if (document.addEventListener) document.addEventListener('keydown', onKey, true);
 }
 /* banner centrale a tutto schermo per gli eventi importanti (consegna del Libro, ecc.) */
