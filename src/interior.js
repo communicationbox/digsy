@@ -42,6 +42,19 @@ export { GAL_W, GAL_H, ROOM_W, ROOM_H, roomOrigin, roomBox, roomDoor, isWall, ar
 /* memoizzato: la disposizione è deterministica, ma pedList gira più volte per frame
    (render + collisioni + nearCase) → evitiamo di riallocare 60 oggetti ogni volta */
 let _peds = null;
+/* LE DUE PANCHE di ogni sala. Elenco UNICO: lo usa il disegno (interiors.js) e lo usa la
+   collisione (INT.solids). Erano scritte solo nel disegno, quindi non fermavano nessuno e il
+   giocatore ci passava attraverso (segnalato con foto). */
+export function benchList() {
+  const out = [];
+  MUSEUM_ZONES.forEach((z, zi) => {
+    if (zi >= 6) return;
+    const b = roomBox(zi), x0 = b.rx * TS, y0 = b.ry * TS, wpx = b.rw * TS, hpx = b.rh * TS;
+    for (const bx of [x0 + wpx / 2 - 70, x0 + wpx / 2 + 14])
+      out.push({ x0: bx, y0: y0 + hpx / 2 - 2, x1: bx + 48, y1: y0 + hpx / 2 + 17 });
+  });
+  return out;
+}
 export function pedList() {
   if (_peds) return _peds;
   const out = [];
@@ -209,7 +222,7 @@ export function enterInterior(b, town) {
   /* lo scheletro al centro dell'atrio è solido: ci si gira attorno, non ci si cammina dentro */
   /* lo scheletro montato al centro della rotonda: ci si gira attorno, non ci si passa dentro */
   const centro = mus ? [{ x0: CENTRO.x - 62, y0: CENTRO.y - 34, x1: CENTRO.x + 62, y1: CENTRO.y + 8 }] : [];
-  INT.solids = mus ? [GAL_DESK, ...pedList(), ...plants, ...centro] : (FURN[b.type] || []);
+  INT.solids = mus ? [GAL_DESK, ...pedList(), ...plants, ...centro, ...benchList()] : (FURN[b.type] || []);
   if (mus) {
     const z = zoneAt(Math.floor(P.x / TS), Math.floor(P.y / TS));
     const letter = pendingLetter();               // sala riempita → il nonno ha lasciato una lettera

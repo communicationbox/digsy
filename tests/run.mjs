@@ -3205,6 +3205,20 @@ sprites.applyLook();
   check('la settima ala espone le specie di grotta', peds.some(p => p.sp.zone === 'grotta') && peds.filter(p => p.sp.zone === 'grotta').length === 6);
   /* i piedistalli della grotta stanno DENTRO la galleria (niente teche fuori dai muri) */
   check('la sala grotte sta dentro il museo', peds.filter(p => p.sp.zone === 'grotta').every(p => p.ty < inter.GAL_H - 6 && p.tx < inter.GAL_W - 1));
+  /* LE PANCHE SONO SOLIDE. Erano disegnate e basta: ci si camminava dentro (segnalato con
+     foto). Elenco unico `benchList()` per disegno e collisioni, e le sale restano attraversabili
+     (le panche stanno in mezzo, non davanti alle teche). */
+  {
+    const panche = inter.benchList();
+    check('due panche per sala di bioma', panche.length === 12);
+    inter.enterInterior({ type: 'museum', x0: 0, y0: 0, x1: 4, y1: 1 }, null);
+    const dentro = (inter.INT.solids || []).filter(f => panche.some(b3 => b3.x0 === f.x0 && b3.y0 === f.y0));
+    check('le panche del museo fermano il giocatore', dentro.length === panche.length);
+    const b4 = panche[0];
+    check('in mezzo a una panca non ci si passa', inter.intCollide((b4.x0 + b4.x1) / 2, (b4.y0 + b4.y1) / 2 - 8) === true);
+    check('un passo di fianco alla panca si passa', inter.intCollide(b4.x0 - 22, (b4.y0 + b4.y1) / 2 - 8) === false);
+  }
+
   /* LA TARTARUGA SI DEVE POTER COCCOLARE: ogni posto dove può capitare sta su pavimento
      libero, e il giocatore ci arriva. Uno cadeva addosso al bancone del Curatore: si vedeva
      e non si poteva toccare (segnalato con foto). */

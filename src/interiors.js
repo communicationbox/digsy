@@ -9,7 +9,7 @@ import { S, P } from './state.js';
 import { isWall, areaAt, roomBox, roomDoor, ROT, ATRIO, CAVE_Y1 } from './museumPlan.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
-import { INT, NPCS, FURN, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
+import { INT, NPCS, FURN, benchList, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
@@ -208,8 +208,13 @@ export function drawMuseumGallery(time) {
     const x0 = b.rx * TS, y0 = b.ry * TS, wpx = b.rw * TS, hpx = b.rh * TS;
     if (x0 - camx > W + 60 || x0 + wpx - camx < -60 || y0 - camy > H + 160 || y0 + hpx - camy < -60) return;
     const col = (WINGS[zi] || WINGS[0]).acc;
-    /* due panche in mezzo alla sala: ci si siede e si guarda, come in un museo */
-    for (const bx of [x0 + wpx / 2 - 70, x0 + wpx / 2 + 14]) ents.push({ y: y0 + hpx / 2 + 14, f: () => drawBench(BRUSH, bx, y0 + hpx / 2, col) });
+    /* due panche in mezzo alla sala: ci si siede e si guarda, come in un museo. Le coordinate
+       vengono da benchList(), la STESSA lista che le rende solide: scritte solo qui, non
+       fermavano nessuno e ci si passava attraverso (segnalato con foto). */
+    for (const b2 of benchList()) {
+      if (b2.x0 < x0 || b2.x0 >= x0 + wpx || b2.y0 < y0 || b2.y0 >= y0 + hpx) continue;
+      ents.push({ y: b2.y1 - 3, f: () => drawBench(BRUSH, b2.x0, b2.y0 + 2, col) });
+    }
     /* TARGA della sala APPESA AL MURO di fondo, centrata sulla sala. Stava di fianco alla porta,
        a mezza altezza: cioè in mezzo al pavimento, davanti alle teche (segnalato con foto). In un
        museo il nome della sala sta sopra, sul muro, e non copre niente. */
