@@ -77,21 +77,23 @@ const SCENE = [
      inquadratura il Museo, l'unico edificio con una sagoma sua (frontone e colonne) e il posto
      attorno a cui gira tutto il gioco. Piantati sul viale si fotografano sempre le stesse tre
      botteghe di fila, e il Museo resta fuori campo. */
-  { nome: '01-citta', size: WIDE, seed: 4, passi: `
+  { nome: '01-citta', size: WIDE, seed: 12, passi: `
     ${PARTITA}
-    ${''/* prima nei Prati e POI la città: `goto=city` da solo prende quella più vicina al punto
-          di partenza, che col seme cambia bioma ogni volta — e in una città delle Dune Ossee
-          sabbia, lastricato ed edifici sono tutti dello stesso beige, senza un contrasto */}
-    await G.cmd('goto=prati');
+    ${''/* IL SEME SCEGLIE LA CITTÀ, non un `goto=prati` messo prima. Col seme 12 la più vicina
+          all'origine è una CITTÀ vera (sette edifici, quindi col Museo: l'unico con frontone e
+          colonne) nelle Terre Rosse, dove il lastricato chiaro stacca dal terreno. Andare prima
+          nei Prati e poi cercare la città portava dove capitava — con la generazione dei biomi
+          rifatta, nelle Lande Gelide: tutto bianco su bianco. */}
+    ${''/* al CENTRO della piazza, non alla statua: da quando la statua sta per conto suo in un
+          angolo, di lì l'inquadratura prendeva mezza foto di prato fuori città */}
     await G.cmd('goto=city');
-    await G.gotoStatue();
     ${ANIMA}
   ` },
   /* Il recinto ABITATO. Il post promette che le creature "vivono nel parco": se la foto mostra
      un prato vuoto la promessa si smonta da sola. Chimere vere, assemblate dal gioco. */
   { nome: '02-parco', size: WIDE, passi: `
     ${PARTITA}
-    for (var c = 0; c < 6; c++) await G.cmd('chimera');
+    for (var c = 0; c < 9; c++) await G.cmd('chimera');
     await G.cmd('gotopark');
     ${ANIMA}
   ` },
@@ -141,8 +143,11 @@ const SCENE = [
      era mai visto. È anche l'inquadratura più "cozy" che il gioco sappia produrre. */
   { nome: '07-notte', size: WIDE, seed: 4, passi: `
     ${PARTITA}
+    ${''/* FUORI dalla città: dentro le mura la notte non si vede, perché le città restano
+          illuminate apposta (alone graduale attorno all'abitato). In piazza la foto notturna
+          veniva quasi diurna — con la luna nell'HUD e nient'altro. */}
     await G.cmd('goto=prati');
-    await G.cmd('goto=city');
+    await G.cmd('goto=site');
     ${''/* l'ora si sposta a mano e non col comando `night`: quello accende anche la missione
           delle lucciole, e il contatore "0/6" resta piantato in mezzo alla foto */}
     G.state().tod = 0.9;
@@ -182,7 +187,10 @@ const SCENE = [
     ${PARTITA}
     await G.cmd('chimera');
     await G.cmd('anim=hatch');
-    await new Promise(function(r){ setTimeout(r, 4200); });
+    ${''/* 3,2 s: l'attimo PRIMA che il guscio ceda (ROTTURA = 3,5 s) — l'uovo è tutto crepato e
+          si legge cos'è. Dopo la rottura restano il lampo e una creatura in mezzo al buio, che
+          in una foto ferma non racconta la schiusa. */}
+    await new Promise(function(r){ setTimeout(r, 3200); });
   ` },
   /* Il vero USP del gioco per il marketing: due scheletri vistosi affiancati (drago alato +
      verme delle dune serpentino), non l'ennesimo screenshot dall'alto uguale a tutti i cozy
