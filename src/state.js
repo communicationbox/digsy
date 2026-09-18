@@ -35,7 +35,7 @@ export function fresh() {
     seed: (Math.random() * 1e9) | 0, coins: 0, energy: 30, maxEnergy: 30, day: 1,
     raw: [], items: [], codex: [], donated: [], dug: [], creatures: [],
     uid: 1, px: 0, py: 0, started: false, lastTown: null, tod: 0.25, book: {}, sites: {}, awakened: [], museum: {}, amber: {}, amberDone: [],
-    look: { ...DEFAULT_LOOK }, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false, mounted: false,
+    look: { ...DEFAULT_LOOK }, bought: {}, lookDone: false, name: '', gift: false, npcSeen: {}, museumIntroSeen: false, mounted: false,
     idleAt: Date.now(),
   };
 }
@@ -76,6 +76,26 @@ export function restoreState(obj) {
 }
 /* Versione dello SCHEMA del salvataggio (non del gioco): si alza solo quando cambia la forma
    dei dati e serve una migrazione. Permette di riconoscere save vecchi e save dal futuro. */
+/* CAMPI COSMETICI CHE SI PAGANO (la pelle no: è chi sei, non un capo). Uno solo elenco, usato
+   dal guardaroba e dai negozi — due copie avrebbero preso strade diverse al primo campo nuovo. */
+export const LOOK_FIELDS = ['hairStyle', 'hairColor', 'beardStyle', 'beardColor',
+  'hatStyle', 'hat', 'shirtStyle', 'shirt', 'pantsStyle', 'pants', 'glassesStyle', 'glassesColor'];
+/* QUELLO CHE HAI PAGATO UNA VOLTA RESTA TUO: si segna per campo e valore, e riprenderlo è
+   gratis. Prima ogni cambio costava, quindi rimettersi il taglio di ieri si pagava daccapo —
+   non è un servizio, è un guardaroba. */
+export function cosmeticOwned(field, value) {
+  const b = S && S.bought && S.bought[field];
+  return !!b && b.indexOf(value) >= 0;
+}
+export function markBought(field, value) {
+  if (!S || value == null) return;
+  if (!S.bought) S.bought = {};
+  const b = S.bought[field] || (S.bought[field] = []);
+  if (b.indexOf(value) < 0) b.push(value);
+}
+/* tutto quello che un look indossa è, per definizione, già suo */
+export function markLookBought(look) { if (look) for (const f of LOOK_FIELDS) markBought(f, look[f]); }
+
 export const SAVE_V = 2;   // 2: caselle scavate impacchettate per riga come la mappa (packDug)
 export const BAK = SK + '_bak';       // copia del salvataggio precedente (rete di sicurezza)
 export const BROKEN = SK + '_broken'; // save illeggibile messo da parte, mai buttato
@@ -251,6 +271,16 @@ export function initState() {
   if (S.look.eyeColor === undefined) S.look.eyeColor = DEFAULT_LOOK.eyeColor;
   if (S.look.shirtStyle === undefined) S.look.shirtStyle = DEFAULT_LOOK.shirtStyle; // forme maglia/pantaloni
   if (S.look.pantsStyle === undefined) S.look.pantsStyle = DEFAULT_LOOK.pantsStyle;
+  /* viso: chi giocava prima non aveva barba né occhiali e non deve ritrovarseli addosso */
+  if (S.look.beardStyle === undefined) S.look.beardStyle = 'none';
+  if (S.look.glassesStyle === undefined) S.look.glassesStyle = 'none';
+  if (S.look.beardColor === undefined) S.look.beardColor = S.look.hairColor || DEFAULT_LOOK.beardColor;
+  if (S.look.glassesColor === undefined) S.look.glassesColor = DEFAULT_LOOK.glassesColor;
+  /* GUARDAROBA: quello che hai già pagato resta tuo. Chi giocava prima ha comprato quello che
+     indossa, quindi glielo si mette in cassa: tornare al proprio taglio non deve costare di
+     nuovo solo perché il registro è nato oggi. */
+  if (!S.bought || typeof S.bought !== 'object') S.bought = {};
+  markLookBought(S.look);
   if (S.tod === undefined) S.tod = 0.25;
   if (!S.book) S.book = {};
   /* la mappa arriva compressa dal disco (o nel vecchio formato: unpack li gestisce entrambi) */

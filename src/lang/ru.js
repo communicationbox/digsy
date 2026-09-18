@@ -13,7 +13,7 @@ import { FURN_CATALOG, FURN_THEMES } from '../furnCatalog.js';
    ricetta): qui si aggiungono al dizionario invece di ricopiarli a mano due volte */
 const RU_CATALOG = Object.fromEntries([...FURN_CATALOG, ...FURN_THEMES].map(f => [f.en, f.ru]));
 export const RU = {
-  "Haircut, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.": "Причёска, цвет и кожа. Примеряй сколько хочешь: платишь только при подтверждении. В каждом краю свой особый стиль.",
+  "Haircut, beard, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.": "Причёска, борода, цвет и кожа. Примеряй сколько хочешь: платишь только при подтверждении. В каждом краю свой особый стиль.",
 
   "chimera created: it roams your yard (pick it as companion)": "химера создана: гуляет во дворе (выбери её спутником)",
   "Your yard has its first tree.": "Во дворе появилось первое дерево.",
@@ -1049,7 +1049,19 @@ export const RU = {
 
 
   'Haircut': 'Стрижка',
-  'Color': 'Цвет',
+
+  /* viso: barba/baffi dal Barbiere, occhiali dalla Sartoria */
+  'Beard': 'Борода',
+  'Glasses': 'Очки',
+  'Beard colour': 'Цвет бороды',
+  'Frame colour': 'Цвет оправы',
+  'None': 'Нет',
+  'Moustache': 'Усы',
+  'Goatee': 'Эспаньолка',
+  'Full beard': 'Окладистая борода',
+  'Round': 'Круглые',
+  'Rectangular': 'Прямоугольные',
+  'Sunglasses': 'Солнечные',
 
 
 
@@ -1572,8 +1584,8 @@ export const RU = {
     'Здесь продают определённые находки и покупают всё нужное: инструменты, рюкзаки побольше, карты сокровищ, перекусы и транспорт. Осмотрись.',
   "Sleep here to restore your energy: you'll wake at dawn the next day. Handy before a long dig.":
     'Здесь спят, чтобы восстановить энергию: проснётесь на рассвете следующего дня. Удобно перед долгими раскопками.',
-  'Here you pick shirt, trousers and hat. Try freely and pay on confirm; some special hats are unlocked separately.':
-    'Здесь выбирают рубашку, штаны и шляпу. Примеряйте свободно, платите при подтверждении; некоторые особые шляпы открываются отдельно.',
+  'Here you pick shirt, trousers, hat and glasses. Try freely and pay on confirm; some special hats are unlocked separately.':
+    'Здесь выбирают рубашку, штаны, шляпу и очки. Примеряйте свободно, платите при подтверждении; некоторые особые шляпы открываются отдельно.',
 
   /* ---- intro: le prime battute ---- */
 

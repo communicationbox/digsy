@@ -99,6 +99,11 @@ const HATL = { explorer: ['Esploratore', 'Explorer'], cap: ['Berretto', 'Cap'], 
 export function hatLabel(id) { const e = HATL[id]; return e ? lab(e) : id; }
 const SHIRTL = { tshirt: ['Maglietta', 'T-shirt'], tank: ['Canottiera', 'Tank top'], shirt: ['Camicia', 'Shirt'], hoodie: ['Felpa', 'Hoodie'] };
 const PANTSL = { long: ['Pantaloni', 'Trousers'], shorts: ['Pantaloncini', 'Shorts'], skirt: ['Gonna', 'Skirt'], overall: ['Salopette', 'Overalls'] };
+const BEARDL = { none: ['Niente', 'None'], stache: ['Baffi', 'Moustache'],
+  goatee: ['Pizzetto', 'Goatee'], full: ['Barba piena', 'Full beard'] };
+const GLASSESL = { none: ['Niente', 'None'], round: ['Tondi', 'Round'], square: ['Rettangolari', 'Rectangular'], sun: ['Da sole', 'Sunglasses'] };
+export function beardLabel(id) { const e = BEARDL[id]; return e ? lab(e) : id; }
+export function glassesLabel(id) { const e = GLASSESL[id]; return e ? lab(e) : id; }
 export function shirtLabel(id) { const e = SHIRTL[id]; return e ? lab(e) : id; }
 export function pantsLabel(id) { const e = PANTSL[id]; return e ? lab(e) : id; }
 

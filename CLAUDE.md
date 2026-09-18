@@ -39,6 +39,7 @@ src/hatArt.js       cappelli disegnati in NATIVO a 32px: forme (cupola, tesa, fa
 src/bodyArt.js      corpo del personaggio in NATIVO: testa con viso, braccia, scarpe, a specchio; contorno dopo i vestiti (puro)
 src/holeArt.js      buche dello scavo: 10 forme curate (lobi, mucchi, zolle, sasso, radice), scelte/specchiate per casella (puro)
 src/hairArt.js      capelli disegnati in NATIVO: massa + attaccatura ritagliata, ciocche, riccioli, punte (puro, usa grid di hatArt)
+src/faceArt.js      barba/baffi (colore dei capelli, senza contorno) e occhiali (montature 'K') in NATIVO (puro)
 src/npcArt.js       segni di mestiere degli NPC (look.acc): camice/occhiali, grembiuli, baffi, papillon+monocolo, metro (puro)
 src/houseArt.js     architettura della casa: muri con spessore, porte con targhetta, finestre, soglie (puro)
 src/caveArt.js      grotte: pareti in 3/4, pavimento a lastre con pozze e funghi luminosi, giacimenti (puro)
@@ -132,6 +133,28 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   Niente arredo sulle strade (`forb`). Città+parco SEMPRE dentro la propria cella (jy 8..27).
   Sotto gli edifici: lastricato, mai erba, e non ci si scava (`tryDig` rifiuta ogni townInfo).
   `exitInterior` cerca la prima tile LIBERA davanti alla porta (niente compenetrazioni).
+- **GUARDAROBA: quello che hai pagato una volta resta tuo** (`S.bought` per campo e valore,
+  `cosmeticOwned/markBought/markLookBought` + `LOOK_FIELDS` in state.js): riprendere un taglio,
+  un colore o un capo già comprato è **gratis** — prima ogni cambio costava, quindi rimettersi
+  il taglio di ieri si ripagava daccapo. Non è un servizio, è un guardaroba. Quello che si
+  indossa è per definizione già proprio (l'editor iniziale registra tutto alla conferma, e i
+  salvataggi vecchi si registrano il look addosso al boot). **E si vede**: ✓ verde sulle voci
+  già tue (anche sui quadratini dei colori, `.sw.own`), 🪙8 su quelle che si pagano, e la barra
+  in fondo dice "Gratis: è già tuo" invece di "Totale: 🪙 0". Prima il conto compariva solo
+  nella barra, a scelta fatta.
+  L'**anteprima resta appesa in cima** anche in bottega (`.ed-stick` in previewHtml, la stessa
+  dell'editor): Sartoria e Barbiere sono elenchi lunghi e arrivati agli occhiali il Digsy era
+  fuori schermo da un pezzo — si provava senza vedere quello che si sta provando.
+  Due trappole, tutte e due trovate con una foto e chiuse da una misura negli e2e:
+  **1)** `.sheet` aveva `overflow:auto` oltre a `.sb` — due aree che scorrono una dentro
+  l'altra (regola 15), e la fascia si incolla solo a una delle due. Ora scorre solo `.sb`.
+  **2)** `position:sticky` tiene dentro il riquadro la **scatola dei margini**, non il bordo:
+  con `margin-top:-14px` (che serve a far arrivare la fascia ai bordi del foglio) e `top:0` la
+  fascia si agganciava **14px più in basso**, e in quella fessura passavano i bottoni sopra il
+  Digsy. `top` deve pareggiare il margine negativo (`-15px`). Il vecchio controllo e2e misurava
+  contro `sb.top + padding` e quindi **pretendeva il difetto**: ora misura la fessura contro il
+  bordo dell'area che scorre, in editor E in bottega (il pannello lo costruisce un'altra
+  funzione: una prova sul solo editor non l'avrebbe preso).
 - **Barbiere** 💈 / **Sartoria** 👕: **prova LIBERA + Conferma** (`beginLook/confirmLook/
   revertLook`, `lookPaidFields`): provi quanto vuoi gratis, paghi 🪙8 solo per i campi
   cambiati alla conferma; Annulla/chiudi ripristina. **Cosmetici TEMATICI per zona**
@@ -143,6 +166,29 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   `S.unlocked{hats,hairs}`); una volta sbloccati sono scegliibili ovunque (`hairStylesAvail/
   hatStylesAvail`). Sprite in HAIRS/HATS (righe 16, fronte/retro simmetriche, HAT_CROWN).
 - **Barbiere** 💈: 6 tagli base × 12 colori (anteprima senza cappello).
+- **Viso: barba/baffi e occhiali** (`faceArt.js`, `S.look.beardStyle/beardColor/glassesStyle/
+  glassesColor`): 3 barbe (baffi · pizzetto · barba piena) + colore dal **Barbiere**, 3 montature
+  (tondi · rettangolari · da sole) + colore dalla **Sartoria**, più `none` GRATIS in tutte e due
+  (toglierla non è un servizio, `FREE_OFF` in lookPaidFields). Stesso flusso prova-libera +
+  conferma, 🪙8 per campo cambiato, niente sblocchi. Materiali propri: `Z/n/m` la barba,
+  `O/l/o` la montatura. **La barba nasce del colore dei capelli e li SEGUE** finché non le si dà
+  un colore suo (`beardFollowsHair` in ui.js): chi cambia testa non deve scoprire una seconda
+  tavolozza per non ritrovarsi il barbone di prima. Strati in `drawHero`: barba SOTTO i capelli
+  (una frangia la copre), occhiali SOPRA i capelli e sotto il cappello.
+  **Niente contorno su nessuno dei due**: `finish` gira un bordo scuro attorno alla sagoma e su
+  un baffo alto un pixel ne raddoppia l'altezza — veniva una bocca sorridente disegnata a
+  pennarello, e sulla montatura una maschera da sub. Il volume se lo fa da sé la barba (riga
+  chiara sopra, riga d'ombra sotto); le **montature sono tutte SCURE** (`GLASSES_COLORS`, test
+  sulla luminanza) perché senza bordo il contrasto sulla pelle lo deve dare il colore (regola 4).
+  **Barba piena e pizzetto hanno il buco della bocca**: attaccati, baffi e mento diventano una
+  macchia sola. Negli occhiali **ponte e astine stanno una riga sotto il bordo alto delle lenti**
+  (alla stessa quota si saldavano in una barra larga 15 px: una visiera) e **di profilo la lente
+  arriva al fronte del viso** (colonna 25) — centrata sull'occhio e basta, restava una striscia
+  di guancia davanti e sembrava un monocolo sullo zigomo. Di spalle la barba non c'è (la testa
+  la copre) e degli occhiali resta l'astina.
+  Foto: `npm run shot -- viso 720,1680 "viso=11:down"` (scala : vista : elenco di id) ·
+  `barbiere` · `sartoria` · `editor 700,1000 "giu=1"` (`giu` scorre prima dello scatto: Chrome
+  headless non apre finestre più alte di ~620 px e le colonne lunghe si fotografano a metà).
 - **Sartoria** 👕 (solo città): 3 forme di cappello (Esploratore/Berretto/Cuffia, `HAT_STYLES`
   + overlay `HATS[forma]`), colori, maglia/pantaloni 🪙8; ultimo quadratino ✕ = **senza
   cappello, gratis** (`S.look.hatStyle='none'`; scegliere un colore lo rimette).
@@ -368,6 +414,52 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 - **Niente testo murato in index.html**: i testi statici passano da `applyStaticTexts()`
   (`#pr-done`, `#exitbtn`, `#debugtag`); la schermata di boot si traduce con uno script inline
   che legge `digsy_lang` (i moduli non sono ancora caricati). Un test scandisce il markup.
+- **Il vialetto di casa è una STRADA, e va controllata prima di scegliere il posto**
+  (`homeRoadGeomFor/homeRoadOk` in world.js, usate da `findHomeSpot`): si disegna come
+  pavimento e rende camminabile la casella **anche sull'acqua**, quindi finché nessuno la
+  guardava nasceva una striscia grigia in mezzo al mare — e bastava un edificio di traverso
+  perché la casa diventasse irraggiungibile, senza da che parte aggirarlo. Su 24 mondi di prova
+  erano **17**. Ora `findHomeSpot` fa quattro passate (a nord col vialetto buono · ovunque col
+  vialetto buono · a nord senza · ovunque senza: una casa scomoda è meglio di nessuna casa) e
+  il vialetto **si ferma alla prima casella di città NON solida** invece di puntare al bordo del
+  rettangolo — gli edifici sporgono oltre quel bordo, ed è lì che nasceva "la casa in mezzo".
+  La spezzata è un `Set` di caselle con il suo rettangolo d'ingombro (`nearHouseZone` lo usa per
+  non fare 25 letture per ogni casella del mondo). I salvataggi vecchi con la strada rotta
+  vengono rimessi una volta sola al boot (`homeRoadBroken` in main.js): la casa DENTRO sta in
+  `S.house`, non nelle coordinate, quindi non si perde niente. Test: 10 città diverse dello
+  stesso mondo (con UNA sola il controllo passava per caso) + il vialetto continuo casella per
+  casella (un buco è un muro d'acqua che da fuori non si vede).
+  **NON si controllano le decorazioni** sul tracciato: un albero lì sparisce da solo appena la
+  casa è fissata (`nearHouseZone`), e scartare per un cespuglio che non esisterà buttava via
+  posti buoni.
+- **In grotta niente segni d'interfaccia dentro il mondo** (`caveArt.caveCrystal`/parete): i
+  giacimenti avevano quattro angoli agli spigoli della casella — un mirino — e le ossa fossili
+  nella parete avevano il contorno scuro e l'avorio dei reperti, cioè le due promesse che in
+  questo gioco significano "si tocca" (regola 4). Ora: il cristallo dice da sé di essere a
+  portata (alone più acceso, luccichio più fitto e doppio), e il fossile è un rilievo nella
+  pietra. Un test misura il pixel più chiaro di una parete col fossile: deve restare roccia
+  (62% < 70%; col vecchio avorio era 81%).
+- **In volo la bestia RACCOGLIE le zampe** (`tuckLegs` in bones.js → `legVox`): non un ginocchio
+  che sporge ma un **rilievo lungo il ventre**, che si stacca di UNA casella e si richiude verso
+  la coda (+x: il muso sta alle x basse, la coda alle alte). Tre errori in fila, tutti e tre
+  visti solo in foto: dritte in giù sembrava appesa a un filo · piegate in AVANTI sembravano
+  rotte (la differenza è un segno meno) · piegate ma staccate sembravano due uncini appesi. Vale SOLO per la cavalcatura (`drawFlyingMount`): il modello del
+  Libro, del parco e del cortile resta quello che cammina. Tre misure sul MODELLO: il fondo dei
+  voxel si alza (0 → 6), la bestia resta tutta d'un pezzo, e il piede raccolto finisce più
+  indietro di dove finiva quello disteso (12 → 16).
+- **In sella le gambe sono PIEGATE** (posa `ride` in bodyArt: `legsSide` coscia avanti + stinco
+  giù, `legsFront` a cavalcioni con le ginocchia in fuori). Sulla cavalcatura volante il
+  cavaliere era un busto appoggiato sul drago: il ritaglio di `seatHero` si fermava alla vita
+  (48×46 → 48×62) **e** i lembi della sella si disegnavano DOPO il cavaliere, quindi passavano
+  davanti agli stinchi. Ora la sella sta fra la bestia e la gamba, com'è nella realtà.
+  Foto: `npm run shot -- pose 1000,600 "solo=volo&zoom=5"` (e `solo=bici`).
+- **Ogni scena si rimette la scala della tela** (`ctx.setTransform(view.PX…)` in cima a mondo,
+  grotta e interni): il mondo aperto era l'unico a fidarsi di quella lasciata da `fit()`, ma
+  l'intro disegna a `view.PX × Z` (Z fino a 3 sugli schermi grandi) e non la rimetteva. Finita
+  l'intro senza passare da una stanza — cioè quando non si entra in casa — il mondo usciva
+  ingrandito del doppio con Digsy fuori dall'inquadratura ("omino invisibile e super zoom",
+  segnalato con foto). Solo su certe finestre, perché sotto i 600×337 px di gioco Z vale 1 e la
+  scala sbagliata coincide con quella giusta: un test misura la chiamata, non l'effetto.
 - **Niente giocatore sotto la barra** (`hudPad()` in screen.js, usata da `caveCam` e
   `galleryCamY`): dove la camera si ferma al bordo della mappa (grotte, galleria del museo)
   si continuava a salire e Digsy finiva NASCOSTO dietro i tag dell'HUD (segnalato con foto da
@@ -630,6 +722,7 @@ in oro maiuscolo e una riga `.sp-sep`.
 - Ogni feature nuova: aggiungere check a `tests/run.mjs` e tenerla verde.
 - Pagine di prova: `/wonders` (meraviglie, mostra gli sprite rifiniti a mano quando ci sono),
   `/sprites` (Sprite Studio: meraviglie, personaggio, capelli e cappelli nelle TRE viste, icone,
+  **Viso** 6 (3 barbe + 3 occhiali),
   **Vestiti** 12 (4 maglie + 4 pantaloni × 2 passi: le gambe cambiano fra i
   fotogrammi, il torso no), **Natura** 14 = alberi/rocce/funghi/canne… e **Città** 11 = i 6 edifici + fontana/panchina/
   lampione/staccionata/imbocco grotta), `/playground` (mobile).

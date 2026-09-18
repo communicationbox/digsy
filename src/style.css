@@ -172,6 +172,9 @@ kbd + .pxi{margin-left:2px}
 #hud #bagbtn.full .pxi, #bagbtn.full .pxi{color:#fff3d6 !important}
 #menubtn{margin-left:auto;cursor:pointer;background:rgba(60,50,36,.92)} /* menu sempre in alto a DESTRA */
 .lbl{color:#c9d4c2;font-weight:700}
+/* "Lv" del livello: scritta, non icona. Un filo più piccola e smorzata del numero, così il
+   tag resta un numero con la sua etichetta e non due cose che urlano insieme. */
+.lvab{color:#c9d4c2;font-size:.82em;letter-spacing:.5px}
 /* su mobile: HUD compatto, zona/bussola troncate */
 @media(max-width:760px){
   #hud{font-size:12px;gap:6px;row-gap:5px}
@@ -444,8 +447,15 @@ body:has(#cmd.on) #touch{display:none!important}
 #modal.opaque{background:#0a0a10} /* editor iniziale: fondo nero, niente città dietro */
 /* la modale non deve MAI superare lo schermo: su mobile `vh` conta anche la barra del browser,
    quindi si usa dvh e si tolgono i margini della cornice dal calcolo. */
+/* SCORRE UNA COSA SOLA: il corpo (.sb). La scheda aveva `overflow:auto` anche lei, quindi
+   dentro la stessa finestra c'erano DUE aree che scorrono una dentro l'altra — regola ferrea
+   n.15. Col dito o con la rotella si muoveva a volte l'una a volte l'altra, e l'anteprima
+   appiccicata in cima (`.ed-stick`, che si incolla al suo contenitore che scorre) si
+   sganciava: scorrendo comparivano i bottoni sopra il Digsy (segnalato con foto).
+   La colonna flessibile con `min-height:0` sul corpo fa già tutto: l'intestazione resta,
+   il corpo scorre, la scheda non supera lo schermo. */
 .sheet{background:var(--c-ink);color:var(--c-wood);border:4px solid var(--c-line);border-radius:12px;width:min(560px,100%);
-  max-height:calc(100dvh - 28px);overflow:auto;box-shadow:0 14px 40px rgba(0,0,0,.5);font-family:ui-monospace,monospace;
+  max-height:calc(100dvh - 28px);overflow:hidden;box-shadow:0 14px 40px rgba(0,0,0,.5);font-family:ui-monospace,monospace;
   display:flex;flex-direction:column}
 .sheet .sb{overflow:auto;min-height:0}
 .sheet .st{flex:none}
@@ -480,6 +490,12 @@ body:has(#cmd.on) #touch{display:none!important}
 .btn.ghost.locked.onbtn{background:#e8c34a;border-color:var(--c-amber-sh);border-style:solid}
 .lockp{font-size:10px;font-weight:700;color:#8a6a1e;background:#f6e6b0;border-radius:4px;padding:0 3px;margin-left:2px}
 .lockp svg.pxi{width:9px;height:9px;vertical-align:-1px}
+/* l'icona dentro un distintivo prende il colore del DISTINTIVO, non il bianco del bottone
+   (`.btn svg.pxi` è !important): su quel fondo crema sparirebbe — regola ferrea 13. */
+.btn .lockp svg.pxi{color:inherit !important}
+/* GIÀ TUO: quello che hai pagato una volta resta tuo e riprenderlo è gratis. Sul quadratino di
+   un colore non ci sta una scritta, e un bordo diverso si confonderebbe con la selezione. */
+.lockp.own{color:#2f6b4a;background:#d7ecd2}
 /* premium bloccato dal LIVELLO: si vede (fa venire voglia di arrivarci) ma è spento — diverso
    dal locked normale (dashato, provabile gratis), qui non si prova nemmeno */
 .btn.ghost.lvlocked{opacity:.55;border-style:dotted;cursor:not-allowed}
@@ -500,7 +516,13 @@ body:has(#cmd.on) #touch{display:none!important}
    pareggiano il padding di `.sb` così la fascia arriva ai bordi del foglio e il contenuto
    le passa sotto senza trasparire. `top:0` la incolla appena sotto l'intestazione, che è
    già sticky per conto suo. */
-.ed-stick{position:sticky;top:0;z-index:4;margin:-14px -14px 10px;padding:10px 14px 8px;
+/* `top` PAREGGIA IL MARGINE NEGATIVO (-14px), più un pixel di sicurezza. Non è un dettaglio:
+   `position:sticky` tiene dentro il riquadro la SCATOLA DEI MARGINI, non il bordo. Con
+   `margin-top:-14px` e `top:0` la fascia si agganciava quattordici pixel PIÙ IN BASSO del
+   bordo dell'area che scorre, e in quella finestra passava il contenuto — si vedevano i
+   bottoni sopra il Digsy mentre si scorreva (misurato: bordo dell'area 96, fascia 109).
+   Il pixel in più copre gli schermi a densità frazionaria, dove il bordo cade a metà pixel. */
+.ed-stick{position:sticky;top:-15px;z-index:4;margin:-14px -14px 10px;padding:11px 14px 8px;
   background:var(--c-ink);box-shadow:0 3px 0 rgba(107,81,55,.16)}
 .ed-stick .prev{display:block;margin:0 auto}
 /* su telefono l'anteprima si rimpicciolisce: appiccicata a grandezza piena si mangerebbe
@@ -518,7 +540,9 @@ body:has(#cmd.on) #touch{display:none!important}
 .nameinput:focus{outline:none;border-color:var(--c-amber)}
 
 /* editor / barbiere / sartoria */
-.sw{width:28px;height:28px;border-radius:8px;border:2px solid var(--c-line);cursor:pointer;padding:0}
+.sw{position:relative;width:28px;height:28px;border-radius:8px;border:2px solid var(--c-line);cursor:pointer;padding:0}
+.sw.own::after{content:'✓';position:absolute;right:1px;bottom:-1px;font:700 11px ui-monospace,Menlo,monospace;
+  color:#eafbe6;text-shadow:1px 1px 0 #1d3a28,-1px 1px 0 #1d3a28,1px -1px 0 #1d3a28,-1px -1px 0 #1d3a28;pointer-events:none}
 .sw.on{box-shadow:0 0 0 3px var(--c-amber)}
 .sw.swx{background:var(--c-ink);color:#8a3f3a;font-weight:800;font-size:15px;line-height:1;font-family:inherit;display:flex;align-items:center;justify-content:center}
 .bag-close{display:flex;align-items:center;justify-content:center;color:#fff}

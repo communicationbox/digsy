@@ -161,6 +161,29 @@ export const EYE_COLORS = [
   '#33291f', '#5a3b22', '#3a6a8c', '#3d7a54', '#8a5a2a', '#6b5a7a', '#5a5a5a', '#a83a3a',
 ];
 
+/* BARBA E BAFFI (Barbiere) e OCCHIALI (Sartoria): il viso era l'unica parte che non si
+   poteva scegliere. 'none' è la prima voce di tutte e due ed è GRATIS come togliere il
+   cappello — smettere di portare qualcosa non è un servizio. Il colore della barba è quello
+   dei capelli (vedi faceArt.js), quindi qui non c'è una palette. */
+export const BEARD_STYLES = [
+  { id: 'none', label: 'Niente' },
+  { id: 'stache', label: 'Baffi' },
+  { id: 'goatee', label: 'Pizzetto' },
+  { id: 'full', label: 'Barba piena' },
+];
+export const GLASSES_STYLES = [
+  { id: 'none', label: 'Niente' },
+  { id: 'round', label: 'Tondi' },
+  { id: 'square', label: 'Rettangolari' },
+  { id: 'sun', label: 'Da sole' },
+];
+/* MONTATURE TUTTE SCURE. Gli occhiali non hanno contorno (lo aveva reso una maschera da sub):
+   il contrasto sulla pelle lo deve dare il colore, e una montatura crema su una faccia chiara
+   sparisce — regola 4. La barba invece pesca dai colori dei capelli: sono le stesse teste. */
+export const GLASSES_COLORS = [
+  '#33291f', '#6e4a2a', '#8c3a35', '#3a5a8c', '#2f6b5a', '#7a5a18', '#5a4a6e', '#5a5a5a',
+];
+
 export const HAT_STYLES = [
   { id: 'explorer', label: 'Esploratore' },
   { id: 'cap', label: 'Berretto' },
@@ -340,4 +363,5 @@ export const DEFAULT_LOOK = {
   hat: '#d06b43', shirt: '#57a58f', pants: '#c88a44', skin: '#f3cfa0',
   hairStyle: 'short', hairColor: '#6e4a2a', hatStyle: 'explorer', eyeColor: '#33291f',
   shirtStyle: 'tshirt', pantsStyle: 'long',
+  beardStyle: 'none', beardColor: '#6e4a2a', glassesStyle: 'none', glassesColor: '#33291f',
 };

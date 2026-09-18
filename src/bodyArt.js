@@ -188,7 +188,20 @@ function torsoSide(g, fr, pose, shirt = 'tshirt') {
 }
 
 /* ---------------- GAMBE ---------------- */
-function legsFront(g, fr) {
+function legsFront(g, fr, pose) {
+  if (pose === 'ride') {
+    /* A CAVALCIONI, visto di fronte o di spalle: il bacino resta al suo posto, le cosce escono
+       IN FUORI e gli stinchi scendono lungo i fianchi della bestia. Con le gambe dritte di
+       sempre sembrava in piedi sopra il drago, non seduto. */
+    row(g, 26, 10, 'P');
+    for (const [a, b] of [[7, 12], [19, 24]]) g.span(27, a, b, 'P', { lit: 0.2, dark: 0.8 });
+    for (const [a, b] of [[5, 10], [21, 26]]) {
+      for (let y = 28; y <= 29; y++) g.span(y, a, b, 'P', { lit: 0.2, dark: 0.8 });
+      g.span(30, a, b, 'B', { t: 1 });
+      g.span(31, a, b, 'B', { t: 2 });
+    }
+    return;
+  }
   row(g, 26, 10, 'P');
   const legs = fr ? [[8, 12], [19, 23]] : [[10, 14], [17, 21]];
   for (const [a, b] of legs) {
@@ -237,8 +250,8 @@ export function buildPoses(shirt) {
   for (const pose of Object.keys(ARMS)) {
     out[pose] = { down: [], up: [], side: [] };
     for (const fr of [0, 1]) {
-      let g = grid(); headFront(g, true); torsoFront(g, false, pose, shirt); legsFront(g, pose === 'ride' ? 0 : fr); out[pose].down.push(toRows(g));
-      g = grid(); headFront(g, false); torsoFront(g, true, pose, shirt); legsFront(g, pose === 'ride' ? 0 : fr); out[pose].up.push(toRows(g));
+      let g = grid(); headFront(g, true); torsoFront(g, false, pose, shirt); legsFront(g, pose === 'ride' ? 0 : fr, pose); out[pose].down.push(toRows(g));
+      g = grid(); headFront(g, false); torsoFront(g, true, pose, shirt); legsFront(g, pose === 'ride' ? 0 : fr, pose); out[pose].up.push(toRows(g));
       g = grid(); headSide(g); torsoSide(g, fr, pose, shirt); legsSide(g, fr, pose); out[pose].side.push(toRows(g));
     }
   }

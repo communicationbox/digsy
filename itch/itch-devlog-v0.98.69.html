@@ -1,0 +1,51 @@
+<!--
+  DEVLOG v0.98.69 — Digsy World
+  DOVE: dashboard itch → Digsy World → Devlog → "Create new post".
+
+  I CAMPI, uno per uno:
+    Title ............ Digsy World v0.98.69 — a face of your own, and a road home that exists
+    Post type ........ Update
+    Attachments ...... digsy-itch-v0.98.69.zip (caricalo prima nella pagina del gioco: itch lo aggancia da solo)
+    Content .......... clicca <> ("Edit HTML"), incolla SOLO quello che sta sotto questo commento
+    Tags ............. cozy, pixel-art, exploration, no-combat, browser, update
+    Languages ........ English
+    Original publish date … VUOTO
+    Cover image ...... itch-media/05-character.png  (non c'è una copertina dedicata a questa versione)
+    Comments ......... lasciare spuntato
+    Visibility ....... spuntare "Published" — SENZA, il post resta invisibile
+
+  PRIMA DEL POST, nella pagina del gioco: Edit game → Uploads → carica
+  digsy-itch-v0.98.69.zip, spunta "This file will be played in the browser", e ARCHIVIA la
+  build vecchia (v0.98.58) invece di lasciarne due giocabili.
+-->
+<p>Short one. Most of this release came from someone playing the game and sending me screenshots of things that were wrong — which is worth more than any test suite I can write, and I say that as someone who wrote two thousand of them.</p>
+
+<h3>A face of your own</h3>
+
+<p>Digsy had hair, a hat and clothes, but the face never changed. Now the <strong>Barber</strong> does beards — moustache, goatee, full beard — and the <strong>Tailor</strong> does glasses: round, rectangular, sunglasses. Each with its own colour, and both available while you're creating your character.</p>
+
+<p>The beard <em>starts</em> the colour of your hair and follows it around, until the day you give it a colour of its own. After that the two go their separate ways. It sounds fussy; it's there so nobody discovers the second palette by accident, wearing yesterday's beard on a brand new head.</p>
+
+<h3>A wardrobe, not a service</h3>
+
+<p>Changing your look used to cost 8 coins <em>every time</em> — so going back to the haircut you had last week meant paying for it again. That's a barber's chair, not a wardrobe. Now <strong>what you've bought stays yours</strong>: putting it back on is free, and you can see which is which before you pick — a green tick on what's already yours, a price on what isn't.</p>
+
+<p>Your character also stays pinned at the top of the panel while you scroll. The lists had got long enough that by the time you reached the glasses you were choosing blind.</p>
+
+<h3>The road home</h3>
+
+<p>Your house sits outside town with a lane running to it. Nobody had ever checked that the lane was <em>walkable</em>: it's drawn as paving, so it happily crossed open sea, and if a shop happened to stand across the far end there was no way around — the sea was on every side. I measured it on 24 generated worlds: <strong>17 of them had an unusable lane</strong>. Not bad luck. The normal case.</p>
+
+<p>Now the house is only placed where the whole lane is on solid ground, and the lane stops at the first clear town tile instead of aiming at the town's bounding box — buildings stick out past that box, which is exactly where the wall across the road came from. Saves that already had a bad house get it moved once, quietly. Everything inside the house stays put: the rooms aren't stored in the coordinates.</p>
+
+<h3>Things that were embarrassing</h3>
+
+<ul>
+  <li>After the intro, the world would sometimes come up at <strong>double zoom with Digsy nowhere on screen</strong>. The cutscene draws at its own scale and never put the canvas back; if you didn't walk through a room afterwards, nothing reset it.</li>
+  <li>Scrolling the shop panels, the buttons <strong>slid over your character</strong>. <code>position:sticky</code> keeps the <em>margin box</em> inside the frame, not the border — so a negative top margin pushed the pinned strip fourteen pixels down and left a window for everything to show through. There was already a test watching that strip: it was measuring against the wrong edge, and had been quietly demanding the bug.</li>
+  <li>The flying mount held its legs <strong>straight down like it was hanging from a string</strong>. Now it tucks them against its belly, and the rider's legs are bent along the flank instead of clipped off at the waist.</li>
+  <li>In the caves, the crystal deposits had four corner marks around them — a targeting reticle planted in the middle of the world, which this game doesn't do anywhere else. Gone: the crystal says it's in reach by <em>glowing brighter and sparkling faster</em>. And the fossil bones in the cave walls looked like a find you could pick up, because they had the dark outline and the ivory that mean "pick me up" everywhere else in the game. They're rock-coloured relief now.</li>
+  <li>Your level in the HUD reads <strong>Lv 1</strong> instead of a symbol nobody recognised.</li>
+</ul>
+
+<p>Still free, still in the browser, still no combat and no way to lose. If you find something that looks wrong, a screenshot is the most useful thing you can send me.</p>

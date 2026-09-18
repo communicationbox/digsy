@@ -203,6 +203,12 @@ const CATS = {
   ] },
   capelli: { label: 'Capelli', items: Object.keys(SPR_MOD.HAIRS || {}).map(k => ({ id: 'hair:' + k, name: k, kind: 'hair', key: k })) },
   cappelli: { label: 'Cappelli', items: Object.keys(SPR_MOD.HATS || {}).map(k => ({ id: 'hat:' + k, name: k, kind: 'hat', key: k })) },
+  /* VISO: barba/baffi e occhiali. Sono overlay come i capelli — la barba sotto i capelli, gli
+     occhiali sopra — e si guardano sulla testa, nelle tre viste. */
+  viso: { label: 'Viso', items: [
+    ...Object.keys(SPR_MOD.BEARDS || {}).map(k => ({ id: 'beard:' + k, name: 'barba ' + k, kind: 'beard', key: k })),
+    ...Object.keys(SPR_MOD.GLASSES || {}).map(k => ({ id: 'glasses:' + k, name: 'occhiali ' + k, kind: 'glasses', key: k })),
+  ] },
   /* VESTITI: le forme di maglia e pantaloni. Sono OVERLAY come i cappelli, ma il gioco sa
      ricavarle anche da solo (styleLook): finché non ne disegni una si vede il procedurale.
      I pantaloni hanno una voce per PASSO perché fra i due fotogrammi le gambe cambiano — il
@@ -351,8 +357,8 @@ function paintNaked(it, ctx, w, h) {
       REND.drawBuilding(b, Math.round((w - tw * 16) / 2), Math.round(h - th * 16 - 10));
     });
   }
-  else if (it.kind === 'hair' || it.kind === 'hat') {
-    const d0 = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
+  else if (isHeadOverlay(it)) {
+    const d0 = overlayDef(it);
     const view = it.view || 'down', oy = -overlayTop(d0, view);
     drawHeadBase(ctx, oy, view); drawOverlaySafe(ctx, d0, view, oy);
   }
@@ -384,8 +390,8 @@ function paintItem(it, ctx, w, h) {
     drawCharRows(ctx, rows, SPR_MOD.PAL);
   } else if (it.kind === 'deco' || it.kind === 'building' || it.kind === 'vehicle') {
     paintNaked(it, ctx, w, h);
-  } else if (it.kind === 'hair' || it.kind === 'hat') {
-    const hh = it.kind === 'hair' ? SPR_MOD.HAIRS[it.key] : SPR_MOD.HATS[it.key];
+  } else if (isHeadOverlay(it)) {
+    const hh = overlayDef(it);
     const view = it.view || curView;
     drawOverlaySafe(ctx, hh, view, -overlayTop(hh, view));
   } else if (it.kind === 'shirt' || it.kind === 'pants') {
@@ -525,10 +531,14 @@ const cv = document.getElementById('edcv'), out = document.getElementById('out')
 let cur = null, W = 0, H = 0, px = [], pal = [], color = 0, tool = 'pen', showGrid = true, undoStack = [];
 
 let curView = 'down';                      // vista in modifica per capelli/cappelli
-function isOverlay(it) { return it && (it.kind === 'hair' || it.kind === 'hat' || it.kind === 'shirt' || it.kind === 'pants'); }
+/* overlay che si guardano sulla TESTA: capelli, cappelli, barba, occhiali */
+function isHeadOverlay(it) { return it && ['hair', 'hat', 'beard', 'glasses'].includes(it.kind); }
+function isOverlay(it) { return it && (isHeadOverlay(it) || it.kind === 'shirt' || it.kind === 'pants'); }
 function overlayDef(it) {
   if (it.kind === 'hair') return SPR_MOD.HAIRS[it.key];
   if (it.kind === 'hat') return SPR_MOD.HATS[it.key];
+  if (it.kind === 'beard') return (SPR_MOD.BEARDS || {})[it.key];
+  if (it.kind === 'glasses') return (SPR_MOD.GLASSES || {})[it.key];
   if (it.kind === 'shirt') return (SPR_MOD.SHIRTS || {})[it.key];
   return (SPR_MOD.PANTS || {})[it.key];                     // 'stile:passo'
 }

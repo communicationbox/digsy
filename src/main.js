@@ -2,7 +2,7 @@
 import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearCheatSnapshot } from './state.js';
 import { FOOT_DY } from './body.js';
 import { fit, view } from './screen.js';
-import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache } from './world.js';
+import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache, homeRoadBroken, homeRoadOk, homeTown } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
@@ -282,6 +282,15 @@ function boot() {
     S.home = town ? findHomeSpot(town) : null;
     if (S.home) invalidateHouseDecoCache(); // il mondo lì poteva già avere alberi/funghi in cache
     save();
+  } else if (S.home && homeRoadBroken()) {
+    /* SALVATAGGI NATI PRIMA DEL CONTROLLO SUL VIALETTO: la casa poteva finire dall'altra
+       parte del mare, con l'unica strada che attraversava l'acqua e un edificio di traverso —
+       casa irraggiungibile a piedi (segnalato con foto). Si rimette una volta sola, e solo se
+       la strada è davvero rotta: la casa dentro (stanze e arredo) sta in S.house, non nelle
+       coordinate, quindi non si perde niente. */
+    const t2 = homeTown();
+    const meglio = t2 ? findHomeSpot(t2) : null;
+    if (meglio && homeRoadOk(meglio.x, meglio.y, t2)) { S.home = meglio; invalidateHouseDecoCache(); save(); }
   }
   cam.x = P.x; cam.y = P.y;
   fit(); addEventListener('resize', fit);
@@ -351,6 +360,43 @@ if (typeof window !== 'undefined') {
       /* l'EDITOR del personaggio: si apre solo alla primissima partita, quindi senza questa
          riga non c'era modo di fotografarlo né di farlo disegnare da un test (regola 9) */
       openEditor: () => u.openEditor(() => {}),
+      /* FOGLIO DEL VISO (`npm run shot -- viso`): ogni barba e ogni paio di occhiali nelle tre
+         viste, uno sotto l'altro. Una forma da quattro pixel si giudica SOLO affiancata alle
+         altre: da sola sembra sempre a posto, e il difetto salta fuori quando la riga sopra
+         fa da metro. Disegna su una tela sua, sopra a tutto: il gioco sotto non si tocca. */
+      faceSheet: (K, only, pick) => Promise.all([import('./sprites.js'), import('./data.js')]).then(([sp, d]) => {
+        K = +K || 5;
+        const dirs = only ? [only] : ['down', 'right', 'up'];
+        const CW = 36 * K, CH = 38 * K, LW = 170;
+        const rows = d.BEARD_STYLES.map(x => ({ f: 'beardStyle', id: x.id, n: 'barba · ' + x.label }))
+          .concat(d.GLASSES_STYLES.filter(x => x.id !== 'none').map(x => ({ f: 'glassesStyle', id: x.id, n: 'occhiali · ' + x.label })))
+          .filter(x => !pick || pick.split(',').includes(x.id));
+        const box = document.createElement('div');
+        box.style.cssText = 'position:fixed;inset:0;z-index:99998;background:#2a2419;overflow:auto';
+        const cv = document.createElement('canvas');
+        cv.width = LW + dirs.length * CW; cv.height = rows.length * CH + 8;
+        cv.style.cssText = 'display:block;margin:0 auto;image-rendering:pixelated';
+        const g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
+        const keep = { ...S.look };
+        S.look.hatStyle = 'none'; S.look.beardStyle = 'none'; S.look.glassesStyle = 'none';
+        rows.forEach((r, i) => {
+          S.look.beardStyle = r.f === 'beardStyle' ? r.id : 'none';
+          S.look.glassesStyle = r.f === 'glassesStyle' ? r.id : 'none';
+          sp.applyLook();
+          const y = i * CH + 4;
+          g.fillStyle = i % 2 ? '#332c1f' : '#3a3224'; g.fillRect(0, y, cv.width, CH);
+          g.fillStyle = '#e7d9b6'; g.font = '14px ui-monospace,monospace'; g.textBaseline = 'middle';
+          g.fillText(r.n, 8, y + CH / 2);
+          dirs.forEach((dir, j) => {
+            g.save(); g.setTransform(K, 0, 0, K, LW + j * CW, y);
+            sp.drawHero(g, 2, 2, dir, 0, false);
+            g.restore();
+          });
+        });
+        S.look = keep; sp.applyLook();
+        box.appendChild(cv); document.body.appendChild(box);
+        return rows.length;
+      }),
       splashView: (v) => import('./splash.js').then(sp => sp.setView && sp.setView(v)),
       /* entrare/uscire dalle scene: serve agli e2e per DISEGNARLE davvero. Una regressione
          negli interni era passata inosservata perché nessun test ci entrava mai. */
@@ -444,6 +490,7 @@ if (typeof window !== 'undefined') {
       openLab: () => import('./ui.js').then(u => u.openBuilding({ type: 'lab', name: 'Laboratorio' })),
       openMuseum: () => import('./ui.js').then(u => u.openBuilding({ type: 'museum', name: 'Museo' })),
       openTailor: () => import('./ui.js').then(u => u.openBuilding({ type: 'tailor', name: 'Sartoria' })),
+      openBarber: () => import('./ui.js').then(u => u.openBuilding({ type: 'barber', name: 'Barbiere' })),
       /* il pannello COMPAGNO E CORTILE: è dove si sceglie chi ti segue e chi vive in casa, e
          senza questo ponte non si poteva né fotografare né far disegnare da un test */
       openCompanion: () => import('./ui.js').then(u => { u.openCompanionPicker(); return true; }),

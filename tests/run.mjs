@@ -369,6 +369,27 @@ sprites.applyLook();
   } catch (e) { caveDrawErr = e.message; }
   cave.CAVE.x = caveKeep.x; cave.CAVE.y = caveKeep.y;                        // il test seguente parte da qui
   check('la scena di grotta si disegna senza esplodere', caveDrawErr === null, caveDrawErr);
+  /* LE OSSA NELLA PARETE SONO PAESAGGIO, non roba da raccogliere. Avevano il contorno scuro
+     attorno e l'avorio quasi bianco dei reperti: nel gioco il contorno è la promessa "si tocca"
+     (regola ferrea 4) e quel bianco è il colore degli oggetti — sembravano un osso incastrato
+     nel muro da prendere, e non lo è (segnalato con foto). Si misura il PIXEL PIÙ CHIARO di una
+     parete che il fossile ce l'ha davvero: deve restare roccia. */
+  {
+    const { vhash } = await import('../src/noise.js');
+    const ca = await import('../src/caveArt.js');
+    const br = await import('../src/brush.js');
+    const sc = await import('../src/screen.js');
+    let tile = null;
+    for (let ty = 0; ty < 80 && !tile; ty++) for (let tx = 0; tx < 80 && !tile; tx++) if (vhash(tx, ty, 470) < 0.12) tile = [tx, ty];
+    const g2 = sc.ctx; sc.cv.width = 64; sc.cv.height = 64;
+    g2.setTransform(1, 0, 0, 1, 0, 0); g2.clearRect(0, 0, 64, 64);
+    ca.caveWall(br.BRUSH, tile[0], tile[1], 0, 0, { solid: (x, y) => y <= tile[1], nodeNear: () => false, nearEntrance: () => false }, 0);
+    const dd = g2.getImageData(0, 0, 64, 64).data;
+    const lum2 = (r, gg, b) => (0.2126 * r + 0.7152 * gg + 0.0722 * b) / 255;
+    let max = 0;
+    for (let i = 0; i < dd.length; i += 4) if (dd[i + 3]) max = Math.max(max, lum2(dd[i], dd[i + 1], dd[i + 2]));
+    check('le ossa nella parete restano roccia, non oggetti (più chiaro ' + Math.round(max * 100) + '% < 70%)', max < 0.7);
+  }
 
   /* il giocatore clicca FUORI, sull'erba: meta oltre l'ultima casella */
   const exTx = cave.CAVE.w >> 1;
@@ -1229,6 +1250,34 @@ sprites.applyLook();
     }
   }
   check('il vialetto raggiunge davvero il territorio della città', roadReachesTown);
+  /* E CI SI CAMMINA. Il vialetto si disegna come pavimento e rende camminabile la casella
+     ANCHE sull'acqua: finché nessuno lo controllava nasceva una striscia grigia in mezzo al
+     mare, e bastava un edificio di traverso perché la casa diventasse irraggiungibile — non
+     c'era da che parte aggirarlo (segnalato con foto). Su 24 mondi di prova erano 17.
+     Si controllano DIECI città diverse dello stesso mondo, non solo quella di partenza: con
+     una sola, il controllo passava anche col difetto (7 mondi su 24 andavano bene per caso). */
+  {
+    const provate = [];
+    for (let cy = -3; cy <= 3 && provate.length < 10; cy++) for (let cx = -3; cx <= 3 && provate.length < 10; cx++) {
+      const t2 = world.townForCell(cx, cy);
+      if (t2) provate.push(t2);
+    }
+    const rotte = provate.filter(t2 => { const h2 = world.findHomeSpot(t2); return !h2 || !world.homeRoadOk(h2.x, h2.y, t2); });
+    check('il vialetto sta su terra ferma e libero da edifici, in ' + provate.length + ' città' +
+      (rotte.length ? ' — rotte: ' + rotte.length : ''), provate.length >= 5 && rotte.length === 0);
+    /* NIENTE BUCHI: un vialetto con una casella saltata è un muro d'acqua in mezzo alla strada,
+       e da fuori non si vede — le caselle attorno sono disegnate uguali. */
+    let salti = 0;
+    for (const t2 of provate) {
+      const h2 = world.findHomeSpot(t2); if (!h2) continue;
+      const tl = world.homeRoadTiles(world.homeRoadGeomFor(h2.x, h2.y, t2));
+      for (let i = 1; i < tl.length; i++) if (Math.abs(tl[i][0] - tl[i - 1][0]) + Math.abs(tl[i][1] - tl[i - 1][1]) !== 1) salti++;
+    }
+    check('il vialetto è continuo, casella per casella (' + salti + ' buchi)', salti === 0);
+    /* il controllo sa anche dire di NO: una città inventata dall'altra parte del mare */
+    const lontana = { ...provate[0], C: { x: provate[0].C.x, y: provate[0].C.y } };
+    check('homeRoadOk boccia una strada che non esiste', world.homeRoadOk(provate[0].C.x, provate[0].C.y - 4000, lontana) === false);
+  }
   /* render smoke: una tile qualunque sulla lunga spezzata, lontana dal cortile */
   {
     const g0 = world.yardRect();
@@ -1736,6 +1785,119 @@ sprites.applyLook();
   check('cappelli nativi: contorno in ogni vista, niente blocchi 2×2 (' + blocky + ' a blocchi, ' + noRim + ' senza contorno)', blocky === 0 && noRim === 0);
   const { HAT_STYLES } = await import('../src/data.js');
   check('forme cappello coerenti coi dati', HAT_STYLES.length === 3 && HAT_STYLES.every(s => s.id in sprites.HATS));
+
+  /* ---- IN SELLA LE GAMBE SONO PIEGATE (posa 'ride': bici e cavalcatura volante) ---- */
+  {
+    /* estremi della riga: le righe 27-31 sono solo gambe (le braccia finiscono alla 24) */
+    const est = (rows, y) => { const r = rows[y]; const a = r.search(/[^.]/); if (a < 0) return null; let b = r.length - 1; while (b > a && r[b] === '.') b--; return [a, b]; };
+    const rideS = sprites.POSES.ride.side[0], rideD = sprites.POSES.ride.down[0], inPiedi = sprites.SPR.down[0];
+    const cS27 = est(rideS, 27), cS29 = est(rideS, 29), cS31 = est(rideS, 31);
+    check('in sella di profilo: il ginocchio si piega (coscia avanti, stinco giù)',
+      !!cS27 && !!cS29 && !!cS31 && cS29[0] > cS27[0] && cS29[1] - cS29[0] < cS27[1] - cS27[0],
+      'coscia ' + (cS27 || []).join('-') + ' · stinco ' + (cS29 || []).join('-'));
+    check('in sella di profilo: il piede c\'è (niente busto mozzato)', !!cS31 && cS31[1] > cS31[0]);
+    /* di fronte e di spalle si sta A CAVALCIONI: le gambe si aprono verso i fianchi della bestia */
+    const cD27 = est(rideD, 27), cD29 = est(rideD, 29), cP29 = est(inPiedi, 29);
+    check('di fronte in sella: le gambe si aprono (' + (cD29 || []).join('-') + ' contro ' + (cD27 || []).join('-') + ')',
+      !!cD27 && !!cD29 && cD29[0] < cD27[0] && cD29[1] > cD27[1]);
+    check('e non sono quelle di uno in piedi', !!cP29 && (cD29[0] < cP29[0] && cD29[1] > cP29[1]));
+    /* LA BESTIA IN VOLO TIENE LE ZAMPE RACCOLTE: dritte in giù sembrava appesa a un filo. Si
+       misura sul MODELLO, non sulla foto: la zampa raccolta non deve arrivare a terra (y=0). */
+    {
+      const bones = await import('../src/bones.js');
+      const sp0 = (await import('../src/data.js')).ALL_SPECIES.find(x => x.id) || null;
+      const spec = bones.baseSpec(sp0.id);
+      const giu = bones.buildFleshVoxels(spec, { res: 3, addWings: [2, 'm'] });
+      const su = bones.buildFleshVoxels(spec, { res: 3, addWings: [2, 'm'], tuckLegs: true });
+      const bassoGiu = Math.min(...giu.map(v => v.y)), bassoSu = Math.min(...su.map(v => v.y));
+      check('in volo le zampe si raccolgono (fondo ' + bassoGiu + ' → ' + bassoSu + ')', bassoSu > bassoGiu);
+      check('e la bestia resta tutta d\'un pezzo', su.length > giu.length * 0.6);
+      /* E SI PIEGANO ALL'INDIETRO, verso la coda. Il muso sta alle x basse: piegate in avanti
+         sembravano zampe rotte (segnalato con foto), e la differenza è UNA sottrazione di
+         segno — il genere di errore che una foto sola non smaschera. Si confronta dove
+         finisce il piede raccolto con dove finiva quello disteso. */
+      const medX = v => v.reduce((a, b) => a + b.x, 0) / Math.max(1, v.length);
+      const piediGiu = medX(giu.filter(v => v.y <= bassoGiu + 1));
+      const piediSu = medX(su.filter(v => v.y <= bassoSu + 1));
+      check('e si piegano all\'INDIETRO, verso la coda (piede ' + piediGiu.toFixed(1) + ' → ' + piediSu.toFixed(1) + ')',
+        piediSu > piediGiu + 1);
+    }
+    /* il ritaglio del cavaliere sul drago deve arrivare SOTTO i piedi, o le gambe spariscono */
+    { const rsrc = (await import('node:fs')).readFileSync('src/render.js', 'utf8');
+      const m = rsrc.match(/ctx\.rect\(sx - 24, topY - 20, 48, (\d+)\)/);
+      check('cavaliere: il ritaglio arriva sotto i piedi (' + (m ? m[1] : '?') + ' ≥ 52)', !!m && +m[1] >= 52);
+      /* e la sella si disegna PRIMA del cavaliere: dopo, i lembi coprivano le gambe */
+      const iSel = rsrc.indexOf("SELLA PRIMA DEL CAVALIERE"), iCav = rsrc.indexOf('seatHero(sx, backTop - 24');
+      check('la sella sta sotto la gamba, non sopra', iSel > 0 && iCav > 0 && iSel < iCav); }
+  }
+
+  /* ---- VISO: barba/baffi (Barbiere) e occhiali (Sartoria) ---- */
+  {
+    const { BEARD_STYLES, GLASSES_STYLES, DEFAULT_LOOK } = await import('../src/data.js');
+    check('barba e occhiali: dati e sprite si corrispondono', BEARD_STYLES.length === 4 && GLASSES_STYLES.length === 4 &&
+      BEARD_STYLES[0].id === 'none' && GLASSES_STYLES[0].id === 'none' &&
+      BEARD_STYLES.slice(1).every(s => s.id in sprites.BEARDS) && GLASSES_STYLES.slice(1).every(s => s.id in sprites.GLASSES) &&
+      !('none' in sprites.BEARDS) && !('none' in sprites.GLASSES));
+    check('di serie il viso è nudo (i salvataggi vecchi non si svegliano con la barba)',
+      DEFAULT_LOOK.beardStyle === 'none' && DEFAULT_LOOK.glassesStyle === 'none');
+    /* montature TUTTE SCURE: senza contorno il contrasto sulla pelle lo dà il colore (regola 4) */
+    const { GLASSES_COLORS } = await import('../src/data.js');
+    const lum = h => { const n = parseInt(h.slice(1), 16); return (0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; };
+    check('montature tutte scure (la più chiara ' + Math.round(Math.max(...GLASSES_COLORS.map(lum)) * 100) + '%)',
+      GLASSES_COLORS.length === 8 && GLASSES_COLORS.every(c => lum(c) < 0.42) && DEFAULT_LOOK.glassesColor === GLASSES_COLORS[0]);
+    /* righe valide, 32 colonne, colori esistenti, e NIENTE che esca dalla testa: la barba sta
+       fra il naso e il colletto (righe 8..19), gli occhiali all'altezza degli occhi */
+    let fbad = 0, fout = [];
+    for (const [tab, lo, hi] of [[sprites.BEARDS, 8, 19], [sprites.GLASSES, 5, 13]])
+      for (const st of Object.keys(tab)) for (const dir of ['down', 'side', 'up']) {
+        for (const [y, r] of tab[st][dir]) {
+          if (r.length !== 32) fbad++;
+          if (y < lo || y > hi) fout.push(st + '/' + dir + '@' + y);
+          for (const ch of r) if (!(ch in sprites.PAL)) fbad++;
+        }
+      }
+    check('viso: overlay validi e dentro la testa' + (fout.length ? ' — fuori: ' + fout.join(' ') : ''), fbad === 0 && fout.length === 0);
+    /* ognuno col SUO materiale: la barba solo 'Z' (n/Z/m), la montatura solo 'O' (l/O/o) più
+       il riflesso bianco. Un tono preso in prestito da un altro materiale non seguirebbe il
+       colore scelto e cambierebbe da solo quando si tocca dell'altro. */
+    let bwrong = [];
+    for (const [nome, tab, ok] of [['barba', sprites.BEARDS, 'nZm'], ['montatura', sprites.GLASSES, 'lOoW']])
+      for (const st of Object.keys(tab)) for (const dir of ['down', 'side', 'up'])
+        for (const [, r] of tab[st][dir]) for (const ch of r) if (ch !== '.' && !ok.includes(ch)) bwrong.push(nome + '/' + st + ':' + ch);
+    check('barba e montatura dipinte col colore scelto' + (bwrong.length ? ' — ' + [...new Set(bwrong)].join(' ') : ''), bwrong.length === 0);
+    /* la barba SEGUE i capelli finché non le si dà un colore suo */
+    check('cambiando i capelli la barba li segue (se non ha un colore suo)',
+      ui.beardFollowsHair({ hairColor: '#111', beardColor: '#111' }, 'hairColor') === true);
+    check('con un colore suo, la barba NON segue più i capelli',
+      ui.beardFollowsHair({ hairColor: '#111', beardColor: '#e8e4da' }, 'hairColor') === false &&
+      ui.beardFollowsHair({ hairColor: '#111', beardColor: '#111' }, 'skin') === false);
+    /* di spalle la barba non c'è: la testa la copre tutta */
+    check('di spalle niente barba', Object.keys(sprites.BEARDS).every(st => sprites.BEARDS[st].up.length === 0));
+    /* sagome tutte diverse: cinque voci che disegnano la stessa cosa sono una sola voce */
+    const firm = t => Object.keys(t).map(st => [st, ['down', 'side'].map(d => t[st][d].map(p => p.join('')).join('|')).join('#')]);
+    for (const [nome, t] of [['barbe', sprites.BEARDS], ['occhiali', sprites.GLASSES]]) {
+      const f = firm(t), uniq = new Set(f.map(x => x[1]));
+      check('sagome ' + nome + ' tutte diverse (' + uniq.size + '/' + f.length + ')', uniq.size === f.length);
+    }
+    /* gli OCCHI restano visibili: una montatura che li copre è una benda (gli occhiali da sole
+       sono l'eccezione VOLUTA — è proprio quello che fanno) */
+    let coperti = [];
+    for (const st of Object.keys(sprites.GLASSES)) {
+      if (st === 'sun') continue;
+      for (const [v, xs] of [['down', [11, 12, 19, 20]], ['side', [20, 21]]])
+        for (const y of [9, 10]) { const r = sprites.GLASSES[st][v].find(p => p[0] === y); if (r && xs.some(x => r[1][x] !== '.')) coperti.push(st + '/' + v); }
+    }
+    check('montature aperte: l\'occhio si vede' + (coperti.length ? ' — ' + [...new Set(coperti)].join(' ') : ''), coperti.length === 0);
+    /* disegnare l'eroe con ogni combinazione: un overlay che sballa non deve arrivare in gioco */
+    const keep = { ...S.look };
+    let drawn = 0;
+    for (const b of BEARD_STYLES) for (const g of GLASSES_STYLES) for (const dir of ['down', 'right', 'up']) {
+      S.look.beardStyle = b.id; S.look.glassesStyle = g.id; sprites.applyLook();
+      sprites.drawHero(null, 0, 0, dir, 0, false); drawn++;
+    }
+    S.look = keep; sprites.applyLook();
+    check('eroe disegnato con ogni barba × occhiali × vista (' + drawn + ')', drawn === 48);
+  }
   check('shade #ffffff 0.5 = #808080', sprites.shade('#ffffff', 0.5) === '#808080');
   S.look.hat = '#5a86c8'; sprites.applyLook();
   check('applyLook aggiorna palette + ombra', sprites.PAL.H === '#5a86c8' && sprites.PAL.h === sprites.shade('#5a86c8', 0.65));
@@ -1841,12 +2003,52 @@ sprites.applyLook();
   ui.openBuilding({ type: 'barber', name: 'Barbiere' });
   check('barbiere: stili + bottone Conferma', document.getElementById('m-body').innerHTML.includes('hairStyle') && document.getElementById('m-body').innerHTML.includes('lookOk'));
   check('barbiere: aprire NON scala monete (prova gratis)', S.coins === coinsBeforeBarber);
+  /* SI VEDE cosa è già tuo e cosa costa, prima di sceglierlo: il conto compariva solo nella
+     barra in fondo, a scelta fatta (richiesto: "da ui deve essere visibile che è gratis") */
+  {
+    const bh = document.getElementById('m-body').innerHTML;
+    check('il barbiere marca quello che è già tuo, forme e colori', bh.includes('lockp own') && bh.includes('sw on'));
+    check('e mette il prezzo su quello che si paga', /lockp"[^"]*"?[^>]*>[^<]*(<svg[\s\S]*?<\/svg>)?\s*8</.test(bh) || bh.includes('>8<'));
+  }
+  /* CONFERMANDO si compra DAVVERO: da lì in poi quel taglio è tuo e riprenderlo non costa */
+  {
+    const bk2 = { look: { ...S.look }, bought: JSON.parse(JSON.stringify(S.bought || {})), coins: S.coins };
+    S.coins = 100; S.bought = {}; state.markLookBought(S.look);
+    S.look.hairStyle = S.look.hairStyle === 'punk' ? 'curly' : 'punk';
+    const ok2 = document.getElementById('lookOk');
+    if (ok2 && ok2.onclick) ok2.onclick();
+    check('confermando si paga UNA volta e il taglio diventa tuo',
+      S.coins === 100 - SERVICE_COST && state.cosmeticOwned('hairStyle', S.look.hairStyle));
+    S.look = bk2.look; S.bought = bk2.bought; S.coins = bk2.coins;
+  }
   ui.closeModal();
   /* costo = campi cambiati; togliere il cappello è gratis */
   const orig = { hairStyle: 'short', hairColor: '#000', hatStyle: 'explorer', hat: '#111', shirt: '#222', pants: '#333' };
   check('costo: 1 taglio cambiato = 1 campo', ui.lookPaidFields(orig, { ...orig, hairStyle: 'punk' }, ['hairStyle', 'hairColor']).length === 1);
   check('costo: togliere cappello = gratis (0 campi)', ui.lookPaidFields(orig, { ...orig, hatStyle: 'none' }, ['hatStyle', 'hat', 'shirt', 'pants']).length === 0);
   check('costo: maglia+pantaloni = 2 campi', ui.lookPaidFields(orig, { ...orig, shirt: '#f00', pants: '#0f0' }, ['hatStyle', 'hat', 'shirt', 'pants']).length === 2);
+  /* barba e occhiali: metterli è un servizio, toglierli no */
+  const origF = { ...orig, beardStyle: 'full', glassesStyle: 'round' };
+  check('costo: cambiare barba = 1 campo', ui.lookPaidFields(origF, { ...origF, beardStyle: 'goatee' }, ['beardStyle', 'glassesStyle']).length === 1);
+  check('costo: togliere barba e occhiali = gratis', ui.lookPaidFields(origF, { ...origF, beardStyle: 'none', glassesStyle: 'none' }, ['beardStyle', 'glassesStyle']).length === 0);
+  /* GUARDAROBA: quello che hai pagato una volta resta tuo. Rimettersi il taglio di ieri costava
+     di nuovo ogni volta — non è un servizio, è un guardaroba (richiesto). */
+  {
+    const bk = S.bought; S.bought = {};
+    check('un taglio mai avuto si paga', ui.lookPaidFields(orig, { ...orig, hairStyle: 'punk' }, ['hairStyle']).length === 1);
+    state.markBought('hairStyle', 'punk');
+    check('già tuo: riprenderlo è gratis', state.cosmeticOwned('hairStyle', 'punk') === true &&
+      ui.lookPaidFields(orig, { ...orig, hairStyle: 'punk' }, ['hairStyle']).length === 0);
+    check('e vale per QUEL valore, non per tutto il campo', ui.lookPaidFields(orig, { ...orig, hairStyle: 'curly' }, ['hairStyle']).length === 1);
+    /* anche i colori: sono cosmetici come le forme */
+    state.markBought('shirt', '#f00');
+    check('anche i colori entrano nel guardaroba', ui.lookPaidFields(orig, { ...orig, shirt: '#f00' }, ['shirt']).length === 0);
+    /* quello che si indossa è per definizione già proprio: pagarlo due volte non ha senso */
+    S.bought = {}; state.markLookBought(S.look);
+    const nessuno = state.LOOK_FIELDS.filter(f => S.look[f] != null && !state.cosmeticOwned(f, S.look[f]));
+    check('quello che indossi è già tuo (' + state.LOOK_FIELDS.length + ' campi)', nessuno.length === 0);
+    S.bought = bk;
+  }
   /* cosmetici tematici: sblocco e disponibilità */
   {
     const { ZONE_COSMETICS, THEMED_HAIR, THEMED_HAT } = await import('../src/data.js');
@@ -2394,6 +2596,19 @@ sprites.applyLook();
 
   // limite: max 10 lanci per città, poi riposo 10 giorni
   {
+    /* IL GIOCATORE VA MESSO DENTRO LA CITTÀ, qui e adesso: `fountainState` conta i lanci per
+       chiave di città e senza città non conta niente — la prova passava solo perché il
+       personaggio, lasciato dov'era da un controllo precedente, CAPITAVA dentro una piazza.
+       Spostando la casa di qualche casella (il vialetto ora sceglie diversamente) si spostava
+       anche lui, e due prove sulla fontana cadevano senza avere niente a che fare con le
+       fontane. Una prova non deve dipendere da dove l'ha lasciato quella prima. */
+    let tF = null;
+    for (let cx = -10; cx < 10 && !tF; cx++) for (let cy = -10; cy < 10 && !tF; cy++) {
+      const t2 = world.townForCell(cx, cy);
+      if (t2 && (t2.decos || []).some(d => d.type === 'fountain')) tF = t2;
+    }
+    P.x = tF.C.x * TS + 8; P.y = tF.C.y * TS + 8;
+    check('la prova della fontana parte DENTRO una città', !!world.townForTile(tF.C.x, tF.C.y));
     S.fountains = {}; S.coins = 200;
     Math.random = () => 0.3; // sempre "nulla": conta solo il numero di lanci
     const c0 = S.coins, FC2 = gameplay.FOUNTAIN_COST;
@@ -7352,6 +7567,28 @@ sprites.applyLook();
     check('il tasto Salta chiude l\'intro', intro.introActive() === false);
   } catch (e) { introErr = e.message; }
   check('la cutscene iniziale gira senza errori', introErr === '', introErr);
+
+  /* LA SCALA DELLA TELA TORNA QUELLA DEL GIOCO. L'intro disegna a view.PX × Z (Z fino a 2-3
+     sugli schermi grandi) e non passa da una stanza: chi finiva l'intro restando all'aperto si
+     ritrovava il mondo ingrandito del doppio e Digsy fuori dall'inquadratura, con la tela
+     ancora sulla scala della cutscene (segnalato con foto: "omino invisibile e super zoom").
+     Si misura la chiamata vera, non l'effetto: lo stub non tiene la matrice. */
+  {
+    const { ctx: gctx } = await import('../src/screen.js');
+    const { view } = await import('../src/screen.js');
+    const rnd = await import('../src/render.js');
+    const vero = gctx.setTransform;
+    let ultima = null;
+    gctx.setTransform = function (a, b, c, d, e, f) { ultima = [a, b, c, d, e, f]; return vero.call(this, a, b, c, d, e, f); };
+    let err = '';
+    try { intro.drawIntroLine(0, 1000); } catch (e) { err = e.message; }
+    const dopoIntro = ultima;
+    try { rnd.render(1000); } catch (e) { err = e.message; }
+    gctx.setTransform = vero;
+    check('l\'intro disegna con una scala sua', !!dopoIntro && dopoIntro[0] >= view.PX, err);
+    check('il mondo si rimette la scala del gioco (niente super zoom dopo l\'intro)',
+      !!ultima && ultima[0] === view.PX && ultima[3] === view.PX && ultima[4] === 0 && ultima[5] === 0, err);
+  }
 }
 
 /* ---------- TROFEI: si disegnano tutti ---------- */

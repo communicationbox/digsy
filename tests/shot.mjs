@@ -372,8 +372,16 @@ async function main() {
       if(G.openMuseum) G.openMuseum().then(function(){ var t=document.querySelector('[data-mtab="prog"]'); if(t) t.click(); }); }
     /* 'sartoria' = il banco del sarto a basso livello: i premium sotto soglia si VEDONO ma
        sono spenti (Lv, non prezzo) — il traguardo che dà voglia di salire */
+    /* 'viso' = il foglio di barbe e occhiali: le forme piccole si giudicano affiancate */
+    else if (${JSON.stringify(vista)} === 'viso') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.faceSheet) { var a=((new URLSearchParams(location.search)).get('viso')||'').split(':'); G.faceSheet(a[0], a[1], a[2]); } }
+    else if (${JSON.stringify(vista)} === 'barbiere') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openBarber) G.openBarber(); }
     else if (${JSON.stringify(vista)} === 'sartoria') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
-      if(G.openTailor) { var S=G.state(); S.level=1; S.xp=0; S.unlocked.hats=[]; G.openTailor(); } }
+      if(G.openTailor) { var S=G.state();
+        /* tutto=1: guardaroba pieno — l'elenco diventa lungo e la scheda DEVE scorrere, che è
+           l'unico modo di fotografare l'anteprima appiccicata mentre qualcosa le passa sotto */
+        if((new URLSearchParams(location.search)).get('tutto')) { S.level=99; G.cmd('god'); }
+        else { S.level=1; S.xp=0; S.unlocked.hats=[]; }
+        G.openTailor(); } }
     else if (${JSON.stringify(vista)} === 'museo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; } if(G.openMuseum) G.openMuseum().then(function(){
         /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
         var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();
@@ -382,6 +390,15 @@ async function main() {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});
     }
+    /* giu=1 SCORRE FINO IN FONDO prima dello scatto. Serve perché Chrome headless su macOS
+       non apre finestre più alte di ~620 px: una colonna lunga (l'editor del personaggio) si
+       fotografa sempre e solo a metà, e la parte che non si vede è esattamente quella che si
+       vuole controllare. giu=<n> scorre di n pixel invece che fino in fondo. */
+    var giu=(new URLSearchParams(location.search)).get('giu');
+    if(giu) setTimeout(function(){ var y = giu === '1' ? 1e6 : +giu;
+      (document.scrollingElement||document.documentElement).scrollTop = y;
+      document.querySelectorAll('.modal, #m-body, .edcol, .sheet').forEach(function(e){ e.scrollTop = y; });
+    }, 300);
     /* il badge è uno strumento di lavoro: con --pulito non si mette, perché queste foto
        finiscono anche nella vetrina e là un riquadro verde di debug stona parecchio */
     if (${JSON.stringify(process.argv.includes('--pulito'))}) return;

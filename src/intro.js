@@ -300,7 +300,9 @@ let frozen = false, frozenT = 0;
 export function drawIntroLine(i, t) { frozen = true; frozenT = t; cur = Math.max(0, Math.min(LINES.length - 1, i)); lastShot = LINES[cur].shot; shotStart = 0; fadeT = -1e9; drawIntro(t); }
 
 export function playIntro(onDone) {
-  const finish = () => { active = false; try { removeEventListener('resize', fit); box.remove(); document.body.classList.remove('introing'); } catch (e) { /* ok */ } if (onDone) onDone(); };
+  /* `fit()` in chiusura NON è solo per la finestra: rimette anche la TRASFORMAZIONE della
+     tela, che qui sopra drawIntro porta a view.PX × Z per disegnare la scena più grande. */
+  const finish = () => { active = false; try { removeEventListener('resize', fit); fit(); box.remove(); document.body.classList.remove('introing'); } catch (e) { /* ok */ } if (onDone) onDone(); };
   if (typeof document === 'undefined' || !document.createElement) { if (onDone) onDone(); return; }
   active = true; frozen = false; fit(); document.body.classList.add('introing');
   const box = document.createElement('div'); box.id = 'introbox';

@@ -307,9 +307,29 @@ function segRing(cx, cy, cz, r, mode, colT, out) {
 }
 /* ZAMPA: si assottiglia dall'anca al piede, e il piede appoggia largo. A un voxel di spessore
    (com'era) una zampa a scala doppia sembrerebbe un filo di ferro. */
-function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro) {
+function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, k === 'dark' ? 0.7 : 0.88) });
   const spesso = (x, y, z, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x + d, y, z + e * side, k); };
+  /* ZAMPA RACCOLTA, in volo: coscia corta verso il basso, ginocchio, stinco RIPIEGATO
+     all'indietro sotto la pancia. Una bestia che vola con le zampe dritte in giù sembra
+     appesa a un filo — le tiene raccolte, come un uccello (segnalato con foto). */
+  if (tuck) {
+    /* SI PIEGA ALL'INDIETRO, verso la coda: il muso sta alle x BASSE (frontX) e la coda alle
+       ALTE (backX), quindi lo stinco va verso +x. Piegato in avanti sembrava una zampa rotta
+       (segnalato con foto). La punta risale di una casella: il piede si arriccia, non striscia. */
+    const attachY = cy - sr, zz = cz + side;
+    const th = mode === 'flesh' ? R + 1 : R;
+    const n = U(4);
+    /* ADERENTE AL CORPO: la zampa raccolta non è un ginocchio che sporge, è un rilievo lungo
+       il ventre. Sporge UNA casella sotto la pancia e basta — con la piega staccata sembravano
+       due uncini appesi (segnalato con foto). */
+    spesso(lx, attachY, cz, 'bone', R);                                  // giunzione al ventre
+    for (let d = 0; d <= n; d++) {
+      const y = Math.max(0, attachY - (d === 0 || d === n ? 0 : 1));     // si stacca di una sola, e si richiude in coda
+      spesso(lx + d, y, zz, d === n ? 'dark' : 'bone', th);
+    }
+    return;
+  }
   /* la zampona ad arco è da RAGNO/insetto: data ai vertebrati dalle gambe lunghe (cervi, alci, rapaci)
      li trasformava in trampoli da un voxel sotto un corpo sospeso */
   if (len >= 2 && arthro) { // ZAMPONA ad arco (ragno/zanzara): esce dal fianco, sale, poi scende
@@ -510,7 +530,7 @@ function buildFromRecipe(spec, mode, opts) {
       /* i BIPEDI hanno le due gambe una avanti e una indietro: nella stessa colonna, di profilo se ne
          vedeva una sola, un trampolo */
       const stag = pairs === 1 ? U(1.2) : 0;
-      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, !!(r.ant || r.head === 'none' || legDef[0] >= 6));
+      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, !!(r.ant || r.head === 'none' || legDef[0] >= 6), !!(opts && opts.tuckLegs));
     }
   } else if (!r.float && !noLegs) { // striscia: spuntoni ventrali attaccati al ventre
     segsX.forEach((sx, i) => { for (let d = 0; d < R; d++) {

@@ -83,12 +83,20 @@ export function caveWall(g, tx, ty, sx, sy, info, time) {
   }
   g.rect(sx, sy + TS - 2, TS, 2, '#1f1a15');
   g.rect(sx, sy + TS, TS, 3, 'rgba(8,6,4,.35)');                              // ombra di contatto
-  /* ossa fossili incastrate nella roccia: la grotta è piena di storia */
+  /* OSSA FOSSILI NELLA ROCCIA: sono PAESAGGIO, non roba da raccogliere. Prima avevano il
+     contorno scuro attorno (`LN`) e l'avorio quasi bianco dei reperti: nel gioco il contorno è
+     la promessa "si tocca" (regola ferrea 4) e quel bianco è il colore degli oggetti — così
+     sembravano un osso da prendere incastrato nel muro, e non lo sono (segnalato con foto).
+     Ora sono un rilievo nella pietra: niente contorno, tono di poco più chiaro della roccia,
+     e le estremità si perdono dentro la parete invece di finire con un bordo netto. */
   if (vhash(tx, ty, 470) < 0.12) {
     const x = sx + 7 + Math.floor(vhash(tx, ty, 471) * 12), y = sy + TS - 12;
-    g.rect(x - 3, y - 3, 18, 8, LN);
-    g.rect(x, y - 1, 12, 3, '#d8cfb8'); g.rect(x - 2, y - 2, 4, 5, '#e6dfcb'); g.rect(x + 10, y - 2, 4, 5, '#e6dfcb');
-    g.px(x - 1, y - 2, '#f6f1e4'); g.rect(x + 2, y + 1, 8, 1, '#b8ad92');
+    g.rect(x, y - 1, 12, 3, '#6b6155');                       // diafisi: pietra schiarita, non avorio
+    g.rect(x + 1, y - 1, 10, 1, '#7a6f60');                   // filo di luce in alto, come i massi
+    g.rect(x - 1, y - 2, 3, 5, '#645a4f'); g.rect(x + 11, y - 2, 3, 5, '#645a4f');   // epifisi appena accennate
+    g.rect(x + 2, y + 1, 8, 1, '#4a4239');                    // ombra sotto: il fossile è INCASSATO
+    /* la roccia se lo riprende ai bordi: due morsi di pietra sulle estremità */
+    g.rect(x - 2, y - 2, 2, 2, ROCK.face); g.rect(x + 12, y + 1, 2, 2, ROCK.face);
   }
   /* vene di cristallo SOLO vicino a un giacimento: piccoli prismi che spuntano dalla crepa */
   if (info.nodeNear(tx, ty, 3)) {
@@ -179,9 +187,15 @@ export function caveFloor(g, tx, ty, sx, sy, info, time) {
 }
 
 /* ---------- GIACIMENTO: grappolo di cristalli che spunta dalla roccia smossa ---------- */
+/* `here` = ci sei accanto e lo puoi staccare ADESSO. Non si dice con un segno sopra la casella:
+   lo dice il CRISTALLO, che si accende di più e luccica più fitto. Prima erano quattro angoli
+   agli spigoli — un mirino da interfaccia stampato dentro il mondo, che in questo gioco non
+   esiste da nessun'altra parte (le stelline dello scavo erano già state tolte per lo stesso
+   motivo). Che lì ci sia qualcosa si vede da sé: è l'unica cosa che brilla in una grotta quasi
+   nera. Che sia a portata lo dice anche il prompt ("{act} Scava il giacimento"). */
 export function caveCrystal(g, sx, sy, time, here) {
-  const pulse = 0.14 + 0.06 * Math.sin(time / 700);
-  glowE(g, sx + 16, sy + 16, 30, 24, '120,220,235', pulse);
+  const pulse = (here ? 0.3 : 0.14) + (here ? 0.12 : 0.06) * Math.sin(time / (here ? 320 : 700));
+  glowE(g, sx + 16, sy + 16, here ? 36 : 30, here ? 29 : 24, '120,220,235', pulse);
   for (let y = -5; y <= 5; y++) { const w = Math.round(14 * Math.sqrt(1 - (y * y) / 30)); g.rect(sx + 16 - w, sy + 25 + y, w * 2, 1, y < 0 ? '#5a5048' : '#463e36'); }
   for (const [x, y] of [[4, 27], [26, 24], [8, 22]]) { g.rect(sx + x, sy + y, 3, 2, LN); g.rect(sx + x, sy + y - 1, 3, 2, '#6e6358'); }
   const prism = (x, h, w, lean) => {
@@ -194,12 +208,11 @@ export function caveCrystal(g, sx, sy, time, here) {
     }
   };
   prism(sx + 9, 13, 7, -0.35); prism(sx + 23, 11, 6, 0.4); prism(sx + 16, 23, 10, 0.02); prism(sx + 12, 8, 5, -0.12);
-  const tw = Math.floor(time / 450) % 4;
-  const sp = [[sx + 15, sy + 6], [sx + 6, sy + 16], [sx + 26, sy + 14], [sx + 18, sy + 12]][tw];
-  g.rect(sp[0] - 2, sp[1], 5, 1, '#ffffff'); g.rect(sp[0], sp[1] - 2, 1, 5, '#ffffff');
-  /* il segno "qui si scava": angoli della casella, gialli se ci sei sopra */
-  const c = here ? 'rgba(240,220,120,.95)' : 'rgba(150,225,235,.55)';
-  for (const [x, y, dx, dy] of [[sx, sy, 1, 1], [sx + TS - 1, sy, -1, 1], [sx, sy + TS - 1, 1, -1], [sx + TS - 1, sy + TS - 1, -1, -1]]) {
-    g.rect(Math.min(x, x + dx * 5), y, 6, 1, c); g.rect(x, Math.min(y, y + dy * 5), 1, 6, c);
-  }
+  /* LUCCICHIO: una scintilla che salta di punta in punta. A portata ne brillano due insieme e
+     il giro è più svelto — la differenza si legge con la coda dell'occhio, senza guardare. */
+  const SP = [[sx + 15, sy + 6], [sx + 6, sy + 16], [sx + 26, sy + 14], [sx + 18, sy + 12]];
+  const tw = Math.floor(time / (here ? 260 : 450)) % 4;
+  const scintilla = ([x, y]) => { g.rect(x - 2, y, 5, 1, '#ffffff'); g.rect(x, y - 2, 1, 5, '#ffffff'); };
+  scintilla(SP[tw]);
+  if (here) scintilla(SP[(tw + 2) % 4]);
 }

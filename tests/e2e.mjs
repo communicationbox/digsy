@@ -352,16 +352,20 @@ const PROBE = `
       if(!sb||!band||!prev){ A('editor: anteprima e corpo esistono', false, 'elementi assenti'); if(G8.closeModal) G8.closeModal(); cb(); return; }
       A('editor: una sola area che scorre', getComputedStyle(band).position==='sticky',
         'ed-stick position=' + getComputedStyle(band).position);
-      /* lo sticky si aggancia al PADDING BOX del contenitore che scorre, non al suo bordo:
-         confrontando col bordo restava sempre fuori di quanto vale il padding di .sb */
-      var sbTop = sb.getBoundingClientRect().top + parseFloat(getComputedStyle(sb).paddingTop||0);
+      A('editor: scorre il corpo, non la scheda', getComputedStyle(document.querySelector('#modal .sheet')).overflowY==='hidden');
+      /* LA FASCIA VA AL BORDO DELL'AREA CHE SCORRE, non al suo padding: la fascia lo scavalca
+         apposta con i margini negativi. Il controllo di prima confrontava col padding e quindi
+         PRETENDEVA il difetto: position:sticky tiene dentro il riquadro la SCATOLA DEI
+         MARGINI, quindi con margin-top:-14 e top:0 la fascia si agganciava 14px più in basso e
+         in quella finestra passavano i bottoni sopra il Digsy (segnalato con foto). */
+      var sbR = sb.getBoundingClientRect();
       sb.scrollTop = sb.scrollHeight;                       // fino in fondo alle impostazioni
       var br = band.getBoundingClientRect(), pr = prev.getBoundingClientRect();
       A('editor: scorrendo fino in fondo il Digsy resta in vista',
         pr.height > 8 && pr.bottom <= H + 1 && pr.top >= -1,
         'anteprima ' + Math.round(pr.top) + '..' + Math.round(pr.bottom) + ' su ' + H);
-      A('editor: anteprima appesa in cima al corpo', Math.abs(br.top - sbTop) <= 2,
-        Math.round(br.top) + ' vs ' + Math.round(sbTop));
+      A('editor: niente passa sopra il Digsy mentre si scorre (fessura ' + Math.round(br.top - sbR.top) + 'px)',
+        br.top - sbR.top <= 1, Math.round(br.top) + ' vs bordo ' + Math.round(sbR.top));
       A('editor: le impostazioni sono scorse davvero', sb.scrollTop > 40, 'scrollTop ' + Math.round(sb.scrollTop));
       /* e non deve mangiarsi lo schermo: appiccicata a grandezza piena resterebbe una fessura */
       A('editor: la fascia non occupa più di un terzo dello schermo', br.height <= H / 3,
@@ -369,6 +373,30 @@ const PROBE = `
       if(G8.closeModal) G8.closeModal();
       cb();
     }, 120);
+  }
+
+  /* LE BOTTEGHE HANNO LO STESSO PROBLEMA DELL'EDITOR, ed è lì che si è visto: Sartoria e
+     Barbiere sono elenchi lunghi (cappelli, maglie, pantaloni, occhiali) e scorrendo comparivano
+     i bottoni sopra il Digsy. Una prova sul solo editor non l'avrebbe preso: il pannello lì è
+     costruito da un'altra funzione. */
+  function shopSticky(cb){
+    var G11=window.__digsy||{};
+    if(!G11.openTailor||!G11.state){ cb(); return; }
+    var Sx=G11.state(); Sx.level=99;                        // guardaroba pieno: l'elenco deve scorrere
+    G11.openTailor();
+    setTimeout(function(){
+      var sb=document.querySelector('#modal .sb'), band=document.querySelector('.ed-stick');
+      if(!sb||!band){ A('sartoria: anteprima appiccicata presente', false); if(G11.closeModal) G11.closeModal(); cb(); return; }
+      var sbR=sb.getBoundingClientRect();
+      sb.scrollTop = sb.scrollHeight;
+      var br=band.getBoundingClientRect();
+      A('sartoria: niente passa sopra il Digsy mentre si scorre (fessura ' + Math.round(br.top - sbR.top) + 'px)',
+        br.top - sbR.top <= 1, Math.round(br.top) + ' vs bordo ' + Math.round(sbR.top));
+      A('sartoria: il Digsy resta in vista fino in fondo', br.height > 8 && br.bottom <= H + 1,
+        Math.round(br.top) + '..' + Math.round(br.bottom) + ' su ' + H);
+      if(G11.closeModal) G11.closeModal();
+      cb();
+    }, 140);
   }
 
   /* MONETE nell'intestazione: aperto un pannello l'HUD sparisce sotto, e senza questo chip
@@ -576,7 +604,7 @@ const PROBE = `
           try { G4.frame(1500); } catch(e){ errCount++; out.push('FAIL | crash disegnando la grotta | '+e.message); }
           G4.leaveCave();
           A('la grotta si disegna senza crash', errCount===before, errCount-before+' errori');
-          coinsHead(function(){ tapMove(function(){ floatStick(function(){ editorSticky(cb); }); }); });
+          coinsHead(function(){ tapMove(function(){ floatStick(function(){ editorSticky(function(){ shopSticky(cb); }); }); }); });
         }, 120); });
         return;
       }

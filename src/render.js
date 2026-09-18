@@ -532,7 +532,7 @@ const creCache = new Map();
 export function creatureSprite(a, view, opts) {
   view = view || 'side';
   const o = opts || {};
-  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.res ? '|r' + o.res : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap ? '|f' + o.wingFlap : '');
+  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.tuckLegs ? '|tl' : '') + (o.res ? '|r' + o.res : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap ? '|f' + o.wingFlap : '');
   let cv = creCache.get(key); if (cv !== undefined) return cv;
   cv = null;
   try {
@@ -1121,7 +1121,10 @@ export function drawBikeFB(sx, sy, moving, dir, layer) {
 function seatHero(sx, topY, dir) {
   /* FASE 2: drawFlyingMount è ora nativa anche lei (niente più 2x ambiente da annullare):
      chiamata diretta, stessa unità di misura di tutto il resto. */
-  ctx.save(); ctx.beginPath(); ctx.rect(sx - 24, topY - 20, 48, 46); ctx.clip();   // sotto la vita non si vede: le gambe stanno ai lati della sella
+  /* LE GAMBE SI VEDONO, e sono PIEGATE (posa 'ride' in bodyArt): prima il ritaglio si fermava
+     alla vita e il cavaliere sembrava un busto appoggiato sul drago (segnalato con foto). Il
+     ritaglio resta, ma arriva sotto i piedi: serve ancora a tenere fuori quello che sborda. */
+  ctx.save(); ctx.beginPath(); ctx.rect(sx - 24, topY - 20, 48, 62); ctx.clip();
   drawHero(null, sx - 16, topY, dir, 0, false, 'ride');
   ctx.restore();
 }
@@ -1135,7 +1138,9 @@ export function drawFlyingMount(sx, sy) {
   const dir = P.dir === 'left' ? -1 : 1;
   const view = P.dir === 'up' ? 'back' : P.dir === 'down' ? 'front' : 'side';
   const flap = Math.floor(frameTime / 140) % 4;
-  const mo = f => ({ res: 3, addWings: [2, 'm'], wingFlap: f });   // con le zampe: senza, di fronte e di spalle era un disco
+  /* con le zampe (senza, di fronte e di spalle era un disco) ma RACCOLTE: in volo una bestia
+     non tiene le gambe dritte in giù, le ripiega sotto la pancia (segnalato con foto) */
+  const mo = f => ({ res: 3, addWings: [2, 'm'], wingFlap: f, tuckLegs: true });
   const cv = obj ? creatureSprite(obj, view, mo(flap)) : null;
   /* il DORSO si misura sulla posa a ali distese, sempre la stessa: le punte che salgono cambiano
      l'altezza della sagoma, e il pilota misurato su ogni posa saltellava col battito */
@@ -1153,10 +1158,14 @@ export function drawFlyingMount(sx, sy) {
     else ctx.drawImage(cv, x0, snap(top));
     ctx.imageSmoothingEnabled = sm;
   }
-  /* CAVALIERE seduto: vita sulla sella, mani avanti (posa 'ride') */
-  seatHero(sx, backTop - 24, P.dir);
-  /* SELLA: i due lembi di cuoio che scendono ai fianchi, davanti al cavaliere */
+  /* SELLA PRIMA DEL CAVALIERE: i lembi di cuoio stanno FRA la bestia e la gamba, non davanti.
+     Disegnati dopo passavano sopra gli stinchi e si riprendevano le gambe appena rese visibili. */
   for (const s2 of [-1, 1]) { const x = s2 < 0 ? sx - 13 : sx + 8; rect(x, backTop - 1, 5, 8, '#20160f'); rect(x + 1, backTop, 3, 6, '#8a5f38'); rect(x + 1, backTop, 3, 1, '#b07c4a'); }
+  /* CAVALIERE seduto: vita sulla sella, mani avanti, GAMBE PIEGATE lungo il fianco (posa 'ride'
+     in bodyArt). Prima il ritaglio si fermava alla vita e il cavaliere era un busto appoggiato
+     sul drago (segnalato con foto). Il ritaglio resta — serve a tenere fuori quello che sborda —
+     ma arriva sotto i piedi. */
+  seatHero(sx, backTop - 24, P.dir);
   /* l'ala dalla nostra parte passa DAVANTI al pilota */
   if (cv && cv._front) {
     const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
@@ -1654,6 +1663,14 @@ export function render(time) {
   const tx0 = Math.floor(cam.x / TS) - 3, ty0 = Math.floor(cam.y / TS) - 3;
   const LMARG = 6; // margine per le MERAVIGLIE (fino a 9 tile di larghezza e ~70px di altezza)
   const tx1 = tx0 + VW + 6, ty1 = ty0 + VH + 7;
+  /* OGNI SCENA SI RIMETTE LA SUA SCALA, come già fanno grotta e interni qui sopra. Il mondo
+     aperto era l'unico a fidarsi di quella lasciata da `fit()`, e l'intro disegna con una scala
+     tutta sua (view.PX × Z, Z fino a 2-3 sugli schermi grandi): finita l'intro senza passare
+     da una stanza — cioè quando non si entra in casa — il primo fotogramma del mondo usciva
+     ingrandito del doppio, con Digsy fuori dall'inquadratura. Sembrava "omino invisibile e
+     super zoom", e capitava solo su certe finestre perché su quelle piccole Z vale 1 e la
+     scala sbagliata è identica a quella giusta (segnalato con foto). */
+  ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
   ctx.clearRect(0, 0, W, H);
   // UNICA passata tile: disegna il terreno E raccoglie le entità (townInfo 1× per tile)
   const ents = [];

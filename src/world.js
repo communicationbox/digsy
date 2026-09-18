@@ -58,12 +58,15 @@ export function nearHouseZone(tx, ty, margin) {
   if (hf && tx >= hf.x0 - margin && tx <= hf.x1 + margin && ty >= hf.y0 - margin && ty <= hf.y1 + margin) return true;
   if (yr && tx >= yr.x0 - margin && tx <= yr.x1 + margin && ty >= yr.y0 - margin && ty <= yr.y1 + HOME_PATH_LEN + margin) return true;
   /* il vialetto lungo (fino alla città) è comunque un percorso: niente da raccogliere appena
-     a fianco, come per il breve tratto dentro il cortile. `homeRoadGeom` è già memoizzata. */
+     a fianco, come per il breve tratto dentro il cortile. `homeRoadGeom` è già memoizzata, e
+     porta il suo rettangolo di ingombro: senza quello si farebbero 25 letture dell'insieme
+     per ogni casella del mondo, e questa funzione la chiama decoAt per tutte. */
   const g = homeRoadGeom();
-  if (g && (
-    (ty >= g.ey - margin && ty <= g.ey + margin && tx >= g.x0 - margin && tx <= g.x1 + margin) ||
-    (tx >= g.tx - margin && tx <= g.tx + margin && ty >= g.y0 - margin && ty <= g.y1 + margin)
-  )) return true;
+  if (g && tx >= g.bx0 - margin && tx <= g.bx1 + margin && ty >= g.by0 - margin && ty <= g.by1 + margin) {
+    for (let dy = -margin; dy <= margin; dy++) for (let dx = -margin; dx <= margin; dx++) {
+      if (g.set.has((tx + dx) + ',' + (ty + dy))) return true;
+    }
+  }
   return false;
 }
 /* invalida le cache di decorazioni/siti/scheletri sepolti sull'area casa+cortile+vialetto
@@ -640,20 +643,19 @@ export function findHomeSpot(town) {
   /* il cancello del cortile sta SEMPRE a sud (yardInfo): una casa a NORD della città lo fa
      guardare dritto verso di lei, e il vialetto lungo (homeRoadAt) può proseguire quasi
      dritto invece di dover girare subito attorno alla staccionata per tornare indietro.
-     Prima passata: SOLO a nord (dy<0); solo se non si trova nessun posto valido lì (mondo
-     stretto, acqua, un'altra città in mezzo) si ripiega su qualunque direzione. */
-  for (let r = 6; r < 50; r++) {
-    for (let dy = -r; dy < 0; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-      const x = cx + dx, y = cy + dy;
-      if (okDoor(x, y)) return { x, y };
-    }
-  }
-  for (let r = 6; r < 50; r++) {
-    for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
-      if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
-      const x = cx + dx, y = cy + dy;
-      if (okDoor(x, y)) return { x, y };
+     QUATTRO passate, dalla più esigente alla più remissiva: a nord col vialetto buono ·
+     ovunque col vialetto buono · a nord senza · ovunque senza. Le ultime due esistono solo
+     perché una casa scomoda è meglio di nessuna casa (isole, mondi stretti): finché c'è terra
+     per arrivarci si sceglie quella. */
+  for (const strada of [true, false]) for (const nord of [true, false]) {
+    for (let r = 6; r < 50; r++) {
+      for (let dy = -r; dy <= (nord ? -1 : r); dy++) for (let dx = -r; dx <= r; dx++) {
+        if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
+        const x = cx + dx, y = cy + dy;
+        if (!okDoor(x, y)) continue;
+        if (strada && !homeRoadOk(x, y, town)) continue;
+        return { x, y };
+      }
     }
   }
   return null;
@@ -698,45 +700,94 @@ export function homeTown() {
    (sempre appena a sud del recinto, quindi sempre libero), uno in colonna SPINTO fuori dalla
    fascia di colonne del recinto, poi l'ultimo in riga fino alla città. */
 let homeRoadKey = null, homeRoadGeomC = null;
+/* PURA: la spezzata per una casa e una città QUALSIASI. Sta fuori dalla memoizzazione perché
+   findHomeSpot deve poterla provare PRIMA di scegliere il posto — il vialetto non è un
+   dettaglio grafico, è l'unica strada di casa, e finché nessuno lo guardava poteva nascere
+   in mezzo al mare o finire dentro un edificio. */
+export function homeRoadGeomFor(hx, hy, t) {
+  if (!t) return null;
+  const yr = yardRectFor(hx, hy);
+  const ex = yr.cx, ey = yr.y1 + HOME_PATH_LEN;         // dove finisce il breve vialetto del cortile
+  const tx = ex < t.x0 ? t.x0 : ex > t.x1 ? t.x1 : ex;  // colonna di arrivo (bordo città più vicino)
+  const ty = ey < t.y0 ? t.y0 : ey > t.y1 ? t.y1 : ey;  // riga di arrivo
+  let vie;
+  if (ty >= ey) {
+    // caso comune: si scende SOLO ad allontanarsi dal recinto, mai a riattraversarlo — L pulita, verticale prima
+    vie = [[ex, ey], [ex, ty], [tx, ty]];
+  } else {
+    /* ripiego: la città è comunque a nord del cancello, la verticale dovrebbe riattraversare il
+       recinto. Si esce prima di lato, appena a sud della staccionata (riga sempre libera), poi
+       si sale in una colonna FUORI dalla fascia del recinto: una L dritta taglierebbe in mezzo
+       al cortile, dove un cancello non c'è. */
+    const crossesYard = Math.min(ey, ty) <= yr.y1 && Math.max(ey, ty) >= yr.y0;
+    const ecx = (crossesYard && tx >= yr.x0 && tx <= yr.x1) ? (tx <= yr.cx ? yr.x0 - 1 : yr.x1 + 1) : tx;
+    vie = [[ex, ey], [ecx, ey], [ecx, ty], [tx, ty]];
+  }
+  /* SI CAMMINA LA SPEZZATA E CI SI FERMA ALLA PRIMA CASELLA DI CITTÀ. Prima si puntava al bordo
+     del RETTANGOLO della città — ma gli edifici sporgono oltre quel bordo, e il vialetto ci
+     entrava dentro: nasceva una strada che finiva contro il muro di una bottega, e se attorno
+     c'era mare non restava da che parte passare (segnalato con foto). Arrivare alla prima
+     casella libera della città basta: da lì dentro si cammina. Se invece prima di quella se ne
+     incontra una SOLIDA, questa strada non vale (`blocked`) e findHomeSpot prova altrove. */
+  const tiles = [], set = new Set();
+  let blocked = false, arrivato = false;
+  const push = (x, y) => {
+    const k = x + ',' + y;
+    if (!set.has(k)) { set.add(k); tiles.push([x, y]); }
+    const ti = townInfo(x, y);
+    if (!ti) return true;
+    if (ti.solid) { blocked = true; return false; }
+    arrivato = true; return false;
+  };
+  let cx2 = vie[0][0], cy2 = vie[0][1];
+  outer: if (push(cx2, cy2)) {
+    for (let i = 1; i < vie.length; i++) {
+      const [x1, y1] = vie[i];
+      const sx = Math.sign(x1 - cx2), sy = Math.sign(y1 - cy2);
+      while (cx2 !== x1 || cy2 !== y1) { cx2 += sx; cy2 += sy; if (!push(cx2, cy2)) break outer; }
+    }
+  }
+  let bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;
+  for (const [x, y] of tiles) { if (x < bx0) bx0 = x; if (x > bx1) bx1 = x; if (y < by0) by0 = y; if (y > by1) by1 = y; }
+  return { tiles, set, blocked, arrivato, bx0, bx1, by0, by1 };
+}
 function homeRoadGeom() {
   const h = S && S.home; if (!h) return null;
   const key = h.x + ',' + h.y;
   if (key === homeRoadKey) return homeRoadGeomC;
-  const t = homeTown();
-  let g = null;
-  if (t) {
-    const yr = yardRectFor(h.x, h.y);
-    const ex = yr.cx, ey = yr.y1 + HOME_PATH_LEN;        // dove finisce il breve vialetto del cortile
-    const tx = ex < t.x0 ? t.x0 : ex > t.x1 ? t.x1 : ex;  // colonna di arrivo (bordo città più vicino)
-    const ty = ey < t.y0 ? t.y0 : ey > t.y1 ? t.y1 : ey;  // riga di arrivo
-    if (ty >= ey) {
-      // caso comune: si scende SOLO ad allontanarsi dal recinto, mai a riattraversarlo — L pulita, verticale prima
-      g = {
-        a: { y: ty, x0: ex, x1: ex },                                    // collassa: nessuna riga iniziale
-        b: { x: ex, y0: ey, y1: ty },                                    // dritti fuori dal cancello
-        c: { y: ty, x0: Math.min(ex, tx), x1: Math.max(ex, tx) },        // di lato, fino alla città
-      };
-    } else {
-      // ripiego: la città è comunque a nord del cancello, la verticale dovrebbe riattraversare il recinto
-      const crossesYard = Math.min(ey, ty) <= yr.y1 && Math.max(ey, ty) >= yr.y0;
-      const ecx = (crossesYard && tx >= yr.x0 && tx <= yr.x1) ? (tx <= yr.cx ? yr.x0 - 1 : yr.x1 + 1) : tx;
-      g = {
-        a: { y: ey, x0: Math.min(ex, ecx), x1: Math.max(ex, ecx) },     // riga, appena a sud del recinto
-        b: { x: ecx, y0: Math.min(ey, ty), y1: Math.max(ey, ty) },      // colonna, fuori dal recinto
-        c: { y: ty, x0: Math.min(ecx, tx), x1: Math.max(ecx, tx) },     // riga, fino alla città
-      };
-    }
-  }
-  homeRoadKey = key; homeRoadGeomC = g;
-  return g;
+  homeRoadKey = key; homeRoadGeomC = homeRoadGeomFor(h.x, h.y, homeTown());
+  return homeRoadGeomC;
 }
-/* test O(1): un punto sta sulla spezzata se cade su uno dei tre tratti — niente ricerca. */
+/* le caselle della spezzata, in ordine: serve a chi la deve CONTROLLARE, non a chi la disegna */
+export function homeRoadTiles(g) { return g ? g.tiles : []; }
+/* IL VIALETTO È PERCORRIBILE DAVVERO? Dentro la città basta che la casella non sia solida (il
+   vialetto ci arriva e finisce lì); fuori deve essere TERRA — il vialetto si disegna come
+   pavimento e rende camminabile la casella ANCHE sull'acqua, quindi senza questo controllo
+   nasceva una striscia grigia in mezzo al mare, e bastava un edificio di traverso perché la
+   casa diventasse irraggiungibile: non c'era da che parte aggirarlo (segnalato con foto). */
+export function homeRoadOk(hx, hy, t) {
+  const g = homeRoadGeomFor(hx, hy, t);
+  if (!g || g.blocked || !g.arrivato) return false;
+  for (const [x, y] of g.tiles) {
+    if (townInfo(x, y)) continue;                       // dentro la città: già filtrata sopra
+    if (!walkableGround(baseTerrain(x, y))) return false;
+    /* NIENTE controllo sulle decorazioni: un albero sulla futura strada sparisce da solo
+       appena la casa è fissata (nearHouseZone pulisce una fascia attorno al vialetto), e
+       comunque il vialetto è pavimento — `isSolidTile` legge yardInfo PRIMA di decoAt.
+       Controllarle qui scartava posti perfettamente buoni per un cespuglio che non esisterà. */
+  }
+  return true;
+}
+/* la casa salvata ha una strada rotta? (salvataggi nati prima del controllo qui sopra) */
+export function homeRoadBroken() {
+  const h = S && S.home; if (!h) return false;
+  const t = homeTown(); if (!t) return false;
+  return !homeRoadOk(h.x, h.y, t);
+}
+/* test O(1): la spezzata è un insieme di caselle, calcolato una volta sola (memoizzato). */
 export function homeRoadAt(tx, ty) {
-  const g = homeRoadGeom(); if (!g) return false;
-  if (ty === g.a.y && tx >= g.a.x0 && tx <= g.a.x1) return true;
-  if (tx === g.b.x && ty >= g.b.y0 && ty <= g.b.y1) return true;
-  if (ty === g.c.y && tx >= g.c.x0 && tx <= g.c.x1) return true;
-  return false;
+  const g = homeRoadGeom();
+  return !!g && g.set.has(tx + ',' + ty);
 }
 
 /* ---------- siti di scavo speciali: affioramenti d'ossa rari, 3-5 scavi pregiati ---------- */

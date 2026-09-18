@@ -1,7 +1,7 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
-import { TS, furnSize, furnPlace, furnIsSolid, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
+import { TS, furnSize, furnPlace, furnIsSolid, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, BEARD_STYLES, GLASSES_STYLES, GLASSES_COLORS, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
 import { zoneAt } from './regions.js';
-import { S, P, save, dugSet, isCheatLock } from './state.js';
+import { S, P, save, dugSet, isCheatLock, cosmeticOwned, markBought, markLookBought, LOOK_FIELDS } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
 import { ensureQuests, boardOffers, acceptQuest, deliverQuest, abandonQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
@@ -47,7 +47,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { groundPalette } from './tiles.js';
-import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
+import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, beardLabel, glassesLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
 
 /* ---------- toast / HUD / prompt ---------- */
 export function toast(m) {
@@ -1568,12 +1568,12 @@ const NPC_FIRST = {
     'Bring me your RAW finds and I identify them right away. New pieces stay on display; complete a case (5 of 5) and you earn a DNA vial — the Laboratory needs two of them to bring a species back.'],
   inn: ['Dormi qui per recuperare le energie: ti sveglierai all\'alba del giorno dopo. Utile prima di una lunga battuta di scavo.',
     'Sleep here to restore your energy: you\'ll wake at dawn the next day. Handy before a long dig.'],
-  barber: ['Taglio, colore e pelle. Prova quanto vuoi: paghi solo alla conferma. Ogni zona ha uno stile esclusivo da scoprire.',
-    'Haircut, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.'],
+  barber: ['Taglio, barba, colore e pelle. Prova quanto vuoi: paghi solo alla conferma. Ogni zona ha uno stile esclusivo da scoprire.',
+    'Haircut, beard, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.'],
   furniture: ['Qui si compra tutto per la casa: mobili, quadri, tappeti, carta da parati e pavimenti. Scegli un argomento; ogni giorno arrivano pezzi nuovi, e lo stile di questa zona costa un quarto in meno.',
     'Everything for your home is here: furniture, pictures, rugs, wallpaper and floors. Pick a topic; new pieces arrive every day, and this area\'s style is a quarter cheaper.'],
-  tailor: ['Qui scegli maglia, pantaloni e cappello. Prova liberamente e paghi alla conferma; alcuni cappelli speciali si sbloccano a parte.',
-    'Here you pick shirt, trousers and hat. Try freely and pay on confirm; some special hats are unlocked separately.'],
+  tailor: ['Qui scegli maglia, pantaloni, cappello e occhiali. Prova liberamente e paghi alla conferma; alcuni cappelli speciali si sbloccano a parte.',
+    'Here you pick shirt, trousers, hat and glasses. Try freely and pay on confirm; some special hats are unlocked separately.'],
 };
 function pickLine(arr) { if (!arr || !arr.length) return null; const e = arr[Math.floor(Math.random() * arr.length)]; return tr(e[0], e[1]); }
 function sayGreet(type) {
@@ -2326,8 +2326,14 @@ document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
   } }
 
 /* ---------- look: anteprima + swatch condivisi da editor/barbiere/sartoria ---------- */
+/* L'ANTEPRIMA RESTA IN VISTA MENTRE SI SCORRE, anche in bottega. Sta in cima al pannello, e
+   Sartoria e Barbiere sono elenchi lunghi (cappelli, maglie, pantaloni, occhiali): arrivati agli
+   occhiali il Digsy era fuori schermo da un pezzo e si sceglieva alla cieca — cioè si provava
+   senza vedere la cosa che si sta provando (segnalato con foto). Stessa fascia appiccicata
+   dell'editor (`.ed-stick`), non un secondo riquadro che scorre per conto suo: due aree che
+   scorrono una dentro l'altra sono la regola ferrea n.15. */
 function previewHtml() {
-  return `<div class="center" style="padding:6px"><canvas id="prevCv" width="120" height="54" class="prev"></canvas></div>`;
+  return `<div class="ed-stick"><canvas id="prevCv" width="120" height="54" class="prev"></canvas></div>`;
 }
 let prevRaf = 0;
 /* riquadro NATURALE su cui sono tarate le posizioni qui sotto (personaggio ora 32×32
@@ -2378,9 +2384,11 @@ function wireHatOff(rerender) {
     rerender();
   };
 }
+/* i colori sono cosmetici come gli altri: quelli già pagati portano il segno di spunta (sul
+   quadratino non ci sta una scritta, e un bordo diverso si confonderebbe con la selezione) */
 function swatchRow(field, colors) {
   return `<div class="swrow">` + colors.map(c =>
-    `<button class="sw${S.look[field] === c ? ' on' : ''}" data-field="${field}" data-v="${c}" style="background:${c}"></button>`).join('') + `</div>`;
+    `<button class="sw${S.look[field] === c ? ' on' : ''}${cosmeticOwned(field, c) ? ' own' : ''}" data-field="${field}" data-v="${c}" style="background:${c}" title="${cosmeticOwned(field, c) ? tr('già tuo', 'already yours') : tr('costa ', 'costs ') + SERVICE_COST}"></button>`).join('') + `</div>`;
 }
 /* riga di stili: quelli non posseduti (premium/tematici) mostrano ✨prezzo e sono provabili;
    un premium con la soglia di livello NON ANCORA raggiunta si VEDE (fa venire voglia di
@@ -2388,11 +2396,20 @@ function swatchRow(field, colors) {
 function styleRow(field, styles) {
   const kind = field === 'hatStyle' ? 'hat' : field === 'hairStyle' ? 'hair' : field; // shirtStyle/pantsStyle
   return `<div class="swrow">` + styles.map(st => {
-    const owned = kind === 'hat' ? hatOwned(st.id) : kind === 'hair' ? hairOwned(st.id) : true; // maglia/pantaloni: tutte disponibili (per ora)
+    const owned = kind === 'hat' ? hatOwned(st.id) : kind === 'hair' ? hairOwned(st.id) : true; // maglia/pantaloni/viso: tutte disponibili (per ora)
     const needLvl = kind === 'hat' ? hatLevelLock(st.id) : null;
     const on = S.look[field] === st.id;
-    const label = field === 'hatStyle' ? hatLabel(st.id) : field === 'hairStyle' ? hairLabel(st.id) : field === 'shirtStyle' ? shirtLabel(st.id) : pantsLabel(st.id);
-    const badge = needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>` : owned ? '' : ` <span class="lockp">✨${cosmeticCost(kind, st.id)}</span>`;
+    const label = field === 'hatStyle' ? hatLabel(st.id) : field === 'hairStyle' ? hairLabel(st.id)
+      : field === 'beardStyle' ? beardLabel(st.id) : field === 'glassesStyle' ? glassesLabel(st.id)
+      : field === 'shirtStyle' ? shirtLabel(st.id) : pantsLabel(st.id);
+    /* COSA MI COSTA: il prezzo sulle voci che si pagano, un ✓ su quelle già mie. Prima non si
+       vedeva niente e il conto compariva solo nella barra in fondo, a scelta fatta. */
+    const mio = cosmeticOwned(field, st.id);
+    const badge = needLvl ? ` <span class="lockp">🔒 Lv${needLvl}</span>`
+      : !owned ? ` <span class="lockp">✨${cosmeticCost(kind, st.id)}</span>`
+        : mio ? ` <span class="lockp own" title="${tr('già tuo', 'already yours')}">✓</span>`
+          : (FREE_OFF.includes(field) && st.id === 'none') ? ''
+            : ` <span class="lockp">🪙${SERVICE_COST}</span>`;
     return `<button class="btn ghost${on ? ' onbtn' : ''}${owned ? '' : ' locked'}${needLvl ? ' lvlocked' : ''}" data-field="${field}" data-v="${st.id}">${label}${badge}</button>`;
   }).join('') + `</div>`;
 }
@@ -2425,6 +2442,11 @@ function hairStylesAvail() { return HAIR_STYLES.concat(S.unlocked.hairs.filter(i
 function hatStylesAvail() { return HAT_STYLES.concat(S.unlocked.hats.filter(id => id in HATS).map(id => ({ id }))).concat(lockedHatOpts().map(id => ({ id }))); }
 /* PROVA LIBERA + CONFERMA: si prova tutto gratis; alla conferma si paga SERVICE_COST per campo
    cambiato + il prezzo di SBLOCCO di eventuali cosmetici premium/tematici indossati. */
+/* LA BARBA SEGUE I CAPELLI finché non le si è dato un colore suo: di serie nasce uguale, e chi
+   cambia solo il colore dei capelli non deve scoprire che esiste una seconda tavolozza per non
+   ritrovarsi il barbone di prima su una testa nuova. Appena si tocca il colore della barba i
+   due si staccano, e restano staccati. */
+export function beardFollowsHair(look, field) { return field === 'hairColor' && look.beardColor === look.hairColor; }
 let lookOrig = null;
 function beginLook() { if (!lookOrig) lookOrig = { ...S.look }; }
 export function revertLook() { if (lookOrig) { S.look = { ...lookOrig }; applyLook(); lookOrig = null; } }
@@ -2436,7 +2458,17 @@ export function lookPreviewPending() { return !!lookOrig; }
 /* LA PELLE NON SI PAGA: è chi sei, non un taglio di capelli. Si sceglie nell'editor iniziale
    gratis e cambiarla dal barbiere resta gratis; si pagano taglio, colore e vestiti.
    Togliere il cappello è gratis anche lui. */
-export function lookPaidFields(orig, cur, fields) { return fields.filter(f => cur[f] !== orig[f] && f !== 'skin' && !(f === 'hatStyle' && cur[f] === 'none')); }
+/* togliere qualcosa non è un servizio: cappello, barba e occhiali tornano a 'none' gratis.
+   Il TAGLIO no: 'Rasato a zero' è un taglio, e passa dal barbiere come gli altri. */
+const FREE_OFF = ['hatStyle', 'beardStyle', 'glassesStyle'];
+/* SI PAGA SOLO QUELLO CHE NON HAI ANCORA. Rimettersi il taglio di ieri o il colore di prima
+   costava di nuovo ogni volta: non è un servizio, è un guardaroba — quello che hai comprato
+   resta tuo e riprenderlo è gratis (`cosmeticOwned`, registro in state.js). */
+export function lookPaidFields(orig, cur, fields, owned) {
+  const mio = owned ? ((f, v) => owned(f, v)) : cosmeticOwned;
+  return fields.filter(f => cur[f] !== orig[f] && f !== 'skin'
+    && !(FREE_OFF.includes(f) && cur[f] === 'none') && !mio(f, cur[f]));
+}
 function changedPaid(fields) { return lookPaidFields(lookOrig, S.look, fields); }
 /* cosmetici bloccati attualmente INDOSSATI → da sbloccare alla conferma */
 function pendingUnlocks() {
@@ -2459,6 +2491,8 @@ function confirmLook(fields, rerender) {
   if (S.coins < total && !isDebug()) { toast(tr('Servono 🪙 ', 'You need 🪙 ') + total); return; }
   if (!isDebug()) S.coins -= total;
   for (const p of pend) { const arr = p.kind === 'hat' ? S.unlocked.hats : S.unlocked.hairs; if (!arr.includes(p.id)) arr.push(p.id); }
+  /* quello che esce da qui è pagato: da adesso è roba tua e non si ripaga */
+  markLookBought(S.look);
   lookOrig = { ...S.look }; save(); updateHUD();
   toast(pend.length ? '✨ ' + tr('Sbloccato! ', 'Unlocked! ') + '🪙 ' + total : (total ? tr('Applicato per 🪙 ', 'Applied for 🪙 ') + total : tr('Fatto!', 'Done!')));
   rerender();
@@ -2472,7 +2506,9 @@ function wireLook(free, rerender) {
     if (f === 'hatStyle' && hatLevelLock(v)) { toast('🔒 Lv' + hatLevelLock(v)); return; }
     if (S.look[f] === v && !(f === 'hat' && S.look.hatStyle === 'none')) return;
     if (f === 'hat' && S.look.hatStyle === 'none') S.look.hatStyle = 'explorer'; // scegliere un colore lo rimette
-    S.look[f] = v; applyLook();
+    const seguiva = beardFollowsHair(S.look, f);
+    S.look[f] = v; if (seguiva) S.look.beardColor = v;
+    applyLook();
     if (free) save();          // editor: subito definitivo
     rerender();                // negozio: solo anteprima
   });
@@ -2487,7 +2523,9 @@ function confirmBar(fields) {
   const n = (lookOrig ? fields.filter(f => S.look[f] !== lookOrig[f]).length : 0) + pend.length;
   const pendTxt = pend.length ? ' · ' + tr('sblocco', 'unlock') + ' ' + pend.map(p => (p.kind === 'hat' ? hatLabel(p.id) : hairLabel(p.id))).join(', ') : '';
   return `<div class="row" style="position:sticky;bottom:0;background:#e7d9b6;margin-top:10px">
-    <div class="nm">${n ? tr('Totale', 'Total') + ': 🪙 ' + total + pendTxt : tr('Prova gratis, paghi alla conferma', 'Try free, pay on confirm')}</div>
+    <div class="nm">${!n ? tr('Prova gratis, paghi alla conferma', 'Try free, pay on confirm')
+      : total ? tr('Totale', 'Total') + ': 🪙 ' + total + pendTxt
+        : tr('Gratis: è già tuo', 'Free: already yours')}</div>
     <div class="rt"><button class="btn ghost" id="lookCancel">${tr('Annulla', 'Cancel')}</button>
       <button class="btn amber" id="lookOk" ${n ? '' : 'disabled'}>${tr('Conferma', 'Confirm')}</button></div></div>`;
 }
@@ -2499,14 +2537,16 @@ function renderBarber() {
   beginLook();
   let h = previewHtml();
   h += `<div class="bighead">${tr('Taglio', 'Haircut')}</div>` + styleRow('hairStyle', hairStylesAvail());
-  h += `<div class="bighead">${tr('Colore', 'Color')}</div>` + swatchRow('hairColor', HAIR_COLORS);
+  h += `<div class="bighead">${tr('Colore capelli', 'Hair color')}</div>` + swatchRow('hairColor', HAIR_COLORS);
+  h += `<div class="bighead">${tr('Barba', 'Beard')}</div>` + styleRow('beardStyle', BEARD_STYLES);
+  h += `<div class="bighead">${tr('Colore barba', 'Beard colour')}</div>` + swatchRow('beardColor', HAIR_COLORS);
   /* LA PELLE si cambia QUI. Prima si sceglieva solo nell'editor della prima partita: chi
      cambiava idea dopo dieci minuti non aveva più modo di tornare indietro, e non c'è ragione
      perché il proprio aspetto sia una decisione irreversibile presa prima di giocare.
      La pelle è l'unica cosa GRATIS del barbiere (vedi lookPaidFields): non è un servizio, è
      tornare a somigliarsi. */
   h += `<div class="bighead">${lookLabel('skin')} · ${tr('gratis', 'free')}</div>` + swatchRow('skin', LOOKS.skin);
-  const BF = ['hairStyle', 'hairColor', 'skin'];
+  const BF = ['hairStyle', 'hairColor', 'beardStyle', 'beardColor', 'skin'];
   h += confirmBar(BF);
   mBody.innerHTML = withIcons(h); wireLook(false, renderBarber); wireConfirm(BF, renderBarber); drawPreview(true);
 }
@@ -2516,7 +2556,8 @@ function renderTailor() {
   h += hatSection();
   h += `<div class="bighead">${lookLabel('shirt')}</div>` + styleRow('shirtStyle', SHIRT_STYLES) + swatchRow('shirt', LOOKS.shirt);
   h += `<div class="bighead">${lookLabel('pants')}</div>` + styleRow('pantsStyle', PANTS_STYLES) + swatchRow('pants', LOOKS.pants);
-  const TF = ['hatStyle', 'hat', 'shirtStyle', 'shirt', 'pantsStyle', 'pants'];
+  h += `<div class="bighead">${tr('Occhiali', 'Glasses')}</div>` + styleRow('glassesStyle', GLASSES_STYLES) + swatchRow('glassesColor', GLASSES_COLORS);
+  const TF = ['hatStyle', 'hat', 'shirtStyle', 'shirt', 'pantsStyle', 'pants', 'glassesStyle', 'glassesColor'];
   h += confirmBar(TF);
   mBody.innerHTML = withIcons(h); wireLook(false, renderTailor); wireHatOff(renderTailor); wireConfirm(TF, renderTailor); drawPreview();
 }
@@ -2527,8 +2568,11 @@ function randomLook() {
   const r = a => a[Math.floor(Math.random() * a.length)];
   return {
     hat: r(LOOKS.hat), shirt: r(LOOKS.shirt), pants: r(LOOKS.pants), skin: r(LOOKS.skin),
-    hairStyle: r(HAIR_STYLES).id, hairColor: r(HAIR_COLORS),
+    hairStyle: r(HAIR_STYLES).id, hairColor: r(HAIR_COLORS), beardColor: r(HAIR_COLORS),
     hatStyle: r(HAT_STYLES.concat([{ id: 'none' }])).id, eyeColor: r(EYE_COLORS),
+    /* barba e occhiali pescano da tutto l'elenco, 'none' compreso: è la voce più probabile
+       da sola perché è una su cinque e una su quattro, non serve pesarla a mano */
+    beardStyle: r(BEARD_STYLES).id, glassesStyle: r(GLASSES_STYLES).id, glassesColor: r(GLASSES_COLORS),
   };
 }
 export function openEditor(onDone) {
@@ -2557,6 +2601,10 @@ export function openEditor(onDone) {
   h += `<div class="bighead">${tr('Occhi', 'Eyes')}</div>` + swatchRow('eyeColor', EYE_COLORS);
   h += `<div class="bighead">${tr('Taglio', 'Haircut')}</div>` + styleRow('hairStyle', HAIR_STYLES);
   h += `<div class="bighead">${tr('Colore capelli', 'Hair color')}</div>` + swatchRow('hairColor', HAIR_COLORS);
+  h += `<div class="bighead">${tr('Barba', 'Beard')}</div>` + styleRow('beardStyle', BEARD_STYLES);
+  h += `<div class="bighead">${tr('Colore barba', 'Beard colour')}</div>` + swatchRow('beardColor', HAIR_COLORS);
+  h += `<div class="bighead">${tr('Occhiali', 'Glasses')}</div>` + styleRow('glassesStyle', GLASSES_STYLES);
+  h += `<div class="bighead">${tr('Colore montatura', 'Frame colour')}</div>` + swatchRow('glassesColor', GLASSES_COLORS);
   h += `<div class="center" style="margin-top:10px"><button class="btn amber" id="lookDone" style="font-size:15px">⛏️ ${tr("Inizia l'avventura!", 'Start the adventure!')}</button></div>`;
   mBody.innerHTML = withIcons(h);
   const rerender = () => openEditor(onDone);
@@ -2571,6 +2619,9 @@ export function openEditor(onDone) {
   document.getElementById('lookDone').onclick = () => {
     if (nameIn && nameIn.value.trim()) S.name = nameIn.value.trim().slice(0, 14);
     if (!S.name) S.name = randomName();
+    /* quello con cui si comincia è già tuo: alla creazione non si paga niente, e tornare
+       al proprio aspetto di partenza non deve costare nemmeno dopo */
+    markLookBought(S.look);
     S.lookDone = true; save(); lockModal(false); closeModal();
     if (onDone) onDone();
   };

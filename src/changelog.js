@@ -1,6 +1,31 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.98.69', it: [
+      'VISO: barba e baffi dal Barbiere (baffi, pizzetto, barba piena) e occhiali dalla Sartoria (tondi, rettangolari, da sole), ognuno col suo colore. Si provano gratis e si pagano alla conferma come tutto il resto; toglierli non costa niente',
+      'La barba nasce del colore dei capelli e li segue, finché non le dai un colore suo',
+      'GUARDAROBA: quello che compri dal Barbiere o in Sartoria resta TUO. Rimetterti un taglio, un colore o un capo che avevi già non costa più niente, e si vede: ✓ su quello che è già tuo, prezzo su quello che si paga',
+      'L\'omino resta in vista mentre scorri le scelte, in bottega come nella creazione: gli elenchi sono lunghi e si finiva a scegliere alla cieca, e ora niente gli passa più sopra',
+      'GROTTA: tolti i quattro angoli attorno ai giacimenti (un mirino da interfaccia in mezzo al mondo). Che il cristallo sia a portata lo dice il cristallo stesso: si accende di più e luccica più fitto',
+      'GROTTA: le ossa fossili nella parete sembravano un reperto da raccogliere incastrato nel muro. Ora sono un rilievo nella pietra: niente bordo, tono di roccia',
+      'IN VOLO: la bestia tiene le zampe RACCOLTE contro il ventre invece che dritte in giù (sembrava appesa a un filo), e il cavaliere ha le gambe PIEGATE — di profilo coscia avanti e stinco giù lungo il fianco, di fronte a cavalcioni. Prima era un busto appoggiato sul drago',
+      'HUD: il livello si legge "Lv 1" invece di un simbolo che nessuno riconosceva',
+      'FIX: la strada da casa alla città poteva attraversare il mare e finire contro il muro di una bottega — casa irraggiungibile a piedi. Ora il vialetto nasce su terra ferma e si ferma alla prima casella libera della città; le case già piazzate male vengono rimesse',
+      'FIX: finita l\'intro, certe volte il mondo compariva ingrandito del doppio e Digsy non si vedeva. La tela restava sulla scala della cutscene',
+    ], en: [
+      'FACE: beard and moustache at the Barber (moustache, goatee, full beard) and glasses at the Tailor (round, rectangular, sunglasses), each with its own colour. Try them free and pay on confirm like everything else; taking them off is free',
+      'The beard starts your hair colour and follows it, until you give it a colour of its own',
+      'WARDROBE: what you buy at the Barber or the Tailor stays YOURS. Going back to a cut, a colour or a garment you already had costs nothing, and you can see it: ✓ on what is yours, a price on what is not',
+      'Your character stays in view while you scroll the options, in the shops as in character creation: the lists are long and you ended up choosing blind, and nothing slides over him any more',
+      'CAVE: dropped the four corner marks around crystal deposits (an interface reticle planted in the world). That a crystal is within reach is now said by the crystal itself: it glows brighter and sparkles faster',
+      'CAVE: fossil bones in the wall looked like a find you could pick up. They are now a relief in the stone: no outline, rock tones',
+      'FLYING: the beast holds its legs tight against its belly instead of dangling them (it looked hung from a string), and the rider\'s legs are BENT — thigh forward and shin down along the flank from the side, astride from the front. It used to be a torso resting on the dragon',
+      'HUD: your level now reads "Lv 1" instead of a symbol nobody recognised',
+      'FIX: the road from home to town could cross the sea and dead-end against a shop wall, leaving home unreachable on foot. The lane now starts on solid ground and stops at the first clear town tile; badly placed houses get moved',
+      'FIX: after the intro the world sometimes came up at double zoom with Digsy nowhere to be seen. The canvas was still on the cutscene\'s scale',
+    ],
+  },
+  {
     v: 'v0.98.13', it: [
       'VIDEO INIZIALE, seconda scena: si vedono il nonno e il piccolo interi sul bordo della buca; un colpo di pala stacca la zolla e scopre l\'osso',
       'VIDEO INIZIALE: la lanterna ora è appesa a un palo, gli alberi poggiano sull\'erba, la luce scende nella buca dello scavo, il nonno passa davvero il fossile al piccolo; dialoghi più affettuosi',

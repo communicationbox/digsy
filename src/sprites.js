@@ -3,6 +3,7 @@ import { ctx } from './screen.js';
 import { S } from './state.js';
 import { buildHat, hatCrown, HAT_IDS } from './hatArt.js';
 import { buildHair, HAIR_IDS } from './hairArt.js';
+import { buildBeard, buildGlasses, BEARD_IDS, GLASSES_IDS } from './faceArt.js';
 import { accLayer } from './npcArt.js';
 import { buildBody, buildPoses, outlineRows, SLEEVE } from './bodyArt.js';
 
@@ -22,6 +23,8 @@ export const PAL = {
   /* CONTORNI del corpo, uno per materiale (bodyArt.BORDO): x pelle · y maglia · z pantaloni.
      Con un contorno nero solo per tutto, il viso sembrava cerchiato a pennarello. */
   'x': '#a86a44', 'y': '#2f5a4c', 'z': '#6b4a24', 'w': '#33230f',   // w = contorno del cuoio (scarpe, zaino): di RETRO è quasi tutto zaino
+  /* VISO: Z/n/m barba · O/l/o montatura degli occhiali (applyLook li pilota da S.look) */
+  'Z': '#6e4a2a', 'n': '#a36d3e', 'm': '#4b3219', 'O': '#33291f', 'l': '#4d3e2f', 'o': '#1f1913',
   'J': '#4a2416', 'I': '#3a2616', 'X': '#2e2219', 'c': '#e89a8a', 'j': '#6b4a14', 'V': '#cdc3b0', 'v': '#6e665a', 'q': '#3e7234', 'r': '#8c3a35', 'd': '#4a9c96',
 };
 /* schiarisce/scurisce un hex, CLAMPATO (k>1 senza clamp sfora il byte e il colore vira, es.
@@ -47,6 +50,12 @@ export function applyLook() {
   PAL.x = shade(L.skin, 0.40); PAL.y = shade(L.shirt, 0.32); PAL.z = shade(L.pants, 0.30);
   PAL.A = L.hairColor; PAL.a = shade(L.hairColor, 0.68); PAL.M = shade(L.hairColor, 1.48); PAL.I = shade(L.hairColor, 0.3);
   PAL.E = L.eyeColor || '#33291f';
+  /* barba e montatura hanno un colore LORO: di serie la barba nasce del colore dei capelli e
+     lo segue finché non la si cambia apposta (vedi wireLook in ui.js) */
+  const bc = L.beardColor || L.hairColor;
+  PAL.Z = bc; PAL.n = shade(bc, 1.48); PAL.m = shade(bc, 0.68);
+  const gc = L.glassesColor || '#33291f';
+  PAL.O = gc; PAL.l = shade(gc, 1.5); PAL.o = shade(gc, 0.6);
 }
 
 /* ---------- corpo a testa nuda (il cappello è un overlay) ---------- */
@@ -75,6 +84,9 @@ export const HAT_CROWN = Object.fromEntries(HAT_IDS.map(id => [id, hatCrown(id, 
 
 /* ---------- capelli: disegnati in nativo da hairArt.js (massa, attaccatura, ciocche) ---------- */
 export const HAIRS = Object.fromEntries(HAIR_IDS.map(id => [id, buildHair(id)]));
+/* ---------- viso: barba/baffi e occhiali, da faceArt.js ---------- */
+export const BEARDS = Object.fromEntries(BEARD_IDS.map(id => [id, buildBeard(id)]));
+export const GLASSES = Object.fromEntries(GLASSES_IDS.map(id => [id, buildGlasses(id)]));
 
 /* ---------- blit ---------- */
 /* larghezza NON più fissa a 16: dal raddoppio geometrico il corpo è 32 colonne, ma
@@ -221,11 +233,19 @@ export function drawHero(tctx, x, y, dir, frame, noHat, pose) {
   /* segno di mestiere (solo i personaggi che lo hanno nel look): sul corpo sotto i capelli, sul viso sopra */
   const acc = S.look.acc, accBody = acc && accLayer(acc, 'body', key), accFace = acc && accLayer(acc, 'face', key);
   if (accBody) blitPairs(accBody, x, y, flip, tctx);
+  /* BARBA sotto i capelli: una frangia lunga o un basettone deve poterla coprire. Segue il
+     colore dei capelli (materiale 'A'), quindi non ha bisogno di niente in più qui. */
+  const bd = BEARDS[S.look.beardStyle];
+  if (bd) blitPairs(bd[key], x, y, flip, tctx);
   const hs = HAIRS[S.look.hairStyle] || HAIRS.none;
   const hat = !noHat ? HATS[S.look.hatStyle] : null;
   const crown = hat ? HAT_CROWN[S.look.hatStyle] : -1;
   blitPairs(hat ? hairUnderHat(S.look.hairStyle, S.look.hatStyle, key, hs[key], hat[key], crown) : hs[key], x, y, flip, tctx);
   if (accFace) blitPairs(accFace, x, y, flip, tctx);
+  /* OCCHIALI sopra i capelli e sotto il cappello: la montatura si vede anche sotto la frangia,
+     ma una tesa le passa davanti come deve */
+  const gl = GLASSES[S.look.glassesStyle];
+  if (gl) blitPairs(gl[key], x, y, flip, tctx);
   if (hat) blitPairs(hat[key], x, y, flip, tctx);
   /* GLITTER del cappello PLATINO: qualche scintilla brillante sulla forma (twinkle dal tempo). */
   if (hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0) {
