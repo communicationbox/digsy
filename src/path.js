@@ -13,16 +13,21 @@
    senza mondo, e il gioco decide cosa è solido. */
 import { FOOT_DY } from './body.js';
 
-/* Una casella è percorribile solo se il personaggio ci STA: è largo ~20 px, quindi provare
-   il solo punto centrale non basta. Con il test al centro il percorso passava rasente al
-   bancone del Curatore, poi la collisione vera lo fermava e non si usciva più dal museo.
-   Qui si prova il centro e i due fianchi: quello che il percorso promette, il movimento
-   lo mantiene. */
+/* Una casella è percorribile solo se il personaggio ci STA: si prova il centro e due punti
+   di margine, perché camminando non si passa mai esattamente per il centro.
+   IL MARGINE ERA 8, ED ERA TROPPO. Il corpo è largo 20 px (±10 dall'ancora): con ±8 in più si
+   interrogava una larghezza di 36 px, cioè PIÙ DI UNA CASELLA (32) — e così ogni casella
+   accostata a un muro risultava impercorribile. In una stanza o in una strada di città è metà
+   dello spazio buono: il percorso faceva giri assurdi, o non esisteva affatto.
+   Il margine grande nasceva per tappare un altro buco: tapmove puntava i waypoint 13px troppo
+   in basso (vedi lì) e i piedi finivano davvero nel muro di sotto. Sistemata la causa, il
+   margine torna a 4 — il corpo resta 28 px su 32, con due pixel di gioco per lato. */
+const MARG = 4;
 export function fits(tx, ty, TS, collide) {
   const cy = ty * TS + TS / 2 - FOOT_DY;
   return !collide(tx * TS + TS / 2, cy)
-    && !collide(tx * TS + TS / 2 - 8, cy)
-    && !collide(tx * TS + TS / 2 + 8, cy);
+    && !collide(tx * TS + TS / 2 - MARG, cy)
+    && !collide(tx * TS + TS / 2 + MARG, cy);
 }
 
 export const MAX_LEN = 40;        // caselle: oltre questa distanza il tocco non vale

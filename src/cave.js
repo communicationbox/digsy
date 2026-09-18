@@ -224,7 +224,7 @@ export function updateCave(dt, keys, speed) {
     const moved = advance(dt, speed, (nx, ny) => {
       if (cCollide(nx, ny) && !(ny > CAVE.y && onCaveExit())) return false;
       CAVE.x = nx; CAVE.y = ny; return true;
-    }, CAVE);
+    }, CAVE, (x, y) => !cCollide(x, y));
     if (moved) {
       CAVE.anim += dt; CAVE.moving = true; CAVE.dir = P.dir;
       CAVE.lastFoot = (CAVE.lastFoot || 0) + speed * dt;

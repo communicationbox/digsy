@@ -1,11 +1,12 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.98.69', it: [
+    v: 'v0.98.70', it: [
       'VISO: barba e baffi dal Barbiere (baffi, pizzetto, barba piena) e occhiali dalla Sartoria (tondi, rettangolari, da sole), ognuno col suo colore. Si provano gratis e si pagano alla conferma come tutto il resto; toglierli non costa niente',
       'La barba nasce del colore dei capelli e li segue, finché non le dai un colore suo',
       'GUARDAROBA: quello che compri dal Barbiere o in Sartoria resta TUO. Rimetterti un taglio, un colore o un capo che avevi già non costa più niente, e si vede: ✓ su quello che è già tuo, prezzo su quello che si paga',
       'L\'omino resta in vista mentre scorri le scelte, in bottega come nella creazione: gli elenchi sono lunghi e si finiva a scegliere alla cieca, e ora niente gli passa più sopra',
+      'TOCCA DOVE ANDARE rifatto: ci si arriva DAVVERO e dove hai toccato, si taglia dritto invece di passare per il centro di ogni casella, e non ci si impunta più contro i muri. Uscire di casa col tocco funziona. Il segno della meta ora c\'è anche in casa, in bottega e in grotta',
       'GROTTA: tolti i quattro angoli attorno ai giacimenti (un mirino da interfaccia in mezzo al mondo). Che il cristallo sia a portata lo dice il cristallo stesso: si accende di più e luccica più fitto',
       'GROTTA: le ossa fossili nella parete sembravano un reperto da raccogliere incastrato nel muro. Ora sono un rilievo nella pietra: niente bordo, tono di roccia',
       'IN VOLO: la bestia tiene le zampe RACCOLTE contro il ventre invece che dritte in giù (sembrava appesa a un filo), e il cavaliere ha le gambe PIEGATE — di profilo coscia avanti e stinco giù lungo il fianco, di fronte a cavalcioni. Prima era un busto appoggiato sul drago',
@@ -17,6 +18,7 @@ export const CHANGELOG = [
       'The beard starts your hair colour and follows it, until you give it a colour of its own',
       'WARDROBE: what you buy at the Barber or the Tailor stays YOURS. Going back to a cut, a colour or a garment you already had costs nothing, and you can see it: ✓ on what is yours, a price on what is not',
       'Your character stays in view while you scroll the options, in the shops as in character creation: the lists are long and you ended up choosing blind, and nothing slides over him any more',
+      'CLICK/TAP TO MOVE rebuilt: you get there, and where you tapped; it cuts straight instead of walking through every tile centre, and no longer gets pinned against walls. Tapping your way out of the house works. The destination marker now shows indoors and in caves too',
       'CAVE: dropped the four corner marks around crystal deposits (an interface reticle planted in the world). That a crystal is within reach is now said by the crystal itself: it glows brighter and sparkles faster',
       'CAVE: fossil bones in the wall looked like a find you could pick up. They are now a relief in the stone: no outline, rock tones',
       'FLYING: the beast holds its legs tight against its belly instead of dangling them (it looked hung from a string), and the rider\'s legs are BENT — thigh forward and shin down along the flank from the side, astride from the front. It used to be a torso resting on the dragon',

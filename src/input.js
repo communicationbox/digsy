@@ -17,7 +17,7 @@ import { cam } from './state.js';
 import { act } from './gameplay.js';
 import { runCommand, suggest } from './commands.js';
 import { splashActive, showSplash, resumeSplash } from './splash.js';
-import { INT, interiorLeave, intCollide, CUT, doorTileX, nudgeOffFurniture } from './interior.js';
+import { INT, interiorLeave, intCollide, CUT, nudgeOffFurniture } from './interior.js';
 import { isHolding, setHoldTarget, placeHold, pickUpFurniture, furnAt, furnLayer, rotateHold, cancelHold, holdItem, snapFurn, clampFurn, rotateHandleRect } from './house.js';
 import { furnSize } from './data.js';
 import { furnRise } from './furnArt.js';
@@ -386,10 +386,23 @@ if (cv && cv.addEventListener) {
        finiva una casella più in basso, e per entrare bisognava toccare l'INSEGNA invece della
        porta. */
     const stx = Math.floor(sc.pos.x / TS), sty = Math.floor((sc.pos.y + FOOT_DY) / TS);
-    const gtx = Math.floor(w.x / TS), gty = Math.floor(w.y / TS);
+    let gtx = Math.floor(w.x / TS), gty = Math.floor(w.y / TS);
+    let gx = w.x, gy = w.y - FOOT_DY, exact = true;   // i PIEDI vanno sul punto toccato
+    /* USCIRE: la soglia e la strada disegnata OLTRE la porta non sono caselle camminabili,
+       quindi un percorso lì non potrebbe mai arrivarci. Ci pensa `findPath`, che quando la
+       meta è dentro un solido ripiega sulla casella libera più vicina (`nearestFree`): è la
+       stessa regola per tutte le scene, e il gioco poi fa uscire da sé (goalIsExit).
+       `currentScene` aveva anche un `exitTile` che nessuno chiamava mai: l'ho provato, e porta
+       alla porta per la via lunga (36 fotogrammi contro 15, misurati) senza cambiare l'esito.
+       Due regole per la stessa cosa, e la peggiore: tolta. */
     const path = findPath(stx, sty, gtx, gty, sc.blocked, sc.maxLen);
-    if (path) setGoal(w.x, w.y - FOOT_DY, path);      // i PIEDI vanno sulla casella toccata
-    else toast('🚶 ' + tr('Troppo lontano o senza strada', 'Too far or no path'));
+    if (!path) { toast('🚶 ' + tr('Troppo lontano o senza strada', 'Too far or no path')); return; }
+    /* si è toccato un albero o un muro: findPath ha ripiegato sulla casella libera più vicina.
+       La meta allora è il CENTRO di quella, non il punto toccato — che sta dentro l'ostacolo e
+       ci si spingerebbe contro finché il cammino non si arrende. */
+    const end = path.length ? path[path.length - 1] : null;
+    if (end && (end[0] !== gtx || end[1] !== gty)) exact = false;
+    setGoal(gx, gy, path, exact);
   });
   /* toccare il joystick o premere un tasto annulla la meta: il comando diretto ha la
      precedenza, sempre (niente personaggio che continua per conto suo) */
@@ -459,10 +472,6 @@ function currentScene() {
       pos: INT, cam: interiorCam(),
       blocked: (tx, ty) => !fits(tx, ty, TS, intCollide),
       maxLen: 30,
-      /* la strada disegnata SOTTO la porta non è calpestabile: il clic lì si traduce nella
-         soglia, l'ultima casella in cui si può stare */
-      exitTile: (tx, ty) => (ty >= INT.h - 1 && Math.abs(tx - doorTileX()) <= 3)
-        ? { tx: doorTileX(), ty: INT.h - 2 } : null,
     };
   }
   return { pos: P, cam, blocked: tileBlocked, reach: inReach };

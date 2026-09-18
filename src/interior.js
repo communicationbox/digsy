@@ -590,7 +590,7 @@ export function updateInterior(dt, keys, speed) {
     const moved = advance(dt, speed, (nx, ny) => {
       if (intCollide(nx, ny) && !(ny > INT.y && onDoor())) return false;
       INT.x = nx; INT.y = ny; return true;
-    }, INT);
+    }, INT, (x, y) => !intCollide(x, y));
     if (moved) { INT.anim += dt; INT.moving = true; INT.dir = P.dir; } else INT.moving = false;
     /* Toccando l'USCIO si deve uscire. Il punto da raggiungere sta OLTRE l'ultima casella
        camminabile, quindi il percorso non potrebbe mai arrivarci: quando si è sulla soglia

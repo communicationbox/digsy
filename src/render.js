@@ -29,7 +29,7 @@ import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal } from './props.js';
-import { drawInteriorScene } from './interiors.js';
+import { drawInteriorScene, interiorCam } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
 import { caveWall, caveFloor, caveCrystal } from './caveArt.js';
@@ -1645,11 +1645,20 @@ function drawCaveScene(time) {
   }
 }
 
+/* IL SEGNO DELLA META anche DENTRO: esisteva solo nel mondo aperto, ma è proprio in casa, in
+   bottega e in grotta che il tocco serve di più — spazi stretti, mobili di mezzo, e senza il
+   segno non si sa se il tocco è stato raccolto né dove si è finito per mandare il personaggio.
+   Ogni scena ha la sua camera, quindi il punto va convertito con QUELLA. */
+function goalMarkIn(camx, camy, time) {
+  if (!goalMark.on || !markerOn()) return;
+  drawGoalMark(snap(goalMark.x - camx), snap(goalMark.y + FOOT_DY - camy), time);
+}
+
 /* ---------- frame ---------- */
 export function render(time) {
   frameTime = time; setHeroTime(time); // twinkle del glitter dei cappelli platino
-  if (CAVE.active) { drawCaveScene(time); return; }
-  if (INT.active) { setNight(darknessAt(S.tod || 0)); drawInteriorScene(time); return; }
+  if (CAVE.active) { const c2 = caveCam(); drawCaveScene(time); goalMarkIn(snap(c2.x), snap(c2.y), time); return; }
+  if (INT.active) { setNight(darknessAt(S.tod || 0)); drawInteriorScene(time); const ic = interiorCam(); goalMarkIn(ic.x, ic.y, time); return; }
   const W = view.W, H = view.H, VW = view.VW, VH = view.VH;
   setNight(darknessAt(S.tod || 0));
   setSeason(updateSeasonPalette(S.day || 1, S.tod || 0));   // transizione GRADUALE tra stagioni

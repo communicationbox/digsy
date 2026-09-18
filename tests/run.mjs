@@ -7803,6 +7803,220 @@ sprites.applyLook();
   tm12.clearGoal();
 }
 
+/* ---------- PERCORSO: ci si arriva DAVVERO, e dove si è toccato ----------
+   Il "tocca dove andare" aveva sei difetti insieme (segnalato: "il pathfinder funziona male,
+   si fa fatica a uscire di casa o ad arrivare a un punto preciso"). Il peggiore era una
+   COSTANTE: tapmove teneva una copia di `placeOnTile` con i piedi a 13px invece di FOOT_DY
+   (26), cioè la convenzione che body.js dichiara abbandonata — ogni waypoint puntava mezza
+   casella troppo in basso e Digsy camminava sul bordo INFERIORE di ogni casella, strusciando
+   contro tutto quello che c'era sotto. Qui non si misura la formula: si CAMMINA. */
+{
+  const tmP = await import('../src/tapmove.js');
+  const bodyP = await import('../src/body.js');
+  const pathP = await import('../src/path.js');
+  const gpP = await import('../src/gameplay.js');
+  const { TS: TSP } = await import('../src/data.js');
+  const P2 = state.P;
+
+  check('la casella del cammino è la STESSA di body.placeOnTile (una convenzione sola)',
+    JSON.stringify(tmP.tileCenter(7, 9)) === JSON.stringify(bodyP.placeOnTile(7, 9)),
+    JSON.stringify(tmP.tileCenter(7, 9)));
+
+  /* cammina fino alla meta come fa il gioco: stessi advance/collide, un fotogramma per volta.
+     Torna quanti fotogrammi ci ha messo, se è arrivato e se ha mai attraversato un muro. */
+  const cammina = (gx, gy, maxFrames = 1800) => {
+    let frames = 0, dentroMuro = 0;
+    while (tmP.hasGoal() && frames < maxFrames) {
+      tmP.advance(1 / 60, 90, (nx, ny) => {
+        if (gpP.collide(nx, ny)) return false;
+        P2.x = nx; P2.y = ny; return true;
+      }, P2, (x, y) => !gpP.collide(x, y));
+      if (gpP.collide(P2.x, P2.y)) dentroMuro++;
+      frames++;
+    }
+    return { frames, dentroMuro, dist: Math.hypot(P2.x - gx, P2.y - gy) };
+  };
+
+  /* un giro di mete VERE attorno alla città di partenza: è il caso che si rompeva, perché è
+     lì che ci sono muri da rasentare. Si prendono solo caselle libere e raggiungibili. */
+  const st0 = world.findStart();
+  P2.x = st0.x; P2.y = st0.y;
+  const mete = [];
+  for (let d = 3; d <= 9 && mete.length < 6; d += 2) {
+    for (const [ox, oy] of [[d, 0], [0, d], [-d, 0], [0, -d], [d, d], [-d, -d]]) {
+      const tx = Math.floor(P2.x / TSP) + ox, ty = Math.floor((P2.y + bodyP.FOOT_DY) / TSP) + oy;
+      if (!gpP.tileBlocked(tx, ty)) { mete.push([tx, ty]); if (mete.length >= 6) break; }
+    }
+  }
+  let arrivi = 0, muri = 0, lenti = 0;
+  for (const [tx, ty] of mete) {
+    const stx = Math.floor(P2.x / TSP), sty = Math.floor((P2.y + bodyP.FOOT_DY) / TSP);
+    const pth = pathP.findPath(stx, sty, tx, ty, gpP.tileBlocked, 40);
+    if (!pth) continue;
+    const c = bodyP.placeOnTile(tx, ty);
+    tmP.setGoal(c.x, c.y, pth, true);
+    const r = cammina(c.x, c.y);
+    if (r.dist <= 4) arrivi++;                       // ARRIVE è 3px: qui si concede un pixel
+    muri += r.dentroMuro;
+    /* tempo di percorrenza onesto: la distanza diviso la velocità, più metà per le curve.
+       Oscillando attorno al bersaglio (il difetto vecchio) questo numero esplode. */
+    const atteso = (pth.length * TSP) / 90 * 60 * 1.6 + 30;
+    if (r.frames > atteso) lenti++;
+    tmP.clearGoal();
+  }
+  check('ci si arriva, a tutte le mete provate (' + arrivi + '/' + mete.length + ')', mete.length >= 4 && arrivi === mete.length);
+  check('e senza mai finire dentro un muro', muri === 0, muri + ' fotogrammi dentro un solido');
+  check('e senza girare a vuoto attorno al bersaglio', lenti === 0, lenti + ' mete troppo lente');
+
+  /* PRECISIONE: la meta è il punto TOCCATO, non il centro della casella. Prima setGoal
+     sovrascriveva sempre col centro, quindi si finiva fino a mezza casella più in là. */
+  {
+    const tx = Math.floor(P2.x / TSP), ty = Math.floor((P2.y + bodyP.FOOT_DY) / TSP);
+    let libera = null;
+    for (const [ox, oy] of [[2, 0], [-2, 0], [0, 2], [0, -2], [3, 0], [0, 3]]) if (!gpP.tileBlocked(tx + ox, ty + oy)) { libera = [tx + ox, ty + oy]; break; }
+    if (libera) {
+      const c = bodyP.placeOnTile(libera[0], libera[1]);
+      const puntoX = c.x + 9, puntoY = c.y + 7;        // un angolo della casella, non il centro
+      const pth = pathP.findPath(tx, ty, libera[0], libera[1], gpP.tileBlocked, 40);
+      tmP.setGoal(puntoX, puntoY, pth, true);
+      const r = cammina(puntoX, puntoY);
+      check('ci si ferma dove si è toccato, non al centro della casella (' + r.dist.toFixed(1) + 'px)', r.dist <= 4);
+      tmP.clearGoal();
+    }
+  }
+}
+
+/* ---------- CORRIDOIO STRETTO: il caso che smaschera tutto ----------
+   Una mappa finta, alta una casella: muro sopra e muro sotto. È qui che si vede se il
+   bersaglio dei waypoint è quello giusto — la scatola di collisione va da +20 a +30 sotto
+   l'ancora, quindi puntare 13px troppo in basso (la vecchia convenzione di tapmove) infila i
+   piedi nel muro di sotto e Digsy si pianta al primo passo. Tutto finto e deterministico:
+   niente mondo, niente seme, nessuna casella che "capita" larga. */
+{
+  const tmC = await import('../src/tapmove.js');
+  const bodyC = await import('../src/body.js');
+  const pathC = await import('../src/path.js');
+  const { TS: TSC } = await import('../src/data.js');
+  /* corridoio a L: prima in orizzontale, poi giù per un pozzo largo UNA casella. La curva
+     conta: in orizzontale lo scivolamento lungo il muro nasconde un bersaglio sbagliato di
+     qualche pixel (si cammina comunque), nel pozzo no — lì o si punta al centro della casella
+     o ci si pianta contro il fondo. È il percorso di una porta, di un vicolo, di una stanza. */
+  const MAPPA = [
+    '##########',
+    '#........#',
+    '########.#',
+    '########.#',
+    '########.#',
+    '##########',
+  ];
+  const solidoC = (tx, ty) => !MAPPA[ty] || MAPPA[ty][tx] === undefined || MAPPA[ty][tx] !== '.';
+  const collideC = (x, y) => bodyC.bodyHits(x, y, (px, py) => solidoC(Math.floor(px / TSC), Math.floor(py / TSC)));
+  const blockedC = (tx, ty) => !pathC.fits(tx, ty, TSC, collideC);
+  const partenza = bodyC.placeOnTile(1, 1);
+  const chi = { x: partenza.x, y: partenza.y };
+  check('nel corridoio ci si sta in piedi (la mappa di prova è sensata)', !collideC(chi.x, chi.y) && !blockedC(1, 1) && !blockedC(8, 4));
+  const pth = pathC.findPath(1, 1, 8, 4, blockedC, 30);
+  check('e il percorso gira l\'angolo e scende nel pozzo (' + (pth ? pth.length : 'nessuno') + ' caselle)', !!pth && pth.length === 10);
+  const meta = bodyC.placeOnTile(8, 4);
+  tmC.setGoal(meta.x, meta.y, pth, true);
+  let f = 0, dentro = 0;
+  while (tmC.hasGoal() && f++ < 900) {
+    tmC.advance(1 / 60, 90, (nx, ny) => { if (collideC(nx, ny)) return false; chi.x = nx; chi.y = ny; return true; }, chi, (x, y) => !collideC(x, y));
+    if (collideC(chi.x, chi.y)) dentro++;
+  }
+  const dist = Math.hypot(chi.x - meta.x, chi.y - meta.y);
+  check('si percorre il corridoio fino in fondo (' + dist.toFixed(1) + 'px dalla meta, ' + f + ' fotogrammi)', dist <= 4);
+  check('e senza mai entrare nel muro', dentro === 0);
+  tmC.clearGoal();
+}
+
+/* ---------- DENTRO CASA: si cammina in spazi stretti e si ESCE toccando l'uscio ----------
+   È il caso che si rompeva per primo ("si fa fatica a uscire dalla casa"): in una stanza i
+   muri sono a due passi, quindi mezza casella di errore sul bersaglio basta a incastrarsi. E
+   la soglia NON è una casella camminabile — il percorso non ci può arrivare — quindi il tocco
+   sull'uscita va tradotto nell'ultima casella buona (`exitTile` in input.js, che era scritta
+   ma non veniva chiamata da nessuno). */
+{
+  const tmH = await import('../src/tapmove.js');
+  const bodyH = await import('../src/body.js');
+  const pathH = await import('../src/path.js');
+  const interH = await import('../src/interior.js');
+  const { TS: TSH } = await import('../src/data.js');
+  const home = S.home || { x: 50, y: 50 }; if (!S.home) S.home = home;
+  interH.enterInterior({ type: 'house', name: 'house', doorx: home.x, doory: home.y, x: home.x, y: home.y });
+  interH.enterHouseRoom(0);
+  const INT = interH.INT;
+  const blockedH = (tx, ty) => !pathH.fits(tx, ty, TSH, interH.intCollide);
+  /* si cammina verso gli angoli della stanza: quattro mete strette, tutte da raggiungere */
+  let ok = 0, prove = 0, dentro = 0;
+  for (const [tx, ty] of [[1, 1], [INT.w - 2, 1], [1, INT.h - 3], [INT.w - 2, INT.h - 3]]) {
+    if (blockedH(tx, ty)) continue;
+    prove++;
+    const stx = Math.floor(INT.x / TSH), sty = Math.floor((INT.y + bodyH.FOOT_DY) / TSH);
+    const pth = pathH.findPath(stx, sty, tx, ty, blockedH, 30);
+    if (!pth) continue;
+    const c = bodyH.placeOnTile(tx, ty);
+    tmH.setGoal(c.x, c.y, pth, true);
+    let f = 0;
+    while (tmH.hasGoal() && f++ < 1200) { interH.updateInterior(1 / 60, {}, 60); if (interH.intCollide(INT.x, INT.y)) dentro++; }
+    if (Math.hypot(INT.x - c.x, INT.y - c.y) <= 5) ok++;
+    tmH.clearGoal();
+  }
+  check('in casa si raggiungono tutti gli angoli liberi (' + ok + '/' + prove + ')', prove >= 2 && ok === prove);
+  check('e senza mai finire dentro un mobile o un muro', dentro === 0, dentro + ' fotogrammi dentro un solido');
+
+  tmH.clearGoal();
+  if (interH.INT.active) { try { interH.exitInterior(); } catch (e) { /* la tile d'uscita dipende dalla città */ } }
+
+  /* USCIRE COL TOCCO, dal VERO input.js: si clicca la strada disegnata SOTTO la porta — che
+     non è una casella camminabile. In bottega (una stanza sola) uscire vuol dire tornare fuori,
+     quindi qui si vede tutta la catena: tocco → exitTile → percorso → cammino → si è fuori. */
+  {
+    const { interiorCam } = await import('../src/interiors.js');
+    const { view: vH } = await import('../src/screen.js');
+    if (!vH.W) { vH.W = 400; vH.H = 300; }
+    const prH = await import('../src/prefs.js');
+    prH.setPref('mouse', 'tap');
+    const cvH = document.getElementById('cv');
+    interH.enterInterior({ type: 'store', name: 'X', doorx: 5, doory: 5 });
+    const dx = interH.doorTileX();
+    const cH = interiorCam();
+    const sx = ((dx + 0.5) * TSH - cH.x) / vH.W * 100, sy = ((interH.INT.h - 0.4) * TSH - cH.y) / vH.H * 100;
+    tmH.clearGoal();
+    cvH.dispatchEvent({ type: 'pointerdown', clientX: sx, clientY: sy, pointerId: 91, button: 0, preventDefault() {} });
+    cvH.dispatchEvent({ type: 'pointerup', clientX: sx, clientY: sy, pointerId: 91, button: 0, preventDefault() {} });
+    check('toccando l\'uscio si parte verso l\'uscita', tmH.hasGoal() === true && interH.goalIsExit() === true);
+    let f2 = 0;
+    while (interH.INT.active && f2++ < 1200) interH.updateInterior(1 / 60, {}, 60);
+    check('e camminando si esce davvero dalla bottega (' + f2 + ' fotogrammi)', interH.INT.active === false);
+
+    /* E DA CASA: è il caso che il giocatore ha segnalato. La casa non è una stanza sola —
+       dalla Sala si torna nell'ATRIO e solo da lì si esce — quindi vale come uscita anche il
+       cambio di stanza: il tocco sull'uscio deve MUOVERE qualcosa, sempre. */
+    for (const dove of ['atrio', 'sala']) {
+      interH.enterInterior({ type: 'house', name: 'house', doorx: home.x, doory: home.y, x: home.x, y: home.y });
+      if (dove === 'sala') interH.enterHouseRoom(0);
+      const I2 = interH.INT, stanza0 = I2.houseRoom;
+      const c2 = interiorCam(), dxh = interH.doorTileX();
+      const px2 = ((dxh + 0.5) * TSH - c2.x) / vH.W * 100, py2 = ((I2.h - 0.4) * TSH - c2.y) / vH.H * 100;
+      tmH.clearGoal();
+      cvH.dispatchEvent({ type: 'pointerdown', clientX: px2, clientY: py2, pointerId: 92, button: 0, preventDefault() {} });
+      cvH.dispatchEvent({ type: 'pointerup', clientX: px2, clientY: py2, pointerId: 92, button: 0, preventDefault() {} });
+      check('in casa (' + dove + ') il tocco sull\'uscio dà una meta', tmH.hasGoal() === true);
+      let f3 = 0, andato = false;
+      while (interH.INT.active && f3++ < 900) {
+        interH.updateInterior(1 / 60, {}, 60);
+        if (I2.houseRoom !== stanza0) { andato = true; break; }
+      }
+      check('in casa (' + dove + ') toccando l\'uscio si esce (' + f3 + ' fotogrammi)', andato || interH.INT.active === false);
+      tmH.clearGoal();
+      if (interH.INT.active) { try { interH.exitInterior(); } catch (e) { /* la tile d'uscita dipende dalla città */ } }
+    }
+    prH.resetPrefs();
+    tmH.clearGoal();
+  }
+}
+
 /* ---------- TOCCO: deve funzionare in OGNI scena, non solo all'aperto ---------- */
 {
   const S = state.S, P10 = state.P;

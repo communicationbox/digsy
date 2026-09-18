@@ -414,6 +414,28 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 - **Niente testo murato in index.html**: i testi statici passano da `applyStaticTexts()`
   (`#pr-done`, `#exitbtn`, `#debugtag`); la schermata di boot si traduce con uno script inline
   che legge `digsy_lang` (i moduli non sono ancora caricati). Un test scandisce il markup.
+- **TOCCA DOVE ANDARE, rifatto** (`tapmove.js` + `path.js`): il movimento a click/tap aveva
+  SETTE difetti insieme ("il pathfinder funziona male, si fa fatica a uscire di casa o ad
+  arrivare a un punto preciso"). Due erano costanti sbagliate che si coprivano a vicenda:
+  **1)** `tapmove` teneva una COPIA di `placeOnTile` con i piedi a 13px invece di `FOOT_DY`
+  (26) — la convenzione che body.js dichiara abbandonata. Ogni waypoint puntava mezza casella
+  troppo in basso e Digsy camminava sul bordo INFERIORE di ogni casella, strusciando contro
+  tutto quello che stava sotto. **2)** `fits` in path.js provava il corpo con un margine di ±8
+  su un corpo già largo ±10: 36 px su una casella di 32, quindi **ogni casella accostata a un
+  muro risultava impercorribile** — in una stanza o in una strada è metà dello spazio buono. Il
+  margine grande era nato per tappare il difetto 1. Sistemata la causa, il margine è 4.
+  Gli altri cinque: la meta veniva sovrascritta col CENTRO dell'ultima casella (non ci si
+  fermava dove si toccava, fino a mezza casella di errore) · `ARRIVE` a 10px fermava un passo
+  prima · si passava per il centro di OGNI casella invece di tagliare in linea retta (ora
+  `shortcut`, con la stessa collisione del gioco: deviazione media 1,19× → **1,04×**) ·
+  strusciando lungo un muro `stuck` si azzerava a ogni fotogramma e non si rinunciava mai (ora
+  si misura la distanza dalla META, non "si è mosso") · il segno della meta si disegnava solo
+  nel mondo aperto, proprio dove serve meno (ora anche in casa, bottega e grotta).
+  Il `exitTile` di `currentScene` era scritto e **non chiamato da nessuno**: l'ho provato, porta
+  alla porta per la via lunga (36 fotogrammi contro 15, misurati) senza cambiare l'esito —
+  `findPath` già ripiega sulla casella libera più vicina. Tolto: due regole per la stessa cosa,
+  e la peggiore. Misure: 100% di arrivi su 46 mete vere, corridoio a L largo UNA casella
+  (mappa finta, deterministica), angoli di casa, uscita da bottega e da casa (atrio e Sala).
 - **Il vialetto di casa è una STRADA, e va controllata prima di scegliere il posto**
   (`homeRoadGeomFor/homeRoadOk` in world.js, usate da `findHomeSpot`): si disegna come
   pavimento e rende camminabile la casella **anche sull'acqua**, quindi finché nessuno la

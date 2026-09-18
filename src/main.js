@@ -119,10 +119,12 @@ function walk(dt) {
   } else if (hasGoal()) {
     /* "tocca dove andare": si cammina lungo il percorso calcolato, aggirando gli ostacoli */
     const spd = P.speed * gearSpeedMul() * (P.speedMul || 1);
+    /* `freeAt` è la STESSA domanda della collisione: serve al taglio in linea retta (tapmove),
+       che salta i waypoint raggiungibili dritti invece di passare per il centro di ognuno. */
     walkedToGoal = advance(dt, spd, (nx, ny) => {
       if (collide(nx, ny)) return false;
       P.x = nx; P.y = ny; return true;
-    });
+    }, P, (x, y) => !collide(x, y));
     if (walkedToGoal) { P.anim += dt; P.moving = true; }
   }
   if (dx || dy) {
