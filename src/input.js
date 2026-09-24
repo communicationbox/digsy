@@ -2,6 +2,8 @@
 import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare, isTossOpen, tossPress, tossAbort, isSkeletonFitOpen, skeletonFitSkip } from './ui.js';
 import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach, hasGoal } from './tapmove.js';
+import { MP, dire } from './mp.js';
+import { apriRiga, chiudiRiga } from './chat.js';
 import { findPath, fits } from './path.js';
 import { tileBlocked, toggleMount, companionRides, tapFurnitureAt, nearbyStatue } from './gameplay.js';
 import { townInfo } from './world.js';
@@ -97,8 +99,47 @@ export function isTyping(t) {
   const tag = (t.tagName || '').toUpperCase();
   return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || t.isContentEditable === true;
 }
+/* ---------- LA RIGA DELLA CHAT ----------
+   Si apre con T (come nei giochi in compagnia di tutti) e col pulsante su telefono. Mentre è
+   aperta i comandi si spengono da soli: `isTyping` vede che il fuoco è in un campo di testo e
+   il gioco ignora i tasti — la regola c'era già, la chat non ne ha avuto bisogno di una nuova.
+   Il MONDO invece non si ferma: in compagnia non si mette in pausa (regola 5). */
+const chatEl = document.getElementById('chatbar'), chatIn = document.getElementById('chati');
+export function chatAperta() { return !!chatEl && chatEl.classList.contains('on'); }
+function apriChat() {
+  if (MP.stato !== 'dentro' || !chatEl) return false;
+  chatEl.classList.add('on'); apriRiga();
+  for (const k in keys) keys[k] = false;      // ferma il movimento: si stava camminando
+  clearGoal();                                 // e anche la meta: si scrive, non si va da nessuna parte
+  if (chatIn) { chatIn.value = ''; chatIn.focus(); }
+  return true;
+}
+function chiudiChat() {
+  if (!chatEl) return;
+  chatEl.classList.remove('on'); chiudiRiga();
+  if (chatIn) { chatIn.value = ''; chatIn.blur(); }
+}
+function inviaChat() {
+  const t = chatIn ? chatIn.value : '';
+  if (t && t.trim()) dire(t, (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now());
+  chiudiChat();
+}
+{ const b = document.getElementById('chatsend'); if (b) b.onclick = () => inviaChat(); }
+
 addEventListener('keydown', e => {
+  /* INVIO e ESC della chat si trattano QUI, nel gestore del gioco, e PRIMA di `isTyping`:
+     un ascoltatore sul campo dovrebbe fermare la propagazione per non far camminare il
+     personaggio, e fermandola impedirebbe a questo di vedere il tasto. Prima di `isTyping`
+     perché il campo della chat è il campo della chat, comunque sia fatto. */
+  if (chatIn && e.target === chatIn) {
+    if (e.key === 'Enter') { inviaChat(); e.preventDefault(); return; }
+    if (e.key === 'Escape') { chiudiChat(); e.preventDefault(); return; }
+  }
   if (isTyping(e.target)) { if (e.key === 'Escape' && e.target.blur) e.target.blur(); return; } // ESC = esci dal campo
+  /* T = parla. Solo in compagnia: da soli quel tasto non deve fare niente. */
+  if ((e.key === 't' || e.key === 'T') && !isModalOpen() && !splashActive() && MP.stato === 'dentro') {
+    if (apriChat()) { e.preventDefault(); return; }
+  }
   if (e.key === '\\' && CHEATS_ON) { consoleOpen ? closeConsole() : openConsole(); e.preventDefault(); return; } // \ = toggle console cheat (SOLO in dev)
   if (consoleOpen) return; // mentre la console è aperta, il gioco ignora i tasti
   /* RICOMPONI LO SCHELETRO: ESC = salta il pezzo corrente (si può sempre saltare) */

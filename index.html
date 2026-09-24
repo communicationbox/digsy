@@ -67,6 +67,12 @@
     <button id="furncancelbtn" type="button">Annulla</button>
   </div>
     <div id="toasts"></div>
+    <!-- LA RIGA DELLA CHAT: compare solo in compagnia. Nessun testo qui dentro, nemmeno il
+         segnaposto: lo mette applyStaticTexts, o resterebbe in italiano per tutti. -->
+    <div id="chatbar">
+      <input id="chati" type="text" maxlength="140" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false">
+      <button id="chatsend" class="btn amber"></button>
+    </div>
     <div id="cmd">
       <div id="cmdout"></div>
       <div class="cmdrow"><span class="cmark">\</span><input id="cmdi" type="text" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"><span id="cmdhint"></span></div>

@@ -9946,5 +9946,103 @@ sprites.applyLook();
     world4.baseTerrain(40, 40) === primaDelGiro);
 }
 
+/* ---------- LA CHAT: nuvolette e taccuino ----------
+   Il taccuino sta sul DISPOSITIVO, fuori dal salvataggio: il salvataggio va anche in cloud e ha
+   un tetto contro cui il gioco ha già sbattuto una volta. E le conversazioni non devono
+   diventare roba di nessun server. */
+{
+  const chat = await import('../src/chat.js');
+  const mp = await import('../src/mp.js');
+  const netm = await import('../src/net.js');
+  const fatte = [];
+  const finta = () => {
+    const s = { readyState: 1, inviati: [], chiusa: false,
+      send(x) { s.inviati.push(JSON.parse(x)); }, close() { s.chiusa = true; } };
+    fatte.push(s); return s;
+  };
+  chat.dimenticaTutto(); chat.zittiTutti();
+
+  /* una riga arrivata: nuvoletta sopra la testa E riga sul taccuino */
+  chat.arrivato('u1', 'Luca', 'ciao! guarda che museo', 1000);
+  check('quello che dice compare sopra la sua testa', chat.bolla('u1', 1200) === 'ciao! guarda che museo');
+  check('e dopo qualche secondo smette', chat.bolla('u1', 1000 + chat.BOLLA_MS + 1) === null);
+  check('ma sul taccuino resta', chat.pagina('Luca').length === 1 && chat.pagina('Luca')[0].m === 'ciao! guarda che museo');
+
+  chat.detto('bello eh', ['Luca'], 2000);
+  const pag = chat.pagina('Luca');
+  check('e si vede chi ha detto cosa', pag.length === 2 && pag[1].io === true && pag[0].io === false);
+  check('c\'è anche una nuvoletta sopra la MIA testa', chat.bolla('io', 2100) === 'bello eh');
+
+  /* il taccuino ha una pagina per persona, e si rilegge quando si vuole */
+  chat.arrivato('u2', 'Ada', 'ci sei?', 3000);
+  check('una pagina per persona, la più recente per prima', chat.pagine().join() === 'Ada,Luca');
+  chat.dimentica('Ada');
+  check('e si può strappare una pagina', chat.pagine().join() === 'Luca');
+
+  /* NON diventa un archivio: si pota a ogni riga, non "ogni tanto" */
+  for (let i = 0; i < chat.PER_PERSONA + 50; i++) chat.arrivato('u1', 'Luca', 'riga ' + i, 4000 + i);
+  const lunga = chat.pagina('Luca');
+  check('un taccuino, non un archivio (' + lunga.length + ' righe tenute)', lunga.length === chat.PER_PERSONA);
+  check('e si tengono le ULTIME, non le prime', lunga[lunga.length - 1].m === 'riga ' + (chat.PER_PERSONA + 49));
+
+  /* testo di un'altra persona: si taglia e non manda a capo mezzo schermo */
+  const netc = await import('../src/net.js');
+  const lungo = netc.decode(JSON.stringify({ t: netc.T.CHAT, id: 'u1', m: 'x'.repeat(500) }));
+  check('una riga chilometrica viene tagliata', lungo && lungo.m.length === netc.MAX_CHAT);
+  const capi = netc.decode(JSON.stringify({ t: netc.T.CHAT, id: 'u1', m: 'uno\ndue\ttre' }));
+  check('e i ritorni a capo diventano spazi (niente nuvolette da dieci righe)', capi && capi.m === 'uno due tre');
+  check('una riga vuota non è un messaggio', netc.decode(JSON.stringify({ t: netc.T.CHAT, id: 'u1', m: '   ' })) === null);
+
+  /* mentre si scrive i comandi si spengono: la tastiera di sistema si prende i tasti */
+  check('si sa quando si sta scrivendo', chat.staScrivendo() === false &&
+    (chat.apriRiga(), chat.staScrivendo() === true) && (chat.chiudiRiga(), chat.staScrivendo() === false));
+
+  /* un taccuino illeggibile non ferma la partita */
+  localStorage.setItem(chat.CHIAVE, 'non è json');
+  check('un taccuino rovinato si riparte da bianco, senza esplodere', Array.isArray(chat.pagina('Luca')) && chat.pagine().length === 0);
+  chat.dimenticaTutto(); chat.zittiTutti();
+
+  /* ---- LA RIGA PER SCRIVERE, dentro il vero input.js ----
+     Il tasto T apre la riga SOLO in compagnia (da soli non deve fare niente), scrivere non
+     deve far camminare il personaggio, e Invio manda davvero. */
+  {
+    const inpc = await import('../src/input.js');
+    const fireK = (t, k, target) => globalThis.__fireKey(t, k, target);
+    const barra = document.getElementById('chatbar'), riga = document.getElementById('chati');
+    mp.disconnect();
+    fireK('keydown', 't');
+    check('da soli il tasto T non apre niente', inpc.chatAperta() === false && chat.staScrivendo() === false);
+
+    /* ci si mette in una stanza */
+    mp.setTransport(finta);
+    mp.connect('ws://finta/ws', { name: 'Marco', room: 'casa' });
+    const s4 = fatte[fatte.length - 1];
+    s4.onopen(); s4.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+    s4.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+
+    inpc.keys.right = true;                    // si stava camminando
+    fireK('keydown', 't');
+    check('in compagnia il tasto T apre la riga', inpc.chatAperta() === true && chat.staScrivendo() === true);
+    check('e il personaggio si ferma invece di continuare a camminare', inpc.keys.right === false);
+
+    riga.value = 'ciao Luca!';
+    fireK('keydown', 'Enter', riga);
+    const detto = s4.inviati.filter(x => x.t === 'chat').pop();
+    check('Invio manda la riga', detto && detto.m === 'ciao Luca!');
+    check('la riga si chiude dopo aver mandato', inpc.chatAperta() === false && chat.staScrivendo() === false);
+    check('e resta sul taccuino di chi ascoltava', chat.pagina('Luca').some(r => r.m === 'ciao Luca!' && r.io));
+    check('con la nuvoletta sopra la mia testa', typeof chat.bolla('io', 0) === 'string');
+
+    /* una riga vuota non è un messaggio */
+    fireK('keydown', 't'); riga.value = '   ';
+    const prima = s4.inviati.filter(x => x.t === 'chat').length;
+    fireK('keydown', 'Enter', riga);
+    check('una riga vuota non manda niente', s4.inviati.filter(x => x.t === 'chat').length === prima);
+    mp.disconnect();
+    chat.dimenticaTutto(); chat.zittiTutti();
+    mp.setTransport((u) => new WebSocket(u));
+  }
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

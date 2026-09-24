@@ -113,7 +113,14 @@ Una per volta, ognuna provabile da sola.
    Per ora l'ospite **non dorme** in casa d'altri e **non tocca** l'arredo: il sonno in
    compagnia col sogno è nella fetta 5.
 3. **Amici e inviti.** Account, richieste, codice amico, pallino verde, centro notifiche.
-4. **Chat.** Nuvolette, taccuino, tastiera su telefono.
+4. ~~**Chat.**~~ **FATTA** tranne il taccuino da rileggere a schermo (i dati ci sono, manca la
+   pagina). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
+   restare sotto la barra), taccuino in `localStorage` **fuori dal salvataggio**, riga di testo
+   che si apre con **T** e col pulsante, e i comandi che si spengono mentre si scrive — quella
+   regola c'era già (`isTyping`), la chat non ne ha avuta bisogno di una nuova.
+   L'ora di ogni riga è **monotòna**: tre messaggi nello stesso millisecondo rendevano casuale
+   l'ordine del taccuino, e "con chi ho parlato per ultimo" è il modo in cui si cerca una
+   conversazione.
 5. **Le regole fini.** Casa intoccabile, sonno collettivo col sogno, museo, fontana per
    persona, manda via, controllo di plausibilità sulla velocità.
 

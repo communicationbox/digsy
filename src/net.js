@@ -27,6 +27,7 @@ export const LAG = 100;          // ms di ritardo su cui si interpola: sotto si 
 export const SEND_HZ = 10;       // quante volte al secondo si dice dove si è
 const KEEP = 1200;               // ms di storia tenuti per ogni compagno (oltre non serve a niente)
 const MAX_PEERS = 8;             // una stanza è un salotto, non una piazza
+export const MAX_CHAT = 140;     // caratteri: una riga detta a voce, non un tema
 
 /* I TIPI DI MESSAGGIO. Nomi corti perché le posizioni viaggiano dieci volte al secondo, ma non
    tanto corti da non capirsi leggendo un registro di rete. */
@@ -41,6 +42,7 @@ export const T = {
   MONDO: 'mondo',    // l'ospitante manda il suo mondo a chi entra (una volta sola, grosso)
   MUT: 'mut',        // una casella consumata: scavata, tagliata, spaccata, raccolta
   CLOCK: 'clock',    // l'orologio dell'ospitante: l'ospite non lo calcola, lo riceve
+  CHAT: 'chat',      // una riga detta a voce alta nella stanza
   BYE: 'bye',        // esco di mia volontà
 };
 
@@ -97,6 +99,13 @@ export function decode(raw) {
         ? { t: m.t, id: id(m.id) ? m.id : null, k: m.k, c: m.c } : null;
     case T.CLOCK:
       return (num(m.day) && num(m.tod)) ? { t: m.t, id: id(m.id) ? m.id : null, day: m.day, tod: m.tod } : null;
+    case T.CHAT: {
+      /* un messaggio di chat è testo di un'altra persona: si taglia, si ripuliscono i ritorni
+         a capo (una nuvoletta di dieci righe coprirebbe lo schermo) e si scartano i vuoti */
+      if (typeof m.m !== 'string') return null;
+      const testo = m.m.replace(/[\r\n\t]+/g, ' ').trim().slice(0, MAX_CHAT);
+      return testo ? { t: m.t, id: id(m.id) ? m.id : null, m: testo } : null;
+    }
     case T.BYE:
       return { t: m.t };
     default: return null;

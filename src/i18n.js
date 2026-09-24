@@ -159,6 +159,9 @@ export function applyStaticTexts() {
      e bastava infilare un pulsante nuovo in mezzo perché tutte slittassero di uno: appena
      aggiunta la mappa fra zaino e menu, la mappa si è ritrovata scritto "menu". Con gli id
      l'ordine nel markup non conta più. */
+  /* la riga della chat: segnaposto e pulsante. Il markup non ha testo dentro apposta. */
+  { const ci = document.getElementById('chati'); if (ci) ci.placeholder = tr('Scrivi qualcosa…', 'Say something…'); }
+  set('#chatsend', tr('Invia', 'Send'));
   const HUD_LBL = { bagbtn: tr('zaino ', 'bag '), mapbtn: tr(' mappa', ' map'), menubtn: tr(' menu', ' menu') };
   for (const [id, txt] of Object.entries(HUD_LBL)) {
     const host = document.getElementById(id);

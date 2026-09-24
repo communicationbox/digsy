@@ -21,6 +21,7 @@
  */
 import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent } from './net.js';
 import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite } from './visita.js';
+import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
 
 /* stati, in italiano perché si leggono anche nell'interfaccia:
    spento · collego · dentro · caduto */
@@ -85,6 +86,10 @@ export function ricevi(raw, now) {
   }
   if (m.t === T.MUT) applicaMutazione(m.k, m.c);
   if (m.t === T.CLOCK) applicaOrologio(m.day, m.tod);
+  if (m.t === T.CHAT && m.id) {
+    const chi = MP.room.peers.get(m.id);
+    chatArrivata(m.id, chi ? chi.name : m.id, m.m, now);
+  }
   /* il centralino avvisa che la stanza si è chiusa mandando un `leave` con l'indicazione
      `host`: il mondo era suo, quindi non c'è più niente in cui restare */
   if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) disconnect('la stanza si è chiusa');
@@ -140,6 +145,17 @@ export function orologio(now, day, tod) {
   if (now - ultimoOrologio < 2000) return false;
   ultimoOrologio = now;
   return manda(T.CLOCK, { day, tod });
+}
+
+/* DIRE UNA COSA. La nuvoletta sopra la propria testa compare SUBITO, senza aspettare che il
+   messaggio faccia il giro del centralino: chi parla deve vedere di aver parlato. */
+export function dire(testo, now) {
+  if (MP.stato !== 'dentro') return false;
+  const m = String(testo || '').trim();
+  if (!m) return false;
+  if (!manda(T.CHAT, { m })) return false;
+  chatDetto(m, [...MP.room.peers.values()].map(p => p.name), now);
+  return true;
 }
 
 export function disconnect(motivo) {

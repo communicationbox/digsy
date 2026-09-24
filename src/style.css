@@ -340,6 +340,18 @@ kbd + .pxi{margin-left:2px}
 }
 
 /* console comandi (tipo Minecraft): si apre col tasto \ */
+/* LA RIGA DELLA CHAT. Sta in basso ma SOPRA i comandi a schermo, e si vede solo quando c'è
+   compagnia: in solitaria non deve esserci niente in più da guardare.
+   `bottom` tiene conto della tacca del telefono, come i comandi touch. */
+#chatbar{position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:900;
+  display:none;gap:8px;padding:0 12px;align-items:center}
+#chatbar.on{display:flex}
+#chati{flex:1;min-width:0;font:600 14px ui-monospace,Menlo,monospace;padding:10px 12px;border-radius:10px;
+  border:2px solid var(--c-line);background:rgba(246,239,221,.97);color:var(--c-dark)}
+#chati:focus{outline:none;border-color:var(--c-amber)}
+#chatsend{min-height:42px}
+@media(max-width:760px),(pointer:coarse){ #chatbar{bottom:calc(120px + env(safe-area-inset-bottom))} }
+
 #cmd{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:none;flex-direction:column;gap:6px;
   background:rgba(12,10,8,.97);border-top:2px solid var(--c-line);padding:8px 12px;font-family:ui-monospace,monospace}
 #cmd.on{display:flex}

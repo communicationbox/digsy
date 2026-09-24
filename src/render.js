@@ -26,6 +26,7 @@ import { darknessAt, seasonOf, SEASON_LEN } from './daynight.js';
 import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
 import { MP, visibili } from './mp.js';
+import { bolla } from './chat.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
@@ -1825,6 +1826,8 @@ export function render(time) {
      oggetti e agli edifici"). L'ombra resta a terra, quindi si capisce dove si sorvola. */
   ents.push({ y: isMounted() ? 9e8 : P.y - cam.y + TS, f: drawPlayer });
   pushPeers(ents, cam.x, cam.y, time, 'world');          // gli altri giocatori, se c'è compagnia
+  /* quello che ho detto io, sopra la mia testa: chi parla deve vedersi parlare */
+  { const mia = bolla('io', time); if (mia) ents.push({ y: 9e9, f: () => drawSayBalloon(snap(P.x - cam.x), snap(P.y - cam.y) + 6, mia) }); }
   /* COMPAGNO: chimera/risvegliato che insegue il player — MA non quando lo si cavalca (in volo
      il compagno È la cavalcatura sotto l'eroe: disegnarlo anche qui lo sdoppiava) */
   const compObj = companionDrawObj();
@@ -1935,7 +1938,12 @@ function drawPeer(sx, sy, q, time) {
     const fr = q.moving ? Math.floor(time / 170) % 2 : 0;
     drawHero(null, sx - 16, sy, q.dir, fr);
   } finally { S.look = saved; applyLook(); }   // se il disegno esplode, la palette non resta di un altro
-  plate(sx, sy + 2, q.name, null, false);      // chi è: la stessa targhetta del tutorial
+  /* quello che ha detto, se l'ha detto da poco: la stessa nuvoletta degli NPC, che sa già
+     andare a capo e restare dentro lo schermo sotto la barra. O il nome, se non parla — le due
+     cose nello stesso punto si coprirebbero a vicenda. */
+  const detta = bolla(q.id, time);
+  if (detta) drawSayBalloon(sx, sy + 6, detta);
+  else plate(sx, sy + 2, q.name, null, false);
 }
 /* mette gli altri nella fila delle entità, ordinati per piedi come tutti: chi sta più in basso
    passa davanti. `scena` filtra chi è altrove — entrato in bottega, sceso in grotta. */
