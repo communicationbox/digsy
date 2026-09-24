@@ -9652,5 +9652,63 @@ sprites.applyLook();
   check('ma dopo un secondo si batte un colpo lo stesso', net.shouldSend(st, 1100, 0, 0, 'down', false) === true);
 }
 
+/* ---------- IL CENTRALINO: chi c'è e a chi si recapita (puro, senza socket) ----------
+   Non è un server di gioco: non conosce le regole e non guarda dentro i messaggi. Quello che
+   deve fare bene è una cosa sola — sapere chi sta in quale stanza — e le conseguenze di
+   sbagliarlo non si vedono subito: un fantasma in una stanza è un posto occupato per sempre. */
+{
+  const R = await import('../server/relay/rooms.js');
+  const hub = R.makeHub();
+  const nati = [];
+  const entra = (id, nome) => { nati.length = 0; return R.addPeer(hub, id, nome, s => nati.push(s)); };
+
+  entra('a', 'Marco'); entra('b', 'Luca');
+  const r1 = R.join(hub, 'a', 'casa-di-marco');
+  check('chi apre la stanza ne è l\'ospitante', r1.host === 'a' && r1.peers.length === 1);
+  const r2 = R.join(hub, 'b', 'casa-di-marco');
+  check('chi entra dopo trova l\'ospitante, che non cambia', r2.host === 'a' && r2.peers.length === 2);
+
+  check('si recapita a tutti tranne a chi parla',
+    R.audience(hub, 'a').map(p => p.id).join() === 'b' && R.audience(hub, 'b').map(p => p.id).join() === 'a');
+  check('chi non è in nessuna stanza non ha pubblico', (() => { entra('c', 'Ada'); return R.audience(hub, 'c').length === 0; })());
+
+  /* l'ospite se ne va: la stanza resta in piedi */
+  const u1 = R.leave(hub, 'b');
+  check('se esce un ospite la stanza resta', u1.closed === false && hub.rooms.size === 1);
+
+  /* l'OSPITANTE se ne va: il mondo era suo, la stanza finisce e chi resta torna a casa */
+  R.join(hub, 'b', 'casa-di-marco');
+  const u2 = R.leave(hub, 'a');
+  check('se esce l\'ospitante la stanza si chiude', u2.closed === true && hub.rooms.size === 0);
+  check('e chi era dentro non risulta più in nessuna stanza', hub.peers.get('b').room === null);
+
+  /* una stanza è un salotto: oltre il tetto si RIFIUTA, non si gonfia */
+  for (let i = 0; i < R.MAX_PEERS + 3; i++) { R.addPeer(hub, 'p' + i, 'x', () => {}); }
+  let rifiutati = 0;
+  for (let i = 0; i < R.MAX_PEERS + 3; i++) if (R.join(hub, 'p' + i, 'salotto').error) rifiutati++;
+  const salotto = hub.rooms.get('salotto');
+  check('la stanza si riempie e poi rifiuta (' + salotto.peers.size + ' dentro, ' + rifiutati + ' fuori)',
+    salotto.peers.size === R.MAX_PEERS && rifiutati === 3);
+
+  /* e il centralino non è un servizio pubblico */
+  const hub2 = R.makeHub();
+  let stanzeRifiutate = 0;
+  for (let i = 0; i < R.MAX_ROOMS + 5; i++) {
+    R.addPeer(hub2, 'q' + i, 'x', () => {});
+    if (R.join(hub2, 'q' + i, 'stanza' + i).error) stanzeRifiutate++;
+  }
+  check('oltre il tetto delle stanze si rifiuta invece di gonfiarsi (' + hub2.rooms.size + ')',
+    hub2.rooms.size === R.MAX_ROOMS && stanzeRifiutate === 5);
+
+  /* il freno: non è un antifrode, è il tetto che impedisce a un client rotto di occupare il
+     processo. E la finestra si azzera, o dopo un minuto di gioco tutti sarebbero zittiti. */
+  const tizio = R.addPeer(hub, 'freno', 'x', () => {});
+  let passati = 0;
+  for (let i = 0; i < R.MSG_PER_SEC + 10; i++) if (R.allow(tizio, 1000, 50)) passati++;
+  check('a raffica si viene fermati (' + passati + '/' + (R.MSG_PER_SEC + 10) + ')', passati === R.MSG_PER_SEC);
+  check('ma il secondo dopo si ricomincia da capo', R.allow(tizio, 2100, 50) === true);
+  check('e un messaggio enorme non passa comunque', R.allow(tizio, 2100, R.MAX_MSG + 1) === false);
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

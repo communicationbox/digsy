@@ -1,0 +1,10 @@
+{
+  "name": "digsy-relay",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Centralino di Digsy: recapita, non simula.",
+  "main": "relay.js",
+  "scripts": { "start": "node relay.js" },
+  "dependencies": { "ws": "^8.18.0" }
+}

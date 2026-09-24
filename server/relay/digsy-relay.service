@@ -1,0 +1,25 @@
+# Centralino di Digsy — da installare COME ROOT:
+#   sudo cp digsy-relay.service /etc/systemd/system/
+#   sudo systemctl daemon-reload && sudo systemctl enable --now digsy-relay
+# Ascolta SOLO su 127.0.0.1: dal mondo esterno ci si arriva via Apache (wss://).
+[Unit]
+Description=Digsy — centralino multiplayer
+After=network.target
+
+[Service]
+Type=simple
+User=web_digsy_dev_box_it
+WorkingDirectory=/var/www/digsy.dev-box.it/relay
+ExecStart=/usr/bin/node relay.js
+Environment=DIGSY_RELAY_HOST=127.0.0.1
+Environment=DIGSY_RELAY_PORT=17451
+Restart=always
+RestartSec=3
+# il centralino non scrive niente: non gli serve toccare il disco
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
