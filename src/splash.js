@@ -3,6 +3,7 @@ import { drawHero, applyLook } from './sprites.js';
 import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
+import { MP, connect, disconnect, relayUrl } from './mp.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
 import { commandHelp } from './commands.js';
@@ -247,6 +248,12 @@ let on = true, pause = false, onPlayCb = null, animOn = false;
 let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
 /* usata dalle pagine di prova per aprire un sottomenu e verificarne l'uscita */
+/* IL CODICE DELLA STANZA sta nelle preferenze del dispositivo, non nel salvataggio: è come ci
+   si collega, non parte della partita — e il salvataggio va anche in cloud. */
+const CHIAVE_STANZA = 'digsy_stanza';
+function codiceStanza() { try { return localStorage.getItem(CHIAVE_STANZA) || ''; } catch (e) { return ''; } }
+function setCodiceStanza(v) { try { localStorage.setItem(CHIAVE_STANZA, v); } catch (e) { /* pazienza */ } }
+
 export function setView(v) { view = v; buildMenu(inGameMode); }
 
 /* in dev: salta la splash SOLO sui reload innescati da Vite (modifiche ai file) */
@@ -505,6 +512,28 @@ function buildMenu(inGame) {
       }).join('') + `</div><div class="plank"></div></div>`;
     }
     h += `</div>` + backBar();
+  } else if (view === 'insieme') {
+    /* IN COMPAGNIA — per ora si entra con un CODICE da dirsi a voce: gli amici e gli inviti
+       arrivano con la fetta dopo. Chi conosce il codice entra nel mondo di chi l'ha aperto. */
+    h += closeX();
+    h += `<div class="sp-title2">🚶 ${tr('Gioca in compagnia', 'Play together')}</div>`;
+    const stato = MP.stato === 'dentro' ? tr('Sei nella stanza', "You're in the room")
+      : MP.stato === 'collego' ? tr('Mi collego…', 'Connecting…')
+        : MP.stato === 'caduto' ? tr('Collegamento caduto', 'Connection lost')
+          : tr('Non sei collegato', 'Not connected');
+    h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + MP.motivo : ''}</div>`;
+    if (MP.stato === 'dentro') {
+      const chi = [...MP.room.peers.values()].map(p => p.name);
+      h += `<div class="sp-note">${chi.length ? tr('Con te: ', 'With you: ') + chi.join(', ') : tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
+      h += `<div class="sp-note">${tr('Premi T per parlare', 'Press T to talk')}</div>`;
+      h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
+    } else {
+      h += `<div class="sp-note">${tr('Codice della stanza — inventatelo, e ditelo a chi vuoi invitare', 'Room code — make one up and tell whoever you want to invite')}</div>`;
+      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" value="${(codiceStanza() || '').replace(/["<>&]/g, '')}">`;
+      h += `<button class="sp-btn primary" id="sp-mp-entra">${tr('Entra', 'Join')}</button>`;
+      h += `<div class="sp-note">${tr('Chi apre per primo la stanza è il padrone di casa: si gioca nel suo mondo, col suo orologio.', 'Whoever opens the room first is the host: you play in their world, on their clock.')}</div>`;
+    }
+    h += backBar();
   } else if (view === 'changelog') {
     h += closeX();
     h += `<div class="sp-title2">📝 ${tr('Novità', "What's new")}</div><div class="sp-log">`;
@@ -601,6 +630,10 @@ function buildMenu(inGame) {
     h += `<div class="sp-iconrow">`;
     h += `<button class="sp-btn ic" id="sp-troph" title="${tr('Trofei', 'Trophies')}">🏆<span class="ic-lb">${tr('Trofei', 'Trophies')}</span></button>`;
     h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝<span class="ic-lb">${tr('Novità', 'News')}</span></button>`;
+    /* IN COMPAGNIA sta nella riga delle icone, non fra le tre voci grandi: quelle sono giocare,
+       i salvataggi e le impostazioni, e restano tre (vedi il commento qui sopra). Chi apre il
+       gioco per la prima volta non deve trovarsi davanti una scelta che non lo riguarda. */
+    h += `<button class="sp-btn ic" id="sp-mp" title="${tr('In compagnia', 'Together')}">🚶<span class="ic-lb">${tr('Insieme', 'Together')}</span></button>`;
     /* NIENTE VOCE "COMANDI" NEL MENU. La console (`money`, `godmode`, `goto=…`) è uno
        strumento dell'autore per provare il gioco, non una funzione da offrire: un elenco di
        cheat in bella vista invita a usarli, e una partita con le monete infinite non racconta
@@ -631,6 +664,16 @@ function buildMenu(inGame) {
   const bS = document.getElementById('sp-saves'); if (bS) bS.onclick = () => go('saves');
   const bT = document.getElementById('sp-troph'); if (bT) bT.onclick = () => go('trophies');
   const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
+  const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => go('insieme');
+  { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {
+      const c = document.getElementById('sp-mp-code');
+      const codice = (c && c.value || '').trim().slice(0, 24);
+      if (!codice) return;
+      setCodiceStanza(codice);
+      connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: codice });
+      go('insieme');
+    }; }
+  { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('insieme'); }; }
   const bCm = document.getElementById('sp-cmds'); if (bCm) bCm.onclick = () => go('commands');
   const bCr = document.getElementById('sp-credits'); if (bCr) bCr.onclick = () => go('credits');
   const bIn = document.getElementById('sp-install'); if (bIn) bIn.onclick = () => go('install');

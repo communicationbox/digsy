@@ -1769,4 +1769,30 @@ export const RU = {
   'Teleport back 🌀': 'Телепорт назад 🌀',
   'Drag to rotate': 'Потяни, чтобы повернуть',
   'Awaken a species': 'Оживи вид',
+
+  /* ---- guardaroba (quello che hai comprato resta tuo) ---- */
+  'already yours': 'уже ваше',
+  'costs ': 'стоит ',
+  'Free: already yours': 'Бесплатно: уже ваше',
+  'free': 'бесплатно',
+
+  /* ---- in compagnia ---- */
+  'Play together': 'Играть вместе',
+  'Together': 'Вместе',
+  "You're in the room": 'Вы в комнате',
+  'Connecting…': 'Подключаюсь…',
+  'Connection lost': 'Связь потеряна',
+  'Not connected': 'Нет подключения',
+  'With you: ': 'С вами: ',
+  'Nobody yet: pass the code to someone': 'Пока никого: дайте кому-нибудь код',
+  'Press T to talk': 'Нажмите T, чтобы говорить',
+  'Leave the room': 'Выйти из комнаты',
+  'Join': 'Войти',
+  'Whoever opens the room first is the host: you play in their world, on their clock.':
+    'Кто открыл комнату первым — тот хозяин: играете в его мире и по его часам.',
+  "It's their home: look, don't touch": 'Это их дом: смотрите, но не трогайте',
+  'The clock here belongs to your host': 'Здесь часами распоряжается хозяин',
+  'Say something…': 'Напишите что-нибудь…',
+  'Send': 'Отправить',
+  'Room code — make one up and tell whoever you want to invite': 'Код комнаты — придумайте его и скажите тому, кого хотите позвать',
 };

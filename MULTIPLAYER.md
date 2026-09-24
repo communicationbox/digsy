@@ -113,6 +113,9 @@ Una per volta, ognuna provabile da sola.
    Per ora l'ospite **non dorme** in casa d'altri e **non tocca** l'arredo: il sonno in
    compagnia col sogno è nella fetta 5.
 3. **Amici e inviti.** Account, richieste, codice amico, pallino verde, centro notifiche.
+   *Per intanto* si entra con un **codice di stanza** da dirsi a voce (menu → Insieme): chi
+   apre per primo è il padrone di casa. Serve a poter provare tutto il resto senza aspettare
+   gli account, e sparirà quando ci saranno gli inviti veri.
 4. ~~**Chat.**~~ **FATTA** tranne il taccuino da rileggere a schermo (i dati ci sono, manca la
    pagina). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
    restare sotto la barra), taccuino in `localStorage` **fuori dal salvataggio**, riga di testo

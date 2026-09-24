@@ -10044,5 +10044,26 @@ sprites.applyLook();
   }
 }
 
+/* ---------- LA SCHERMATA "IN COMPAGNIA" ----------
+   Regola 9: una schermata che nessun test disegna è un crash che aspetta. Questa in più è
+   l'unica porta d'ingresso alla modalità: se non si apre, tutto il resto è irraggiungibile. */
+{
+  const sp2 = await import('../src/splash.js');
+  const mp2 = await import('../src/mp.js');
+  let err = '';
+  try { sp2.setView('insieme'); } catch (e) { err = e.message; }
+  const box = document.getElementById('sp-menu') || document.getElementById('splash');
+  const html = (box && box.innerHTML) || '';
+  check('la schermata in compagnia si disegna', err === '', err);
+  check('e da scollegati offre il codice e il pulsante per entrare',
+    html.includes('sp-mp-code') && html.includes('sp-mp-entra'));
+  check('dice anche di chi è il mondo, che è la regola che sorprende di più',
+    /padrone di casa|host/i.test(html));
+  /* e dalla stanza si può uscire */
+  mp2.disconnect();
+  sp2.setView('main');
+  check('e il menu principale torna su senza crollare', typeof sp2.setView === 'function');
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);
