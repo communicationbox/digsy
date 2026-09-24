@@ -1,0 +1,125 @@
+# Multiplayer — le regole decise, e come si costruisce
+
+> Ramo `multiplayer`. Questo file è il verbale: le decisioni di gioco sono state prese una per
+> una prima di scrivere una riga di rete, perché quasi tutte le scelte tecniche dipendono da
+> loro. Se una decisione cambia, si cambia **qui** e poi nel codice.
+
+## In una riga
+
+Si gioca in due (o pochi) nel mondo di chi invita, in tempo reale, con la chat. Non c'è un
+mondo pubblico, non c'è matchmaking, non ci sono sconosciuti: **si entra solo su invito di un
+amico**, e solo mentre lui sta giocando.
+
+## Le regole
+
+**Il mondo è dell'ospitante. Quello che porti addosso è tuo.**
+È la regola madre: da lì discende quasi tutto il resto.
+
+1. **Mondo e orologio sono di chi ospita.** L'ospite riceve il seme e vede il cielo, il giorno
+   e la stagione del padrone di casa. Non calcola il tempo: lo riceve.
+2. **L'ospite gioca davvero.** Scava, taglia, pesca, raccoglie — e quello che consuma **resta
+   consumato** nel mondo dell'ospitante. Per questo si invita solo chi si conosce.
+3. **Casa e cortile si visitano, non si toccano.** Dentro `houseFootprint()` e `yardRect()`
+   l'ospite entra e guarda: niente arredo spostato, niente dormire nel letto altrui. Sono due
+   dei tre posti che il gioco ti fa costruire perché vengano visti; il terzo è il Museo.
+4. **La notte passa quando l'ospitante lo decide.** Chi dorme sogna e aspetta. Se dormono
+   tutti, alba diretta. Se dorme solo l'ospitante, compare il sogno e un pulsante *Svegliati*
+   con due scelte — *al mattino* (la notte passa per tutti) o *di notte* (non è successo
+   niente). L'ospite ha solo *Svegliati*: l'orologio non è suo. **L'energia la recupera solo
+   chi stava dormendo**, e nell'istante in cui la notte passa — non quando ci si corica, o si
+   andrebbe a letto e ci si rialzerebbe a ripetizione. Da soli: alba subito, come oggi.
+5. **Niente pausa quando c'è gente.** Il tempo non si ferma mai per nessuno, nemmeno a menu
+   aperto. I comandi restano bloccati come oggi: con lo zaino aperto non si cammina, ma il
+   mondo va avanti. Da soli la pausa resta com'è.
+6. **La mappa è dell'ospitante e si vede in due, 1:1.** Quello che l'ospite scopre riempie la
+   carta del padrone di casa. La propria resta com'era.
+7. **Al Museo si può consegnare**: i pezzi nuovi restano nelle teche dell'ospitante (è un
+   regalo), i doppioni tornano a chi li ha consegnati.
+8. **La roba caduta a terra la raccoglie chiunque.**
+9. **La fontana: dieci lanci a testa.** I tentativi sono della persona, non della città —
+   quindi la chiave in `S.fountains` deve portarsi dietro il **seme del mondo**, o i lanci
+   fatti in casa d'altri esaurirebbero la fontana di casa propria (stessa cella, mondi diversi).
+10. **Si torna dove si è partiti.** La posizione al momento dell'invito è quella del rientro.
+11. **La visita non paga l'idle.** Stavi giocando, non eri via.
+
+### Chi con chi
+
+12. **Solo account Google.** L'identità è l'account, non il nome del personaggio (che si ripete).
+13. **Amicizia con richiesta e accettazione**, tramite **codice amico o email**. Cercare per
+    email non deve mai rivelare se un indirizzo è iscritto: la richiesta parte comunque e in
+    silenzio.
+14. **Pallino verde** nella lista amici, con l'opzione **«segnami offline»** — che vive sul
+    **server**, perché è il server a rispondere alla domanda "è online?".
+15. **Si invitano solo gli amici.** L'ospitante deve essere in gioco.
+16. **Centro notifiche a schermo**, separato dalle lettere del nonno: quelle sono racconto, e
+    una richiesta di amicizia accanto sgonfierebbe il momento in cui arriva una lettera.
+    Le **richieste di amicizia aspettano**; gli **inviti a giocare scadono** in un paio di
+    minuti, perché dall'altra parte c'è qualcuno fermo che aspetta.
+17. **L'ospitante può mandare via** chi ha invitato: è casa sua.
+
+### Chat
+
+18. **Nuvoletta sopra la testa** (come parlano già gli NPC) **+ taccuino per persona**, dove la
+    conversazione resta e si rilegge quando si vuole.
+19. **Si tocca e si scrive**: la tastiera di sistema si apre, i comandi si spengono finché si
+    scrive, il personaggio resta fermo (il mondo no, vedi regola 5).
+20. **Nessuna moderazione**: è tutto su invito fra amici.
+21. **La lingua è di chi scrive.** L'interfaccia resta tradotta, i messaggi no.
+22. **Il taccuino sta sul dispositivo**, in una chiave sua — **non nel salvataggio**, che va
+    anche in cloud e ha un tetto di dimensione contro cui il gioco ha già sbattuto una volta.
+    Funziona perché la chat avviene solo mentre si è insieme: non esistono messaggi da
+    recapitare a chi non c'è, quindi il server non ha niente da custodire.
+
+## Cosa NON è
+
+- Non è un mondo condiviso permanente: il tuo mondo resta tuo e nessuno ci entra se non lo inviti.
+- Non è matchmaking: non si incontrano sconosciuti.
+- Non è un server di gioco.
+
+## L'architettura, in una frase
+
+**Il centralino non è un server di gioco.** Il processo sulla VPS sa chi è online, recapita gli
+inviti e inoltra i messaggi fra i presenti di una stanza. Non simula niente, non conosce le
+regole, non tiene il mondo. L'autorità è il **client di chi ospita** — "il gioco è del server,
+cioè di chi invita". Conseguenze: nessuna partita da far girare sul server, nessun movimento da
+riscrivere, e se l'ospitante esce la stanza finisce e gli ospiti tornano a casa con quello che
+hanno in tasca.
+
+Il mondo **non si trasmette**: è deterministico dal seme. L'ospite riceve seme + diff (caselle
+scavate, alberi tagliati, massi rotti, siti esauriti) e se lo rigenera identico. Durante la
+partita passano solo le singole mutazioni, che sono coordinate: una manciata di byte. Il grosso
+del traffico sono le posizioni.
+
+Il server è una **VPS Ubuntu 24.04 con Node 22, systemd e Apache** già in ascolto su 443 — non
+hosting condiviso. Quindi WebSocket vero (`ws` dietro `mod_proxy_wstunnel`), non polling.
+
+## Le fette
+
+Una per volta, ognuna provabile da sola.
+
+1. **Vedersi camminare.** Trasporto, stanza, posizioni, altri giocatori disegnati. Niente
+   chat, niente amici, niente mondo condiviso: si entra con un codice di prova. Serve a
+   dimostrare che il resto sta in piedi.
+2. **Il mondo dell'ospitante.** Seme + diff all'ingresso, mutazioni durante la partita,
+   orologio ricevuto, rientro a casa con lo stato rimesso a posto (si riusa il meccanismo
+   dello snapshot dei cheat, che fa già esattamente questo).
+3. **Amici e inviti.** Account, richieste, codice amico, pallino verde, centro notifiche.
+4. **Chat.** Nuvolette, taccuino, tastiera su telefono.
+5. **Le regole fini.** Casa intoccabile, sonno collettivo col sogno, museo, fontana per
+   persona, manda via, controllo di plausibilità sulla velocità.
+
+## Debito già noto, da non dimenticare
+
+- **`window.__digsy` è nel bundle di produzione** e offre `cmd()` e `state()`. Non si può
+  togliere: è la sonda da cui dipendono foto, e2e e prova su telefono, che girano tutti contro
+  la build di produzione. Fra amici invitati non vale un anti-cheat vero; bastano il «manda
+  via» e un controllo di velocità.
+- **`public/privacy.html` va riscritta.** Anche senza conservare un solo messaggio, da qui in
+  avanti esistono un account legato a una persona, una lista di amici e uno stato "sto
+  giocando" visibile ad altri. Oggi la pagina dice che non si raccoglie niente che dica chi è
+  la persona, e non sarà più vero.
+- **Su itch il gioco gira in un iframe su un'altra origine**: l'accesso Google coi cookie di
+  terze parti è un problema noto. Probabile che il multiplayer semplicemente non esista nella
+  versione itch.
+- **Il deploy non copre `server/`**: il servizio del centralino va rilasciato a mano, e serve
+  una via per farlo.

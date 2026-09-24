@@ -9569,5 +9569,88 @@ sprites.applyLook();
   check('nessun arredo urbano finisce sotto il tetto di un edificio', coperti === 0, coperti + ' (' + esempi + ')');
 }
 
+/* ---------- RETE: protocollo e stanza (modulo puro, provato senza rete) ----------
+   Dall'altra parte del filo c'è il browser di un'altra persona, e `window.__digsy` sta nel
+   bundle di produzione: chiunque può mandare quello che vuole. Quindi la prova che conta non è
+   "i messaggi buoni funzionano", è "quelli cattivi non entrano". */
+{
+  const net = await import('../src/net.js');
+
+  /* 1 · NON CI SI FIDA DI NIENTE */
+  const spazzatura = [
+    '', 'non è json', '[]', 'null', '42', '"ciao"',
+    JSON.stringify({}),                                       // senza tipo
+    JSON.stringify({ t: 'boh' }),                             // tipo sconosciuto
+    JSON.stringify({ t: net.T.AT }),                          // senza coordinate
+    JSON.stringify({ t: net.T.AT, x: 'qui', y: 3 }),          // coordinate non numeriche
+    JSON.stringify({ t: net.T.AT, x: NaN, y: 3 }),            // NaN passa da JSON come null
+    JSON.stringify({ t: net.T.WELCOME }),                     // senza identificativo
+    JSON.stringify({ t: net.T.WELCOME, id: '' }),             // identificativo vuoto
+    JSON.stringify({ t: net.T.WELCOME, id: 'x'.repeat(41) }), // identificativo assurdo
+    JSON.stringify({ t: net.T.ENTER, id: 'a' }),              // senza nome
+    JSON.stringify({ t: net.T.ROOM, host: 'a' }),             // senza elenco
+  ];
+  const passate = spazzatura.filter(r => net.decode(r) !== null);
+  check('decode scarta tutto quello che non ha la forma giusta (' + passate.length + ' passate)',
+    passate.length === 0, passate.join(' | ').slice(0, 120));
+
+  /* i messaggi buoni passano, e vengono NORMALIZZATI: un verso inventato non deve arrivare
+     agli sprite, che cercherebbero una vista che non esiste */
+  const at = net.decode(JSON.stringify({ t: net.T.AT, id: 'u1', x: 10.5, y: -3, d: 'diagonale', m: 1 }));
+  check('un messaggio buono passa e il verso inventato diventa "down"',
+    at && at.x === 10.5 && at.y === -3 && at.d === 'down' && at.m === true && at.s === 'world');
+  const ent = net.decode(JSON.stringify({ t: net.T.ENTER, id: 'u2', name: 'x'.repeat(60) }));
+  check('i nomi lunghissimi vengono tagliati, non rifiutati', ent && ent.name.length === 20);
+  check('decode(encode(…)) torna quello che era', (() => {
+    const r = net.decode(net.encode(net.T.JOIN, { room: 'prova' }));
+    return r && r.t === net.T.JOIN && r.room === 'prova';
+  })());
+
+  /* 2 · LA STANZA */
+  const room = net.makeRoom();
+  net.applyMessage(room, net.decode(net.encode(net.T.WELCOME, { id: 'io' })));
+  net.applyMessage(room, net.decode(net.encode(net.T.ROOM, {
+    host: 'io', peers: [{ id: 'io', name: 'Io' }, { id: 'u1', name: 'Luca' }],
+  })));
+  check('entrando si sa chi c\'è, e io non sono un mio compagno di stanza',
+    room.me === 'io' && room.host === 'io' && room.peers.size === 1 && room.peers.has('u1'));
+  net.applyMessage(room, net.decode(net.encode(net.T.ENTER, { id: 'u2', name: 'Ada' })));
+  check('chi entra dopo compare', room.peers.size === 2 && room.peers.get('u2').name === 'Ada');
+  net.applyMessage(room, net.decode(net.encode(net.T.LEAVE, { id: 'u2' })));
+  check('chi esce sparisce', room.peers.size === 1);
+  /* una posizione da uno che non è nella stanza NON deve creare un fantasma */
+  net.applyMessage(room, net.decode(net.encode(net.T.AT, { id: 'estraneo', x: 1, y: 1 })), 0);
+  check('una posizione da un estraneo non crea nessuno', room.peers.size === 1);
+
+  /* 3 · SI GUARDA IL MONDO INDIETRO. Mettere il personaggio sull'ultimo pacchetto lo fa
+     saltare: dieci pacchetti al secondo contro sessanta fotogrammi. */
+  const p = room.peers.get('u1');
+  const manda = (t, x) => net.applyMessage(room, net.decode(net.encode(net.T.AT, { id: 'u1', x, y: 0, d: 'right', m: true })), t);
+  manda(0, 0); manda(100, 100);
+  const meta = net.peerAt(p, 150, 100);        // 150-100 = 50: esattamente a metà fra i due
+  check('a metà strada fra due pacchetti si sta a metà strada (' + (meta && meta.x) + ')', meta && Math.abs(meta.x - 50) < 0.01);
+  check('e si tiene il verso e il fatto che sta camminando', meta.dir === 'right' && meta.moving === true);
+  check('prima del primo pacchetto si sta al primo', net.peerAt(p, 0, 100).x === 0);
+  check('dopo l\'ultimo si RESTA fermi lì, non si tira dritto',
+    net.peerAt(p, 5000, 100).x === 100);
+  check('di chi non si sa ancora niente non si disegna niente',
+    net.peerAt(net.makeRoom().peers.get('nessuno'), 0) === null);
+
+  /* la storia non cresce all'infinito: una scheda in secondo piano non disegna, ma i pacchetti
+     continuano ad arrivare */
+  for (let i = 0; i < 500; i++) manda(200 + i * 100, i);
+  check('la storia delle posizioni si pota da sola (' + p.buf.length + ' campioni)', p.buf.length < 30);
+
+  /* 4 · QUANDO PARLARE. Dieci volte al secondo, e solo se c'è qualcosa da dire — ma un battito
+     ogni tanto anche da fermi, o gli altri non sanno se ci sei ancora. */
+  const st = {};
+  check('il primo messaggio parte subito', net.shouldSend(st, 0, 0, 0, 'down', false) === true);
+  net.markSent(st, 0, 0, 0, 'down', false);
+  check('ma non sei volte di fila nello stesso fotogramma', net.shouldSend(st, 16, 5, 0, 'right', true) === false);
+  check('passati 100 ms e muovendosi, si parla', net.shouldSend(st, 100, 5, 0, 'right', true) === true);
+  check('fermi e con lo stesso verso, si tace', net.shouldSend(st, 300, 0, 0, 'down', false) === false);
+  check('ma dopo un secondo si batte un colpo lo stesso', net.shouldSend(st, 1100, 0, 0, 'down', false) === true);
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);
