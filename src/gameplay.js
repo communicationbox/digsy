@@ -3,6 +3,10 @@ import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS,
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
 import { bodyHits, feetTile, FOOT_DY } from './body.js';
+/* IN COMPAGNIA una casella consumata vale per tutti: `mutazione` lo dice agli altri, e non fa
+   NIENTE se si gioca da soli — chi non ha compagnia non paga questo ramo (vedi mp.js). */
+import { mutazione } from './mp.js';
+import { sonoOspite } from './visita.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo } from './world.js';
 import { compass } from './compass.js';
@@ -233,7 +237,7 @@ export function tryDig() {
   if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); showTip('energy'); return; }
   beginDig(0.45, () => {
     if (!isDebug()) spendEnergy(1);
-    dugSet.add(key); S.dug.push(key); noteDug(dugSet, key);
+    dugSet.add(key); S.dug.push(key); noteDug(dugSet, key); mutazione('dug', key);
     const mp = mapAt(tx, ty);
     if (mp) { // la X della mappa: reperto GARANTITO della rarità comprata
       S.maps = S.maps.filter(m => m !== mp);
@@ -574,9 +578,9 @@ function mettiPausa(sec) { S.compNext = Date.now() + sec * 1000; save(); }
    si esaurisce un punto di pesca. */
 function segnaLavorata(type, tx, ty) {
   const key = tx + ',' + ty;
-  if (type === 'terra' && !dugSet.has(key)) { dugSet.add(key); S.dug.push(key); noteDug(dugSet, key); }
-  else if (type === 'albero' && !choppedSet.has(key)) { choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); }
-  else if (type === 'roccia' && !minedSet.has(key)) { minedSet.add(key); if (!S.mined) S.mined = []; S.mined.push(key); }
+  if (type === 'terra' && !dugSet.has(key)) { dugSet.add(key); S.dug.push(key); noteDug(dugSet, key); mutazione('dug', key); }
+  else if (type === 'albero' && !choppedSet.has(key)) { choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); mutazione('chop', key); }
+  else if (type === 'roccia' && !minedSet.has(key)) { minedSet.add(key); if (!S.mined) S.mined = []; S.mined.push(key); mutazione('mine', key); }
 }
 function findWorkTile(type, cx, cy) {
   for (let r = 1; r <= CW.R; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
@@ -957,8 +961,8 @@ export function nearbyHarvest() {
 }
 function pickDeco(h) {
   const key = h.tx + ',' + h.ty;
-  pickedSet.add(key); if (!S.picked) S.picked = []; S.picked.push(key);
-  choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key);  // sparisce dalla mappa
+  pickedSet.add(key); if (!S.picked) S.picked = []; S.picked.push(key); mutazione('pick', key);
+  choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); mutazione('chop', key);  // sparisce dalla mappa
   const g = makeGoodById(h.id);
   addGood(g); gainXp(1);
   toast('✨ ' + tr('Raccolto: ', 'Picked up: ') + goodName(h.id) + ' (🪙' + g.val + ')'); playSfx('found');
@@ -1002,7 +1006,7 @@ export function collectPickup() {
   { const h = nearbyHarvest(); if (h) return pickDeco(h); }
   const p = nearbyPickup(); if (!p) return false;
   const id = pickupAt(p.tx, p.ty); if (!id) return false;    // esattamente ciò che è disegnato
-  pickedSet.add(p.tx + ',' + p.ty); S.picked.push(p.tx + ',' + p.ty);
+  pickedSet.add(p.tx + ',' + p.ty); S.picked.push(p.tx + ',' + p.ty); mutazione('pick', p.tx + ',' + p.ty);
   const g = makeGoodById(id); addGood(g);
   gainXp(1);
   toast('✨ ' + tr('Raccolto: ', 'Picked up: ') + goodName(id) + ' (🪙' + g.val + ')'); playSfx('found');
@@ -1055,6 +1059,8 @@ export function digWreck() {
    comando per camminare lì, non aprire il vassoio a ogni passo. */
 export function tapFurnitureAt(gx, gy) {
   if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom == null) return false;
+  /* casa e cortile dell'ospitante si visitano, non si toccano (MULTIPLAYER.md, regola 3) */
+  if (sonoOspite()) { toast('🏠 ' + tr('È casa sua: si guarda', "It's their home: look, don't touch")); return false; }
   const room = INT.houseRoom;
   if (!isFloorCell(gx, gy)) return false;
   if (isHolding()) {
@@ -1320,6 +1326,12 @@ export function sleepBlocked() { return !canSleep(); }
 /* dormire di GIORNO → ci si sveglia di NOTTE (stesso giorno);
    dormire di NOTTE → alba del giorno dopo. Poi va passata una metà sveglio. */
 export function restInn() {
+  /* IN CASA D'ALTRI NON SI SPOSTA L'OROLOGIO. Dormire porta all'alba del giorno dopo, e il
+     giorno qui è di chi ospita: farlo avanzare dall'ospite vorrebbe dire cambiare il cielo, le
+     stagioni e le scadenze di un'altra persona. Il sonno in compagnia (chi dorme sogna e
+     aspetta che l'ospitante decida) arriva con la fetta delle regole fini; fino ad allora si
+     dice di no, chiaramente, invece di far succedere una cosa che nessuno ha chiesto. */
+  if (sonoOspite()) { toast('🌙 ' + tr('Qui l\'orologio è di chi ospita', 'The clock here belongs to your host')); return false; }
   if (!canSleep()) { toast(tr('Troppo presto per dormire', 'Too soon to sleep')); return false; }
   const night = isNight();
   if (night) { S.day++; S.tod = 0.02; }   // notte → alba del giorno dopo

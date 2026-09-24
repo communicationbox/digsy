@@ -97,12 +97,21 @@ hosting condiviso. Quindi WebSocket vero (`ws` dietro `mod_proxy_wstunnel`), non
 
 Una per volta, ognuna provabile da sola.
 
-1. **Vedersi camminare.** Trasporto, stanza, posizioni, altri giocatori disegnati. Niente
-   chat, niente amici, niente mondo condiviso: si entra con un codice di prova. Serve a
-   dimostrare che il resto sta in piedi.
-2. **Il mondo dell'ospitante.** Seme + diff all'ingresso, mutazioni durante la partita,
-   orologio ricevuto, rientro a casa con lo stato rimesso a posto (si riusa il meccanismo
-   dello snapshot dei cheat, che fa già esattamente questo).
+1. ~~**Vedersi camminare.**~~ **FATTA** lato gioco e lato centralino (il centralino gira sulla
+   VPS e due client veri si sono visti). Manca solo il passaggio su Apache, che vuole root:
+   vedi `server/relay/INSTALLAZIONE.md`.
+2. ~~**Il mondo dell'ospitante.**~~ **FATTA.** `CAMPI_MONDO` in state.js divide il salvataggio
+   in due; `visita.js` mette da parte il proprio mondo, adotta quello ricevuto e al ritorno lo
+   rimette identico. Tre cose vanno insieme o non funziona niente: il **seme** al generatore, le
+   **cache del mondo buttate** (`resetWorldCaches`: sono indicizzate per coordinata, non per
+   seme, e senza pulirle si vede un mondo cucito coi pezzi di due mondi diversi) e il
+   **salvataggio spento** — `save()` stessa si rifiuta mentre sei ospite, o l'autosave ogni
+   cinque secondi scriverebbe il mondo di un altro nel tuo.
+   Il mondo **non viaggia**: viaggiano il seme e quello che è stato consumato. Le mutazioni
+   (scavato/tagliato/spaccato/raccolto) partono dal punto in cui il gioco consuma e valgono per
+   tutti. L'orologio lo manda l'ospitante ogni due secondi.
+   Per ora l'ospite **non dorme** in casa d'altri e **non tocca** l'arredo: il sonno in
+   compagnia col sogno è nella fetta 5.
 3. **Amici e inviti.** Account, richieste, codice amico, pallino verde, centro notifiche.
 4. **Chat.** Nuvolette, taccuino, tastiera su telefono.
 5. **Le regole fini.** Casa intoccabile, sonno collettivo col sogno, museo, fontana per

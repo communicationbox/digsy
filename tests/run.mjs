@@ -9708,6 +9708,13 @@ sprites.applyLook();
   check('a raffica si viene fermati (' + passati + '/' + (R.MSG_PER_SEC + 10) + ')', passati === R.MSG_PER_SEC);
   check('ma il secondo dopo si ricomincia da capo', R.allow(tizio, 2100, 50) === true);
   check('e un messaggio enorme non passa comunque', R.allow(tizio, 2100, R.MAX_MSG + 1) === false);
+  /* il secondo tetto: pochi messaggi ma giganti non devono passare lo stesso. Un mondo intero
+     parte una volta sola quando qualcuno entra, non quaranta volte al secondo. */
+  const grosso = R.addPeer(hub, 'grosso', 'x', () => {});
+  let passatiByte = 0;
+  for (let i = 0; i < 10; i++) if (R.allow(grosso, 3000, 100 * 1024)) passatiByte++;
+  check('e nemmeno pochi messaggi ma enormi (' + passatiByte + ' passati, poi stop)',
+    passatiByte >= 3 && passatiByte <= 4);
 }
 
 /* ---------- LA PARTITA IN COMPAGNIA: il lato vivo (socket finta) ----------
@@ -9803,10 +9810,12 @@ sprites.applyLook();
     s2.onmessage({ data: netm.encode(netm.T.AT, { id: 'u9', x: vicino.x, y: vicino.y, d: 'down', m: false, s: 'world' }) });
     const visti = mp.visibili(1e9, 'world');
     check('il compagno di stanza risulta visibile accanto a noi', visti.length === 1 && Math.abs(visti[0].x - vicino.x) < 1);
+    /* si guarda il look PRIMA e DOPO: pretendere che non sia di un certo colore era fragile
+       (quel rosso sta nella tavolozza del giocatore, e prima o poi qualcuno glielo mette) */
+    const mioPrima = JSON.stringify(state.S.look);
     const con = conta();
     check('e viene DISEGNATO (' + senza + ' → ' + con + ' pennellate)', con > senza);
-    /* e il suo aspetto non deve restare addosso a noi dopo il disegno */
-    check('la palette torna la mia dopo aver disegnato un altro', state.S.look.shirt !== '#c65a54');
+    check('e il suo aspetto non resta addosso a me', JSON.stringify(state.S.look) === mioPrima);
     mp.disconnect();
   }
 
@@ -9816,7 +9825,125 @@ sprites.applyLook();
   check('una forma inventata non passa', (netm.cleanLook({ hairStyle: '../../etc/passwd' }) || {}).hairStyle === undefined);
   check('una forma normale passa', (netm.cleanLook({ hairStyle: 'punk' }) || {}).hairStyle === 'punk');
 
+  /* 7 · IL GIRO COMPLETO DA OSPITE, dentro il vero mp.js: arriva il mondo di un altro, si
+     gioca dentro, e quando l'ospitante se ne va si torna a casa com'eravamo. È la catena che
+     tiene insieme net + mp + visita, e l'unica in cui un pezzo dimenticato si porta via il
+     salvataggio di chi gioca. */
+  {
+    const vis2 = await import('../src/visita.js');
+    const Sm = state.S;
+    Sm.seed = 4242; Sm.day = 3;
+    state.dugSet.add('7,7');
+    const mioPrima = JSON.stringify(state.snapshotMondo());
+    const miaRobaPrima = JSON.stringify({ coins: Sm.coins, raw: Sm.raw, book: Sm.book });
+
+    mp.connect('ws://finta/ws', { name: 'Marco', room: 'da-luca' });
+    const s3 = fatte[fatte.length - 1];
+    s3.onopen(); s3.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+    /* stavolta l'ospitante è un altro: io sono l'ospite */
+    s3.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+    check('se la stanza è di un altro, non sono io a ospitare', mp.sonoOspitante() === false);
+    check('e non mando il mio mondo a nessuno', !s3.inviati.some(x => x.t === 'mondo'));
+
+    /* arriva il suo mondo */
+    s3.onmessage({ data: netm.encode(netm.T.MONDO, { mondo: { seed: 99, day: 12, tod: 0.5, dug: ['1,1'] }, x: 640, y: 320 }) });
+    check('arrivato il suo mondo, sono ospite', vis2.sonoOspite() === true && Sm.seed === 99 && Sm.day === 12);
+    check('e sono dove sta lui', state.P.x === 640 && state.P.y === 320);
+    check('il salvataggio è spento finché sono a casa sua', state.save() === false);
+    check('ma la mia roba è ancora mia', JSON.stringify({ coins: Sm.coins, raw: Sm.raw, book: Sm.book }) === miaRobaPrima);
+
+    /* lui scava: la casella si consuma anche da me */
+    s3.onmessage({ data: netm.encode(netm.T.MUT, { k: 'dug', c: '30,40' }) });
+    check('quello che consuma lui vale anche per me', state.dugSet.has('30,40'));
+    s3.onmessage({ data: netm.encode(netm.T.MUT, { k: 'chop', c: 'non è una casella' }) });
+    check('ma una coordinata inventata non entra in nessun insieme', state.choppedSet.size === 0 || !state.choppedSet.has('non è una casella'));
+
+    /* il suo orologio */
+    s3.onmessage({ data: netm.encode(netm.T.CLOCK, { day: 13, tod: 0.9 }) });
+    check('l\'ora è la sua', Sm.day === 13 && Math.abs(Sm.tod - 0.9) < 1e-9);
+
+    /* e se ne va: il mondo era suo, quindi si torna a casa */
+    mp.ricevi(JSON.stringify({ t: netm.T.LEAVE, id: 'stanza', host: true }), 0);
+    check('chiusa la stanza, sono tornato a casa mia', vis2.sonoOspite() === false && mp.MP.stato === 'spento');
+    check('col MIO mondo, identico a prima', JSON.stringify(state.snapshotMondo()) === mioPrima,
+      'seme ' + Sm.seed + ' giorno ' + Sm.day);
+    check('e il salvataggio funziona di nuovo', state.save() !== false);
+  }
+
   mp.setTransport((u) => new WebSocket(u));      // si rimette il trasporto vero
+}
+
+/* ---------- LA VISITA: entrare nel mondo di un altro e tornare com'eri ----------
+   È l'operazione più pericolosa di tutta la modalità in compagnia: mentre sei ospite, `S`
+   contiene il mondo di un'altra persona. Se qualcosa resta attaccato al rientro — una casella
+   scavata, la mappa, il seme — te ne accorgi giorni dopo e non capisci da dove viene.
+   Quindi la prova non è "funziona": è che dopo un giro completo il proprio mondo sia
+   IDENTICO, campo per campo. */
+{
+  const vis = await import('../src/visita.js');
+  const world4 = await import('../src/world.js');
+  /* riferimenti VIVI: qui sopra la suite ha chiamato initState(), quindi le S/P catturate a
+     inizio file sono STALE — i moduli leggono state.S, e scrivere sulle altre non arriverebbe. */
+  const Sv = state.S, P4 = state.P;
+
+  /* si parte da un mondo mio riconoscibile */
+  Sv.seed = 12345; Sv.day = 7; Sv.tod = 0.3;
+  state.dugSet.add('10,10'); state.dugSet.add('11,10');
+  Sv.coins = 99; Sv.energy = 17; Sv.raw = [{ uid: 1, s: 'x', t: 'cranio', q: 'raro', val: 40 }];
+  P4.x = 1000; P4.y = 2000;
+  const mioMondo = JSON.stringify(state.snapshotMondo());
+  const miaRoba = JSON.stringify({ coins: Sv.coins, energy: Sv.energy, raw: Sv.raw, look: Sv.look, book: Sv.book });
+
+  /* il mondo di un altro: altro seme, altro giorno, altre caselle scavate */
+  const suo = {
+    mondo: { ...state.snapshotMondo(), seed: 777, day: 22, tod: 0.8, dug: [], chopped: ['5,5'] },
+    x: 300, y: 400,
+  };
+  check('entrare in un pacchetto senza senso NON fa uscire di casa', vis.entra({ mondo: null }) === false && vis.sonoOspite() === false);
+
+  check('si entra', vis.entra(suo, 'Luca') === true && vis.sonoOspite() === true);
+  check('e si arriva accanto a chi ospita', P4.x === 300 && P4.y === 400);
+  check('il mondo è il suo: seme, giorno e ora', Sv.seed === 777 && Sv.day === 22 && Math.abs(Sv.tod - 0.8) < 1e-9,
+    'seed=' + Sv.seed + ' day=' + Sv.day + ' tod=' + Sv.tod + ' stessoS=' + (S === state.S));
+  check('anche le caselle consumate sono le sue', state.dugSet.size === 0 && state.choppedSet.has('5,5'));
+  check('ma la mia roba è intatta',
+    JSON.stringify({ coins: Sv.coins, energy: Sv.energy, raw: Sv.raw, look: Sv.look, book: Sv.book }) === miaRoba);
+
+  /* LA TRAPPOLA: l'autosave ogni cinque secondi scriverebbe il mondo di un altro nel mio save */
+  check('in casa d\'altri il salvataggio si RIFIUTA', state.inCasaDAltri() === true && state.save() === false);
+
+  /* casa e cortile dell'ospitante non si toccano */
+  const hf = { x0: 10, y0: 10, x1: 12, y1: 11 }, yr = { x0: 2, y0: 2, x1: 20, y1: 20 };
+  check('in casa d\'altri non si tocca la sua casa né il suo cortile',
+    vis.puoToccare(11, 10, hf, yr) === false && vis.puoToccare(5, 5, hf, yr) === false);
+  check('ma fuori di lì si gioca davvero', vis.puoToccare(100, 100, hf, yr) === true);
+
+  /* l'orologio arriva da chi ospita, e quello che non ha senso si scarta */
+  vis.applicaOrologio(30, 0.1);
+  check('l\'orologio dell\'ospitante si riceve', Sv.day === 30 && Math.abs(Sv.tod - 0.1) < 1e-9);
+  vis.applicaOrologio(-5, 42);
+  check('un orologio impossibile si scarta invece di far tornare indietro le stagioni', Sv.day === 30 && Math.abs(Sv.tod - 0.1) < 1e-9);
+
+  /* ---- e adesso la prova che conta ---- */
+  const tornato = vis.torna();
+  check('si torna a casa', tornato === true && vis.sonoOspite() === false && state.inCasaDAltri() === false);
+  check('DOVE si era partiti', P4.x === 1000 && P4.y === 2000);
+  check('e il proprio mondo è IDENTICO, campo per campo', JSON.stringify(state.snapshotMondo()) === mioMondo,
+    'seme ' + Sv.seed + ' giorno ' + Sv.day + ' scavate ' + state.dugSet.size);
+  check('con le caselle scavate di prima', state.dugSet.has('10,10') && state.dugSet.has('11,10') && !state.choppedSet.has('5,5'),
+    'scavate=' + state.dugSet.size + ' [' + [...state.dugSet].slice(0, 4) + '] tagliati=' + [...state.choppedSet].slice(0, 3));
+  check('la mia roba non è stata sfiorata',
+    JSON.stringify({ coins: Sv.coins, energy: Sv.energy, raw: Sv.raw, look: Sv.look, book: Sv.book }) === miaRoba);
+  check('e da adesso si salva di nuovo', state.save() !== false);
+
+  /* le cache del mondo si buttano davvero: sono per COORDINATA, non per seme, e senza
+     pulirle si vedrebbe un mondo cucito coi pezzi di due mondi diversi */
+  check('esiste il modo di buttare le cache del mondo', typeof world4.resetWorldCaches === 'function');
+  const primaDelGiro = world4.baseTerrain(40, 40);
+  vis.entra(suo, 'Luca'); const dentro = world4.baseTerrain(40, 40); vis.torna();
+  check('la stessa casella cambia faccia nel mondo di un altro, e torna la sua a casa (' +
+    primaDelGiro + ' → ' + dentro + ' → ' + world4.baseTerrain(40, 40) + ')',
+    world4.baseTerrain(40, 40) === primaDelGiro);
 }
 
 failures += summary('digsy-world');

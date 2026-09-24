@@ -18,7 +18,7 @@ import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
-import { MP, tick as mpTick } from './mp.js';
+import { MP, tick as mpTick, orologio as mpOrologio } from './mp.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
@@ -153,6 +153,8 @@ function loop(ts) {
     if (MP.stato === 'dentro') {
       const dove = CAVE.active ? { pos: CAVE, scena: 'grotta' } : INT.active ? { pos: INT, scena: 'stanza' } : { pos: P, scena: 'world' };
       mpTick(ts, { x: dove.pos.x, y: dove.pos.y, dir: P.dir, moving: dove.pos.moving || P.moving, scene: dove.scena });
+      /* se ospito, l'orologio lo do io: gli ospiti non lo calcolano, lo ricevono */
+      mpOrologio(ts, S.day, S.tod);
     }
     /* HUD: va rinfrescato in QUALSIASI scena. Stava dopo i `return` di grotte e interni,
        quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un

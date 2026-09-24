@@ -38,6 +38,9 @@ export const T = {
   ENTER: 'enter',    // centralino → tutti: è entrato qualcuno
   LEAVE: 'leave',    // centralino → tutti: è uscito qualcuno
   AT: 'at',          // dove sono (o dov'è un altro)
+  MONDO: 'mondo',    // l'ospitante manda il suo mondo a chi entra (una volta sola, grosso)
+  MUT: 'mut',        // una casella consumata: scavata, tagliata, spaccata, raccolta
+  CLOCK: 'clock',    // l'orologio dell'ospitante: l'ospite non lo calcola, lo riceve
   BYE: 'bye',        // esco di mia volontà
 };
 
@@ -84,12 +87,25 @@ export function decode(raw) {
         m: !!m.m,
         s: typeof m.s === 'string' ? m.s.slice(0, 12) : 'world',   // in quale scena: mondo, stanza, grotta
       } : null;
+    case T.MONDO:
+      /* il MONDO di un altro entra nel gioco: si pretende almeno che abbia un seme, o si
+         resterebbe con mezzo mondo adottato e mezzo proprio */
+      return (m.mondo && typeof m.mondo === 'object' && num(m.mondo.seed))
+        ? { t: m.t, id: id(m.id) ? m.id : null, mondo: m.mondo, x: num(m.x) ? m.x : 0, y: num(m.y) ? m.y : 0 } : null;
+    case T.MUT:
+      return (MUTAZIONI.includes(m.k) && typeof m.c === 'string' && /^-?\d{1,7},-?\d{1,7}$/.test(m.c))
+        ? { t: m.t, id: id(m.id) ? m.id : null, k: m.k, c: m.c } : null;
+    case T.CLOCK:
+      return (num(m.day) && num(m.tod)) ? { t: m.t, id: id(m.id) ? m.id : null, day: m.day, tod: m.tod } : null;
     case T.BYE:
       return { t: m.t };
     default: return null;
   }
 }
 const DIRS = ['up', 'down', 'left', 'right'];
+/* le quattro cose che si consumano in un mondo. Una coordinata arriva come testo: si pretende
+   che SIA una coordinata, o finirebbe come chiave in un insieme del gioco. */
+export const MUTAZIONI = ['dug', 'chop', 'mine', 'pick'];
 
 /* L'ASPETTO DEGLI ALTRI ARRIVA DALLA RETE e finisce nella palette: `applyLook` ci fa sopra dei
    conti (`shade` legge l'esadecimale con parseInt) e il disegno lo passa a `fillStyle`. Un

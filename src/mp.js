@@ -20,6 +20,7 @@
  *    tenta di collegarsi per sempre scalda il telefono e non lo dice a nessuno.
  */
 import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent } from './net.js';
+import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite } from './visita.js';
 
 /* stati, in italiano perché si leggono anche nell'interfaccia:
    spento · collego · dentro · caduto */
@@ -74,6 +75,16 @@ export function ricevi(raw, now) {
   const t = applyMessage(MP.room, m, now);
   if (m.t === T.WELCOME && stanza) manda(T.JOIN, { room: stanza });
   if (m.t === T.ROOM) { MP.stato = 'dentro'; invio = {}; }
+  /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
+     l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
+     deterministico dal seme: quello che viaggia è il seme più quello che è stato consumato. */
+  if (m.t === T.ENTER && sonoOspitante()) mandaMondo();
+  /* SONO OSPITE E MI È ARRIVATO UN MONDO: si entra. Da qui in poi `S` è il suo. */
+  if (m.t === T.MONDO && !sonoOspitante()) {
+    if (!entraInVisita({ mondo: m.mondo, x: m.x, y: m.y }, m.id)) MP.motivo = 'mondo illeggibile';
+  }
+  if (m.t === T.MUT) applicaMutazione(m.k, m.c);
+  if (m.t === T.CLOCK) applicaOrologio(m.day, m.tod);
   /* il centralino avvisa che la stanza si è chiusa mandando un `leave` con l'indicazione
      `host`: il mondo era suo, quindi non c'è più niente in cui restare */
   if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) disconnect('la stanza si è chiusa');
@@ -107,7 +118,35 @@ export function visibili(now, scena = 'world') {
   return out;
 }
 
+/* sono io che ospito? Il mondo è mio, quindi decido io l'orologio e mando io il mondo. */
+export function sonoOspitante() { return !!MP.room.me && MP.room.host === MP.room.me; }
+
+function mandaMondo() {
+  const p = mondoDaMandare();
+  return manda(T.MONDO, p);
+}
+/* UNA CASELLA CONSUMATA. La chiama il gioco nel punto in cui consuma (gameplay.js): se non c'è
+   compagnia non fa niente, quindi chi gioca da solo non paga questo ramo. */
+export function mutazione(k, c) {
+  if (MP.stato !== 'dentro') return false;
+  return manda(T.MUT, { k, c });
+}
+/* L'OROLOGIO, dall'ospitante a tutti. Non a ogni fotogramma: il tempo di gioco si muove piano
+   e un aggiornamento ogni paio di secondi è più che sufficiente — chi riceve non ha nulla da
+   interpolare, il cielo cambia lentamente. */
+let ultimoOrologio = -1e9;
+export function orologio(now, day, tod) {
+  if (MP.stato !== 'dentro' || !sonoOspitante()) return false;
+  if (now - ultimoOrologio < 2000) return false;
+  ultimoOrologio = now;
+  return manda(T.CLOCK, { day, tod });
+}
+
 export function disconnect(motivo) {
+  /* TORNARE A CASA VIENE PRIMA DI TUTTO: se si stacca la linea mentre si è ospiti, il mondo di
+     un altro è ancora dentro `S` e il salvataggio è spento. Rimetterlo a posto è la prima cosa,
+     o si resta con mezzo mondo altrui e niente che salva. */
+  if (sonoOspite()) tornaACasa();
   MP.stato = 'spento'; MP.motivo = motivo || null;
   MP.room = makeRoom(); invio = {}; stanza = null;
   const s = sock; sock = null;

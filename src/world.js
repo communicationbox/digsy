@@ -1,7 +1,7 @@
 /* Mondo procedurale: terreni, decorazioni, città (con parco), collisioni, spawn */
 import { TS, GOODS, ZONES, zonePools } from './data.js';
 import { vhash, fbm, smooth } from './noise.js';
-import { zoneIdxAt } from './regions.js';
+import { zoneIdxAt, resetZoneCache } from './regions.js';
 import { wonderWidth } from './wonders.js';
 import { wonderSolidTile } from './wonderart.js';
 import { choppedSet, minedSet, pickedSet, S } from './state.js';
@@ -77,6 +77,18 @@ export function nearHouseZone(tx, ty, margin) {
    nessuna cache scade da sola (segnalato: "parte con una X sotto casa", "gli oggetti qua
    vicini mi triggerano il recinto"). La ricomputazione è deterministica (stesso seme, stesso
    risultato), quindi non cambia nulla per chi aveva già scavato altrove. */
+/* IL MONDO CAMBIA SOTTO I PIEDI: si butta via tutto quello che è stato calcolato dal seme.
+ * Serve quando si entra nel mondo di un altro (e quando se ne esce): ogni cache qui dentro è
+ * indicizzata per COORDINATA, non per seme, quindi senza questa pulizia la casella 3,4 del
+ * mondo ospitante mostrerebbe l'albero della casella 3,4 del proprio — un mondo fatto a pezzi
+ * di due mondi diversi, e nessun errore da nessuna parte.
+ * Vale anche per i test, che così possono cambiare seme e ricominciare da capo. */
+export function resetWorldCaches() {
+  terrCache.clear(); decoCache.clear(); townCache.clear(); tiCache.clear();
+  caveCache.clear(); siteCache.clear(); boneSiteCache.clear(); landmarkCache.clear(); wreckCache.clear();
+  homeTownKey = null; homeTownCache = null; homeRoadKey = null; homeRoadGeomC = null;
+  resetZoneCache();
+}
 export function invalidateHouseDecoCache() {
   const hf = houseFootprint(), yr = yardRect(); if (!hf || !yr) return;
   const M = HOUSE_DECO_MARGIN;

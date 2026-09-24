@@ -1,6 +1,6 @@
 /* Stato di gioco (salvato in localStorage) + player/camera runtime */
 import { setSeed } from './noise.js';
-import { packExplored, unpackExplored, packDug, unpackDug } from './packmap.js';
+import { packExplored, unpackExplored, packDug, unpackDug, resetDugPack, resetExploredPack } from './packmap.js';
 import { DEFAULT_LOOK, ROOM_PRICES, PEDESTAL_ID, STARTER_FURN_ID, STARTER_PLANT_ID, STARTER_BED_ID } from './data.js';
 
 export const SK = 'ossa_world_pixel_v1';
@@ -96,6 +96,66 @@ export function markBought(field, value) {
 /* tutto quello che un look indossa è, per definizione, già suo */
 export function markLookBought(look) { if (look) for (const f of LOOK_FIELDS) markBought(f, look[f]); }
 
+/* ---------- IL MONDO È DI CHI OSPITA (vedi MULTIPLAYER.md) ----------
+   Il salvataggio ha settanta campi e finora erano tutti "tuoi", perché si giocava da soli.
+   Entrando in casa d'altri si dividono in due: questi qui sono del MONDO — li ricevi
+   dall'ospitante e quando esci se li tiene lui. Tutto il resto (zaino, monete, energia,
+   collezioni, aspetto, progressi) viaggia con te ed è l'unica cosa che torna a casa.
+
+   Chi NON è qui dentro, e perché:
+   - `fountains`: dieci lanci a TESTA, non per città — quindi è roba della persona. La chiave
+     però deve portarsi dietro il seme, o i lanci fatti in casa d'altri esaurirebbero la
+     fontana di casa propria (stessa cella, mondi diversi).
+   - `explored`: c'è, perché la mappa è dell'ospitante e si guarda in due 1:1.
+   - `px`/`py`: la posizione durante la visita è nel mondo di un altro, quindi non si salva
+     affatto — si torna dove si era partiti. */
+export const CAMPI_MONDO = [
+  'seed', 'day', 'tod', 'explored',
+  'dug', 'chopped', 'mined', 'picked',
+  'sites', 'boneSites', 'wrecks', 'drops',
+  'home', 'house', 'gateLocked', 'lastTown',
+];
+
+/* Il mondo, pronto da spedire o da mettere da parte. Impacchettato come il salvataggio: la
+   mappa esplorata e le caselle scavate vanno per righe, o una partita avanti viaggia molte
+   volte più grande del necessario. */
+export function snapshotMondo() {
+  /* I PACCHETTI SI RIFANNO DA ZERO. `packDug`/`packExplored` tengono una cache incrementale
+     aggiornata da `noteDug`/`noteExplored`: velocissima per l'autosave, ma chi tocca gli
+     insiemi senza avvisarla (un comando, una migrazione, un altro mondo appena adottato) si
+     porterebbe dietro il pacchetto di PRIMA — e qui il pacchetto è il mondo che spedisci a
+     un'altra persona, o quello che ti rimetti addosso tornando a casa. Sbagliarlo vuol dire
+     consegnare un mondo che non esiste. Si paga una ricostruzione per visita: niente. */
+  resetDugPack(); resetExploredPack();
+  const m = {};
+  for (const k of CAMPI_MONDO) if (S[k] !== undefined) m[k] = S[k];
+  m.dug = packDug(dugSet);
+  m.chopped = [...choppedSet];
+  m.mined = [...minedSet];
+  m.picked = [...pickedSet];
+  m.explored = packExplored(S.explored);
+  return JSON.parse(JSON.stringify(m));
+}
+
+/* Adotta un mondo: il proprio sparisce (lo tiene da parte chi chiama) e al suo posto va
+   quello ricevuto. Il SEME va rimesso al generatore, e le cache del mondo BUTTATE — sono
+   indicizzate per coordinata, non per seme, e senza pulirle si vedrebbe un mondo fatto a
+   pezzi di due mondi diversi. Quella parte la fa chi chiama (world.resetWorldCaches), perché
+   state.js non può importare world.js senza creare un anello. */
+export function applicaMondo(m) {
+  if (!m || typeof m !== 'object') return false;
+  for (const k of CAMPI_MONDO) { if (k in m) S[k] = m[k]; else delete S[k]; }
+  S.dug = unpackDug(S.dug || []);
+  dugSet = new Set(S.dug);
+  choppedSet = new Set(S.chopped || []);
+  minedSet = new Set(S.mined || []);
+  pickedSet = new Set(S.picked || []);
+  S.explored = unpackExplored(S.explored || {});
+  resetDugPack(); resetExploredPack();     // gli insiemi sono altri: la cache di prima non c'entra più
+  setSeed(S.seed || 1);
+  return true;
+}
+
 export const SAVE_V = 2;   // 2: caselle scavate impacchettate per riga come la mappa (packDug)
 export const BAK = SK + '_bak';       // copia del salvataggio precedente (rete di sicurezza)
 export const BROKEN = SK + '_broken'; // save illeggibile messo da parte, mai buttato
@@ -145,7 +205,17 @@ export function setSaveErrorHandler(fn) { onSaveError = fn; }
    dietro anche la parte di rete, che alla stragrande maggioranza dei giocatori non serve. */
 let onSaved = null;
 export function setSaveHook(fn) { onSaved = fn; }
+/* IN CASA D'ALTRI NON SI SALVA. Mentre si è ospiti, `S` contiene il mondo di un'altra persona:
+   il salvataggio automatico ogni cinque secondi scriverebbe il SUO mondo dentro il MIO
+   salvataggio, e al rientro mi ritroverei con le sue caselle scavate, la sua mappa e la sua
+   casa. È la trappola più grossa della modalità in compagnia, e il posto giusto per fermarla è
+   questo: la funzione che salva si rifiuta, invece di sperare che nessuno la chiami. */
+let ospiteAltrove = false;
+export function setOspiteAltrove(v) { ospiteAltrove = !!v; }
+export function inCasaDAltri() { return ospiteAltrove; }
+
 export function save() {
+  if (ospiteAltrove) return false;
   try {
     S.px = P.x; S.py = P.y; S.started = true; S.v = SAVE_V;
     /* PARCO CHE RENDE (idle.js): ogni salvataggio "azzera" il tempo d'assenza — l'idle deve

@@ -16,14 +16,19 @@
 export const MAX_PEERS = 8;        // una stanza è un salotto, non una piazza
 export const MAX_ROOMS = 60;       // tetto: oltre, si rifiuta invece di gonfiare la memoria
 export const MSG_PER_SEC = 40;     // le posizioni viaggiano a 10/s: quattro volte tanto è già larghissimo
-export const MAX_MSG = 4096;       // byte: un messaggio di gioco è una manciata di byte
+/* DUE TETTI, non uno. Le posizioni sono minuscole e frequenti; il MONDO che si spedisce a chi
+   entra è grosso e parte una volta sola (seme, caselle scavate, mappa esplorata). Contare solo
+   i messaggi lascerebbe passare quaranta mondi al secondo; contare solo i byte non fermerebbe
+   una raffica di pacchetti vuoti. Quindi: quanti messaggi, e quanti byte in tutto. */
+export const MAX_MSG = 256 * 1024;     // byte: tetto assoluto per un singolo messaggio (un mondo ci sta)
+export const BYTE_PER_SEC = 400 * 1024; // e comunque non più di così al secondo, in totale
 
 export function makeHub() { return { rooms: new Map(), peers: new Map() }; }
 
 /* Un collegamento nuovo. `send` è la funzione che sa scrivere su QUELLA socket: il centralino
    non sa come, sa solo a chi. */
 export function addPeer(hub, id, name, send) {
-  const p = { id, name: String(name || 'Digsy').slice(0, 20), send, room: null, look: null, msgs: 0, since: 0 };
+  const p = { id, name: String(name || 'Digsy').slice(0, 20), send, room: null, look: null, msgs: 0, bytes: 0, since: 0 };
   hub.peers.set(id, p);
   return p;
 }
@@ -84,7 +89,7 @@ export function audience(hub, id) {
    tenere occupato il processo. Finestra di un secondo, azzerata al cambio di finestra. */
 export function allow(p, now, bytes) {
   if (bytes > MAX_MSG) return false;
-  if (now - p.since >= 1000) { p.since = now; p.msgs = 0; }
-  p.msgs++;
-  return p.msgs <= MSG_PER_SEC;
+  if (now - p.since >= 1000) { p.since = now; p.msgs = 0; p.bytes = 0; }
+  p.msgs++; p.bytes = (p.bytes || 0) + bytes;
+  return p.msgs <= MSG_PER_SEC && p.bytes <= BYTE_PER_SEC;
 }

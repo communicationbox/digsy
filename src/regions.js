@@ -61,6 +61,10 @@ function campo(cx, cy) {
 }
 /* il CAMPO in un blocco 4×4, tenuto in cache: è la parte cara (nove giri di noise) */
 const fcache = new Map();
+/* si svuota quando il mondo cambia (entrare in casa d'altri): la cache è per COORDINATA,
+   non per seme — vedi resetWorldCaches in world.js */
+export function resetZoneCache() { fcache.clear(); }
+
 function campoBlocco(bx, by) {
   const key = bx + ',' + by;
   let f = fcache.get(key);
