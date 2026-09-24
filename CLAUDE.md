@@ -125,8 +125,10 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 - **Fontana**: max 10 lanci per città (`S.fountains[key]={n,d0}`), poi riposa e si ricarica
   dopo 10 giorni. **Identificazione al MUSEO** (non più al Lab): il Lab tiene chimere+risveglio.
 - **Città procedurali** in celle `TCELL=40` (prob 0.45), nomi propri tema terra/ossa (`townName`).
-  Taglie: **borgo** (Lab+Negozio), **paese** (+Locanda+**Barbiere**), **città**
-  (7 edifici: +Museo+**Sartoria**+**Bottega d'arredo**, piazza larga 23). Piazze SPAZIOSE
+  Taglie (elenco vero in `TOWN_SIZES`, con un test che lo confronta col mondo generato):
+  **borgo** = Negozio+Locanda · **paese** = +Laboratorio+**Barbiere** · **città** = 7 edifici
+  (+Museo+**Sartoria**+**Bottega d'arredo**, piazza larga 23). **In ogni taglia si dorme**: la
+  Locanda c'è anche nei borghi. Il **Museo solo in città** — è lì che si identifica. Piazze SPAZIOSE
   (file di case distanti 5+ tile) con **strade sterrate** (`town.roads` Set, tile `ROAD`):
   vialetto porta→strada per ogni casa, strada orizzontale davanti a ogni fila, viale centrale
   x=C.x sempre libero (fila bassa città sfalsata apposta) che scende fino al cancello del parco.
@@ -580,9 +582,12 @@ non sono chiusi. Bug, arte, bilanciamento, test e refactor si fanno sempre.
 - NPC e player agganciati alla griglia dei pixel fisici (`snap`): niente sfarfallio in movimento.
 
 ## Semplificazioni note / debito tecnico
-- I borghi non hanno Locanda (il Negozio vende comunque +15⚡).
-- Il barbiere non cambia la pelle: tonalità solo nell'editor iniziale.
+- I borghi non hanno il **Laboratorio** (né il Museo): per identificare e risvegliare si va in
+  città. Dormire invece si può ovunque, Locanda compresa nei borghi.
 - Le chimere compaiono identiche in tutti i parchi (sono "magiche", va bene così).
+> Questo elenco è invecchiato male due volte (diceva "i borghi non hanno Locanda" e "il
+> barbiere non cambia la pelle", tutte e due false da mesi). Se una riga qui si può misurare,
+> si misura: vedi il test sulle taglie delle città.
 
 
 ## Le ZONE hanno UN elenco solo

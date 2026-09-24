@@ -2466,6 +2466,35 @@ sprites.applyLook();
         if (d < 3) fuoriPosto++;
       }
     }
+    /* CHE COSA C'È IN OGNI TAGLIA. Era scritto in due posti — `TOWN_SIZES` e il brief — e i
+       due avevano preso strade diverse: il brief diceva "borgo = Lab+Negozio" e "i borghi non
+       hanno Locanda", mentre da tempo il borgo è Negozio+Locanda e il Laboratorio non ce l'ha.
+       Nessuno confrontava le due cose, quindi la bugia è rimasta lì per mesi (e ho rischiato
+       di "aggiungere" una Locanda che c'era già). Qui si pretende l'elenco, dai dati E dal
+       mondo generato: se si cambia la composizione di una taglia, questo lo dice. */
+    const ATTESA = {
+      borgo: 'inn,store',
+      paese: 'barber,inn,lab,store',
+      'città': 'barber,furniture,inn,lab,museum,store,tailor',
+    };
+    const dichiarata = {};
+    for (const sz of world.TOWN_SIZES) dichiarata[sz.id] = sz.defs.map(d => d[0]).sort().join(',');
+    check('le tre taglie dichiarano gli edifici che ci aspettiamo',
+      JSON.stringify(dichiarata) === JSON.stringify(ATTESA), JSON.stringify(dichiarata));
+    const vere = {}; let mancanti = 0;
+    for (let cy2 = -6; cy2 <= 6; cy2++) for (let cx2 = -6; cx2 <= 6; cx2++) {
+      const t2 = world.townForCell(cx2, cy2); if (!t2) continue;
+      const av = t2.buildings.map(b => b.type).sort().join(',');
+      (vere[t2.size] = vere[t2.size] || new Set()).add(av);
+      if (av !== ATTESA[t2.size]) mancanti++;
+    }
+    check('e nel mondo generato ogni città ha davvero i suoi (' + Object.keys(vere).length + ' taglie viste)',
+      mancanti === 0 && Object.keys(vere).length === 3, mancanti + ' fuori posto');
+    /* dove si DORME e dove si IDENTIFICA: due domande che il giocatore si fa presto */
+    check('in ogni taglia si può dormire (Locanda anche nei borghi)',
+      Object.values(ATTESA).every(v => v.includes('inn')));
+    check('il Museo resta solo nelle città (è lì che si identifica)',
+      ATTESA['città'].includes('museum') && !ATTESA.borgo.includes('museum') && !ATTESA.paese.includes('museum'));
     check(`ogni città grande ha la statua (${conStatua}/${citta})`, citta > 0 && conStatua === citta);
     check('e nessun borgo o paese ce l\'ha', fuoriPosto === 0);
     check('la statua non chiude mai una porta né sta su un edificio', porteChiuse === 0);
