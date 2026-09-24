@@ -9710,5 +9710,114 @@ sprites.applyLook();
   check('e un messaggio enorme non passa comunque', R.allow(tizio, 2100, R.MAX_MSG + 1) === false);
 }
 
+/* ---------- LA PARTITA IN COMPAGNIA: il lato vivo (socket finta) ----------
+   È il modulo che tiene aperto un collegamento, quindi l'unico che non può essere puro. Il
+   trasporto e l'attesa si iniettano apposta: la riconnessione è la parte che si rompe in
+   silenzio, e senza poterla far scorrere a comando resterebbe l'unico pezzo mai provato. */
+{
+  const mp = await import('../src/mp.js');
+  const netm = await import('../src/net.js');
+
+  /* socket finta: registra cosa è stato spedito e lascia accendere gli eventi a mano */
+  const fatte = [];
+  const finta = () => {
+    const s = { readyState: 1, inviati: [], chiusa: false,
+      send(x) { s.inviati.push(JSON.parse(x)); }, close() { s.chiusa = true; } };
+    fatte.push(s); return s;
+  };
+  const timer = [];
+  mp.setTransport(finta);
+  mp.setTimer((fn) => timer.push(fn));
+
+  check('l\'indirizzo del centralino segue l\'origine, e in https è wss',
+    mp.relayUrl({ protocol: 'https:', host: 'digsy.dev-box.it' }) === 'wss://digsy.dev-box.it/ws' &&
+    mp.relayUrl({ protocol: 'http:', host: 'localhost:5173' }) === 'ws://localhost:5173/ws');
+
+  mp.connect('ws://finta/ws', { name: 'Marco', room: 'casa' });
+  const s0 = fatte[fatte.length - 1];
+  check('collegandosi non si dice ancora niente', s0.inviati.length === 0 && mp.MP.stato === 'collego');
+  s0.onopen();
+  check('appena aperta ci si presenta, col numero di protocollo',
+    s0.inviati.length === 1 && s0.inviati[0].t === 'hello' && s0.inviati[0].v === netm.PROTO && s0.inviati[0].name === 'Marco');
+
+  /* il centralino risponde: da lì si entra nella stanza */
+  s0.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+  check('ricevuto il proprio identificativo si chiede di entrare',
+    s0.inviati[1] && s0.inviati[1].t === 'join' && s0.inviati[1].room === 'casa');
+  s0.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'io', peers: [{ id: 'io', name: 'Marco' }, { id: 'u1', name: 'Luca' }] }) });
+  check('entrati, si è "dentro" e si sa chi c\'è', mp.MP.stato === 'dentro' && mp.MP.room.peers.size === 1);
+
+  /* la propria posizione: dieci volte al secondo, non sessanta */
+  const pos = { x: 100, y: 50, dir: 'right', moving: true, scene: 'world' };
+  check('la prima posizione parte subito', mp.tick(0, pos) === true);
+  check('ma non a ogni fotogramma', mp.tick(16, { ...pos, x: 101 }) === false);
+  check('dopo un decimo di secondo sì', mp.tick(120, { ...pos, x: 140 }) === true);
+  const ultimo = s0.inviati[s0.inviati.length - 1];
+  check('e dice dove, verso dove, e in quale scena',
+    ultimo.t === 'at' && ultimo.x === 140 && ultimo.d === 'right' && ultimo.m === true && ultimo.s === 'world');
+
+  /* chi disegnare: interpolato, e SOLO chi è nella stessa scena */
+  s0.onmessage({ data: netm.encode(netm.T.AT, { id: 'u1', x: 0, y: 0, d: 'down', m: true, s: 'world' }) });
+  s0.onmessage({ data: netm.encode(netm.T.AT, { id: 'u1', x: 200, y: 0, d: 'down', m: true, s: 'world' }) });
+  check('si vede chi è nel mondo con noi', mp.visibili(1e9, 'world').length === 1);
+  check('e non si vede chi è entrato in una bottega', mp.visibili(1e9, 'stanza').length === 0);
+
+  /* 3 · CADUTA E RIPROVE: si riprova con attese che crescono, e poi si smette davvero */
+  const prima = mp.prossimaAttesa();
+  let giri = 0;
+  s0.onclose();
+  check('caduta la linea si riprova (attesa ' + prima + 'ms)', mp.MP.stato === 'collego' && mp.MP.tentativi === 1);
+  while (timer.length && giri < 10) {
+    const fn = timer.shift(); fn(); giri++;
+    const s = fatte[fatte.length - 1];
+    if (s && s.onclose) s.onclose();
+  }
+  check('dopo qualche tentativo ci si ferma invece di insistere per sempre (' + giri + ' tentativi)',
+    mp.MP.stato === 'caduto' && giri >= 3 && giri <= 6);
+  check('e si sa perché', typeof mp.MP.motivo === 'string' && mp.MP.motivo.length > 0);
+
+  /* 4 · USCIRE PULITI */
+  mp.connect('ws://finta/ws', { name: 'Marco', room: 'casa' });
+  const s1 = fatte[fatte.length - 1];
+  s1.onopen(); s1.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+  mp.disconnect('basta');
+  check('staccandosi la socket si chiude e la stanza si svuota',
+    s1.chiusa === true && mp.MP.stato === 'spento' && mp.MP.room.peers.size === 0);
+  check('e da spenti non si manda più niente', mp.tick(9999, pos) === false);
+
+  /* 5 · SI DISEGNANO DAVVERO. Regola 9: una scena che nessun test disegna è un crash che
+     aspetta — e questa ha in più il fatto che l'aspetto arriva da un'altra persona. */
+  {
+    const { render } = await import('../src/render.js');
+    const { ctx } = await import('../src/screen.js');
+    const conta = () => { let n = 0; const vero = ctx.fillRect; ctx.fillRect = function (...a) { n++; return vero.apply(this, a); };
+      try { render(1000); } finally { ctx.fillRect = vero; } return n; };
+    mp.disconnect();
+    const senza = conta();
+    /* si mette in piedi una stanza con dentro qualcuno, proprio accanto a noi */
+    mp.connect('ws://finta/ws', { name: 'Marco', room: 'casa' });
+    const s2 = fatte[fatte.length - 1];
+    s2.onopen(); s2.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+    s2.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'io', peers: [{ id: 'u9', name: 'Luca', look: { shirt: '#c65a54' } }] }) });
+    const vicino = { x: state.P.x + 20, y: state.P.y };
+    s2.onmessage({ data: netm.encode(netm.T.AT, { id: 'u9', x: vicino.x, y: vicino.y, d: 'down', m: false, s: 'world' }) });
+    const visti = mp.visibili(1e9, 'world');
+    check('il compagno di stanza risulta visibile accanto a noi', visti.length === 1 && Math.abs(visti[0].x - vicino.x) < 1);
+    const con = conta();
+    check('e viene DISEGNATO (' + senza + ' → ' + con + ' pennellate)', con > senza);
+    /* e il suo aspetto non deve restare addosso a noi dopo il disegno */
+    check('la palette torna la mia dopo aver disegnato un altro', state.S.look.shirt !== '#c65a54');
+    mp.disconnect();
+  }
+
+  /* 6 · L'ASPETTO ARRIVA DALLA RETE: quello inventato non entra nella palette */
+  check('un colore inventato non passa', netm.cleanLook({ shirt: 'rosso', hat: 'javascript:1' }) === null);
+  check('un esadecimale valido passa', (netm.cleanLook({ shirt: '#c65a54' }) || {}).shirt === '#c65a54');
+  check('una forma inventata non passa', (netm.cleanLook({ hairStyle: '../../etc/passwd' }) || {}).hairStyle === undefined);
+  check('una forma normale passa', (netm.cleanLook({ hairStyle: 'punk' }) || {}).hairStyle === 'punk');
+
+  mp.setTransport((u) => new WebSocket(u));      // si rimette il trasporto vero
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

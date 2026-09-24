@@ -59,7 +59,7 @@ export function decode(raw) {
   const num = v => typeof v === 'number' && Number.isFinite(v);
   switch (m.t) {
     case T.HELLO:
-      return (num(m.v) && nome(m.name)) ? { t: m.t, v: m.v, name: m.name.slice(0, 20), look: m.look || null } : null;
+      return (num(m.v) && nome(m.name)) ? { t: m.t, v: m.v, name: m.name.slice(0, 20), look: cleanLook(m.look) } : null;
     case T.WELCOME:
       return id(m.id) ? { t: m.t, id: m.id } : null;
     case T.JOIN:
@@ -67,11 +67,11 @@ export function decode(raw) {
     case T.ROOM: {
       if (!id(m.host) || !Array.isArray(m.peers)) return null;
       const peers = m.peers.filter(p => p && id(p.id) && nome(p.name)).slice(0, MAX_PEERS)
-        .map(p => ({ id: p.id, name: String(p.name).slice(0, 20), look: p.look || null }));
+        .map(p => ({ id: p.id, name: String(p.name).slice(0, 20), look: cleanLook(p.look) }));
       return { t: m.t, host: m.host, peers };
     }
     case T.ENTER:
-      return (id(m.id) && nome(m.name)) ? { t: m.t, id: m.id, name: m.name.slice(0, 20), look: m.look || null } : null;
+      return (id(m.id) && nome(m.name)) ? { t: m.t, id: m.id, name: m.name.slice(0, 20), look: cleanLook(m.look) } : null;
     case T.LEAVE:
       return id(m.id) ? { t: m.t, id: m.id } : null;
     case T.AT:
@@ -90,6 +90,23 @@ export function decode(raw) {
   }
 }
 const DIRS = ['up', 'down', 'left', 'right'];
+
+/* L'ASPETTO DEGLI ALTRI ARRIVA DALLA RETE e finisce nella palette: `applyLook` ci fa sopra dei
+   conti (`shade` legge l'esadecimale con parseInt) e il disegno lo passa a `fillStyle`. Un
+   colore inventato non fa esplodere niente — il canvas ignora quello che non capisce e tiene
+   il precedente — ma ignorarlo in silenzio vuol dire un personaggio dipinto coi colori di chi
+   è stato disegnato prima. Qui passa solo quello che ha la forma giusta: esadecimali per i
+   colori, parole corte per le forme. Il resto cade, e si vede il Digsy di serie. */
+const COLORI = ['hat', 'shirt', 'pants', 'skin', 'hairColor', 'eyeColor', 'beardColor', 'glassesColor'];
+const FORME = ['hairStyle', 'hatStyle', 'shirtStyle', 'pantsStyle', 'beardStyle', 'glassesStyle'];
+const HEX = /^#[0-9a-f]{6}$/i;
+export function cleanLook(look) {
+  if (!look || typeof look !== 'object') return null;
+  const out = {};
+  for (const k of COLORI) if (HEX.test(look[k])) out[k] = look[k];
+  for (const k of FORME) if (typeof look[k] === 'string' && /^[a-z]{2,16}$/i.test(look[k])) out[k] = look[k];
+  return Object.keys(out).length ? out : null;
+}
 
 /* ---------- chi c'è, e dove ---------- */
 

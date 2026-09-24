@@ -18,6 +18,7 @@ import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
+import { MP, tick as mpTick } from './mp.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
@@ -146,6 +147,13 @@ function loop(ts) {
   if (typeof window !== 'undefined' && window.__digsyFreeze) { requestAnimationFrame(loop); return; } // solo le foto di prova: tela ferma
   if (!isModalOpen() && !splashActive() && !isTossOpen()) {
     steerFollow();                  // col mouse tenuto premuto si va verso il puntatore
+    /* IN COMPAGNIA: si dice dove si è. `tick` decide da solo se c'è qualcosa da dire (dieci
+       volte al secondo, e solo se ci si è mossi) e non fa NIENTE se non si è in una stanza —
+       chi gioca da solo non paga un centesimo di questo ramo. */
+    if (MP.stato === 'dentro') {
+      const dove = CAVE.active ? { pos: CAVE, scena: 'grotta' } : INT.active ? { pos: INT, scena: 'stanza' } : { pos: P, scena: 'world' };
+      mpTick(ts, { x: dove.pos.x, y: dove.pos.y, dir: P.dir, moving: dove.pos.moving || P.moving, scene: dove.scena });
+    }
     /* HUD: va rinfrescato in QUALSIASI scena. Stava dopo i `return` di grotte e interni,
        quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un
        giocatore ha scavato in grotta fino a zero energia continuando a leggere "46/60". */

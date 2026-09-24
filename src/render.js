@@ -25,6 +25,7 @@ import { applyLook } from './sprites.js';
 import { darknessAt, seasonOf, SEASON_LEN } from './daynight.js';
 import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
+import { MP, visibili } from './mp.js';
 import { pref as prefOf } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
@@ -1823,6 +1824,7 @@ export function render(time) {
      cavalcatura spariva dietro il tetto e sembrava attraversarla ("con il volo passo in mezzo agli
      oggetti e agli edifici"). L'ombra resta a terra, quindi si capisce dove si sorvola. */
   ents.push({ y: isMounted() ? 9e8 : P.y - cam.y + TS, f: drawPlayer });
+  pushPeers(ents, cam.x, cam.y, time, 'world');          // gli altri giocatori, se c'è compagnia
   /* COMPAGNO: chimera/risvegliato che insegue il player — MA non quando lo si cavalca (in volo
      il compagno È la cavalcatura sotto l'eroe: disegnarlo anche qui lo sdoppiava) */
   const compObj = companionDrawObj();
@@ -1916,6 +1918,36 @@ function drawGateCutbars(W, H) {
   ctx.fillStyle = '#0a0a0a';
   ctx.fillRect(0, 0, W, barH);
   ctx.fillRect(0, H - barH, W, barH);
+}
+
+/* ---------- GLI ALTRI GIOCATORI ----------
+   Si disegnano come gli NPC delle botteghe: `drawHero` con uno scambio temporaneo di `S.look`.
+   È il modo che il gioco ha già — nessun disegno nuovo da tenere allineato al personaggio, e
+   barba, occhiali e cappelli arrivano gratis.
+   L'ASPETTO ARRIVA DALLA RETE, quindi è già passato da `cleanLook` (net.js): qui dentro non
+   entra mai un colore inventato. Si parte dal PROPRIO look e si sovrascrive quello che è
+   arrivato, così un campo mancante non lascia un buco ma il Digsy di serie. */
+function drawPeer(sx, sy, q, time) {
+  const saved = S.look;
+  S.look = { ...saved, ...(q.look || {}) };
+  applyLook();
+  try {
+    const fr = q.moving ? Math.floor(time / 170) % 2 : 0;
+    drawHero(null, sx - 16, sy, q.dir, fr);
+  } finally { S.look = saved; applyLook(); }   // se il disegno esplode, la palette non resta di un altro
+  plate(sx, sy + 2, q.name, null, false);      // chi è: la stessa targhetta del tutorial
+}
+/* mette gli altri nella fila delle entità, ordinati per piedi come tutti: chi sta più in basso
+   passa davanti. `scena` filtra chi è altrove — entrato in bottega, sceso in grotta. */
+function pushPeers(ents, camx, camy, time, scena) {
+  if (MP.stato !== 'dentro') return 0;
+  let n = 0;
+  for (const q of visibili(time, scena)) {
+    const sx = snap(q.x - camx), sy = snap(q.y - camy);
+    ents.push({ y: q.y - camy + TS, f: () => drawPeer(sx, sy, q, time) });
+    n++;
+  }
+  return n;
 }
 
 /* ---------- TUTORIAL: le targhe sulle case e la freccia verso l'obiettivo ----------
