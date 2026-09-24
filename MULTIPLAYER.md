@@ -127,8 +127,27 @@ Una per volta, ognuna provabile da sola.
    Il nome della persona **lo sceglie qualcun altro**: non entra grezzo nel markup, e nel
    bottone dell'elenco non fa nemmeno da chiave — ripulito dei caratteri scomodi non
    combacerebbe più con la pagina salvata, e si aprirebbe una conversazione vuota. Va l'indice.
-5. **Le regole fini.** Casa intoccabile, sonno collettivo col sogno, museo, fontana per
-   persona, manda via, controllo di plausibilità sulla velocità.
+5. **Le regole fini.** Fatte, tranne il sonno collettivo col sogno (l'ultima cosa che manca
+   lato gioco):
+   - **Casa e cortile non si toccano davvero.** Scavare era già vietato a chiunque dalle regole
+     di sempre (`yardInfo`, e la casa è solida), ma raccogliere e abbattere no: un ospite
+     poteva ripulire il giardino di un altro mentre lui guardava. La domanda si fa in un punto
+     solo (`casaAltrui` in gameplay.js, che chiama `puoToccare`), non sparsa per mezzo gioco.
+     La roba **caduta a terra** resta di chi la raccoglie (regola 8): quella non è casa.
+   - **La fontana porta il seme nella chiave** (`fountainKey`) solo quando si è ospiti: i dieci
+     lanci sono della persona, ma la chiave è la cella della città, e due mondi diversi hanno
+     città nella stessa cella. A casa propria la chiave resta nuda, o i salvataggi di oggi
+     perderebbero il conto dei lanci già fatti.
+   - **Manda via** (menu → Insieme): lo può solo chi ospita, perché è casa sua. Non si stacca
+     nessuna socket dal centralino — il centralino non conosce le regole e non deve impararle:
+     si dice a voce alta nella stanza (`T.KICK`, mittente scritto dal centralino e non dal
+     client) e il gioco di chi è mandato via torna a casa da solo.
+   - **Plausibilità della velocità** (`MAX_VEL` in net.js): a piedi sono 92 px/s e il mezzo più
+     veloce triplica; sopra 700 px/s non c'è margine di dubbio. Un salto **non è un'accusa** —
+     fra amici invitati non esiste un anti-cheat vero — quindi non succede niente in
+     automatico: si smette di far scivolare il personaggio attraverso mezza mappa (la storia si
+     azzera: ricompare dov'è) e se ne tiene il conto, che l'ospitante vede accanto al nome.
+     Cambiare scena non conta: una porta è un salto legittimo.
 
 ## Debito già noto, da non dimenticare
 

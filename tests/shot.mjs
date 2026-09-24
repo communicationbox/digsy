@@ -386,6 +386,12 @@ async function main() {
         /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
         var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();
       }); }
+    /* 'stanza' = "Gioca in compagnia" CON DENTRO qualcuno: da soli è una riga di testo, e chi
+       c'è e il «manda via» accanto al nome non si vedrebbero mai */
+    else if (${JSON.stringify(vista)} === 'stanza') {
+      if(sp) sp.classList.remove('off');
+      if(G.mpFinta) G.mpFinta(['Luca','Ada'], true).then(function(){ if(G.splashView) G.splashView('insieme'); });
+    }
     else {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});

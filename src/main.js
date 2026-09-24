@@ -410,6 +410,17 @@ if (typeof window !== 'undefined') {
         return rows.length;
       }),
       splashView: (v) => import('./splash.js').then(sp => sp.setView && sp.setView(v)),
+      /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
+         la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
+         «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
+         mano lo stato che la rete avrebbe portato. */
+      mpFinta: (nomi, ospito) => import('./mp.js').then(m => {
+        m.MP.stato = 'dentro'; m.MP.room.me = 'io'; m.MP.room.host = ospito === false ? 'u1' : 'io';
+        m.MP.room.joined = true; m.MP.room.peers.clear();
+        (nomi || []).forEach((n, i) => m.MP.room.peers.set('u' + (i + 1),
+          { id: 'u' + (i + 1), name: n, look: null, buf: [], salti: i === 1 ? 3 : 0 }));
+        return true;
+      }),
       /* entrare/uscire dalle scene: serve agli e2e per DISEGNARLE davvero. Una regressione
          negli interni era passata inosservata perché nessun test ci entrava mai. */
       enterRoom: (t) => import('./interior.js').then(m => { m.enterInterior({ type: t, name: t, x: Math.floor(P.x / 16), y: Math.floor(P.y / 16) }); return true; }),

@@ -6,9 +6,9 @@ import { bodyHits, feetTile, FOOT_DY } from './body.js';
 /* IN COMPAGNIA una casella consumata vale per tutti: `mutazione` lo dice agli altri, e non fa
    NIENTE se si gioca da soli — chi non ha compagnia non paga questo ramo (vedi mp.js). */
 import { mutazione } from './mp.js';
-import { sonoOspite } from './visita.js';
+import { sonoOspite, puoToccare } from './visita.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
-import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo } from './world.js';
+import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo, houseFootprint } from './world.js';
 import { compass } from './compass.js';
 import { landmarkNear, harvestDecoAt } from './world.js';
 import { vhash as vhashW } from './noise.js';
@@ -464,10 +464,21 @@ export function facingTile() {
   const fy = P.dir === 'up' ? -1 : P.dir === 'down' ? 1 : 0;
   return { tx: Math.floor(P.x / TS) + fx, ty: Math.floor((P.y + FOOT_DY) / TS) + fy };
 }
+/* CASA E CORTILE DI CHI OSPITA si visitano, non si toccano (MULTIPLAYER.md, regola 3).
+   Scavare era già escluso dalle regole di sempre (`yardInfo` vieta il cortile a chiunque, e
+   la casa è solida), ma raccogliere e abbattere no: un ospite poteva ripulire il giardino di
+   un altro mentre lui guardava. La domanda si fa QUI una volta sola, invece di spargere
+   `if (sonoOspite())` per mezzo gioco. */
+export function casaAltrui(tx, ty) {
+  if (puoToccare(tx, ty, houseFootprint(), yardRect())) return false;
+  toast('🏠 ' + tr('È casa sua: si guarda', "It's their home: look, don't touch"));
+  return true;
+}
 function harvestDeco(kindList, tool, setAdd, arr, src, kind, okMsg, missMsg) {
   const { tx, ty } = facingTile();
   const d = decoAt(tx, ty);
   if (!d || !kindList.includes(d)) return false;
+  if (casaAltrui(tx, ty)) return true;
   if (!S.tools[tool]) { toast(missMsg); return true; } // consumato l'input: serve l'attrezzo
   if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); return true; }
   beginDig(0.5, () => {
@@ -750,12 +761,20 @@ export function nearbyYard() {
 /* lancia 1 🪙 nella fontana: quasi sempre nulla, a salire fino al leggendario (molto raro).
    MAX 10 lanci per città: poi la fontana "riposa" e si ricarica dopo 10 giorni */
 export const FOUNTAIN_MAX = 10, FOUNTAIN_REST = 10, FOUNTAIN_COST = 3;
+/* LA CHIAVE DELLA FONTANA PORTA IL SEME quando si è ospiti (MULTIPLAYER.md, regola 9). I dieci
+   lanci sono della PERSONA, non della città — per questo `fountains` non è fra i campi del
+   mondo e viaggia con te. Ma la chiave è la cella della città, e due mondi diversi hanno città
+   nella stessa cella: senza il seme, i lanci fatti in casa d'altri esaurirebbero la fontana
+   sotto casa propria. A casa propria la chiave resta nuda, o i salvataggi di oggi perderebbero
+   il conto dei lanci già fatti. */
+export function fountainKey(t) { return (sonoOspite() ? S.seed + ':' : '') + t.key; }
 export function fountainState() {
   const t = townForTile(Math.floor(P.x / TS), Math.floor(P.y / TS));
   if (!t) return null;
   if (!S.fountains) S.fountains = {};
-  let f = S.fountains[t.key];
-  if (!f || S.day - f.d0 >= FOUNTAIN_REST) f = S.fountains[t.key] = { n: 0, d0: S.day }; // ricarica
+  const k = fountainKey(t);
+  let f = S.fountains[k];
+  if (!f || S.day - f.d0 >= FOUNTAIN_REST) f = S.fountains[k] = { n: 0, d0: S.day }; // ricarica
   return f;
 }
 /* MINIGIOCO DI MIRA (#3): fermare il cursore sulla zona d'oro dà FORTUNA (0..1), che sposta
@@ -960,6 +979,7 @@ export function nearbyHarvest() {
   return null;
 }
 function pickDeco(h) {
+  if (casaAltrui(h.tx, h.ty)) return true;
   const key = h.tx + ',' + h.ty;
   pickedSet.add(key); if (!S.picked) S.picked = []; S.picked.push(key); mutazione('pick', key);
   choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); mutazione('chop', key);  // sparisce dalla mappa
@@ -1005,6 +1025,7 @@ export function collectPickup() {
      solo decorazione e il giocatore ci provava invano) */
   { const h = nearbyHarvest(); if (h) return pickDeco(h); }
   const p = nearbyPickup(); if (!p) return false;
+  if (casaAltrui(p.tx, p.ty)) return true;
   const id = pickupAt(p.tx, p.ty); if (!id) return false;    // esattamente ciò che è disegnato
   pickedSet.add(p.tx + ',' + p.ty); S.picked.push(p.tx + ',' + p.ty); mutazione('pick', p.tx + ',' + p.ty);
   const g = makeGoodById(id); addGood(g);

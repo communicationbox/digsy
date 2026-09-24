@@ -92,6 +92,13 @@ export function ricevi(raw, now) {
   }
   /* il centralino avvisa che la stanza si è chiusa mandando un `leave` con l'indicazione
      `host`: il mondo era suo, quindi non c'è più niente in cui restare */
+  /* MI HANNO MANDATO VIA. Solo se a dirlo è il padrone di casa (il mittente lo scrive il
+     centralino, non chi manda il messaggio) e solo se riguarda me: il mondo era suo, quindi si
+     torna a casa propria con quello che si ha in tasca. */
+  if (m.t === T.KICK && m.who === MP.room.me && m.id && m.id === MP.room.host) {
+    disconnect('ti ha mandato via chi ospita');
+    return t;
+  }
   if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) disconnect('la stanza si è chiusa');
   return t;
 }
@@ -156,6 +163,20 @@ export function dire(testo, now) {
   if (!manda(T.CHAT, { m })) return false;
   chatDetto(m, [...MP.room.peers.values()].map(p => p.name), now);
   return true;
+}
+
+/* MANDA VIA qualcuno. Solo chi ospita, perché è casa sua (MULTIPLAYER.md, regola 17). Non si
+   stacca la sua socket da qui — il centralino non conosce le regole e non deve impararle: gli
+   si dice a voce alta nella stanza, e il suo gioco torna a casa da solo. Se non obbedisse
+   resterebbe comunque in un mondo che l'ospitante può chiudere uscendo. */
+export function mandaVia(id) {
+  if (MP.stato !== 'dentro' || !sonoOspitante() || !id || id === MP.room.me) return false;
+  if (!MP.room.peers.has(id)) return false;
+  return manda(T.KICK, { who: id });
+}
+/* chi c'è nella stanza, per l'interfaccia: nome, e quanti salti gli sono stati contati */
+export function presenti() {
+  return [...MP.room.peers.values()].map(p => ({ id: p.id, name: p.name, salti: p.salti || 0 }));
 }
 
 export function disconnect(motivo) {

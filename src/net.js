@@ -44,6 +44,7 @@ export const T = {
   CLOCK: 'clock',    // l'orologio dell'ospitante: l'ospite non lo calcola, lo riceve
   CHAT: 'chat',      // una riga detta a voce alta nella stanza
   BYE: 'bye',        // esco di mia volontà
+  KICK: 'kick',      // l'ospitante manda via qualcuno: è casa sua
 };
 
 /* ---------- messaggi ---------- */
@@ -106,12 +107,26 @@ export function decode(raw) {
       const testo = m.m.replace(/[\r\n\t]+/g, ' ').trim().slice(0, MAX_CHAT);
       return testo ? { t: m.t, id: id(m.id) ? m.id : null, m: testo } : null;
     }
+    case T.KICK:
+      /* chi va mandato via. Il mittente lo scrive il CENTRALINO, non il client, quindi chi
+         riceve può controllare che a mandarlo via sia davvero il padrone di casa. */
+      return id(m.who) ? { t: m.t, id: id(m.id) ? m.id : null, who: m.who } : null;
     case T.BYE:
       return { t: m.t };
     default: return null;
   }
 }
 const DIRS = ['up', 'down', 'left', 'right'];
+/* QUANTO IN FRETTA SI PUÒ ANDARE, al massimo. A piedi sono 92 px/s, e il mezzo più veloce
+   triplica: 276. Il tetto qui è più del doppio, perché i pacchetti arrivano a mucchietti e un
+   ritardo di rete fa sembrare velocissimo anche chi cammina. Sopra questo non c'è margine di
+   dubbio: è un salto.
+   E un salto NON è un'accusa — fra amici invitati non esiste un anti-cheat vero, e comunque
+   `window.__digsy` è nel bundle di produzione (debito noto). Quello che si fa è smettere di
+   far scivolare il personaggio attraverso mezza mappa (si azzera la storia: ricompare dov'è) e
+   TENERNE IL CONTO, che l'ospitante vede accanto al nome. La decisione resta di chi ospita:
+   è casa sua, e ha il pulsante per mandare via. */
+export const MAX_VEL = 700;
 /* le quattro cose che si consumano in un mondo. Una coordinata arriva come testo: si pretende
    che SIA una coordinata, o finirebbe come chiave in un insieme del gioco. */
 export const MUTAZIONI = ['dug', 'chop', 'mine', 'pick'];
@@ -138,7 +153,7 @@ export function cleanLook(look) {
 /* Un compagno di stanza. `buf` è la storia recente delle sue posizioni: si tiene perché
    l'interpolazione ha bisogno dei due campioni ATTORNO all'istante che si vuole disegnare. */
 function makePeer(id, name, look) {
-  return { id, name, look, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0 };
+  return { id, name, look, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0 };
 }
 
 export function makeRoom() {
@@ -163,6 +178,14 @@ export function applyMessage(room, m, now = 0) {
     case T.AT: {
       if (!m.id || m.id === room.me) return null;
       const p = room.peers.get(m.id); if (!p) return null;      // uno che non è nella stanza non esiste
+      /* plausibilità: solo DENTRO la stessa scena. Cambiare scena è un salto legittimo — una
+         porta, un imbocco di grotta, il ritorno a casa propria — e contarlo come sospetto
+         segnalerebbe chiunque entri in un negozio. */
+      const ult = p.buf[p.buf.length - 1];
+      if (ult && ult.s === m.s) {
+        const dt = Math.max(1, now - ult.t) / 1000;
+        if (Math.hypot(m.x - ult.x, m.y - ult.y) / dt > MAX_VEL) { p.salti = (p.salti || 0) + 1; p.buf.length = 0; }
+      }
       p.buf.push({ t: now, x: m.x, y: m.y, d: m.d, m: m.m, s: m.s });
       /* la storia si pota QUI e non altrove: se la potatura dipendesse dal disegno, una scheda
          in secondo piano (che non disegna) accumulerebbe posizioni per tutto il tempo. */

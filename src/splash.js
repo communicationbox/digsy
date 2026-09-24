@@ -3,7 +3,7 @@ import { drawHero, applyLook } from './sprites.js';
 import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { MP, connect, disconnect, relayUrl } from './mp.js';
+import { MP, connect, disconnect, relayUrl, presenti, mandaVia, sonoOspitante } from './mp.js';
 import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -525,8 +525,20 @@ function buildMenu(inGame) {
           : tr('Non sei collegato', 'Not connected');
     h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + MP.motivo : ''}</div>`;
     if (MP.stato === 'dentro') {
-      const chi = [...MP.room.peers.values()].map(p => p.name);
-      h += `<div class="sp-note">${chi.length ? tr('Con te: ', 'With you: ') + chi.join(', ') : tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
+      const gente = presenti();
+      if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
+      else {
+        h += `<div class="sp-note">${tr('Con te', 'With you')}</div>`;
+        /* CHI OSPITA PUÒ MANDARE VIA: è casa sua (MULTIPLAYER.md, regola 17). Accanto al nome,
+           se ce ne sono, i SALTI contati: non è un'accusa e non succede niente in automatico —
+           fra amici invitati non esiste un anti-cheat vero, e la decisione è di chi ospita. */
+        for (const g of gente) {
+          const salti = g.salti ? ` <small title="${tr('Si è spostato più in fretta di quanto il gioco permetta', 'Moved faster than the game allows')}">${g.salti} ${tr('salti', 'jumps')}</small>` : '';
+          h += `<div class="sp-riga"><span>${esc(g.name)}${salti}</span>`;
+          if (sonoOspitante()) h += `<button class="sp-btn small sp-via" data-via="${esc(g.id)}">${tr('Manda via', 'Kick out')}</button>`;
+          h += `</div>`;
+        }
+      }
       h += `<div class="sp-note">${tr('Premi T per parlare', 'Press T to talk')}</div>`;
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
@@ -707,6 +719,7 @@ function buildMenu(inGame) {
       go('insieme');
     }; }
   { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('insieme'); }; }
+  document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('insieme'); }; });
   { const t = document.getElementById('sp-mp-tacc'); if (t) t.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
   { const gente = pagine(); document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }
   { const b = document.getElementById('sp-tacc-back'); if (b) b.onclick = () => { taccuinoChi = null; go('taccuino'); }; }

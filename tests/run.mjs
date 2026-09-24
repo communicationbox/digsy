@@ -9626,8 +9626,12 @@ sprites.applyLook();
      saltare: dieci pacchetti al secondo contro sessanta fotogrammi. */
   const p = room.peers.get('u1');
   const manda = (t, x) => net.applyMessage(room, net.decode(net.encode(net.T.AT, { id: 'u1', x, y: 0, d: 'right', m: true })), t);
-  manda(0, 0); manda(100, 100);
-  const meta = net.peerAt(p, 150, 100);        // 150-100 = 50: esattamente a metà fra i due
+  /* 100 px in mezzo secondo = 200 px/s: un passo di corsa vero. Prima erano 100 px in un
+     decimo di secondo — mille al secondo, cioè più veloce del mezzo più veloce del gioco: da
+     quando c'è il controllo di plausibilità quel campione viene contato come un salto e la
+     storia si azzera, e il controllo sull'interpolazione non provava più l'interpolazione. */
+  manda(0, 0); manda(500, 100);
+  const meta = net.peerAt(p, 350, 100);        // 350-100 = 250: esattamente a metà fra i due
   check('a metà strada fra due pacchetti si sta a metà strada (' + (meta && meta.x) + ')', meta && Math.abs(meta.x - 50) < 0.01);
   check('e si tiene il verso e il fatto che sta camminando', meta.dir === 'right' && meta.moving === true);
   check('prima del primo pacchetto si sta al primo', net.peerAt(p, 0, 100).x === 0);
@@ -9870,6 +9874,53 @@ sprites.applyLook();
     check('e il salvataggio funziona di nuovo', state.save() !== false);
   }
 
+
+  /* 8 · È CASA SUA: MANDA VIA (regola 17) e il CONTROLLO DI PLAUSIBILITÀ (debito noto: fra
+     amici invitati non esiste un anti-cheat vero, e `window.__digsy` è nel bundle). */
+  {
+    /* da ospitante: si può mandare via */
+    mp.connect('ws://finta/ws', { name: 'Marco', room: 'casa-mia' });
+    const s5 = fatte[fatte.length - 1];
+    s5.onopen(); s5.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+    s5.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+    check('ospitando, mandare via è possibile', mp.mandaVia('u1') === true);
+    const via = s5.inviati.filter(x => x.t === 'kick').pop();
+    check('e si dice a voce alta nella stanza, non si stacca una socket dal centralino', via && via.who === 'u1');
+    check('ma non si manda via se stessi', mp.mandaVia('io') === false);
+    check('né uno che non c\'è', mp.mandaVia('nessuno') === false);
+
+    /* PLAUSIBILITÀ: un salto azzera la storia (niente scivolata attraverso mezza mappa) e si
+       conta. Cambiare scena, invece, è un salto legittimo: una porta. */
+    const room5 = mp.MP.room;
+    const luca = room5.peers.get('u1');
+    netm.applyMessage(room5, netm.decode(netm.encode(netm.T.AT, { id: 'u1', x: 0, y: 0, s: 'world' })), 0);
+    netm.applyMessage(room5, netm.decode(netm.encode(netm.T.AT, { id: 'u1', x: 100, y: 0, s: 'world' })), 500);
+    check('camminare in fretta non è un salto', (luca.salti || 0) === 0);
+    netm.applyMessage(room5, netm.decode(netm.encode(netm.T.AT, { id: 'u1', x: 9000, y: 0, s: 'world' })), 600);
+    check('attraversare mezza mappa in un decimo di secondo sì', luca.salti === 1);
+    check('e la storia si azzera: ricompare dov\'è, non ci scivola dentro', luca.buf.length === 1);
+    netm.applyMessage(room5, netm.decode(netm.encode(netm.T.AT, { id: 'u1', x: 30000, y: 0, s: 'house' })), 700);
+    check('ma entrare da una porta non è un salto (scena diversa)', luca.salti === 1);
+    check('e l\'ospitante lo vede accanto al nome', (mp.presenti().find(x => x.id === 'u1') || {}).salti === 1);
+    mp.disconnect();
+  }
+
+  /* 9 · MANDATO VIA: si torna a casa propria, e solo se a dirlo è il padrone di casa */
+  {
+    const vis3 = await import('../src/visita.js');
+    mp.connect('ws://finta/ws', { name: 'Marco', room: 'da-luca' });
+    const s6 = fatte[fatte.length - 1];
+    s6.onopen(); s6.onmessage({ data: netm.encode(netm.T.WELCOME, { id: 'io' }) });
+    s6.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }, { id: 'u2', name: 'Ada' }] }) });
+    s6.onmessage({ data: netm.encode(netm.T.MONDO, { mondo: { seed: 77, day: 2, tod: 0.2 }, x: 10, y: 10 }) });
+    check('sono a casa sua', vis3.sonoOspite() === true);
+    /* un ALTRO ospite prova a mandarmi via: non è casa sua */
+    mp.ricevi(JSON.stringify({ t: 'kick', id: 'u2', who: 'io' }), 0);
+    check('un altro ospite non può mandarmi via', mp.MP.stato === 'dentro' && vis3.sonoOspite() === true);
+    mp.ricevi(JSON.stringify({ t: 'kick', id: 'u1', who: 'io' }), 0);
+    check('il padrone di casa sì, e si torna a casa propria', mp.MP.stato === 'spento' && vis3.sonoOspite() === false);
+  }
+
   mp.setTransport((u) => new WebSocket(u));      // si rimette il trasporto vero
 }
 
@@ -9918,11 +9969,36 @@ sprites.applyLook();
     vis.puoToccare(11, 10, hf, yr) === false && vis.puoToccare(5, 5, hf, yr) === false);
   check('ma fuori di lì si gioca davvero', vis.puoToccare(100, 100, hf, yr) === true);
 
+  /* E NON È SOLO UNA FUNZIONE PURA: il gioco la chiama davvero. Scavare nel cortile era già
+     vietato a chiunque dalle regole di sempre (`yardInfo`), ma raccogliere e abbattere no —
+     un ospite poteva ripulire il giardino di un altro mentre lui guardava. */
+  {
+    const gp5 = await import('../src/gameplay.js');
+    const homePrima = Sv.home;
+    Sv.home = { x: 500, y: 500 };
+    check('da ospite, la casa e il cortile dell\'ospitante non si toccano',
+      gp5.casaAltrui(500, 499) === true);
+    check('ma il resto del suo mondo sì', gp5.casaAltrui(500, 5000) === false);
+    Sv.home = homePrima;
+  }
+
   /* l'orologio arriva da chi ospita, e quello che non ha senso si scarta */
   vis.applicaOrologio(30, 0.1);
   check('l\'orologio dell\'ospitante si riceve', Sv.day === 30 && Math.abs(Sv.tod - 0.1) < 1e-9);
   vis.applicaOrologio(-5, 42);
   check('un orologio impossibile si scarta invece di far tornare indietro le stagioni', Sv.day === 30 && Math.abs(Sv.tod - 0.1) < 1e-9);
+
+  /* LA FONTANA: dieci lanci a TESTA (regola 9). La chiave è la cella della città, e due mondi
+     diversi hanno città nella stessa cella: senza il seme, i lanci fatti in casa d'altri
+     esaurirebbero la fontana sotto casa propria. */
+  {
+    const gp6 = await import('../src/gameplay.js');
+    const finta = { key: '3,4' };
+    check('in casa d\'altri la chiave della fontana porta il seme', gp6.fountainKey(finta) === Sv.seed + ':3,4');
+    check('e a casa propria resta nuda, o i salvataggi di oggi perderebbero il conto dei lanci',
+      (vis.torna(), gp6.fountainKey(finta)) === '3,4');
+    vis.entra(suo, 'Luca');
+  }
 
   /* ---- e adesso la prova che conta ---- */
   const tornato = vis.torna();

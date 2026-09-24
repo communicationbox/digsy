@@ -202,6 +202,7 @@ const PROBE = `
         G3.splashView('main');
         setTimeout(function(){
           checkGaps('splash/principale', '#sp-menu .sp-btn');
+          checkStanza();
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
           rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkTraySearch(function(){ checkSettings(finish); }); }); }); }); }); }); });
@@ -694,6 +695,28 @@ const PROBE = `
       regole.length + ' regole per mancini');
   }
 
+  /* LA STANZA IN COMPAGNIA, con dentro qualcuno. Le righe "chi c'è + manda via" nascevano
+     larghe quanto il NOME: il menu centra i figli sul contenuto, quindi tre persone
+     volevano dire tre larghezze diverse nello stesso pannello. Si vede in un secondo in una
+     foto e non lo prende nessun controllo che guardi solo se i comandi ESISTONO — quindi si
+     misura: tutte le righe larghe uguali, e larghe come i pulsanti del menu. */
+  function checkStanza(){
+    if(!G3.mpFinta) return;
+    G3.mpFinta(['Luca','Ada'], true).then(function(){
+      G3.splashView('insieme');
+      setTimeout(function(){
+        var righe=[].slice.call(document.querySelectorAll('#sp-menu .sp-riga'));
+        if(righe.length<2) { A("splash/insieme: la stanza mostra chi c'e", false, righe.length+' righe'); return; }
+        var w=righe.map(function(r){ return Math.round(r.getBoundingClientRect().width); });
+        A('splash/insieme: le righe sono larghe uguali', Math.max.apply(null,w)-Math.min.apply(null,w)<=1, w.join(' / '));
+        var btn=document.querySelector('#sp-menu .sp-btn:not(.sp-via)');
+        var bw=btn?Math.round(btn.getBoundingClientRect().width):0;
+        A('splash/insieme: larghe come i pulsanti del menu', Math.abs(w[0]-bw)<=2, w[0]+' contro '+bw);
+        var via=document.querySelector('[data-via]');
+        A('splash/insieme: chi ospita può mandare via', !!via);
+      }, 120);
+    });
+  }
   function checkGaps(dove, sel){
     var el = document.querySelectorAll(sel);
     if (el.length < 2) return;

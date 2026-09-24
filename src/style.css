@@ -347,6 +347,18 @@ kbd + .pxi{margin-left:2px}
 .tacc-riga{padding:4px 8px;margin:3px 0;border-radius:8px;background:rgba(0,0,0,.18);text-align:left}
 .tacc-riga.io{background:rgba(246,225,138,.14);text-align:right}
 .tacc-riga small{opacity:.55;font-size:.85em}
+/* chi c'è nella stanza: il nome a sinistra, il «manda via» a destra (solo a chi ospita) */
+/* la riga è larga come i pulsanti del menu: `.sp-menu` centra i figli sul contenuto, quindi
+   senza una larghezza sua ogni riga veniva lunga quanto il nome — tre righe, tre larghezze */
+.sp-riga{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2);
+  width:var(--w-menu);max-width:88vw;box-sizing:border-box;
+  padding:var(--sp-1) var(--sp-2);margin:0;border-radius:var(--r-1);background:rgba(0,0,0,.18)}
+.sp-riga > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-riga small{opacity:.55;font-size:.85em}
+/* «manda via» non deve gridare quanto «esci dalla stanza»: è un gesto di casa, non un allarme */
+.sp-riga .sp-btn{margin:0;width:auto;flex:0 0 auto;padding:6px 12px;font-size:var(--fs-sm)}
+.sp-via{background:transparent;color:var(--c-ink-2);box-shadow:inset 0 0 0 2px rgba(241,231,207,.25)}
+.sp-via:hover{color:var(--c-gold-2)}
 
 #chatbar{position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:900;
   display:none;gap:8px;padding:0 12px;align-items:center}
