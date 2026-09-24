@@ -18,7 +18,9 @@ import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
-import { MP, tick as mpTick, orologio as mpOrologio } from './mp.js';
+import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno } from './mp.js';
+import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti } from './sonno.js';
+import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
@@ -27,7 +29,7 @@ import { INT, updateInterior, checkDoorEnter, enterInterior, enterHouseRoom } fr
 import { CAVE, updateCave, checkCaveEnter } from './cave.js';
 import { caveEntranceAt } from './world.js';
 import { showTip } from './ui.js';
-import { waterTile } from './gameplay.js';
+import { waterTile, avanzaNotte } from './gameplay.js';
 import { pruneExpired } from './commission.js';
 import { eggReady } from './breeding.js';
 import { expireQuests, questExpiryText } from './quests.js';
@@ -308,6 +310,36 @@ function boot() {
   fit(); addEventListener('resize', fit);
   applyStaticTexts();
   hydrateIcons();
+  /* IL SONNO IN COMPAGNIA, cucito qui perché è l'unico punto che vede sia la rete sia il
+     gioco (mp.js non decide niente di gioco, e sonno.js non disegna).
+     Chi ha dormito si rifà l'energia; chi era sveglio vede passare il tempo con una
+     dissolvenza e resta stanco — è quello che rende il dormire una scelta. */
+  /* IL «BEN RIPOSATO» del proprio letto: messo da parte quando ci si corica, riscosso adesso —
+     in compagnia fra il coricarsi e il mattino passa del tempo, e darlo subito vorrebbe dire
+     prenderselo anche alzandosi un istante dopo. */
+  const applicaBenRiposato = () => {
+    const n = riscuoti();
+    if (!n) return;
+    S.restFree = n;
+    toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + n + tr(' fatiche non costano energia', ' efforts cost no energy'));
+    save(); updateHUD();
+  };
+  setSuAlba(() => {
+    const dormivo = albaRicevuta();
+    if (sognoAperto()) chiudiSogno(dormivo);
+    /* l'orologio NON si muove qui: a chi ospita l'ho già fatto avanzare io, e a chi è ospite
+       arriva dalla rete (`clock` ogni due secondi). Muoverlo anche qui salterebbe un giorno. */
+    avanzaNotte(dormivo, false);
+    if (dormivo) applicaBenRiposato();
+    if (!dormivo) fadeNotte();          // il racconto per chi ha dormito lo fa già avanzaNotte
+  });
+  /* OSPITANDO: se con l'ultimo che si corica dormono tutti, la notte passa da sé */
+  setSuSonno(() => {
+    if (!qualcunoSiCorica()) return;
+    notteSubito();
+    if (sognoAperto()) chiudiSogno(true);
+    avanzaNotte(true); applicaBenRiposato();
+  });
   armAudioResume(); // musica in loop anche dopo un refresh (parte al primo gesto)
   updateHUD();
   document.getElementById('boot').style.display = 'none';
@@ -414,6 +446,8 @@ if (typeof window !== 'undefined') {
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
          mano lo stato che la rete avrebbe portato. */
+      /* il SOGNO, per fotografarlo: si vede solo dormendo in due */
+      sogno: () => import('./sonno.js').then(so => { so.vadoADormire(true); return apriSogno(); }),
       mpFinta: (nomi, ospito) => import('./mp.js').then(m => {
         m.MP.stato = 'dentro'; m.MP.room.me = 'io'; m.MP.room.host = ospito === false ? 'u1' : 'io';
         m.MP.room.joined = true; m.MP.room.peers.clear();

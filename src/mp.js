@@ -95,6 +95,8 @@ export function ricevi(raw, now) {
   /* MI HANNO MANDATO VIA. Solo se a dirlo è il padrone di casa (il mittente lo scrive il
      centralino, non chi manda il messaggio) e solo se riguarda me: il mondo era suo, quindi si
      torna a casa propria con quello che si ha in tasca. */
+  if (m.t === T.SLEEP && suSonno) suSonno(m.id, m.on);
+  if (m.t === T.DAWN && m.id && m.id === MP.room.host && suAlba) suAlba(!!m.notte);
   if (m.t === T.KICK && m.who === MP.room.me && m.id && m.id === MP.room.host) {
     disconnect('ti ha mandato via chi ospita');
     return t;
@@ -164,6 +166,25 @@ export function dire(testo, now) {
   chatDetto(m, [...MP.room.peers.values()].map(p => p.name), now);
   return true;
 }
+
+/* VADO A DORMIRE (o mi alzo). Gli altri devono saperlo: chi ospita per capire se dormono
+   tutti, gli altri per vedere chi sta aspettando chi. */
+export function dormo(on) {
+  if (MP.stato !== 'dentro') return false;
+  return manda(T.SLEEP, { on: !!on });
+}
+/* LA NOTTE PASSA, e la fa passare chi ospita: l'orologio è suo. */
+export function alba(notte) {
+  if (MP.stato !== 'dentro' || !sonoOspitante()) return false;
+  return manda(T.DAWN, { notte: !!notte });
+}
+/* cosa fare quando arriva un'alba da chi ospita: lo registra chi disegna (ui/main), perché
+   qui dentro non si decide niente di gioco */
+let suAlba = null;
+export function setSuAlba(fn) { suAlba = fn; }
+/* e quando qualcuno si corica: serve solo a chi ospita, per accorgersi che ora dormono tutti */
+let suSonno = null;
+export function setSuSonno(fn) { suSonno = fn; }
 
 /* MANDA VIA qualcuno. Solo chi ospita, perché è casa sua (MULTIPLAYER.md, regola 17). Non si
    stacca la sua socket da qui — il centralino non conosce le regole e non deve impararle: gli

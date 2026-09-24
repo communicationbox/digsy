@@ -369,6 +369,20 @@ kbd + .pxi{margin-left:2px}
 #chatsend{min-height:42px}
 @media(max-width:760px),(pointer:coarse){ #chatbar{bottom:calc(120px + env(safe-area-inset-bottom))} }
 
+/* IL SOGNO — chi dorme in compagnia aspetta qui. Copre tutto, perché sta dormendo; ma il
+   mondo sotto continua ad andare (regola 5: niente pausa quando c'è gente). */
+#dream{position:fixed;inset:0;z-index:950;display:none;align-items:center;justify-content:center;
+  background:rgba(12,12,28,.86)}
+#dream.on{display:flex}
+#dream.fade{background:#0b0b1c;transition:none}
+.dr-box{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);
+  max-width:min(92vw,var(--w-panel));text-align:center;padding:var(--sp-3)}
+/* scala INTERA (regola 3): la scenetta è 112×72 pixel di gioco e si ingrandisce ×4 */
+.dr-cv{width:448px;max-width:88vw;height:auto;image-rendering:pixelated;
+  border:3px solid var(--c-line);border-radius:var(--r-1)}
+.dr-t{font-weight:800;font-size:var(--fs-lg);color:var(--c-gold);letter-spacing:.08em;text-transform:uppercase}
+.dr-n{opacity:.7;font-size:var(--fs-note);line-height:1.5;max-width:420px}
+
 #cmd{position:fixed;left:0;right:0;bottom:0;z-index:1000;display:none;flex-direction:column;gap:6px;
   background:rgba(12,10,8,.97);border-top:2px solid var(--c-line);padding:8px 12px;font-family:ui-monospace,monospace}
 #cmd.on{display:flex}

@@ -45,6 +45,8 @@ export const T = {
   CHAT: 'chat',      // una riga detta a voce alta nella stanza
   BYE: 'bye',        // esco di mia volontà
   KICK: 'kick',      // l'ospitante manda via qualcuno: è casa sua
+  SLEEP: 'sleep',    // vado a dormire / mi sveglio: gli altri devono saperlo
+  DAWN: 'dawn',      // l'ospitante ha fatto passare la notte (o il giorno)
 };
 
 /* ---------- messaggi ---------- */
@@ -111,6 +113,12 @@ export function decode(raw) {
       /* chi va mandato via. Il mittente lo scrive il CENTRALINO, non il client, quindi chi
          riceve può controllare che a mandarlo via sia davvero il padrone di casa. */
       return id(m.who) ? { t: m.t, id: id(m.id) ? m.id : null, who: m.who } : null;
+    case T.SLEEP:
+      return { t: m.t, id: id(m.id) ? m.id : null, on: !!m.on };
+    case T.DAWN:
+      /* `notte` dice se è passata la NOTTE (alba del giorno dopo) o solo il giorno: serve a
+         chi ha dormito per sapere cosa raccontare, non a decidere qualcosa */
+      return { t: m.t, id: id(m.id) ? m.id : null, notte: !!m.notte };
     case T.BYE:
       return { t: m.t };
     default: return null;
@@ -153,7 +161,7 @@ export function cleanLook(look) {
 /* Un compagno di stanza. `buf` è la storia recente delle sue posizioni: si tiene perché
    l'interpolazione ha bisogno dei due campioni ATTORNO all'istante che si vuole disegnare. */
 function makePeer(id, name, look) {
-  return { id, name, look, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0 };
+  return { id, name, look, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0, dorme: false };
 }
 
 export function makeRoom() {
@@ -175,6 +183,10 @@ export function applyMessage(room, m, now = 0) {
       if (m.id !== room.me && room.peers.size < MAX_PEERS) room.peers.set(m.id, makePeer(m.id, m.name, m.look));
       return m.t;
     case T.LEAVE: room.peers.delete(m.id); return m.t;
+    case T.SLEEP: {
+      const p = room.peers.get(m.id); if (!p) return null;
+      p.dorme = m.on; return m.t;
+    }
     case T.AT: {
       if (!m.id || m.id === room.me) return null;
       const p = room.peers.get(m.id); if (!p) return null;      // uno che non è nella stanza non esiste

@@ -6491,11 +6491,15 @@ sprites.applyLook();
     const gpSrc = rfs(new URL('../src/gameplay.js', import.meta.url), 'utf8');
     check('il cambio giorno dell\'orologio avvisa delle missioni scadute',
       /expireQuests\(S\.day\)/.test(mainSrc) && /questExpiryText/.test(mainSrc));
-    const rest = gpSrc.slice(gpSrc.indexOf('export function restInn'));
+    /* il corpo del sonno è `avanzaNotte`: da quando si gioca in due, l'orologio che avanza e
+       l'energia che si rifà sono due cose separate (la notte passa per tutti, l'energia solo a
+       chi ha dormito), e `restInn` è diventato il pezzo che DECIDE. Il vincolo sulle missioni
+       scadute vale ancora, solo una funzione più in là. */
+    const rest = gpSrc.slice(gpSrc.indexOf('export function avanzaNotte'));
     /* i commenti vanno via PRIMA di misurare l'ordine: qui sopra ce n'è uno che spiega
        proprio questo vincolo e nomina updateHUD, e il confronto pescava quello */
     const body = rest.slice(0, rest.indexOf('\n}')).replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*/g, '');
-    check('dormire alla Locanda avvisa delle missioni scadute', /expireQuests/.test(body) && /questExpiryText/.test(body));
+    check('dormire avvisa delle missioni scadute', /expireQuests/.test(body) && /questExpiryText/.test(body));
     check('le scadute si contano PRIMA di updateHUD (che svuota lo stack)',
       body.indexOf('expireQuests') < body.indexOf('updateHUD'));
   }
@@ -10139,6 +10143,96 @@ sprites.applyLook();
   mp2.disconnect();
   sp2.setView('main');
   check('e il menu principale torna su senza crollare', typeof sp2.setView === 'function');
+}
+
+/* ---------- IL SONNO IN COMPAGNIA ----------
+   La regola che sorprende di più (MULTIPLAYER.md 4): andare a letto NON fa passare la notte,
+   perché l'orologio è uno solo ed è di chi ospita. E l'energia si rifà solo a chi ha dormito,
+   nell'istante in cui la notte passa — senza quella differenza basterebbe non dormire mai e
+   aspettare che dorma qualcun altro. */
+{
+  const son = await import('../src/sonno.js');
+  const dre = await import('../src/dream.js');
+  const mpS = await import('../src/mp.js');
+  const netS = await import('../src/net.js');
+  const gpS = await import('../src/gameplay.js');
+  const fatteS = [];
+  mpS.setTransport(() => { const s = { readyState: 1, inviati: [], close() {} , send(x) { s.inviati.push(JSON.parse(x)); } }; fatteS.push(s); return s; });
+
+  /* DA SOLI non cambia niente: il letto porta all'alba, come dal primo giorno */
+  check('da soli il letto funziona come sempre', son.vadoADormire(true) === 'solo' && son.SONNO.dormo === false);
+
+  /* IN DUE, OSPITANDO: si sogna finché l'altro non si corica */
+  mpS.connect('ws://finta/ws', { name: 'Marco', room: 'casa-mia' });
+  const sS = fatteS[fatteS.length - 1];
+  sS.onopen(); sS.onmessage({ data: netS.encode(netS.T.WELCOME, { id: 'io' }) });
+  sS.onmessage({ data: netS.encode(netS.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  check('in compagnia si sogna e si aspetta', son.vadoADormire(true) === 'sogno' && son.SONNO.dormo === true);
+  check('e si dice agli altri che si sta dormendo', sS.inviati.some(x => x.t === 'sleep' && x.on === true));
+  check('si sa chi si sta aspettando', son.svegli().join() === 'Luca');
+  check('e finché lui è sveglio la notte non passa', son.tuttiDormono() === false);
+
+  /* si corica anche lui: adesso dormono tutti.
+     Il messaggio si applica alla stanza e NON si passa da `mp.ricevi`: il gioco vero, a
+     questo punto, fa passare la notte e sveglia tutti (è proprio quello che deve fare, ed è
+     registrato in main.js) — misurandolo da lì si guarderebbe uno stato già ripulito. Qui si
+     prova la DECISIONE, che è la parte che sta in questo modulo. */
+  netS.applyMessage(mpS.MP.room, netS.decode(netS.encode(netS.T.SLEEP, { id: 'u1', on: true })));
+  check('quando si coricano tutti, la notte passa da sé', son.tuttiDormono() === true && son.qualcunoSiCorica() === true);
+  son.notteSubito();
+  check('e nessuno resta a dormire', son.SONNO.dormo === false);
+  check('l\'alba parte da chi ospita', sS.inviati.some(x => x.t === 'dawn'));
+
+  /* L'ENERGIA: solo a chi ha dormito, e nell'istante in cui la notte passa */
+  const Sn = state.S;
+  Sn.energy = 3; Sn.maxEnergy = 60; Sn.day = 5; Sn.tod = 0.8;   // notte fonda
+  gpS.avanzaNotte(true);
+  check('chi ha dormito si rifà l\'energia', Sn.energy === 60);
+  check('e la notte è passata', Sn.day === 6);
+  Sn.energy = 3; Sn.tod = 0.8;
+  gpS.avanzaNotte(false);
+  check('chi è rimasto sveglio NO: è quello che rende il dormire una scelta', Sn.energy === 3);
+  check('ma per lui il tempo passa lo stesso', Sn.day === 7);
+  Sn.energy = 3; Sn.tod = 0.8; Sn.day = 7;
+  gpS.avanzaNotte(true, false);
+  check('e chi riceve l\'alba dalla rete non fa avanzare l\'orologio due volte', Sn.day === 7 && Sn.energy === 60);
+
+  /* IL SOGNO SI DISEGNA (regola 9): un modulo che nessuno esegue è un crash che aspetta */
+  {
+    const cvS = document.createElement('canvas'); cvS.width = 112; cvS.height = 72;
+    const ctxS = cvS.getContext('2d');
+    let errS = '';
+    try { dre.apriSogno(); } catch (e) { errS = e.message; }
+    check('il sogno si apre senza esplodere', errS === '', errS);
+    let colpi = 0; const vero = ctxS.fillRect; ctxS.fillRect = function (...a) { colpi++; return vero.apply(this, a); };
+    try { dre.disegnaSogno.call(null, 1000); } catch (e) { errS = e.message; }
+    check('e si disegna davvero', errS === '', errS);
+  }
+
+  /* IL «BEN RIPOSATO» del proprio letto si riscuote col mattino, non infilandosi sotto le
+     coperte: in compagnia fra le due cose passa del tempo, e darlo subito vorrebbe dire
+     prenderselo anche alzandosi un istante dopo. */
+  son.prometti(4);
+  check('il bonus del proprio letto resta in sospeso mentre si sogna', son.SONNO.bonus === 4);
+  check('e si riscuote una volta sola', son.riscuoti() === 4 && son.riscuoti() === 0);
+
+  /* MI SVEGLIO. Da ospite, la notte NON passa: non è il mio orologio. */
+  son.sveglia();
+  mpS.disconnect();
+  mpS.connect('ws://finta/ws', { name: 'Marco', room: 'da-luca' });
+  const s2S = fatteS[fatteS.length - 1];
+  s2S.onopen(); s2S.onmessage({ data: netS.encode(netS.T.WELCOME, { id: 'io' }) });
+  s2S.onmessage({ data: netS.encode(netS.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  son.vadoADormire(true);
+  check('da ospite, svegliarsi non muove l\'orologio di nessuno', son.miSveglio(true) === false);
+  check('e non si manda nessuna alba', !s2S.inviati.some(x => x.t === 'dawn'));
+  /* l'alba arriva da chi ospita: solo la SUA vale */
+  son.vadoADormire(true);
+  netS.applyMessage(mpS.MP.room, netS.decode(netS.encode(netS.T.SLEEP, { id: 'u1', on: true })));
+  check('chi stava dormendo ha diritto all\'energia', son.albaRicevuta() === true);
+  check('chi era sveglio no', son.albaRicevuta() === false);
+  mpS.disconnect();
+  mpS.setTransport((u) => new WebSocket(u));
 }
 
 /* ---------- IL TACCUINO A SCHERMO ----------

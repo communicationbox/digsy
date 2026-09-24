@@ -7,6 +7,8 @@ import { bodyHits, feetTile, FOOT_DY } from './body.js';
    NIENTE se si gioca da soli — chi non ha compagnia non paga questo ramo (vedi mp.js). */
 import { mutazione } from './mp.js';
 import { sonoOspite, puoToccare } from './visita.js';
+import { vadoADormire, notteSubito, prometti, riscuoti } from './sonno.js';
+import { apriSogno, staSognando } from './dream.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo, houseFootprint } from './world.js';
 import { compass } from './compass.js';
@@ -1346,29 +1348,48 @@ export function canSleep() { return isDebug() || S.sleepBlockHalf == null || cur
 export function sleepBlocked() { return !canSleep(); }
 /* dormire di GIORNO → ci si sveglia di NOTTE (stesso giorno);
    dormire di NOTTE → alba del giorno dopo. Poi va passata una metà sveglio. */
-export function restInn() {
-  /* IN CASA D'ALTRI NON SI SPOSTA L'OROLOGIO. Dormire porta all'alba del giorno dopo, e il
-     giorno qui è di chi ospita: farlo avanzare dall'ospite vorrebbe dire cambiare il cielo, le
-     stagioni e le scadenze di un'altra persona. Il sonno in compagnia (chi dorme sogna e
-     aspetta che l'ospitante decida) arriva con la fetta delle regole fini; fino ad allora si
-     dice di no, chiaramente, invece di far succedere una cosa che nessuno ha chiesto. */
-  if (sonoOspite()) { toast('🌙 ' + tr('Qui l\'orologio è di chi ospita', 'The clock here belongs to your host')); return false; }
-  if (!canSleep()) { toast(tr('Troppo presto per dormire', 'Too soon to sleep')); return false; }
+/* L'OROLOGIO CHE AVANZA, e l'energia SOLO A CHI HA DORMITO.
+   Sono due cose separate da quando si gioca in due: la notte passa per tutti, ma chi è
+   rimasto sveglio a scavare non si ritrova riposato (MULTIPLAYER.md, regola 4) — senza questa
+   differenza basterebbe non dormire mai e aspettare che dorma qualcun altro.
+   `muoviOrologio` è falso per chi riceve l'alba da chi ospita: il suo orologio arriva già
+   avanzato dalla rete, e farlo avanzare due volte salterebbe un giorno. */
+export function avanzaNotte(dormito, muoviOrologio = true) {
   const night = isNight();
-  if (night) { S.day++; S.tod = 0.02; }   // notte → alba del giorno dopo
-  else { S.tod = 0.60; }                   // giorno → notte fonda dello stesso giorno
+  if (muoviOrologio) {
+    if (night) { S.day++; S.tod = 0.02; }   // notte → alba del giorno dopo
+    else { S.tod = 0.60; }                   // giorno → notte fonda dello stesso giorno
+  }
   /* dormire salta a domani senza passare dall'orologio del game loop: la scadenza delle
      missioni va CONTATA qui, e prima di updateHUD — è updateHUD stesso a svuotare lo stack
      scaduto, quindi dopo non ci sarebbe più niente da contare e chi va a letto con tre
      richieste in corso si sveglierebbe senza che nessuno gliel'abbia spiegato. */
-  const questsLost = night ? expireQuests(S.day) : 0;
-  S.energy = S.maxEnergy;
+  const questsLost = (night && muoviOrologio) ? expireQuests(S.day) : 0;
+  if (dormito) S.energy = S.maxEnergy;
   S.sleepBlockHalf = curHalf() + 1;        // sblocco solo dopo una metà passata sveglio
   save(); updateHUD();
-  toast(night ? (tr('Alba del giorno ', 'Dawn of day ') + S.day + tr('! Energia piena', '! Full energy'))
-    : tr('Cala la notte. Energia piena', 'Night falls. Full energy'));
+  if (dormito) {
+    toast(night ? (tr('Alba del giorno ', 'Dawn of day ') + S.day + tr('! Energia piena', '! Full energy'))
+      : tr('Cala la notte. Energia piena', 'Night falls. Full energy'));
+  } else {
+    /* chi non ha dormito deve SAPERE perché non è riposato, o sembra un difetto */
+    toast('🌙 ' + tr('Il tempo è passato, ma non hai dormito: niente energia',
+      "Time passed, but you didn't sleep: no energy back"));
+  }
   { const t = questExpiryText(questsLost); if (t) toast(t); }
   return true;
+}
+export function restInn() {
+  if (!canSleep()) { toast(tr('Troppo presto per dormire', 'Too soon to sleep')); return false; }
+  /* IN COMPAGNIA NON SI DORME DA SOLI. L'orologio è uno solo ed è di chi ospita: chi va a
+     letto sogna e aspetta, e la notte passa quando dormono tutti o quando lo decide il
+     padrone di casa. Il sogno lo apre `dream.js`; qui si decide e basta. */
+  const modo = vadoADormire(isNight());
+  if (modo === 'sogno') { apriSogno(); return true; }
+  if (modo === 'subito') { notteSubito(); return avanzaNotte(true); }
+  /* da soli, in casa d'altri, non si sposta comunque l'orologio: sarebbe il cielo di un altro */
+  if (sonoOspite()) { toast('🌙 ' + tr('Qui l\'orologio è di chi ospita', 'The clock here belongs to your host')); return false; }
+  return avanzaNotte(true);
 }
 /* DORMIRE NEL PROPRIO LETTO. La Locanda resta (è comoda quando sei lontano), ma il letto di
    casa dà in più il "ben riposato": tante fatiche gratis quanto è curata la stanza. È il
@@ -1376,9 +1397,11 @@ export function restInn() {
    scoprire (REGOLA #7: ogni testo dice cosa fa davvero). */
 export function sleepAtHome(room) {
   const bonus = restFreeFor(room);
-  if (!restInn()) return false;
-  S.restFree = bonus;
-  if (bonus) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + bonus + tr(' fatiche non costano energia', ' efforts cost no energy'));
+  prometti(bonus);                       // si riscuote quando la notte passa, non adesso
+  if (!restInn()) { prometti(0); return false; }
+  if (staSognando()) return true;        // in compagnia il racconto arriva col mattino
+  S.restFree = riscuoti();
+  if (S.restFree) toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + S.restFree + tr(' fatiche non costano energia', ' efforts cost no energy'));
   else toast('😴 ' + tr('Hai dormito. La stanza è spoglia: niente bonus', 'You slept. The room is bare: no bonus'));
   save(); updateHUD();
   return true;

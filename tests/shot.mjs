@@ -386,6 +386,9 @@ async function main() {
         /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
         var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();
       }); }
+    /* 'sogno' = quello che vede chi dorme in compagnia e aspetta che la notte passi */
+    else if (${JSON.stringify(vista)} === 'sogno') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.mpFinta) G.mpFinta(['Luca'], true).then(function(){ return G.sogno && G.sogno(); }); }
     /* 'stanza' = "Gioca in compagnia" CON DENTRO qualcuno: da soli è una riga di testo, e chi
        c'è e il «manda via» accanto al nome non si vedrebbero mai */
     else if (${JSON.stringify(vista)} === 'stanza') {

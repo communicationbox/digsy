@@ -54,6 +54,8 @@ src/render.js       composizione della scena: entità, player, veicoli, scavo, b
 src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
 src/mapui.js        mappa del mondo (pergamena, zoom, punti d'interesse)
+src/sonno.js        sonno in compagnia: chi dorme sogna e aspetta (puro, decide e basta)
+src/dream.js        il sogno a schermo: cielo a fasce, luna a falce, le Z che salgono, i pulsanti
 src/prefs.js        preferenze del giocatore FUORI dal salvataggio (suggerimenti, comandi, mano)
 src/tapmove.js      "tocca dove andare": meta, cammino, arrivo
 src/path.js         A* su caselle (aggira gli ostacoli, tetto 40 caselle)

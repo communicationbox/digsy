@@ -127,8 +127,19 @@ Una per volta, ognuna provabile da sola.
    Il nome della persona **lo sceglie qualcun altro**: non entra grezzo nel markup, e nel
    bottone dell'elenco non fa nemmeno da chiave — ripulito dei caratteri scomodi non
    combacerebbe più con la pagina salvata, e si aprirebbe una conversazione vuota. Va l'indice.
-5. **Le regole fini.** Fatte, tranne il sonno collettivo col sogno (l'ultima cosa che manca
-   lato gioco):
+5. ~~**Le regole fini.**~~ **FATTE** (lato gioco):
+   - **Il sonno in compagnia** (`sonno.js` decide, `dream.js` disegna, `main.js` li cuce: è
+     l'unico posto che vede sia la rete sia il gioco). Chi va a letto **sogna e aspetta**: se
+     dormono tutti la notte passa da sé, se dorme solo chi ospita è lui a scegliere fra
+     *svegliati al mattino* (il tempo passa per tutti) e *alzati: non è successo niente*.
+     L'ospite ha solo *svegliati*, perché l'orologio non è suo.
+     L'**energia si rifà a chi ha dormito e nell'istante in cui la notte passa**: non al
+     momento di coricarsi, o si andrebbe a letto e ci si rialzerebbe a ripetizione. Chi è
+     rimasto sveglio vede passare il tempo con una dissolvenza e **resta stanco** — senza
+     quella differenza basterebbe non dormire mai e aspettare che dorma qualcun altro, e il
+     gioco glielo DICE invece di lasciarglielo scoprire.
+     Il «ben riposato» del proprio letto si mette da parte e si riscuote col mattino, per la
+     stessa ragione. E il sogno si chiude da sé se la stanza finisce mentre si dorme.
    - **Casa e cortile non si toccano davvero.** Scavare era già vietato a chiunque dalle regole
      di sempre (`yardInfo`, e la casa è solida), ma raccogliere e abbattere no: un ospite
      poteva ripulire il giardino di un altro mentre lui guardava. La domanda si fa in un punto
