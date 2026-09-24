@@ -166,10 +166,11 @@ Una per volta, ognuna provabile da sola.
   togliere: è la sonda da cui dipendono foto, e2e e prova su telefono, che girano tutti contro
   la build di produzione. Fra amici invitati non vale un anti-cheat vero; bastano il «manda
   via» e un controllo di velocità.
-- **`public/privacy.html` va riscritta.** Anche senza conservare un solo messaggio, da qui in
-  avanti esistono un account legato a una persona, una lista di amici e uno stato "sto
-  giocando" visibile ad altri. Oggi la pagina dice che non si raccoglie niente che dica chi è
-  la persona, e non sarà più vero.
+- **`public/privacy.html`**: aggiornata per quello che esiste OGGI — il centralino che inoltra
+  nome, aspetto, posizione, mutazioni, orologio e chat fra i presenti di una stanza senza
+  conservare niente, e il taccuino che resta sul dispositivo. **Va ripresa con la fetta 3**:
+  la lista di amici e lo stato "sto giocando" visibile ad altri sono dati nuovi, e quelli sì
+  che il server dovrà tenerli.
 - **Su itch il gioco gira in un iframe su un'altra origine**: l'accesso Google coi cookie di
   terze parti è un problema noto. Probabile che il multiplayer semplicemente non esista nella
   versione itch.
