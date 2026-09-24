@@ -1794,5 +1794,11 @@ export const RU = {
   'The clock here belongs to your host': 'Здесь часами распоряжается хозяин',
   'Say something…': 'Напишите что-нибудь…',
   'Send': 'Отправить',
+  'Notebook': 'Блокнот',
+  "Nothing yet. What you say to each other stays here.": 'Пока пусто. Здесь остаётся всё, что вы друг другу сказали.',
+  'Who you talked to, most recent first': 'С кем вы говорили, сначала недавние',
+  'Tear up the whole notebook': 'Порвать весь блокнот',
+  'All conversations': 'Все разговоры',
+  'Tear up this page': 'Порвать эту страницу',
   'Room code — make one up and tell whoever you want to invite': 'Код комнаты — придумайте его и скажите тому, кого хотите позвать',
 };

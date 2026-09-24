@@ -343,6 +343,11 @@ kbd + .pxi{margin-left:2px}
 /* LA RIGA DELLA CHAT. Sta in basso ma SOPRA i comandi a schermo, e si vede solo quando c'è
    compagnia: in solitaria non deve esserci niente in più da guardare.
    `bottom` tiene conto della tacca del telefono, come i comandi touch. */
+/* una riga del taccuino: le mie a destra come in qualsiasi chat, le altrui a sinistra */
+.tacc-riga{padding:4px 8px;margin:3px 0;border-radius:8px;background:rgba(0,0,0,.18);text-align:left}
+.tacc-riga.io{background:rgba(246,225,138,.14);text-align:right}
+.tacc-riga small{opacity:.55;font-size:.85em}
+
 #chatbar{position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:900;
   display:none;gap:8px;padding:0 12px;align-items:center}
 #chatbar.on{display:flex}

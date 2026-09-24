@@ -116,14 +116,17 @@ Una per volta, ognuna provabile da sola.
    *Per intanto* si entra con un **codice di stanza** da dirsi a voce (menu → Insieme): chi
    apre per primo è il padrone di casa. Serve a poter provare tutto il resto senza aspettare
    gli account, e sparirà quando ci saranno gli inviti veri.
-4. ~~**Chat.**~~ **FATTA** tranne il taccuino da rileggere a schermo (i dati ci sono, manca la
-   pagina). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
+4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Insieme → Taccuino: l'elenco
+   di chi si è sentito, dal più recente, e la conversazione con l'ora di ogni riga). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
    restare sotto la barra), taccuino in `localStorage` **fuori dal salvataggio**, riga di testo
    che si apre con **T** e col pulsante, e i comandi che si spengono mentre si scrive — quella
    regola c'era già (`isTyping`), la chat non ne ha avuta bisogno di una nuova.
    L'ora di ogni riga è **monotòna**: tre messaggi nello stesso millisecondo rendevano casuale
    l'ordine del taccuino, e "con chi ho parlato per ultimo" è il modo in cui si cerca una
    conversazione.
+   Il nome della persona **lo sceglie qualcun altro**: non entra grezzo nel markup, e nel
+   bottone dell'elenco non fa nemmeno da chiave — ripulito dei caratteri scomodi non
+   combacerebbe più con la pagina salvata, e si aprirebbe una conversazione vuota. Va l'indice.
 5. **Le regole fini.** Casa intoccabile, sonno collettivo col sogno, museo, fontana per
    persona, manda via, controllo di plausibilità sulla velocità.
 

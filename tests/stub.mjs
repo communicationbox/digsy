@@ -99,11 +99,60 @@ export function installStubs() {
   }
   /* gli elementi RICORDANO i listener e le classi: senza, i test non potevano simulare un
      tasto o un tocco, e moduli come input.js restavano completamente non provati */
+  /* I NODI SCRITTI DENTRO innerHTML ESISTONO DAVVERO (almeno quanto basta).
+     Finché `querySelectorAll` rispondeva sempre `[]`, ogni aggancio fatto per SELETTORE — e
+     non per id — risultava provato e non lo era: il test chiamava la funzione che disegna, la
+     funzione agganciava zero bottoni, e nessuno se ne accorgeva. Qui, quando un elemento
+     riceve dell'HTML, si estraggono i tag con un `id` o un `data-…` e se ne fanno elementi
+     stub veri, STABILI: il modulo ci scrive sopra `onclick`, il test ritrova lo stesso
+     oggetto e lo clicca. Non è un browser — è un elenco di nodi con attributi e contenuto. */
+  const nodi = [];            // tutti i nodi vivi, nell'ordine in cui sono stati scritti
+  const attrRe = /([a-zA-Z_:][-a-zA-Z0-9_:.]*)\s*=\s*"([^"]*)"/g;
+  function scansiona(host, html) {
+    for (let i = nodi.length - 1; i >= 0; i--) if (nodi[i].__host === host) nodi.splice(i, 1);
+    const re = /<([a-zA-Z][a-zA-Z0-9]*)((?:\s+[^>]*?)?)>/g;
+    let m;
+    while ((m = re.exec(String(html)))) {
+      const tag = m[1].toLowerCase(), raw = m[2] || '';
+      const attrs = {}; attrRe.lastIndex = 0;
+      let a; while ((a = attrRe.exec(raw))) attrs[a[1].toLowerCase()] = a[2];
+      if (!attrs.id && !Object.keys(attrs).some(k => k.startsWith('data-'))) continue;
+      const n = els[attrs.id] && attrs.id ? els[attrs.id] : el(attrs.id || '');
+      if (attrs.id) els[attrs.id] = n;
+      n.tagName = tag.toUpperCase();
+      n.className = attrs.class || '';
+      for (const c of String(attrs.class || '').split(/\s+/)) if (c) n.classList.add(c);
+      for (const k of Object.keys(attrs)) if (k.startsWith('data-'))
+        n.dataset[k.slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase())] = attrs[k];
+      /* il contenuto: fino al tag di chiusura corrispondente, o quel che resta */
+      const chiudi = String(html).indexOf('</' + tag, re.lastIndex);
+      n.innerHTML = String(html).slice(re.lastIndex, chiudi < 0 ? undefined : chiudi);
+      n.__host = host;
+      nodi.push(n);
+    }
+  }
+  function combacia(n, sel) {
+    const s = String(sel).trim();
+    if (s.startsWith('#')) return n.id === s.slice(1);
+    if (s.startsWith('.')) return n.classList.contains(s.slice(1));
+    const at = s.match(/^\[([-a-zA-Z0-9_]+)(?:=["']?([^\]"']*)["']?)?\]$/);
+    if (at) {
+      const k = at[1].startsWith('data-') ? at[1].slice(5).replace(/-([a-z])/g, (_, c) => c.toUpperCase()) : null;
+      if (!k) return false;
+      return k in n.dataset && (at[2] === undefined || n.dataset[k] === at[2]);
+    }
+    return n.tagName === s.toUpperCase();
+  }
+  const cerca = sel => nodi.filter(n => combacia(n, sel));
+
   const el = id => {
     const cls = new Set();
     const L = {};
-    return {
-      id, textContent: '', innerHTML: '', value: '',
+    let html = '';
+    const nodo = {
+      id, textContent: '', value: '',
+      get innerHTML() { return html; },
+      set innerHTML(v) { html = String(v); scansiona(nodo, html); },
       style: { setProperty() {}, removeProperty() {}, getPropertyValue: () => '' },
       classList: {
         add: (...c) => c.forEach(x => cls.add(x)),
@@ -123,10 +172,11 @@ export function installStubs() {
       getBoundingClientRect: () => ({ left: 0, top: 0, width: 100, height: 100, right: 100, bottom: 100 }),
       disabled: false, width: 300, height: 150,
       getContext() { if (!this.__ctx) this.__ctx = makeCtx(this); return this.__ctx; },
-      querySelectorAll: () => [],
-      querySelector: sel => globalThis.document.querySelector(sel),
+      querySelectorAll: sel => cerca(sel),
+      querySelector: sel => cerca(sel)[0] || globalThis.document.querySelector(sel),
       focus() {}, blur() {},
     };
+    return nodo;
   };
   /* querySelector deve restituire un elemento vero: molti moduli lo usano per prendere
      nodi statici dell'HTML, e con `undefined` esplodevano appena importati */
@@ -134,7 +184,7 @@ export function installStubs() {
   globalThis.document = {
     getElementById: id => { if (!els[id]) els[id] = el(id); return els[id]; },
     querySelector: sel => { const id = String(sel).replace(/^[#.]/, ''); if (!els[id]) els[id] = el(id); return els[id]; },
-    querySelectorAll: () => [], createElement: el, readyState: 'complete',
+    querySelectorAll: sel => cerca(sel), createElement: el, readyState: 'complete',
     addEventListener: (t, fn) => { (docL[t] = docL[t] || []).push(fn); },
     removeEventListener: (t, fn) => { docL[t] = (docL[t] || []).filter(f => f !== fn); },
     dispatchEvent: ev => { (docL[ev.type] || []).forEach(fn => fn(ev)); return true; },

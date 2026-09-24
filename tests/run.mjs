@@ -10065,5 +10065,39 @@ sprites.applyLook();
   check('e il menu principale torna su senza crollare', typeof sp2.setView === 'function');
 }
 
+/* ---------- IL TACCUINO A SCHERMO ----------
+   Regola 9 di nuovo: la pagina che rilegge le conversazioni. Il nome della persona lo sceglie
+   qualcun ALTRO, quindi qui si prova anche quello: che non entri grezzo nel markup e che
+   cliccarlo apra davvero la sua pagina (ripulito dei caratteri scomodi non combacerebbe più
+   con la chiave salvata, e si leggerebbe una conversazione vuota). */
+{
+  const sp3 = await import('../src/splash.js');
+  const chat3 = await import('../src/chat.js');
+  chat3.dimenticaTutto();
+  chat3.segna('Luca', 'ci vediamo alla fontana', false);
+  chat3.segna('Luca', 'arrivo', true);
+  const cattivo = '<img src=x>';
+  chat3.segna(cattivo, 'ciao', false);
+
+  let err = '';
+  try { sp3.setView('taccuino'); } catch (e) { err = e.message; }
+  const box3 = document.getElementById('sp-menu') || document.getElementById('splash');
+  const html3 = (box3 && box3.innerHTML) || '';
+  check('il taccuino si disegna', err === '', err);
+  check('ed elenca con chi si è parlato', html3.includes('Luca'));
+  check('il nome altrui non entra grezzo nel markup', !html3.includes('<img src=x>'));
+
+  /* si apre la pagina di chi ha il nome scomodo: deve essere LA SUA */
+  const btns = [...document.querySelectorAll('[data-tacc]')];
+  const suo = btns.find(b => /img/.test(b.innerHTML));
+  check('il bottone della persona c\'è davvero (se no il controllo qui sotto non prova niente)', !!suo);
+  if (suo) suo.onclick();
+  const html4 = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+  check('e cliccandolo si legge la sua conversazione, non una pagina vuota', html4.includes('ciao'));
+
+  sp3.setView('main');
+  chat3.dimenticaTutto();
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

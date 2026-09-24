@@ -4,6 +4,7 @@ import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
 import { MP, connect, disconnect, relayUrl } from './mp.js';
+import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
 import { commandHelp } from './commands.js';
@@ -250,6 +251,7 @@ export function splashActive() { return on; }
 /* usata dalle pagine di prova per aprire un sottomenu e verificarne l'uscita */
 /* IL CODICE DELLA STANZA sta nelle preferenze del dispositivo, non nel salvataggio: è come ci
    si collega, non parte della partita — e il salvataggio va anche in cloud. */
+let taccuinoChi = null;      // quale conversazione si sta rileggendo
 const CHIAVE_STANZA = 'digsy_stanza';
 function codiceStanza() { try { return localStorage.getItem(CHIAVE_STANZA) || ''; } catch (e) { return ''; } }
 function setCodiceStanza(v) { try { localStorage.setItem(CHIAVE_STANZA, v); } catch (e) { /* pazienza */ } }
@@ -527,11 +529,42 @@ function buildMenu(inGame) {
       h += `<div class="sp-note">${chi.length ? tr('Con te: ', 'With you: ') + chi.join(', ') : tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
       h += `<div class="sp-note">${tr('Premi T per parlare', 'Press T to talk')}</div>`;
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
+      h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     } else {
       h += `<div class="sp-note">${tr('Codice della stanza — inventatelo, e ditelo a chi vuoi invitare', 'Room code — make one up and tell whoever you want to invite')}</div>`;
       h += `<input id="sp-mp-code" class="nameinput" maxlength="24" value="${(codiceStanza() || '').replace(/["<>&]/g, '')}">`;
       h += `<button class="sp-btn primary" id="sp-mp-entra">${tr('Entra', 'Join')}</button>`;
       h += `<div class="sp-note">${tr('Chi apre per primo la stanza è il padrone di casa: si gioca nel suo mondo, col suo orologio.', 'Whoever opens the room first is the host: you play in their world, on their clock.')}</div>`;
+      h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
+    }
+    h += backBar();
+  } else if (view === 'taccuino') {
+    /* IL TACCUINO — quello che ci si è detti, una pagina per persona. Sta sul dispositivo e
+       non nel salvataggio: le conversazioni non devono diventare roba di nessun server. */
+    h += closeX();
+    h += `<div class="sp-title2">📝 ${tr('Taccuino', 'Notebook')}</div>`;
+    const gente = pagine();
+    if (!gente.length) {
+      h += `<div class="sp-note">${tr('Ancora niente. Qui resta quello che vi siete detti.', "Nothing yet. What you say to each other stays here.")}</div>`;
+    } else if (!taccuinoChi) {
+      h += `<div class="sp-note">${tr('Con chi hai parlato, dal più recente', 'Who you talked to, most recent first')}</div>`;
+      /* IL NOME LO SCEGLIE L'ALTRO, quindi non entra mai grezzo nel markup (`esc`) e non fa
+         nemmeno da chiave nel bottone: ripulito dei caratteri scomodi non combacerebbe più
+         con la pagina salvata, e si aprirebbe una conversazione vuota. Va l'INDICE. */
+      gente.forEach((chi, i) => {
+        const p = pagina(chi), ultima = p.length ? p[p.length - 1].m : '';
+        h += `<button class="sp-btn" data-tacc="${i}">${esc(chi)}<br><small>${esc(ultima.slice(0, 40))}</small></button>`;
+      });
+      h += `<button class="sp-btn small danger" id="sp-tacc-tutto">${tr('Strappa tutto il taccuino', 'Tear up the whole notebook')}</button>`;
+    } else {
+      h += `<div class="sp-note">${esc(taccuinoChi)}</div><div class="sp-log">`;
+      for (const r of pagina(taccuinoChi)) {
+        const quando = new Date(r.t);
+        const ora = String(quando.getHours()).padStart(2, '0') + ':' + String(quando.getMinutes()).padStart(2, '0');
+        h += `<div class="tacc-riga${r.io ? ' io' : ''}"><small>${ora}</small> ${esc(r.m)}</div>`;
+      }
+      h += `</div><button class="sp-btn small" id="sp-tacc-back">${tr('Tutte le conversazioni', 'All conversations')}</button>`;
+      h += `<button class="sp-btn small danger" id="sp-tacc-stracc">${tr('Strappa questa pagina', 'Tear up this page')}</button>`;
     }
     h += backBar();
   } else if (view === 'changelog') {
@@ -674,6 +707,11 @@ function buildMenu(inGame) {
       go('insieme');
     }; }
   { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('insieme'); }; }
+  { const t = document.getElementById('sp-mp-tacc'); if (t) t.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
+  { const gente = pagine(); document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }
+  { const b = document.getElementById('sp-tacc-back'); if (b) b.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
+  { const b = document.getElementById('sp-tacc-stracc'); if (b) b.onclick = () => { dimentica(taccuinoChi); taccuinoChi = null; go('taccuino'); }; }
+  { const b = document.getElementById('sp-tacc-tutto'); if (b) b.onclick = () => { dimenticaTutto(); taccuinoChi = null; go('taccuino'); }; }
   const bCm = document.getElementById('sp-cmds'); if (bCm) bCm.onclick = () => go('commands');
   const bCr = document.getElementById('sp-credits'); if (bCr) bCr.onclick = () => go('credits');
   const bIn = document.getElementById('sp-install'); if (bIn) bIn.onclick = () => go('install');
