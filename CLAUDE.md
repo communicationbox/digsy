@@ -102,6 +102,10 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   attacca la partita locale al centralino di `digsy.dev-box.it`, così il browser sulla macchina
   e il telefono sul sito vero finiscono nella stessa stanza. Senza, i due parlano con due
   centralini diversi e non si incontrano mai. `?ws=wss://…` per un centralino qualsiasi.
+  **La scelta si ricorda**: si scrive una volta e resta (`digsy_ws`), perché il parametro si
+  perdeva al primo ricaricamento e il gioco tornava al centralino locale SENZA dirlo — nel
+  registro del centralino si vedevano sei ingressi di fila sempre «(1)», cioè sempre una
+  persona sola. `?ws=locale` annulla.
   **Il parametro si guarda SOLO da localhost** (`inCasa` in mp.js): il gioco pubblicato non
   deve poter essere dirottato su un altro centralino da un indirizzo confezionato, e un test
   lo pretende. Sempre in casa, la **cassetta delle lettere** mostra la posta anche senza

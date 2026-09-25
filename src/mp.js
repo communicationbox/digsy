@@ -61,15 +61,33 @@ export const CENTRALINO_ONLINE = 'wss://digsy.dev-box.it/ws';
      ?ws=wss://…  → un centralino qualsiasi (prove)
    Fuori da casa il parametro NON si guarda: il gioco pubblicato non deve poter essere dirottato
    su un altro centralino da un indirizzo confezionato. */
+/* LA SCELTA DEL CENTRALINO SI RICORDA, come la stanza. `?ws=online` si scriveva una volta e
+   si perdeva al primo ricaricamento (o aprendo una scheda nuova sull'indirizzo nudo): da lì il
+   gioco tornava a parlare col centralino locale SENZA dirlo, e dall'altra parte l'amico entrava
+   in una stanza che restava vuota. Nel registro del centralino si vedeva benissimo: sei ingressi
+   di fila, sempre «(1)» — sempre uno solo, mai due insieme.
+   Vale solo in casa, e `?ws=locale` la annulla. */
+const CHIAVE_WS = 'digsy_ws';
+function wsScelto() { try { return (typeof localStorage !== 'undefined' && localStorage.getItem(CHIAVE_WS)) || ''; } catch (e) { return ''; } }
+function scegliWs(v) {
+  try { if (typeof localStorage === 'undefined') return; if (v) localStorage.setItem(CHIAVE_WS, v); else localStorage.removeItem(CHIAVE_WS); }
+  catch (e) { /* pazienza: si riscrive nell'indirizzo */ }
+}
 export function relayUrl(loc) {
   const l = loc || (typeof location !== 'undefined' ? location : null);
   if (!l) return null;
   if (inCasa(l)) {
     let v = '';
     try { v = new URLSearchParams(l.search || '').get('ws') || ''; } catch (e) { v = ''; }
-    if (v === 'online' || v === 'prod') return CENTRALINO_ONLINE;
-    if (/^wss?:\/\/[^\s]+$/i.test(v)) return v;
+    if (v === 'locale' || v === 'local') { scegliWs(''); return in_chiaro(l); }
+    if (v === 'online' || v === 'prod') { scegliWs(CENTRALINO_ONLINE); return CENTRALINO_ONLINE; }
+    if (/^wss?:\/\/[^\s]+$/i.test(v)) { scegliWs(v); return v; }
+    const r = wsScelto();
+    if (/^wss?:\/\/[^\s]+$/i.test(r)) return r;    // scelto prima, e non ancora annullato
   }
+  return in_chiaro(l);
+}
+function in_chiaro(l) {
   const sicuro = l.protocol === 'https:';
   return (sicuro ? 'wss://' : 'ws://') + l.host + '/ws';
 }

@@ -10449,6 +10449,16 @@ sprites.applyLook();
     mpH.relayUrl(casa('?ws=online')) === mpH.CENTRALINO_ONLINE);
   check('e `?ws=wss://…` a un centralino qualsiasi, per le prove',
     mpH.relayUrl(casa('?ws=wss://prova.example/ws')) === 'wss://prova.example/ws');
+  /* E LA SCELTA SI RICORDA. `?ws=online` si scriveva una volta e si perdeva al primo
+     ricaricamento: da lì il gioco tornava al centralino locale SENZA dirlo, e l'amico entrava
+     in una stanza che restava vuota. Nel registro del centralino si vedeva: sei ingressi di
+     fila, sempre «(1)» — sempre uno solo, mai due insieme. */
+  mpH.relayUrl(casa('?ws=online'));            // la si sceglie una volta…
+  check('e la scelta resta anche senza il parametro nell\'indirizzo',
+    mpH.relayUrl(casa()) === mpH.CENTRALINO_ONLINE);
+  check('finché non la si annulla', mpH.relayUrl(casa('?ws=locale')) === 'ws://localhost:5173/ws');
+  check('e allora torna quello locale', mpH.relayUrl(casa()) === 'ws://localhost:5173/ws');
+
   /* LA METÀ CHE CONTA: dal gioco PUBBLICATO l'indirizzo confezionato non si guarda, o
      chiunque potrebbe mandare una persona a giocare su un centralino non suo */
   check('ma il gioco pubblicato NON si fa dirottare',
