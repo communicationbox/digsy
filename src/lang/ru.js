@@ -1796,6 +1796,8 @@ export const RU = {
   'Time passes for everyone. Whoever did not sleep gets no energy back.': 'Время идёт для всех. Кто не спал, энергию не восстановит.',
   'Time here belongs to your host: the night passes when they say so.': 'Здесь время принадлежит хозяину: ночь пройдёт, когда он решит.',
   "Time passed, but you didn't sleep: no energy back": 'Время прошло, но ты не спал: энергии нет',
+  'Come to Discord': 'Заходи в Discord',
+  "That's where we meet: reports, ideas and news as it lands.": 'Там мы и общаемся: отчёты, идеи и новости сразу, как выходят.',
   'Kick out': 'Выгнать',
   'Moved faster than the game allows': 'Двигался быстрее, чем позволяет игра',
   'Nobody yet: pass the code to someone': 'Пока никого: дайте кому-нибудь код',

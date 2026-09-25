@@ -934,7 +934,7 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
 .sp-iconrow{display:flex;gap:var(--sp-2);width:var(--w-menu);max-width:88vw}
 .sp-btn.ic{flex:1 1 0;min-width:0;height:48px;padding:0;font-size:20px;border-radius:10px;
   display:flex;align-items:center;justify-content:center;background:rgba(78,141,124,.45);box-shadow:0 3px 0 rgba(55,103,90,.5)}
-.sp-btn.ic svg.pxi{width:22px;height:22px}
+.sp-btn.ic svg.pxi{width:30px;height:30px}
 /* LIBRO DELLE MERAVIGLIE */
 .wo-view{display:flex;gap:12px;align-items:flex-start;background:#efe3c6;border:2px solid #b99b63;padding:10px;margin-bottom:10px}
 @media(max-width:760px),(pointer:coarse){
@@ -1403,11 +1403,12 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .sp-btn.danger:hover{background:var(--c-clay);color:var(--c-ink)}
 .sp-btn.primary svg.pxi{color:var(--c-soot) !important}
 /* riga secondaria: icona con la sua scritta */
-.sp-btn.ic{flex-direction:column;gap:3px;height:58px;border-radius:0;text-decoration:none;background:rgba(13,17,34,.35);
+.sp-btn{text-decoration:none}          /* le voci che sono link (Discord) non si sottolineano */
+.sp-btn.ic{flex-direction:column;gap:4px;height:70px;border-radius:0;text-decoration:none;background:rgba(13,17,34,.35);
   box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px rgba(241,231,207,.22)}
 .sp-btn.ic::before{display:none}
 .sp-btn.ic:hover{background:var(--c-win-hover);box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px var(--c-win-gold)}
-.sp-btn.ic .ic-lb{font-size:10px;letter-spacing:.5px;line-height:1;font-weight:700;color:var(--c-ink-2);text-shadow:none}
+.sp-btn.ic .ic-lb{font-size:11px;letter-spacing:.5px;line-height:1;font-weight:700;color:var(--c-ink-2);text-shadow:none}
 .sp-iconrow{gap:var(--sp-3)}
 .sp-x{background:transparent;color:var(--c-ink);box-shadow:0 0 0 2px var(--c-win-edge);top:18px;right:18px}
 .sp-x:hover{background:var(--c-clay)}
@@ -1499,7 +1500,7 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
   .sp-sub{margin:8px 0 14px}
   .sp-card:not(.sub) > .sp-menu{gap:var(--sp-3)}
 }
-@media (max-width:760px),(pointer:coarse){ .sp-btn.ic .ic-lb{font-size:9px;letter-spacing:0} }   /* "Trophies" non si taglia */
+@media (max-width:760px),(pointer:coarse){ .sp-btn.ic .ic-lb{font-size:10px;letter-spacing:0} }   /* "Trophies" non si taglia */
 
 /* INTRO: "tocca per continuare" dentro la banda nera in basso, non sopra il riquadro del testo */
 #introbox #introhint{bottom:calc(3.5vh + env(safe-area-inset-bottom))}

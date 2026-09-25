@@ -611,8 +611,13 @@ function buildMenu(inGame) {
     h += `<p><b>Digsy World</b></p>`;
     h += `<p>${tr('un cozy game di scavo e scoperta.', 'a cozy game of digging and discovery.')}</p>`;
     h += `<p>${tr('di', 'by')} <b>Marco Giacobazzi</b></p>`;
-    h += `<p style="opacity:.7">${VERSION}</p>`;
-    h += `</div>` + backBar();
+    h += `</div>`;
+    /* IL RITROVO. Si apre in una scheda nuova, mai al posto del gioco — una partita in corso
+       non deve sparire perché si è toccato un link. `noopener` è d'obbligo sui link esterni:
+       senza, la pagina aperta può manovrare quella che l'ha aperta. */
+    h += `<a class="sp-btn" id="sp-discord" href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer">💬 ${tr('Vieni su Discord', 'Come to Discord')}</a>`;
+    h += `<div class="sp-note">${tr('Ci si trova lì: segnalazioni, idee e le novità appena escono.', "That's where we meet: reports, ideas and news as it lands.")}</div>`;
+    h += backBar();
   } else if (view === 'account') {
     /* LA PARTITA SU PIÙ DISPOSITIVI. Il testo dice cosa succede DAVVERO: chi entra si aspetta
        di ritrovare la partita, e va detto prima che il salvataggio viaggia su un server. */
@@ -685,11 +690,10 @@ function buildMenu(inGame) {
        più niente su come il gioco è bilanciato. Resta raggiungibile con il tasto ` per chi
        sa che c'è; la sua schermata (view 'commands') è ancora nel codice ma non ha più
        nessun pulsante che la apra. */
+    /* DISCORD STA NEI CREDITI, non qui: in fila con Trofei e Novità sembrava una parte del
+       gioco, mentre è un posto fuori dal gioco dove si trova l'autore. Una voce in meno vuol
+       dire anche icone più grandi nelle quattro che restano — erano troppo piccole. */
     h += `<button class="sp-btn ic" id="sp-credits" title="Credits">ℹ️<span class="ic-lb">${tr('Crediti', 'Credits')}</span></button>`;
-    /* Discord: si apre in una scheda nuova, mai al posto del gioco — una partita in corso
-       non deve sparire perché si è toccata un'icona. `noopener` è d'obbligo sui link
-       esterni: senza, la pagina aperta può manovrare quella che l'ha aperta. */
-    h += `<a class="sp-btn ic" id="sp-discord" href="${DISCORD_URL}" target="_blank" rel="noopener noreferrer" title="Discord">💬<span class="ic-lb">Discord</span></a>`;
     h += `</div>`;
   }
   menu.innerHTML = withIcons(h);

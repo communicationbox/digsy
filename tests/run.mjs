@@ -999,6 +999,12 @@ sprites.applyLook();
   const tag = (src.match(/<a[^>]*sp-discord[^>]*>/) || [''])[0];
   check('il link Discord apre una scheda nuova e non lascia appigli',
     tag.includes('target="_blank"') && tag.includes('noopener'));
+  /* STA NEI CREDITI, non nella riga delle icone del menu: là sembrava una parte del gioco,
+     in fila con Trofei e Novità, mentre è un posto fuori dal gioco dove si trova l'autore */
+  const iCred = src.indexOf("view === 'credits'"), iRow = src.indexOf('sp-iconrow');
+  const iDisc = src.indexOf('sp-discord');
+  check('e vive nei crediti, non fra le icone del menu', iDisc > iCred && iDisc < iRow,
+    'crediti@' + iCred + ' discord@' + iDisc + ' icone@' + iRow);
   /* l'indirizzo non deve essere scritto due volte: si aggiorna in un posto solo */
   const hardcoded = (src.match(/discord\.gg/g) || []).length;
   check('l\'indirizzo non è ripetuto nel codice (' + hardcoded + ')', hardcoded === 1);
