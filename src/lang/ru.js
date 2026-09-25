@@ -1803,6 +1803,8 @@ export const RU = {
   'The line went quiet: reconnecting.': 'Связь замолчала: переподключаюсь.',
   "Nobody is in that room: whoever has that code isn't playing right now. Ask them when they are.": 'В этой комнате никого нет: у кого этот код, тот сейчас не играет. Попроси его, когда будет в игре.',
   "You stood still for five minutes: you're back in your own world.": 'Ты стоял пять минут: вернулся в свой мир.',
+  'Together: ': 'Вместе: ',
+  'Room open: you are waiting': 'Комната открыта: ты ждёшь',
   'Your code': 'Твой код',
   'Copy code': 'Скопировать код',
   'Code copied': 'Код скопирован',

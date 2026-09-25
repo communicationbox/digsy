@@ -45,6 +45,10 @@
       <span class="tag" id="compasstag" title="Città"><span id="h-compass"></span></span>
       <span class="tag" id="questtag" title="Missioni (Q)" style="display:none;cursor:pointer">📋 <span id="h-quest">0</span></span>
       <span class="tag" id="companiontag" title="Compagno" style="display:none">🐾 <span id="h-comp"></span></span>
+      <!-- IN COMPAGNIA: si vede SEMPRE che si è in una stanza, senza aprire il menu. Senza
+           questo, uscire dalla stanza (una pagina ricaricata, la linea caduta) non lo nota
+           nessuno, e si resta ad aspettare qualcuno che non può arrivare. -->
+      <span class="tag" id="mptag" title="In compagnia" style="display:none;cursor:pointer">🚶 <span id="h-mp"></span></span>
       <span class="tag hud-always" id="bagbtn" title="Apri lo zaino (I)">🎒 <span class="lbl">zaino </span><span id="h-bag">0</span></span>
       <!-- MAPPA sempre a portata: da tastiera basta M, ma su un telefono quel tasto non
            esiste e l'unica via era passare dallo zaino. `hud-always` la tiene visibile

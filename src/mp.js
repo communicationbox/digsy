@@ -74,6 +74,28 @@ export function relayUrl(loc) {
   return (sicuro ? 'wss://' : 'ws://') + l.host + '/ws';
 }
 
+/* LA STANZA SOPRAVVIVE A UN RICARICAMENTO DELLA PAGINA. Il gioco si ricarica da solo più
+   volte (carica una partita, cambia lingua, aggiorna la versione), e ogni volta la socket
+   moriva in silenzio: restavi «fuori» senza che nessuno te lo dicesse, mentre dall'altra parte
+   qualcuno entrava nella tua stanza e non trovava nessuno. Qui si ricorda dove si era, e il
+   gioco ci rientra da sé all'avvio. Vive nelle preferenze del dispositivo, non nel
+   salvataggio: è come si è collegati, non parte della partita. */
+const CHIAVE_STANZA = 'digsy_stanza_viva';
+function ricorda(v) {
+  try {
+    if (typeof localStorage === 'undefined') return;
+    if (v) localStorage.setItem(CHIAVE_STANZA, JSON.stringify(v)); else localStorage.removeItem(CHIAVE_STANZA);
+  } catch (e) { /* spazio finito o navigazione privata: pazienza, si riapre a mano */ }
+}
+export function stanzaRicordata() {
+  try {
+    const raw = typeof localStorage !== 'undefined' && localStorage.getItem(CHIAVE_STANZA);
+    const o = raw ? JSON.parse(raw) : null;
+    return (o && typeof o.room === 'string' && o.room) ? o : null;
+  } catch (e) { return null; }
+}
+export function scordaStanza() { ricorda(null); }
+
 export function connect(url, me) {
   if (sock) disconnect('riconnessione');
   mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null };
@@ -83,6 +105,7 @@ export function connect(url, me) {
      entro col codice di un ALTRO e mi ritrovo padrone di casa, quella stanza era vuota. */
   ospiteAtteso = !!(me && me.ospite);
   stanza = mio.room; MP.stanza = stanza;
+  ricorda({ room: stanza, ospite: ospiteAtteso, name: mio.name });
   MP.stato = 'collego'; MP.motivo = null;
   aprire(url);
 }
@@ -121,7 +144,7 @@ export function ricevi(raw, now) {
        (segnalato con foto: «non sono andato nel mondo di localhost»).
        Si esce e si dice il perché. Restare sarebbe pure peggio: l'amico che arriva dopo col
        SUO codice finirebbe ospite nel MIO mondo, cioè l'esatto contrario di quello che voleva. */
-    if (ospiteAtteso && sonoOspitante()) { disconnect('stanza-vuota'); return t; }
+    if (ospiteAtteso && sonoOspitante()) { scordaStanza(); disconnect('stanza-vuota'); return t; }
   }
   /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
      l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
@@ -152,10 +175,11 @@ export function ricevi(raw, now) {
   if (m.t === T.SLEEP && suSonno) suSonno(m.id, m.on);
   if (m.t === T.DAWN && m.id && m.id === MP.room.host && suAlba) suAlba(!!m.notte);
   if (m.t === T.KICK && m.who === MP.room.me && m.id && m.id === MP.room.host) {
+    scordaStanza();                       // mandati via non si rientra da soli al prossimo avvio
     disconnect('ti ha mandato via chi ospita');
     return t;
   }
-  if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) disconnect('la stanza si è chiusa');
+  if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) { scordaStanza(); disconnect('la stanza si è chiusa'); }
   return t;
 }
 
@@ -210,6 +234,7 @@ function battito(now) {
     return;
   }
   if (!dormiente() && ultimaAttività !== null && now - ultimaAttività > FERMO_MS) {
+    scordaStanza();                       // chi si è alzato dalla sedia non rientra da solo
     disconnect('fermo da cinque minuti');
   }
 }
@@ -294,6 +319,10 @@ export function mandaVia(id) {
 export function presenti() {
   return [...MP.room.peers.values()].map(p => ({ id: p.id, name: p.name, salti: p.salti || 0 }));
 }
+
+/* USCIRE È UNA DECISIONE: si dimentica la stanza, e all'avvio dopo non ci si rientra. Cadere
+   invece no — la linea che salta non è una scelta di nessuno, e al ritorno si riprende. */
+export function esci(motivo) { scordaStanza(); return disconnect(motivo || 'uscito'); }
 
 export function disconnect(motivo) {
   /* TORNARE A CASA VIENE PRIMA DI TUTTO: se si stacca la linea mentre si è ospiti, il mondo di

@@ -47,7 +47,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { cloud } from './cloud.js';
-import { inCasa } from './mp.js';
+import { inCasa, MP } from './mp.js';
 import { amici, nomeDi } from './amici.js';
 import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
 import { groundPalette } from './tiles.js';
@@ -169,6 +169,20 @@ export function updateHUD() {
   if (qt && qn) { const n = activeQuests().length; qn.textContent = String(n); qt.style.display = n ? '' : 'none'; }
   const ct = document.getElementById('companiontag'), cn = document.getElementById('h-comp');
   if (ct && cn) { const c = companionSpec(); if (c) { cn.textContent = c.name; ct.style.display = ''; } else ct.style.display = 'none'; }
+  /* IN COMPAGNIA. Si mostra il numero di persone con te, o un puntino se sei da solo nella
+     stanza (hai aperto il mondo e stai aspettando). Sparisce appena si esce, e quello è
+     proprio il momento che prima non si notava. */
+  {
+    const mt = document.getElementById('mptag'), mn = document.getElementById('h-mp');
+    if (mt && mn) {
+      if (MP.stato === 'dentro') {
+        const n = MP.room.peers.size;
+        mn.textContent = n ? String(n) : '·';
+        mt.title = n ? (tr('In compagnia: ', 'Together: ') + n) : tr('Stanza aperta: stai aspettando', 'Room open: you are waiting');
+        mt.style.display = '';
+      } else mt.style.display = 'none';
+    }
+  }
   const lt = document.getElementById('lvltag'), ln = document.getElementById('h-lvl');
   if (lt && ln) { ln.textContent = String(playerLevel()); lt.title = tr('Livello archeologo ', 'Archaeologist level ') + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(); }
   /* i traguardi si assegnano SOLO in gioco: mai mentre sei nel menu/splash o nell'intro */

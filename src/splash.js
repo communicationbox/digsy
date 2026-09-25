@@ -3,7 +3,7 @@ import { drawHero, applyLook } from './sprites.js';
 import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { MP, connect, disconnect, relayUrl, presenti, mandaVia, sonoOspitante, inCasa, CENTRALINO_ONLINE } from './mp.js';
+import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inCasa, CENTRALINO_ONLINE } from './mp.js';
 import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -822,7 +822,7 @@ function buildMenu(inGame) {
         navigator.clipboard.writeText(t).then(() => toast(tr('Codice copiato', 'Code copied')), () => toast(t));
       } else toast(t);
     }; }
-  { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('amici'); }; }
+  { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { esci('uscito'); go('amici'); }; }
   document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('amici'); }; });
   { const t = document.getElementById('sp-mp-tacc'); if (t) t.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
   { const gente = pagine(); document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }

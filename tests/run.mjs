@@ -10255,6 +10255,59 @@ sprites.applyLook();
     mpV.setTransport((u) => new WebSocket(u));
   }
 
+  /* IL TAG NELL'HUD: si deve vedere SEMPRE che si è in una stanza, senza aprire il menu.
+     Senza, uscirne (una pagina ricaricata, la linea caduta) non lo nota nessuno e si resta ad
+     aspettare qualcuno che non può arrivare. */
+  {
+    const mpT = await import('../src/mp.js');
+    const tag = document.getElementById('mptag'), num = document.getElementById('h-mp');
+    mpT.disconnect();
+    ui.updateHUD();
+    check('da soli l\'HUD non dice niente di compagnia', tag.style.display === 'none');
+    mpT.MP.stato = 'dentro';
+    ui.updateHUD();
+    check('in una stanza da soli: un puntino, che vuol dire «sto aspettando»', tag.style.display === '' && num.textContent === '·');
+    mpT.MP.room.peers.set('u1', { id: 'u1', name: 'Luca' });
+    ui.updateHUD();
+    check('e con qualcuno, quanti sono', num.textContent === '1');
+    mpT.disconnect();
+    ui.updateHUD();
+    check('uscendo sparisce: è il momento che prima non si notava', tag.style.display === 'none');
+  }
+
+  /* LA STANZA SOPRAVVIVE A UN RICARICAMENTO. Il gioco si ricarica da solo più volte, e ogni
+     volta la socket moriva in silenzio: restavi fuori senza saperlo mentre dall'altra parte
+     qualcuno entrava nella tua stanza e non trovava nessuno. */
+  {
+    const mpR = await import('../src/mp.js');
+    const netR = await import('../src/net.js');
+    const fatte = [];
+    mpR.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+    mpR.scordaStanza();
+    check('da fermi non c\'è nessuna stanza da ricordare', mpR.stanzaRicordata() === null);
+
+    mpR.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK' });
+    const r = mpR.stanzaRicordata();
+    check('aprendo una stanza ci si ricorda dov\'era', !!r && r.room === 'w-Q2D4FG7HJK');
+    /* ricaricare la pagina = tutto nuovo, ma il ricordo resta dov'è */
+    mpR.disconnect('pagina ricaricata');
+    check('e una CADUTA non la cancella: al ritorno si riprende', !!mpR.stanzaRicordata());
+
+    /* USCIRE invece è una decisione, e le decisioni si rispettano */
+    mpR.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK' });
+    mpR.esci('uscito');
+    check('uscire di propria volontà la dimentica', mpR.stanzaRicordata() === null);
+
+    /* e nemmeno si rientra dove si è stati mandati via */
+    mpR.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK', ospite: true });
+    const sr = fatte[fatte.length - 1];
+    sr.onopen(); sr.onmessage({ data: netR.encode(netR.T.WELCOME, { id: 'io' }) });
+    sr.onmessage({ data: netR.encode(netR.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+    mpR.ricevi(JSON.stringify({ t: 'kick', id: 'u1', who: 'io' }), 0);
+    check('né si torna dove ci hanno mandato via', mpR.stanzaRicordata() === null);
+    mpR.setTransport((u) => new WebSocket(u));
+  }
+
   /* e dalla stanza si può uscire */
   mp2.disconnect();
   sp2.setView('main');

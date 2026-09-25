@@ -18,7 +18,8 @@ import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
-import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente } from './mp.js';
+import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
+  connect as mpConnect, relayUrl, stanzaRicordata } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
@@ -343,6 +344,15 @@ function boot() {
     if (sognoAperto()) chiudiSogno(true);
     avanzaNotte(true); applicaBenRiposato();
   });
+  /* SI RIENTRA NELLA STANZA DOV'ERAVAMO. Il gioco si ricarica da solo più volte (carica una
+     partita, cambia lingua, arriva una versione nuova) e ogni volta la socket moriva in
+     silenzio: restavi fuori senza saperlo, mentre dall'altra parte qualcuno entrava nella tua
+     stanza e non trovava nessuno. Chi è USCITO di sua volontà — o è stato mandato via, o si è
+     alzato dalla sedia — non rientra: quelle sono decisioni, e `mp.js` se le ricorda. */
+  {
+    const dove = stanzaRicordata();
+    if (dove) mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: dove.room, ospite: !!dove.ospite });
+  }
   armAudioResume(); // musica in loop anche dopo un refresh (parte al primo gesto)
   updateHUD();
   document.getElementById('boot').style.display = 'none';
