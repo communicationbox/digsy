@@ -600,7 +600,7 @@ const GO_V = { city: ['city', 'città', 'citta', 'museum', 'museo'], park: ['par
 /* LE SCENE che si possono rivedere a comando: sono animazioni che capitano una volta ogni
    tanto (una schiusa costa due giorni di cova), e per guardarle mentre le si disegna bisognava
    giocarsele davvero. `anim=` le fa partire subito. */
-const ANIM_V = { hatch: ['hatch', 'schiusa', 'uovo'], awaken: ['awaken', 'risveglio'], banner: ['banner', 'annuncio'], letter: ['letter', 'lettera'] };
+const ANIM_V = { hatch: ['hatch', 'schiusa', 'uovo'], awaken: ['awaken', 'risveglio'], banner: ['banner', 'annuncio'], letter: ['letter', 'lettera'], dream: ['dream', 'sogno'] };
 const PLAY_V = { prep: ['prep', 'restauro'], restore: ['restore', 'ritiro'], toss: ['toss', 'fountain', 'fontana'], skeleton: ['skeleton', 'scheletro'], egg: ['egg', 'uovo'], hatch: ['hatch', 'schiudi'], fuse: ['fuse', 'fondi', 'doppioni'] };
 const TIME_V = { night: ['night', 'notte'], dawn: ['dawn', 'alba'], day: ['day', 'giorno', 'noon', 'mezzogiorno'] };
 const WEATHER_V = { rain: ['rain', 'pioggia'], sandstorm: ['sandstorm', 'sabbia'], fog: ['fog', 'nebbia'], ash: ['ash', 'cenere'], snow: ['snow', 'neve'], clear: ['clear', 'sereno'], off: ['off', 'auto'] };
@@ -657,6 +657,10 @@ export const COMMANDS = {
       if (!k) return tr('Scene: ', 'Scenes: ') + words(ANIM_V);
       const sp0 = ALL_SPECIES[Math.floor(Math.random() * ALL_SPECIES.length)];
       const cr0 = (S.creatures && S.creatures[0]) || { uid: 0, name: 'Provolone', skull: sp0.id, torso: sp0.id, leg: sp0.id, q: 'raro' };
+      /* IL SOGNO si vede solo dormendo in due, e per guardarlo non si può chiedere a qualcuno
+         di collegarsi apposta: qui si apre da soli. È la scenetta vera, quella di dream.js —
+         i pulsanti fanno quello che farebbero, e "alzati" lo chiude. */
+      if (k === 'dream') { import('./dream.js').then(d => d.apriSogno()); return '😴 ' + tr('Sogno', 'Dream'); }
       import('./ui.js').then(u => {
         if (k === 'hatch') u.playHatching(cr0);
         else if (k === 'awaken') u.playAwakening(sp0.id);

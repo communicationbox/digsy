@@ -22,7 +22,8 @@
     "mobile": "node tests/mobile.mjs",
     "pacing": "node tests/pacing.mjs",
     "partita": "node tests/partita.mjs",
-    "lineart": "node tests/lineart.mjs"
+    "lineart": "node tests/lineart.mjs",
+    "relay": "cd server/relay && (test -d node_modules || npm install --no-audit --no-fund) && node relay.js"
   },
   "devDependencies": {
     "vite": "^6.0.0"

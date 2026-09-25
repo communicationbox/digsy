@@ -519,10 +519,14 @@ function buildMenu(inGame) {
        arrivano con la fetta dopo. Chi conosce il codice entra nel mondo di chi l'ha aperto. */
     h += closeX();
     h += `<div class="sp-title2">🚶 ${tr('Amici', 'Friends')}</div>`;
+    /* «NON SEI COLLEGATO» VOLEVA DIRE DUE COSE. Qui si parla della STANZA, ma chi ha appena
+       fatto l'accesso con Google legge "scollegato" e pensa all'account (segnalato: "sono
+       collegato con Google, come mai mi dice che sono scollegato?"). Ogni riga adesso dice di
+       cosa parla, e quella da fermi lo dice in chiaro (regola 7). */
     const stato = MP.stato === 'dentro' ? tr('Sei nella stanza', "You're in the room")
-      : MP.stato === 'collego' ? tr('Mi collego…', 'Connecting…')
-        : MP.stato === 'caduto' ? tr('Collegamento caduto', 'Connection lost')
-          : tr('Non sei collegato', 'Not connected');
+      : MP.stato === 'collego' ? tr('Mi collego alla stanza…', 'Joining the room…')
+        : MP.stato === 'caduto' ? tr('La stanza è caduta', 'Lost the room')
+          : tr('Non sei in nessuna stanza', "You're not in any room");
     h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + MP.motivo : ''}</div>`;
     if (MP.stato === 'dentro') {
       const gente = presenti();
@@ -543,6 +547,10 @@ function buildMenu(inGame) {
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     } else {
+      /* NON ESISTE ANCORA UN CODICE AMICO: si dice, invece di lasciarlo cercare. Gli account,
+         la lista amici e gli inviti sono la fetta dopo (MULTIPLAYER.md 3); per intanto il
+         codice della stanza **lo si inventa** e lo si passa a voce. */
+      h += `<div class="sp-note">${tr('L\'accesso Google non c\'entra: qui non c\'è ancora un codice amico. Si entra con un codice di stanza che vi inventate voi.', "Your Google sign-in is a different thing: there is no friend code yet. You join with a room code the two of you make up.")}</div>`;
       h += `<div class="sp-note">${tr('Codice della stanza — inventatelo, e ditelo a chi vuoi invitare', 'Room code — make one up and tell whoever you want to invite')}</div>`;
       h += `<input id="sp-mp-code" class="nameinput" maxlength="24" value="${(codiceStanza() || '').replace(/["<>&]/g, '')}">`;
       h += `<button class="sp-btn primary" id="sp-mp-entra">${tr('Entra', 'Join')}</button>`;

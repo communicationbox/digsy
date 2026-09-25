@@ -89,6 +89,13 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   bussola, chimere/parco, sprite/look, smoke UI e render. Tenerla verde e **aggiornarla
   a ogni feature**.
 - Il doppio clic su `index.html` NON funziona più (ES modules); serve il dev server.
+- **Provare il gioco in DUE, in locale**: `npm run relay` (accende il centralino su
+  127.0.0.1:17451, si installa `ws` da solo la prima volta) e, in un altro terminale,
+  `npm run dev`. Vite inoltra `/ws` al centralino, quindi **due schede** sullo stesso
+  indirizzo → menu → **Amici** → stesso codice di stanza → si giocano il mondo di chi è
+  entrato per primo. Senza il centralino acceso `ws://localhost:5173/ws` non esiste e la
+  stanza non si apre: sembra che il multiplayer sia rotto, e invece manca chi risponde.
+  Per la sola **animazione del sogno** non serve nessuno: comando `anim=sogno`.
 
 ## Meccaniche implementate
 - **Mondo procedurale infinito** deterministico (value-noise + fbm, seed salvato).

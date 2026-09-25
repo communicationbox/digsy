@@ -17,6 +17,12 @@ export default defineConfig({
      accesso in apparenza riuscito. */
   server: {
     proxy: {
+      /* IL CENTRALINO, in locale. In produzione `wss://<dominio>/ws` lo gira Apache; qui lo
+         gira Vite, così si può provare DAVVERO il gioco in due (due schede, stesso codice di
+         stanza) senza toccare il server. Il centralino va acceso a parte: `npm run relay`.
+         Senza questo inoltro `ws://localhost:5173/ws` non esiste e la stanza non si apre —
+         sembra che il multiplayer sia rotto, e invece manca solo chi risponde. */
+      '/ws': { target: 'ws://127.0.0.1:17451', ws: true },
       '/server/api': {
         target: 'https://digsy.dev-box.it',
         changeOrigin: true,

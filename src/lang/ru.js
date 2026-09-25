@@ -1779,9 +1779,10 @@ export const RU = {
   /* ---- in compagnia ---- */
   'Friends': 'Друзья',
   "You're in the room": 'Вы в комнате',
-  'Connecting…': 'Подключаюсь…',
-  'Connection lost': 'Связь потеряна',
-  'Not connected': 'Нет подключения',
+  'Joining the room…': 'Подключаюсь к комнате…',
+  'Lost the room': 'Комната потеряна',
+  "You're not in any room": 'Ты не в комнате',
+  "Your Google sign-in is a different thing: there is no friend code yet. You join with a room code the two of you make up.": 'Вход через Google тут ни при чём: кода друга пока нет. Заходят по коду комнаты, который вы придумываете сами.',
   'With you': 'С вами',
   /* il sonno in compagnia: chi dorme sogna e aspetta */
   'in the morning': 'утром',
