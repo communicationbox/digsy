@@ -1808,6 +1808,7 @@ export const RU = {
   'The switchboard is not answering. Locally you start it with: npm run relay (or open the game with ?ws=online).': 'Коммутатор не отвечает. Локально он запускается командой npm run relay (или открой игру с ?ws=online).',
   'The switchboard is not answering. Try again in a moment.': 'Коммутатор не отвечает. Попробуй через минуту.',
   'The switchboard is not answering.': 'Коммутатор не отвечает.',
+  "Or open YOUR world and tell them to join with your code: you'll meet all the same.": 'Или открой СВОЙ мир и скажи ему войти по твоему коду: всё равно встретитесь.',
   'Your code': 'Твой код',
   'Copy code': 'Скопировать код',
   'Code copied': 'Код скопирован',

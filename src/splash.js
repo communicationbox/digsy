@@ -575,7 +575,15 @@ function buildMenu(inGame) {
           ? tr('È il TUO mondo: gli altri stanno giocando qui da te.', "It's YOUR world: the others are playing here at your place.")
           : tr('Sei nel mondo di chi ha aperto questa stanza.', "You're in the world of whoever opened this room.")}</div>`;
       const gente = presenti();
-      if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
+      /* CHI ASPETTA NON DEVE PASSARE NESSUN CODICE. «Ancora nessuno: passa il codice a
+         qualcuno» è la riga di chi OSPITA; a chi sta aspettando diceva di fare una cosa che
+         non lo riguarda, proprio mentre gli serviva sapere l'altra — che può smettere di
+         aspettare e aprire il suo, di mondo. Con il pulsante lì sotto, invece del consiglio. */
+      if (!gente.length && inAttesa()) {
+        h += `<div class="sp-note">${tr('Oppure apri il TUO mondo e digli di entrare col tuo codice: vi trovate lo stesso.',
+          "Or open YOUR world and tell them to join with your code: you'll meet all the same.")}</div>`;
+        h += `<button class="sp-btn small" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
+      } else if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
       else {
         h += `<div class="sp-note">${tr('Con te', 'With you')}</div>`;
         /* CHI OSPITA PUÒ MANDARE VIA: è casa sua (MULTIPLAYER.md, regola 17). Accanto al nome,

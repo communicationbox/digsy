@@ -10240,6 +10240,12 @@ sprites.applyLook();
     sp2.setView('amici');
     const hv = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
     check('e il pannello dice che si sta aspettando', /aspett|waiting/i.test(hv));
+    /* «passa il codice a qualcuno» è la riga di chi OSPITA: a chi aspetta diceva di fare una
+       cosa che non lo riguarda, proprio mentre gli serviva sapere l'altra */
+    check('e NON gli dice di passare il codice, che non è affar suo',
+      !/passa il codice|pass the code/i.test(hv));
+    check('gli offre invece la via d\'uscita: aprire il PROPRIO mondo',
+      /sp-mp-apri/.test(hv) && /apri il TUO mondo|open YOUR world/i.test(hv));
     /* arriva lui: la sala d'attesa diventa il suo mondo */
     sv.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
     check('quando arriva, la stanza diventa il suo mondo', mpV.inAttesa() === false && mpV.sonoOspitante() === false);
