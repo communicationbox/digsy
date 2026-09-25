@@ -19,7 +19,7 @@
  *    treno in galleria) si riprova con attese che crescono e poi ci si ferma. Un gioco che
  *    tenta di collegarsi per sempre scalda il telefono e non lo dice a nessuno.
  */
-import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent } from './net.js';
+import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent, PING_MS, PONG_MAX } from './net.js';
 import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite } from './visita.js';
 import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
 
@@ -29,6 +29,8 @@ export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 
 
 const RIPROVE = [500, 1500, 4000, 10000];   // attese fra un tentativo e l'altro, poi si smette
 let sock = null, mio = null, stanza = null, invio = {}, riprova = 0;
+/* il battito della linea e l'ultima volta che la persona ha fatto qualcosa */
+let ultimoPing = null, ultimoPong = null, ultimaAttività = null;
 let apri = (url) => new WebSocket(url);      // sostituibile dai test
 let dopo = (fn, ms) => (typeof setTimeout === 'function' ? setTimeout(fn, ms) : null);
 
@@ -61,6 +63,10 @@ function aprire(url) {
   sock = s;
   s.onopen = () => {
     MP.tentativi = 0; riprova = 0;
+    /* gli orologi del battito si azzerano e si fanno partire al primo giro di `tick`, con
+       QUELLO che usa il gioco: mescolare due orologi (`performance.now` qui, il tempo del
+       ciclo là) fa uscire differenze negative, e il battito non partirebbe mai. */
+    ultimoPing = ultimoPong = ultimaAttività = null;
     manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look });
   };
   s.onmessage = (ev) => ricevi(ev && ev.data, ora());
@@ -79,11 +85,18 @@ export function ricevi(raw, now) {
   /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
      l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
      deterministico dal seme: quello che viaggia è il seme più quello che è stato consumato. */
-  if (m.t === T.ENTER && sonoOspitante()) mandaMondo();
+  if (m.t === T.ENTER) {
+    /* CHI ENTRA DEVE VEDERMI SUBITO. Le posizioni si mandano solo quando cambiano (più un
+       battito lento): uno che arriva mentre sto fermo a leggere il Libro non vedrebbe nessuno
+       per parecchi secondi, e si chiederebbe se è entrato nella stanza giusta. */
+    invio = {};
+    if (sonoOspitante()) mandaMondo();
+  }
   /* SONO OSPITE E MI È ARRIVATO UN MONDO: si entra. Da qui in poi `S` è il suo. */
   if (m.t === T.MONDO && !sonoOspitante()) {
     if (!entraInVisita({ mondo: m.mondo, x: m.x, y: m.y }, m.id)) MP.motivo = 'mondo illeggibile';
   }
+  if (m.t === T.PONG) ultimoPong = now;
   if (m.t === T.MUT) applicaMutazione(m.k, m.c);
   if (m.t === T.CLOCK) applicaOrologio(m.day, m.tod);
   if (m.t === T.CHAT && m.id) {
@@ -114,10 +127,50 @@ function manda(t, data) {
    dieci volte al secondo e solo se c'è qualcosa da dire (più un battito da fermi). */
 export function tick(now, pos) {
   if (MP.stato !== 'dentro' || !pos) return false;
+  /* MUOVERSI È ESSERE VIVI, e si guarda PRIMA di decidere se parlare: le posizioni si mandano
+     dieci volte al secondo, e chiedere «ti sei mosso?» solo quando tocca parlare lascerebbe
+     fuori tutto quello che succede negli altri novanta millisecondi. Il resto (una parola, un
+     tasto) lo dichiara chi lo sa. */
+  if (Math.abs(pos.x - (invio.lastX ?? pos.x)) > 0.5 || Math.abs(pos.y - (invio.lastY ?? pos.y)) > 0.5) attivo(now);
+  battito(now);
   if (!shouldSend(invio, now, pos.x, pos.y, pos.dir, pos.moving)) return false;
   const ok = manda(T.AT, { x: Math.round(pos.x * 10) / 10, y: Math.round(pos.y * 10) / 10, d: pos.dir, m: !!pos.moving, s: pos.scene || 'world' });
   if (ok) markSent(invio, now, pos.x, pos.y, pos.dir, pos.moving);
   return ok;
+}
+
+/* ---------- il battito, e chi si è addormentato sulla sedia ----------
+   Due tempi diversi che non vanno confusi:
+   - **la linea** vuole un segno di vita ogni 30 secondi, perché in mezzo c'è Apache che chiude
+     quello che tace da un minuto. Staccarsi un attimo non deve buttare giù la partita: se una
+     risposta non torna entro due battiti si riattacca, e riattaccare vuol dire rientrare nella
+     stessa stanza (`stanza` non si perde), non ricominciare;
+   - **la persona** che non fa niente da cinque minuti esce. Non è una punizione: sta nel mondo
+     di qualcun altro, e chi ospita non deve trovarsi in casa una statua che non risponde.
+   Chi DORME in compagnia è fermo apposta — sta aspettando che passi la notte — e non conta. */
+export const FERMO_MS = 5 * 60 * 1000;
+export function attivo(now) { ultimaAttività = now || ora(); }
+export function fermoDa(now) { return ultimaAttività === null ? 0 : (now || ora()) - ultimaAttività; }
+/* lo dichiara chi lo sa: sta dormendo e aspetta, non è sparito */
+let dormiente = () => false;
+export function setDormiente(fn) { dormiente = fn || (() => false); }
+
+function battito(now) {
+  /* `null` e non `0`: il primo giro può arrivare con `now` uguale a zero, e con lo zero come
+     «non ancora partito» l'orologio del battito non partirebbe mai (preso da un test). */
+  if (ultimoPing === null) { ultimoPing = ultimoPong = now; if (ultimaAttività === null) ultimaAttività = now; return; }
+  if (now - ultimoPing >= PING_MS) { ultimoPing = now; manda(T.PING, {}); }
+  /* nessuna risposta per due battiti: la linea è morta anche se la socket dice di no */
+  if (ultimoPong && now - ultimoPong > PONG_MAX) {
+    ultimoPong = now;                       // non si ricasca subito nello stesso ramo
+    const s = sock; sock = null;
+    if (s) { try { s.onclose = null; s.close(); } catch (e) { /* già morta */ } }
+    caduta('la linea non risponde');
+    return;
+  }
+  if (!dormiente() && ultimaAttività !== null && now - ultimaAttività > FERMO_MS) {
+    disconnect('fermo da cinque minuti');
+  }
 }
 
 /* CHI DISEGNARE, e dove sta in questo istante: già interpolato, già filtrato per scena — chi
@@ -163,6 +216,7 @@ export function dire(testo, now) {
   const m = String(testo || '').trim();
   if (!m) return false;
   if (!manda(T.CHAT, { m })) return false;
+  attivo(now);
   chatDetto(m, [...MP.room.peers.values()].map(p => p.name), now);
   return true;
 }

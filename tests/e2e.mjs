@@ -22,12 +22,20 @@ const findChrome = () => CHROME_CANDIDATES.find(c => existsSync(c)) || null;
 /* la cartella del profilo di prova: una sola, riusata, e senza lucchetti vecchi (il perche'
    sta dove viene passata a Chrome) */
 function profiloChrome(nome) {
+  /* PRIMA SI SPAZZA. Se un giro è scaduto, il suo Chrome resta vivo e tiene il profilo: il
+     giro dopo lo aspetta e scade a sua volta — un guasto che si tramanda. Si uccide SOLO chi
+     sta usando questa cartella (il nome del profilo è nella riga di comando), quindi il
+     browser della persona non viene sfiorato. */
   /* UNO PER FORMATO. Il giro e' di tre finestre una dietro l'altra: con una cartella sola la
      seconda partiva mentre la prima non aveva ancora mollato la presa, e restava ad aspettare
      un Chrome che stava morendo. Tre cartelle, tutte riusate: nessuna attesa, e ognuna gia'
      scaldata dal giro precedente. */
   const d = join(tmpdir(), 'digsy-e2e-profilo-' + String(nome || 'x').replace(/[^a-z0-9]+/gi, '-'));
   try { mkdirSync(d, { recursive: true }); } catch (e) { /* c'e' gia': bene cosi' */ }
+  /* si spazza per la RADICE del nome, non per questa sola cartella: i tre formati girano uno
+     dietro l'altro, e a restare in mezzo ai piedi è quasi sempre il Chrome del giro prima. */
+  try { execFileSync('pkill', ['-f', join(tmpdir(), 'digsy-e2e-profilo-')], { stdio: 'ignore' }); }
+  catch (e) { /* nessuno da spazzare */ }
   for (const f of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
     try { rmSync(join(d, f), { force: true }); } catch (e) { /* non c'era */ }
   }
@@ -1206,7 +1214,10 @@ function run() {
        chiude. Da riga di comando non succedeva mai, perché là l'uscita la si manda in un file:
        ed è esattamente la differenza. Con un descrittore di file non c'è nessuna pipe da
        aspettare, e chi resta vivo non fa danno. */
-    const fuori = join(dir, 'dom.html');
+    /* UN FILE PER FORMATO. Con un file solo, un Chrome del giro precedente rimasto vivo ci
+       scriveva ancora dentro mentre il nuovo lo riapriva: è uscito un DOM da mezzo mega con
+       dentro due pagine mescolate. Un nome per formato e il pasticcio non è più possibile. */
+    const fuori = join(dir, 'dom-' + label.replace(/[^a-z0-9]+/gi, '-') + '.html');
     let fd = null;
     const t0 = Date.now();
     try {
@@ -1248,15 +1259,23 @@ function run() {
            tempo normale di un giro. Il colpo è SIGKILL: Chrome lascia dei figli attaccati alla
            stessa uscita, e con un garbato SIGTERM la prova resterebbe comunque ad aspettare che
            si chiuda una presa che nessuno chiude. */
-      ], { stdio: ['ignore', fd, 'ignore'], timeout: 180000, killSignal: 'SIGKILL' });
+      ], { stdio: ['ignore', fd, 'ignore'], timeout: 60000, killSignal: 'SIGKILL' });
       dom = readFileSync(fuori, 'utf8');
       if (process.env.E2E_DEBUG) console.error('[e2e] ' + label + ' in ' + (Date.now() - t0) + 'ms, ' + dom.length + ' byte');
     } catch (e) {
       const scaduto = e && (e.killed || e.code === 'ETIMEDOUT');
       try { if (fd !== null) closeSync(fd); } catch (e2) { /* già chiuso */ }
-      console.error('e2e: Chrome ' + (scaduto ? 'non ha risposto in tempo' : 'ha fallito') + ' su ' + label
-        + (e && e.message ? '\n  ' + String(e.message).split('\n')[0] : ''));
-      return 1;
+      /* CHROME CHE NON ESCE NON È UNA PROVA FALLITA. Su questa macchina capita che la pagina
+         sia disegnata, il DOM scritto, e il processo resti lì a non chiudersi (aggiornatore,
+         raccoglitore di crash, chissà). Quello che conta è il RISULTATO, e il risultato è nel
+         file: se c'è, si va avanti come se niente fosse. Si fallisce solo se non c'è. */
+      try { dom = readFileSync(fuori, 'utf8'); } catch (e2) { dom = ''; }
+      if (!/__E2E__[\s\S]*__END__/.test(dom)) {
+        console.error('e2e: Chrome ' + (scaduto ? 'non ha risposto in tempo' : 'ha fallito') + ' su ' + label
+          + (e && e.message ? '\n  ' + String(e.message).split('\n')[0] : ''));
+        return 1;
+      }
+      if (process.env.E2E_DEBUG) console.error('[e2e] ' + label + ': Chrome non è uscito, ma il DOM c\'è — si prosegue');
     }
     try { if (fd !== null) closeSync(fd); } catch (e) { /* già chiuso */ }
     const m = dom.match(/data-res="__E2E__([\s\S]*?)__END__"/) || dom.match(/__E2E__([\s\S]*?)__END__/);

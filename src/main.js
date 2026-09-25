@@ -18,8 +18,8 @@ import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
-import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno } from './mp.js';
-import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti } from './sonno.js';
+import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente } from './mp.js';
+import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
@@ -324,6 +324,9 @@ function boot() {
     toast('😴 ' + tr('Ben riposato: le prossime ', 'Well rested: your next ') + n + tr(' fatiche non costano energia', ' efforts cost no energy'));
     save(); updateHUD();
   };
+  /* CHI DORME È FERMO APPOSTA: sta aspettando che passi la notte, e non va buttato fuori
+     dopo cinque minuti come uno che si è alzato dalla sedia. */
+  setDormiente(() => SONNO.dormo);
   setSuAlba(() => {
     const dormivo = albaRicevuta();
     if (sognoAperto()) chiudiSogno(dormivo);

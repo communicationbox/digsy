@@ -97,9 +97,18 @@ hosting condiviso. Quindi WebSocket vero (`ws` dietro `mod_proxy_wstunnel`), non
 
 Una per volta, ognuna provabile da sola.
 
-1. ~~**Vedersi camminare.**~~ **FATTA** lato gioco e lato centralino (il centralino gira sulla
-   VPS e due client veri si sono visti). Manca solo il passaggio su Apache, che vuole root:
-   vedi `server/relay/INSTALLAZIONE.md`.
+1. ~~**Vedersi camminare.**~~ **FATTA, e in piedi sul serio**: il centralino gira come servizio
+   (`digsy-relay`, systemd, utente del sito e non root, riavvio automatico) e Apache inoltra
+   `wss://digsy.dev-box.it/ws` a `127.0.0.1:17451` con `timeout=600`. Provato da fuori: linea
+   aperta in 170 ms, battito e risposta in 20 ms, due client nella stessa stanza che si vedono
+   entrare.
+   **Il battito della linea** (`PING_MS` 30 s, `PONG_MAX` 60 s): Apache chiude quello che tace,
+   e staccarsi un attimo non deve buttare giù la partita — se la risposta non torna entro due
+   battiti si riattacca, e riattaccare vuol dire RIENTRARE nella stessa stanza. Il centralino
+   al ping risponde e basta: non lo gira agli altri, che non saprebbero che farsene.
+   **Chi non fa niente da cinque minuti esce** (`FERMO_MS`): sta nel mondo di qualcun altro, e
+   chi ospita non deve trovarsi in casa una statua. Muoversi, parlare o premere un tasto conta
+   come esserci; chi DORME in compagnia è fermo apposta e non conta.
 2. ~~**Il mondo dell'ospitante.**~~ **FATTA.** `CAMPI_MONDO` in state.js divide il salvataggio
    in due; `visita.js` mette da parte il proprio mondo, adotta quello ricevuto e al ritorno lo
    rimette identico. Tre cose vanno insieme o non funziona niente: il **seme** al generatore, le

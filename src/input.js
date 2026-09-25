@@ -2,7 +2,7 @@
 import { isModalOpen, closeModal, openBag, isBagOpen, closeBag, openBook, closeBook, isBookOpen, bookFlip, openQuests, openMap, closeMap, isMapOpen, isPrepOpen, closePrepare, isTossOpen, tossPress, tossAbort, isSkeletonFitOpen, skeletonFitSkip } from './ui.js';
 import { FOOT_DY } from './body.js';
 import { setGoal, clearGoal, screenToWorld, inReach, hasGoal } from './tapmove.js';
-import { MP, dire } from './mp.js';
+import { MP, dire, attivo } from './mp.js';
 import { apriRiga, chiudiRiga } from './chat.js';
 import { findPath, fits } from './path.js';
 import { tileBlocked, toggleMount, companionRides, tapFurnitureAt, nearbyStatue } from './gameplay.js';
@@ -127,6 +127,11 @@ function inviaChat() {
 { const b = document.getElementById('chatsend'); if (b) b.onclick = () => inviaChat(); }
 
 addEventListener('keydown', e => {
+  /* UN TASTO È UN SEGNO DI VITA. In compagnia chi non fa niente da cinque minuti esce dal
+     mondo di un altro, e «niente» non vuol dire solo «non si è mosso»: si può scavare sul
+     posto, leggere il Libro, scegliere un mobile. Costa una riga dirlo da qui, dove passano
+     tutti i tasti, invece di indovinarlo dai movimenti. */
+  attivo();
   /* INVIO e ESC della chat si trattano QUI, nel gestore del gioco, e PRIMA di `isTyping`:
      un ascoltatore sul campo dovrebbe fermare la propagazione per non far camminare il
      personaggio, e fermandola impedirebbe a questo di vedere il tasto. Prima di `isTyping`
@@ -279,6 +284,7 @@ if (cv && cv.addEventListener) {
     setHoldTarget(c.gx, c.gy);
   };
   cv.addEventListener('pointerdown', e => {
+    attivo();                              // anche il dito è un segno di vita (vedi il keydown)
     downX = e.clientX; downY = e.clientY; downT = Date.now();
     furnPress = null;
     if (!isModalOpen() && !splashActive() && !isPrepOpen()) {

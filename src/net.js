@@ -24,6 +24,14 @@
 
 export const PROTO = 1;          // versione del protocollo: due client diversi devono saperlo
 export const LAG = 100;          // ms di ritardo su cui si interpola: sotto si vedono i buchi di rete
+/* IL BATTITO DELLA LINEA. In mezzo fra il gioco e il centralino c'è Apache, che chiude le
+   connessioni ferme da un minuto: senza dirsi niente ogni tanto, una partita in cui si sta
+   leggendo il Libro cadrebbe da sola. Trenta secondi — metà del minuto — perché il battito
+   deve arrivare anche se se ne perde uno.
+   E una risposta si aspetta: se dopo DUE battiti non è tornato niente, la linea è morta
+   comunque fosse — meglio accorgersene e riattaccare che restare a parlare da soli. */
+export const PING_MS = 30000;
+export const PONG_MAX = 60000;
 export const SEND_HZ = 10;       // quante volte al secondo si dice dove si è
 const KEEP = 1200;               // ms di storia tenuti per ogni compagno (oltre non serve a niente)
 const MAX_PEERS = 8;             // una stanza è un salotto, non una piazza
@@ -45,6 +53,8 @@ export const T = {
   CHAT: 'chat',      // una riga detta a voce alta nella stanza
   BYE: 'bye',        // esco di mia volontà
   KICK: 'kick',      // l'ospitante manda via qualcuno: è casa sua
+  PING: 'ping',      // ci sono ancora (e la linea in mezzo è viva)
+  PONG: 'pong',      // il centralino risponde: sì, ti sento
   SLEEP: 'sleep',    // vado a dormire / mi sveglio: gli altri devono saperlo
   DAWN: 'dawn',      // l'ospitante ha fatto passare la notte (o il giorno)
 };
@@ -113,6 +123,8 @@ export function decode(raw) {
       /* chi va mandato via. Il mittente lo scrive il CENTRALINO, non il client, quindi chi
          riceve può controllare che a mandarlo via sia davvero il padrone di casa. */
       return id(m.who) ? { t: m.t, id: id(m.id) ? m.id : null, who: m.who } : null;
+    case T.PING: case T.PONG:
+      return { t: m.t };
     case T.SLEEP:
       return { t: m.t, id: id(m.id) ? m.id : null, on: !!m.on };
     case T.DAWN:

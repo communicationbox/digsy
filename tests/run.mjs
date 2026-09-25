@@ -10280,6 +10280,97 @@ sprites.applyLook();
   uiP.closeModal();
 }
 
+/* ---------- IL BATTITO DELLA LINEA, E CHI SI ALZA DALLA SEDIA ----------
+   Due tempi che non vanno confusi: la LINEA vuole un segno di vita ogni mezzo minuto (in mezzo
+   c'è Apache, che chiude quello che tace troppo a lungo), la PERSONA che non fa niente da
+   cinque minuti esce dal mondo di un altro. Staccarsi un attimo non deve buttare giù niente:
+   si riattacca, e riattaccare vuol dire RIENTRARE nella stessa stanza. */
+{
+  const mpB = await import('../src/mp.js');
+  const netB = await import('../src/net.js');
+  const fatteB = [];
+  mpB.setTransport(() => { const s = { readyState: 1, inviati: [], close() { s.chiusa = true; }, send(x) { s.inviati.push(JSON.parse(x)); } }; fatteB.push(s); return s; });
+  mpB.setTimer((fn) => fn());            // le attese non si aspettano davvero
+
+  mpB.connect('ws://finta/ws', { name: 'Marco', room: 'w-QDFG' });
+  const sB = fatteB[fatteB.length - 1];
+  sB.onopen(); sB.onmessage({ data: netB.encode(netB.T.WELCOME, { id: 'io' }) });
+  sB.onmessage({ data: netB.encode(netB.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+
+  const pos = { x: 100, y: 100, dir: 'down', moving: false, scene: 'world' };
+  const pings = () => sB.inviati.filter(x => x.t === 'ping').length;
+  mpB.tick(0, pos);
+  check('appena collegati non si battono le mani a vuoto', pings() === 0);
+  mpB.tick(netB.PING_MS - 1, pos);
+  check('e nemmeno un attimo prima dei trenta secondi', pings() === 0);
+  mpB.tick(netB.PING_MS, pos);
+  check('a trenta secondi parte il battito', pings() === 1);
+  /* il centralino risponde: la linea è viva */
+  sB.onmessage({ data: netB.encode(netB.T.PONG, {}) }, netB.PING_MS + 10);
+  mpB.ricevi(netB.encode(netB.T.PONG, {}), netB.PING_MS + 10);
+  mpB.tick(netB.PING_MS * 2, pos);
+  check('e si continua a battere', pings() === 2);
+
+  /* NESSUNA RISPOSTA per due battiti: la socket dice di essere aperta, ma non porta più
+     niente. Si riattacca invece di restare a parlare da soli. */
+  mpB.attivo(netB.PING_MS * 2);
+  const quante = fatteB.length;
+  mpB.tick(netB.PING_MS * 2 + netB.PONG_MAX + 1, pos);
+  check('se non torna risposta si riattacca da soli', fatteB.length > quante && mpB.MP.stato !== 'spento');
+  /* e riattaccare vuol dire RIENTRARE nella stessa stanza, non ricominciare */
+  const s2B = fatteB[fatteB.length - 1];
+  s2B.onopen(); s2B.onmessage({ data: netB.encode(netB.T.WELCOME, { id: 'io' }) });
+  const rientro = s2B.inviati.find(x => x.t === 'join');
+  check('nella STESSA stanza di prima, non in una nuova', rientro && rientro.room === 'w-QDFG', JSON.stringify(rientro));
+
+  mpB.disconnect();
+  mpB.setTransport((u) => new WebSocket(u));
+  mpB.setTimer((fn, ms) => (typeof setTimeout === 'function' ? setTimeout(fn, ms) : null));
+}
+
+/* CHI NON FA NIENTE DA CINQUE MINUTI ESCE. Non è una punizione: sta nel mondo di qualcun
+   altro, e chi ospita non deve trovarsi in casa una statua che non risponde. */
+{
+  const mpC = await import('../src/mp.js');
+  const netC = await import('../src/net.js');
+  const fatteC = [];
+  mpC.setTransport(() => { const s = { readyState: 1, inviati: [], close() {}, send(x) { s.inviati.push(JSON.parse(x)); } }; fatteC.push(s); return s; });
+  mpC.connect('ws://finta/ws', { name: 'Marco', room: 'w-QDFG' });
+  const sC = fatteC[fatteC.length - 1];
+  sC.onopen(); sC.onmessage({ data: netC.encode(netC.T.WELCOME, { id: 'io' }) });
+  sC.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  const fermo = { x: 50, y: 50, dir: 'down', moving: false, scene: 'world' };
+
+  mpC.attivo(0);
+  mpC.tick(mpC.FERMO_MS - 1, fermo);
+  check('quattro minuti e mezzo fermi non bastano', mpC.MP.stato === 'dentro');
+  /* muoversi è essere vivi */
+  mpC.tick(mpC.FERMO_MS - 1, { ...fermo, x: 300 });
+  check('e muoversi azzera il conto', mpC.fermoDa(mpC.FERMO_MS - 1) === 0);
+  /* e adesso cinque minuti veri, col centralino che risponde ai battiti: la linea è viva,
+     è la PERSONA che non c'è. (Senza le risposte vincerebbe l'altro controllo — nessun pong
+     vuol dire linea morta, e allora si riattacca invece di uscire: giusto così.) */
+  mpC.attivo(0);
+  for (let t = 0; t <= mpC.FERMO_MS + 60000; t += 30000) {
+    mpC.tick(t, fermo);
+    mpC.ricevi(netC.encode(netC.T.PONG, {}), t);
+  }
+  check('ma cinque minuti senza fare niente sì: si esce', mpC.MP.stato === 'spento', mpC.MP.stato + ' · ' + mpC.MP.motivo);
+
+  /* CHI DORME È FERMO APPOSTA: sta aspettando che passi la notte */
+  mpC.connect('ws://finta/ws', { name: 'Marco', room: 'w-QDFG' });
+  const s2C = fatteC[fatteC.length - 1];
+  s2C.onopen(); s2C.onmessage({ data: netC.encode(netC.T.WELCOME, { id: 'io' }) });
+  s2C.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  mpC.setDormiente(() => true);
+  mpC.attivo(0);
+  mpC.tick(mpC.FERMO_MS * 2, fermo);
+  check('chi dorme in compagnia non viene buttato fuori', mpC.MP.stato === 'dentro');
+  mpC.setDormiente(() => false);
+  mpC.disconnect();
+  mpC.setTransport((u) => new WebSocket(u));
+}
+
 /* ---------- IL SONNO IN COMPAGNIA ----------
    La regola che sorprende di più (MULTIPLAYER.md 4): andare a letto NON fa passare la notte,
    perché l'orologio è uno solo ed è di chi ospita. E l'energia si rifà solo a chi ha dormito,

@@ -70,6 +70,12 @@ wss.on('connection', (ws) => {
       log('entra', id, '→', p.room, '(' + r.peers.length + ')');
       return;
     }
+    /* IL BATTITO DELLA LINEA. Si risponde e basta: NON si inoltra agli altri, che non hanno
+       niente da farsene — moltiplicare un battito per tutti i presenti è traffico buttato. In
+       mezzo fra gioco e centralino c'è Apache, che chiude le connessioni ferme da un minuto:
+       questo è il segno di vita che le tiene aperte, e la risposta dice al gioco che la linea
+       è viva davvero (una socket può sembrare aperta e non portare più niente). */
+    if (m.t === 'ping') { manda('pong', {}); return; }
     if (m.t === 'bye') { chiudiStanza(); return; }
 
     /* tutto il resto è roba di gioco: si inoltra senza guardarci dentro, col mittente scritto
