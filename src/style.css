@@ -1441,6 +1441,17 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .sp-title2{display:inline-flex;align-items:center;gap:8px;align-self:center;color:var(--c-win-gold);letter-spacing:3px;
   padding:6px 4px 8px;margin:4px 52px 8px;box-shadow:inset 0 -3px 0 var(--c-win-gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:calc(100% - 104px)}
 .sp-card.sub{padding-top:28px}
+/* IN UN SOTTOMENU LUNGO SCORRE L'ELENCO, non la scheda. La scheda ha `overflow:hidden` e
+   un'altezza massima: senza dare all'elenco una barra sua, il contenuto straripava dalla sua
+   scatola e finiva SOPRA la versione stampata in fondo — due scritte una sull'altra, che
+   sembrano un difetto di stampa («Amici» è diventato lungo e l'ha tirato fuori).
+   Scorre UNA sola area (regola 15): la scheda no, l'elenco sì. */
+.sp-card.sub > .sp-menu{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:var(--sp-3)}
+/* …e allora l'elenco lungo DENTRO (le novità, i comandi, il taccuino) non scorre più per conto
+   suo: due aree che scorrono una dentro l'altra sono la regola 15, e su un telefono si muove
+   sempre quella sbagliata. Scorre la scheda, non il riquadro. */
+.sp-card.sub .sp-log,.sp-card.sub .sp-hall,.sp-card.sub .sp-keys,.sp-card.sub #sp-slots{
+  flex:0 0 auto;max-height:none;overflow:visible}
 
 /* SALVATAGGI: schede col ritratto del personaggio */
 .sp-slot{background:rgba(13,17,34,.4);color:var(--c-ink);border:0;border-radius:0;box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px rgba(241,231,207,.22);

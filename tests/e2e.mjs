@@ -240,6 +240,23 @@ const PROBE = `
           x?('X '+Math.round(xr.width)+'px a y'+Math.round(xr.top)):'niente X');
         A("splash/"+v+": una sola via di uscita", !back, back ? "c'è anche Indietro" : "solo la X");
         checkGaps('splash/'+v, '#sp-menu .sp-btn');
+        /* L'ULTIMA VOCE NON TOCCA LA VERSIONE stampata in fondo alla scheda. Succedeva nei
+           sottomenu lunghi: la scheda taglia, l'elenco straripava, e due scritte finivano una
+           sull'altra. Si misura, perché a occhio la si vede solo se si guarda quel punto. */
+        /* si misura la SCATOLA dell'elenco, non il suo ultimo figlio: quando l'elenco scorre i
+           figli stanno anche fuori dalla sua scatola, ma ritagliati — e misurarli faceva
+           gridare al difetto dove non c'era (mi è successo). Quello che non deve sovrapporsi
+           è l'area visibile. */
+        var ver = document.getElementById('sp-ver');
+        var men = document.getElementById('sp-menu');
+        if (ver && men) {
+          var vr = ver.getBoundingClientRect(), mr = men.getBoundingClientRect();
+          A('splash/'+v+': l elenco non finisce sopra la versione', mr.bottom <= vr.top + 1,
+            Math.round(mr.bottom) + ' contro ' + Math.round(vr.top));
+          A('splash/'+v+': se non ci sta, l elenco scorre (e scorre solo lui)',
+            men.scrollHeight <= men.clientHeight + 2 || /auto|scroll/.test(css(men,'overflow-y')),
+            Math.round(men.scrollHeight) + ' in ' + Math.round(men.clientHeight));
+        }
         checkGaps('splash/'+v+'/righe', '#sp-menu .sp-row');
         checkGaps('splash/'+v+'/slot', '#sp-menu .sp-slot');
         checkGaps('splash/'+v+'/stat', '#sp-menu .sp-stat');
@@ -250,7 +267,9 @@ const PROBE = `
           var st=getComputedStyle(el); var sc=/auto|scroll/.test(st.overflowY);
           return sc && el.scrollHeight > el.clientHeight + 2;
         });
-        A('splash/'+v+': una sola barra di scorrimento', scrollables.length<=1, scrollables.length+' aree che scorrono');
+        A('splash/'+v+': una sola barra di scorrimento', scrollables.length<=1,
+          scrollables.length+' aree che scorrono: ' + scrollables.map(function(e){
+            return (e.id ? '#'+e.id : '') + (e.className ? '.'+String(e.className).split(' ').join('.') : e.tagName); }).join(' '));
         A('splash/'+v+': il pannello sta nello schermo', !card || card.getBoundingClientRect().bottom<=H+2,
           card?Math.round(card.getBoundingClientRect().bottom)+'/'+H:'');
         stepView();

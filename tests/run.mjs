@@ -10157,8 +10157,8 @@ sprites.applyLook();
   const box = document.getElementById('sp-menu') || document.getElementById('splash');
   const html = (box && box.innerHTML) || '';
   check('la schermata degli amici si disegna', err === '', err);
-  check('e mostra il TUO codice, che è la cosa da dare a un amico',
-    html.includes('sp-mp-mio') && html.includes('sp-mp-copia'));
+  check('e offre il LINK d\'invito, che è la cosa da mandare a un amico',
+    html.includes('sp-mp-link') && html.includes('sp-mp-mio'));
   check('con cui si apre il proprio mondo o si entra in quello di un altro',
     html.includes('sp-mp-apri') && html.includes('sp-mp-entra'));
   /* LA REGOLA IN CIMA, non da indovinare: uno apre, l'altro entra col suo codice. Il pannello
@@ -10167,7 +10167,7 @@ sprites.applyLook();
   check('la regola sta scritta in cima, in una riga',
     /UNO apre il suo mondo|ONE of you opens their world/i.test(html));
   check('e le due strade sono numerate, non mescolate',
-    /1 · Apri tu|1 · Open yours/i.test(html) && /2 · Oppure vai|2 · Or go/i.test(html));
+    /1 · Apri tu|1 · Open yours/i.test(html) && /2 · Oppure raggiungi|2 · Or go to a friend/i.test(html));
   /* «PREMO ENTRA E NON SUCCEDE ASSOLUTAMENTE NIENTE» (segnalato da telefono). Il codice veniva
      rifiutato e il perché finiva in un toast: i toast vivono dentro `#frame`, che è
      `position:fixed` e si porta dietro il suo strato, quindi con la splash aperta stanno
@@ -10182,9 +10182,10 @@ sprites.applyLook();
       /non è un codice|not a code/i.test(h3));
     /* e l'avviso non resta appiccicato quando si fa una cosa giusta */
     campo.value = 'Q2D4F-G7HJK';
-    document.getElementById('sp-mp-agg').onclick();
+    document.getElementById('sp-mp-entra').onclick();
     const h4 = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
     check('e sparisce appena il codice è buono', !/non è un codice|not a code/i.test(h4));
+    (await import('../src/mp.js')).disconnect();
     state.S.amici = [];
   }
 
@@ -10197,6 +10198,28 @@ sprites.applyLook();
     check('un amico in rubrica si vede col nome che gli hai dato', h2.includes('Luca'));
     check('e col pulsante per entrare nel SUO mondo', h2.includes('data-vai="Q2D4FG7HJK"'));
     state.S.amici = [];
+    /* LA RUBRICA SI RIEMPIE GIOCANDO: dentro il mondo di un altro, un pulsante lo segna — e
+       solo lì si sa il suo NOME. Prima c'erano due campi da compilare a mano in un pannello
+       che doveva spiegare altro. */
+    {
+      const mpR2 = await import('../src/mp.js');
+      const netR2 = await import('../src/net.js');
+      let sk2 = null;
+      mpR2.setTransport(() => { sk2 = { readyState: 1, inviati: [], close() {}, send(v) { sk2.inviati.push(JSON.parse(v)); } }; return sk2; });
+      mpR2.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK', ospite: true });
+      sk2.onopen(); sk2.onmessage({ data: netR2.encode(netR2.T.WELCOME, { id: 'io' }) });
+      sk2.onmessage({ data: netR2.encode(netR2.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+      sp2.setView('amici');
+      const hr = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+      check('nel mondo di un altro si può segnarlo in rubrica, col suo nome', /sp-mp-segna/.test(hr) && /Luca/.test(hr));
+      const bot = document.getElementById('sp-mp-segna');
+      if (bot && bot.onclick) bot.onclick();
+      check('e ci finisce davvero, col codice della SUA stanza',
+        amS.amici().some(x => x.c === 'Q2D4FG7HJK' && x.n === 'Luca'), JSON.stringify(amS.amici()));
+      mpR2.disconnect();
+      mpR2.setTransport((u) => new WebSocket(u));
+      state.S.amici = [];
+    }
   }
   /* DENTRO LA STANZA si deve leggere DOVE si è e DI CHI è il mondo. Due persone che sbagliano
      codice — o che aprono ognuna il proprio mondo — vedevano tutte e due «sei nella stanza» e
@@ -10375,6 +10398,25 @@ sprites.applyLook();
   check('e il menu principale torna su senza crollare', typeof sp2.setView === 'function');
 }
 
+/* ---------- IL LINK D'INVITO ----------
+   Un codice va letto, dettato, ribattuto senza sbagliare un segno; un link si manda e si tocca.
+   Chi lo apre entra DIRITTO nel mondo di chi l'ha mandato — ed è il motivo per cui esiste. */
+{
+  const amL = await import('../src/amici.js');
+  state.S.codice = null;
+  const mioL = amL.mioCodice();
+  const link = amL.linkInvito(mioL);
+  check('il link porta il codice, e l\'indirizzo PUBBLICATO', link === amL.SITO + '?vai=' + mioL, link);
+  check('un invito con dentro «localhost» non lo aprirebbe nessuno', !/localhost|127\.0\.0\.1/.test(link));
+  check('e si rilegge com\'era', amL.codiceDaTesto(link) === mioL);
+  /* QUELLO CHE SI INCOLLA può essere un link o un codice: chi incolla non sta scegliendo un
+     formato, sta incollando quello che ha ricevuto */
+  check('vale anche il codice nudo, comunque scritto', amL.codiceDaTesto(amL.formatta(mioL).toLowerCase()) === mioL);
+  check('e un link con altra roba attorno', amL.codiceDaTesto('guarda qua https://digsy.dev-box.it/?vai=' + mioL + ' ci vediamo!') === mioL);
+  check('mentre una frase qualunque non è un invito', amL.valido(amL.codiceDaTesto('ci vediamo domani')) === false);
+  check('e un codice storto resta storto', amL.valido(amL.codiceDaTesto('?vai=OOOOOOOOOO')) === false);
+}
+
 /* ---------- IL CENTRALINO: SI PUÒ ASPETTARE ----------
    La regola vecchia era una sola — ospitante è chi arriva per primo — e produceva un vicolo
    cieco: due amici che si aspettavano a vicenda non si incontravano mai, perché ognuno entrava
@@ -10424,6 +10466,11 @@ sprites.applyLook();
   /* ma un segno che NON è dell'alfabeto si BUTTA, non si «corregge»: una O scambiata per uno
      zero e raddrizzata in silenzio darebbe un codice valido che è di un'altra persona */
   check('un codice storto resta storto, non diventa quello di un altro', am.valido(am.normalizza('OOOOOOOOOO')) === false);
+  /* E UNA FRASE NON È UN CODICE. Buttare via i segni estranei e tenere i primi dieci rimasti
+     faceva passare qualunque cosa: «ci vediamo domani» dà CVEDAMDMAN, dieci segni buoni — chi
+     incollava una riga di chat finiva nella stanza di uno sconosciuto. */
+  check('una frase qualunque non diventa il codice di qualcuno', am.valido(am.normalizza('ci vediamo domani')) === false);
+  check('né una parola lunga', am.valido(am.normalizza('archeologia')) === false);
 
   /* LA RUBRICA */
   check('un amico si aggiunge col codice e col nome che gli dai tu', am.aggiungiAmico('q2d4f-g7hjk', 'Luca') === true);

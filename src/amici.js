@@ -54,11 +54,36 @@ export function formatta(c) {
    «corretti» in qualcos'altro: una O scambiata per uno zero, «riparata» in silenzio, darebbe
    un codice valido che è di un'altra persona. Meglio dire che non è un codice. */
 export function normalizza(v) {
-  return [...String(v || '').toUpperCase()].filter(c => ALFABETO.includes(c)).join('').slice(0, LUNGHEZZA);
+  /* Si tolgono solo gli SPAZI e i TRATTINI, che sono modi di scrivere lo stesso codice. Tutto
+     il resto deve già essere alfabeto: buttare via i segni estranei e tenere i primi dieci
+     rimasti faceva diventare un codice valido qualunque frase — «ci vediamo domani» dà
+     CVEDAMDMAN, e chi incollava una riga di chat finiva nella stanza di uno sconosciuto. */
+  const t = String(v || '').toUpperCase().replace(/[\s\-_.]+/g, '');
+  if (t.length !== LUNGHEZZA) return '';
+  return [...t].every(c => ALFABETO.includes(c)) ? t : '';
 }
 export function valido(c) {
   const s = String(c || '');
   return s.length === LUNGHEZZA && [...s].every(x => ALFABETO.includes(x));
+}
+
+/* IL LINK D'INVITO. Un codice va letto, dettato, scritto senza sbagliare un segno; un link si
+   manda e si tocca. Chi lo apre entra DIRITTO nel mondo di chi l'ha mandato — niente pannelli
+   da capire, niente pulsanti da scegliere. È l'invito più semplice che esista, e non ha bisogno
+   di account né di un server che tenga il conto di chi è in linea.
+   L'indirizzo è sempre quello PUBBLICATO: un invito con dentro `localhost` non lo può aprire
+   nessuno tranne chi l'ha scritto. */
+export const SITO = 'https://digsy.dev-box.it/';
+export function linkInvito(codice) {
+  const c = normalizza(codice || (S && S.codice));
+  return valido(c) ? SITO + '?vai=' + c : '';
+}
+/* QUELLO CHE SI INCOLLA può essere un link o un codice: si accettano tutti e due, perché chi
+   incolla non sta scegliendo un formato — sta incollando quello che ha ricevuto. */
+export function codiceDaTesto(v) {
+  const t = String(v || '');
+  const m = t.match(/[?&]vai=([^&\s]+)/i);
+  return normalizza(m ? m[1] : t);
 }
 
 /* LA STANZA DI UNO. Il nome non è il codice nudo: `w-` davanti dice "il mondo di", e lascia

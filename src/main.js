@@ -21,7 +21,7 @@ import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
   connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
-import { mioCodice } from './amici.js';
+import { mioCodice, codiceDaTesto, valido, stanzaDi } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
@@ -354,8 +354,22 @@ function boot() {
      stanza e non trovava nessuno. Chi è USCITO di sua volontà — o è stato mandato via, o si è
      alzato dalla sedia — non rientra: quelle sono decisioni, e `mp.js` se le ricorda. */
   {
+    /* UN LINK D'INVITO APERTO È UN INVITO ACCETTATO. `?vai=CODICE` porta dritti nel mondo di
+       chi l'ha mandato: niente pannelli da aprire, niente codici da ribattere — è tutto il
+       senso del link. Se il codice è il PROPRIO (capita: ci si manda il link da sé per
+       provarlo) si apre il proprio mondo invece di aspettarsi.
+       Il parametro si toglie subito dall'indirizzo: resta nel ricordo della stanza, e un
+       indirizzo pulito non rimanda in casa d'altri a ogni ricaricamento. */
+    let invito = '';
+    try { invito = codiceDaTesto(new URLSearchParams(location.search || '').get('vai') || ''); } catch (e) { invito = ''; }
     const dove = stanzaRicordata();
-    if (dove) mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: dove.room, ospite: !!dove.ospite });
+    if (valido(invito)) {
+      const mio = invito === mioCodice();
+      mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(invito), ospite: !mio });
+      try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* pazienza */ }
+    } else if (dove) {
+      mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: dove.room, ospite: !!dove.ospite });
+    }
   }
   armAudioResume(); // musica in loop anche dopo un refresh (parte al primo gesto)
   updateHUD();

@@ -15,7 +15,7 @@ import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
 import { gameStats } from './stats.js';
 import { battitoAcceso, accendiBattito } from './beat.js';
-import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico } from './amici.js';
+import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico, linkInvito, codiceDaTesto } from './amici.js';
 import { toast } from './ui.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
@@ -596,28 +596,42 @@ function buildMenu(inGame) {
           h += `</div>`;
         }
       }
+      /* LA RUBRICA SI RIEMPIE GIOCANDO. Prima c'erano due campi da compilare a mano — il
+         codice e il nome — in un pannello che doveva spiegare altro; e il nome vero di chi
+         ospita lo sai solo QUI, dopo che l'hai incontrato. Un pulsante, quando serve. */
+      if (!sonoOspitante() && !inAttesa()) {
+        const suo = (MP.stanza || '').replace(/^w-/, '');
+        const chi = (presenti()[0] || {}).name || '';
+        if (valido(suo) && !amici().some(x => x.c === suo)) {
+          h += `<button class="sp-btn small" id="sp-mp-segna" data-nome="${esc(chi)}" data-cod="${esc(suo)}">${tr('Segna ', 'Note ') + (chi ? esc(chi) : tr('questo mondo', 'this world')) + tr(' in rubrica', ' down')}</button>`;
+        }
+      }
       h += `<div class="sp-note">${tr('Premi T per parlare', 'Press T to talk')}</div>`;
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     } else {
-      /* DUE PASSI, NON SEI PULSANTI. La regola del gioco è una sola — uno apre il suo mondo,
-         l'altro entra col suo codice — ma il pannello la lasciava indovinare: un codice, un
-         pulsante per copiarlo, uno per aprire, due campi, tre pulsanti, tutti della stessa
-         importanza. Due persone hanno passato una sera a entrare tutte e due come ospiti,
-         ognuna ad aspettare l'altra («non è per niente chiaro», ed era vero).
-         Adesso la regola sta scritta in cima, e sotto ci sono due strade separate da un
-         «oppure»: la TUA (apri, e dai il codice) e la SUA (entra col suo). */
-      h += `<div class="sp-note">${tr('Per giocare insieme: UNO apre il suo mondo, l\'ALTRO entra col suo codice.',
-        'To play together: ONE of you opens their world, the OTHER joins with their code.')}</div>`;
+      /* DUE STRADE, NON SEI PULSANTI. La regola del gioco è una sola — uno apre il suo mondo,
+         l'altro lo raggiunge — ma il pannello la lasciava indovinare: un codice, un pulsante
+         per copiarlo, uno per aprire, due campi, tre pulsanti, tutti della stessa importanza.
+         Due persone ci hanno passato una sera entrando tutte e due come ospiti, ognuna ad
+         aspettare l'altra («non è per niente chiaro», ed era vero).
+         E l'invito adesso è un LINK: un codice va letto, dettato, scritto senza sbagliare un
+         segno; un link si manda e si tocca, e chi lo apre entra diritto. */
+      h += `<div class="sp-note">${tr('Per giocare insieme: UNO apre il suo mondo e manda il link, l\'ALTRO lo apre.',
+        'To play together: ONE of you opens their world and sends the link, the OTHER opens it.')}</div>`;
 
       h += `<div class="sp-lab">${tr('1 · Apri tu, e invita', '1 · Open yours, and invite')}</div>`;
       h += `<button class="sp-btn primary" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
-      h += `<div class="sp-note">${tr('Poi dagli questo codice: chi ce l\'ha entra da te.', "Then give them this code: whoever has it comes to you.")}</div>`;
+      h += `<button class="sp-btn" id="sp-mp-link">🔗 ${tr('Copia il link d\'invito', 'Copy the invite link')}</button>`;
+      if (typeof navigator !== 'undefined' && navigator.share) {
+        h += `<button class="sp-btn small" id="sp-mp-manda">${tr('Mandalo a…', 'Send it to…')}</button>`;
+      }
+      h += `<div class="sp-note">${tr('Chi apre il tuo link entra dritto nel tuo mondo. Se preferisci dettarlo, il tuo codice è:',
+        'Whoever opens your link comes straight into your world. If you\'d rather read it out, your code is:')}</div>`;
       h += `<div class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</div>`;
-      h += `<button class="sp-btn small" id="sp-mp-copia">${tr('Copia il codice', 'Copy code')}</button>`;
 
       h += `<div class="sp-sep"></div>`;
-      h += `<div class="sp-lab">${tr('2 · Oppure vai da lui', '2 · Or go to them')}</div>`;
+      h += `<div class="sp-lab">${tr('2 · Oppure raggiungi un amico', '2 · Or go to a friend')}</div>`;
       const rub = amici();
       for (const g of rub) {
         h += `<div class="sp-riga"><span>${esc(g.n)}<br><small>${formatta(g.c)}</small></span>`;
@@ -625,13 +639,10 @@ function buildMenu(inGame) {
         h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
         h += `</div>`;
       }
-      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('il codice di un amico', "your friend's code")}" value="">`;
-      h += `<button class="sp-btn" id="sp-mp-entra">${tr('Entra nel suo mondo', 'Join their world')}</button>`;
+      h += `<input id="sp-mp-code" class="nameinput" maxlength="80" placeholder="${tr('incolla il suo link (o il suo codice)', 'paste their link (or their code)')}" value="">`;
+      h += `<button class="sp-btn" id="sp-mp-entra">${tr('Vai nel suo mondo', 'Go to their world')}</button>`;
       h += `<div class="sp-note">${tr('Se non ha ancora aperto, lo aspetti lì: quando apre, ci sei già dentro.',
         "If they haven't opened yet, you wait there: when they do, you're already in.")}</div>`;
-      /* la rubrica è un di più: si riempie quando serve, non è un passo da fare */
-      h += `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('come lo chiami (per segnarlo in rubrica)', 'what you call them (to note them down)')}" value="">`;
-      h += `<button class="sp-btn small" id="sp-mp-agg">${tr('Aggiungi alla rubrica', 'Add to friends')}</button>`;
 
       h += `<div class="sp-sep"></div>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
@@ -838,24 +849,28 @@ function buildMenu(inGame) {
   document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => { dimenticaAmico(b.dataset.scorda); go('amici'); }; });
   { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {
       const c = document.getElementById('sp-mp-code');
-      vaiDa(normalizza(c && c.value));
+      vaiDa(codiceDaTesto(c && c.value));
     }; }
-  { const a = document.getElementById('sp-mp-agg'); if (a) a.onclick = () => {
-      const c = document.getElementById('sp-mp-code'), n = document.getElementById('sp-mp-nome');
-      if (!aggiungiAmico(normalizza(c && c.value), n && n.value)) {
-        avvisoAmici = tr('Questo non è un codice: sono dieci segni, come il tuo qui sopra.',
-          "That's not a code: ten characters, like yours above.");
-      } else avvisoAmici = '';
+  { const a = document.getElementById('sp-mp-segna'); if (a) a.onclick = () => {
+      aggiungiAmico(a.dataset.cod, a.dataset.nome);
+      toast('📇 ' + tr('Segnato in rubrica', 'Noted down'));
       go('amici');
     }; }
   /* COPIARE IL PROPRIO CODICE. `navigator.clipboard` non c'è dappertutto (e su http nudo
      nemmeno): se manca si seleziona il testo, che è comunque meglio di un pulsante che non fa
      niente senza dire perché. */
-  { const cp = document.getElementById('sp-mp-copia'); if (cp) cp.onclick = () => {
-      const t = formatta(mioCodice());
+  /* IL LINK: copiarlo, o passarlo al telefono perché lo mandi con quello che vuole (la
+     condivisione di sistema c'è solo su telefono, quindi il pulsante compare solo lì). */
+  { const lk = document.getElementById('sp-mp-link'); if (lk) lk.onclick = () => {
+      const t = linkInvito(mioCodice());
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(t).then(() => toast(tr('Codice copiato', 'Code copied')), () => toast(t));
+        navigator.clipboard.writeText(t).then(() => toast('🔗 ' + tr('Link copiato: mandalo a chi vuoi', 'Link copied: send it to whoever you like')), () => toast(t));
       } else toast(t);
+    }; }
+  { const sh = document.getElementById('sp-mp-manda'); if (sh) sh.onclick = () => {
+      const t = linkInvito(mioCodice());
+      try { navigator.share({ title: 'Digsy World', text: tr('Vieni a scavare con me!', 'Come dig with me!'), url: t }); }
+      catch (e) { toast(t); }
     }; }
   { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { esci('uscito'); go('amici'); }; }
   document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('amici'); }; });

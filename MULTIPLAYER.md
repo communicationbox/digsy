@@ -148,6 +148,17 @@ Una per volta, ognuna provabile da sola.
      una riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account
      (senza, non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo
      dice: il recapito è la parte che manca, e non si finge che sia arrivata.
+   - **FATTO: l'invito è un LINK.** `https://digsy.dev-box.it/?vai=CODICE`: si copia (o si passa
+     alla condivisione del telefono) e chi lo apre entra **dritto** nel mondo di chi l'ha
+     mandato — niente pannelli da capire, niente codici da ribattere. Il codice resta, per chi
+     preferisce dettarlo a voce, e il campo per entrare accetta tutti e due: chi incolla non
+     sta scegliendo un formato, sta incollando quello che ha ricevuto.
+     Il pannello è diventato due strade numerate («apri tu e invita» · «oppure raggiungi un
+     amico») sotto la riga che spiega la regola, perché prima la lasciava indovinare da sei
+     pulsanti di pari importanza — e due persone ci hanno passato una sera entrando tutte e
+     due come ospiti, ognuna ad aspettare l'altra.
+     La **rubrica si riempie giocando**: dentro il mondo di un altro c'è un pulsante che lo
+     segna, col suo nome vero — che si conosce solo lì.
    - **SI PUÒ ASPETTARE.** Una stanza può esistere **senza padrone di casa**: è una sala
      d'attesa (`host: null` nel centralino), e diventa un mondo quando arriva quello di cui
      porta il codice — che a quel punto riceve la stanza e manda il suo mondo a chi aspettava.
