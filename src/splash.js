@@ -3,7 +3,7 @@ import { drawHero, applyLook } from './sprites.js';
 import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { MP, connect, disconnect, relayUrl, presenti, mandaVia, sonoOspitante } from './mp.js';
+import { MP, connect, disconnect, relayUrl, presenti, mandaVia, sonoOspitante, inCasa, CENTRALINO_ONLINE } from './mp.js';
 import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -526,6 +526,15 @@ function buildMenu(inGame) {
        fatto l'accesso con Google legge "scollegato" e pensa all'account (segnalato: "sono
        collegato con Google, come mai mi dice che sono scollegato?"). Ogni riga adesso dice di
        cosa parla, e quella da fermi lo dice in chiaro (regola 7). */
+    /* SOLO IN CASA: a quale centralino si è attaccati. Sul computer di chi sviluppa ce ne sono
+       due (quello locale e quello pubblicato, con `?ws=online`) ed è la prima cosa da guardare
+       quando «l'altro non si vede»: due centralini diversi sono due mondi che non si toccano. */
+    if (inCasa()) {
+      /* si confronta con la costante, non con un pezzo di dominio scritto a mano: l'indirizzo
+         del centralino pubblicato sta in un posto solo (mp.js) e va cambiato lì */
+      const suOnline = (relayUrl() || '') === CENTRALINO_ONLINE;
+      h += `<div class="sp-note">${tr('Centralino: ', 'Switchboard: ')}${suOnline ? tr('quello online', 'the online one') : tr('quello locale', 'the local one')}</div>`;
+    }
     const stato = MP.stato === 'dentro' ? tr('Sei nella stanza', "You're in the room")
       : MP.stato === 'collego' ? tr('Mi collego alla stanza…', 'Joining the room…')
         : MP.stato === 'caduto' ? tr('La stanza è caduta', 'Lost the room')
@@ -533,6 +542,16 @@ function buildMenu(inGame) {
     h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + esc(MP.motivo) : ''}</div>`;
     if (avvisoAmici) h += `<div class="sp-acc-warn">${esc(avvisoAmici)}</div>`;
     if (MP.stato === 'dentro') {
+      /* IN QUALE STANZA, detto a chiare lettere. Due persone che si sbagliano di codice — o che
+         aprono ognuna il proprio mondo — vedono tutte e due «sei nella stanza» e nessuno dei
+         due capisce perché è solo (successo: due stanze diverse, stessa schermata). Il codice
+         scritto qui si confronta a voce in due secondi.
+         E chi ospita lo deve sapere: il mondo è suo, ed è la regola che sorprende di più. */
+      const dove = (MP.stanza || '').replace(/^w-/, '');
+      if (dove) h += `<div class="sp-code">${esc(formatta(dove))}</div>`;   // mai un riquadro vuoto
+      h += `<div class="sp-note">${sonoOspitante()
+        ? tr('È il TUO mondo: gli altri stanno giocando qui da te.', "It's YOUR world: the others are playing here at your place.")
+        : tr('Sei nel mondo di chi ha aperto questa stanza.', "You're in the world of whoever opened this room.")}</div>`;
       const gente = presenti();
       if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
       else {

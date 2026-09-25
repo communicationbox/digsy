@@ -25,7 +25,7 @@ import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
 
 /* stati, in italiano perché si leggono anche nell'interfaccia:
    spento · collego · dentro · caduto */
-export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 0 };
+export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 0, stanza: null, url: null };
 
 const RIPROVE = [500, 1500, 4000, 10000];   // attese fra un tentativo e l'altro, poi si smette
 let sock = null, mio = null, stanza = null, invio = {}, riprova = 0;
@@ -76,7 +76,7 @@ export function relayUrl(loc) {
 export function connect(url, me) {
   if (sock) disconnect('riconnessione');
   mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null };
-  stanza = mio.room;
+  stanza = mio.room; MP.stanza = stanza;
   MP.stato = 'collego'; MP.motivo = null;
   aprire(url);
 }
@@ -285,7 +285,7 @@ export function disconnect(motivo) {
      o si resta con mezzo mondo altrui e niente che salva. */
   if (sonoOspite()) tornaACasa();
   MP.stato = 'spento'; MP.motivo = motivo || null;
-  MP.room = makeRoom(); invio = {}; stanza = null;
+  MP.room = makeRoom(); invio = {}; stanza = null; MP.stanza = null;
   const s = sock; sock = null;
   if (s) { try { s.onclose = null; s.close(); } catch (e) { /* già morta */ } }
 }

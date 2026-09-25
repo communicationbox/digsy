@@ -10193,6 +10193,26 @@ sprites.applyLook();
     check('e col pulsante per entrare nel SUO mondo', h2.includes('data-vai="Q2D4FG7HJK"'));
     state.S.amici = [];
   }
+  /* DENTRO LA STANZA si deve leggere DOVE si è e DI CHI è il mondo. Due persone che sbagliano
+     codice — o che aprono ognuna il proprio mondo — vedevano tutte e due «sei nella stanza» e
+     restavano sole senza capire perché (successo davvero, con una foto). */
+  {
+    const mpS = await import('../src/mp.js');
+    const netS = await import('../src/net.js');
+    const fatte = [];
+    mpS.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+    mpS.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK' });
+    const sk = fatte[fatte.length - 1];
+    sk.onopen(); sk.onmessage({ data: netS.encode(netS.T.WELCOME, { id: 'io' }) });
+    sk.onmessage({ data: netS.encode(netS.T.ROOM, { host: 'io', peers: [] }) });
+    sp2.setView('amici');
+    const hd = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    check('nella stanza si legge QUALE stanza', /Q2D4F-G7HJK/.test(hd), hd.slice(0, 0));
+    check('e che il mondo è il TUO, se hai aperto tu', /TUO mondo|YOUR world/i.test(hd));
+    mpS.disconnect();
+    mpS.setTransport((u) => new WebSocket(u));
+  }
+
   /* e dalla stanza si può uscire */
   mp2.disconnect();
   sp2.setView('main');

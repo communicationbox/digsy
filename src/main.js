@@ -458,7 +458,8 @@ if (typeof window !== 'undefined') {
       /* il SOGNO, per fotografarlo: si vede solo dormendo in due */
       sogno: () => import('./sonno.js').then(so => { so.vadoADormire(true); return apriSogno(); }),
       mpFinta: (nomi, ospito) => import('./mp.js').then(m => {
-        m.MP.stato = 'dentro'; m.MP.room.me = 'io'; m.MP.room.host = ospito === false ? 'u1' : 'io';
+        m.MP.stato = 'dentro'; m.MP.stanza = 'w-QWG2DVH4D3';
+        m.MP.room.me = 'io'; m.MP.room.host = ospito === false ? 'u1' : 'io';
         m.MP.room.joined = true; m.MP.room.peers.clear();
         (nomi || []).forEach((n, i) => m.MP.room.peers.set('u' + (i + 1),
           { id: 'u' + (i + 1), name: n, look: null, buf: [], salti: i === 1 ? 3 : 0 }));
