@@ -167,6 +167,15 @@ export function ricevi(raw, now) {
        Prima si veniva buttati fuori, e due amici che si aspettavano a vicenda non si
        incontravano mai (visto in due schermate affiancate). */
     if (sonoOspitante() && MP.room.peers.size) mandaMondo();   // sono arrivato io: ecco il mio mondo
+    /* NESSUNO PUÒ ASPETTARE SÉ STESSO. Se si è finiti ospiti in una stanza che non ha padrone
+       e che porta il PROPRIO codice, la si apre: è casa nostra, e aspettare avrebbe voluto
+       dire aspettarsi. Sta qui e non solo nel pannello perché la strada per arrivarci è più
+       d'una (il ricordo di un avvio precedente, per esempio). */
+    if (inAttesa() && ospiteAtteso && mioStessoCodice()) {
+      ospiteAtteso = false;
+      ricorda({ room: stanza, ospite: false, name: mio && mio.name });
+      manda(T.JOIN, { room: stanza, ospite: false });
+    }
   }
   /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
      l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
@@ -277,6 +286,10 @@ export function visibili(now, scena = 'world') {
 export function sonoOspitante() { return !!MP.room.me && MP.room.host === MP.room.me; }
 /* stanza aperta ma senza padrone di casa: si sta aspettando che arrivi */
 export function inAttesa() { return MP.stato === 'dentro' && !MP.room.host; }
+/* la stanza in cui sono porta il MIO codice? (mp.js non conosce i codici: glielo si dichiara) */
+let mioCodiceOra = () => '';
+export function setMioCodice(fn) { mioCodiceOra = fn || (() => ''); }
+function mioStessoCodice() { const c = mioCodiceOra(); return !!c && MP.stanza === 'w-' + c; }
 
 function mandaMondo() {
   const p = mondoDaMandare();

@@ -600,30 +600,40 @@ function buildMenu(inGame) {
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     } else {
-      /* IL TUO CODICE, LA TUA RUBRICA. Prima si inventava una parola e ci si metteva
-         d'accordo a voce ogni volta: due persone potevano sceglierne una uguale senza saperlo,
-         e il giorno dopo si ricominciava da capo. Il codice invece è un indirizzo: si dà una
-         volta, l'amico se lo segna, e da lì in poi si entra dal suo NOME. */
-      h += `<div class="sp-lab">${tr('Il tuo codice', 'Your code')}</div>`;
+      /* DUE PASSI, NON SEI PULSANTI. La regola del gioco è una sola — uno apre il suo mondo,
+         l'altro entra col suo codice — ma il pannello la lasciava indovinare: un codice, un
+         pulsante per copiarlo, uno per aprire, due campi, tre pulsanti, tutti della stessa
+         importanza. Due persone hanno passato una sera a entrare tutte e due come ospiti,
+         ognuna ad aspettare l'altra («non è per niente chiaro», ed era vero).
+         Adesso la regola sta scritta in cima, e sotto ci sono due strade separate da un
+         «oppure»: la TUA (apri, e dai il codice) e la SUA (entra col suo). */
+      h += `<div class="sp-note">${tr('Per giocare insieme: UNO apre il suo mondo, l\'ALTRO entra col suo codice.',
+        'To play together: ONE of you opens their world, the OTHER joins with their code.')}</div>`;
+
+      h += `<div class="sp-lab">${tr('1 · Apri tu, e invita', '1 · Open yours, and invite')}</div>`;
+      h += `<button class="sp-btn primary" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
+      h += `<div class="sp-note">${tr('Poi dagli questo codice: chi ce l\'ha entra da te.', "Then give them this code: whoever has it comes to you.")}</div>`;
       h += `<div class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</div>`;
       h += `<button class="sp-btn small" id="sp-mp-copia">${tr('Copia il codice', 'Copy code')}</button>`;
-      h += `<div class="sp-note">${tr('Dallo a chi vuoi invitare: chi ha il tuo codice entra nel tuo mondo.', 'Give it to whoever you want to invite: whoever has your code enters your world.')}</div>`;
-      h += `<button class="sp-btn primary" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
+
       h += `<div class="sp-sep"></div>`;
-      h += `<div class="sp-lab">${tr('Amici', 'Friends')}</div>`;
+      h += `<div class="sp-lab">${tr('2 · Oppure vai da lui', '2 · Or go to them')}</div>`;
       const rub = amici();
-      if (!rub.length) h += `<div class="sp-note">${tr('Ancora nessuno. Fatti dare il codice da un amico e segnalo qui.', 'Nobody yet. Get a code from a friend and note it down here.')}</div>`;
       for (const g of rub) {
         h += `<div class="sp-riga"><span>${esc(g.n)}<br><small>${formatta(g.c)}</small></span>`;
         h += `<button class="sp-btn small" data-vai="${esc(g.c)}">${tr('Vai da lui', 'Go to them')}</button>`;
         h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
         h += `</div>`;
       }
-      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('codice di un amico', "a friend's code")}" value="">`;
-      h += `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('come lo chiami', 'what you call them')}" value="">`;
+      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('il codice di un amico', "your friend's code")}" value="">`;
+      h += `<button class="sp-btn" id="sp-mp-entra">${tr('Entra nel suo mondo', 'Join their world')}</button>`;
+      h += `<div class="sp-note">${tr('Se non ha ancora aperto, lo aspetti lì: quando apre, ci sei già dentro.',
+        "If they haven't opened yet, you wait there: when they do, you're already in.")}</div>`;
+      /* la rubrica è un di più: si riempie quando serve, non è un passo da fare */
+      h += `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('come lo chiami (per segnarlo in rubrica)', 'what you call them (to note them down)')}" value="">`;
       h += `<button class="sp-btn small" id="sp-mp-agg">${tr('Aggiungi alla rubrica', 'Add to friends')}</button>`;
-      h += `<button class="sp-btn" id="sp-mp-entra">${tr('Entra col codice', 'Join with a code')}</button>`;
-      h += `<div class="sp-note">${tr('Chi ospita è quello di cui si usa il codice: si gioca nel suo mondo, col suo orologio.', "The host is whoever's code you use: you play in their world, on their clock.")}</div>`;
+
+      h += `<div class="sp-sep"></div>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     }
     h += backBar();
@@ -807,6 +817,13 @@ function buildMenu(inGame) {
   /* ENTRARE è sempre la stessa cosa: ci si collega alla stanza di QUALCUNO, e quel qualcuno
      può essere anche sé stessi (aprire il proprio mondo). Una funzione sola, tre pulsanti. */
   const vaiDa = (codice, mia) => {
+    /* IL PROPRIO CODICE APRE IL PROPRIO MONDO, comunque lo si scriva. Chi incolla il suo codice
+       in «entra col codice» (capita: è quello che si ha sotto gli occhi, ed è scritto lì sopra
+       in grande) entrava OSPITE nella propria stanza — e restava ad aspettare SÉ STESSO, per
+       sempre. Nel registro del centralino si vedeva una fila di ingressi «in attesa» nella
+       stessa stanza e mai un padrone di casa: era sempre lui.
+       E il ricordo se lo portava dietro, quindi a ogni riavvio tornava ad aspettarsi. */
+    if (valido(codice) && codice === mioCodice()) mia = true;
     if (!valido(codice)) {
       avvisoAmici = tr('Questo non è un codice: sono dieci segni, come il tuo qui sopra.',
         "That's not a code: ten characters, like yours above.");

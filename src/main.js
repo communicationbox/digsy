@@ -19,8 +19,9 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
+import { mioCodice } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
@@ -328,6 +329,9 @@ function boot() {
   /* CHI DORME È FERMO APPOSTA: sta aspettando che passi la notte, e non va buttato fuori
      dopo cinque minuti come uno che si è alzato dalla sedia. */
   setDormiente(() => SONNO.dormo);
+  /* mp.js non conosce i codici degli amici: glielo si dichiara, così può accorgersi se una
+     stanza senza padrone porta il NOSTRO codice — nel qual caso la apre invece di aspettarsi */
+  setMioCodice(() => { try { return mioCodice(); } catch (e) { return ''; } });
   setSuAlba(() => {
     const dormivo = albaRicevuta();
     if (sognoAperto()) chiudiSogno(dormivo);

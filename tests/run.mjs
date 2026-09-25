@@ -10161,8 +10161,13 @@ sprites.applyLook();
     html.includes('sp-mp-mio') && html.includes('sp-mp-copia'));
   check('con cui si apre il proprio mondo o si entra in quello di un altro',
     html.includes('sp-mp-apri') && html.includes('sp-mp-entra'));
-  check('dice anche di chi è il mondo, che è la regola che sorprende di più',
-    /ospita|host/i.test(html));
+  /* LA REGOLA IN CIMA, non da indovinare: uno apre, l'altro entra col suo codice. Il pannello
+     la lasciava dedurre da sei pulsanti tutti uguali d'importanza, e due persone hanno passato
+     una sera entrando tutte e due come ospiti, ognuna ad aspettare l'altra. */
+  check('la regola sta scritta in cima, in una riga',
+    /UNO apre il suo mondo|ONE of you opens their world/i.test(html));
+  check('e le due strade sono numerate, non mescolate',
+    /1 · Apri tu|1 · Open yours/i.test(html) && /2 · Oppure vai|2 · Or go/i.test(html));
   /* «PREMO ENTRA E NON SUCCEDE ASSOLUTAMENTE NIENTE» (segnalato da telefono). Il codice veniva
      rifiutato e il perché finiva in un toast: i toast vivono dentro `#frame`, che è
      `position:fixed` e si porta dietro il suo strato, quindi con la splash aperta stanno
@@ -10250,7 +10255,31 @@ sprites.applyLook();
     sv.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
     check('quando arriva, la stanza diventa il suo mondo', mpV.inAttesa() === false && mpV.sonoOspitante() === false);
 
-    /* ma APRIRE IL PROPRIO mondo fa ospitante, ed è giusto così */
+    /* IL PROPRIO CODICE APRE IL PROPRIO MONDO, comunque lo si scriva. Incollare il proprio
+     codice in «entra col codice» capita — è quello che si ha sotto gli occhi, scritto lì sopra
+     in grande — e faceva entrare OSPITI nella propria stanza: si restava ad aspettare SÉ
+     STESSI, per sempre, e il ricordo se lo portava dietro a ogni riavvio. Nel registro del
+     centralino si vedeva una fila di ingressi «in attesa» nella stessa stanza e mai un padrone
+     di casa: era sempre lo stesso client che aspettava sé stesso. */
+  {
+    const amS = await import('../src/amici.js');
+    state.S.codice = null;
+    const mioC = amS.mioCodice();
+    const campo = document.getElementById('sp-mp-code');
+    sp2.setView('amici');
+    campo.value = amS.formatta(mioC);
+    document.getElementById('sp-mp-entra').onclick();
+    const sm = fatte[fatte.length - 1];
+    sm.onopen(); sm.onmessage({ data: netV.encode(netV.T.WELCOME, { id: 'io' }) });
+    check('incollare il PROPRIO codice apre il proprio mondo, non una sala d\'attesa',
+      mpV.MP.stanza === 'w-' + mioC && mpV.inAttesa() === false);
+    const joinMio = (sm.inviati || []).find(x => x.t === 'join');
+    check('e al centralino ci si dichiara padroni di casa', joinMio && joinMio.ospite === false,
+      JSON.stringify(joinMio));
+    mpV.disconnect();
+  }
+
+  /* ma APRIRE IL PROPRIO mondo fa ospitante, ed è giusto così */
     mpV.connect('ws://finta/ws', { name: 'Marco', room: 'w-MIOCODICE1' });
     const sv2 = fatte[fatte.length - 1];
     sv2.onopen(); sv2.onmessage({ data: netV.encode(netV.T.WELCOME, { id: 'io' }) });
