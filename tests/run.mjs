@@ -10213,6 +10213,48 @@ sprites.applyLook();
     mpS.setTransport((u) => new WebSocket(u));
   }
 
+  /* «NON SONO ANDATO NEL MONDO DI LOCALHOST» (segnalato con foto). Si entra col codice di un
+     amico che in quel momento non è in gioco: il centralino fa ospitante chi arriva per primo,
+     quindi si diventava padroni di casa di una stanza col codice di un ALTRO, restando nel
+     proprio mondo — con scritto «è il TUO mondo» sopra il codice di qualcun altro. Sembrava di
+     essere entrati da qualche parte, e non si era entrati da nessuna parte.
+     Restare sarebbe stato peggio: l'amico che arriva dopo col SUO codice diventerebbe ospite
+     nel MIO mondo, l'esatto contrario di quello che voleva. */
+  {
+    const mpV = await import('../src/mp.js');
+    const netV = await import('../src/net.js');
+    const fatte = [];
+    mpV.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+
+    /* entro col codice di un altro, e la stanza è vuota: il centralino mi fa ospitante */
+    mpV.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK', ospite: true });
+    const sv = fatte[fatte.length - 1];
+    sv.onopen(); sv.onmessage({ data: netV.encode(netV.T.WELCOME, { id: 'io' }) });
+    sv.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'io', peers: [] }) });
+    check('entrare in una stanza vuota col codice di un altro NON ti fa padrone di casa sua',
+      mpV.MP.stato === 'spento', mpV.MP.stato);
+    check('e il perché è un motivo che si può raccontare', mpV.MP.motivo === 'stanza-vuota');
+    sp2.setView('amici');
+    const hv = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    check('scritto in parole, non in gergo', /non c'è nessuno|Nobody is in that room/i.test(hv));
+
+    /* ma APRIRE IL PROPRIO mondo fa ospitante, ed è giusto così */
+    mpV.connect('ws://finta/ws', { name: 'Marco', room: 'w-MIOCODICE1' });
+    const sv2 = fatte[fatte.length - 1];
+    sv2.onopen(); sv2.onmessage({ data: netV.encode(netV.T.WELCOME, { id: 'io' }) });
+    sv2.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'io', peers: [] }) });
+    check('aprire il PROPRIO mondo invece sì', mpV.MP.stato === 'dentro' && mpV.sonoOspitante() === true);
+
+    /* e entrare in una stanza ABITATA funziona: si è ospiti */
+    mpV.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK', ospite: true });
+    const sv3 = fatte[fatte.length - 1];
+    sv3.onopen(); sv3.onmessage({ data: netV.encode(netV.T.WELCOME, { id: 'io' }) });
+    sv3.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+    check('entrare da chi C\'È funziona, e si è ospiti', mpV.MP.stato === 'dentro' && mpV.sonoOspitante() === false);
+    mpV.disconnect();
+    mpV.setTransport((u) => new WebSocket(u));
+  }
+
   /* e dalla stanza si può uscire */
   mp2.disconnect();
   sp2.setView('main');

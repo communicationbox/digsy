@@ -31,6 +31,7 @@ const RIPROVE = [500, 1500, 4000, 10000];   // attese fra un tentativo e l'altro
 let sock = null, mio = null, stanza = null, invio = {}, riprova = 0;
 /* il battito della linea e l'ultima volta che la persona ha fatto qualcosa */
 let ultimoPing = null, ultimoPong = null, ultimaAttività = null;
+let ospiteAtteso = false;    // sto entrando col codice di un ALTRO?
 let apri = (url) => new WebSocket(url);      // sostituibile dai test
 let dopo = (fn, ms) => (typeof setTimeout === 'function' ? setTimeout(fn, ms) : null);
 
@@ -76,6 +77,11 @@ export function relayUrl(loc) {
 export function connect(url, me) {
   if (sock) disconnect('riconnessione');
   mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null };
+  /* CASA MIA O CASA D'ALTRI. Lo dichiara chi apre il collegamento, e il valore di partenza è
+     «casa mia»: chi non dice niente sta aprendo la propria stanza (è così in tutti i punti
+     che non sono il pulsante «entra col codice»). Serve a riconoscere il caso qui sotto: se
+     entro col codice di un ALTRO e mi ritrovo padrone di casa, quella stanza era vuota. */
+  ospiteAtteso = !!(me && me.ospite);
   stanza = mio.room; MP.stanza = stanza;
   MP.stato = 'collego'; MP.motivo = null;
   aprire(url);
@@ -106,7 +112,17 @@ export function ricevi(raw, now) {
   if (!m) return null;
   const t = applyMessage(MP.room, m, now);
   if (m.t === T.WELCOME && stanza) manda(T.JOIN, { room: stanza });
-  if (m.t === T.ROOM) { MP.stato = 'dentro'; invio = {}; }
+  if (m.t === T.ROOM) {
+    MP.stato = 'dentro'; invio = {};
+    /* ENTRARE COL CODICE DI UN ALTRO E RITROVARSI PADRONE DI CASA vuol dire una cosa sola: in
+       quella stanza non c'era nessuno — il centralino fa ospitante chi arriva per primo. Prima
+       si restava lì dentro, nel PROPRIO mondo, con scritto «è il TUO mondo» e il codice di un
+       altro sopra: sembrava di essere entrati e non si era entrati da nessuna parte
+       (segnalato con foto: «non sono andato nel mondo di localhost»).
+       Si esce e si dice il perché. Restare sarebbe pure peggio: l'amico che arriva dopo col
+       SUO codice finirebbe ospite nel MIO mondo, cioè l'esatto contrario di quello che voleva. */
+    if (ospiteAtteso && sonoOspitante()) { disconnect('stanza-vuota'); return t; }
+  }
   /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
      l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
      deterministico dal seme: quello che viaggia è il seme più quello che è stato consumato. */

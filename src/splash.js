@@ -539,7 +539,19 @@ function buildMenu(inGame) {
       : MP.stato === 'collego' ? tr('Mi collego alla stanza…', 'Joining the room…')
         : MP.stato === 'caduto' ? tr('La stanza è caduta', 'Lost the room')
           : tr('Non sei in nessuna stanza', "You're not in any room");
-    h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + esc(MP.motivo) : ''}</div>`;
+    /* I MOTIVI SONO CODICI, non frasi: qui si traducono. Un «stanza-vuota» stampato così com'è
+       non spiega niente a nessuno, e questo è proprio il caso che va spiegato bene. */
+    const motivi = {
+      'stanza-vuota': tr('In quella stanza non c\'è nessuno: chi ha quel codice non sta giocando adesso. Fattelo dire quando è in gioco.',
+        "Nobody is in that room: whoever has that code isn't playing right now. Ask them when they are."),
+      'fermo da cinque minuti': tr('Sei stato fermo cinque minuti: sei tornato a casa tua.', "You stood still for five minutes: you're back in your own world."),
+      'ti ha mandato via chi ospita': tr('Chi ospitava ti ha mandato via.', 'The host sent you away.'),
+      'la stanza si è chiusa': tr('Chi ospitava è uscito: la stanza si è chiusa.', 'The host left: the room is closed.'),
+      'la linea non risponde': tr('La linea non rispondeva: ho riattaccato.', 'The line went quiet: reconnecting.'),
+    };
+    const detto = MP.motivo ? (motivi[MP.motivo] || '') : '';
+    h += `<div class="sp-note">${stato}${(MP.motivo && !detto) ? ' · ' + esc(MP.motivo) : ''}</div>`;
+    if (detto) h += `<div class="sp-acc-warn">${detto}</div>`;
     if (avvisoAmici) h += `<div class="sp-acc-warn">${esc(avvisoAmici)}</div>`;
     if (MP.stato === 'dentro') {
       /* IN QUALE STANZA, detto a chiare lettere. Due persone che si sbagliano di codice — o che
@@ -776,17 +788,17 @@ function buildMenu(inGame) {
   const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => go('amici');
   /* ENTRARE è sempre la stessa cosa: ci si collega alla stanza di QUALCUNO, e quel qualcuno
      può essere anche sé stessi (aprire il proprio mondo). Una funzione sola, tre pulsanti. */
-  const vaiDa = (codice) => {
+  const vaiDa = (codice, mia) => {
     if (!valido(codice)) {
       avvisoAmici = tr('Questo non è un codice: sono dieci segni, come il tuo qui sopra.',
         "That's not a code: ten characters, like yours above.");
       go('amici'); return;
     }
     avvisoAmici = '';
-    connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(codice) });
+    connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(codice), ospite: !mia });
     go('amici');
   };
-  { const a = document.getElementById('sp-mp-apri'); if (a) a.onclick = () => vaiDa(mioCodice()); }
+  { const a = document.getElementById('sp-mp-apri'); if (a) a.onclick = () => vaiDa(mioCodice(), true); }
   document.querySelectorAll('[data-vai]').forEach(b => { b.onclick = () => vaiDa(b.dataset.vai); });
   document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => { dimenticaAmico(b.dataset.scorda); go('amici'); }; });
   { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {

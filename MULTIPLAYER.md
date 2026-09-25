@@ -148,6 +148,12 @@ Una per volta, ognuna provabile da sola.
      una riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account
      (senza, non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo
      dice: il recapito è la parte che manca, e non si finge che sia arrivata.
+   - **Entrare col codice di chi non c'è NON apre la sua stanza.** Il centralino fa ospitante
+     chi arriva per primo: entrando in una stanza vuota si diventava padroni di casa di un
+     codice altrui, restando nel PROPRIO mondo — «è il TUO mondo» scritto sopra il codice di
+     un altro. Sembrava di essere entrati da qualche parte e non si era entrati da nessuna
+     parte. Ora si esce e si dice il perché. Restare sarebbe peggio: l'amico che arriva dopo
+     col suo codice finirebbe ospite nel mondo di chi lo aspettava.
    - Non c'è **verifica** che un codice sia di chi dice di essere: finché non esistono gli
      account, un codice è una chiave, non un'identità. Si dà a chi si vuole e a nessun altro.
 4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Amici → Taccuino: l'elenco
