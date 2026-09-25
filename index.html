@@ -66,7 +66,6 @@
     <button id="furnrotbtn" type="button">Ruota</button>
     <button id="furncancelbtn" type="button">Annulla</button>
   </div>
-    <div id="toasts"></div>
     <!-- LA RIGA DELLA CHAT: compare solo in compagnia. Nessun testo qui dentro, nemmeno il
          segnaposto: lo mette applyStaticTexts, o resterebbe in italiano per tutti. -->
     <div id="chatbar">
@@ -152,6 +151,14 @@
       <div id="bk-nav"></div>
     </div>
   </div>
+
+  <!-- I TOAST STANNO FUORI DA TUTTO. Erano dentro il riquadro del gioco, che è
+       `position:fixed` e quindi crea uno strato suo: lì dentro il loro z-index 900 vale solo
+       fra i fratelli, e la splash (che è fuori) ci passava sopra comunque. Un avviso che non
+       si vede è peggio di nessun avviso, perché si crede che il gioco non abbia fatto niente.
+       Qui, ultimo figlio del corpo, sono sopra a tutto per davvero — e c'è un e2e che lo
+       chiede al browser invece di confrontare due numeri nel foglio di stile. -->
+  <div id="toasts"></div>
 
   <div id="splash">
     <div class="sp-wrap">

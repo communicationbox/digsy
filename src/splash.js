@@ -252,6 +252,12 @@ let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
 /* usata dalle pagine di prova per aprire un sottomenu e verificarne l'uscita */
 let taccuinoChi = null;      // quale conversazione si sta rileggendo
+/* L'AVVISO DEGLI AMICI STA DENTRO IL PANNELLO, non nei toast. I toast vivono dentro `#frame`,
+   che è `position:fixed` e quindi si porta dietro il suo strato: con la splash aperta finiscono
+   SOTTO, e un codice rifiutato non dice niente a nessuno — «premo Entra e non succede
+   assolutamente niente» (segnalato da telefono, dove non c'è nemmeno la console a smentire). */
+let avvisoAmici = '';
+let vigile = null;           // controlla il collegamento mentre il pannello è aperto
 
 export function setView(v) { view = v; buildMenu(inGameMode); }
 
@@ -524,7 +530,8 @@ function buildMenu(inGame) {
       : MP.stato === 'collego' ? tr('Mi collego alla stanza…', 'Joining the room…')
         : MP.stato === 'caduto' ? tr('La stanza è caduta', 'Lost the room')
           : tr('Non sei in nessuna stanza', "You're not in any room");
-    h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + MP.motivo : ''}</div>`;
+    h += `<div class="sp-note">${stato}${MP.motivo ? ' · ' + esc(MP.motivo) : ''}</div>`;
+    if (avvisoAmici) h += `<div class="sp-acc-warn">${esc(avvisoAmici)}</div>`;
     if (MP.stato === 'dentro') {
       const gente = presenti();
       if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
@@ -718,6 +725,19 @@ function buildMenu(inGame) {
     h += `</div>`;
   }
   menu.innerHTML = withIcons(h);
+  /* IL PANNELLO DEGLI AMICI SI GUARDA DA SÉ. Collegarsi non è istantaneo: si preme Entra, la
+     scheda si ridisegna con «mi collego», e poi — quando la stanza risponde — non cambiava
+     più niente, perché nessuno la ridisegnava. Da fuori sembra che il pulsante non funzioni.
+     Un battito lento finché la scheda è aperta, e si ferma appena si va altrove. */
+  if (vigile) { clearInterval(vigile); vigile = null; }
+  if (view === 'amici' && typeof setInterval === 'function') {
+    let visto = MP.stato + '|' + MP.room.peers.size;
+    vigile = setInterval(() => {
+      if (view !== 'amici' || !on) { clearInterval(vigile); vigile = null; return; }
+      const ora = MP.stato + '|' + MP.room.peers.size;
+      if (ora !== visto) { visto = ora; buildMenu(inGame); }
+    }, 400);
+  }
   const card = document.querySelector ? document.querySelector('.sp-card') : null;
   if (card && card.classList) { card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits'); card.classList.toggle('sub', view !== 'main'); card.classList.toggle('cfg', view === 'settings'); if (card.parentNode && card.parentNode.classList) card.parentNode.classList.toggle('sub', view !== 'main'); }
   /* ritratti dei salvataggi: il personaggio di quella partita, col suo aspetto */
@@ -738,7 +758,12 @@ function buildMenu(inGame) {
   /* ENTRARE è sempre la stessa cosa: ci si collega alla stanza di QUALCUNO, e quel qualcuno
      può essere anche sé stessi (aprire il proprio mondo). Una funzione sola, tre pulsanti. */
   const vaiDa = (codice) => {
-    if (!valido(codice)) { toast(tr('Questo non è un codice', "That's not a code")); return; }
+    if (!valido(codice)) {
+      avvisoAmici = tr('Questo non è un codice: sono dieci segni, come il tuo qui sopra.',
+        "That's not a code: ten characters, like yours above.");
+      go('amici'); return;
+    }
+    avvisoAmici = '';
     connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(codice) });
     go('amici');
   };
@@ -751,7 +776,10 @@ function buildMenu(inGame) {
     }; }
   { const a = document.getElementById('sp-mp-agg'); if (a) a.onclick = () => {
       const c = document.getElementById('sp-mp-code'), n = document.getElementById('sp-mp-nome');
-      if (!aggiungiAmico(normalizza(c && c.value), n && n.value)) { toast(tr('Questo non è un codice', "That's not a code")); return; }
+      if (!aggiungiAmico(normalizza(c && c.value), n && n.value)) {
+        avvisoAmici = tr('Questo non è un codice: sono dieci segni, come il tuo qui sopra.',
+          "That's not a code: ten characters, like yours above.");
+      } else avvisoAmici = '';
       go('amici');
     }; }
   /* COPIARE IL PROPRIO CODICE. `navigator.clipboard` non c'è dappertutto (e su http nudo

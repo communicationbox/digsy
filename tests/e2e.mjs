@@ -225,6 +225,7 @@ const PROBE = `
         setTimeout(function(){
           checkGaps('splash/principale', '#sp-menu .sp-btn');
           checkStanza();
+          checkToastSopraSplash();
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
           rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkTraySearch(function(){ checkSettings(finish); }); }); }); }); }); }); });
@@ -722,6 +723,31 @@ const PROBE = `
      volevano dire tre larghezze diverse nello stesso pannello. Si vede in un secondo in una
      foto e non lo prende nessun controllo che guardi solo se i comandi ESISTONO — quindi si
      misura: tutte le righe larghe uguali, e larghe come i pulsanti del menu. */
+  /* IL TOAST SI DEVE VEDERE DAVVERO, non solo avere il numero giusto. Il controllo che c'era
+     confronta gli z-index scritti nel foglio di stile: non sa niente degli strati: la barra
+     dei toast vive dentro il riquadro del gioco, che e' position:fixed e crea uno strato suo,
+     e il 900 vale solo
+     LÌ DENTRO, e la splash gli passa sopra comunque. Qui si chiede al browser chi c'è davvero
+     in quel punto dello schermo. */
+  function checkToastSopraSplash(){
+    var sp2 = document.getElementById('splash'); if (!sp2 || !G3.toast) return;
+    sp2.classList.remove('off');
+    G3.toast('prova strato');
+    var box = document.querySelector('#toasts > *');
+    if (!box) { A('toast: compare anche con la splash aperta', false, 'nessun toast'); return; }
+    var r = box.getBoundingClientRect();
+    /* i toast non ricevono il tocco, e elementFromPoint salta chi non lo riceve: per chiedere
+       chi sta davanti bisogna riaccendere la presa un istante, o si misura sempre quello che
+       sta sotto e si crede a un difetto che non esiste. */
+    var strato = document.getElementById('toasts');
+    var prima = strato.style.pointerEvents; strato.style.pointerEvents = 'auto';
+    var sopra = document.elementFromPoint(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2));
+    strato.style.pointerEvents = prima;
+    var suo = !!sopra && (sopra === box || box.contains(sopra) || (sopra.id === 'toasts'));
+    A('toast: si vede davvero sopra la splash', suo,
+      suo ? '' : 'in quel punto sta <' + (sopra ? (sopra.tagName + (sopra.id ? '#' + sopra.id : '')) : 'niente') + '>');
+    sp2.classList.add('off');
+  }
   function checkStanza(){
     if(!G3.mpFinta) return;
     G3.mpFinta(['Luca','Ada'], true).then(function(){

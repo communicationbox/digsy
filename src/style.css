@@ -460,7 +460,10 @@ body:has(#cmd.on) #touch{display:none!important}
    pannello (chimera senza DNA, acquisto senza monete) si annuncia col toast, e a z-index 10
    finiva dietro la modale (z-index 20) — al giocatore il bottone sembrava morto.
    Resta sotto la console comandi (1000), che è uno strumento e non deve essere coperta. */
-#toasts{position:absolute;bottom:calc(52px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;z-index:900}
+/* `fixed` e non `absolute`: da quando stanno fuori dal riquadro del gioco (vedi index.html)
+   non hanno più un antenato posizionato a cui appoggiarsi, e sono i pixel dello SCHERMO quelli
+   che contano. */
+#toasts{position:fixed;bottom:calc(52px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;z-index:900}
 .toast{background:rgba(30,24,18,.94);border:1px solid var(--c-line);padding:7px 14px;border-radius:10px;font-size:clamp(13px,2vmin,15px);font-weight:700;
   animation:ti .2s ease, to .4s ease 2.1s forwards;max-width:86vw;text-align:center}
 /* mobile: i toast vanno IN ALTO (sotto l'HUD), il prompt resta in basso → mai sovrapposti */

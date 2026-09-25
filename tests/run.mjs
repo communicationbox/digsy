@@ -1107,6 +1107,18 @@ sprites.applyLook();
     check('i toast stanno sopra ogni pannello (' + zOf('#toasts') + ' > ' + worst + ')', zOf('#toasts') > worst);
     check('nessuna regola successiva li rimanda dietro', !/#toasts\{[^}]*z-index:(\d|[1-9]\d)\}/.test(cssZ)
       && (cssZ.match(/#toasts\{[^}]*z-index/g) || []).length === 1);
+    /* IL NUMERO NON BASTA, e per un po' ci ha illuso. `#toasts` stava dentro il riquadro del
+       gioco, che è `position:fixed` e crea uno strato suo: lì dentro il 900 vale solo fra i
+       fratelli, e la splash — che è fuori — ci passava sopra lo stesso. Un avviso che non si
+       vede è peggio di nessun avviso, perché si crede che il gioco non abbia fatto niente
+       («premo Entra e non succede assolutamente niente», segnalato da telefono).
+       Qui si pretende che stiano FUORI da ogni riquadro; che si vedano davvero lo misura un
+       e2e, chiedendolo al browser. */
+    const html = (await import('node:fs')).readFileSync('index.html', 'utf8');
+    /* figli del corpo: due spazi di rientro. Dentro il riquadro ce ne vogliono quattro, ed è
+       esattamente com'era prima. */
+    check('e non stanno chiusi dentro il riquadro del gioco', /^ {2}<div id="toasts">/m.test(html),
+      (html.match(/^ *<div id="toasts">/m) || [''])[0].replace(/</g, '‹'));
   }
 }
 
@@ -10151,6 +10163,26 @@ sprites.applyLook();
     html.includes('sp-mp-apri') && html.includes('sp-mp-entra'));
   check('dice anche di chi è il mondo, che è la regola che sorprende di più',
     /ospita|host/i.test(html));
+  /* «PREMO ENTRA E NON SUCCEDE ASSOLUTAMENTE NIENTE» (segnalato da telefono). Il codice veniva
+     rifiutato e il perché finiva in un toast: i toast vivono dentro `#frame`, che è
+     `position:fixed` e si porta dietro il suo strato, quindi con la splash aperta stanno
+     SOTTO. Da telefono non c'è nemmeno una console a smentire. L'avviso ora sta nel pannello. */
+  {
+    sp2.setView('amici');
+    const campo = document.getElementById('sp-mp-code');
+    campo.value = 'ciao';                       // non è un codice
+    document.getElementById('sp-mp-entra').onclick();
+    const h3 = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    check('un codice rifiutato lo dice DENTRO il pannello, non in un toast nascosto',
+      /non è un codice|not a code/i.test(h3));
+    /* e l'avviso non resta appiccicato quando si fa una cosa giusta */
+    campo.value = 'Q2D4F-G7HJK';
+    document.getElementById('sp-mp-agg').onclick();
+    const h4 = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    check('e sparisce appena il codice è buono', !/non è un codice|not a code/i.test(h4));
+    state.S.amici = [];
+  }
+
   /* CON QUALCUNO IN RUBRICA: la riga dell'amico, col suo nome e il pulsante per andarci */
   {
     const amS = await import('../src/amici.js');
