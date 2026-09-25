@@ -98,6 +98,15 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   («Il tuo codice» in cima al pannello). Senza il centralino acceso `ws://localhost:5173/ws` non esiste e la
   stanza non si apre: sembra che il multiplayer sia rotto, e invece manca chi risponde.
   Per la sola **animazione del sogno** non serve nessuno: comando `anim=sogno`.
+- **Provare il dev server INSIEME al gioco pubblicato**: `http://localhost:5173/?ws=online`
+  attacca la partita locale al centralino di `digsy.dev-box.it`, così il browser sulla macchina
+  e il telefono sul sito vero finiscono nella stessa stanza. Senza, i due parlano con due
+  centralini diversi e non si incontrano mai. `?ws=wss://…` per un centralino qualsiasi.
+  **Il parametro si guarda SOLO da localhost** (`inCasa` in mp.js): il gioco pubblicato non
+  deve poter essere dirottato su un altro centralino da un indirizzo confezionato, e un test
+  lo pretende. Sempre in casa, la **cassetta delle lettere** mostra la posta anche senza
+  account: chiedere l'accesso Google per guardare una schermata è solo un ostacolo.
+  Invitare invece non ha MAI richiesto un account: si entra col codice.
 
 ## Meccaniche implementate
 - **Mondo procedurale infinito** deterministico (value-noise + fbm, seed salvato).

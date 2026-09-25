@@ -41,9 +41,34 @@ export function setTimer(fn) { dopo = fn; }
 
 /* l'indirizzo del centralino: la stessa origine da cui arriva il gioco, in sicuro. Un browser
    su una pagina https non accetterebbe un `ws://` in chiaro, quindi non lo si offre nemmeno. */
+/* IN CASA = il gioco aperto da localhost, cioè sulla macchina di chi lo sta facendo. È l'unico
+   posto dove si possono allentare le regole: nessun altro può fingersi localhost dal proprio
+   browser, perché l'indirizzo lo decide da dove arriva la pagina. */
+export function inCasa(loc) {
+  const l = loc || (typeof location !== 'undefined' ? location : null);
+  return !!l && /^(localhost|127\.0\.0\.1|\[::1\])$/i.test(String(l.hostname || ''));
+}
+/* il centralino pubblicato, scritto UNA volta sola */
+export const CENTRALINO_ONLINE = 'wss://digsy.dev-box.it/ws';
+
+/* A QUALE CENTRALINO ATTACCARSI. Di norma quello della stessa origine da cui arriva il gioco
+   (in sicuro se la pagina è in sicuro: una pagina https non accetterebbe un `ws://` in chiaro).
+   IN CASA si può scegliere con `?ws=`, e serve per una cosa sola ma importante: provare in due
+   fra il gioco che si sta scrivendo e quello pubblicato. Senza, il dev server parla col
+   centralino locale e il telefono con quello online — due mondi che non si incontrano mai.
+     ?ws=online   → il centralino pubblicato
+     ?ws=wss://…  → un centralino qualsiasi (prove)
+   Fuori da casa il parametro NON si guarda: il gioco pubblicato non deve poter essere dirottato
+   su un altro centralino da un indirizzo confezionato. */
 export function relayUrl(loc) {
   const l = loc || (typeof location !== 'undefined' ? location : null);
   if (!l) return null;
+  if (inCasa(l)) {
+    let v = '';
+    try { v = new URLSearchParams(l.search || '').get('ws') || ''; } catch (e) { v = ''; }
+    if (v === 'online' || v === 'prod') return CENTRALINO_ONLINE;
+    if (/^wss?:\/\/[^\s]+$/i.test(v)) return v;
+  }
   const sicuro = l.protocol === 'https:';
   return (sicuro ? 'wss://' : 'ws://') + l.host + '/ws';
 }

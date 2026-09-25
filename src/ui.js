@@ -47,6 +47,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { cloud } from './cloud.js';
+import { inCasa } from './mp.js';
 import { amici, nomeDi } from './amici.js';
 import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
 import { groundPalette } from './tiles.js';
@@ -630,7 +631,11 @@ export function openQuestBoard() {
 export function openMailbox() {
   const n = (S.raw || []).length, cost = n * MAIL_COST, busy = !!S.museumJob;
   let h = '';
-  if (cloud.user) h += letterSection();
+  /* IN CASA (localhost) le lettere si vedono anche senza account: è la macchina di chi sta
+     facendo il gioco, e chiedergli di entrare con Google per provare una schermata sarebbe
+     solo un ostacolo. Fuori di lì la regola resta: senza account non c'è nessuno a cui
+     scrivere. Nessuno può fingersi localhost — l'indirizzo lo decide da dove arriva la pagina. */
+  if (cloud.user || inCasa()) h += letterSection();
   if (!n) h += `<div class="row"><span class="em">📭</span><div><div class="nm">${tr('Non hai reperti grezzi', 'No raw finds')}</div><div class="sub">${tr('Scava, poi torna a spedire.', 'Dig first, then come back to ship.')}</div></div></div>`;
   else {
     const can = S.coins >= cost || isDebug();

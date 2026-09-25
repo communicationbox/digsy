@@ -10280,6 +10280,36 @@ sprites.applyLook();
   uiP.closeModal();
 }
 
+/* ---------- IN CASA SI PUÒ PROVARE, FUORI NO ----------
+   `localhost` è la macchina di chi sta facendo il gioco: lì le regole si allentano, perché
+   nessuno può fingersi localhost — l'indirizzo lo decide da dove arriva la pagina, non il
+   browser. Fuori di lì non cambia niente, ed è questa la metà che va sorvegliata. */
+{
+  const mpH = await import('../src/mp.js');
+  const casa = (search, host) => ({ hostname: host || 'localhost', host: (host || 'localhost') + ':5173', search: search || '', protocol: 'http:' });
+  const online = (search) => ({ hostname: 'digsy.dev-box.it', host: 'digsy.dev-box.it', search: search || '', protocol: 'https:' });
+
+  check('localhost è casa', mpH.inCasa(casa()) === true && mpH.inCasa(casa('', '127.0.0.1')) === true);
+  check('il sito pubblicato non lo è', mpH.inCasa(online()) === false);
+  check('e nemmeno chi ci somiglia nel nome', mpH.inCasa({ hostname: 'localhost.cattivo.it' }) === false);
+
+  check('di norma ci si attacca al centralino della propria origine',
+    mpH.relayUrl(casa()) === 'ws://localhost:5173/ws');
+  check('una pagina in sicuro non chiede mai un collegamento in chiaro',
+    mpH.relayUrl(online()).startsWith('wss://'));
+  /* la ragione per cui esiste: provare in due fra il gioco che si scrive e quello pubblicato */
+  check('in casa `?ws=online` attacca il dev server al centralino pubblicato',
+    mpH.relayUrl(casa('?ws=online')) === mpH.CENTRALINO_ONLINE);
+  check('e `?ws=wss://…` a un centralino qualsiasi, per le prove',
+    mpH.relayUrl(casa('?ws=wss://prova.example/ws')) === 'wss://prova.example/ws');
+  /* LA METÀ CHE CONTA: dal gioco PUBBLICATO l'indirizzo confezionato non si guarda, o
+     chiunque potrebbe mandare una persona a giocare su un centralino non suo */
+  check('ma il gioco pubblicato NON si fa dirottare',
+    mpH.relayUrl(online('?ws=wss://cattivo.example/ws')) === 'wss://digsy.dev-box.it/ws');
+  check('nemmeno con un indirizzo che sembra innocuo',
+    mpH.relayUrl(online('?ws=online')) === 'wss://digsy.dev-box.it/ws');
+}
+
 /* ---------- IL BATTITO DELLA LINEA, E CHI SI ALZA DALLA SEDIA ----------
    Due tempi che non vanno confusi: la LINEA vuole un segno di vita ogni mezzo minuto (in mezzo
    c'è Apache, che chiude quello che tace troppo a lungo), la PERSONA che non fa niente da
