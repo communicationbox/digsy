@@ -10226,17 +10226,23 @@ sprites.applyLook();
     const fatte = [];
     mpV.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
 
-    /* entro col codice di un altro, e la stanza è vuota: il centralino mi fa ospitante */
+    /* entro col codice di un altro che non c'è ancora: si ASPETTA, senza diventare padroni di
+       casa sua. Il centralino apre una sala d'attesa (nessun ospitante) invece di consegnarmi
+       una stanza che non è mia. */
     mpV.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK', ospite: true });
     const sv = fatte[fatte.length - 1];
     sv.onopen(); sv.onmessage({ data: netV.encode(netV.T.WELCOME, { id: 'io' }) });
-    sv.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'io', peers: [] }) });
-    check('entrare in una stanza vuota col codice di un altro NON ti fa padrone di casa sua',
-      mpV.MP.stato === 'spento', mpV.MP.stato);
-    check('e il perché è un motivo che si può raccontare', mpV.MP.motivo === 'stanza-vuota');
+    const dichiarato = sv.inviati.find(x => x.t === 'join');
+    check('entrando col codice di un altro lo si DICE al centralino', dichiarato && dichiarato.ospite === true);
+    sv.onmessage({ data: netV.encode(netV.T.ROOM, { host: null, peers: [] }) });
+    check('e si resta ad aspettare, senza diventare padroni di casa sua',
+      mpV.MP.stato === 'dentro' && mpV.sonoOspitante() === false && mpV.inAttesa() === true);
     sp2.setView('amici');
     const hv = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
-    check('scritto in parole, non in gergo', /non c'è nessuno|Nobody is in that room/i.test(hv));
+    check('e il pannello dice che si sta aspettando', /aspett|waiting/i.test(hv));
+    /* arriva lui: la sala d'attesa diventa il suo mondo */
+    sv.onmessage({ data: netV.encode(netV.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+    check('quando arriva, la stanza diventa il suo mondo', mpV.inAttesa() === false && mpV.sonoOspitante() === false);
 
     /* ma APRIRE IL PROPRIO mondo fa ospitante, ed è giusto così */
     mpV.connect('ws://finta/ws', { name: 'Marco', room: 'w-MIOCODICE1' });
@@ -10312,6 +10318,35 @@ sprites.applyLook();
   mp2.disconnect();
   sp2.setView('main');
   check('e il menu principale torna su senza crollare', typeof sp2.setView === 'function');
+}
+
+/* ---------- IL CENTRALINO: SI PUÒ ASPETTARE ----------
+   La regola vecchia era una sola — ospitante è chi arriva per primo — e produceva un vicolo
+   cieco: due amici che si aspettavano a vicenda non si incontravano mai, perché ognuno entrava
+   nella stanza dell'altro e se la ritrovava per le mani (visto in due schermate affiancate).
+   Adesso una stanza può esistere SENZA padrone di casa: è una sala d'attesa. */
+{
+  const rooms = await import('../server/relay/rooms.js');
+  const hub = rooms.makeHub();
+  const mandati = { a: [], b: [] };
+  rooms.addPeer(hub, 'a', 'Telefono', m => mandati.a.push(m));
+  rooms.addPeer(hub, 'b', 'Computer', m => mandati.b.push(m));
+
+  /* il telefono entra col codice del computer, che non c'è ancora */
+  const r1 = rooms.join(hub, 'a', 'w-COMPUTER1', true);
+  check('chi entra come ospite non diventa padrone di casa', r1.host === null);
+  check('ma è dentro, ad aspettare', r1.peers.length === 1);
+  check('e non si è fatto padrone di una stanza non sua', r1.nuovoHost === false);
+
+  /* arriva il computer, che apre il PROPRIO mondo */
+  const r2 = rooms.join(hub, 'b', 'w-COMPUTER1', false);
+  check('chi apre il proprio mondo prende la stanza', r2.host === 'b');
+  check('e adesso sono in due', r2.peers.length === 2);
+  check('e chi aspettava va avvisato che ora la stanza ha un padrone', r2.nuovoHost === true);
+
+  /* e se il padrone di casa esce, la stanza si chiude come sempre */
+  const out = rooms.leave(hub, 'b');
+  check('se esce il padrone di casa la stanza si chiude', out.closed === true);
 }
 
 /* ---------- IL CODICE E LA RUBRICA ----------

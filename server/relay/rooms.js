@@ -35,20 +35,30 @@ export function addPeer(hub, id, name, send) {
 
 /* Entra in una stanza. Chi la apre per primo ne è l'OSPITANTE, e resta tale finché c'è:
    il mondo è il suo, quindi non si passa la mano a metà partita. */
-export function join(hub, id, roomName) {
+export function join(hub, id, roomName, ospite) {
   const p = hub.peers.get(id); if (!p) return { error: 'ignoto' };
   if (p.room) leave(hub, id);
   const key = String(roomName || '').slice(0, 40);
   if (!key) return { error: 'stanza senza nome' };
   let r = hub.rooms.get(key);
+  const prima = r ? r.host : undefined;
   if (!r) {
     if (hub.rooms.size >= MAX_ROOMS) return { error: 'centralino pieno' };
-    r = { key, host: id, peers: new Set() };
+    /* CHI ENTRA COME OSPITE NON DIVENTA PADRONE DI CASA. Prima era ospitante chi arrivava per
+       primo, punto: due amici che si aspettavano a vicenda non si incontravano MAI — ognuno
+       entrava nella stanza dell'altro, la trovava vuota e ne diventava il padrone (o, dopo,
+       ne veniva buttato fuori). Una stanza può esistere SENZA ospitante: è una sala d'attesa,
+       e diventa un mondo quando arriva quello di cui porta il codice. */
+    r = { key, host: ospite ? null : id, peers: new Set() };
     hub.rooms.set(key, r);
+  } else if (r.host === null && !ospite) {
+    r.host = id;                       // arriva il padrone di casa: adesso la stanza è un mondo
   }
   if (r.peers.size >= MAX_PEERS) return { error: 'stanza piena' };
   r.peers.add(id); p.room = key;
-  return { room: r, host: r.host, peers: [...r.peers].map(x => hub.peers.get(x)).filter(Boolean) };
+  return { room: r, host: r.host, peers: [...r.peers].map(x => hub.peers.get(x)).filter(Boolean),
+    /* l'ospitante è appena cambiato: chi stava aspettando deve saperlo */
+    nuovoHost: prima === null && r.host === id };
 }
 
 /* Esce. Se esce l'OSPITANTE la stanza si chiude: il mondo era il suo, e senza di lui non c'è

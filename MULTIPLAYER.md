@@ -148,6 +148,14 @@ Una per volta, ognuna provabile da sola.
      una riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account
      (senza, non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo
      dice: il recapito è la parte che manca, e non si finge che sia arrivata.
+   - **SI PUÒ ASPETTARE.** Una stanza può esistere **senza padrone di casa**: è una sala
+     d'attesa (`host: null` nel centralino), e diventa un mondo quando arriva quello di cui
+     porta il codice — che a quel punto riceve la stanza e manda il suo mondo a chi aspettava.
+     La regola vecchia («ospitante è chi arriva per primo», punto) faceva un vicolo cieco: due
+     amici che si aspettavano a vicenda non si incontravano MAI, perché ognuno entrava nella
+     stanza dell'altro e se la ritrovava per le mani. Chi entra dichiara al centralino se sta
+     entrando **da ospite**: è l'unica cosa che il centralino ha imparato, e non è una regola
+     di gioco — è sapere di chi è la stanza.
    - **Entrare col codice di chi non c'è NON apre la sua stanza.** Il centralino fa ospitante
      chi arriva per primo: entrando in una stanza vuota si diventava padroni di casa di un
      codice altrui, restando nel PROPRIO mondo — «è il TUO mondo» scritto sopra il codice di

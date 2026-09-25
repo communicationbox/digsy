@@ -152,7 +152,7 @@ export function ricevi(raw, now) {
   const m = decode(raw);
   if (!m) return null;
   const t = applyMessage(MP.room, m, now);
-  if (m.t === T.WELCOME && stanza) manda(T.JOIN, { room: stanza });
+  if (m.t === T.WELCOME && stanza) manda(T.JOIN, { room: stanza, ospite: ospiteAtteso });
   if (m.t === T.ROOM) {
     MP.stato = 'dentro'; invio = {};
     /* ENTRARE COL CODICE DI UN ALTRO E RITROVARSI PADRONE DI CASA vuol dire una cosa sola: in
@@ -162,7 +162,11 @@ export function ricevi(raw, now) {
        (segnalato con foto: «non sono andato nel mondo di localhost»).
        Si esce e si dice il perché. Restare sarebbe pure peggio: l'amico che arriva dopo col
        SUO codice finirebbe ospite nel MIO mondo, cioè l'esatto contrario di quello che voleva. */
-    if (ospiteAtteso && sonoOspitante()) { scordaStanza(); disconnect('stanza-vuota'); return t; }
+    /* SI PUÒ ASPETTARE. Entrando col codice di un altro non si diventa padroni di casa: se lui
+       non c'è ancora, la stanza è una SALA D'ATTESA (host nullo) e ci si resta finché arriva.
+       Prima si veniva buttati fuori, e due amici che si aspettavano a vicenda non si
+       incontravano mai (visto in due schermate affiancate). */
+    if (sonoOspitante() && MP.room.peers.size) mandaMondo();   // sono arrivato io: ecco il mio mondo
   }
   /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
      l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
@@ -271,6 +275,8 @@ export function visibili(now, scena = 'world') {
 
 /* sono io che ospito? Il mondo è mio, quindi decido io l'orologio e mando io il mondo. */
 export function sonoOspitante() { return !!MP.room.me && MP.room.host === MP.room.me; }
+/* stanza aperta ma senza padrone di casa: si sta aspettando che arrivi */
+export function inAttesa() { return MP.stato === 'dentro' && !MP.room.host; }
 
 function mandaMondo() {
   const p = mondoDaMandare();

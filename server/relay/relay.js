@@ -62,12 +62,16 @@ wss.on('connection', (ws) => {
     if (!presentato) return ws.close(1002, 'prima ci si presenta');
 
     if (m.t === 'join') {
-      const r = join(hub, id, m.room);
+      const r = join(hub, id, m.room, !!m.ospite);
       if (r.error) { manda('leave', { id }); return; }
       /* a me chi c'è (me compreso: il client si toglie da solo), agli altri che sono arrivato */
-      manda('room', { host: r.host, peers: r.peers.map(x => ({ id: x.id, name: x.name, look: x.look })) });
+      const elenco = r.peers.map(x => ({ id: x.id, name: x.name, look: x.look }));
+      manda('room', { host: r.host, peers: elenco });
       aTutti('enter', { id, name: p.name, look: p.look });
-      log('entra', id, '→', p.room, '(' + r.peers.length + ')');
+      /* SE LA STANZA HA APPENA TROVATO IL SUO PADRONE DI CASA, chi stava aspettando lo deve
+         sapere: senza, resterebbe in una sala d'attesa che nel frattempo è diventata un mondo. */
+      if (r.nuovoHost) aTutti('room', { host: r.host, peers: elenco });
+      log('entra', id, '→', p.room, '(' + r.peers.length + (r.host ? '' : ', in attesa') + ')');
       return;
     }
     /* IL BATTITO DELLA LINEA. Si risponde e basta: NON si inoltra agli altri, che non hanno

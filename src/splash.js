@@ -3,7 +3,7 @@ import { drawHero, applyLook } from './sprites.js';
 import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inCasa, CENTRALINO_ONLINE } from './mp.js';
+import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inAttesa, inCasa, CENTRALINO_ONLINE } from './mp.js';
 import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -535,7 +535,7 @@ function buildMenu(inGame) {
       const suOnline = (relayUrl() || '') === CENTRALINO_ONLINE;
       h += `<div class="sp-note">${tr('Centralino: ', 'Switchboard: ')}${suOnline ? tr('quello online', 'the online one') : tr('quello locale', 'the local one')}</div>`;
     }
-    const stato = MP.stato === 'dentro' ? tr('Sei nella stanza', "You're in the room")
+    const stato = MP.stato === 'dentro' ? (inAttesa() ? tr('Sei in attesa nella stanza', "You're waiting in the room") : tr('Sei nella stanza', "You're in the room"))
       : MP.stato === 'collego' ? tr('Mi collego alla stanza…', 'Joining the room…')
         : MP.stato === 'caduto' ? tr('La stanza è caduta', 'Lost the room')
           : tr('Non sei in nessuna stanza', "You're not in any room");
@@ -561,9 +561,12 @@ function buildMenu(inGame) {
          E chi ospita lo deve sapere: il mondo è suo, ed è la regola che sorprende di più. */
       const dove = (MP.stanza || '').replace(/^w-/, '');
       if (dove) h += `<div class="sp-code">${esc(formatta(dove))}</div>`;   // mai un riquadro vuoto
-      h += `<div class="sp-note">${sonoOspitante()
-        ? tr('È il TUO mondo: gli altri stanno giocando qui da te.', "It's YOUR world: the others are playing here at your place.")
-        : tr('Sei nel mondo di chi ha aperto questa stanza.', "You're in the world of whoever opened this room.")}</div>`;
+      h += `<div class="sp-note">${inAttesa()
+        ? tr('Stai aspettando: chi ha questo codice non ha ancora aperto il suo mondo. Quando lo apre, ci sei già dentro.',
+          "You're waiting: whoever has this code hasn't opened their world yet. When they do, you're already in.")
+        : sonoOspitante()
+          ? tr('È il TUO mondo: gli altri stanno giocando qui da te.', "It's YOUR world: the others are playing here at your place.")
+          : tr('Sei nel mondo di chi ha aperto questa stanza.', "You're in the world of whoever opened this room.")}</div>`;
       const gente = presenti();
       if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
       else {

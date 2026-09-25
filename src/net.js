@@ -83,10 +83,12 @@ export function decode(raw) {
     case T.JOIN:
       return id(m.room) ? { t: m.t, room: m.room } : null;
     case T.ROOM: {
-      if (!id(m.host) || !Array.isArray(m.peers)) return null;
+      /* `host` può essere NULLO: una stanza senza padrone di casa è una sala d'attesa — c'è
+         chi aspetta, e diventa un mondo quando arriva quello di cui porta il codice. */
+      if (!(m.host === null || id(m.host)) || !Array.isArray(m.peers)) return null;
       const peers = m.peers.filter(p => p && id(p.id) && nome(p.name)).slice(0, MAX_PEERS)
         .map(p => ({ id: p.id, name: String(p.name).slice(0, 20), look: cleanLook(p.look) }));
-      return { t: m.t, host: m.host, peers };
+      return { t: m.t, host: m.host === null ? null : m.host, peers };
     }
     case T.ENTER:
       return (id(m.id) && nome(m.name)) ? { t: m.t, id: m.id, name: m.name.slice(0, 20), look: cleanLook(m.look) } : null;
