@@ -209,7 +209,12 @@ export function installStubs() {
     removeItem: k => store.delete(k),
   };
   globalThis.innerWidth = 1440; globalThis.innerHeight = 900;
-  globalThis.location = { href: 'http://localhost/', origin: 'http://localhost', search: '?nosplash', reload() {}, replace() {} };
+  /* L'INDIRIZZO FINTO NON È localhost, ed è una scelta: in casa (localhost) il gioco allenta
+     apposta qualche regola — si può scegliere il centralino, la posta si prova senza account —
+     e se la suite girasse «in casa» proverebbe sempre e solo la versione comoda. Qui si sta
+     fuori, come tutti; i controlli che riguardano localhost se lo dichiarano da sé. */
+  globalThis.location = { href: 'http://digsy.test/', origin: 'http://digsy.test', host: 'digsy.test',
+    hostname: 'digsy.test', protocol: 'http:', search: '?nosplash', reload() {}, replace() {} };
   /* `window` esiste anche nei test: così si prova anche il codice che il gioco esegue solo
      nel browser (la sonda __digsy, il loop, gli agganci di boot) invece di saltarlo */
   globalThis.window = globalThis;

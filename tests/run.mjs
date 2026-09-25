@@ -10281,6 +10281,26 @@ sprites.applyLook();
     check('uscendo sparisce: è il momento che prima non si notava', tag.style.display === 'none');
   }
 
+  /* IL CENTRALINO SPENTO. È il caso più facile da non capire — la socket si chiude e basta —
+     ed è quello che capita di più in locale, dove il centralino va acceso a mano. */
+  {
+    const mpS2 = await import('../src/mp.js');
+    mpS2.disconnect();
+    mpS2.MP.stato = 'caduto'; mpS2.MP.motivo = 'collegamento chiuso';
+    sp2.setView('amici');
+    const hs = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    check('un centralino spento lo dice in parole', /non risponde|not answering/i.test(hs));
+    /* e IN CASA dice pure come accenderlo: è lì che capita, perché in locale va acceso a mano */
+    const vero = location.hostname; location.hostname = 'localhost';
+    sp2.setView('amici');
+    const hc = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    location.hostname = vero;
+    check('e in locale dice pure come accenderlo', /npm run relay/.test(hc));
+    check('fuori di casa no: quel consiglio lì non serve a nessuno', !/npm run relay/.test(hs));
+    mpS2.MP.motivo = null; mpS2.MP.stato = 'spento';
+    sp2.setView('main');
+  }
+
   /* LA STANZA SOPRAVVIVE A UN RICARICAMENTO. Il gioco si ricarica da solo più volte, e ogni
      volta la socket moriva in silenzio: restavi fuori senza saperlo mentre dall'altra parte
      qualcuno entrava nella tua stanza e non trovava nessuno. */

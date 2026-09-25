@@ -548,6 +548,13 @@ function buildMenu(inGame) {
       'ti ha mandato via chi ospita': tr('Chi ospitava ti ha mandato via.', 'The host sent you away.'),
       'la stanza si è chiusa': tr('Chi ospitava è uscito: la stanza si è chiusa.', 'The host left: the room is closed.'),
       'la linea non risponde': tr('La linea non rispondeva: ho riattaccato.', 'The line went quiet: reconnecting.'),
+      /* IL CENTRALINO SPENTO è il caso più facile da non capire: la socket si chiude e basta.
+         In casa quasi sempre vuol dire che non è stato acceso, e vale la pena dire COME. */
+      'collegamento chiuso': inCasa()
+        ? tr('Il centralino non risponde. In locale si accende da terminale con: npm run relay (oppure apri il gioco con ?ws=online).',
+          'The switchboard is not answering. Locally you start it with: npm run relay (or open the game with ?ws=online).')
+        : tr('Il centralino non risponde. Riprova fra un momento.', 'The switchboard is not answering. Try again in a moment.'),
+      'trasporto': tr('Il centralino non risponde.', 'The switchboard is not answering.'),
     };
     const detto = MP.motivo ? (motivi[MP.motivo] || '') : '';
     h += `<div class="sp-note">${stato}${(MP.motivo && !detto) ? ' · ' + esc(MP.motivo) : ''}</div>`;
