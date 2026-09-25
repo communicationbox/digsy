@@ -389,11 +389,11 @@ async function main() {
     /* 'sogno' = quello che vede chi dorme in compagnia e aspetta che la notte passi */
     else if (${JSON.stringify(vista)} === 'sogno') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.mpFinta) G.mpFinta(['Luca'], true).then(function(){ return G.sogno && G.sogno(); }); }
-    /* 'stanza' = "Gioca in compagnia" CON DENTRO qualcuno: da soli è una riga di testo, e chi
+    /* 'stanza' = "Amici" CON DENTRO qualcuno: da soli è una riga di testo, e chi
        c'è e il «manda via» accanto al nome non si vedrebbero mai */
     else if (${JSON.stringify(vista)} === 'stanza') {
       if(sp) sp.classList.remove('off');
-      if(G.mpFinta) G.mpFinta(['Luca','Ada'], true).then(function(){ if(G.splashView) G.splashView('insieme'); });
+      if(G.mpFinta) G.mpFinta(['Luca','Ada'], true).then(function(){ if(G.splashView) G.splashView('amici'); });
     }
     else {
       if(sp) sp.classList.remove('off');

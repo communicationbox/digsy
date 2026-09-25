@@ -10137,7 +10137,7 @@ sprites.applyLook();
   const sp2 = await import('../src/splash.js');
   const mp2 = await import('../src/mp.js');
   let err = '';
-  try { sp2.setView('insieme'); } catch (e) { err = e.message; }
+  try { sp2.setView('amici'); } catch (e) { err = e.message; }
   const box = document.getElementById('sp-menu') || document.getElementById('splash');
   const html = (box && box.innerHTML) || '';
   check('la schermata in compagnia si disegna', err === '', err);

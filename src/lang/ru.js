@@ -1777,8 +1777,7 @@ export const RU = {
   'free': 'бесплатно',
 
   /* ---- in compagnia ---- */
-  'Play together': 'Играть вместе',
-  'Together': 'Вместе',
+  'Friends': 'Друзья',
   "You're in the room": 'Вы в комнате',
   'Connecting…': 'Подключаюсь…',
   'Connection lost': 'Связь потеряна',

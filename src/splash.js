@@ -514,11 +514,11 @@ function buildMenu(inGame) {
       }).join('') + `</div><div class="plank"></div></div>`;
     }
     h += `</div>` + backBar();
-  } else if (view === 'insieme') {
+  } else if (view === 'amici') {
     /* IN COMPAGNIA — per ora si entra con un CODICE da dirsi a voce: gli amici e gli inviti
        arrivano con la fetta dopo. Chi conosce il codice entra nel mondo di chi l'ha aperto. */
     h += closeX();
-    h += `<div class="sp-title2">🚶 ${tr('Gioca in compagnia', 'Play together')}</div>`;
+    h += `<div class="sp-title2">🚶 ${tr('Amici', 'Friends')}</div>`;
     const stato = MP.stato === 'dentro' ? tr('Sei nella stanza', "You're in the room")
       : MP.stato === 'collego' ? tr('Mi collego…', 'Connecting…')
         : MP.stato === 'caduto' ? tr('Collegamento caduto', 'Connection lost')
@@ -680,10 +680,10 @@ function buildMenu(inGame) {
     h += `<div class="sp-iconrow">`;
     h += `<button class="sp-btn ic" id="sp-troph" title="${tr('Trofei', 'Trophies')}">🏆<span class="ic-lb">${tr('Trofei', 'Trophies')}</span></button>`;
     h += `<button class="sp-btn ic" id="sp-log" title="${tr('Novità', "What's new")}">📝<span class="ic-lb">${tr('Novità', 'News')}</span></button>`;
-    /* IN COMPAGNIA sta nella riga delle icone, non fra le tre voci grandi: quelle sono giocare,
+    /* AMICI sta nella riga delle icone, non fra le tre voci grandi: quelle sono giocare,
        i salvataggi e le impostazioni, e restano tre (vedi il commento qui sopra). Chi apre il
        gioco per la prima volta non deve trovarsi davanti una scelta che non lo riguarda. */
-    h += `<button class="sp-btn ic" id="sp-mp" title="${tr('In compagnia', 'Together')}">🚶<span class="ic-lb">${tr('Insieme', 'Together')}</span></button>`;
+    h += `<button class="sp-btn ic" id="sp-mp" title="${tr('Amici', 'Friends')}">🚶<span class="ic-lb">${tr('Amici', 'Friends')}</span></button>`;
     /* NIENTE VOCE "COMANDI" NEL MENU. La console (`money`, `godmode`, `goto=…`) è uno
        strumento dell'autore per provare il gioco, non una funzione da offrire: un elenco di
        cheat in bella vista invita a usarli, e una partita con le monete infinite non racconta
@@ -713,17 +713,17 @@ function buildMenu(inGame) {
   const bS = document.getElementById('sp-saves'); if (bS) bS.onclick = () => go('saves');
   const bT = document.getElementById('sp-troph'); if (bT) bT.onclick = () => go('trophies');
   const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
-  const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => go('insieme');
+  const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => go('amici');
   { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {
       const c = document.getElementById('sp-mp-code');
       const codice = (c && c.value || '').trim().slice(0, 24);
       if (!codice) return;
       setCodiceStanza(codice);
       connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: codice });
-      go('insieme');
+      go('amici');
     }; }
-  { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('insieme'); }; }
-  document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('insieme'); }; });
+  { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('amici'); }; }
+  document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('amici'); }; });
   { const t = document.getElementById('sp-mp-tacc'); if (t) t.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
   { const gente = pagine(); document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }
   { const b = document.getElementById('sp-tacc-back'); if (b) b.onclick = () => { taccuinoChi = null; go('taccuino'); }; }

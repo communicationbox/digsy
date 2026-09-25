@@ -113,10 +113,10 @@ Una per volta, ognuna provabile da sola.
    Per ora l'ospite **non dorme** in casa d'altri e **non tocca** l'arredo: il sonno in
    compagnia col sogno è nella fetta 5.
 3. **Amici e inviti.** Account, richieste, codice amico, pallino verde, centro notifiche.
-   *Per intanto* si entra con un **codice di stanza** da dirsi a voce (menu → Insieme): chi
+   *Per intanto* si entra con un **codice di stanza** da dirsi a voce (menu → Amici): chi
    apre per primo è il padrone di casa. Serve a poter provare tutto il resto senza aspettare
    gli account, e sparirà quando ci saranno gli inviti veri.
-4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Insieme → Taccuino: l'elenco
+4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Amici → Taccuino: l'elenco
    di chi si è sentito, dal più recente, e la conversazione con l'ora di ogni riga). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
    restare sotto la barra), taccuino in `localStorage` **fuori dal salvataggio**, riga di testo
    che si apre con **T** e col pulsante, e i comandi che si spengono mentre si scrive — quella
@@ -149,7 +149,7 @@ Una per volta, ognuna provabile da sola.
      lanci sono della persona, ma la chiave è la cella della città, e due mondi diversi hanno
      città nella stessa cella. A casa propria la chiave resta nuda, o i salvataggi di oggi
      perderebbero il conto dei lanci già fatti.
-   - **Manda via** (menu → Insieme): lo può solo chi ospita, perché è casa sua. Non si stacca
+   - **Manda via** (menu → Amici): lo può solo chi ospita, perché è casa sua. Non si stacca
      nessuna socket dal centralino — il centralino non conosce le regole e non deve impararle:
      si dice a voce alta nella stanza (`T.KICK`, mittente scritto dal centralino e non dal
      client) e il gioco di chi è mandato via torna a casa da solo.

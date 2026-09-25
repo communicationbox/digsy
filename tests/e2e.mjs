@@ -703,17 +703,17 @@ const PROBE = `
   function checkStanza(){
     if(!G3.mpFinta) return;
     G3.mpFinta(['Luca','Ada'], true).then(function(){
-      G3.splashView('insieme');
+      G3.splashView('amici');
       setTimeout(function(){
         var righe=[].slice.call(document.querySelectorAll('#sp-menu .sp-riga'));
-        if(righe.length<2) { A("splash/insieme: la stanza mostra chi c'e", false, righe.length+' righe'); return; }
+        if(righe.length<2) { A("splash/amici: la stanza mostra chi c'e", false, righe.length+' righe'); return; }
         var w=righe.map(function(r){ return Math.round(r.getBoundingClientRect().width); });
-        A('splash/insieme: le righe sono larghe uguali', Math.max.apply(null,w)-Math.min.apply(null,w)<=1, w.join(' / '));
+        A('splash/amici: le righe sono larghe uguali', Math.max.apply(null,w)-Math.min.apply(null,w)<=1, w.join(' / '));
         var btn=document.querySelector('#sp-menu .sp-btn:not(.sp-via)');
         var bw=btn?Math.round(btn.getBoundingClientRect().width):0;
-        A('splash/insieme: larghe come i pulsanti del menu', Math.abs(w[0]-bw)<=2, w[0]+' contro '+bw);
+        A('splash/amici: larghe come i pulsanti del menu', Math.abs(w[0]-bw)<=2, w[0]+' contro '+bw);
         var via=document.querySelector('[data-via]');
-        A('splash/insieme: chi ospita può mandare via', !!via);
+        A('splash/amici: chi ospita può mandare via', !!via);
       }, 120);
     });
   }
