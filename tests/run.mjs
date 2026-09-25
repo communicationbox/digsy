@@ -10140,15 +10140,61 @@ sprites.applyLook();
   try { sp2.setView('amici'); } catch (e) { err = e.message; }
   const box = document.getElementById('sp-menu') || document.getElementById('splash');
   const html = (box && box.innerHTML) || '';
-  check('la schermata in compagnia si disegna', err === '', err);
-  check('e da scollegati offre il codice e il pulsante per entrare',
-    html.includes('sp-mp-code') && html.includes('sp-mp-entra'));
+  check('la schermata degli amici si disegna', err === '', err);
+  check('e mostra il TUO codice, che è la cosa da dare a un amico',
+    html.includes('sp-mp-mio') && html.includes('sp-mp-copia'));
+  check('con cui si apre il proprio mondo o si entra in quello di un altro',
+    html.includes('sp-mp-apri') && html.includes('sp-mp-entra'));
   check('dice anche di chi è il mondo, che è la regola che sorprende di più',
-    /padrone di casa|host/i.test(html));
+    /ospita|host/i.test(html));
+  /* CON QUALCUNO IN RUBRICA: la riga dell'amico, col suo nome e il pulsante per andarci */
+  {
+    const amS = await import('../src/amici.js');
+    state.S.amici = []; amS.aggiungiAmico('Q2D4FG7HJK', 'Luca');
+    sp2.setView('amici');
+    const h2 = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    check('un amico in rubrica si vede col nome che gli hai dato', h2.includes('Luca'));
+    check('e col pulsante per entrare nel SUO mondo', h2.includes('data-vai="Q2D4FG7HJK"'));
+    state.S.amici = [];
+  }
   /* e dalla stanza si può uscire */
   mp2.disconnect();
   sp2.setView('main');
   check('e il menu principale torna su senza crollare', typeof sp2.setView === 'function');
+}
+
+/* ---------- IL CODICE E LA RUBRICA ----------
+   Prima si entrava con una parola inventata lì per lì: due persone potevano sceglierne una
+   uguale senza saperlo, e il giorno dopo si ricominciava da capo. Il codice è un indirizzo. */
+{
+  const am = await import('../src/amici.js');
+  const Sa = state.S;
+  Sa.codice = null; Sa.amici = [];
+  const mio = am.mioCodice();
+  check('il codice nasce da solo alla prima richiesta', am.valido(mio) === true, mio);
+  check('e non cambia più: un indirizzo che cambia non serve a niente', am.mioCodice() === mio);
+  check('si legge spezzato a metà', am.formatta(mio) === mio.slice(0, 5) + '-' + mio.slice(5));
+  check('la stanza di uno è il suo codice', am.stanzaDi(mio) === 'w-' + mio);
+
+  /* NIENTE LETTERE AMBIGUE: un codice si detta a voce o si copia da una chat */
+  check("nell'alfabeto non c'è nessun sosia (0/O, 1/I/L, 5/S, 8/B)",
+    !/[01OIL5S8B]/.test(mio), mio);
+  check('spazi, trattini e minuscole si ripuliscono', am.normalizza('  ' + am.formatta(mio).toLowerCase() + ' ') === mio);
+  /* ma un segno che NON è dell'alfabeto si BUTTA, non si «corregge»: una O scambiata per uno
+     zero e raddrizzata in silenzio darebbe un codice valido che è di un'altra persona */
+  check('un codice storto resta storto, non diventa quello di un altro', am.valido(am.normalizza('OOOOOOOOOO')) === false);
+
+  /* LA RUBRICA */
+  check('un amico si aggiunge col codice e col nome che gli dai tu', am.aggiungiAmico('q2d4f-g7hjk', 'Luca') === true);
+  check('e si ritrova', am.amici().length === 1 && am.nomeDi('Q2D4FG7HJK') === 'Luca');
+  check('riaggiungerlo lo RINOMINA, non lo duplica', am.aggiungiAmico('Q2D4FG7HJK', 'Luca B') && am.amici().length === 1 && am.nomeDi('Q2D4FG7HJK') === 'Luca B');
+  check('sé stessi non si invitano', am.aggiungiAmico(mio, 'io') === false);
+  check('e un codice che non è un codice non entra in rubrica', am.aggiungiAmico('ciao', 'X') === false);
+  check('si può togliere', am.dimenticaAmico('Q2D4FG7HJK') === true && am.amici().length === 0);
+
+  /* IL CODICE VIAGGIA COL SALVATAGGIO, non col dispositivo: così ti segue sul telefono.
+     È il contrario del taccuino, che sta sul dispositivo apposta. */
+  check('codice e rubrica stanno nel salvataggio', typeof Sa.codice === 'string' && Array.isArray(Sa.amici));
 }
 
 /* ---------- IL SONNO IN COMPAGNIA ----------

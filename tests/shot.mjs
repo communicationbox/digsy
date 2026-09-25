@@ -386,6 +386,13 @@ async function main() {
         /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
         var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();
       }); }
+    /* 'amici' = il pannello CON QUALCUNO in rubrica: vuoto non si vede la riga dell'amico */
+    else if (${JSON.stringify(vista)} === 'amici') {
+      if(sp) sp.classList.remove('off');
+      var Sa = G.state && G.state();
+      if (Sa) Sa.amici = [{ c:'Q2D4FG7HJK', n:'Luca' }, { c:'M7RAC3DEFG', n:'Ada' }];
+      if(G.splashView) G.splashView('amici');
+    }
     /* 'sogno' = quello che vede chi dorme in compagnia e aspetta che la notte passi */
     else if (${JSON.stringify(vista)} === 'sogno') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.mpFinta) G.mpFinta(['Luca'], true).then(function(){ return G.sogno && G.sogno(); }); }

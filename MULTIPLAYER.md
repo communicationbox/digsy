@@ -112,10 +112,25 @@ Una per volta, ognuna provabile da sola.
    tutti. L'orologio lo manda l'ospitante ogni due secondi.
    Per ora l'ospite **non dorme** in casa d'altri e **non tocca** l'arredo: il sonno in
    compagnia col sogno è nella fetta 5.
-3. **Amici e inviti.** Account, richieste, codice amico, pallino verde, centro notifiche.
-   *Per intanto* si entra con un **codice di stanza** da dirsi a voce (menu → Amici): chi
-   apre per primo è il padrone di casa. Serve a poter provare tutto il resto senza aspettare
-   gli account, e sparirà quando ci saranno gli inviti veri.
+3. **Amici e inviti.** *Mezza fatta, e la metà fatta è quella che non ha bisogno del server.*
+   - **FATTO: il codice.** Ognuno ha un codice suo (`amici.js`), dieci segni senza lettere
+     ambigue — niente 0/O, 1/I/L, 5/S, 8/B, perché un codice si detta a voce o si copia da una
+     chat e un segno frainteso manda in una stanza che non è quella. **La stanza porta il
+     codice di chi ospita** (`stanzaDi`), quindi non c'è più niente da inventare né da
+     concordare: chi ha il tuo codice entra nel tuo mondo. Il codice **vive nel salvataggio**
+     (non nelle preferenze del dispositivo) così ti segue sul telefono — il contrario del
+     taccuino, che sta sul dispositivo apposta.
+   - **FATTO: la rubrica.** Gli amici si segnano col codice e col nome che dai TU (il suo nome
+     vero arriva quando lo incontri: in rubrica ci sono i tuoi nomi). Da lì: *Vai da lui*
+     (entri nel suo mondo) e *Apri il mio mondo* (apri la stanza, e chi ha il tuo codice
+     entra). Niente parole inventate da nessuna parte.
+   - **MANCA, e vuole il server: l'invito che ARRIVA all'altro.** «Invita» e «invitami» hanno
+     senso solo se dall'altra parte squilla qualcosa, e per squillare serve sapere chi è
+     online: account, presenza, recapito. Cioè `friends.php` + il pallino verde + il centro
+     notifiche. Oggi al posto dell'invito c'è il codice, che funziona senza che il server sappia
+     niente di nessuno.
+   - Non c'è **verifica** che un codice sia di chi dice di essere: finché non esistono gli
+     account, un codice è una chiave, non un'identità. Si dà a chi si vuole e a nessun altro.
 4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Amici → Taccuino: l'elenco
    di chi si è sentito, dal più recente, e la conversazione con l'ora di ogni riga). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
    restare sotto la barra), taccuino in `localStorage` **fuori dal salvataggio**, riga di testo

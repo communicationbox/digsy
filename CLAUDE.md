@@ -54,6 +54,7 @@ src/render.js       composizione della scena: entità, player, veicoli, scavo, b
 src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
 src/mapui.js        mappa del mondo (pergamena, zoom, punti d'interesse)
+src/amici.js        il tuo codice (10 segni, nessuna lettera ambigua) e la rubrica; la stanza è il codice di chi ospita
 src/sonno.js        sonno in compagnia: chi dorme sogna e aspetta (puro, decide e basta)
 src/dream.js        il sogno a schermo: cielo a fasce, luna a falce, le Z che salgono, i pulsanti
 src/prefs.js        preferenze del giocatore FUORI dal salvataggio (suggerimenti, comandi, mano)
@@ -92,8 +93,8 @@ avvengono a runtime dentro le funzioni, mai a top-level.
 - **Provare il gioco in DUE, in locale**: `npm run relay` (accende il centralino su
   127.0.0.1:17451, si installa `ws` da solo la prima volta) e, in un altro terminale,
   `npm run dev`. Vite inoltra `/ws` al centralino, quindi **due schede** sullo stesso
-  indirizzo → menu → **Amici** → stesso codice di stanza → si giocano il mondo di chi è
-  entrato per primo. Senza il centralino acceso `ws://localhost:5173/ws` non esiste e la
+  indirizzo → menu → **Amici** → una apre il proprio mondo, l'altra entra col suo codice
+  («Il tuo codice» in cima al pannello). Senza il centralino acceso `ws://localhost:5173/ws` non esiste e la
   stanza non si apre: sembra che il multiplayer sia rotto, e invece manca chi risponde.
   Per la sola **animazione del sogno** non serve nessuno: comando `anim=sogno`.
 

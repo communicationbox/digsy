@@ -15,6 +15,8 @@ import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
 import { gameStats } from './stats.js';
 import { battitoAcceso, accendiBattito } from './beat.js';
+import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico } from './amici.js';
+import { toast } from './ui.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
    si cambia, e deve esserci un posto solo da aggiornare. */
@@ -249,12 +251,7 @@ let on = true, pause = false, onPlayCb = null, animOn = false;
 let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
 /* usata dalle pagine di prova per aprire un sottomenu e verificarne l'uscita */
-/* IL CODICE DELLA STANZA sta nelle preferenze del dispositivo, non nel salvataggio: è come ci
-   si collega, non parte della partita — e il salvataggio va anche in cloud. */
 let taccuinoChi = null;      // quale conversazione si sta rileggendo
-const CHIAVE_STANZA = 'digsy_stanza';
-function codiceStanza() { try { return localStorage.getItem(CHIAVE_STANZA) || ''; } catch (e) { return ''; } }
-function setCodiceStanza(v) { try { localStorage.setItem(CHIAVE_STANZA, v); } catch (e) { /* pazienza */ } }
 
 export function setView(v) { view = v; buildMenu(inGameMode); }
 
@@ -547,14 +544,30 @@ function buildMenu(inGame) {
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     } else {
-      /* NON ESISTE ANCORA UN CODICE AMICO: si dice, invece di lasciarlo cercare. Gli account,
-         la lista amici e gli inviti sono la fetta dopo (MULTIPLAYER.md 3); per intanto il
-         codice della stanza **lo si inventa** e lo si passa a voce. */
-      h += `<div class="sp-note">${tr('L\'accesso Google non c\'entra: qui non c\'è ancora un codice amico. Si entra con un codice di stanza che vi inventate voi.', "Your Google sign-in is a different thing: there is no friend code yet. You join with a room code the two of you make up.")}</div>`;
-      h += `<div class="sp-note">${tr('Codice della stanza — inventatelo, e ditelo a chi vuoi invitare', 'Room code — make one up and tell whoever you want to invite')}</div>`;
-      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" value="${(codiceStanza() || '').replace(/["<>&]/g, '')}">`;
-      h += `<button class="sp-btn primary" id="sp-mp-entra">${tr('Entra', 'Join')}</button>`;
-      h += `<div class="sp-note">${tr('Chi apre per primo la stanza è il padrone di casa: si gioca nel suo mondo, col suo orologio.', 'Whoever opens the room first is the host: you play in their world, on their clock.')}</div>`;
+      /* IL TUO CODICE, LA TUA RUBRICA. Prima si inventava una parola e ci si metteva
+         d'accordo a voce ogni volta: due persone potevano sceglierne una uguale senza saperlo,
+         e il giorno dopo si ricominciava da capo. Il codice invece è un indirizzo: si dà una
+         volta, l'amico se lo segna, e da lì in poi si entra dal suo NOME. */
+      h += `<div class="sp-lab">${tr('Il tuo codice', 'Your code')}</div>`;
+      h += `<div class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</div>`;
+      h += `<button class="sp-btn small" id="sp-mp-copia">${tr('Copia il codice', 'Copy code')}</button>`;
+      h += `<div class="sp-note">${tr('Dallo a chi vuoi invitare: chi ha il tuo codice entra nel tuo mondo.', 'Give it to whoever you want to invite: whoever has your code enters your world.')}</div>`;
+      h += `<button class="sp-btn primary" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
+      h += `<div class="sp-sep"></div>`;
+      h += `<div class="sp-lab">${tr('Amici', 'Friends')}</div>`;
+      const rub = amici();
+      if (!rub.length) h += `<div class="sp-note">${tr('Ancora nessuno. Fatti dare il codice da un amico e segnalo qui.', 'Nobody yet. Get a code from a friend and note it down here.')}</div>`;
+      for (const g of rub) {
+        h += `<div class="sp-riga"><span>${esc(g.n)}<br><small>${formatta(g.c)}</small></span>`;
+        h += `<button class="sp-btn small" data-vai="${esc(g.c)}">${tr('Vai da lui', 'Go to them')}</button>`;
+        h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
+        h += `</div>`;
+      }
+      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('codice di un amico', "a friend's code")}" value="">`;
+      h += `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('come lo chiami', 'what you call them')}" value="">`;
+      h += `<button class="sp-btn small" id="sp-mp-agg">${tr('Aggiungi alla rubrica', 'Add to friends')}</button>`;
+      h += `<button class="sp-btn" id="sp-mp-entra">${tr('Entra col codice', 'Join with a code')}</button>`;
+      h += `<div class="sp-note">${tr('Chi ospita è quello di cui si usa il codice: si gioca nel suo mondo, col suo orologio.', "The host is whoever's code you use: you play in their world, on their clock.")}</div>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     }
     h += backBar();
@@ -722,13 +735,33 @@ function buildMenu(inGame) {
   const bT = document.getElementById('sp-troph'); if (bT) bT.onclick = () => go('trophies');
   const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
   const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => go('amici');
+  /* ENTRARE è sempre la stessa cosa: ci si collega alla stanza di QUALCUNO, e quel qualcuno
+     può essere anche sé stessi (aprire il proprio mondo). Una funzione sola, tre pulsanti. */
+  const vaiDa = (codice) => {
+    if (!valido(codice)) { toast(tr('Questo non è un codice', "That's not a code")); return; }
+    connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(codice) });
+    go('amici');
+  };
+  { const a = document.getElementById('sp-mp-apri'); if (a) a.onclick = () => vaiDa(mioCodice()); }
+  document.querySelectorAll('[data-vai]').forEach(b => { b.onclick = () => vaiDa(b.dataset.vai); });
+  document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => { dimenticaAmico(b.dataset.scorda); go('amici'); }; });
   { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {
       const c = document.getElementById('sp-mp-code');
-      const codice = (c && c.value || '').trim().slice(0, 24);
-      if (!codice) return;
-      setCodiceStanza(codice);
-      connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: codice });
+      vaiDa(normalizza(c && c.value));
+    }; }
+  { const a = document.getElementById('sp-mp-agg'); if (a) a.onclick = () => {
+      const c = document.getElementById('sp-mp-code'), n = document.getElementById('sp-mp-nome');
+      if (!aggiungiAmico(normalizza(c && c.value), n && n.value)) { toast(tr('Questo non è un codice', "That's not a code")); return; }
       go('amici');
+    }; }
+  /* COPIARE IL PROPRIO CODICE. `navigator.clipboard` non c'è dappertutto (e su http nudo
+     nemmeno): se manca si seleziona il testo, che è comunque meglio di un pulsante che non fa
+     niente senza dire perché. */
+  { const cp = document.getElementById('sp-mp-copia'); if (cp) cp.onclick = () => {
+      const t = formatta(mioCodice());
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t).then(() => toast(tr('Codice copiato', 'Code copied')), () => toast(t));
+      } else toast(t);
     }; }
   { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { disconnect('uscito'); go('amici'); }; }
   document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('amici'); }; });
