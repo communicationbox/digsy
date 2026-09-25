@@ -5,7 +5,7 @@
    nulla che sbordi in orizzontale. Gira su due viewport: telefono e telefono in orizzontale.
 
    `npm run e2e` — se Chrome manca esce 1 (non si finge verde: il silenzio era peggio). */
-import { readdirSync, existsSync, readFileSync, writeFileSync, mkdtempSync } from 'node:fs';
+import { readdirSync, existsSync, readFileSync, writeFileSync, mkdtempSync, mkdirSync, rmSync, openSync, closeSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
@@ -19,6 +19,20 @@ const CHROME_CANDIDATES = [
   '/usr/bin/google-chrome', '/usr/bin/chromium', '/usr/bin/chromium-browser',
 ];
 const findChrome = () => CHROME_CANDIDATES.find(c => existsSync(c)) || null;
+/* la cartella del profilo di prova: una sola, riusata, e senza lucchetti vecchi (il perche'
+   sta dove viene passata a Chrome) */
+function profiloChrome(nome) {
+  /* UNO PER FORMATO. Il giro e' di tre finestre una dietro l'altra: con una cartella sola la
+     seconda partiva mentre la prima non aveva ancora mollato la presa, e restava ad aspettare
+     un Chrome che stava morendo. Tre cartelle, tutte riusate: nessuna attesa, e ognuna gia'
+     scaldata dal giro precedente. */
+  const d = join(tmpdir(), 'digsy-e2e-profilo-' + String(nome || 'x').replace(/[^a-z0-9]+/gi, '-'));
+  try { mkdirSync(d, { recursive: true }); } catch (e) { /* c'e' gia': bene cosi' */ }
+  for (const f of ['SingletonLock', 'SingletonSocket', 'SingletonCookie']) {
+    try { rmSync(join(d, f), { force: true }); } catch (e) { /* non c'era */ }
+  }
+  return d;
+}
 
 /* Script iniettato nella pagina: il gioco è già avviato (splash saltata con ?nosplash).
    Ritorna una lista di righe PASS/FAIL. */
@@ -1184,17 +1198,67 @@ function run() {
   let fails = 0, total = 0;
   for (const [label, size] of VIEWPORTS) {
     let dom = '';
+    /* L'USCITA DI CHROME VA IN UN FILE, NON IN UNA PIPE. È QUI che si nascondeva il blocco che
+       ha mangiato un pomeriggio: `execFileSync` non aspetta solo che il processo finisca,
+       aspetta che si CHIUDA la pipe — e Chrome lascia dietro di sé aiutanti (l'aggiornatore,
+       il raccoglitore di crash) che ereditano quella stessa pipe e restano vivi. Il processo
+       principale è morto da un pezzo e la prova è ancora lì che ascolta una presa che nessuno
+       chiude. Da riga di comando non succedeva mai, perché là l'uscita la si manda in un file:
+       ed è esattamente la differenza. Con un descrittore di file non c'è nessuna pipe da
+       aspettare, e chi resta vivo non fa danno. */
+    const fuori = join(dir, 'dom.html');
+    let fd = null;
+    const t0 = Date.now();
     try {
-      dom = execFileSync(chrome, [
-        '--headless', '--disable-gpu', '--no-sandbox', '--hide-scrollbars', '--allow-file-access-from-files',
+      fd = openSync(fuori, 'w');
+      execFileSync(chrome, [
+        /* `--headless=new` e non il vecchio `--headless`: è quello che usano già le foto e la
+           prova su telefono, ed è l'unico che su questa macchina esce da solo quando ha finito. */
+        '--headless=new', '--disable-gpu', '--no-sandbox', '--hide-scrollbars', '--allow-file-access-from-files',
+        /* IL PROFILO DI PROVA. Tre cose imparate una per volta, e servono tutte e tre:
+           1. senza `--user-data-dir` Chrome usa il profilo NORMALE della persona: se il
+              browser è aperto quel profilo è già bloccato, la copia headless resta lì ad
+              aspettarlo, e la prova non fallisce — si PIANTA;
+           2. il profilo è SEMPRE LO STESSO, perché uno vergine è un Chrome appena installato
+              e ci mette minuti a mettersi in ordine (registrazioni, componenti, aggiornatore):
+              con una cartella riusata quella spesa si paga una volta sola;
+           3. ...ma prima si toglie il LUCCHETTO che un Chrome rimasto acceso da un giro
+              interrotto puo' aver lasciato li', o si torna al punto 1 per un'altra strada. */
+        '--user-data-dir=' + profiloChrome(label),
+        /* E NIENTE RETE. È la misura che ha chiuso la faccenda: la pagina di prova sta su
+           `file://` e non ha bisogno di internet, ma CHROME sì — si registra sui servizi di
+           Google, cerca aggiornamenti, e finché quelle chiamate pendono il «tempo virtuale»
+           non scade e la prova non torna mai (`registration_request … QUOTA_EXCEEDED`, poi
+           ETIMEDOUT). Facendo fallire subito ogni nome di dominio, non resta niente in attesa.
+           Se un giorno una prova avesse bisogno della rete, va tolta QUI e non in silenzio. */
+        '--host-resolver-rules=MAP * ~NOTFOUND',
+        '--no-first-run', '--no-default-browser-check', '--disable-background-networking',
+        '--disable-component-update', '--disable-sync', '--disable-default-apps',
+        '--disable-client-side-phishing-detection', '--metrics-recording-only',
+        '--disable-features=Translate,OptimizationHints,MediaRouter',
         '--window-size=' + size, '--virtual-time-budget=15000',
         /* SEME FISSO: il mondo era casuale a ogni giro e le prove che toccano il terreno
            (tocca dove andare, cammino) fallivano quando il giocatore nasceva su una lingua
            di spiaggia circondata d'acqua. Un test che dipende dalla fortuna non dice niente
            quando è verde e fa perdere un'ora quando è rosso. */
         '--dump-dom', 'file://' + page + '?nosplash&seed=20260909',
-      ], { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024 });
-    } catch (e) { console.error('e2e: Chrome ha fallito su ' + label); return 1; }
+        /* UN TEMPO MASSIMO. `execFileSync` non ne ha: qualunque inciampo di Chrome smetteva di
+           essere una prova rossa e diventava una suite PIANTATA, che è molto peggio — si
+           aspetta, si rilancia, e si dà la colpa al gioco. Tre minuti sono dieci volte il
+           tempo normale di un giro. Il colpo è SIGKILL: Chrome lascia dei figli attaccati alla
+           stessa uscita, e con un garbato SIGTERM la prova resterebbe comunque ad aspettare che
+           si chiuda una presa che nessuno chiude. */
+      ], { stdio: ['ignore', fd, 'ignore'], timeout: 180000, killSignal: 'SIGKILL' });
+      dom = readFileSync(fuori, 'utf8');
+      if (process.env.E2E_DEBUG) console.error('[e2e] ' + label + ' in ' + (Date.now() - t0) + 'ms, ' + dom.length + ' byte');
+    } catch (e) {
+      const scaduto = e && (e.killed || e.code === 'ETIMEDOUT');
+      try { if (fd !== null) closeSync(fd); } catch (e2) { /* già chiuso */ }
+      console.error('e2e: Chrome ' + (scaduto ? 'non ha risposto in tempo' : 'ha fallito') + ' su ' + label
+        + (e && e.message ? '\n  ' + String(e.message).split('\n')[0] : ''));
+      return 1;
+    }
+    try { if (fd !== null) closeSync(fd); } catch (e) { /* già chiuso */ }
     const m = dom.match(/data-res="__E2E__([\s\S]*?)__END__"/) || dom.match(/__E2E__([\s\S]*?)__END__/);
     console.log('\n— ' + label + ' (' + size.replace(',', '×') + ')');
     if (!m) {

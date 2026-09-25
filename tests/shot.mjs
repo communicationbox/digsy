@@ -386,6 +386,18 @@ async function main() {
         /* la scheda si sceglie da qui: senza, si fotografa sempre e solo la prima */
         var t=document.querySelector('[data-mtab=\"'+(location.hash.slice(1)||'desk')+'\"]'); if(t) t.click();
       }); }
+    /* 'posta' = la cassetta delle lettere di chi è COLLEGATO, con un amico in rubrica e una
+       lettera già imbucata: senza account la parte delle lettere non esiste apposta */
+    else if (${JSON.stringify(vista)} === 'posta') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      Promise.all([G.mod && G.mod('cloud'), G.mod && G.mod('amici'), G.mod && G.mod('posta')]).then(function(m){
+        var Sp = G.state();
+        m[0].cloud.user = { email: 'io@digsy', name: 'Io' };
+        Sp.amici = [{ c:'Q2D4FG7HJK', n:'Luca' }, { c:'M7RAC3DEFG', n:'Ada' }];
+        Sp.coins = 40; Sp.posta = [];
+        m[2].scrivi('Q2D4FG7HJK', 'Ho trovato un cranio enorme vicino al fiume!', true);
+        if (G.openMailbox) G.openMailbox();
+      });
+    }
     /* 'amici' = il pannello CON QUALCUNO in rubrica: vuoto non si vede la riga dell'amico */
     else if (${JSON.stringify(vista)} === 'amici') {
       if(sp) sp.classList.remove('off');

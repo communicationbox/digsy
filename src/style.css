@@ -586,6 +586,14 @@ body:has(#cmd.on) #touch{display:none!important}
 @media(max-height:700px){
   .ed-stick .prev{width:min(165px,43vw)}
 }
+/* SCHERMO BASSO (telefono in orizzontale): l'anteprima si misura in ALTEZZA, non in larghezza.
+   Su 247 px di gioco utile la fascia arrivava a 93 — più di un terzo dello schermo — e sotto
+   restava una fessura per le impostazioni, cioè il difetto di prima al contrario. Il limite è
+   sull'altezza perché è quella che manca: `width` su una tela quadrata non la governa. */
+@media(max-height:460px){
+  .ed-stick{margin:-14px -14px 6px;padding:5px 14px 4px}
+  .ed-stick .prev{width:auto;height:min(58px,17vh)}
+}
 .nameinput{font:700 16px ui-monospace,Menlo,monospace;padding:9px 12px;border-radius:9px;border:2px solid var(--c-line);background:#efe6d4;color:#2a2016;width:100%;text-align:center}
 .btn.wide{width:100%;justify-content:center}
 .nameinput:focus{outline:none;border-color:var(--c-amber)}
@@ -769,25 +777,29 @@ body:has(#cmd.on) #touch{display:none!important}
 /* intestazione: schizzo 2D piccolo a lato, il 3D resta LIBERO */
 .bk-head{display:flex;align-items:center;gap:10px;margin-bottom:8px}
 .bk-sketch{width:72px;height:53px;image-rendering:pixelated;background:#15120d;border:2px solid var(--c-deep-2);box-shadow:2px 2px 0 var(--c-deep-2);flex:none}
-.bk-zone{font-size:11px;font-weight:800;color:#8a755a;text-transform:uppercase;letter-spacing:1.5px;text-align:left;flex:1}
+/* 12px e non 11: sotto i dodici il testo del Libro non si legge senza avvicinarsi, e su
+   telefono queste tre righe erano GIÀ a 12-13 (le alza la regola qui sotto). Restavano piccole
+   solo su schermo largo, dove nessuno guardava: gli e2e misuravano una larghezza che Chrome
+   headless dichiarava sbagliata, e la prova passava per finta. */
+.bk-zone{font-size:12px;font-weight:800;color:#8a755a;text-transform:uppercase;letter-spacing:1.5px;text-align:left;flex:1}
 .bp-cv{width:100%;max-width:min(560px,96%);aspect-ratio:4/3;image-rendering:pixelated;border:3px solid var(--c-deep-2);background:#fdf6e3;box-shadow:4px 4px 0 var(--c-parch-2)}
 /* nel libro l'immagine DOMINA la pagina: riempie lo spazio verticale disponibile */
 .bk-cvwrap{flex:1 1 auto;display:flex;align-items:center;justify-content:center;min-height:0;width:100%;max-width:none;margin:0}
 .bk-cvwrap .bp-cv{height:100%;width:auto;max-width:100%;max-height:58vh;flex:none}
 .bk-name{font-weight:800;font-size:22px;margin-top:10px;color:var(--c-wood-2);letter-spacing:.5px}
 /* rarità accanto al nome: badge pieno, in stile 8-bit */
-.bk-name .rar{font-size:11px;letter-spacing:1px;text-transform:uppercase;vertical-align:middle;
+.bk-name .rar{font-size:12px;letter-spacing:1px;text-transform:uppercase;vertical-align:middle;
   padding:3px 8px;border:2px solid var(--c-deep-2);box-shadow:2px 2px 0 var(--c-parch-2);margin-left:6px}
 .bk-desc{margin-top:8px;font-size:13px;line-height:1.55;color:#5a4a34;text-align:left;border-top:2px dashed #cbbfa4;padding-top:8px}
 /* footer di pagina: meta su UNA riga + numero, ancorati in basso alla stessa altezza */
 .bk-foot{margin-top:auto;padding-top:10px}
 /* chip che vanno a capo IN MODO ORDINATO (mai numeri spezzati, mai chip tagliati) */
-.bk-meta{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;font-size:11px;font-weight:700;color:#5a4a34;line-height:1.3}
+.bk-meta{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;align-items:center;font-size:12px;font-weight:700;color:#5a4a34;line-height:1.3}
 .bk-meta span{background:#f4ead0;border:2px solid var(--c-deep-2);border-radius:4px;padding:3px 8px;box-shadow:2px 2px 0 var(--c-parch-2);flex:0 0 auto;white-space:nowrap;display:inline-flex;align-items:center;gap:3px}
 .bk-pageno{margin-top:8px;text-align:center}
-.bk-pageno{margin-top:8px;font-size:11px;color:#a8916d;letter-spacing:2px}
+.bk-pageno{margin-top:8px;font-size:12px;color:#a8916d;letter-spacing:2px}
 .bk-cvwrap{position:relative}
-.bk-flip3d{position:absolute;right:6px;top:6px;font-family:inherit;font-weight:800;font-size:11px;cursor:pointer;
+.bk-flip3d{position:absolute;right:6px;top:6px;font-family:inherit;font-weight:800;font-size:12px;cursor:pointer;
   background:var(--c-amber);color:var(--c-dark);border:2px solid var(--c-amber-sh);padding:4px 8px;box-shadow:2px 2px 0 var(--c-clay-sh)}
 .bk-flip3d:active{transform:translate(1px,1px);box-shadow:1px 1px 0 var(--c-clay-sh)}
 #bk-nav{display:flex;flex-direction:column;align-items:center;gap:6px;padding-top:14px;color:var(--c-ink);font-weight:800}

@@ -3401,13 +3401,17 @@ sprites.applyLook();
     gameplay.shipToMuseum() === true && S.museumJob.items.length === 2 && S.raw.length === 0);
   S.museumJob = null; S.raw = [];
   check('cassetta: niente da spedire → rifiuta', gameplay.shipToMuseum() === false);
-  /* posizione: SOLO borghi e paesi (le città hanno il Museo) */
+  /* posizione: in OGNI paese. La cassetta era nata solo dove manca il Museo (spedire i grezzi
+     senza il viaggio), ma da quando ci si scrive fra persone serve dappertutto: chi vive in
+     città non deve mettersi in cammino per imbucare una lettera. */
   const mail = { borgo: 0, paese: 0, 'città': 0 }, tot = { borgo: 0, paese: 0, 'città': 0 };
   for (let cx = -22; cx < 22; cx++) for (let cy = -22; cy < 22; cy++) {
     const t = world.townForCell(cx, cy); if (!t) continue; tot[t.size]++;
     if ((t.decos || []).some(d => d.type === 'mailbox')) mail[t.size]++;
   }
-  check('cassetta: nei borghi e paesi, MAI nelle città col Museo', mail.borgo > 0 && mail.paese > 0 && mail['città'] === 0);
+  check('cassetta: ce n\'è una in ogni paese, città comprese',
+    mail.borgo === tot.borgo && mail.paese === tot.paese && mail['città'] === tot['città'],
+    JSON.stringify(mail) + ' su ' + JSON.stringify(tot));
 }
 
 /* ---------- museo v3: consegna → 1 giorno → ritiro, DNA, galleria camminabile ---------- */
@@ -10195,6 +10199,85 @@ sprites.applyLook();
   /* IL CODICE VIAGGIA COL SALVATAGGIO, non col dispositivo: così ti segue sul telefono.
      È il contrario del taccuino, che sta sul dispositivo apposta. */
   check('codice e rubrica stanno nel salvataggio', typeof Sa.codice === 'string' && Array.isArray(Sa.amici));
+}
+
+/* ---------- CHI APRE CHROME LO APRE CON UN PROFILO SUO ----------
+   Senza `--user-data-dir` Chrome usa quello normale della persona: se il browser è APERTO il
+   profilo è già bloccato e la copia headless resta lì ad aspettarlo. `execFileSync` non ha un
+   tempo massimo, quindi la suite non fallisce — si PIANTA, e sembra un difetto del gioco.
+   Ci è successo, e gli e2e erano l'unico script a non averlo. */
+{
+  const { readFileSync: rf, readdirSync: rd } = await import('node:fs');
+  const senza = [];
+  for (const f of rd('tests').filter(x => x.endsWith('.mjs'))) {
+    const src = rf('tests/' + f, 'utf8');
+    if (!/--headless/.test(src)) continue;
+    if (!/--user-data-dir/.test(src)) senza.push(f);
+  }
+  check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
+}
+
+/* ---------- LA POSTA: scrivere a chi adesso non c'è ----------
+   La chat esiste solo mentre si è insieme. La lettera è per l'amico che non c'è, e COSTA:
+   va portata, e portarla è un servizio del paese (il prezzo si dice prima, regola 7). */
+{
+  const po = await import('../src/posta.js');
+  const am2 = await import('../src/amici.js');
+  const Sp = state.S;
+  Sp.posta = []; Sp.coins = 12; Sp.day = 3; Sp.codice = null;
+  const mio2 = am2.mioCodice();
+
+  check('una lettera si paga ' + po.COSTO_LETTERA, po.scrivi('Q2D4FG7HJK', 'ciao!') === 'ok' && Sp.coins === 12 - po.COSTO_LETTERA);
+  check('e resta in partenza, con dentro quello che hai scritto',
+    po.inPartenza().length === 1 && po.inPartenza()[0].m === 'ciao!' && po.inPartenza()[0].a === 'Q2D4FG7HJK');
+  check('senza monete non parte', (Sp.coins = 2, po.scrivi('Q2D4FG7HJK', 'ciao')) === 'monete');
+  check('e le monete non si toccano quando il no è per i soldi', Sp.coins === 2);
+  Sp.coins = 100;
+  check('una lettera vuota non è una lettera', po.scrivi('Q2D4FG7HJK', '   ') === 'vuota');
+  check('a sé stessi si parla senza francobollo', po.scrivi(mio2, 'ehi') === 'me');
+  check('e un codice che non è un codice non è un indirizzo', po.scrivi('ciao', 'ehi') === 'codice');
+  /* il NO deve dire PERCHÉ: un `false` muto lascia il pannello senza niente da raccontare */
+  check('ogni no ha un motivo suo', new Set(['monete', 'vuota', 'me', 'codice']).size === 4);
+
+  check('una lettera si può riprendere finché è nella buca', po.ritira(0) === true && po.inPartenza().length === 0);
+  /* la buca non è infinita */
+  Sp.coins = 1000;
+  for (let i = 0; i < po.MAX_IN_PARTENZA; i++) po.scrivi('Q2D4FG7HJK', 'n' + i);
+  check('la buca si riempie e lo dice', po.scrivi('Q2D4FG7HJK', 'ancora') === 'piena');
+  Sp.posta = []; Sp.coins = 50;
+}
+
+/* LA CASSETTA A SCHERMO (regola 9). E soprattutto: le lettere compaiono SOLO a chi è
+   collegato col proprio account — senza account non esiste nessuno a cui scrivere, e un
+   pulsante che non può funzionare è peggio di un pulsante che non c'è. */
+{
+  const uiP = await import('../src/ui.js');
+  const cl = await import('../src/cloud.js');
+  const amP = await import('../src/amici.js');
+  const body = document.getElementById('m-body');
+  state.S.amici = []; amP.aggiungiAmico('Q2D4FG7HJK', 'Luca'); state.S.posta = []; state.S.coins = 50;
+
+  cl.cloud.user = null;
+  uiP.openMailbox();
+  const senza = (body && body.innerHTML) || '';
+  check('scollegati, la cassetta spedisce i reperti e basta', !/mb-a|mb-m/.test(senza));
+
+  cl.cloud.user = { email: 'io@digsy' };
+  uiP.openMailbox();
+  const con = (body && body.innerHTML) || '';
+  check('collegati, si può scrivere a un amico', /mb-a/.test(con) && /mb-m/.test(con));
+  check('e il prezzo è scritto PRIMA di premere', con.includes(String(5)) && /data-post/.test(con));
+  check("l'amico in rubrica è fra i destinatari", con.includes('Luca'));
+
+  /* con una lettera in buca si vede, e NON si finge che sia arrivata */
+  const poP = await import('../src/posta.js');
+  poP.scrivi('Q2D4FG7HJK', 'ci vediamo alla fontana', true);
+  uiP.openMailbox();
+  const con2 = (body && body.innerHTML) || '';
+  check('le lettere in partenza si vedono', con2.includes('ci vediamo alla fontana'));
+  check('e il gioco dice che il giro della posta non è ancora aperto', /non è ancora aperto|not open yet/i.test(con2));
+  cl.cloud.user = null; state.S.posta = []; state.S.amici = [];
+  uiP.closeModal();
 }
 
 /* ---------- IL SONNO IN COMPAGNIA ----------

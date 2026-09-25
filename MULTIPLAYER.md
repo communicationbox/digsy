@@ -129,6 +129,16 @@ Una per volta, ognuna provabile da sola.
      online: account, presenza, recapito. Cioè `friends.php` + il pallino verde + il centro
      notifiche. Oggi al posto dell'invito c'è il codice, che funziona senza che il server sappia
      niente di nessuno.
+   - **FATTO: la cassetta delle lettere** (`posta.js`), in ogni paese. Scrivere a un amico che
+     adesso non c'è costa **🪙5**, detti prima: la chat esiste solo mentre si è insieme, e una
+     riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account (senza,
+     non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo dice:
+     il recapito è la parte che manca, e non si finge che sia arrivata.
+   - **FATTO: la cassetta delle lettere** (`posta.js`), in ogni paese. Scrivere a un amico che
+     adesso non c'è costa **5 monete**, dette prima: la chat esiste solo mentre si è insieme, e
+     una riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account
+     (senza, non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo
+     dice: il recapito è la parte che manca, e non si finge che sia arrivata.
    - Non c'è **verifica** che un codice sia di chi dice di essere: finché non esistono gli
      account, un codice è una chiave, non un'identità. Si dà a chi si vuole e a nessun altro.
 4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Amici → Taccuino: l'elenco

@@ -46,6 +46,9 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
+import { cloud } from './cloud.js';
+import { amici, nomeDi } from './amici.js';
+import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
 import { groundPalette } from './tiles.js';
 import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, beardLabel, glassesLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
 
@@ -616,10 +619,18 @@ export function openQuestBoard() {
     openQuestBoard();
   });
 }
-/* CASSETTA DELLA POSTA (borghi e paesi): spedisci i grezzi al Museo a pagamento, pronti domani */
+/* CASSETTA DELLA POSTA. Due cose nella stessa buca, e sono diverse:
+   - **i reperti grezzi** al Museo, a pagamento, pronti domani (solo dove il Museo NON c'è: in
+     città ci si va a piedi);
+   - **le lettere alle persone**, che compaiono solo a chi è collegato col proprio account —
+     senza account non esiste nessuno a cui scrivere, e un pulsante che non può funzionare è
+     peggio di un pulsante che non c'è.
+   Le lettere costano, ed è detto prima: una riga a qualcuno che non c'è va PORTATA, e portarla
+   è un servizio del paese. */
 export function openMailbox() {
   const n = (S.raw || []).length, cost = n * MAIL_COST, busy = !!S.museumJob;
   let h = '';
+  if (cloud.user) h += letterSection();
   if (!n) h += `<div class="row"><span class="em">📭</span><div><div class="nm">${tr('Non hai reperti grezzi', 'No raw finds')}</div><div class="sub">${tr('Scava, poi torna a spedire.', 'Dig first, then come back to ship.')}</div></div></div>`;
   else {
     const can = S.coins >= cost || isDebug();
@@ -630,6 +641,52 @@ export function openMailbox() {
   mTitle.innerHTML = withIcons('📮 ' + tr('Cassetta della posta', 'Mailbox'));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-ship]').forEach(b => b.onclick = () => { if (shipToMuseum()) closeModal(); else openMailbox(); });
+  wireLetters();
+}
+/* LE LETTERE: a chi, cosa, e quelle che aspettano di partire. */
+function letterSection() {
+  const rub = amici(), out = inPartenza();
+  let h = `<div class="muted" style="margin-bottom:6px">${tr('Scrivi a un amico che adesso non c\'è: la lettera lo aspetta.', "Write to a friend who isn't around: the letter waits for them.")}</div>`;
+  if (!rub.length) {
+    h += `<div class="row"><span class="em">📇</span><div><div class="nm">${tr('Nessun amico in rubrica', 'No friends noted down')}</div><div class="sub">${tr('Fatti dare il suo codice: menu → Amici.', 'Get their code: menu → Friends.')}</div></div></div>`;
+  } else {
+    h += `<div class="row"><span class="em">✉️</span><div style="flex:1;min-width:0">`;
+    h += `<select id="mb-a" class="nameinput" style="width:100%">` +
+      rub.map(g => `<option value="${esc(g.c)}">${esc(g.n)}</option>`).join('') + `</select>`;
+    h += `<input id="mb-m" class="nameinput" style="width:100%;margin-top:6px" maxlength="${MAX_LETTERA}" placeholder="${tr('due righe…', 'a line or two…')}">`;
+    h += `</div></div>`;
+    const can = (S.coins || 0) >= COSTO_LETTERA || isDebug();
+    h += `<div class="row"><span class="em">🪙</span><div><div class="nm">${tr('Spedire costa', 'Sending costs')} 🪙 ${COSTO_LETTERA}</div><div class="sub">${tr('la porta il postino, e il postino si paga', 'the postman carries it, and the postman gets paid')}</div></div><div class="rt"><button class="btn ${can ? 'amber' : 'ghost'}" ${can ? '' : 'disabled'} data-post="1">${tr('Imbuca', 'Post it')}</button></div></div>`;
+  }
+  if (out.length) {
+    h += `<div class="muted" style="margin:8px 0 4px">${tr('In partenza', 'Waiting to go')}</div>`;
+    out.forEach((l, i) => {
+      h += `<div class="row"><span class="em">📨</span><div><div class="nm">${esc(nomeDi(l.a))}</div><div class="sub">${esc(l.m)}</div></div><div class="rt"><button class="btn ghost" data-unpost="${i}">${tr('Riprendi', 'Take back')}</button></div></div>`;
+    });
+    /* NON SI FINGE CHE SIA ARRIVATA. Il recapito non c'è ancora (serve il collegamento fra le
+       persone): la cassetta è una buca vera con dentro le tue lettere, e lo dice. */
+    h += `<div class="muted center" style="margin-top:4px">${tr('Il giro della posta fra giocatori non è ancora aperto: le lettere restano qui.', 'The player post round is not open yet: the letters stay here.')}</div>`;
+  }
+  h += `<div class="muted" style="margin:10px 0 2px">—</div>`;
+  return h;
+}
+function wireLetters() {
+  const b = mBody.querySelector('[data-post]');
+  if (b) b.onclick = () => {
+    const a = mBody.querySelector('#mb-a'), m = mBody.querySelector('#mb-m');
+    const esito = scriviLettera(a && a.value, m && m.value, isDebug());
+    const dice = { codice: tr('Questo non è un codice', "That's not a code"),
+      me: tr('A te stesso puoi parlare senza francobollo', 'You can talk to yourself for free'),
+      vuota: tr('Scrivi qualcosa, prima', 'Write something first'),
+      piena: tr('La buca è piena: riprendi qualche lettera', 'The box is full: take a few back'),
+      monete: tr('Servono 🪙 ', 'You need 🪙 ') + COSTO_LETTERA };
+    if (esito !== 'ok') { toast(dice[esito] || dice.vuota); return; }
+    playSfx('coin'); toast('📮 ' + tr('Imbucata', 'Posted'));
+    updateHUD(); openMailbox();
+  };
+  mBody.querySelectorAll('[data-unpost]').forEach(x => x.onclick = () => {
+    ritiraLettera(+x.dataset.unpost); updateHUD(); openMailbox();
+  });
 }
 /* CASA — porta a lucchetto: modale di conferma prima di spendere (M2). Stesso schema della
    cassetta della posta: prezzo, bottone disabilitato se mancano i fondi. */

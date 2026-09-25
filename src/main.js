@@ -442,6 +442,12 @@ if (typeof window !== 'undefined') {
         return rows.length;
       }),
       splashView: (v) => import('./splash.js').then(sp => sp.setView && sp.setView(v)),
+      /* la cassetta delle lettere, per fotografarla piena senza doverla riempire a mano */
+      openMailbox: () => import('./ui.js').then(u => u.openMailbox()),
+      /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
+         vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
+      mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'),
+        posta: () => import('./posta.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a

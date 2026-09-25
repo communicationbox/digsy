@@ -55,6 +55,7 @@ src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
 src/mapui.js        mappa del mondo (pergamena, zoom, punti d'interesse)
 src/amici.js        il tuo codice (10 segni, nessuna lettera ambigua) e la rubrica; la stanza è il codice di chi ospita
+src/posta.js        lettere a chi adesso non c'è: 5 monete, restano «in partenza» finché il recapito non esiste
 src/sonno.js        sonno in compagnia: chi dorme sogna e aspetta (puro, decide e basta)
 src/dream.js        il sogno a schermo: cielo a fasce, luna a falce, le Z che salgono, i pulsanti
 src/prefs.js        preferenze del giocatore FUORI dal salvataggio (suggerimenti, comandi, mano)
@@ -132,6 +133,16 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   NPC/player/banco ordinati per y (niente sovrapposizioni). Museo = edificio **5×2 con
   frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
+- **Cassetta della posta in OGNI paese** (prima solo dove manca il Museo): resta il servizio
+  di spedire i **grezzi** al Museo (2 monete a pezzo, pronti domani) dove il Museo non c'è, e si
+  aggiunge la **posta fra persone** — visibile SOLO a chi è collegato col proprio account,
+  perche' senza account non esiste nessuno a cui scrivere e un pulsante che non può funzionare
+  è peggio di un pulsante che non c'è. Si scrive a un amico della rubrica, **5 monete dette prima**
+  (`COSTO_LETTERA`): la chat esiste solo mentre si è insieme, la lettera è per chi NON c'è, e
+  portarla è un servizio del paese. Le lettere restano **in partenza** (`S.posta`) e si possono
+  riprendere; il pannello **dice** che il giro della posta fra giocatori non è ancora aperto —
+  il recapito è roba del server (MULTIPLAYER.md, fetta 3) e non si finge che sia arrivata.
+  Foto: `npm run shot -- posta 700,820`.
 - **Fontana**: max 10 lanci per città (`S.fountains[key]={n,d0}`), poi riposa e si ricarica
   dopo 10 giorni. **Identificazione al MUSEO** (non più al Lab): il Lab tiene chimere+risveglio.
 - **Città procedurali** in celle `TCELL=40` (prob 0.45), nomi propri tema terra/ossa (`townName`).
@@ -691,6 +702,25 @@ pulsante nella stessa schermata, tutti con la suite verde. Build → foto → **
 poi dire che è fatto. E quando si trova un difetto visivo, aggiungere anche una misura agli
 e2e (larghezze uguali, spazi uniformi, stessa altezza): la foto la si guarda una volta, la
 misura resta.
+
+## Gli e2e aprono Chrome, e va aperto BENE
+Un pomeriggio perso su questo, quindi sta scritto. `tests/e2e.mjs` apre Chrome tre volte (tre
+formati) e ogni volta servono quattro cose, che da sole non bastano:
+1. **l'uscita in un FILE, non in una pipe** (`stdio: ['ignore', fd, 'ignore']`). È la causa vera:
+   `execFileSync` non aspetta che il processo finisca, aspetta che si chiuda la pipe — e Chrome
+   lascia dietro aiutanti (aggiornatore, raccoglitore di crash) che ereditano quella pipe e
+   restano vivi. La prova resta ad ascoltare una presa che nessuno chiude. Da riga di comando
+   non capitava mai, perché lì l'uscita va in un file: era esattamente quella la differenza.
+2. **un profilo suo** (`--user-data-dir`), o Chrome usa quello della persona: se il browser è
+   aperto il profilo è bloccato e la copia headless lo aspetta per sempre.
+3. **sempre lo stesso profilo**, ripulito del lucchetto (`SingletonLock`), e **uno per formato**:
+   vergine ci mette minuti a mettersi in ordine, condiviso se lo contendono due giri di fila.
+4. **niente rete** (`--host-resolver-rules=MAP * ~NOTFOUND`): la pagina è locale, ma Chrome no —
+   si registra sui servizi di Google e finché quelle chiamate pendono `--virtual-time-budget`
+   non scade (`registration_request … QUOTA_EXCEEDED`, poi ETIMEDOUT).
+Più un **tempo massimo con SIGKILL**: senza, qualunque inciampo smetteva di essere una prova
+rossa e diventava una suite piantata — che è molto peggio, perché si dà la colpa al gioco.
+`E2E_DEBUG=1 npm run e2e` stampa quanto ci mette ogni formato (adesso: ~1 secondo l'uno).
 
 ## Provare davvero su telefono
 `npm run build && npm run mobile` apre il gioco in **telefoni emulati con Playwright** (iPhone SE,

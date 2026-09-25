@@ -1777,6 +1777,21 @@ export const RU = {
   'free': 'бесплатно',
 
   /* ---- in compagnia ---- */
+  /* la cassetta delle lettere: scrivere a chi adesso non c'è */
+  "Write to a friend who isn't around: the letter waits for them.": 'Напиши другу, которого сейчас нет: письмо его дождётся.',
+  'No friends noted down': 'В записной книжке пусто',
+  'Get their code: menu → Friends.': 'Возьми его код: меню → Друзья.',
+  'a line or two…': 'пара строк…',
+  'Sending costs': 'Отправка стоит',
+  'the postman carries it, and the postman gets paid': 'письмо несёт почтальон, а почтальону платят',
+  'Post it': 'Бросить в ящик',
+  'Waiting to go': 'Ждут отправки',
+  'Take back': 'Забрать',
+  'The player post round is not open yet: the letters stay here.': 'Почта между игроками ещё не ходит: письма остаются здесь.',
+  'You can talk to yourself for free': 'С собой можно говорить и без марки',
+  'Write something first': 'Сначала напиши что-нибудь',
+  'The box is full: take a few back': 'Ящик полон: забери пару писем',
+  'Posted': 'Отправлено',
   'Your code': 'Твой код',
   'Copy code': 'Скопировать код',
   'Code copied': 'Код скопирован',
