@@ -5,7 +5,7 @@ import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } fro
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
 import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inAttesa, inCasa,
   CENTRALINO_ONLINE, inLinea, invita, setAmici } from './mp.js';
-import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
+import { pagine, pagina, dimentica, dimenticaTutto, rubrica, segnaLetto, LETTERE, ALTRE } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
 import { commandHelp } from './commands.js';
@@ -253,6 +253,7 @@ let view = 'main', inGameMode = false; // sottomenu: main | saves | audio | lang
 export function splashActive() { return on; }
 /* usata dalle pagine di prova per aprire un sottomenu e verificarne l'uscita */
 let taccuinoChi = null;      // quale conversazione si sta rileggendo
+let taccuinoOrdine = [];     // i nomi nell'ordine in cui sono scritti nella rubrica
 /* L'AVVISO DEGLI AMICI STA DENTRO IL PANNELLO, non nei toast. I toast vivono dentro `#frame`,
    che è `position:fixed` e quindi si porta dietro il suo strato: con la splash aperta finiscono
    SOTTO, e un codice rifiutato non dice niente a nessuno — «premo Entra e non succede
@@ -666,30 +667,57 @@ function buildMenu(inGame) {
     h += backBar();
   } else if (view === 'taccuino') {
     /* IL TACCUINO — quello che ci si è detti, una pagina per persona. Sta sul dispositivo e
-       non nel salvataggio: le conversazioni non devono diventare roba di nessun server. */
+       non nel salvataggio: le conversazioni non devono diventare roba di nessun server.
+       E SEMBRA UN TACCUINO: carta giallina a righe, il filo rosso del margine e le LETTERE
+       sul bordo destro, come nelle vecchie agende dei numeri di telefono. L'elenco «dal più
+       recente» era un registro; una rubrica si sfoglia per lettera, e chi ti ha scritto lo
+       vedi dalla lettera che si accende senza aprire niente. */
     h += closeX();
     h += `<div class="sp-title2">📝 ${tr('Taccuino', 'Notebook')}</div>`;
-    const gente = pagine();
-    if (!gente.length) {
-      h += `<div class="sp-note">${tr('Ancora niente. Qui resta quello che vi siete detti.', "Nothing yet. What you say to each other stays here.")}</div>`;
+    const gruppi = rubrica();
+    if (!gruppi.length) {
+      h += `<div class="tacc-carta vuota"><div class="tacc-fogli"><div class="tacc-nulla">${
+        tr('Ancora niente. Qui resta quello che vi siete detti.', "Nothing yet. What you say to each other stays here.")}</div></div></div>`;
     } else if (!taccuinoChi) {
-      h += `<div class="sp-note">${tr('Con chi hai parlato, dal più recente', 'Who you talked to, most recent first')}</div>`;
+      /* le lettere ci sono TUTTE, anche quelle vuote: è il bordo del taccuino, e un bordo con
+         due tacche sole non si riconosce. Quelle senza nessuno restano spente e non si premono. */
+      const pieni = new Map(gruppi.map(g => [g.lettera, g]));
+      const tacche = [...LETTERE, ...(pieni.has(ALTRE) ? [ALTRE] : [])];
+      h += `<div class="tacc-carta"><div class="tacc-fogli">`;
       /* IL NOME LO SCEGLIE L'ALTRO, quindi non entra mai grezzo nel markup (`esc`) e non fa
          nemmeno da chiave nel bottone: ripulito dei caratteri scomodi non combacerebbe più
          con la pagina salvata, e si aprirebbe una conversazione vuota. Va l'INDICE. */
-      gente.forEach((chi, i) => {
-        const p = pagina(chi), ultima = p.length ? p[p.length - 1].m : '';
-        h += `<button class="sp-btn" data-tacc="${i}">${esc(chi)}<br><small>${esc(ultima.slice(0, 40))}</small></button>`;
-      });
+      const ordine = [];
+      for (const g of gruppi) {
+        h += `<div class="tacc-lettera${g.nuovi ? ' nuovo' : ''}" id="tacc-L-${g.lettera === ALTRE ? 'altro' : g.lettera}">${g.lettera}</div>`;
+        for (const p of g.gente) {
+          const i = ordine.push(p.nome) - 1;
+          h += `<button class="tacc-nome${p.nuovi ? ' nuovo' : ''}" data-tacc="${i}">`
+            + `<span class="tn-chi">${esc(p.nome)}</span>`
+            + `<span class="tn-ult">${p.mia ? '› ' : ''}${esc(p.ultima.slice(0, 44))}</span>`
+            + (p.nuovi ? `<span class="tn-bollo">${p.nuovi}</span>` : '')
+            + `</button>`;
+        }
+      }
+      taccuinoOrdine = ordine;
+      h += `</div><div class="tacc-abc">`;
+      for (const L of tacche) {
+        const g = pieni.get(L);
+        h += `<button class="tacc-tab${g ? ' pieno' : ''}${g && g.nuovi ? ' nuovo' : ''}"${g ? ` data-abc="${L === ALTRE ? 'altro' : L}"` : ' disabled'}>${L}</button>`;
+      }
+      h += `</div></div>`;
       h += `<button class="sp-btn small danger" id="sp-tacc-tutto">${tr('Strappa tutto il taccuino', 'Tear up the whole notebook')}</button>`;
     } else {
-      h += `<div class="sp-note">${esc(taccuinoChi)}</div><div class="sp-log">`;
+      segnaLetto(taccuinoChi);      // aperta la pagina, è letta
+      h += `<div class="tacc-carta"><div class="tacc-fogli">`;
+      h += `<div class="tacc-lettera">${esc(taccuinoChi)}</div>`;
       for (const r of pagina(taccuinoChi)) {
         const quando = new Date(r.t);
         const ora = String(quando.getHours()).padStart(2, '0') + ':' + String(quando.getMinutes()).padStart(2, '0');
         h += `<div class="tacc-riga${r.io ? ' io' : ''}"><small>${ora}</small> ${esc(r.m)}</div>`;
       }
-      h += `</div><button class="sp-btn small" id="sp-tacc-back">${tr('Tutte le conversazioni', 'All conversations')}</button>`;
+      h += `</div></div>`;
+      h += `<button class="sp-btn small" id="sp-tacc-back">${tr('Tutte le conversazioni', 'All conversations')}</button>`;
       h += `<button class="sp-btn small danger" id="sp-tacc-stracc">${tr('Strappa questa pagina', 'Tear up this page')}</button>`;
     }
     h += backBar();
@@ -931,7 +959,17 @@ function buildMenu(inGame) {
     }; }
   { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { esci('uscito'); go('amici'); }; }
   document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('amici'); }; });
-  { const gente = pagine(); document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }
+  /* il numero del bottone è l'INDICE nell'ordine in cui la rubrica l'ha scritto: `pagine()`
+     ordina per ultimo che ha parlato, la rubrica per lettera — due ordini diversi, e con
+     quello sbagliato si apriva la conversazione di un'altra persona */
+  { const gente = taccuinoOrdine; document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }
+  /* le tacche dell'alfabeto: portano alla loro lettera dentro l'area che scorre */
+  document.querySelectorAll('[data-abc]').forEach(b => {
+    b.onclick = () => {
+      const t = document.getElementById('tacc-L-' + b.dataset.abc);
+      if (t && t.scrollIntoView) t.scrollIntoView({ block: 'start' });
+    };
+  });
   { const b = document.getElementById('sp-tacc-back'); if (b) b.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
   { const b = document.getElementById('sp-tacc-stracc'); if (b) b.onclick = () => { dimentica(taccuinoChi); taccuinoChi = null; go('taccuino'); }; }
   { const b = document.getElementById('sp-tacc-tutto'); if (b) b.onclick = () => { dimenticaTutto(); taccuinoChi = null; go('taccuino'); }; }

@@ -49,7 +49,7 @@ import { icon, withIcons } from './icons.js';
 import { cloud } from './cloud.js';
 import { inCasa, MP } from './mp.js';
 import { amici, nomeDi } from './amici.js';
-import { pagine as pagineChat } from './chat.js';
+import { pagine as pagineChat, nuoviTotali as nuoviTacc } from './chat.js';
 import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
 import { groundPalette } from './tiles.js';
 import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, beardLabel, glassesLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
@@ -187,7 +187,17 @@ export function updateHUD() {
        un pulsante che apre una pagina vuota è un pulsante che delude una volta sola e poi
        non lo preme più nessuno. */
     const tt = document.getElementById('tacctag');
-    if (tt) tt.style.display = pagineChat().length ? '' : 'none';
+    if (tt) {
+      tt.style.display = pagineChat().length ? '' : 'none';
+      /* CHI TI HA SCRITTO TE LO DICE IL TACCUINO. Senza, una riga arrivata mentre eri nel
+         Libro o in bottega spariva con la nuvoletta e non restava traccia di averla persa. */
+      const n = nuoviTacc();
+      const tn = document.getElementById('h-tacc');
+      if (tn) tn.textContent = n ? String(n) : '';
+      if (tt.classList) tt.classList.toggle('nuovo', n > 0);
+      tt.title = n ? (tr('Taccuino: ', 'Notebook: ') + n + tr(' da leggere', ' to read'))
+        : tr('Taccuino: quello che vi siete detti', 'Notebook: what you said to each other');
+    }
   }
   const lt = document.getElementById('lvltag'), ln = document.getElementById('h-lvl');
   if (lt && ln) { ln.textContent = String(playerLevel()); lt.title = tr('Livello archeologo ', 'Archaeologist level ') + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(); }

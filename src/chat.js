@@ -73,8 +73,78 @@ export function pagine() {
   const o = leggi();
   return Object.keys(o).sort((a, b) => ultimaOra(o[b]) - ultimaOra(o[a]));
 }
-export function dimentica(chi) { const o = leggi(); delete o[String(chi || '')]; return scrivi(o); }
-export function dimenticaTutto() { return scrivi({}); }
+export function dimentica(chi) { const o = leggi(); delete o[String(chi || '')]; const l = lettiLeggi(); delete l[String(chi || '')]; lettiScrivi(l); return scrivi(o); }
+export function dimenticaTutto() { lettiScrivi({}); return scrivi({}); }
+
+/* ---------- LA RUBRICA: le lettere sul bordo, come nei taccuini da numeri di telefono ----------
+   Non è decorazione. Con una pagina per persona e nessun ordine che non sia «l'ultimo che ha
+   parlato», cercare qualcuno vuol dire scorrere tutto: l'alfabeto è il modo in cui una rubrica
+   si è sempre sfogliata, e dice A COLPO D'OCCHIO dove sta chi cerchi.
+   Le lettere si calcolano QUI, non nella schermata: è la parte che si può sbagliare in
+   silenzio (un accento, un nome che comincia per numero) e così un test la può misurare. */
+export const LETTERE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
+export const ALTRE = '#';          // numeri, simboli, alfabeti non latini: tutti insieme, in fondo
+/* Gli ACCENTI stanno con la lettera nuda (Ágata è sotto A): chi cerca "Agata" guarda alla A,
+   e una rubrica con due caselle per la stessa lettera non l'ha mai usata nessuno. */
+export function inizialeDi(nome) {
+  let t = String(nome || '').trim();
+  try { t = t.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); } catch (e) { /* senza normalize: pazienza */ }
+  const l = (t[0] || '').toUpperCase();
+  return /^[A-Z]$/.test(l) ? l : ALTRE;
+}
+
+/* ---------- QUELLO CHE NON HAI ANCORA LETTO ----------
+   Sta in una chiave SUA, accanto al taccuino e fuori dal salvataggio: è una cosa di questo
+   dispositivo (hai letto tu, su questo schermo), non della partita. Si tiene l'ORA dell'ultima
+   riga letta e non un contatore: un contatore si disallinea alla prima potatura, un'ora no. */
+export const CHIAVE_LETTO = 'digsy_taccuino_letto';
+function lettiLeggi() {
+  try {
+    const raw = typeof localStorage !== 'undefined' && localStorage.getItem(CHIAVE_LETTO);
+    const o = raw ? JSON.parse(raw) : null;
+    return (o && typeof o === 'object') ? o : {};
+  } catch (e) { return {}; }
+}
+function lettiScrivi(o) {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(CHIAVE_LETTO, JSON.stringify(o)); return true; }
+  catch (e) { return false; }
+}
+/* quante righe di QUELLA persona sono arrivate dopo l'ultima volta che hai aperto la sua
+   pagina. Le tue non contano: non si è mai avuta una notifica per una cosa detta da sé */
+export function nuovi(chi) {
+  const nome = String(chi || '').slice(0, 20);
+  const visto = lettiLeggi()[nome] || 0;
+  let n = 0;
+  for (const r of pagina(nome)) if (!r.io && r.t > visto) n++;
+  return n;
+}
+export function nuoviTotali() { let n = 0; for (const chi of pagine()) n += nuovi(chi); return n; }
+/* aprire la pagina la segna letta fino all'ultima riga che c'è adesso */
+export function segnaLetto(chi) {
+  const nome = String(chi || '').slice(0, 20);
+  const p = pagina(nome);
+  const o = lettiLeggi();
+  o[nome] = p.length ? p[p.length - 1].t : Date.now();
+  return lettiScrivi(o);
+}
+/* LA RUBRICA COMPLETA, già divisa per lettera e già ordinata: le lettere in ordine alfabetico
+   ('#' in fondo, come in un'agenda vera) e i nomi in ordine dentro ognuna. Chi ha scritto e
+   non è stato letto si porta dietro il conto, così la schermata non deve contare niente. */
+export function rubrica() {
+  const per = new Map();
+  for (const chi of pagine()) {
+    const p = pagina(chi), ult = p.length ? p[p.length - 1] : null;
+    const L = inizialeDi(chi);
+    if (!per.has(L)) per.set(L, []);
+    per.get(L).push({ nome: chi, ultima: ult ? ult.m : '', t: ult ? ult.t : 0, mia: !!(ult && ult.io), nuovi: nuovi(chi) });
+  }
+  const ordine = [...LETTERE, ALTRE].filter(L => per.has(L));
+  return ordine.map(lettera => ({
+    lettera,
+    gente: per.get(lettera).sort((a, b) => a.nome.localeCompare(b.nome)),
+    nuovi: per.get(lettera).reduce((n, g) => n + g.nuovi, 0),
+  }));
+}
 
 /* ---------- le nuvolette ---------- */
 

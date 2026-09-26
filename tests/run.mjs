@@ -11028,5 +11028,60 @@ sprites.applyLook();
   chat3.dimenticaTutto();
 }
 
+/* ---------- IL TACCUINO È UNA RUBRICA ----------
+   Un elenco «dal più recente» è un registro: per cercare qualcuno si scorre tutto. Le lettere
+   sul bordo sono il modo in cui un'agenda si è sempre sfogliata, e dicono a colpo d'occhio
+   dove sta chi cerchi — e chi ti ha scritto, senza aprire niente. Qui si misurano le due
+   parti che si sbagliano in silenzio: sotto quale lettera finisce un nome, e cosa conta
+   come «non letto». */
+{
+  const ch = await import('../src/chat.js');
+  check('un nome normale sta sotto la sua lettera', ch.inizialeDi('Fenn') === 'F');
+  check('la minuscola non fa una lettera a parte', ch.inizialeDi('ada') === 'A');
+  check('gli accenti stanno con la lettera nuda', ch.inizialeDi('Ëlo') === 'E' && ch.inizialeDi('Ágata') === 'A');
+  check('numeri e simboli finiscono tutti insieme', ch.inizialeDi('42') === ch.ALTRE && ch.inizialeDi('_x') === ch.ALTRE);
+  check('e anche chi scrive in un altro alfabeto', ch.inizialeDi('Аня') === ch.ALTRE);
+  check('un nome vuoto non fa esplodere niente', ch.inizialeDi('') === ch.ALTRE && ch.inizialeDi(null) === ch.ALTRE);
+
+  ch.dimenticaTutto();
+  ch.segna('Fenn', 'bella!', false);
+  ch.segna('Ada', 'ci sei?', false);
+  ch.segna('Ada', 'arrivo', true);
+  ch.segna('bruno', 'guarda', false);
+  const r = ch.rubrica();
+  check('la rubrica è divisa per lettera', r.map(g => g.lettera).join('') === 'ABF');
+  check('e dentro ogni lettera i nomi sono in ordine', r[1].gente.map(g => g.nome).join(',') === 'bruno');
+  check('ogni persona si porta dietro l\'ultima riga', r[0].gente[0].ultima === 'arrivo' && r[0].gente[0].mia === true);
+
+  /* NON LETTO = arrivato dopo l'ultima volta che hai aperto quella pagina, e detto da un
+     ALTRO: non si è mai avuta una notifica per una cosa detta da sé. */
+  check('quello che ti hanno scritto è da leggere', ch.nuovi('Fenn') === 1);
+  check('quello che hai detto tu no', ch.nuovi('Ada') === 1);   // 'ci sei?' sì, 'arrivo' è mia
+  check('e il totale è la somma', ch.nuoviTotali() === 3);
+  check('la lettera sa di avere roba da leggere', r.find(g => g.lettera === 'F').nuovi === 1);
+  ch.segnaLetto('Fenn');
+  check('aperta la pagina, è letta', ch.nuovi('Fenn') === 0 && ch.nuoviTotali() === 2);
+  check('e la sua lettera si spegne', ch.rubrica().find(g => g.lettera === 'F').nuovi === 0);
+  ch.segna('Fenn', 'allora?', false);
+  check('ma una riga nuova la riaccende', ch.nuovi('Fenn') === 1);
+  ch.dimentica('Fenn');
+  check('strappata la pagina, non resta un conto orfano', ch.nuoviTotali() === 2);
+
+  /* e la schermata lo MOSTRA: le lettere sul bordo, quelle accese, il bollo accanto al nome */
+  const spR = await import('../src/splash.js');
+  ch.dimenticaTutto();
+  ch.segna('Zoe', 'ciao', false);
+  ch.segna('Ada', 'letto', false); ch.segnaLetto('Ada');
+  spR.setView('taccuino');
+  const htmlR = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+  check('il bordo ha TUTTE le lettere, anche le vuote', (htmlR.match(/class="tacc-tab/g) || []).length >= 26);
+  check('quelle senza nessuno non si premono', /tacc-tab"[^>]*disabled/.test(htmlR));
+  check('la lettera di chi ti ha scritto è accesa', /tacc-lettera nuovo[^>]*>Z</.test(htmlR));
+  check('quella già letta no', /tacc-lettera" id="tacc-L-A">A</.test(htmlR));
+  check('e accanto al nome c\'è il conto', /tn-bollo">1</.test(htmlR));
+  spR.setView('main');
+  ch.dimenticaTutto();
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

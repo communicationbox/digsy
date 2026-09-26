@@ -55,6 +55,7 @@ src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
 src/mapui.js        mappa del mondo (pergamena, zoom, punti d'interesse)
 src/amici.js        il tuo codice (10 segni, nessuna lettera ambigua) e la rubrica; la stanza è il codice di chi ospita
+src/chat.js         nuvolette + TACCUINO: rubrica per lettera (inizialeDi/rubrica) e non-letti (nuovi/segnaLetto), fuori dal salvataggio
 src/posta.js        lettere a chi adesso non c'è: 5 monete, restano «in partenza» finché il recapito non esiste
 src/sonno.js        sonno in compagnia: chi dorme sogna e aspetta (puro, decide e basta)
 src/dream.js        il sogno a schermo: cielo a fasce, luna a falce, le Z che salgono, i pulsanti
@@ -150,6 +151,15 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   NPC/player/banco ordinati per y (niente sovrapposizioni). Museo = edificio **5×2 con
   frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
+- **Il TACCUINO è una rubrica** (`chat.js` + vista in splash.js): carta giallina a righe, filo
+  rosso del margine e le **lettere sul bordo destro**, come nelle agende dei numeri di telefono.
+  I nomi stanno sotto la loro iniziale (`inizialeDi`: gli accenti con la lettera nuda, numeri e
+  alfabeti non latini sotto `#`), la tacca porta alla sua lettera. L'elenco «dal più recente»
+  era un registro: per cercare qualcuno si scorreva tutto. **Non letto** = riga arrivata da un
+  ALTRO dopo l'ultima apertura di quella pagina (`nuovi/segnaLetto`, chiave `digsy_taccuino_letto`
+  accanto al taccuino, fuori dal salvataggio): la lettera si accende, il nome porta il conto, e
+  il tag 📝 dell'HUD mostra il totale. Si apre **in gioco** dalla barra in alto, non dal menu.
+  Foto: `npm run shot -- taccuino 560,720` · `"chi=Fenn"` per una pagina.
 - **Cassetta della posta in OGNI paese** (prima solo dove manca il Museo): resta il servizio
   di spedire i **grezzi** al Museo (2 monete a pezzo, pronti domani) dove il Museo non c'è, e si
   aggiunge la **posta fra persone** — visibile SOLO a chi è collegato col proprio account,

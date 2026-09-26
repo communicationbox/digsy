@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.5', it: [
+      'IL TACCUINO È UNA RUBRICA VERA: carta giallina a righe, il filo rosso del margine e le LETTERE sul bordo destro, come nelle vecchie agende dei numeri di telefono. I nomi stanno sotto la loro iniziale, e si salta a una lettera premendola',
+      'Chi ti ha scritto si vede dal bordo: la sua lettera si accende, accanto al nome c\'è quante righe devi ancora leggere, e il taccuino nella barra in alto si accende col totale',
+    ], en: [
+      'THE NOTEBOOK IS A REAL ADDRESS BOOK: yellowed ruled paper, the red margin line and the LETTERS down the right edge, like the old phone-number books. Names sit under their initial, and pressing a letter jumps to it',
+      'Whoever wrote to you shows on the edge: their letter lights up, the number of unread lines sits next to the name, and the notebook in the top bar lights up with the total',
+    ],
+  },
+  {
     v: 'v0.99.3', it: [
       'AMICI, rimesso in ordine: se il mondo è il tuo non te lo si ripete più (niente «sei nella stanza» e niente codice stampato due volte), e la ✕ per uscire non arriva più tagliata a metà',
       'Nella rubrica, Invita e la ✕ per togliere non si accavallano più: sono due pulsanti con la loro cornice e la loro aria',

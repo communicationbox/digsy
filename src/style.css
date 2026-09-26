@@ -170,6 +170,9 @@ kbd + .pxi{margin-left:2px}
 /* le icone portano un colore INLINE (ICOL in icons.js): per cambiarlo su uno sfondo
    d'avviso serve !important, o l'icona resta del suo colore e sparisce nel fondo */
 #hud #bagbtn.full .pxi, #bagbtn.full .pxi{color:#fff3d6 !important}
+/* il taccuino con roba da leggere si ACCENDE: un numero accanto all'icona e il tag in rosso */
+#tacctag.nuovo{background:rgba(178,58,44,.9);color:var(--c-paper)}
+#tacctag #h-tacc:not(:empty){margin-left:4px;font-weight:800}
 #menubtn{margin-left:auto;cursor:pointer;background:rgba(60,50,36,.92)} /* menu sempre in alto a DESTRA */
 .lbl{color:#c9d4c2;font-weight:700}
 /* "Lv" del livello: scritta, non icona. Un filo più piccola e smorzata del numero, così il
@@ -343,10 +346,63 @@ kbd + .pxi{margin-left:2px}
 /* LA RIGA DELLA CHAT. Sta in basso ma SOPRA i comandi a schermo, e si vede solo quando c'è
    compagnia: in solitaria non deve esserci niente in più da guardare.
    `bottom` tiene conto della tacca del telefono, come i comandi touch. */
-/* una riga del taccuino: le mie a destra come in qualsiasi chat, le altrui a sinistra */
-.tacc-riga{padding:4px 8px;margin:3px 0;border-radius:8px;background:rgba(0,0,0,.18);text-align:left}
-.tacc-riga.io{background:rgba(246,225,138,.14);text-align:right}
-.tacc-riga small{opacity:.55;font-size:.85em}
+/* ====================== IL TACCUINO ======================
+   Un taccuino da numeri di telefono: carta giallina a righe, il filo rosso del margine e le
+   LETTERE sul bordo destro. Non è decorazione — l'elenco «dal più recente» era un registro, e
+   per cercare qualcuno si scorreva tutto; una rubrica si sfoglia per lettera.
+   La carta NON scorre per conto suo (regola 15): scorre `#sp-menu`, che la contiene. La
+   colonna delle lettere è `sticky` dentro quello stesso scorrimento, così resta sotto il
+   pollice mentre i fogli scorrono. */
+/* LA CARTA HA UNA MISURA SUA. `width:100%` NON basta: in una colonna che si dimensiona sul
+   contenuto (`.sp-menu`) il 100% è il contenuto stesso, e il taccuino usciva largo quanto il
+   nome più lungo — una strisciolina in mezzo al vuoto. Ed è la carta a dare la misura alla
+   scheda, quindi non può essere una misura fissa: su uno schermo stretto la scheda ci cresce
+   intorno e il bordo delle lettere finisce FUORI (visto a 380px). */
+.tacc-carta{display:flex;align-items:stretch;gap:0;flex:0 0 auto;width:min(var(--w-panel),84vw);
+  box-sizing:border-box;text-align:left;
+  background:#f2e4bd;color:#3a2f22;box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px rgba(241,231,207,.22)}
+/* IL TESTO STA SULLE RIGHE, non fra le righe: ogni cosa dentro i fogli è alta 22px o un suo
+   multiplo, e il padding in cima è ZERO — otto pixel d'aria sfasano la griglia di otto pixel
+   e la carta a righe diventa carta a caso. L'aria la fa una riga vuota, come in un quaderno. */
+.tacc-fogli{flex:1 1 auto;min-width:0;padding:0 var(--sp-2) 22px 18px;
+  /* le righe del quaderno: un passo fisso (22px) e il filo rosso del margine a sinistra */
+  background:
+    linear-gradient(90deg,transparent 11px,#b23a2c 11px,#b23a2c 13px,transparent 13px),
+    repeating-linear-gradient(180deg,transparent 0 21px,rgba(58,47,34,.16) 21px 22px)}
+.tacc-carta.vuota .tacc-fogli{min-height:120px}
+.tacc-nulla{padding:0;font-size:var(--fs-sm);color:#6b5a40;line-height:22px}
+/* la lettera che apre il gruppo: grande, in inchiostro, come scritta a mano sul foglio */
+.tacc-lettera{font:800 17px/22px ui-monospace,Menlo,monospace;letter-spacing:.1em;color:var(--c-line-2);
+  margin-top:22px;box-shadow:inset 0 -2px 0 rgba(138,95,56,.35)}
+.tacc-lettera:first-child{margin-top:0}
+/* CHI TI HA SCRITTO SI VEDE DAL BORDO: la lettera si accende, senza aprire niente */
+.tacc-lettera.nuovo{color:#b23a2c;box-shadow:inset 0 -2px 0 #b23a2c}
+/* una persona: nome in alto, l'ultima riga sotto. Nessun riquadro: è una riga di rubrica */
+.tacc-nome{display:flex;flex-direction:column;align-items:flex-start;gap:0;position:relative;
+  width:100%;box-sizing:border-box;padding:0 26px 0 var(--sp-2);margin:0;border:0;border-radius:0;
+  background:transparent;font-family:inherit;text-align:left;cursor:pointer;color:#3a2f22}
+.tacc-nome:hover{background:rgba(138,95,56,.14)}
+.tn-chi{font:800 14px/22px ui-monospace,Menlo,monospace}
+.tn-ult{font:600 11px/22px ui-monospace,Menlo,monospace;color:#6b5a40;
+  max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tacc-nome.nuovo .tn-chi{color:#b23a2c}
+.tacc-nome.nuovo .tn-ult{color:#3a2f22}
+/* il bollo: quante righe non hai ancora letto di quella persona */
+.tn-bollo{position:absolute;right:6px;top:11px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;
+  background:#b23a2c;color:var(--c-paper);font:800 11px/18px ui-monospace,Menlo,monospace;text-align:center}
+/* IL BORDO DELLE LETTERE. Ci sono tutte, anche le vuote: un bordo con due tacche sole non si
+   riconosce come bordo. Quelle senza nessuno restano spente e non si premono. */
+.tacc-abc{flex:0 0 auto;align-self:flex-start;position:sticky;top:0;
+  display:flex;flex-direction:column;gap:1px;padding:var(--sp-1) 3px;background:#e0cf9f}
+.tacc-tab{width:18px;padding:0;border:0;border-radius:0;background:transparent;cursor:default;
+  font:800 9px/13px ui-monospace,Menlo,monospace;color:rgba(58,47,34,.3);text-align:center}
+.tacc-tab.pieno{background:#c9b485;color:#3a2f22;cursor:pointer}
+.tacc-tab.pieno:hover{background:var(--c-line-2);color:var(--c-paper)}
+.tacc-tab.nuovo{background:#b23a2c;color:var(--c-paper)}
+/* una riga di conversazione: le mie a destra come in qualsiasi chat, le altrui a sinistra */
+.tacc-riga{padding:0 8px;margin:0;line-height:22px;font-size:12px;text-align:left;color:#3a2f22}
+.tacc-riga.io{text-align:right;color:#6b5a40}
+.tacc-riga small{opacity:.5;font-size:.85em}
 /* chi c'è nella stanza: il nome a sinistra, il «manda via» a destra (solo a chi ospita) */
 /* la riga è larga come i pulsanti del menu: `.sp-menu` centra i figli sul contenuto, quindi
    senza una larghezza sua ogni riga veniva lunga quanto il nome — tre righe, tre larghezze */
@@ -366,7 +422,7 @@ kbd + .pxi{margin-left:2px}
    diventano una colonnina in mezzo al vuoto. */
 /* …tranne la X (sta per conto suo, in un angolo) e il titolo (è una scritta, non una riga):
    allargati diventavano una fascia vuota in cima alla scheda. */
-.sp-menu.largo > *:not(.sp-x):not(.sp-title2):not(.sp-relay){width:100%;max-width:none;box-sizing:border-box}
+.sp-menu.largo > *:not(.sp-x):not(.sp-title2):not(.tacc-carta){width:100%;max-width:none;box-sizing:border-box}
 .sp-menu.largo .sp-riga{width:100%;max-width:none}
 .sp-menu.largo .sp-riga > .sp-btn{width:auto;max-width:none}
 .sp-menu.largo .sp-note{max-width:none}
@@ -405,12 +461,6 @@ kbd + .pxi{margin-left:2px}
 .sp-riga .sp-via{flex:0 0 auto;width:34px;min-width:34px;padding:0;margin-left:var(--sp-1)}
 .sp-via:hover{color:var(--c-gold-2)}
 .sp-riga .sp-via:hover{background:var(--c-clay);box-shadow:inset 0 0 0 2px var(--c-win-gold)}
-/* IL CENTRALINO è una nota da banco di lavoro: si vede SOLO in casa (vedi splash.js) e non
-   deve pesare quanto quello che il pannello dice davvero. Una targhetta piccola, in alto. */
-.sp-relay{align-self:flex-start;font:700 var(--fs-note)/1 ui-monospace,Menlo,monospace;
-  letter-spacing:.08em;text-transform:uppercase;color:var(--c-ink-dim);
-  padding:4px 8px;background:rgba(0,0,0,.25);box-shadow:inset 0 0 0 2px rgba(241,231,207,.14)}
-.sp-relay.online{color:var(--c-gold-2);box-shadow:inset 0 0 0 2px rgba(240,198,116,.35)}
 /* la ✕ della rubrica: piccola come il gesto che fa */
 .sp-riga .sp-via .pxi{width:12px;height:12px}
 

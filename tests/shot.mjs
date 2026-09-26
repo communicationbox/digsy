@@ -407,6 +407,30 @@ async function main() {
         { c:'P9XGE4RUMT', n:'Nadia' }, { c:'C3JWK8HEQR', n:'Bruno' }];
       if(G.splashView) G.splashView('amici');
     }
+    /* 'taccuino' = la rubrica con dentro qualcuno, e con roba da leggere: vuota è una riga
+       di testo, e le due cose da guardare (le lettere sul bordo, la lettera che si accende)
+       non si vedrebbero mai */
+    else if (${JSON.stringify(vista)} === 'taccuino') {
+      if(sp) sp.classList.remove('off');
+      if (G.mod) G.mod('chat').then(function(c){
+        c.dimenticaTutto();
+        var det = [['Ada','ci vediamo al museo?',0],['Ada','ho trovato un cranio enorme',0],
+          ['Ada','arrivo',1],['Bruno','guarda che pinne',0],['Carla','buonanotte!',1],
+          ['Fenn','bella!',0],['Fenn','scavi con me domani?',0],['Nadia','fatto',1],
+          ['Zoe','il mio parco è pieno',1],['ëlo','привет',0]];
+        det.forEach(function(r){ c.segna(r[0], r[1], !!r[2]); });
+        det.forEach(function(r){ if(r[0]==='Ada'||r[0]==='Nadia'||r[0]==='Zoe') c.segnaLetto(r[0]); });
+        /* chi=<nome>: apre la PAGINA di quella persona invece dell'elenco. Solo dopo che la
+           promessa si e' risolta: splashView importa il modulo, quindi qui il pannello non c'e'. */
+        if(G.splashView) G.splashView('taccuino').then(function(){
+          var chi=(new URLSearchParams(location.search)).get('chi');
+          if(!chi) return;
+          var tutti=document.querySelectorAll('.tn-chi'), b=null;
+          for(var k=0;k<tutti.length;k++) if(tutti[k].textContent===chi) b=tutti[k].parentNode;
+          if(b&&b.onclick) b.onclick();
+        });
+      });
+    }
     /* 'compagnia' = il mondo CON qualcun altro dentro: serve a guardare il cartellino del
        nome, che sta sopra la testa e non deve coprirla */
     else if (${JSON.stringify(vista)} === 'compagnia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
