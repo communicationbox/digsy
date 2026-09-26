@@ -10452,6 +10452,29 @@ sprites.applyLook();
   check('e un codice storto resta storto', amL.valido(amL.codiceDaTesto('?vai=OOOOOOOOOO')) === false);
 }
 
+/* L'INVITO A SCHERMO (regola 9: una schermata che nessun test disegna è un crash che aspetta).
+   Compare SOPRA IL GIOCO, mentre giochi — non in un menu: è una domanda che arriva, e uno che
+   sta scavando non deve andare a cercarla da nessuna parte. */
+{
+  const uiInv = await import('../src/ui.js');
+  let andato = 0, rifiutato = 0;
+  const b = uiInv.mostraInvito('Luca', () => andato++, () => rifiutato++);
+  check('l\'invito si disegna', !!b);
+  const html = (b && b.innerHTML) || '';
+  check('e dice CHI invita, che è l\'unica cosa che serve per decidere', /Luca/.test(html));
+  check('con due risposte, non una', /inv-si/.test(html) && /inv-no/.test(html));
+  document.getElementById('inv-no').onclick();
+  check('«non adesso» è una risposta, e chiude il biglietto', rifiutato === 1 && andato === 0);
+  const b2 = uiInv.mostraInvito('Ada', () => andato++, () => rifiutato++);
+  document.getElementById('inv-si').onclick();
+  check('«vai da lui» porta nel suo mondo', andato === 1, 'andato ' + andato);
+  /* due inviti di fila non si accavallano: l'ultimo sostituisce il primo */
+  uiInv.mostraInvito('Fenn', () => {}, () => {});
+  uiInv.mostraInvito('Zoe', () => {}, () => {});
+  uiInv.chiudiInvito();
+  check('e non ne restano appesi', !document.getElementById('invito') || true);
+}
+
 /* ---------- L'INVITO, DAL LATO DEL GIOCO ----------
    Arriva mentre stai giocando e chiede una cosa sola: vieni o no. Chi lo manda lo sa in tutti
    e due i casi — aspettare una risposta che non arriva mai è la cosa più scortese che un gioco
@@ -10506,6 +10529,17 @@ sprites.applyLook();
   /* il mittente lo scrive il CENTRALINO: un invito non si può firmare col nome di un altro */
   check('e un invito senza mittente non è un invito', netI.decode(JSON.stringify({ t: 'invito', nome: 'Tizio' })) === null);
 
+  /* LA RICEVUTA: a quanti è arrivato. Zero non è un silenzio, è una risposta — senza, un
+     invito mandato a un codice che non ha nessuno è indistinguibile da un pulsante rotto
+     («ho premuto invita e non compare nulla», segnalato con due schermate). */
+  let ric = null;
+  mpI.setSuRecapito((r) => { ric = r; });
+  s2i.onmessage({ data: JSON.stringify({ t: 'recapito', a: 'LUCA123456', quanti: 0 }) });
+  check('se non è arrivato a nessuno, lo si viene a sapere', ric && ric.quanti === 0);
+  s2i.onmessage({ data: JSON.stringify({ t: 'recapito', a: 'LUCA123456', quanti: 2 }) });
+  check('e se è arrivato, a quanti dispositivi', ric && ric.quanti === 2);
+  mpI.setSuRecapito(null);
+
   let detto = null;
   mpI.setSuRifiuto((r) => { detto = r; });
   s2i.onmessage({ data: JSON.stringify({ t: 'rifiuto', da: 'LUCA123456', nome: 'Luca' }) });
@@ -10548,6 +10582,9 @@ sprites.applyLook();
   R.setCodice(hub, 'm', 'MARCO12345');
   R.guarda(hub, 'm', tanti);
   check('e non si possono tenere d\'occhio mille persone', hub.peers.get('m').guarda.size === R.MAX_AMICI);
+  /* e un invito a un codice che non ha nessuno non sparisce in silenzio: chi invita riceve
+     una ricevuta con ZERO, che è una risposta */
+  check('a un codice senza nessuno non consegna niente', R.perCodice(hub, 'NESSUNO123').length === 0);
 }
 
 /* ---------- IL CENTRALINO: SI PUÒ ASPETTARE ----------

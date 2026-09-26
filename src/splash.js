@@ -609,8 +609,13 @@ function buildMenu(inGame) {
       }
       h += `<div class="sp-note">${tr('Premi T per parlare', 'Press T to talk')}</div>`;
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
-      h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
-    } else {
+      h += `<div class="sp-sep"></div>`;
+    }
+    {
+      /* LA RUBRICA C'È SEMPRE, anche mentre ospiti. Prima la pagina cambiava faccia: aperto il
+         proprio mondo restavano il codice della stanza e «esci», e il pulsante per invitare
+         spariva — cioè proprio quando serve, perché invitare qualcuno MENTRE si ospita è il
+         caso normale. «Non compare nulla», ed era vero: non c'era niente da premere. */
       /* IL CODICE SERVE SOLO AD AGGIUNGERE. Tutto il resto passa dalla RUBRICA: si vede chi
          c'è (pallino acceso), gli si manda un invito, e lui accetta o no. Invitare è un gesto
          fra persone; un codice da ribattere è un compito.
@@ -652,8 +657,8 @@ function buildMenu(inGame) {
       }
 
       h += `<div class="sp-sep"></div>`;
-      h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     }
+    h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     h += backBar();
   } else if (view === 'taccuino') {
     /* IL TACCUINO — quello che ci si è detti, una pagina per persona. Sta sul dispositivo e
@@ -890,8 +895,7 @@ function buildMenu(inGame) {
   document.querySelectorAll('[data-invita]').forEach(b => { b.onclick = () => {
       const cod = b.dataset.invita;
       if (!sonoOspitante()) vaiDa(mioCodice(), true);
-      invita(cod);
-      toast('🚶 ' + tr('Invito mandato a ', 'Invite sent to ') + nomeDi(cod));
+      invita(cod);      // il «mandato» (o il «non è arrivato») lo dice la ricevuta del centralino
       go('amici');
     }; });
   /* COPIARE IL PROPRIO CODICE. `navigator.clipboard` non c'è dappertutto (e su http nudo

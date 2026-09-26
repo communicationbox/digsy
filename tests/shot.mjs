@@ -407,6 +407,11 @@ async function main() {
         { c:'P9XGE4RUMT', n:'Nadia' }, { c:'C3JWK8HEQR', n:'Bruno' }];
       if(G.splashView) G.splashView('amici');
     }
+    /* 'invito' = il biglietto che arriva quando un amico ti chiama nel suo mondo: compare
+       SOPRA il gioco, mentre giochi, e resta finché non rispondi */
+    else if (${JSON.stringify(vista)} === 'invito') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if (G.mod) G.mod('ui').then(function(u){ u.mostraInvito('Luca', function(){}, function(){}); if (G.frame) G.frame(1200); });
+    }
     /* 'sogno' = quello che vede chi dorme in compagnia e aspetta che la notte passi */
     else if (${JSON.stringify(vista)} === 'sogno') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.mpFinta) G.mpFinta(['Luca'], true).then(function(){ return G.sogno && G.sogno(); }); }

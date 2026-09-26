@@ -405,7 +405,9 @@ kbd + .pxi{margin-left:2px}
 /* L'INVITO DI UN AMICO: un biglietto in alto, due risposte. Sta FUORI dal riquadro del gioco
    (come i toast, e per la stessa ragione: là dentro finirebbe sotto ogni pannello) e resta
    finché non si risponde — dall'altra parte c'è qualcuno fermo che aspetta. */
-.invito{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:960;
+/* SOTTO la barra dell'HUD, non sopra: un biglietto che copre monete ed energia nasconde
+   proprio quello che serve per decidere se puoi andare adesso. */
+.invito{position:fixed;left:50%;top:calc(62px + env(safe-area-inset-top));transform:translateX(-50%);z-index:960;
   display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);
   background:var(--c-paper);color:var(--c-dark);border:3px solid var(--c-line);border-radius:var(--r-2);
   padding:var(--sp-3) var(--sp-4);box-shadow:0 6px 0 rgba(0,0,0,.25);max-width:min(92vw,var(--w-panel))}

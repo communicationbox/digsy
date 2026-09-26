@@ -19,7 +19,7 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, rifiuta, setIdentita } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, rifiuta, setIdentita } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { mioCodice, codiceDaTesto, valido, stanzaDi, amici, nomeDi, aggiungiAmico } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
@@ -343,6 +343,15 @@ function boot() {
         amici: amici().map(a => a.c), room: stanzaDi(da), ospite: true }); },
       () => { rifiuta(da); });
   });
+  /* LA RICEVUTA: a quanti è arrivato l'invito. Zero non è un silenzio, è una risposta — e
+     senza dirla un invito mandato a un codice che non ha nessuno è indistinguibile da un
+     pulsante rotto («ho premuto invita e non compare nulla»). */
+  setSuRecapito(({ a, quanti }) => {
+    const come = nomeDi(a) || a;
+    if (quanti > 0) toast('🚶 ' + tr('Invito mandato a ', 'Invite sent to ') + come);
+    else toast('🚶 ' + come + ' ' + tr('non ha ricevuto l\'invito: forse gioca con un altro codice. Fattelo ridire.',
+      "didn't get the invite: maybe they play with a different code now. Ask them for it again."));
+  });
   setSuRifiuto(({ da, nome }) => {
     toast('🚶 ' + (nomeDi(da) || nome || da) + ' ' + tr('non può adesso', "can't right now"));
   });
@@ -499,7 +508,7 @@ if (typeof window !== 'undefined') {
       openMailbox: () => import('./ui.js').then(u => u.openMailbox()),
       /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
          vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
-      mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'),
+      mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'), ui: () => import('./ui.js'),
         posta: () => import('./posta.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il

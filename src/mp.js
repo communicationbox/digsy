@@ -223,6 +223,8 @@ export function ricevi(raw, now) {
      persona. Accettare o no è una risposta, non una conseguenza. */
   if (m.t === T.INVITO && suInvito) suInvito({ da: m.da, nome: m.nome });
   if (m.t === T.RIFIUTO && suRifiuto) suRifiuto({ da: m.da, nome: m.nome });
+  /* LA RICEVUTA dell'invito: a quante persone è arrivato. Zero è una risposta — e va detta. */
+  if (m.t === T.RECAPITO && suRecapito) suRecapito({ a: m.a, quanti: m.quanti });
   if (m.t === T.MUT) applicaMutazione(m.k, m.c);
   if (m.t === T.CLOCK) applicaOrologio(m.day, m.tod);
   if (m.t === T.CHAT && m.id) {
@@ -403,7 +405,8 @@ export function inLinea(codice) { return MP.online.has(String(codice || '').toUp
 /* INVITO una persona: gli arriva dove sta giocando, e decide lui. */
 export function invita(codice) { return manda(T.INVITO, { a: String(codice || '').toUpperCase() }); }
 export function rifiuta(codice) { return manda(T.RIFIUTO, { a: String(codice || '').toUpperCase() }); }
-let suInvito = null, suRifiuto = null, suOnline = null;
+let suInvito = null, suRifiuto = null, suOnline = null, suRecapito = null;
+export function setSuRecapito(fn) { suRecapito = fn; }
 export function setSuInvito(fn) { suInvito = fn; }
 export function setSuRifiuto(fn) { suRifiuto = fn; }
 export function setSuOnline(fn) { suOnline = fn; }

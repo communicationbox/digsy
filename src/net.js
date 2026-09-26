@@ -57,6 +57,7 @@ export const T = {
   ONLINE: 'online',  // …questi (o: questo è appena comparso/sparito)
   INVITO: 'invito',  // vieni nel mio mondo
   RIFIUTO: 'rifiuto',// no, non adesso
+  RECAPITO: 'recapito', // a quanti è arrivato l'invito (zero è una risposta, non un silenzio)
   PING: 'ping',      // ci sono ancora (e la linea in mezzo è viva)
   PONG: 'pong',      // il centralino risponde: sì, ti sento
   SLEEP: 'sleep',    // vado a dormire / mi sveglio: gli altri devono saperlo
@@ -138,6 +139,8 @@ export function decode(raw) {
       /* due forme: l'elenco completo (risposta a una domanda) o un solo codice che cambia */
       if (Array.isArray(m.attivi)) return { t: m.t, attivi: m.attivi.filter(x => typeof x === 'string').slice(0, 50) };
       return (typeof m.cambia === 'string') ? { t: m.t, cambia: m.cambia.slice(0, 20), acceso: !!m.acceso } : null;
+    case T.RECAPITO:
+      return (typeof m.a === 'string' && num(m.quanti)) ? { t: m.t, a: m.a.slice(0, 20), quanti: m.quanti } : null;
     case T.INVITO: case T.RIFIUTO:
       /* `da` è il codice di chi invita: lo scrive il CENTRALINO, non il client, quindi un
          invito non si può firmare col nome di un altro. */
