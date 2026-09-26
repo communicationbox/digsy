@@ -358,6 +358,28 @@ kbd + .pxi{margin-left:2px}
    nome più lungo — una strisciolina in mezzo al vuoto. Ed è la carta a dare la misura alla
    scheda, quindi non può essere una misura fissa: su uno schermo stretto la scheda ci cresce
    intorno e il bordo delle lettere finisce FUORI (visto a 380px). */
+/* IL TACCUINO È ALTO QUANTO LA SCHEDA, e la scheda è alta quanto lo schermo. Un taccuino ha
+   un FORMATO: alto quanto i nomi che ci sono dentro, con due conversazioni diventava una
+   strisciolina in cima a mezza scheda di vuoto — una pagina caricata a metà. Il tetto serve
+   sui monitor alti: oltre, non è più un taccuino ma un lenzuolo. */
+/* SOLO DOVE CI STA. Su una finestra bassa (un telefono in orizzontale) dare al taccuino tutta
+   l'altezza vuol dire schiacciarlo: misurato, la carta scendeva a 62px e le linguette
+   uscivano dal loro bordo. Là sotto vale la regola di sempre — scorre la scheda, e la carta è
+   alta quanto il suo contenuto. */
+@media (min-height:520px){
+  .sp-card.alta{height:min(calc(100dvh - 16px),760px)}
+  /* …e allora l'elenco della scheda NON scorre: scorrono i fogli, che è l'unica area che si
+     muove in questa schermata. Via anche la sfumatura in fondo, che è il segno «sotto c'è
+     dell'altro» di un'area che qui sta ferma. */
+  .sp-card.alta > .sp-menu{overflow:hidden;-webkit-mask-image:none;mask-image:none}
+  .sp-card.alta .tacc-carta{flex:1 1 auto;min-height:0}
+}
+/* IL TACCUINO HA UN FORMATO, e non si allunga scrivendoci dentro. È alto quanto la scheda e
+   a scorrere sono i FOGLI: come in un'agenda vera, dove il blocco resta quello e si girano le
+   pagine. Non è un capriccio — se a scorrere è la scheda, il bordo delle lettere deve essere
+   alto quanto TUTTO l'elenco, e con quattordici nomi le linguette diventano mattoni da 91px
+   (misurato). Così restano alte quanto il taccuino, cioè sempre a portata.
+   Scorre UNA sola area (regola 15): in questa vista l'elenco della scheda sta fermo. */
 .tacc-carta{display:flex;align-items:stretch;gap:0;flex:0 0 auto;width:min(var(--w-panel),84vw);
   box-sizing:border-box;text-align:left;
   background:#f2e4bd;color:#3a2f22;box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px rgba(241,231,207,.22)}
@@ -366,9 +388,15 @@ kbd + .pxi{margin-left:2px}
    e la carta a righe diventa carta a caso. L'aria la fa una riga vuota, come in un quaderno. */
 .tacc-fogli{flex:1 1 auto;min-width:0;padding:0 var(--sp-2) 22px 18px;
   /* le righe del quaderno: un passo fisso (22px) e il filo rosso del margine a sinistra */
+  overflow-y:auto;overflow-x:hidden;
+  /* le righe del quaderno scorrono COL testo: sono attaccate al foglio, non alla finestra */
   background:
-    linear-gradient(90deg,transparent 11px,#b23a2c 11px,#b23a2c 13px,transparent 13px),
-    repeating-linear-gradient(180deg,transparent 0 21px,rgba(58,47,34,.16) 21px 22px)}
+    linear-gradient(90deg,transparent 11px,#b23a2c 11px,#b23a2c 13px,transparent 13px) local,
+    repeating-linear-gradient(180deg,transparent 0 21px,rgba(58,47,34,.16) 21px 22px) local;
+  scrollbar-width:thin;scrollbar-color:var(--c-line-2) #e6d5aa}
+.tacc-fogli::-webkit-scrollbar{width:8px}
+.tacc-fogli::-webkit-scrollbar-track{background:#e6d5aa}
+.tacc-fogli::-webkit-scrollbar-thumb{background:var(--c-line-2);border-radius:0}
 .tacc-carta.vuota .tacc-fogli{min-height:120px}
 .tacc-nulla{padding:0;font-size:var(--fs-sm);color:#6b5a40;line-height:22px}
 /* la lettera che apre il gruppo: grande, in inchiostro, come scritta a mano sul foglio */
@@ -394,25 +422,34 @@ kbd + .pxi{margin-left:2px}
    Ci sono tutte, anche le vuote: un bordo con due tacche sole non si riconosce come bordo.
    Vanno da cima a fondo del taccuino, su DUE COLONNE come nelle agende vere: ventisei in fila
    sola sarebbero ventisei fessure alte un'unghia — il bordo smetterebbe di essere leggibile
-   proprio mentre cresce, e col dito non se ne centrerebbe una. Il fondo scuro fra l'una e
-   l'altra è la FESSURA del taglio, ed è quella che le fa leggere come linguette separate
-   invece che come una colonna sola. Quelle senza nessuno restano spente e non si premono. */
-.tacc-abc{flex:0 0 auto;align-self:stretch;display:flex;flex-direction:row;gap:2px;
-  padding:3px;background:var(--c-soot)}
-/* le linguette si distribuiscono sull'altezza, ma non diventano MATTONI: con venti nomi il
-   foglio è lungo, e una linguetta alta un dito non è più una linguetta. Oltre il tetto
-   cresce la fessura fra l'una e l'altra — che è il taglio del bordo, non uno spazio vuoto. */
-.tacc-col{display:flex;flex-direction:column;gap:2px;justify-content:space-between}
-.tacc-tab{flex:1 1 0;min-height:18px;max-height:46px;width:22px;padding:0;border:0;border-radius:0;cursor:default;
-  display:flex;align-items:center;justify-content:center;
+   proprio mentre cresce, e col dito non se ne centrerebbe una.
+   LEGGERE: il bordo è di CARTA, non una griglia di mattoni colorati. Fondo di carta scura,
+   linguette con gli angoli smussati e un filo d'inchiostro; quelle vuote sono appena
+   accennate, si accende solo quello che si può premere. Prima erano due blocchi saturi su
+   nero e pesavano più della rubrica che dovevano servire. */
+.tacc-abc{flex:0 0 auto;align-self:stretch;display:flex;flex-direction:row;gap:3px;
+  padding:4px;background:#e2d0a4;box-shadow:inset 2px 0 0 rgba(58,47,34,.18)}
+/* LE LINGUETTE SONO CONTIGUE, separate solo dal taglio: distanziate diventano bottoncini
+   sparpagliati su una striscia: un bordo di agenda è una fila continua, e l'altezza la
+   decide il foglio. Il tetto al foglio (760px) tiene la singola linguetta sotto i 56px. */
+.tacc-col{display:flex;flex-direction:column;gap:3px}
+.tacc-tab{flex:1 1 0;min-height:18px;width:22px;padding:0;border:0;cursor:default;
+  display:flex;align-items:center;justify-content:center;border-radius:3px;
   font:800 11px/1 ui-monospace,Menlo,monospace;
-  background:#b6a785;color:rgba(28,22,14,.42)}
+  background:rgba(58,47,34,.07);color:rgba(58,47,34,.34);
+  box-shadow:inset 0 0 0 1px rgba(58,47,34,.13)}
 /* una lettera con qualcuno dentro è CARTA CHIARA, come il foglio che apre */
-.tacc-tab.pieno{background:#f4ecd8;color:var(--c-deep);cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
-.tacc-tab.pieno:hover{background:var(--c-win-gold);color:var(--c-soot)}
+.tacc-tab.pieno{background:#fbf5e4;color:var(--c-deep);cursor:pointer;
+  box-shadow:inset 0 0 0 1px var(--c-line-2),0 1px 0 rgba(58,47,34,.2)}
+.tacc-tab.pieno:hover{background:var(--c-win-gold);box-shadow:inset 0 0 0 1px var(--c-soot),0 1px 0 rgba(58,47,34,.3)}
 /* e una con roba da leggere si accende: è la stessa cosa che dice la lettera sul foglio */
-.tacc-tab.nuovo{background:#b23a2c;color:var(--c-paper);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28)}
-.tacc-tab.nuovo:hover{background:#d04a38}
+.tacc-tab.nuovo{background:#c2452f;color:#fff3d6;box-shadow:inset 0 0 0 1px #7d2419,0 1px 0 rgba(58,47,34,.25)}
+.tacc-tab.nuovo:hover{background:#d9543f}
+/* L'ANELLO AZZURRO DI SISTEMA non c'entra niente con questo gioco: premuta una linguetta
+   restava un quadrato di un altro mondo in mezzo alla carta. Da tastiera il segno resta,
+   nei colori della scheda. */
+.tacc-tab:focus{outline:none}
+.tacc-tab:focus-visible{outline:2px solid var(--c-win-gold);outline-offset:-1px}
 /* COL DITO IL BORDO È PIÙ GENEROSO: una linguetta si prende col polpastrello, non con la
    punta del cursore — e su uno schermo piccolo è proprio il bordo la via più rapida per
    arrivare a una lettera, quindi è l'ultimo posto dove rimpicciolire. */

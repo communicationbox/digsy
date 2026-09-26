@@ -810,6 +810,10 @@ const PROBE = `
           ch.dimenticaTutto(); poi(); return;
         }
         var cr = carta.getBoundingClientRect(), ar = abc.getBoundingClientRect();
+        /* su una finestra bassa il taccuino non prende tutta l'altezza (ci starebbe
+           schiacciato): là queste misure non si applicano, e pretenderle sarebbe pretendere
+           il difetto */
+        if (innerHeight < 520) { ch.dimenticaTutto(); poi(); return; }
         A('taccuino: le linguette vanno da cima a fondo del foglio', ar.height >= cr.height - 8,
           Math.round(ar.height) + ' su ' + Math.round(cr.height));
         var r0 = tab[0].getBoundingClientRect(), r1 = tab[1].getBoundingClientRect();
@@ -828,8 +832,10 @@ const PROBE = `
           document.querySelectorAll('.tacc-col').length === 2);
         A('taccuino: e le linguette si prendono col dito', r0.height >= 16 && r0.width >= 18,
           Math.round(r0.width) + '×' + Math.round(r0.height));
-        A('taccuino: ma non diventano mattoni su un foglio lungo', r0.height <= 48,
-          Math.round(r0.height) + 'px con ' + 14 + ' nomi');
+        A('taccuino: sono contigue, separate solo dal taglio', Math.round(r1.top - r0.bottom) <= 6,
+          Math.round(r1.top - r0.bottom) + 'px fra una e l altra');
+        A('taccuino: e su un foglio lungo non diventano mattoni', r0.height <= 60,
+          Math.round(r0.height) + 'px con 14 nomi');
         ch.dimenticaTutto();
         poi();
       }, 120);

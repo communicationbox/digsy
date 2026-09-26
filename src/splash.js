@@ -877,7 +877,7 @@ function buildMenu(inGame) {
     }, 400);
   }
   const card = document.querySelector ? document.querySelector('.sp-card') : null;
-  if (card && card.classList) { card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits'); card.classList.toggle('sub', view !== 'main'); card.classList.toggle('cfg', view === 'settings'); if (card.parentNode && card.parentNode.classList) card.parentNode.classList.toggle('sub', view !== 'main'); }
+  if (card && card.classList) { card.classList.toggle('wide', view === 'trophies' || view === 'changelog' || view === 'commands' || view === 'credits'); card.classList.toggle('sub', view !== 'main'); card.classList.toggle('cfg', view === 'settings'); card.classList.toggle('alta', view === 'taccuino'); if (card.parentNode && card.parentNode.classList) card.parentNode.classList.toggle('sub', view !== 'main'); }
   /* ritratti dei salvataggi: il personaggio di quella partita, col suo aspetto */
   if (view === 'saves' && menu.querySelectorAll) menu.querySelectorAll('canvas.sl-pic').forEach(cv => {
     const d = slotInfo(+cv.dataset.slot); if (!S || !d || !d.look || !cv.getContext) return;
