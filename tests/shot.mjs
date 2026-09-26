@@ -443,6 +443,28 @@ async function main() {
         });
       });
     }
+    /* 'lontano' = qualcuno parla mentre è FUORI CAMPO: la riga «Nome: messaggio» in fondo */
+    else if (${JSON.stringify(vista)} === 'lontano') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.mpFinta) G.mpFinta(['Ada','Fenn'], true).then(function(){
+        return Promise.all([G.mod('chat'), G.mod('mp')]);
+      }).then(function(mm){
+        var c = mm[0], mp = mm[1]; if(!c || !mp) return;
+        var P2 = G.player();
+        /* li si manda lontanissimo: la nuvoletta non ha dove stare, e la riga in fondo è
+           l'unico modo per sapere che hanno parlato */
+        var dire = function(){
+          G.mpFinta(['Ada','Fenn'], true).then(function(){
+            /* LONTANISSIMI: la nuvoletta non ha dove stare, e la riga in fondo è l'unico modo
+               per sapere che hanno parlato. Va fatto DOPO mpFinta, che rimette le posizioni. */
+            for (var p of mp.MP.room.peers.values()) p.buf = [{ t:0, x:P2.x+4000, y:P2.y, d:'down', m:0, s:'world' }];
+            c.arrivato('u1','Ada','ci vediamo alla fontana!',0);
+            c.arrivato('u2','Fenn','ho trovato un cranio enorme',0);
+            if(G.chatlog) G.chatlog(0,'world');
+            if(G.frame) G.frame(1200);
+          });
+        };
+        dire(); setInterval(dire, 150);
+      }); }
     /* 'ospite' = il pannello Amici mentre si è NEL MONDO DI UN ALTRO: là il pulsante «Invita»
        non c'è (il mondo non è tuo) e al suo posto si legge perché */
     else if (${JSON.stringify(vista)} === 'ospite') {

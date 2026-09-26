@@ -1,7 +1,7 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
 import { TS, furnSize, furnPlace, furnIsSolid, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, BEARD_STYLES, GLASSES_STYLES, GLASSES_COLORS, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
 import { zoneAt } from './regions.js';
-import { S, P, save, dugSet, isCheatLock, cosmeticOwned, markBought, markLookBought, LOOK_FIELDS } from './state.js';
+import { S, P, save, dugSet, isCheatLock, cosmeticOwned, markBought, markLookBought, LOOK_FIELDS, cam } from './state.js';
 import { baseTerrain, diggable, townForTile, townInfo } from './world.js';
 import { ensureQuests, boardOffers, acceptQuest, deliverQuest, abandonQuest, questText, questRewardText, questHave, canComplete, isActive, isDone, activeQuests, giverName, MAX_ACTIVE } from './quests.js';
 import { playSfx } from './audio.js';
@@ -35,6 +35,7 @@ import { isDebug } from './debug.js';
 import { tipsOn, joystickOn, leftHanded, tutSmall, setPref} from './prefs.js';
 import { fusibleGroups, nextRarity } from './fuse.js';
 import { projectVox } from './voxview.js';
+import { view } from './screen.js';
 import { openMap, closeMap, isMapOpen, revealMap, mapZoomBy, mapReset } from './mapui.js';
 export { openMap, closeMap, isMapOpen, revealMap };
 import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawVoxel2D, mountSpecies3D, litForSpecies } from './bookui.js';
@@ -47,9 +48,9 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { cloud } from './cloud.js';
-import { inCasa, MP } from './mp.js';
+import { inCasa, MP, visibili as mpVisibili } from './mp.js';
 import { amici, nomeDi } from './amici.js';
-import { pagine as pagineChat, nuoviTotali as nuoviTacc } from './chat.js';
+import { pagine as pagineChat, nuoviTotali as nuoviTacc, bolleAttive } from './chat.js';
 import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
 import { groundPalette } from './tiles.js';
 import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, beardLabel, glassesLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
@@ -2432,6 +2433,39 @@ function confirmDrop(d) {
   openModal();
   const no = document.getElementById('dropNo'); if (no) no.onclick = () => { closeModal(); openBag(); };
   const yes = document.getElementById('dropYes'); if (yes) yes.onclick = () => { discardToGround(d.uid, d.kind); closeModal(); openBag(); };
+}
+/* ---------- CHI PARLA MA NON SI VEDE ----------
+   La nuvoletta sta sopra la testa di chi parla: se quella testa è dietro l'angolo, in un'altra
+   stanza o sotto terra, la riga si perdeva e chi l'aveva scritta non lo sapeva. Qui compare
+   una riga «Nome: messaggio» in fondo allo schermo, che dura quanto durerebbe la nuvoletta.
+   Solo per chi NON è in campo: per chi si vede, il fumetto sopra la testa basta e avanza —
+   dirlo due volte sarebbe rumore. */
+export function updateChatLog(now, scena) {
+  const box = document.getElementById('chatlog');
+  if (!box) return 0;
+  const righe = [];
+  if (MP.stato === 'dentro') {
+    const inCampo = new Set();
+    for (const q of mpVisibili(now, scena || 'world')) {
+      /* nel mondo aperto «in campo» vuol dire davvero dentro l'inquadratura; nelle stanze e in
+         grotta la camera è un'altra e lo spazio è piccolo: esserci basta. */
+      if (scena && scena !== 'world') { inCampo.add(q.id); continue; }
+      const sx = q.x - cam.x, sy = q.y - cam.y;
+      if (sx > -24 && sx < view.W + 24 && sy > -24 && sy < view.H + 24) inCampo.add(q.id);
+    }
+    for (const b of bolleAttive(now)) {
+      if (b.id === 'io' || inCampo.has(b.id)) continue;
+      const p = MP.room.peers.get(b.id);
+      righe.push({ chi: (p && p.name) || '?', m: b.testo });
+    }
+  }
+  const chiave = righe.map(r => r.chi + '\u0000' + r.m).join('\u0001');
+  if (box.dataset.k !== chiave) {
+    box.dataset.k = chiave;
+    box.innerHTML = righe.map(r => `<div class="cl-riga"><span class="cl-chi">${esc(r.chi)}:</span>${esc(r.m)}</div>`).join('');
+  }
+  if (box.classList) box.classList.toggle('on', righe.length > 0);
+  return righe.length;
 }
 document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
 { const mb = document.getElementById('mapbtn');

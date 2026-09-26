@@ -11284,5 +11284,71 @@ sprites.applyLook();
   mpB.setTransport((u) => new WebSocket(u));
 }
 
+/* ---------- CHI PARLA MA NON SI VEDE ----------
+   «Se un pg scrive e non è in campo con l'altro come vede il messaggio?» Non lo vedeva: la
+   nuvoletta sta sopra la testa di chi parla, e una testa dietro l'angolo (o in bottega, o
+   sottoterra) non ha dove metterla. Ora compare una riga «Nome: messaggio» in fondo allo
+   schermo — SOLO per chi non è in campo: per chi si vede il fumetto basta, e dirlo due volte
+   sarebbe rumore. */
+{
+  const uiC = await import('../src/ui.js');
+  const mpC = await import('../src/mp.js');
+  const netC = await import('../src/net.js');
+  const chC = await import('../src/chat.js');
+  const scC = await import('../src/screen.js');
+  const st = await import('../src/state.js');
+  const fatte = [];
+  mpC.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+  mpC.connect('ws://finta/ws', { name: 'Io', room: 'w-AAAAAAAAAA' });
+  const sc = fatte[fatte.length - 1];
+  sc.onopen();
+  sc.onmessage({ data: netC.encode(netC.T.WELCOME, { id: 'io' }) });
+  sc.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Ada', look: null }] }) });
+  const W0 = scC.view.W, H0 = scC.view.H, cx0 = st.cam.x, cy0 = st.cam.y;
+  scC.view.W = 400; scC.view.H = 300; st.cam.x = 0; st.cam.y = 0;
+  const box = () => document.getElementById('chatlog');
+  const dove = (x, y, t) => sc.onmessage({ data: netC.encode(netC.T.AT, { id: 'u1', x, y, d: 'down', m: false, s: 'world' }) }) || t;
+
+  chC.zittiTutti();
+  dove(100, 100);
+  chC.arrivato('u1', 'Ada', 'ci vediamo alla fontana', 1000);
+  let n = uiC.updateChatLog(1000, 'world');
+  check('chi è in campo non finisce anche nella barra: la nuvoletta basta', n === 0);
+  check('e la barra resta spenta', !(box().classList && box().classList.contains('on')));
+
+  /* ora Ada esce dall'inquadratura: la stessa riga deve comparire in fondo */
+  st.cam.x = 4000;
+  n = uiC.updateChatLog(1000, 'world');
+  check('chi parla da fuori campo si legge lo stesso', n === 1);
+  check('col nome davanti', /Ada/.test(box().innerHTML) && /ci vediamo alla fontana/.test(box().innerHTML));
+  check('e la barra si accende', box().classList.contains('on'));
+
+  /* e in un'altra scena (bottega, grotta) vale lo stesso: là non c'è proprio */
+  st.cam.x = 0;
+  n = uiC.updateChatLog(1000, 'grotta');
+  check('e da un\'altra scena pure', n === 1);
+
+  /* passata la nuvoletta, passa anche la riga: è un sottotitolo, non un registro */
+  n = uiC.updateChatLog(1000 + chC.BOLLA_MS + 1, 'world');
+  check('e se ne va quando se ne va la nuvoletta', n === 0 && !box().classList.contains('on'));
+
+  /* quello che dico IO non mi torna indietro come sottotitolo: l'ho appena scritto */
+  chC.zittiTutti();
+  chC.detto('arrivo', ['Ada'], 2000);
+  check('quello che dici tu non ti viene ripetuto in fondo allo schermo', uiC.updateChatLog(2000, 'world') === 0);
+
+  /* il nome lo sceglie un altro: non entra grezzo nel markup */
+  chC.zittiTutti();
+  sc.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'io', peers: [{ id: 'u2', name: 'A<img src=x>', look: null }] }) });
+  chC.arrivato('u2', 'A<img src=x>', 'ciao', 3000);
+  uiC.updateChatLog(3000, 'grotta');
+  check('e il nome altrui non entra grezzo nel markup', !box().innerHTML.includes('<img src=x>'));
+
+  chC.zittiTutti(); uiC.updateChatLog(9e9, 'world');
+  scC.view.W = W0; scC.view.H = H0; st.cam.x = cx0; st.cam.y = cy0;
+  mpC.disconnect();
+  mpC.setTransport((u) => new WebSocket(u));
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

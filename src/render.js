@@ -1948,7 +1948,7 @@ function drawPeer(sx, sy, q, time) {
      compagnia si guardava un cartellino con due piedi. Il cappello svetta fino a tre righe
      sopra `sy` (hatArt), più i due pixel della codina e uno d'aria: `sy - 6`.
      E si può spegnere (Impostazioni → A schermo): la targa è comunque roba davanti al gioco. */
-  else if (nomiOn()) plate(sx, peerPlateY(sy), q.name, null, false);
+  else if (nomiOn()) plate(sx, peerPlateY(sy), q.name, null, false, true);
 }
 /* DOVE SI APPOGGIA IL NOME. Sta fuori da `drawPeer` per la stessa ragione di `plateBox`: è
    la parte che si può sbagliare in silenzio, e così un test la può misurare.
@@ -1985,7 +1985,7 @@ function pushPeers(ents, camx, camy, time, scena) {
    La parte che rende attraversabile l'apertura invece che frustrante. Misurando lo spawn:
    zero oggetti raccoglibili entro dieci caselle, e i 15 🪙 della pala arrivano solo dopo una
    trentina. Senza un'indicazione, "raccogli roba da terra" è un rastrellamento alla cieca. */
-function plate(sx, sy, name, sub, hot) {
+function plate(sx, sy, name, sub, hot, soft) {
   if (!ctx.fillText) return;                       // stub dei test: niente testo, niente crash
   /* l'ancora fuori schermo NON si disegna: una targa agganciata a una casa che non si vede
      finirebbe schiacciata contro il bordo, indicando il vuoto */
@@ -1998,14 +1998,28 @@ function plate(sx, sy, name, sub, hot) {
   const meas = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * 3; };
   const lines = sub ? [name, sub] : [name];
   let mw = 0; for (const l of lines) mw = Math.max(mw, meas(l));
-  const w = Math.ceil(mw) + 6, h = lines.length * 6 + 4;
+  /* LARGHEZZA PARI: la targa si centra su `sx` con `sx - w/2`, e con una larghezza dispari
+     quel mezzo pixel si perde nell'arrotondamento — sempre dalla stessa parte. Un pixel di
+     gioco è tre o quattro sullo schermo, e un nome storto sopra la testa si vede. */
+  let w = Math.ceil(mw) + 6; w += w & 1;
+  const h = lines.length * 6 + 4;
   const { bx, by } = plateBox(sx, sy, w, h);
   const tip = Math.max(bx + 3, Math.min(bx + w - 3, snap(sx)));
-  ctx.fillStyle = '#241a10'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
-  ctx.fillStyle = hot ? '#f0c674' : '#f6efdd'; ctx.fillRect(bx, by, w, h);
-  ctx.fillStyle = '#241a10'; ctx.fillRect(tip - 1, by + h, 2, 2);              // codina in giù
-  ctx.fillStyle = '#2a2016';
-  lines.forEach((l, i) => ctx.fillText(l, snap(bx + (w - meas(l)) / 2), by + 2 + i * 6));
+  /* SOFT = il nome di una persona, non una targa del gioco. Le targhe (le botteghe, il museo)
+     sono avorio pieno col contorno scuro: dicono «questo è un posto, guardalo». Il nome di chi
+     gioca con te non deve gridare più forte della persona — sta lì tutto il tempo, e in quattro
+     nella stessa piazza erano quattro cartelli bianchi e sotto, piccoli, i personaggi. */
+  if (soft) {
+    ctx.fillStyle = 'rgba(20,16,12,.72)'; ctx.fillRect(bx, by, w, h);
+    ctx.fillStyle = 'rgba(241,231,207,.28)'; ctx.fillRect(bx, by, w, 1); ctx.fillRect(bx, by + h - 1, w, 1);
+    ctx.fillStyle = '#f3ecda';
+  } else {
+    ctx.fillStyle = '#241a10'; ctx.fillRect(bx - 1, by - 1, w + 2, h + 2);
+    ctx.fillStyle = hot ? '#f0c674' : '#f6efdd'; ctx.fillRect(bx, by, w, h);
+    ctx.fillStyle = '#241a10'; ctx.fillRect(tip - 1, by + h, 2, 2);            // codina in giù
+    ctx.fillStyle = '#2a2016';
+  }
+  lines.forEach((l, i) => ctx.fillText(l, snap(bx + Math.round((w - meas(l)) / 2)), by + 2 + i * 6));
   ctx.restore();
 }
 /* DOVE si appoggia la targa. Sta fuori da `plate` per una ragione sola: è la parte che si può

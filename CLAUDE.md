@@ -160,6 +160,14 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   accanto al taccuino, fuori dal salvataggio): la lettera si accende, il nome porta il conto, e
   il tag 📝 dell'HUD mostra il totale. Si apre **in gioco** dalla barra in alto, non dal menu.
   Foto: `npm run shot -- taccuino 560,720` · `"chi=Fenn"` per una pagina.
+- **Chi parla fuori campo si legge lo stesso** (`#chatlog` + `updateChatLog` in ui.js, chiamata
+  dal game loop in OGNI scena): la nuvoletta sta sopra la testa, e una testa dietro l'angolo (o
+  in bottega, o sottoterra) non ha dove metterla — la riga si perdeva e chi l'aveva scritta non
+  lo sapeva. Compare «Nome: messaggio» in fondo allo schermo, che dura quanto la nuvoletta
+  (`bolleAttive` in chat.js). **Solo** per chi non è in campo: dirlo due volte sarebbe rumore.
+  Il nome sopra la testa è una targhetta discreta (`plate(..., soft)`), non il cartello avorio
+  delle botteghe: quello dice «questo è un posto», un nome non deve gridare più della persona.
+  Foto: `npm run shot -- lontano 700,480`.
 - **Il compagno viaggia e si vede** (`net.js` `cleanComp` + `T.AT`): la bestia sta nel
   salvataggio di chi la porta (quindi attraversa le stanze da sé), ma agli altri va DETTA. Si
   manda lo **stampo** (le tre specie + rarità: il modello lo ricostruisce chi guarda, quindi da

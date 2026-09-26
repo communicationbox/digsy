@@ -76,6 +76,10 @@
   </div>
     <!-- LA RIGA DELLA CHAT: compare solo in compagnia. Nessun testo qui dentro, nemmeno il
          segnaposto: lo mette applyStaticTexts, o resterebbe in italiano per tutti. -->
+    <!-- CHI PARLA MA NON SI VEDE. La nuvoletta sta sopra la testa, e una testa fuori dallo
+         schermo non ha dove metterla: la riga andava persa senza che nessuno lo sapesse.
+         Vuoto: lo riempie ui.js, nome compreso. -->
+    <div id="chatlog"></div>
     <div id="chatbar">
       <input id="chati" type="text" maxlength="140" autocomplete="off" autocorrect="off" autocapitalize="sentences" spellcheck="false">
       <button id="chatsend" class="btn amber"></button>

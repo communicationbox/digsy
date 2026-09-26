@@ -8,7 +8,7 @@ import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
 import { updateCompanion, COMP, companionSpec } from './companion.js';
 import { playIntro, introActive, drawIntroLine } from './intro.js';
-import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending, showIdleWelcome } from './ui.js';
+import { updateHUD, updateChatLog, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending, showIdleWelcome } from './ui.js';
 import { idleHours, idleCoins, idleEligible, IDLE_DNA_CHANCE } from './idle.js';
 import { updateCompass } from './compass.js';
 import { trackPlayer } from './map.js';
@@ -172,6 +172,11 @@ function loop(ts) {
        quindi là sotto la barra restava congelata sull'ultimo valore visto fuori — un
        giocatore ha scavato in grotta fino a zero energia continuando a leggere "46/60". */
     hudAcc += dt; if (hudAcc > 2) { hudAcc = 0; updateHUD(); }
+    /* CHI PARLA MA NON SI VEDE. Sta qui sopra insieme all'HUD, e per la stessa ragione: una
+       riga detta da qualcuno che è dietro l'angolo, in bottega o in grotta va letta da
+       qualunque scena. Ogni fotogramma perché la nuvoletta dura sei secondi e la riga deve
+       comparire e sparire con lei, non due secondi dopo. */
+    updateChatLog(ts, CAVE.active ? 'grotta' : INT.active ? 'stanza' : 'world');
     /* TUTORIAL: sta qui sopra insieme all'HUD, e per la stessa ragione — i passi che si
        spuntano da soli (hai abbastanza da comprare la pala, hai la pala) vanno visti in
        QUALSIASI scena, compresi il Negozio e il Museo, che sono interni. */
@@ -517,7 +522,7 @@ if (typeof window !== 'undefined') {
       /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
          vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
       mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'), ui: () => import('./ui.js'),
-        posta: () => import('./posta.js'), chat: () => import('./chat.js') }[n] || (() => Promise.resolve(null)))(),
+        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
@@ -555,6 +560,9 @@ if (typeof window !== 'undefined') {
          loop vero: `frame()` disegna la canvas ma non li tocca, quindi senza questo le foto
          "in mano" mostravano il ghost ma non i due bottoni sotto. */
       updatePrompt: () => import('./ui.js').then(u => { u.updatePrompt(); return true; }),
+      /* la barra di chi parla fuori campo: la aggiorna il game loop, che in headless non
+         gira — senza questo la foto la ritrae sempre spenta */
+      chatlog: (t, sc) => import('./ui.js').then(u => u.updateChatLog(t || 0, sc || 'world')),
       /* dove si sta DENTRO la stanza. La galleria del museo è 60×62 tile e si entra sempre dalla
          porta in fondo: senza questo, ogni foto e ogni test la ritraggono dall'atrio e le sale
          con i piedistalli — cioè quasi tutta la scena — non vengono mai disegnate. */

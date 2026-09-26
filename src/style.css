@@ -524,6 +524,18 @@ kbd + .pxi{margin-left:2px}
 /* la ✕ della rubrica: piccola come il gesto che fa */
 .sp-riga .sp-via .pxi{width:12px;height:12px}
 
+/* CHI PARLA FUORI CAMPO. Una riga per persona, «Nome: quello che ha detto», appena sopra la
+   riga della chat: sta lì quanto dura la nuvoletta e poi se ne va da sola. Non si clicca e non
+   ruba spazio — è un sottotitolo, non un pannello. */
+#chatlog{position:fixed;left:0;right:0;bottom:calc(140px + env(safe-area-inset-bottom));z-index:899;
+  display:none;flex-direction:column;align-items:flex-start;gap:3px;padding:0 12px;pointer-events:none}
+#chatlog.on{display:flex}
+#chatlog .cl-riga{max-width:min(560px,92vw);padding:4px 9px;background:rgba(20,16,12,.82);
+  box-shadow:inset 0 0 0 1px rgba(241,231,207,.22);color:var(--c-ink);
+  font:700 13px/1.35 ui-monospace,Menlo,monospace;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#chatlog .cl-chi{color:var(--c-gold-2);margin-right:6px}
+@media(max-width:760px),(pointer:coarse){ #chatlog .cl-riga{font-size:12px} }
 #chatbar{position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:900;
   display:none;gap:8px;padding:0 12px;align-items:center}
 #chatbar.on{display:flex}

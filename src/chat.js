@@ -172,6 +172,14 @@ export function bolla(id, now) {
   return b.testo;
 }
 export function zittiTutti() { bolle.clear(); }
+/* CHI STA PARLANDO ADESSO, tutti insieme. Serve a chi deve accorgersi di una riga detta da
+   qualcuno che non si vede: la nuvoletta sta sopra la testa, e una testa fuori dallo schermo
+   non ha dove metterla — il messaggio andava perso senza che nessuno lo sapesse. */
+export function bolleAttive(now) {
+  const out = [];
+  for (const [id, b] of bolle) if ((now || 0) - b.t <= BOLLA_MS) out.push({ id, testo: b.testo });
+  return out;
+}
 
 /* ---------- mentre si scrive ----------
    La tastiera di sistema si prende i tasti, e il gioco li userebbe per camminare: finché la
