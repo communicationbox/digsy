@@ -1,6 +1,17 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.14', it: [
+      'QUELLO CHE SI DICE IN GIOCO NON RESTA SCRITTO: si dice, si sente e passa, come parlare di persona. Nel taccuino finiscono solo le LETTERE, quelle da cinque monete — ed è proprio per questo che costano',
+      'LA PALETTA DELLA CASSETTA dice se c\'è posta per te: alzata se hai qualcosa da leggere, abbassata se no. Prima stava sempre su',
+      'IL TUO NOME si può cambiare, dal pannello Amici sopra il tuo codice: è quello che gli altri leggono sopra la tua testa, e sceglierlo in trenta secondi voleva dire portarselo per trenta ore',
+    ], en: [
+      'WHAT YOU SAY IN GAME IS NOT WRITTEN DOWN: you say it, they hear it, and it passes, like talking in person. Only LETTERS end up in the notebook — the five-coin ones, and that is exactly why they cost',
+      'THE MAILBOX FLAG tells you if there is post for you: up if you have something to read, down if not. It used to be always up',
+      'YOUR NAME can be changed, from the Friends panel above your code: it is what others read above your head, and picking it in thirty seconds meant carrying it for thirty hours',
+    ],
+  },
+  {
     v: 'v0.99.13', it: [
       'SE CHI OSPITA SPOSTA UN MOBILE, chi è in casa sua lo vede all\'istante: prima la stanza restava com\'era quando ci si era entrati',
       'LA PERGAMENA apre un portale dove ti fa arrivare, e quel portale ti riporta dov\'eri: prima era un viaggio di sola andata e la strada indietro si rifaceva a piedi. Ce n\'è UNO solo — aprendone un altro, il primo si chiude',

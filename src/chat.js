@@ -1,17 +1,16 @@
-/* LA CHAT — nuvolette sopra la testa, e un TACCUINO che si rilegge.
+/* LA CHAT — nuvolette sopra la testa. E BASTA: quello che si dice in gioco NON si scrive da
+ * nessuna parte.
  *
- * Due cose, non una (decisione di progetto, MULTIPLAYER.md 18): quello che uno dice compare
- * sopra la sua testa per qualche secondo — come parlano già gli NPC — e resta scritto nel
- * taccuino, una pagina per persona, che si rilegge quando si vuole.
+ * Parlare mentre si è insieme è come parlare di persona: si dice, si sente, e passa. Nel
+ * taccuino finiscono solo le LETTERE, quelle che costano cinque monete (posta.js) — ed è
+ * proprio quello il motivo per cui costano: una cosa scritta a qualcuno che non c'è va
+ * portata, e quello che resta scritto è quello per cui qualcuno ha pagato il francobollo.
+ * Prima ci finiva anche la chiacchiera: dieci minuti in due riempivano il taccuino di «ciao»
+ * e «arrivo», e le due righe che contavano ci si perdevano dentro.
  *
- * IL TACCUINO STA SUL DISPOSITIVO, in una chiave sua, **fuori dal salvataggio**. Due ragioni:
- * il salvataggio va anche in cloud e ha un tetto di dimensione contro cui il gioco ha già
- * sbattuto una volta (per questo la mappa esplorata viaggia compressa); e soprattutto perché
- * così le conversazioni non diventano mai roba di nessun server. Funziona perché la chat
- * avviene solo mentre si è insieme: non esistono messaggi da recapitare a chi non c'è, quindi
- * non c'è niente da custodire altrove.
- *
- * Un taccuino è una cosa che sta in tasca, non in archivio.
+ * IL TACCUINO STA SUL DISPOSITIVO, in una chiave sua, **fuori dal salvataggio**: il
+ * salvataggio va anche in cloud e ha un tetto di dimensione contro cui il gioco ha già
+ * sbattuto una volta. Un taccuino è una cosa che sta in tasca, non in archivio.
  */
 import { MAX_CHAT } from './net.js';
 
@@ -45,8 +44,9 @@ function scrivi(o) {
 let ultimoT = 0;
 function adesso() { const t = Math.max(Date.now(), ultimoT + 1); ultimoT = t; return t; }
 
-/* Segna una riga sulla pagina di una persona. `io` distingue chi ha parlato senza salvare due
-   volte lo stesso nome. */
+/* Segna una LETTERA sulla pagina di una persona: la chiama la posta (posta.js) quando se ne
+   spedisce una, e la chiamerà il recapito quando ne arriverà una. `io` distingue chi l'ha
+   scritta. La chat non passa di qui: quello che si dice a voce non si archivia. */
 export function segna(chi, testo, io, quando) {
   const nome = String(chi || '?').slice(0, 20);
   const m = String(testo || '').replace(/[\r\n\t]+/g, ' ').trim().slice(0, MAX_CHAT);
@@ -148,20 +148,18 @@ export function rubrica() {
 
 /* ---------- le nuvolette ---------- */
 
-/* è arrivata una riga: nuvoletta sopra la testa di chi ha parlato, e riga sul taccuino */
+/* è arrivata una riga: nuvoletta sopra la testa di chi ha parlato */
 export function arrivato(id, chi, testo, now) {
   const m = String(testo || '').trim().slice(0, MAX_CHAT);
   if (!m) return false;
   bolle.set(id, { testo: m, t: now || 0 });
-  segna(chi, m, false);
-  return true;
+  return true;                       // e non si scrive da nessuna parte: si dice e passa
 }
-/* l'ho detta io: nuvoletta sopra la MIA testa e riga sulla pagina di chi mi ascolta */
+/* l'ho detta io: nuvoletta sopra la MIA testa */
 export function detto(testo, aChi, now) {
   const m = String(testo || '').trim().slice(0, MAX_CHAT);
   if (!m) return false;
   bolle.set('io', { testo: m, t: now || 0 });
-  for (const chi of (Array.isArray(aChi) ? aChi : [aChi])) if (chi) segna(chi, m, true);
   return true;
 }
 /* cosa c'è scritto sopra la testa di uno, adesso — o null se ha smesso di parlare */

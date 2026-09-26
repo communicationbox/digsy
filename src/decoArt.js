@@ -163,8 +163,11 @@ export function statueArt(g, time, envelope) {
 /* la statua in cima al plinto: dove appoggiano i piedi della figura (coordinate della casella) */
 export const STATUE_FEET = { x: 16, y: 14 };
 
-/* CASSETTA DELLA POSTA: cassetta tonda su palo, fessura, bandierina */
-export function mailboxArt(g) {
+/* CASSETTA DELLA POSTA: cassetta tonda su palo, fessura, bandierina.
+   LA PALETTA DICE SE C'È POSTA PER TE, come le cassette vere: ALZATA se hai qualcosa da
+   leggere, ABBASSATA se no. Prima stava sempre su, e una paletta che non cambia mai non è un
+   segnale ma un ornamento — si smette di guardarla al secondo passaggio. */
+export function mailboxArt(g, posta) {
   /* CASSETTA DELLA POSTA: più piccola e fatta di due volumi soli — il palo e la cassetta a
      cupola. Prima era un mucchio di rettangoli sovrapposti: dove si toccavano il contorno
      spariva e in mezzo restava un pasticcio (segnalato con foto). */
@@ -173,7 +176,11 @@ export function mailboxArt(g) {
   const dentro = volume(g, [DR(7, 12, 18, 10, 2), DE(16, 13, 9, 6)], '#3a8c85', '#57c0b6', '#2a6b64');   // cassetta a cupola
   for (let x = 9; x <= 23; x++) if (dentro(x, 15) && dentro(x, 16)) g.rect(x, 15, 1, 2, '#173e39');       // fessura per le lettere
   for (let y = 18; y <= 20; y++) for (let x = 10; x <= 15; x++) if (dentro(x, y)) g.rect(x, y, 1, 1, y === 18 ? '#ffffff' : '#eaf3f0');   // etichetta
-  volume(g, [DR(24, 9, 2, 8, 0), DR(25, 8, 5, 4, 1)], '#e05a54', '#f2837c', '#a8332e');       // bandierina alzata
+  /* il palo della paletta resta dov'è, si muove la bandiera: alzata svetta sopra la cassetta,
+     abbassata si appoggia al fianco. Il verso in cui pende è quello della gravità, non una
+     rotazione a caso: chi guarda deve leggere «su» o «giù» senza pensarci. */
+  if (posta) volume(g, [DR(24, 6, 2, 11, 0), DR(25, 5, 6, 5, 1)], '#e05a54', '#f2837c', '#a8332e');
+  else volume(g, [DR(24, 15, 2, 9, 0), DR(25, 20, 6, 5, 1)], '#a8544f', '#c4706a', '#7d332e');
 }
 
 /* AFFIORAMENTO D'OSSA: montarolo di terra con il cranio e le costole che spuntano */

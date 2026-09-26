@@ -466,6 +466,18 @@ async function main() {
         });
       });
     }
+    /* 'cassetta' = la cassetta della posta, con la paletta giù (niente da leggere) o su
+       (posta=1): è l'unico modo per guardare tutt'e due gli stati uno accanto all'altro */
+    else if (${JSON.stringify(vista)} === 'cassetta') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('go=city').then(function(){ return Promise.all([G.townHere(), G.mod('chat')]); }).then(function(mm){
+        var t=mm[0], ch=mm[1];
+        ch.dimenticaTutto();
+        /* posta=1: una lettera NON letta, cioè la paletta alzata */
+        if((new URLSearchParams(location.search)).get('posta')) ch.segna('Ada', 'ti ho scritto!', false);
+        var mb = t && (t.decos||[]).filter(function(d){ return d.type === 'mailbox'; })[0];
+        if (mb) { var P2=G.player(); P2.x = mb.x*32 + 8; P2.y = (mb.y+2)*32; }
+        if(G.frame) G.frame(1200);
+      }); }
     /* 'portale' = il portale che la pergamena apre in città: riporta dov'eri */
     else if (${JSON.stringify(vista)} === 'portale') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('money=999').then(function(){ return G.mod('gameplay'); }).then(function(gp){

@@ -628,6 +628,17 @@ function buildMenu(inGame) {
          L'ORDINE è quello in cui si usano: il tuo codice sta in cima perché è la prima cosa
          che dai a qualcuno, l'aggiunta subito sotto perché è la prima che fai, e la lista in
          fondo perché è quella che poi resta e cresce. */
+      /* IL TUO NOME si cambia QUI e non fra le impostazioni: è quello che gli altri leggono
+         sopra la tua testa e nella loro rubrica, quindi sta dove si sta guardando la propria
+         identità in rete — accanto al codice. Si sceglie all'inizio e poi non si poteva più
+         toccare: un nome scelto in trenta secondi ci si porta dietro per trenta ore. Non
+         costa niente: come ti chiami non è un servizio. */
+      h += `<div class="sp-lab">${tr('Il tuo nome', 'Your name')}</div>`;
+      h += `<div class="sp-riga sp-riga-cod">`
+        + `<input id="sp-mp-nomemio" class="nameinput" maxlength="14" placeholder="${tr('Nome', 'Name')}" value="${esc((S && S.name) || '')}">`
+        + `<button class="sp-btn small" id="sp-mp-nomeok">${tr('Salva', 'Save')}</button></div>`;
+
+      h += `<div class="sp-sep"></div>`;
       h += `<div class="sp-lab">${tr('Il tuo codice', 'Your code')}</div>`;
       h += `<div class="sp-riga sp-riga-cod"><span class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</span>`
         + `<button class="sp-btn small" id="sp-mp-link">${tr('Copia', 'Copy')}</button></div>`;
@@ -676,8 +687,10 @@ function buildMenu(inGame) {
     }
     h += backBar();
   } else if (view === 'taccuino') {
-    /* IL TACCUINO — quello che ci si è detti, una pagina per persona. Sta sul dispositivo e
-       non nel salvataggio: le conversazioni non devono diventare roba di nessun server.
+    /* IL TACCUINO — le LETTERE, una pagina per persona. Non la chiacchiera in gioco: quella si
+       dice e passa, come parlare di persona. Qui finisce solo roba per cui qualcuno ha pagato
+       il francobollo (cinque monete), ed è per questo che una pagina vale la pena di rileggerla.
+       Sta sul dispositivo e non nel salvataggio: la corrispondenza è roba tua.
        E SEMBRA UN TACCUINO: carta giallina a righe, il filo rosso del margine e le LETTERE
        sul bordo destro, come nelle vecchie agende dei numeri di telefono. L'elenco «dal più
        recente» era un registro; una rubrica si sfoglia per lettera, e chi ti ha scritto lo
@@ -687,7 +700,7 @@ function buildMenu(inGame) {
     const gruppi = rubrica();
     if (!gruppi.length) {
       h += `<div class="tacc-carta vuota"><div class="tacc-fogli"><div class="tacc-nulla">${
-        tr('Ancora niente. Qui resta quello che vi siete detti.', "Nothing yet. What you say to each other stays here.")}</div></div></div>`;
+        tr('Ancora niente. Qui restano le lettere che vi siete scritti.', "Nothing yet. The letters you write each other stay here.")}</div></div></div>`;
     } else if (!taccuinoChi) {
       /* le lettere ci sono TUTTE, anche quelle vuote: è il bordo del taccuino, e un bordo con
          due tacche sole non si riconosce. Quelle senza nessuno restano spente e non si premono. */
@@ -947,6 +960,23 @@ function buildMenu(inGame) {
     }; }
   /* AGGIUNGERE: l'unica cosa per cui serve un codice */
   const aggiornaAmiciInLinea = () => setAmici(amici().map(x => x.c));
+  /* CAMBIARE NOME. Chi è già in una stanza lo dice subito agli altri: riattaccare la linea
+     con il nome nuovo è l'unico modo perché la targhetta sopra la testa cambi anche da loro. */
+  { const n = document.getElementById('sp-mp-nomeok'); if (n) n.onclick = () => {
+      const campo = document.getElementById('sp-mp-nomemio');
+      const v = ((campo && campo.value) || '').trim().slice(0, 14);
+      if (!v) { avvisoAmici = tr('Un nome ci vuole: è quello che gli altri leggono sopra la tua testa.',
+        'A name is needed: it is what the others read above your head.'); go('amici'); return; }
+      avvisoAmici = '';
+      S.name = v; save();
+      toast('✅ ' + tr('Adesso ti chiami ', 'You are now called ') + v);
+      if (MP.stato === 'dentro' && MP.stanza) {
+        const bs2 = S && S.companion;
+        connect(relayUrl(), { name: v, look: S && S.look, room: MP.stanza, ospite: !sonoOspitante(),
+          comp: bs2 ? { skull: bs2.skull, torso: bs2.torso, leg: bs2.leg, q: bs2.q } : null });
+      }
+      go('amici');
+    }; }
   { const a = document.getElementById('sp-mp-agg'); if (a) a.onclick = () => {
       const c = document.getElementById('sp-mp-code'), n = document.getElementById('sp-mp-nome');
       if (!aggiungiAmico(codiceDaTesto(c && c.value), n && n.value)) {

@@ -26,7 +26,7 @@ import { darknessAt, seasonOf, SEASON_LEN } from './daynight.js';
 import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
 import { MP, visibili } from './mp.js';
-import { bolla } from './chat.js';
+import { bolla, nuoviTotali as nuoviTacc } from './chat.js';
 import { pref as prefOf, nomiOn } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
@@ -305,7 +305,10 @@ export function drawStatue(sx, sy, time) {
 }
 /* CASSETTA DELLA POSTA (borghi/paesi): buca delle lettere teal su palo, fessura, bandierina rossa */
 export function drawMailbox(sx, sy) {
-  ctx.save(); ctx.translate(sx, sy); mailboxArt(BRUSH); ctx.restore();
+  /* la paletta è alzata quando c'è qualcosa DA LEGGERE: le lettere che hai spedito non sono
+     posta tua, sono posta in viaggio, e alzare la paletta per quelle vorrebbe dire lasciarla
+     su per sempre (il giro della posta fra giocatori non è ancora aperto). */
+  ctx.save(); ctx.translate(sx, sy); mailboxArt(BRUSH, nuoviTacc() > 0); ctx.restore();
 }
 /* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — sedere/coda fuori dall'acqua
    che si tuffa e riemerge, zampe palmate che remano, increspature e bollicine. Sostituisce il

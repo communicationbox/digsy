@@ -10,12 +10,15 @@
  * non c'è, la cassetta è una buca vera con dentro le tue lettere — non un pulsante che finge.
  * Il pannello lo dice, invece di far credere che sia arrivata.
  *
- * LE LETTERE STANNO NEL SALVATAGGIO, come il codice e la rubrica: sono roba tua e ti seguono
- * sul telefono. Il taccuino no, e la differenza è voluta — quello è una conversazione già
- * avvenuta, queste sono cose ancora da consegnare.
+ * LE LETTERE IN PARTENZA stanno nel SALVATAGGIO, come il codice e la rubrica: sono roba tua e
+ * ti seguono sul telefono. La COPIA di quello che hai scritto va invece nel taccuino, che sta
+ * sul dispositivo: è il registro di quello che vi siete detti per lettera, e ci finisce solo
+ * roba per cui qualcuno ha pagato il francobollo. La chiacchiera in gioco no: quella si dice,
+ * si sente e passa, come parlare di persona.
  */
 import { S, save } from './state.js';
-import { normalizza, valido } from './amici.js';
+import { normalizza, valido, nomeDi, formatta } from './amici.js';
+import { segna as segnaTaccuino } from './chat.js';
 
 export const COSTO_LETTERA = 5;     // 🪙 per una lettera
 export const MAX_LETTERA = 200;     // caratteri: una cartolina, non un romanzo
@@ -36,6 +39,9 @@ export function scrivi(aCodice, testo, gratis) {
   if (!gratis && (S.coins || 0) < COSTO_LETTERA) return 'monete';
   if (!gratis) S.coins -= COSTO_LETTERA;
   S.posta.push({ a: c, m, g: S.day || 1 });
+  /* e se ne tiene copia nel taccuino, sotto il NOME che hai dato a quella persona: il codice
+     è dieci segni senza faccia, e a rileggere una pagina si vuole sapere a chi si scriveva. */
+  segnaTaccuino(nomeDi(c) || formatta(c), m, true);
   save();
   return 'ok';
 }

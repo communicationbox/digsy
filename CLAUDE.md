@@ -55,7 +55,8 @@ src/voxview.js      projectVox: proiezione 2D di un modello voxel su canvas
 src/bookui.js       Libro dei Fossili (pagine, 3D/2D, descFor, finestre di presenza)
 src/mapui.js        mappa del mondo (pergamena, zoom, punti d'interesse)
 src/amici.js        il tuo codice (10 segni, nessuna lettera ambigua) e la rubrica; la stanza è il codice di chi ospita
-src/chat.js         nuvolette + TACCUINO: rubrica per lettera (inizialeDi/rubrica) e non-letti (nuovi/segnaLetto), fuori dal salvataggio
+src/chat.js         nuvolette (volatili: la chat non si archivia) + TACCUINO delle LETTERE:
+                    rubrica per lettera (inizialeDi/rubrica), non-letti (nuovi/segnaLetto), fuori dal salvataggio
 src/posta.js        lettere a chi adesso non c'è: 5 monete, restano «in partenza» finché il recapito non esiste
 src/sonno.js        sonno in compagnia: chi dorme sogna e aspetta (puro, decide e basta)
 src/dream.js        il sogno a schermo: cielo a fasce, luna a falce, le Z che salgono, i pulsanti
@@ -151,6 +152,15 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   NPC/player/banco ordinati per y (niente sovrapposizioni). Museo = edificio **5×2 con
   frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
+- **Quello che si dice in gioco NON resta scritto** (chat.js): le nuvolette si dicono e
+  passano, come parlare di persona. Nel taccuino finiscono solo le **lettere** (posta.js,
+  5 monete): è il motivo per cui costano, ed è quello che rende una pagina degna di rilettura —
+  prima dieci minuti in due la riempivano di «ciao» e «arrivo». La **paletta della cassetta**
+  è alzata quando c'è qualcosa DA LEGGERE (`nuoviTotali()`), abbassata se no: le lettere
+  spedite non sono posta tua, e alzarla per quelle vorrebbe dire lasciarla su per sempre.
+  Il **nome del personaggio** si cambia dal pannello Amici, sopra il codice (è lì che conta:
+  è quello che gli altri leggono); cambiandolo mentre si è in una stanza si riattacca la linea,
+  o la targhetta sopra la testa resterebbe quella vecchia da loro.
 - **Il TACCUINO è una rubrica** (`chat.js` + vista in splash.js): carta giallina a righe, filo
   rosso del margine e le **lettere sul bordo destro**, come nelle agende dei numeri di telefono.
   I nomi stanno sotto la loro iniziale (`inizialeDi`: gli accenti con la lettera nuda, numeri e

@@ -10178,10 +10178,12 @@ sprites.applyLook();
     world4.baseTerrain(40, 40) === primaDelGiro);
 }
 
-/* ---------- LA CHAT: nuvolette e taccuino ----------
-   Il taccuino sta sul DISPOSITIVO, fuori dal salvataggio: il salvataggio va anche in cloud e ha
-   un tetto contro cui il gioco ha già sbattuto una volta. E le conversazioni non devono
-   diventare roba di nessun server. */
+/* ---------- LA CHAT: nuvolette, e BASTA ----------
+   Quello che si dice in gioco NON si scrive da nessuna parte: si dice, si sente e passa, come
+   parlare di persona. Nel taccuino finiscono solo le LETTERE, quelle che costano cinque monete
+   — ed è proprio il motivo per cui costano. Prima ci finiva anche la chiacchiera: dieci minuti
+   in due riempivano il taccuino di «ciao» e «arrivo», e le due righe che contavano ci si
+   perdevano dentro. */
 {
   const chat = await import('../src/chat.js');
   const mp = await import('../src/mp.js');
@@ -10194,25 +10196,26 @@ sprites.applyLook();
   };
   chat.dimenticaTutto(); chat.zittiTutti();
 
-  /* una riga arrivata: nuvoletta sopra la testa E riga sul taccuino */
+  /* una riga arrivata: nuvoletta sopra la testa, e NIENTE ALTRO */
   chat.arrivato('u1', 'Luca', 'ciao! guarda che museo', 1000);
   check('quello che dice compare sopra la sua testa', chat.bolla('u1', 1200) === 'ciao! guarda che museo');
   check('e dopo qualche secondo smette', chat.bolla('u1', 1000 + chat.BOLLA_MS + 1) === null);
-  check('ma sul taccuino resta', chat.pagina('Luca').length === 1 && chat.pagina('Luca')[0].m === 'ciao! guarda che museo');
+  check('e non resta scritto da nessuna parte', chat.pagina('Luca').length === 0 && chat.pagine().length === 0);
 
   chat.detto('bello eh', ['Luca'], 2000);
-  const pag = chat.pagina('Luca');
-  check('e si vede chi ha detto cosa', pag.length === 2 && pag[1].io === true && pag[0].io === false);
   check('c\'è anche una nuvoletta sopra la MIA testa', chat.bolla('io', 2100) === 'bello eh');
+  check('e nemmeno quello che dici tu finisce sul taccuino', chat.pagine().length === 0);
 
-  /* il taccuino ha una pagina per persona, e si rilegge quando si vuole */
-  chat.arrivato('u2', 'Ada', 'ci sei?', 3000);
+  /* LE LETTERE invece sì: una pagina per persona, che si rilegge quando si vuole */
+  chat.segna('Luca', 'ti ho lasciato un cranio in cassetta', true);
+  chat.segna('Ada', 'ci vediamo al museo?', true);
   check('una pagina per persona, la più recente per prima', chat.pagine().join() === 'Ada,Luca');
+  check('e si vede chi ha scritto cosa', chat.pagina('Luca')[0].io === true);
   chat.dimentica('Ada');
   check('e si può strappare una pagina', chat.pagine().join() === 'Luca');
 
   /* NON diventa un archivio: si pota a ogni riga, non "ogni tanto" */
-  for (let i = 0; i < chat.PER_PERSONA + 50; i++) chat.arrivato('u1', 'Luca', 'riga ' + i, 4000 + i);
+  for (let i = 0; i < chat.PER_PERSONA + 50; i++) chat.segna('Luca', 'riga ' + i, false);
   const lunga = chat.pagina('Luca');
   check('un taccuino, non un archivio (' + lunga.length + ' righe tenute)', lunga.length === chat.PER_PERSONA);
   check('e si tengono le ULTIME, non le prime', lunga[lunga.length - 1].m === 'riga ' + (chat.PER_PERSONA + 49));
@@ -10262,7 +10265,7 @@ sprites.applyLook();
     const detto = s4.inviati.filter(x => x.t === 'chat').pop();
     check('Invio manda la riga', detto && detto.m === 'ciao Luca!');
     check('la riga si chiude dopo aver mandato', inpc.chatAperta() === false && chat.staScrivendo() === false);
-    check('e resta sul taccuino di chi ascoltava', chat.pagina('Luca').some(r => r.m === 'ciao Luca!' && r.io));
+    check('e NON resta scritta da nessuna parte: si dice e passa', !chat.pagina('Luca').some(r => r.m === 'ciao Luca!'));
     check('con la nuvoletta sopra la mia testa', typeof chat.bolla('io', 0) === 'string');
 
     /* una riga vuota non è un messaggio */
@@ -10846,6 +10849,33 @@ sprites.applyLook();
   check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
 }
 
+/* ---------- LA PALETTA DELLA CASSETTA ----------
+   Come le cassette vere: alzata se c'è posta per te, abbassata se no. Prima stava sempre su —
+   e una paletta che non cambia mai non è un segnale, è un ornamento: si smette di guardarla al
+   secondo passaggio. Si misura l'ALTEZZA a cui finisce la bandiera, non il fatto che venga
+   disegnata: sta su sempre, quello che cambia è dove. */
+{
+  const da = await import('../src/decoArt.js');
+  const misura = (posta) => {
+    let minY = 99, maxY = -1;
+    const g = {
+      rect(x, y, w, h, c) {
+        /* la bandiera è l'unica cosa rossa del disegno: palo e cassetta sono legno e verde */
+        if (typeof c === 'string' && /^#(e0|f2|a8|c4|7d)/i.test(c) && !/^#a88/i.test(c)) {
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y + h);
+        }
+      },
+      px() {}, shade8: (c) => c, snap: (v) => v,
+    };
+    da.mailboxArt(g, posta);
+    return { minY, maxY };
+  };
+  const su = misura(true), giu = misura(false);
+  check('la bandiera si disegna in tutti e due i casi', su.maxY > 0 && giu.maxY > 0);
+  check('con posta da leggere la paletta è ALZATA', su.minY < giu.minY, su.minY + ' contro ' + giu.minY);
+  check('e senza è ABBASSATA', giu.maxY > su.maxY, giu.maxY + ' contro ' + su.maxY);
+}
+
 /* ---------- LA POSTA: scrivere a chi adesso non c'è ----------
    La chat esiste solo mentre si è insieme. La lettera è per l'amico che non c'è, e COSTA:
    va portata, e portarla è un servizio del paese (il prezzo si dice prima, regola 7). */
@@ -10868,7 +10898,25 @@ sprites.applyLook();
   /* il NO deve dire PERCHÉ: un `false` muto lascia il pannello senza niente da raccontare */
   check('ogni no ha un motivo suo', new Set(['monete', 'vuota', 'me', 'codice']).size === 4);
 
-  check('una lettera si può riprendere finché è nella buca', po.ritira(0) === true && po.inPartenza().length === 0);
+  /* LE LETTERE SONO L'UNICA COSA CHE RESTA SCRITTA. Quello che ci si dice in gioco si dice e
+     passa: nel taccuino finisce solo roba per cui qualcuno ha pagato il francobollo, ed è per
+     questo che una pagina vale la pena di rileggerla. */
+  { const ch2 = await import('../src/chat.js');
+    ch2.dimenticaTutto();
+    Sp.amici = [{ c: 'M7RAC3DEFG', n: 'Ada' }];
+    Sp.coins = 50;
+    po.scrivi('M7RAC3DEFG', 'ti ho lasciato un cranio in cassetta');
+    check('una lettera spedita resta sul taccuino', ch2.pagine().join() === 'Ada');
+    check('sotto il NOME dell\'amico, non sotto il suo codice',
+      ch2.pagina('Ada').length === 1 && ch2.pagina('Ada')[0].m === 'ti ho lasciato un cranio in cassetta');
+    check('e segnata come scritta da te', ch2.pagina('Ada')[0].io === true);
+    /* a uno che non è in rubrica si scrive lo stesso: la pagina porta il suo codice */
+    po.scrivi('Q2D4FG7HJK', 'chi sei?');
+    check('a chi non è in rubrica la pagina porta il codice', ch2.pagine().some(n => /Q2D4F/.test(n)));
+    ch2.dimenticaTutto(); Sp.amici = []; Sp.posta = []; Sp.coins = 100;
+  }
+
+  check('una lettera si può riprendere finché è nella buca', (po.scrivi('Q2D4FG7HJK', 'ciao!'), po.ritira(0)) === true && po.inPartenza().length === 0);
   /* la buca non è infinita */
   Sp.coins = 1000;
   for (let i = 0; i < po.MAX_IN_PARTENZA; i++) po.scrivi('Q2D4FG7HJK', 'n' + i);

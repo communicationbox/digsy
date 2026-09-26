@@ -190,14 +190,13 @@ export function updateHUD() {
     const tt = document.getElementById('tacctag');
     if (tt) {
       tt.style.display = pagineChat().length ? '' : 'none';
-      /* CHI TI HA SCRITTO TE LO DICE IL TACCUINO. Senza, una riga arrivata mentre eri nel
-         Libro o in bottega spariva con la nuvoletta e non restava traccia di averla persa. */
+      /* LE LETTERE DA LEGGERE si vedono da qui, senza aprire niente. */
       const n = nuoviTacc();
       const tn = document.getElementById('h-tacc');
       if (tn) tn.textContent = n ? String(n) : '';
       if (tt.classList) tt.classList.toggle('nuovo', n > 0);
       tt.title = n ? (tr('Taccuino: ', 'Notebook: ') + n + tr(' da leggere', ' to read'))
-        : tr('Taccuino: quello che vi siete detti', 'Notebook: what you said to each other');
+        : tr('Taccuino: le lettere che vi siete scritti', 'Notebook: the letters you wrote each other');
     }
   }
   const lt = document.getElementById('lvltag'), ln = document.getElementById('h-lvl');
