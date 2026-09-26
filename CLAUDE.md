@@ -158,9 +158,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   prima dieci minuti in due la riempivano di «ciao» e «arrivo». La **paletta della cassetta**
   è alzata quando c'è qualcosa DA LEGGERE (`nuoviTotali()`), abbassata se no: le lettere
   spedite non sono posta tua, e alzarla per quelle vorrebbe dire lasciarla su per sempre.
-  Il **nome del personaggio** si cambia dal pannello Amici, sopra il codice (è lì che conta:
-  è quello che gli altri leggono); cambiandolo mentre si è in una stanza si riattacca la linea,
-  o la targhetta sopra la testa resterebbe quella vecchia da loro.
+  Il **nome del personaggio** si cambia IN GIOCO, firmando il registro della **Locanda**
+  (`setPlayerName` in mp.js, richiesto esplicitamente: «in game, NON nel menu»). È la Locanda
+  perché ci si presenta all'oste, e perché è l'unico servizio che c'è in OGNI paese — anche nei
+  borghi, dove il Barbiere non arriva. Cambiandolo mentre si è in una stanza si **riattacca la
+  linea**: è l'unico modo perché la targhetta sopra la testa cambi anche sugli schermi altrui.
 - **Il TACCUINO è una rubrica** (`chat.js` + vista in splash.js): carta giallina a righe, filo
   rosso del margine e le **lettere sul bordo destro**, come nelle agende dei numeri di telefono.
   I nomi stanno sotto la loro iniziale (`inizialeDi`: gli accenti con la lettera nuda, numeri e

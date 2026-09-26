@@ -643,6 +643,7 @@ if (typeof window !== 'undefined') {
       openLab: () => import('./ui.js').then(u => u.openBuilding({ type: 'lab', name: 'Laboratorio' })),
       openMuseum: () => import('./ui.js').then(u => u.openBuilding({ type: 'museum', name: 'Museo' })),
       openTailor: () => import('./ui.js').then(u => u.openBuilding({ type: 'tailor', name: 'Sartoria' })),
+      openInn: () => import('./ui.js').then(u => u.openBuilding({ type: 'inn', name: 'Locanda' })),
       openBarber: () => import('./ui.js').then(u => u.openBuilding({ type: 'barber', name: 'Barbiere' })),
       /* il pannello COMPAGNO E CORTILE: è dove si sceglie chi ti segue e chi vive in casa, e
          senza questo ponte non si poteva né fotografare né far disegnare da un test */

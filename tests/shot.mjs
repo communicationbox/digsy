@@ -466,6 +466,9 @@ async function main() {
         });
       });
     }
+    /* 'locanda' = il pannello della Locanda: dormire, e il REGISTRO dove si cambia nome */
+    else if (${JSON.stringify(vista)} === 'locanda') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('go=city').then(function(){ var S2=G.state(); S2.name='Marco'; if(G.openInn) G.openInn(); }); }
     /* 'cassetta' = la cassetta della posta, con la paletta giù (niente da leggere) o su
        (posta=1): è l'unico modo per guardare tutt'e due gli stati uno accanto all'altro */
     else if (${JSON.stringify(vista)} === 'cassetta') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

@@ -10849,6 +10849,40 @@ sprites.applyLook();
   check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
 }
 
+/* ---------- IL NOME SI CAMBIA IN GIOCO, ALLA LOCANDA ----------
+   «Lo devo poter cambiare in game, NON nel menu.» Il registro della locanda: ci si presenta
+   all'oste come in qualsiasi locanda, ed è l'unico servizio che c'è in OGNI paese — anche nei
+   borghi, dove il Barbiere non arriva. */
+{
+  const u5 = await import('../src/ui.js');
+  const mp5 = await import('../src/mp.js');
+  const S5 = state.S;
+  const prima = S5.name;
+  S5.name = 'Vecchio';
+  u5.openBuilding({ type: 'inn' });
+  const box5 = document.getElementById('m-body');
+  const html5 = (box5 && box5.innerHTML) || '';
+  check('la locanda ha il registro col proprio nome', /innName/.test(html5) && /Vecchio/.test(html5));
+  check('e il pulsante per firmarlo', /innNameOk/.test(html5));
+  const campo5 = document.getElementById('innName');
+  campo5.value = '  Digsy II  ';
+  document.getElementById('innNameOk').onclick();
+  check('firmando si cambia nome (e si ripuliscono gli spazi)', S5.name === 'Digsy II');
+  /* un nome vuoto non è un nome: si dice e non si cambia niente */
+  document.getElementById('innName').value = '   ';
+  document.getElementById('innNameOk').onclick();
+  check('un nome vuoto non passa', S5.name === 'Digsy II');
+  /* e il taglio a 14 caratteri vale anche qui */
+  check('un nome chilometrico si taglia', mp5.setPlayerName('x'.repeat(40)) === true && S5.name.length === 14);
+  { const sp5 = await import('../src/splash.js');
+    sp5.setView('amici');
+    const m5 = (document.getElementById('sp-menu') || {}).innerHTML || '';
+    sp5.setView('main');
+    check('nel menu Amici il campo del nome non c\'è più', !/sp-mp-nomemio/.test(m5)); }
+  S5.name = prima;
+  u5.closeModal();
+}
+
 /* ---------- LA CASSETTA VUOLE ARIA ATTORNO ----------
    «Spostiamo la cassetta delle lettere in un posto meno affollato?» Si prendeva la prima
    casella libera di un elenco fisso, e «libera» voleva dire solo che non c'era niente

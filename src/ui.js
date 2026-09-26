@@ -48,7 +48,7 @@ import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
 import { icon, withIcons } from './icons.js';
 import { cloud } from './cloud.js';
-import { inCasa, MP, visibili as mpVisibili } from './mp.js';
+import { inCasa, MP, visibili as mpVisibili, setPlayerName } from './mp.js';
 import { amici, nomeDi } from './amici.js';
 import { pagine as pagineChat, nuoviTotali as nuoviTacc, bolleAttive } from './chat.js';
 import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
@@ -2218,11 +2218,33 @@ function renderInn() {
   const can = canSleep();
   const label = night ? tr("Dormi fino all'alba 🌙", 'Sleep until dawn 🌙') : tr('Dormi fino a notte 🌙', 'Sleep until night 🌙');
   const blockMsg = can ? '' : `<div class="row" style="background:#f1ddc0"><div class="sub">${tr('Troppo presto per dormire', 'Too soon to sleep')}</div></div>`;
+  /* IL REGISTRO DELLA LOCANDA. Il nome si cambia QUI, in gioco, e non in fondo a un menu:
+     ci si presenta all'oste come in qualsiasi locanda, e la Locanda è l'unico servizio che
+     c'è in OGNI paese — anche nei borghi, dove il Barbiere non arriva. Il nome è quello che
+     gli altri leggono sopra la tua testa, e sceglierlo in trenta secondi all'inizio voleva
+     dire portarselo dietro per trenta ore. Non costa niente: come ti chiami non è un servizio. */
   mBody.innerHTML = withIcons(`<div class="center"><div style="font-size:40px">🛏️</div>
     <div class="row" style="justify-content:center"><div class="nm">${tr('Energia', 'Energy')}: ${S.energy}/${S.maxEnergy} · ${tr('Giorno', 'Day')} ${S.day}</div></div>
     ${blockMsg}
-    <button class="btn" id="rest" style="margin-top:6px" ${can ? '' : 'disabled'}>${label}</button></div>`);
+    <button class="btn" id="rest" style="margin-top:6px" ${can ? '' : 'disabled'}>${label}</button>
+    <div class="sp-sep" style="margin:12px 0 8px"></div>
+    <div class="row"><div class="sub">📖 ${tr('Il registro: come ti chiami?', 'The guest book: what is your name?')}</div></div>
+    <div class="row" style="gap:8px">
+      <input id="innName" class="nameinput" style="flex:1 1 auto;min-width:0" maxlength="14" value="${esc(S.name || '')}" placeholder="${tr('Nome', 'Name')}">
+      <button class="btn amber" id="innNameOk">${tr('Firma', 'Sign')}</button></div>
+    <div class="muted" style="margin-top:4px">${tr('È il nome che gli altri leggono sopra la tua testa.', "It's the name others read above your head.")}</div>
+    </div>`);
   const rb = document.getElementById('rest'); if (rb) rb.onclick = () => { if (restInn()) renderInn(); };
+  const nb = document.getElementById('innNameOk');
+  if (nb) nb.onclick = () => {
+    const campo = document.getElementById('innName');
+    const v = ((campo && campo.value) || '').trim().slice(0, 14);
+    if (!v) { toast('📖 ' + tr('Un nome ci vuole: è quello che gli altri leggono sopra la tua testa.',
+      'A name is needed: it is what the others read above your head.')); return; }
+    setPlayerName(v);
+    toast('✅ ' + tr('Adesso ti chiami ', 'You are now called ') + v);
+    renderInn();
+  };
 }
 
 /* ---------- zaino: pannello LEGGIBILE 8-bit a SCHEDE (Reperti/Oggetti/Attrezzi/DNA) --- */

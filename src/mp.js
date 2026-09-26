@@ -22,6 +22,7 @@
 import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent, muto, PING_MS, PONG_MAX } from './net.js';
 import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite, applicaCasa } from './visita.js';
 import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
+import { S, save } from './state.js';
 
 /* stati, in italiano perché si leggono anche nell'interfaccia:
    spento · collego · dentro · caduto */
@@ -353,6 +354,23 @@ export function visibiliOvunque(now) {
     out.push({ id: p.id, name: p.name, x: p.wx, y: p.wy, dentro: p.buf[p.buf.length - 1].s !== 'world' });
   }
   return out;
+}
+/* ---------- COME TI CHIAMI ----------
+   Il nome si cambia in gioco, dal registro della Locanda (ui.js): sta qui perché cambiarlo
+   mentre si è in una stanza vuol dire RIATTACCARE la linea — è l'unico modo perché la
+   targhetta sopra la testa cambi anche sugli schermi degli altri, e chi sta guardando il
+   pannello Amici veda il nome nuovo nella propria rubrica. Da soli è solo un campo salvato. */
+export function setPlayerName(nome) {
+  const v = String(nome || '').trim().slice(0, 14);
+  if (!v) return false;
+  S.name = v; save();
+  if (mio) mio.name = v;
+  if (MP.stato === 'dentro' && MP.stanza) {
+    const bs = S && S.companion;
+    connect(relayUrl(), { name: v, look: S && S.look, room: MP.stanza, ospite: !sonoOspitante(),
+      comp: bs ? { skull: bs.skull, torso: bs.torso, leg: bs.leg, q: bs.q } : null });
+  }
+  return true;
 }
 /* sono io che ospito? Il mondo è mio, quindi decido io l'orologio e mando io il mondo. */
 export function sonoOspitante() { return !!MP.room.me && MP.room.host === MP.room.me; }
