@@ -25,7 +25,10 @@ import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
 
 /* stati, in italiano perché si leggono anche nell'interfaccia:
    spento · collego · dentro · caduto */
-export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 0, stanza: null, url: null };
+export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 0, stanza: null, url: null,
+  /* chi dei miei amici è in linea adesso (codici). Non è una lista che qualcuno conserva: è la
+     risposta del centralino a «di questi, chi c'è?», e si aggiorna quando uno arriva o se ne va. */
+  online: new Set() };
 
 const RIPROVE = [500, 1500, 4000, 10000];   // attese fra un tentativo e l'altro, poi si smette
 let sock = null, mio = null, stanza = null, invio = {}, riprova = 0;
@@ -116,7 +119,8 @@ export function scordaStanza() { ricorda(null); }
 
 export function connect(url, me) {
   if (sock) disconnect('riconnessione');
-  mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null };
+  mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null,
+    codice: (me && me.codice) || null, amici: (me && me.amici) || [] };
   /* CASA MIA O CASA D'ALTRI. Lo dichiara chi apre il collegamento, e il valore di partenza è
      «casa mia»: chi non dice niente sta aprendo la propria stanza (è così in tutti i punti
      che non sono il pulsante «entra col codice»). Serve a riconoscere il caso qui sotto: se
@@ -139,7 +143,8 @@ function aprire(url) {
        QUELLO che usa il gioco: mescolare due orologi (`performance.now` qui, il tempo del
        ciclo là) fa uscire differenze negative, e il battito non partirebbe mai. */
     ultimoPing = ultimoPong = ultimaAttività = null;
-    manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look });
+    manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look, mio: mio.codice || null });
+    chiediChiCè();
   };
   s.onmessage = (ev) => ricevi(ev && ev.data, ora());
   s.onerror = () => { /* il perché arriva sempre da onclose: qui non si fa niente due volte */ };
@@ -152,7 +157,14 @@ export function ricevi(raw, now) {
   const m = decode(raw);
   if (!m) return null;
   const t = applyMessage(MP.room, m, now);
-  if (m.t === T.WELCOME && stanza) manda(T.JOIN, { room: stanza, ospite: ospiteAtteso });
+  if (m.t === T.WELCOME) {
+    if (stanza) manda(T.JOIN, { room: stanza, ospite: ospiteAtteso });
+    /* IN LINEA SENZA STANZA. Ci si collega anche quando si gioca da soli: è l'unico modo
+       perché un amico ti veda col pallino acceso e perché un invito ti ARRIVI. Non costa
+       niente — una socket ferma e un battito ogni mezzo minuto — e non cambia niente nel
+       gioco: nessun mondo condiviso finché non si accetta un invito. */
+    else MP.stato = 'linea';
+  }
   if (m.t === T.ROOM) {
     MP.stato = 'dentro'; invio = {};
     /* ENTRARE COL CODICE DI UN ALTRO E RITROVARSI PADRONE DI CASA vuol dire una cosa sola: in
@@ -192,6 +204,16 @@ export function ricevi(raw, now) {
     if (!entraInVisita({ mondo: m.mondo, x: m.x, y: m.y }, m.id)) MP.motivo = 'mondo illeggibile';
   }
   if (m.t === T.PONG) ultimoPong = now;
+  if (m.t === T.ONLINE) {
+    if (m.attivi) { MP.online = new Set(m.attivi); }
+    else if (m.acceso) MP.online.add(m.cambia);
+    else MP.online.delete(m.cambia);
+    if (suOnline) suOnline();
+  }
+  /* UN INVITO ARRIVATO. Qui non si decide niente: si passa a chi disegna, che lo chiederà alla
+     persona. Accettare o no è una risposta, non una conseguenza. */
+  if (m.t === T.INVITO && suInvito) suInvito({ da: m.da, nome: m.nome });
+  if (m.t === T.RIFIUTO && suRifiuto) suRifiuto({ da: m.da, nome: m.nome });
   if (m.t === T.MUT) applicaMutazione(m.k, m.c);
   if (m.t === T.CLOCK) applicaOrologio(m.day, m.tod);
   if (m.t === T.CHAT && m.id) {
@@ -222,7 +244,10 @@ function manda(t, data) {
 /* DOVE SONO. Si chiama dal ciclo di gioco a ogni fotogramma: decide `shouldSend`, che parla
    dieci volte al secondo e solo se c'è qualcosa da dire (più un battito da fermi). */
 export function tick(now, pos) {
-  if (MP.stato !== 'dentro' || !pos) return false;
+  /* senza posizione (o fuori da una stanza) resta il battito: tenere viva la linea serve
+     anche a chi sta giocando da solo, o l'invito di un amico non arriverebbe mai */
+  if (MP.stato === 'linea' || !pos) { if (MP.stato === 'linea' || MP.stato === 'dentro') battito(now); return false; }
+  if (MP.stato !== 'dentro') return false;
   /* MUOVERSI È ESSERE VIVI, e si guarda PRIMA di decidere se parlare: le posizioni si mandano
      dieci volte al secondo, e chiedere «ti sei mosso?» solo quando tocca parlare lascerebbe
      fuori tutto quello che succede negli altri novanta millisecondi. Il resto (una parola, un
@@ -342,6 +367,25 @@ export function setSuAlba(fn) { suAlba = fn; }
 /* e quando qualcuno si corica: serve solo a chi ospita, per accorgersi che ora dormono tutti */
 let suSonno = null;
 export function setSuSonno(fn) { suSonno = fn; }
+
+/* ---------- AMICI: chi c'è, e gli inviti ----------
+   Il codice serve a farsi aggiungere in rubrica. Tutto il resto passa da qui: si dice al
+   centralino quali codici interessano, lui risponde chi è in linea e avvisa quando cambia;
+   e un invito lo si manda a una persona, non a una stanza. */
+export function setAmici(codici) { mio = mio || {}; mio.amici = codici || []; chiediChiCè(); }
+export function setMioCodiceInvio(c) { mio = mio || {}; mio.codice = c || null; }
+function chiediChiCè() {
+  if (!mio || !mio.amici || !mio.amici.length) return false;
+  return manda(T.AMICI, { codici: mio.amici });
+}
+export function inLinea(codice) { return MP.online.has(String(codice || '').toUpperCase()); }
+/* INVITO una persona: gli arriva dove sta giocando, e decide lui. */
+export function invita(codice) { return manda(T.INVITO, { a: String(codice || '').toUpperCase() }); }
+export function rifiuta(codice) { return manda(T.RIFIUTO, { a: String(codice || '').toUpperCase() }); }
+let suInvito = null, suRifiuto = null, suOnline = null;
+export function setSuInvito(fn) { suInvito = fn; }
+export function setSuRifiuto(fn) { suRifiuto = fn; }
+export function setSuOnline(fn) { suOnline = fn; }
 
 /* MANDA VIA qualcuno. Solo chi ospita, perché è casa sua (MULTIPLAYER.md, regola 17). Non si
    stacca la sua socket da qui — il centralino non conosce le regole e non deve impararle: gli

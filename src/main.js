@@ -19,9 +19,9 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, rifiuta } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
-import { mioCodice, codiceDaTesto, valido, stanzaDi } from './amici.js';
+import { mioCodice, codiceDaTesto, valido, stanzaDi, amici, nomeDi, aggiungiAmico } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
@@ -38,7 +38,7 @@ import { expireQuests, questExpiryText } from './quests.js';
 import { tutTick, tutActive } from './tutorial.js';
 import { announceTutStep } from './ui.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
-import { toast } from './ui.js';
+import { toast, mostraInvito } from './ui.js';
 import { isDebug } from './debug.js';
 import { setPref } from './prefs.js';
 import { VERSION } from './version.js';
@@ -332,6 +332,20 @@ function boot() {
   /* mp.js non conosce i codici degli amici: glielo si dichiara, così può accorgersi se una
      stanza senza padrone porta il NOSTRO codice — nel qual caso la apre invece di aspettarsi */
   setMioCodice(() => { try { return mioCodice(); } catch (e) { return ''; } });
+  /* L'INVITO DI UN AMICO. Qui si cuce: la rete lo porta, l'interfaccia lo chiede alla persona,
+     e se dice di sì si entra nel mondo di chi ha invitato — che è già aperto, perché invitare
+     vuol dire aprirlo. Se dice di no, chi ha invitato lo sa: aspettare una risposta che non
+     arriva mai è la cosa più scortese che un gioco possa far fare a qualcuno. */
+  setSuInvito(({ da, nome }) => {
+    const come = nomeDi(da) || nome || da;
+    mostraInvito(come,
+      () => { mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, codice: mioCodice(),
+        amici: amici().map(a => a.c), room: stanzaDi(da), ospite: true }); },
+      () => { rifiuta(da); });
+  });
+  setSuRifiuto(({ da, nome }) => {
+    toast('🚶 ' + (nomeDi(da) || nome || da) + ' ' + tr('non può adesso', "can't right now"));
+  });
   setSuAlba(() => {
     const dormivo = albaRicevuta();
     if (sognoAperto()) chiudiSogno(dormivo);
@@ -363,12 +377,17 @@ function boot() {
     let invito = '';
     try { invito = codiceDaTesto(new URLSearchParams(location.search || '').get('vai') || ''); } catch (e) { invito = ''; }
     const dove = stanzaRicordata();
+    /* CI SI COLLEGA SEMPRE, anche giocando da soli: è l'unico modo perché un amico ti veda
+       col pallino acceso e perché un invito ti ARRIVI. Se c'era una stanza aperta (o un link
+       d'invito) si riprende quella, altrimenti si sta solo in linea. */
+    const chi = { name: (S && S.name) || 'Digsy', look: S && S.look, codice: mioCodice(), amici: amici().map(a => a.c) };
     if (valido(invito)) {
-      const mio = invito === mioCodice();
-      mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(invito), ospite: !mio });
+      mpConnect(relayUrl(), { ...chi, room: stanzaDi(invito), ospite: invito !== mioCodice() });
       try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* pazienza */ }
     } else if (dove) {
-      mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: dove.room, ospite: !!dove.ospite });
+      mpConnect(relayUrl(), { ...chi, room: dove.room, ospite: !!dove.ospite });
+    } else {
+      mpConnect(relayUrl(), chi);
     }
   }
   armAudioResume(); // musica in loop anche dopo un refresh (parte al primo gesto)

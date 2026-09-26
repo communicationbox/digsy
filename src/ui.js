@@ -536,6 +536,35 @@ export function showBanner(html, ms = 2600) {
   document.body.appendChild(b);
   setTimeout(() => { if (b.classList) b.classList.add('out'); setTimeout(() => b.remove(), 400); }, ms);
 }
+/* L'INVITO DI UN AMICO — arriva mentre stai giocando, e ti chiede una cosa sola.
+ *
+ * Non è un toast (passerebbe e basta) e non è una modale del gioco (quelle si aprono quando le
+ * apri tu): è un biglietto in alto, con due risposte e niente altro da capire. Resta finché non
+ * si risponde, perché dall'altra parte c'è una persona ferma che aspetta — ma si può dire di no
+ * in un tocco, che è la ragione per cui un invito è diverso da un codice.
+ */
+let invitoAperto = null;
+export function chiudiInvito() {
+  if (invitoAperto && invitoAperto.remove) invitoAperto.remove();
+  invitoAperto = null;
+}
+export function mostraInvito(chi, onSi, onNo) {
+  if (typeof document === 'undefined' || !document.createElement || !document.body) return null;
+  chiudiInvito();
+  const b = document.createElement('div');
+  b.className = 'invito'; b.id = 'invito';
+  b.innerHTML = withIcons(`<div class="inv-t">🚶 <b>${String(chi || '?').replace(/[<>&]/g, '')}</b> ${tr('ti invita nel suo mondo', 'invites you to their world')}</div>`
+    + `<div class="inv-b"><button class="btn amber" id="inv-si">${tr('Vai da lui', 'Go to them')}</button>`
+    + `<button class="btn ghost" id="inv-no">${tr('Non adesso', 'Not now')}</button></div>`);
+  document.body.appendChild(b);
+  invitoAperto = b;
+  const si = document.getElementById('inv-si'), no = document.getElementById('inv-no');
+  if (si) si.onclick = () => { chiudiInvito(); if (onSi) onSi(); };
+  if (no) no.onclick = () => { chiudiInvito(); if (onNo) onNo(); };
+  playSfx('found');
+  return b;
+}
+
 /* I TOAST DI BENVENUTO NON CI SONO PIÙ, e la funzione resta vuota apposta (la chiama il boot).
    Erano due messaggi che scorrevano da soli nei primi due secondi: uno diceva del regalo del
    nonno, l'altro elencava i tasti. Adesso il TUTORIAL dice cosa fare, con l'obiettivo in

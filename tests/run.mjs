@@ -10157,17 +10157,15 @@ sprites.applyLook();
   const box = document.getElementById('sp-menu') || document.getElementById('splash');
   const html = (box && box.innerHTML) || '';
   check('la schermata degli amici si disegna', err === '', err);
-  check('e offre il LINK d\'invito, che è la cosa da mandare a un amico',
-    html.includes('sp-mp-link') && html.includes('sp-mp-mio'));
-  check('con cui si apre il proprio mondo o si entra in quello di un altro',
-    html.includes('sp-mp-apri') && html.includes('sp-mp-entra'));
-  /* LA REGOLA IN CIMA, non da indovinare: uno apre, l'altro entra col suo codice. Il pannello
-     la lasciava dedurre da sei pulsanti tutti uguali d'importanza, e due persone hanno passato
-     una sera entrando tutte e due come ospiti, ognuna ad aspettare l'altra. */
-  check('la regola sta scritta in cima, in una riga',
-    /UNO apre il suo mondo|ONE of you opens their world/i.test(html));
-  check('e le due strade sono numerate, non mescolate',
-    /1 · Apri tu|1 · Open yours/i.test(html) && /2 · Oppure raggiungi|2 · Or go to a friend/i.test(html));
+  check('mostra il TUO codice, che serve a farsi aggiungere',
+    html.includes('sp-mp-mio') && html.includes('sp-mp-link'));
+  check('e il modo di aggiungere un amico, che è l\'unica cosa per cui serve un codice',
+    html.includes('sp-mp-code') && html.includes('sp-mp-agg'));
+  /* IL CODICE SERVE SOLO AD AGGIUNGERE: tutto il resto passa dalla rubrica, dove si vede chi
+     c'è e lo si invita. Invitare è un gesto fra persone; un codice da ribattere è un compito. */
+  check('la rubrica è la prima cosa, non il codice',
+    html.indexOf('sp-riga') === -1 ? html.indexOf('Ancora nessuno') < html.indexOf('sp-mp-mio')
+      : html.indexOf('sp-riga') < html.indexOf('sp-mp-mio'));
   /* «PREMO ENTRA E NON SUCCEDE ASSOLUTAMENTE NIENTE» (segnalato da telefono). Il codice veniva
      rifiutato e il perché finiva in un toast: i toast vivono dentro `#frame`, che è
      `position:fixed` e si porta dietro il suo strato, quindi con la splash aperta stanno
@@ -10196,7 +10194,21 @@ sprites.applyLook();
     sp2.setView('amici');
     const h2 = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
     check('un amico in rubrica si vede col nome che gli hai dato', h2.includes('Luca'));
-    check('e col pulsante per entrare nel SUO mondo', h2.includes('data-vai="Q2D4FG7HJK"'));
+    /* IL PULSANTE «INVITA» COMPARE SOLO SE C'È: invitare qualcuno che non sta giocando è un
+       messaggio che non arriva a nessuno, e un pulsante che non può funzionare è peggio di un
+       pulsante che non c'è. Chi non c'è si vede lo stesso, spento, perché la rubrica è la
+       rubrica — solo che accanto dice «non c'è» invece di offrire un invito. */
+    check('chi non sta giocando si vede, ma non si può invitare',
+      /non c'è|away/i.test(h2) && !/data-invita="Q2D4FG7HJK"/.test(h2));
+    {
+      const mpQ = await import('../src/mp.js');
+      mpQ.MP.online = new Set(['Q2D4FG7HJK']);
+      sp2.setView('amici');
+      const h2b = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+      check('e chi sta giocando ha il pallino acceso e il pulsante per invitarlo',
+        /pallino on/.test(h2b) && /data-invita="Q2D4FG7HJK"/.test(h2b));
+      mpQ.MP.online = new Set();
+    }
     state.S.amici = [];
     /* LA RUBRICA SI RIEMPIE GIOCANDO: dentro il mondo di un altro, un pulsante lo segna — e
        solo lì si sa il suo NOME. Prima c'erano due campi da compilare a mano in un pannello
@@ -10415,6 +10427,91 @@ sprites.applyLook();
   check('e un link con altra roba attorno', amL.codiceDaTesto('guarda qua https://digsy.dev-box.it/?vai=' + mioL + ' ci vediamo!') === mioL);
   check('mentre una frase qualunque non è un invito', amL.valido(amL.codiceDaTesto('ci vediamo domani')) === false);
   check('e un codice storto resta storto', amL.valido(amL.codiceDaTesto('?vai=OOOOOOOOOO')) === false);
+}
+
+/* ---------- L'INVITO, DAL LATO DEL GIOCO ----------
+   Arriva mentre stai giocando e chiede una cosa sola: vieni o no. Chi lo manda lo sa in tutti
+   e due i casi — aspettare una risposta che non arriva mai è la cosa più scortese che un gioco
+   possa far fare a una persona. */
+{
+  const mpI = await import('../src/mp.js');
+  const netI = await import('../src/net.js');
+  const fatte = [];
+  mpI.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+
+  /* ci si collega ANCHE senza stanza: è l'unico modo perché un amico ti veda e ti inviti */
+  mpI.connect('ws://finta/ws', { name: 'Marco', codice: 'MARCO12345', amici: ['LUCA123456'] });
+  const si = fatte[fatte.length - 1];
+  si.onopen();
+  const ciao = si.inviati.find(x => x.t === 'hello');
+  check('presentandosi si dichiara il proprio codice', ciao && ciao.mio === 'MARCO12345');
+  check('e si chiede subito chi dei propri amici è in linea',
+    si.inviati.some(x => x.t === 'amici' && x.codici.join() === 'LUCA123456'));
+  si.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
+  check('collegati senza stanza si è «in linea», non «dentro»', mpI.MP.stato === 'linea');
+
+  /* il centralino risponde chi c'è, e poi avvisa quando cambia */
+  si.onmessage({ data: netI.encode(netI.T.ONLINE, { attivi: ['LUCA123456'] }) });
+  check('si sa chi sta giocando', mpI.inLinea('LUCA123456') === true);
+  si.onmessage({ data: JSON.stringify({ t: 'online', cambia: 'LUCA123456', acceso: false }) });
+  check('e quando se ne va il pallino si spegne da solo', mpI.inLinea('LUCA123456') === false);
+
+  /* INVITARE: una persona, non una stanza */
+  mpI.invita('LUCA123456');
+  check('invitare manda l\'invito a QUELLA persona',
+    si.inviati.some(x => x.t === 'invito' && x.a === 'LUCA123456'));
+
+  /* RICEVERE: si passa a chi disegna, che lo chiede alla persona. Qui non si decide niente. */
+  let chiesto = null;
+  mpI.setSuInvito((inv) => { chiesto = inv; });
+  si.onmessage({ data: JSON.stringify({ t: 'invito', da: 'LUCA123456', nome: 'Luca' }) });
+  check('un invito che arriva non entra in nessun mondo da solo: lo si chiede',
+    chiesto && chiesto.da === 'LUCA123456' && chiesto.nome === 'Luca' && mpI.MP.stato === 'linea');
+  /* il mittente lo scrive il CENTRALINO: un invito non si può firmare col nome di un altro */
+  check('e un invito senza mittente non è un invito', netI.decode(JSON.stringify({ t: 'invito', nome: 'Tizio' })) === null);
+
+  let detto = null;
+  mpI.setSuRifiuto((r) => { detto = r; });
+  si.onmessage({ data: JSON.stringify({ t: 'rifiuto', da: 'LUCA123456', nome: 'Luca' }) });
+  check('e un no torna indietro, invece di lasciare qualcuno ad aspettare', detto && detto.da === 'LUCA123456');
+  mpI.setSuInvito(null); mpI.setSuRifiuto(null);
+  mpI.disconnect();
+  mpI.setTransport((u) => new WebSocket(u));
+}
+
+/* ---------- IL CENTRALINO SA CHI C'È, E PORTA GLI INVITI ----------
+   Il modello è questo, e ci sono volute cinque versioni: **il codice serve solo ad aggiungere
+   un amico**; da lì in poi si vede quando sta giocando e gli si manda un invito, che lui
+   accetta o no. Il centralino non tiene nessun elenco di amicizie: ognuno dichiara il proprio
+   codice quando si presenta e dice quali gli interessano — la risposta vale per questo istante,
+   e chiusa la connessione sparisce. */
+{
+  const R = await import('../server/relay/rooms.js');
+  const hub = R.makeHub();
+  const det = { m: [], l: [] };
+  R.addPeer(hub, 'm', 'Marco', x => det.m.push(JSON.parse(x)));
+  R.setCodice(hub, 'm', 'MARCO12345');
+
+  check('chiedere di un amico che non c\'è dà una lista vuota', R.guarda(hub, 'm', ['LUCA123456']).length === 0);
+  R.addPeer(hub, 'l', 'Luca', x => det.l.push(JSON.parse(x)));
+  R.setCodice(hub, 'l', 'LUCA123456');
+  check('appena si collega, risulta in linea', R.inLinea(hub, ['LUCA123456']).length === 1);
+  check('e chi lo teneva d\'occhio va avvisato', R.chiGuarda(hub, 'LUCA123456').map(p => p.id).join() === 'm');
+  check('mentre chi non lo guarda non viene disturbato', R.chiGuarda(hub, 'ALTRO12345').length === 0);
+  check('si trova la persona dal suo codice, per portarle l\'invito',
+    R.perCodice(hub, 'LUCA123456').map(p => p.name).join() === 'Luca');
+  /* due dispositivi della stessa persona: l'invito arriva a tutti e due, e risponde quello che
+     ha in mano */
+  R.addPeer(hub, 'l2', 'Luca (telefono)', x => det.l.push(JSON.parse(x)));
+  R.setCodice(hub, 'l2', 'LUCA123456');
+  check('chi ha due dispositivi accesi li riceve su tutti e due', R.perCodice(hub, 'LUCA123456').length === 2);
+  /* un codice inventato non si registra: il pallino non deve poter mentire */
+  check('un codice storto non entra', R.setCodice(hub, 'm', 'no!') === false);
+  /* la rubrica ha un tetto: è una rubrica, non un elenco telefonico */
+  const tanti = Array.from({ length: 80 }, (_, i) => 'C' + String(i).padStart(9, '0'));
+  R.setCodice(hub, 'm', 'MARCO12345');
+  R.guarda(hub, 'm', tanti);
+  check('e non si possono tenere d\'occhio mille persone', hub.peers.get('m').guarda.size === R.MAX_AMICI);
 }
 
 /* ---------- IL CENTRALINO: SI PUÒ ASPETTARE ----------

@@ -355,6 +355,12 @@ kbd + .pxi{margin-left:2px}
   padding:var(--sp-1) var(--sp-2);margin:0;border-radius:var(--r-1);background:rgba(0,0,0,.18)}
 .sp-riga > span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sp-riga small{opacity:.55;font-size:.85em}
+/* IL PALLINO: acceso vuol dire «sta giocando adesso», e non è una promessa sul futuro — è il
+   centralino che risponde per questo istante. Spento resta visibile: un amico che non c'è è
+   comunque un amico in rubrica. */
+.pallino{display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:baseline;
+  background:rgba(241,231,207,.22);box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
+.pallino.on{background:#7bd88f;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 0 8px rgba(123,216,143,.7)}
 /* titoletto di sezione: in oro maiuscolo, senza riquadri — come il resto del menu */
 .sp-lab{width:var(--w-menu);max-width:88vw;text-align:left;color:var(--c-gold);
   font-size:var(--fs-note);font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:-2px}
@@ -376,6 +382,17 @@ kbd + .pxi{margin-left:2px}
 #chati:focus{outline:none;border-color:var(--c-amber)}
 #chatsend{min-height:42px}
 @media(max-width:760px),(pointer:coarse){ #chatbar{bottom:calc(120px + env(safe-area-inset-bottom))} }
+
+/* L'INVITO DI UN AMICO: un biglietto in alto, due risposte. Sta FUORI dal riquadro del gioco
+   (come i toast, e per la stessa ragione: là dentro finirebbe sotto ogni pannello) e resta
+   finché non si risponde — dall'altra parte c'è qualcuno fermo che aspetta. */
+.invito{position:fixed;left:50%;top:calc(12px + env(safe-area-inset-top));transform:translateX(-50%);z-index:960;
+  display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);
+  background:var(--c-paper);color:var(--c-dark);border:3px solid var(--c-line);border-radius:var(--r-2);
+  padding:var(--sp-3) var(--sp-4);box-shadow:0 6px 0 rgba(0,0,0,.25);max-width:min(92vw,var(--w-panel))}
+.inv-t{font-size:var(--fs-md);font-weight:700;text-align:center;line-height:1.4}
+.inv-b{display:flex;gap:var(--sp-2)}
+.invito .btn{min-height:44px}
 
 /* IL SOGNO — chi dorme in compagnia aspetta qui. Copre tutto, perché sta dormendo; ma il
    mondo sotto continua ad andare (regola 5: niente pausa quando c'è gente). */

@@ -12,7 +12,7 @@
  */
 import { createServer } from 'node:http';
 import { WebSocketServer } from 'ws';
-import { addPeer, dropPeer, join, leave, audience, allow } from './rooms.js';
+import { addPeer, dropPeer, join, leave, audience, allow, setCodice, guarda, inLinea, perCodice, chiGuarda } from './rooms.js';
 
 const PORT = +(process.env.DIGSY_RELAY_PORT || 17451);
 const HOST = process.env.DIGSY_RELAY_HOST || '127.0.0.1';
@@ -55,6 +55,10 @@ wss.on('connection', (ws) => {
       if (m.v !== PROTO) return ws.close(1002, 'protocollo diverso');
       p.name = String(m.name || 'Digsy').slice(0, 20);
       p.look = m.look || null;
+      /* IL PROPRIO CODICE. Serve a una cosa sola: farsi trovare da chi ti ha in rubrica —
+         il pallino verde e l'invito che arriva. Il centralino non se lo scrive da nessuna
+         parte: vive quanto la connessione. */
+      if (m.mio) { setCodice(hub, id, m.mio); avvisaChiGuarda(true); }
       presentato = true;
       manda('welcome', { id });
       return;
@@ -80,6 +84,18 @@ wss.on('connection', (ws) => {
        questo è il segno di vita che le tiene aperte, e la risposta dice al gioco che la linea
        è viva davvero (una socket può sembrare aperta e non portare più niente). */
     if (m.t === 'ping') { manda('pong', {}); return; }
+    /* «QUESTI SONO I MIEI AMICI»: si risponde chi di loro è in linea adesso. Non è una lista
+       che il centralino tiene — è una domanda, e la risposta vale per questo istante. */
+    if (m.t === 'amici') { manda('online', { attivi: guarda(hub, id, m.codici) }); return; }
+    /* UN INVITO. Il centralino lo porta a destinazione e basta: non sa cosa sia un mondo, non
+       decide chi può invitare chi. Se la persona ha due dispositivi accesi, arriva a tutti e
+       due — accetterà da quello che ha in mano. */
+    if (m.t === 'invito' || m.t === 'rifiuto') {
+      const dove = perCodice(hub, m.a);
+      const fuori = JSON.stringify({ t: m.t, da: p.codice, nome: p.name, stanza: m.stanza || null });
+      for (const q of dove) if (q.id !== id) q.send(fuori);
+      return;
+    }
     if (m.t === 'bye') { chiudiStanza(); return; }
 
     /* tutto il resto è roba di gioco: si inoltra senza guardarci dentro, col mittente scritto
@@ -98,7 +114,15 @@ wss.on('connection', (ws) => {
     }
   }
 
-  ws.on('close', () => { chiudiStanza(); dropPeer(hub, id); });
+  /* CHI GUARDA QUESTO CODICE VA AVVISATO quando compare e quando sparisce: è il pallino che
+     si accende e si spegne da solo, senza che nessuno debba richiedere niente. */
+  function avvisaChiGuarda(acceso) {
+    if (!p.codice) return;
+    const avviso = JSON.stringify({ t: 'online', cambia: p.codice, acceso: !!acceso });
+    for (const q of chiGuarda(hub, p.codice)) if (q.id !== id) q.send(avviso);
+  }
+
+  ws.on('close', () => { avvisaChiGuarda(false); chiudiStanza(); dropPeer(hub, id); });
   ws.on('error', () => { try { ws.close(); } catch (e) { /* già morta */ } });
 });
 

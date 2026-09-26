@@ -53,6 +53,10 @@ export const T = {
   CHAT: 'chat',      // una riga detta a voce alta nella stanza
   BYE: 'bye',        // esco di mia volontà
   KICK: 'kick',      // l'ospitante manda via qualcuno: è casa sua
+  AMICI: 'amici',    // questi sono i codici che mi interessano: chi di loro è in linea?
+  ONLINE: 'online',  // …questi (o: questo è appena comparso/sparito)
+  INVITO: 'invito',  // vieni nel mio mondo
+  RIFIUTO: 'rifiuto',// no, non adesso
   PING: 'ping',      // ci sono ancora (e la linea in mezzo è viva)
   PONG: 'pong',      // il centralino risponde: sì, ti sento
   SLEEP: 'sleep',    // vado a dormire / mi sveglio: gli altri devono saperlo
@@ -77,7 +81,8 @@ export function decode(raw) {
   const num = v => typeof v === 'number' && Number.isFinite(v);
   switch (m.t) {
     case T.HELLO:
-      return (num(m.v) && nome(m.name)) ? { t: m.t, v: m.v, name: m.name.slice(0, 20), look: cleanLook(m.look) } : null;
+      return (num(m.v) && nome(m.name)) ? { t: m.t, v: m.v, name: m.name.slice(0, 20), look: cleanLook(m.look),
+        mio: typeof m.mio === 'string' ? m.mio.slice(0, 20) : null } : null;
     case T.WELCOME:
       return id(m.id) ? { t: m.t, id: m.id } : null;
     case T.JOIN:
@@ -127,6 +132,17 @@ export function decode(raw) {
       return id(m.who) ? { t: m.t, id: id(m.id) ? m.id : null, who: m.who } : null;
     case T.PING: case T.PONG:
       return { t: m.t };
+    case T.AMICI:
+      return Array.isArray(m.codici) ? { t: m.t, codici: m.codici.filter(x => typeof x === 'string').slice(0, 50) } : null;
+    case T.ONLINE:
+      /* due forme: l'elenco completo (risposta a una domanda) o un solo codice che cambia */
+      if (Array.isArray(m.attivi)) return { t: m.t, attivi: m.attivi.filter(x => typeof x === 'string').slice(0, 50) };
+      return (typeof m.cambia === 'string') ? { t: m.t, cambia: m.cambia.slice(0, 20), acceso: !!m.acceso } : null;
+    case T.INVITO: case T.RIFIUTO:
+      /* `da` è il codice di chi invita: lo scrive il CENTRALINO, non il client, quindi un
+         invito non si può firmare col nome di un altro. */
+      return (typeof m.da === 'string' && m.da) ? { t: m.t, da: m.da.slice(0, 20),
+        nome: nome(m.nome) ? String(m.nome).slice(0, 20) : m.da.slice(0, 20) } : null;
     case T.SLEEP:
       return { t: m.t, id: id(m.id) ? m.id : null, on: !!m.on };
     case T.DAWN:

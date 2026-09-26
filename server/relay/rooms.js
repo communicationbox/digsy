@@ -28,9 +28,47 @@ export function makeHub() { return { rooms: new Map(), peers: new Map() }; }
 /* Un collegamento nuovo. `send` è la funzione che sa scrivere su QUELLA socket: il centralino
    non sa come, sa solo a chi. */
 export function addPeer(hub, id, name, send) {
-  const p = { id, name: String(name || 'Digsy').slice(0, 20), send, room: null, look: null, msgs: 0, bytes: 0, since: 0 };
+  const p = { id, name: String(name || 'Digsy').slice(0, 20), send, room: null, look: null,
+    codice: null, guarda: new Set(), msgs: 0, bytes: 0, since: 0 };
   hub.peers.set(id, p);
   return p;
+}
+
+/* ---------- CHI C'È, E CHI LO VUOLE SAPERE ----------
+   Il centralino non conosce le regole del gioco e non deve impararle, ma una cosa la sa per
+   forza: chi è collegato. Da lì, e solo da lì, discendono le due cose che servono per invitare
+   una persona invece di darle un codice da ribattere — il pallino verde accanto al nome, e un
+   invito che ARRIVA. Non è memoria: nessuno tiene un elenco di amicizie. Ognuno dichiara il
+   suo codice quando si presenta, e dice quali codici gli interessano; il centralino risponde
+   chi di quelli è in linea adesso, e avvisa quando cambia. Chiusa la connessione, sparisce. */
+export function setCodice(hub, id, codice) {
+  const p = hub.peers.get(id); if (!p) return false;
+  const c = String(codice || '').toUpperCase().slice(0, 20);
+  p.codice = /^[A-Z0-9]{4,20}$/.test(c) ? c : null;
+  return !!p.codice;
+}
+export function guarda(hub, id, codici) {
+  const p = hub.peers.get(id); if (!p) return [];
+  p.guarda = new Set((Array.isArray(codici) ? codici : []).slice(0, MAX_AMICI)
+    .map(x => String(x || '').toUpperCase().slice(0, 20)).filter(Boolean));
+  return inLinea(hub, [...p.guarda]);
+}
+export const MAX_AMICI = 50;        // quanti codici si possono tenere d'occhio: una rubrica, non un elenco telefonico
+/* quali di questi codici sono collegati in questo momento */
+export function inLinea(hub, codici) {
+  const vivi = new Set();
+  for (const p of hub.peers.values()) if (p.codice) vivi.add(p.codice);
+  return (codici || []).filter(c => vivi.has(c));
+}
+/* le connessioni di una persona (può averne due: telefono e computer) */
+export function perCodice(hub, codice) {
+  const c = String(codice || '').toUpperCase();
+  return [...hub.peers.values()].filter(p => p.codice === c);
+}
+/* chi sta guardando questo codice: a loro va detto quando compare o sparisce */
+export function chiGuarda(hub, codice) {
+  const c = String(codice || '').toUpperCase();
+  return [...hub.peers.values()].filter(p => p.guarda && p.guarda.has(c));
 }
 
 /* Entra in una stanza. Chi la apre per primo ne è l'OSPITANTE, e resta tale finché c'è:

@@ -3,7 +3,8 @@ import { drawHero, applyLook } from './sprites.js';
 import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
-import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inAttesa, inCasa, CENTRALINO_ONLINE } from './mp.js';
+import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inAttesa, inCasa,
+  CENTRALINO_ONLINE, inLinea, invita, setAmici } from './mp.js';
 import { pagine, pagina, dimentica, dimenticaTutto } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -15,7 +16,7 @@ import { CHANGELOG } from './changelog.js';
 import { drawTrophy } from './trophy.js';
 import { gameStats } from './stats.js';
 import { battitoAcceso, accendiBattito } from './beat.js';
-import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico, linkInvito, codiceDaTesto } from './amici.js';
+import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico, linkInvito, codiceDaTesto, nomeDi } from './amici.js';
 import { toast } from './ui.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
@@ -610,39 +611,37 @@ function buildMenu(inGame) {
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     } else {
-      /* DUE STRADE, NON SEI PULSANTI. La regola del gioco è una sola — uno apre il suo mondo,
-         l'altro lo raggiunge — ma il pannello la lasciava indovinare: un codice, un pulsante
-         per copiarlo, uno per aprire, due campi, tre pulsanti, tutti della stessa importanza.
-         Due persone ci hanno passato una sera entrando tutte e due come ospiti, ognuna ad
-         aspettare l'altra («non è per niente chiaro», ed era vero).
-         E l'invito adesso è un LINK: un codice va letto, dettato, scritto senza sbagliare un
-         segno; un link si manda e si tocca, e chi lo apre entra diritto. */
-      h += `<div class="sp-note">${tr('Per giocare insieme: UNO apre il suo mondo e manda il link, l\'ALTRO lo apre.',
-        'To play together: ONE of you opens their world and sends the link, the OTHER opens it.')}</div>`;
-
-      h += `<div class="sp-lab">${tr('1 · Apri tu, e invita', '1 · Open yours, and invite')}</div>`;
-      h += `<button class="sp-btn primary" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
-      h += `<button class="sp-btn" id="sp-mp-link">🔗 ${tr('Copia il link d\'invito', 'Copy the invite link')}</button>`;
-      if (typeof navigator !== 'undefined' && navigator.share) {
-        h += `<button class="sp-btn small" id="sp-mp-manda">${tr('Mandalo a…', 'Send it to…')}</button>`;
-      }
-      h += `<div class="sp-note">${tr('Chi apre il tuo link entra dritto nel tuo mondo. Se preferisci dettarlo, il tuo codice è:',
-        'Whoever opens your link comes straight into your world. If you\'d rather read it out, your code is:')}</div>`;
-      h += `<div class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</div>`;
-
-      h += `<div class="sp-sep"></div>`;
-      h += `<div class="sp-lab">${tr('2 · Oppure raggiungi un amico', '2 · Or go to a friend')}</div>`;
+      /* IL CODICE SERVE SOLO AD AGGIUNGERE. Tutto il resto passa dalla RUBRICA: si vede chi
+         c'è (pallino acceso), gli si manda un invito, e lui accetta o no. Invitare è un gesto
+         fra persone; un codice da ribattere è un compito. Ci sono volute cinque versioni per
+         arrivarci, e la prova è stata una sera passata a entrare tutti e due come ospiti. */
       const rub = amici();
+      h += `<div class="sp-lab">${tr('I tuoi amici', 'Your friends')}</div>`;
+      if (!rub.length) {
+        h += `<div class="sp-note">${tr('Ancora nessuno. Fatti dare il codice da un amico e aggiungilo qui sotto: da quel momento lo vedi quando gioca, e puoi invitarlo.',
+          'Nobody yet. Get a friend\'s code and add it below: from then on you see them when they play, and you can invite them.')}</div>`;
+      }
       for (const g of rub) {
-        h += `<div class="sp-riga"><span>${esc(g.n)}<br><small>${formatta(g.c)}</small></span>`;
-        h += `<button class="sp-btn small" data-vai="${esc(g.c)}">${tr('Vai da lui', 'Go to them')}</button>`;
+        const qui = inLinea(g.c);
+        h += `<div class="sp-riga"><span><i class="pallino${qui ? ' on' : ''}"></i>${esc(g.n)}`
+          + `<br><small>${qui ? tr('sta giocando', 'playing now') : tr('non c\'è', 'away')}</small></span>`;
+        if (qui) h += `<button class="sp-btn small" data-invita="${esc(g.c)}">${tr('Invita', 'Invite')}</button>`;
         h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
         h += `</div>`;
       }
-      h += `<input id="sp-mp-code" class="nameinput" maxlength="80" placeholder="${tr('incolla il suo link (o il suo codice)', 'paste their link (or their code)')}" value="">`;
-      h += `<button class="sp-btn" id="sp-mp-entra">${tr('Vai nel suo mondo', 'Go to their world')}</button>`;
-      h += `<div class="sp-note">${tr('Se non ha ancora aperto, lo aspetti lì: quando apre, ci sei già dentro.',
-        "If they haven't opened yet, you wait there: when they do, you're already in.")}</div>`;
+
+      h += `<div class="sp-sep"></div>`;
+      h += `<div class="sp-lab">${tr('Aggiungi un amico', 'Add a friend')}</div>`;
+      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('il suo codice', 'their code')}" value="">`;
+      h += `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('come lo chiami', 'what you call them')}" value="">`;
+      h += `<button class="sp-btn" id="sp-mp-agg">${tr('Aggiungi', 'Add')}</button>`;
+
+      h += `<div class="sp-sep"></div>`;
+      h += `<div class="sp-lab">${tr('Il tuo codice', 'Your code')}</div>`;
+      h += `<div class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</div>`;
+      h += `<button class="sp-btn small" id="sp-mp-link">${tr('Copia il codice', 'Copy code')}</button>`;
+      h += `<div class="sp-note">${tr('Dallo a chi vuoi: serve a lui per aggiungerti, e da lì in poi vi invitate col nome.',
+        'Give it to whoever you like: they use it to add you, and from then on you invite each other by name.')}</div>`;
 
       h += `<div class="sp-sep"></div>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
@@ -846,7 +845,7 @@ function buildMenu(inGame) {
   };
   { const a = document.getElementById('sp-mp-apri'); if (a) a.onclick = () => vaiDa(mioCodice(), true); }
   document.querySelectorAll('[data-vai]').forEach(b => { b.onclick = () => vaiDa(b.dataset.vai); });
-  document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => { dimenticaAmico(b.dataset.scorda); go('amici'); }; });
+  document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => { dimenticaAmico(b.dataset.scorda); setAmici(amici().map(x => x.c)); go('amici'); }; });
   { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {
       const c = document.getElementById('sp-mp-code');
       vaiDa(codiceDaTesto(c && c.value));
@@ -856,15 +855,34 @@ function buildMenu(inGame) {
       toast('📇 ' + tr('Segnato in rubrica', 'Noted down'));
       go('amici');
     }; }
+  /* AGGIUNGERE: l'unica cosa per cui serve un codice */
+  const aggiornaAmiciInLinea = () => setAmici(amici().map(x => x.c));
+  { const a = document.getElementById('sp-mp-agg'); if (a) a.onclick = () => {
+      const c = document.getElementById('sp-mp-code'), n = document.getElementById('sp-mp-nome');
+      if (!aggiungiAmico(codiceDaTesto(c && c.value), n && n.value)) {
+        avvisoAmici = tr('Questo non è un codice: sono dieci segni, come il tuo qui sotto.',
+          "That's not a code: ten characters, like yours below.");
+      } else { avvisoAmici = ''; aggiornaAmiciInLinea(); }
+      go('amici');
+    }; }
+  /* INVITARE: aprire il proprio mondo e chiamare una persona sono la STESSA cosa — nessuno
+     invita per poi restare fuori, e chiedere due gesti per uno era metà del pasticcio. */
+  document.querySelectorAll('[data-invita]').forEach(b => { b.onclick = () => {
+      const cod = b.dataset.invita;
+      if (!sonoOspitante()) vaiDa(mioCodice(), true);
+      invita(cod);
+      toast('🚶 ' + tr('Invito mandato a ', 'Invite sent to ') + nomeDi(cod));
+      go('amici');
+    }; });
   /* COPIARE IL PROPRIO CODICE. `navigator.clipboard` non c'è dappertutto (e su http nudo
      nemmeno): se manca si seleziona il testo, che è comunque meglio di un pulsante che non fa
      niente senza dire perché. */
   /* IL LINK: copiarlo, o passarlo al telefono perché lo mandi con quello che vuole (la
      condivisione di sistema c'è solo su telefono, quindi il pulsante compare solo lì). */
   { const lk = document.getElementById('sp-mp-link'); if (lk) lk.onclick = () => {
-      const t = linkInvito(mioCodice());
+      const t = formatta(mioCodice());
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(t).then(() => toast('🔗 ' + tr('Link copiato: mandalo a chi vuoi', 'Link copied: send it to whoever you like')), () => toast(t));
+        navigator.clipboard.writeText(t).then(() => toast('📇 ' + tr('Codice copiato', 'Code copied')), () => toast(t));
       } else toast(t);
     }; }
   { const sh = document.getElementById('sp-mp-manda'); if (sh) sh.onclick = () => {

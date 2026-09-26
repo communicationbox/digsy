@@ -121,60 +121,24 @@ Una per volta, ognuna provabile da sola.
    tutti. L'orologio lo manda l'ospitante ogni due secondi.
    Per ora l'ospite **non dorme** in casa d'altri e **non tocca** l'arredo: il sonno in
    compagnia col sogno è nella fetta 5.
-3. **Amici e inviti.** *Mezza fatta, e la metà fatta è quella che non ha bisogno del server.*
-   - **FATTO: il codice.** Ognuno ha un codice suo (`amici.js`), dieci segni senza lettere
-     ambigue — niente 0/O, 1/I/L, 5/S, 8/B, perché un codice si detta a voce o si copia da una
-     chat e un segno frainteso manda in una stanza che non è quella. **La stanza porta il
-     codice di chi ospita** (`stanzaDi`), quindi non c'è più niente da inventare né da
-     concordare: chi ha il tuo codice entra nel tuo mondo. Il codice **vive nel salvataggio**
-     (non nelle preferenze del dispositivo) così ti segue sul telefono — il contrario del
-     taccuino, che sta sul dispositivo apposta.
-   - **FATTO: la rubrica.** Gli amici si segnano col codice e col nome che dai TU (il suo nome
-     vero arriva quando lo incontri: in rubrica ci sono i tuoi nomi). Da lì: *Vai da lui*
-     (entri nel suo mondo) e *Apri il mio mondo* (apri la stanza, e chi ha il tuo codice
-     entra). Niente parole inventate da nessuna parte.
-   - **MANCA, e vuole il server: l'invito che ARRIVA all'altro.** «Invita» e «invitami» hanno
-     senso solo se dall'altra parte squilla qualcosa, e per squillare serve sapere chi è
-     online: account, presenza, recapito. Cioè `friends.php` + il pallino verde + il centro
-     notifiche. Oggi al posto dell'invito c'è il codice, che funziona senza che il server sappia
-     niente di nessuno.
-   - **FATTO: la cassetta delle lettere** (`posta.js`), in ogni paese. Scrivere a un amico che
-     adesso non c'è costa **🪙5**, detti prima: la chat esiste solo mentre si è insieme, e una
-     riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account (senza,
-     non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo dice:
-     il recapito è la parte che manca, e non si finge che sia arrivata.
-   - **FATTO: la cassetta delle lettere** (`posta.js`), in ogni paese. Scrivere a un amico che
-     adesso non c'è costa **5 monete**, dette prima: la chat esiste solo mentre si è insieme, e
-     una riga a chi non c'è va PORTATA. Compare solo a chi è collegato col proprio account
-     (senza, non c'è nessuno a cui scrivere). Le lettere restano «in partenza» e il pannello lo
-     dice: il recapito è la parte che manca, e non si finge che sia arrivata.
-   - **FATTO: l'invito è un LINK.** `https://digsy.dev-box.it/?vai=CODICE`: si copia (o si passa
-     alla condivisione del telefono) e chi lo apre entra **dritto** nel mondo di chi l'ha
-     mandato — niente pannelli da capire, niente codici da ribattere. Il codice resta, per chi
-     preferisce dettarlo a voce, e il campo per entrare accetta tutti e due: chi incolla non
-     sta scegliendo un formato, sta incollando quello che ha ricevuto.
-     Il pannello è diventato due strade numerate («apri tu e invita» · «oppure raggiungi un
-     amico») sotto la riga che spiega la regola, perché prima la lasciava indovinare da sei
-     pulsanti di pari importanza — e due persone ci hanno passato una sera entrando tutte e
-     due come ospiti, ognuna ad aspettare l'altra.
-     La **rubrica si riempie giocando**: dentro il mondo di un altro c'è un pulsante che lo
-     segna, col suo nome vero — che si conosce solo lì.
-   - **SI PUÒ ASPETTARE.** Una stanza può esistere **senza padrone di casa**: è una sala
-     d'attesa (`host: null` nel centralino), e diventa un mondo quando arriva quello di cui
-     porta il codice — che a quel punto riceve la stanza e manda il suo mondo a chi aspettava.
-     La regola vecchia («ospitante è chi arriva per primo», punto) faceva un vicolo cieco: due
-     amici che si aspettavano a vicenda non si incontravano MAI, perché ognuno entrava nella
-     stanza dell'altro e se la ritrovava per le mani. Chi entra dichiara al centralino se sta
-     entrando **da ospite**: è l'unica cosa che il centralino ha imparato, e non è una regola
-     di gioco — è sapere di chi è la stanza.
-   - **Entrare col codice di chi non c'è NON apre la sua stanza.** Il centralino fa ospitante
-     chi arriva per primo: entrando in una stanza vuota si diventava padroni di casa di un
-     codice altrui, restando nel PROPRIO mondo — «è il TUO mondo» scritto sopra il codice di
-     un altro. Sembrava di essere entrati da qualche parte e non si era entrati da nessuna
-     parte. Ora si esce e si dice il perché. Restare sarebbe peggio: l'amico che arriva dopo
-     col suo codice finirebbe ospite nel mondo di chi lo aspettava.
-   - Non c'è **verifica** che un codice sia di chi dice di essere: finché non esistono gli
-     account, un codice è una chiave, non un'identità. Si dà a chi si vuole e a nessun altro.
+3. ~~**Amici e inviti.**~~ **FATTO**, e senza account: *il codice serve SOLO ad aggiungere un
+   amico*; da lì in poi lo si vede quando gioca (pallino) e **lo si invita**, e lui accetta o no.
+   - **Il centralino sa chi c'è, e non tiene nessun elenco.** Ognuno dichiara il proprio codice
+     quando si presenta (`hello.mio`) e dice quali codici gli interessano (`amici`): la risposta
+     (`online`) vale per quell'istante, e chi guarda un codice viene avvisato quando compare o
+     sparisce. Chiusa la connessione, sparisce tutto. Nessuna amicizia è scritta da nessuna
+     parte sul server: la rubrica sta nel salvataggio di chi la tiene.
+   - **Ci si collega anche giocando da soli.** È l'unico modo perché un amico ti veda col
+     pallino acceso e perché un invito ti ARRIVI. Costa una socket ferma e un battito ogni
+     mezzo minuto, e non cambia niente nel gioco: nessun mondo condiviso finché non si accetta.
+   - **Invitare è aprire.** Il pulsante «Invita» apre il proprio mondo e chiama la persona:
+     nessuno invita per poi restare fuori, e chiedere due gesti per uno era metà del pasticcio
+     delle versioni precedenti.
+   - **Si può dire di no**, e chi ha invitato lo sa (`rifiuto`): aspettare una risposta che non
+     arriva mai è la cosa più scortese che un gioco possa far fare a una persona.
+   - Resta vero che **non c'è verifica**: un codice è una chiave, non un'identità. Si dà a chi
+     si vuole e a nessun altro. Gli account Google servirebbero a questo, e non a invitare.
+
 4. ~~**Chat.**~~ **FATTA**, taccuino a schermo compreso (menu → Amici → Taccuino: l'elenco
    di chi si è sentito, dal più recente, e la conversazione con l'ora di ogni riga). Nuvolette sopra la testa con lo stesso fumetto degli NPC (sa già andare a capo e
    restare sotto la barra), taccuino in `localStorage` **fuori dal salvataggio**, riga di testo
