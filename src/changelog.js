@@ -1,11 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.99.14', it: [
+    v: 'v0.99.15', it: [
+      'LA CASSETTA DELLE LETTERE ha aria attorno: era incastrata fra due panchine e il tetto di una bottega. Adesso si sceglie il punto più sgombro della piazza, ma comodo da raggiungere — nelle partite già avviate la troverai spostata',
       'QUELLO CHE SI DICE IN GIOCO NON RESTA SCRITTO: si dice, si sente e passa, come parlare di persona. Nel taccuino finiscono solo le LETTERE, quelle da cinque monete — ed è proprio per questo che costano',
       'LA PALETTA DELLA CASSETTA dice se c\'è posta per te: alzata se hai qualcosa da leggere, abbassata se no. Prima stava sempre su',
       'IL TUO NOME si può cambiare, dal pannello Amici sopra il tuo codice: è quello che gli altri leggono sopra la tua testa, e sceglierlo in trenta secondi voleva dire portarselo per trenta ore',
     ], en: [
+      'THE MAILBOX has room around it: it used to be wedged between two benches and a shop roof. Now it takes the clearest spot on the square, still within walking distance — in games already under way you will find it moved',
       'WHAT YOU SAY IN GAME IS NOT WRITTEN DOWN: you say it, they hear it, and it passes, like talking in person. Only LETTERS end up in the notebook — the five-coin ones, and that is exactly why they cost',
       'THE MAILBOX FLAG tells you if there is post for you: up if you have something to read, down if not. It used to be always up',
       'YOUR NAME can be changed, from the Friends panel above your code: it is what others read above your head, and picking it in thirty seconds meant carrying it for thirty hours',

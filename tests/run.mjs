@@ -10849,6 +10849,30 @@ sprites.applyLook();
   check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
 }
 
+/* ---------- LA CASSETTA VUOLE ARIA ATTORNO ----------
+   «Spostiamo la cassetta delle lettere in un posto meno affollato?» Si prendeva la prima
+   casella libera di un elenco fisso, e «libera» voleva dire solo che non c'era niente
+   ESATTAMENTE lì: finiva incastrata fra due panchine e il tetto di una bottega. */
+{
+  const w3 = await import('../src/world.js');
+  let citta = 0, strette = 0, lontane = 0, peggio = null;
+  for (let cy = 0; cy < 8; cy++) for (let cx = 0; cx < 8; cx++) {
+    const t = w3.townForCell(cx, cy); if (!t) continue;
+    const mb = (t.decos || []).find(d => d.type === 'mailbox'); if (!mb) continue;
+    citta++;
+    /* nessun'altra decorazione attaccata, e nessun edificio addosso (tetto compreso) */
+    const vicine = (t.decos || []).filter(d => d !== mb
+      && Math.max(Math.abs(d.x - mb.x), Math.abs(d.y - mb.y)) <= 1).length;
+    const addosso = (t.buildings || []).some(b => mb.x >= b.x0 - 1 && mb.x <= b.x1 + 1 && mb.y >= b.y0 - 3 && mb.y <= b.y1 + 1);
+    if (vicine || addosso) { strette++; if (!peggio) peggio = t.name + ' (' + vicine + ' accanto' + (addosso ? ', edificio addosso' : '') + ')'; }
+    /* ma nemmeno in capo al mondo: si va a imbucare a piedi */
+    if (Math.max(Math.abs(mb.x - t.C.x), Math.abs(mb.y - t.C.y)) > 7) lontane++;
+  }
+  check('si sono trovate città da controllare', citta >= 5, citta + ' città');
+  check('la cassetta non è incastrata fra le cose', strette === 0, strette + ' su ' + citta + (peggio ? ' — ' + peggio : ''));
+  check('e resta comoda da raggiungere', lontane === 0, lontane + ' troppo lontane');
+}
+
 /* ---------- LA PALETTA DELLA CASSETTA ----------
    Come le cassette vere: alzata se c'è posta per te, abbassata se no. Prima stava sempre su —
    e una paletta che non cambia mai non è un segnale, è un ornamento: si smette di guardarla al

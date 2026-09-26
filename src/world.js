@@ -412,10 +412,24 @@ export function townForCell(cx, cy) {
       /* CASSETTA DELLA POSTA: in OGNI paese, città comprese. Nasce per spedire i reperti
          grezzi al Museo senza il viaggio — e quel servizio resta solo dove il Museo non c'è —
          ma da quando ci si scrive fra persone serve dappertutto: chi vive in città non deve
-         mettersi in cammino per imbucare una lettera. Prima tile libera vicino alla piazza. */
-      for (const [bx, by] of [[2, -1], [-2, -1], [3, 0], [-3, 0], [2, 1], [-2, 1], [1, 1], [-1, 1]]) {
-        const x = C.x + bx, y = C.y + by;
-        if (!forb(x, y) && !occupiedByDeco(x, y)) { decos.push({ type: 'mailbox', x, y }); break; }
+         mettersi in cammino per imbucare una lettera.
+         VUOLE ARIA ATTORNO. Prima si prendeva la prima casella libera di un elenco fisso, e
+         «libera» voleva dire solo che non c'era niente ESATTAMENTE lì: finiva incastrata fra
+         due panchine e il tetto di una bottega, schiacciata fra le cose (segnalato con foto).
+         Ora si guarda un pezzo di piazza e si sceglie il punto più SGOMBRO — la distanza dalla
+         cosa più vicina, decorazioni ed edifici insieme — e a parità il più comodo, cioè il
+         più vicino al centro: una cassetta appartata ma da raggiungere a piedi. */
+      { let best = null, bestD = -1, bestC = 1e9;
+        for (let dy = -5; dy <= 5; dy++) for (let dx = -6; dx <= 6; dx++) {
+          const x = C.x + dx, y = C.y + dy;
+          if (forb(x, y) || occupiedByDeco(x, y)) continue;
+          let d = 99;
+          for (const o of decos) d = Math.min(d, Math.max(Math.abs(o.x - x), Math.abs(o.y - y)));
+          for (const b of B) d = Math.min(d, Math.max(b.x0 - x, 0, x - b.x1) + Math.max(b.y0 - 2 - y, 0, y - b.y1));
+          const vic = Math.max(Math.abs(dx), Math.abs(dy));
+          if (d > bestD || (d === bestD && vic < bestC)) { bestD = d; bestC = vic; best = [x, y]; }
+        }
+        if (best) decos.push({ type: 'mailbox', x: best[0], y: best[1] });
       }
       town.decos = decos;
     }
