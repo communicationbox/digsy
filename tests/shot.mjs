@@ -418,6 +418,9 @@ async function main() {
           ['Ada','arrivo',1],['Bruno','guarda che pinne',0],['Carla','buonanotte!',1],
           ['Fenn','bella!',0],['Fenn','scavi con me domani?',0],['Nadia','fatto',1],
           ['Zoe','il mio parco è pieno',1],['ëlo','привет',0]];
+        /* solo=1: UN contatto solo. È il caso peggiore per il bordo delle lettere — ventisei
+           linguette accanto a una riga di rubrica — e va guardato apposta. */
+        if((new URLSearchParams(location.search)).get('solo')) det = [['Fenn','bella!',0]];
         det.forEach(function(r){ c.segna(r[0], r[1], !!r[2]); });
         det.forEach(function(r){ if(r[0]==='Ada'||r[0]==='Nadia'||r[0]==='Zoe') c.segnaLetto(r[0]); });
         /* chi=<nome>: apre la PAGINA di quella persona invece dell'elenco. Solo dopo che la

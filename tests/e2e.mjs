@@ -228,7 +228,7 @@ const PROBE = `
           checkToastSopraSplash();
           sp.classList.add('off');
           checkSafeArea(); checkLefty();
-          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkTraySearch(function(){ checkSettings(finish); }); }); }); }); }); }); });
+          rooms(function(){ checkAudioBg(function(){ checkLabRefusal(function(){ checkCompanion(function(){ checkFurnDrag(function(){ checkFurnTopics(function(){ checkTraySearch(function(){ checkSettings(function(){ checkTaccuino(finish); }); }); }); }); }); }); }); });
         }, 120);
         return; }
       var v=views[vi++];
@@ -781,6 +781,57 @@ const PROBE = `
         A('splash/amici: larghe come i pulsanti del menu', Math.abs(w[0]-bw)<=2, w[0]+' contro '+bw);
         var via=document.querySelector('[data-via]');
         A('splash/amici: chi ospita può mandare via', !!via);
+      }, 120);
+    });
+  }
+  /* IL BORDO DEL TACCUINO. Le linguette vanno da cima a fondo del foglio e sono SEPARATE:
+     appiccicate diventano una colonnina di caratteri, e rimpicciolite in un angolo non si
+     leggono come il bordo di un'agenda. Si misura, perché a occhio la si guarda una volta. */
+  function checkTaccuino(poi){
+    var ch = null;
+    if (!G3.mod) { poi(); return; }
+    G3.mod('chat').then(function(c){
+      ch = c; c.dimenticaTutto();
+      /* GENTE A SUFFICIENZA DA FAR CRESCERE IL FOGLIO oltre l'altezza delle ventisei
+         linguette: con due soli contatti sono le linguette a decidere quanto è alta la carta,
+         e la misura «vanno da cima a fondo» tornerebbe vera anche stando appiccicate in alto
+         (provato: con align-self:flex-start passava lo stesso — un controllo che non sa
+         fallire non difende niente). */
+      'Ada Bruno Carla Dino Elsa Fenn Gino Hana Iris Jo Kai Lea Mo Nadia'.split(' ')
+        .forEach(function(n){ c.segna(n, 'ci vediamo dopo?', false); });
+      c.segnaLetto('Ada');
+      G3.splashView('taccuino');
+      setTimeout(function(){
+        var carta = document.querySelector('.tacc-carta');
+        var abc = document.querySelector('.tacc-abc');
+        var tab = [].slice.call(document.querySelectorAll('.tacc-tab'));
+        if (!carta || !abc || tab.length < 26) {
+          A('taccuino: il bordo ha tutte le lettere', false, tab.length + ' linguette');
+          ch.dimenticaTutto(); poi(); return;
+        }
+        var cr = carta.getBoundingClientRect(), ar = abc.getBoundingClientRect();
+        A('taccuino: le linguette vanno da cima a fondo del foglio', ar.height >= cr.height - 8,
+          Math.round(ar.height) + ' su ' + Math.round(cr.height));
+        var r0 = tab[0].getBoundingClientRect(), r1 = tab[1].getBoundingClientRect();
+        A('taccuino: e sono staccate una dall altra', Math.round(r1.top - r0.bottom) >= 1,
+          Math.round(r1.top - r0.bottom) + 'px di fessura');
+        A('taccuino: si dividono l altezza in parti uguali',
+          Math.abs(r0.height - r1.height) <= 1, Math.round(r0.height) + '/' + Math.round(r1.height));
+        var pieno = document.querySelector('.tacc-tab.pieno');
+        var nuovo = document.querySelector('.tacc-tab.nuovo');
+        A('taccuino: la lettera di chi c e si preme', !!pieno && !pieno.disabled);
+        A('taccuino: quella di chi ti ha scritto e accesa', !!nuovo);
+        A('taccuino: le vuote non si premono', !!document.querySelector('.tacc-tab[disabled]'));
+        /* DUE COLONNE, e grandi abbastanza da premerle col polpastrello: ventisei linguette
+           in fila sola diventano fessure alte un'unghia proprio quando il bordo serve di più */
+        A('taccuino: il bordo sta su due colonne',
+          document.querySelectorAll('.tacc-col').length === 2);
+        A('taccuino: e le linguette si prendono col dito', r0.height >= 16 && r0.width >= 18,
+          Math.round(r0.width) + '×' + Math.round(r0.height));
+        A('taccuino: ma non diventano mattoni su un foglio lungo', r0.height <= 48,
+          Math.round(r0.height) + 'px con ' + 14 + ' nomi');
+        ch.dimenticaTutto();
+        poi();
       }, 120);
     });
   }

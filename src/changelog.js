@@ -1,12 +1,14 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.99.5', it: [
+    v: 'v0.99.6', it: [
       'IL TACCUINO È UNA RUBRICA VERA: carta giallina a righe, il filo rosso del margine e le LETTERE sul bordo destro, come nelle vecchie agende dei numeri di telefono. I nomi stanno sotto la loro iniziale, e si salta a una lettera premendola',
       'Chi ti ha scritto si vede dal bordo: la sua lettera si accende, accanto al nome c\'è quante righe devi ancora leggere, e il taccuino nella barra in alto si accende col totale',
+      'Le linguette sono su DUE colonne e vanno da cima a fondo del foglio, come nelle agende vere: abbastanza grandi da premerle col dito',
     ], en: [
       'THE NOTEBOOK IS A REAL ADDRESS BOOK: yellowed ruled paper, the red margin line and the LETTERS down the right edge, like the old phone-number books. Names sit under their initial, and pressing a letter jumps to it',
       'Whoever wrote to you shows on the edge: their letter lights up, the number of unread lines sits next to the name, and the notebook in the top bar lights up with the total',
+      'The tabs run in TWO columns from top to bottom of the page, like a real address book: big enough to press with a finger',
     ],
   },
   {

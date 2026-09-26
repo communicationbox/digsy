@@ -390,15 +390,38 @@ kbd + .pxi{margin-left:2px}
 /* il bollo: quante righe non hai ancora letto di quella persona */
 .tn-bollo{position:absolute;right:6px;top:11px;min-width:18px;height:18px;padding:0 4px;box-sizing:border-box;
   background:#b23a2c;color:var(--c-paper);font:800 11px/18px ui-monospace,Menlo,monospace;text-align:center}
-/* IL BORDO DELLE LETTERE. Ci sono tutte, anche le vuote: un bordo con due tacche sole non si
-   riconosce come bordo. Quelle senza nessuno restano spente e non si premono. */
-.tacc-abc{flex:0 0 auto;align-self:flex-start;position:sticky;top:0;
-  display:flex;flex-direction:column;gap:1px;padding:var(--sp-1) 3px;background:#e0cf9f}
-.tacc-tab{width:18px;padding:0;border:0;border-radius:0;background:transparent;cursor:default;
-  font:800 9px/13px ui-monospace,Menlo,monospace;color:rgba(58,47,34,.3);text-align:center}
-.tacc-tab.pieno{background:#c9b485;color:#3a2f22;cursor:pointer}
-.tacc-tab.pieno:hover{background:var(--c-line-2);color:var(--c-paper)}
-.tacc-tab.nuovo{background:#b23a2c;color:var(--c-paper)}
+/* IL BORDO DELLE LETTERE — le LINGUETTE dell'agenda, non una listarella di caratteri.
+   Ci sono tutte, anche le vuote: un bordo con due tacche sole non si riconosce come bordo.
+   Vanno da cima a fondo del taccuino, su DUE COLONNE come nelle agende vere: ventisei in fila
+   sola sarebbero ventisei fessure alte un'unghia — il bordo smetterebbe di essere leggibile
+   proprio mentre cresce, e col dito non se ne centrerebbe una. Il fondo scuro fra l'una e
+   l'altra è la FESSURA del taglio, ed è quella che le fa leggere come linguette separate
+   invece che come una colonna sola. Quelle senza nessuno restano spente e non si premono. */
+.tacc-abc{flex:0 0 auto;align-self:stretch;display:flex;flex-direction:row;gap:2px;
+  padding:3px;background:var(--c-soot)}
+/* le linguette si distribuiscono sull'altezza, ma non diventano MATTONI: con venti nomi il
+   foglio è lungo, e una linguetta alta un dito non è più una linguetta. Oltre il tetto
+   cresce la fessura fra l'una e l'altra — che è il taglio del bordo, non uno spazio vuoto. */
+.tacc-col{display:flex;flex-direction:column;gap:2px;justify-content:space-between}
+.tacc-tab{flex:1 1 0;min-height:18px;max-height:46px;width:22px;padding:0;border:0;border-radius:0;cursor:default;
+  display:flex;align-items:center;justify-content:center;
+  font:800 11px/1 ui-monospace,Menlo,monospace;
+  background:#b6a785;color:rgba(28,22,14,.42)}
+/* una lettera con qualcuno dentro è CARTA CHIARA, come il foglio che apre */
+.tacc-tab.pieno{background:#f4ecd8;color:var(--c-deep);cursor:pointer;box-shadow:inset 0 -2px 0 rgba(0,0,0,.18)}
+.tacc-tab.pieno:hover{background:var(--c-win-gold);color:var(--c-soot)}
+/* e una con roba da leggere si accende: è la stessa cosa che dice la lettera sul foglio */
+.tacc-tab.nuovo{background:#b23a2c;color:var(--c-paper);box-shadow:inset 0 -2px 0 rgba(0,0,0,.28)}
+.tacc-tab.nuovo:hover{background:#d04a38}
+/* COL DITO IL BORDO È PIÙ GENEROSO: una linguetta si prende col polpastrello, non con la
+   punta del cursore — e su uno schermo piccolo è proprio il bordo la via più rapida per
+   arrivare a una lettera, quindi è l'ultimo posto dove rimpicciolire. */
+@media(pointer:coarse){
+  .tacc-tab{min-height:24px;width:30px;font-size:13px}
+  /* e la carta si prende quasi tutta la larghezza: due colonne di linguette su un telefono
+     lasciano poco ai fogli, e un nome troncato non serve a nessuno */
+  .tacc-carta{width:min(var(--w-panel),94vw)}
+}
 /* una riga di conversazione: le mie a destra come in qualsiasi chat, le altrui a sinistra */
 .tacc-riga{padding:0 8px;margin:0;line-height:22px;font-size:12px;text-align:left;color:#3a2f22}
 .tacc-riga.io{text-align:right;color:#6b5a40}

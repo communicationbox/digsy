@@ -700,10 +700,18 @@ function buildMenu(inGame) {
         }
       }
       taccuinoOrdine = ordine;
+      /* DUE COLONNE di linguette, come nelle agende vere: ventisei in fila sola sarebbero
+         ventisei fessure alte un'unghia, e il bordo smetterebbe di essere leggibile proprio
+         mentre cresce. Divise a metà si leggono, e sono alte abbastanza da premerle. */
       h += `</div><div class="tacc-abc">`;
-      for (const L of tacche) {
-        const g = pieni.get(L);
-        h += `<button class="tacc-tab${g ? ' pieno' : ''}${g && g.nuovi ? ' nuovo' : ''}"${g ? ` data-abc="${L === ALTRE ? 'altro' : L}"` : ' disabled'}>${L}</button>`;
+      const meta = Math.ceil(tacche.length / 2);
+      for (const col of [tacche.slice(0, meta), tacche.slice(meta)]) {
+        h += `<div class="tacc-col">`;
+        for (const L of col) {
+          const g = pieni.get(L);
+          h += `<button class="tacc-tab${g ? ' pieno' : ''}${g && g.nuovi ? ' nuovo' : ''}"${g ? ` data-abc="${L === ALTRE ? 'altro' : L}"` : ' disabled'}>${L}</button>`;
+        }
+        h += `</div>`;
       }
       h += `</div></div>`;
       h += `<button class="sp-btn small danger" id="sp-tacc-tutto">${tr('Strappa tutto il taccuino', 'Tear up the whole notebook')}</button>`;
