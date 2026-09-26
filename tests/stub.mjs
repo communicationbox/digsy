@@ -183,7 +183,11 @@ export function installStubs() {
   const docL = {};
   globalThis.document = {
     getElementById: id => { if (!els[id]) els[id] = el(id); return els[id]; },
-    querySelector: sel => { const id = String(sel).replace(/^[#.]/, ''); if (!els[id]) els[id] = el(id); return els[id]; },
+    /* prima si cerca DAVVERO fra i nodi scritti nell'HTML (come `querySelectorAll`), e solo
+       se non c'è si ripiega sul vecchio modo — un elemento inventato con quel nome, che serve
+       ai moduli che cercano nodi statici del markup e senza il quale esplodevano. */
+    querySelector: sel => { const t = cerca(sel)[0]; if (t) return t;
+      const id = String(sel).replace(/^[#.]/, ''); if (!els[id]) els[id] = el(id); return els[id]; },
     querySelectorAll: sel => cerca(sel), createElement: el, readyState: 'complete',
     addEventListener: (t, fn) => { (docL[t] = docL[t] || []).push(fn); },
     removeEventListener: (t, fn) => { docL[t] = (docL[t] || []).filter(f => f !== fn); },

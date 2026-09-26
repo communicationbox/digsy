@@ -361,6 +361,16 @@ kbd + .pxi{margin-left:2px}
 .pallino{display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:baseline;
   background:rgba(241,231,207,.22);box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 .pallino.on{background:#7bd88f;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 0 8px rgba(123,216,143,.7)}
+/* TUTTA LA LARGHEZZA, dove il contenuto non è un elenco di scelte ma roba dentro delle righe
+   (il codice col suo pulsante, i due campi col più, un amico con «invita» accanto): stretti
+   diventano una colonnina in mezzo al vuoto. */
+/* …tranne la X (sta per conto suo, in un angolo) e il titolo (è una scritta, non una riga):
+   allargati diventavano una fascia vuota in cima alla scheda. */
+.sp-menu.largo > *:not(.sp-x):not(.sp-title2){width:100%;max-width:none;box-sizing:border-box}
+.sp-menu.largo .sp-riga{width:100%;max-width:none}
+.sp-menu.largo .sp-riga > .sp-btn{width:auto;max-width:none}
+.sp-menu.largo .sp-note{max-width:none}
+
 /* IL CODICE E IL SUO PULSANTE su una riga sola: sono la stessa cosa (questo è il mio codice,
    eccotelo negli appunti), e una riga per ciascuno le faceva sembrare due passi. */
 .sp-riga-cod{gap:var(--sp-2)}

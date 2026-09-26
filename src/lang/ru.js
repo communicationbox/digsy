@@ -1815,6 +1815,7 @@ export const RU = {
   "You're not connected: until the line is back there's no telling who's playing.": 'Ты не на связи: пока линия не вернётся, не узнать, кто играет.',
   "Nobody yet. Get a friend's code and add it above: from then on you see them when they play, and you can invite them.": 'Пока никого. Возьми код друга и добавь его выше: с этого момента ты видишь, когда он играет, и можешь его позвать.',
   'Copy': 'Копировать',
+  'Remove?': 'Убрать?',
   'code': 'код',
   'name': 'имя',
   'Your friends': 'Твои друзья',

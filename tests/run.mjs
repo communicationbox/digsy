@@ -10240,6 +10240,21 @@ sprites.applyLook();
       mpR2.setTransport((u) => new WebSocket(u));
       state.S.amici = [];
     }
+    /* TOGLIERE UN AMICO CHIEDE CONFERMA: è l'unico pulsante della pagina che distrugge
+       qualcosa, sta accanto a «Invita» ed è largo un dito. Per rimettere una persona serve il
+       suo codice, che magari non hai più. */
+    {
+      state.S.amici = []; amS.aggiungiAmico('Q2D4FG7HJK', 'Luca');
+      sp2.setView('amici');
+      const x = document.querySelector('[data-scorda]');
+      check('il pulsante per togliere c\'è', !!x);
+      x.onclick();
+      check('un tocco solo non cancella nessuno', amS.amici().length === 1);
+      check('ma chiede conferma, e dice cosa sta per fare', /Tolgo|Remove/i.test(x.textContent));
+      x.onclick();
+      check('il secondo tocco toglie davvero', amS.amici().length === 0);
+      state.S.amici = [];
+    }
   }
   /* DENTRO LA STANZA si deve leggere DOVE si è e DI CHI è il mondo. Due persone che sbagliano
      codice — o che aprono ognuna il proprio mondo — vedevano tutte e due «sei nella stanza» e

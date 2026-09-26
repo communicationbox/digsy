@@ -1,6 +1,27 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.0', it: [
+      'SI GIOCA IN DUE. Menu → Amici: dai il tuo codice a chi vuoi, lui ti aggiunge (e tu aggiungi lui), e da quel momento vi vedete quando siete in gioco — pallino acceso accanto al nome',
+      'INVITARE: premi Invita e all\'altro arriva un biglietto nel suo gioco, che può accettare o no. Chi invita apre il proprio mondo: si gioca lì, col suo orologio e le sue stagioni',
+      'Il mondo è di chi ospita, e quello che porti addosso resta tuo: zaino, monete, collezioni e aspetto tornano con te quando esci. Quello che consumi scavando, però, resta consumato nel suo mondo — per questo si invita chi si conosce',
+      'Casa e cortile di chi ospita si visitano ma non si toccano; al Museo si può consegnare (i pezzi nuovi restano nelle sue teche, i doppioni tornano a te); la fontana dà dieci lanci a testa',
+      'CHAT: premi T e quello che dici compare sopra la tua testa. Resta nel Taccuino, una pagina per persona, che si rilegge quando vuoi — e sta sul tuo dispositivo, non su un server',
+      'DORMIRE IN DUE: chi va a letto sogna e aspetta, perché l\'orologio è uno solo ed è di chi ospita. Se dormite tutti la notte passa subito; se dorme solo lui, sceglie lui — e l\'energia la recupera chi stava dormendo',
+      'Chi non fa niente per cinque minuti torna nel suo mondo: sei in casa d\'altri, e chi ospita non deve trovarsi in casa una statua',
+      'LA CASSETTA DELLA POSTA in ogni paese: se sei collegato col tuo account puoi scrivere due righe a un amico che adesso non c\'è. Costa 5 monete — la chat esiste solo mentre siete insieme, una lettera va portata',
+    ], en: [
+      'PLAY TOGETHER. Menu → Friends: give your code to whoever you like, they add you (and you add them), and from then on you see each other when you are playing — a lit dot next to the name',
+      'INVITING: press Invite and a note appears in their game, which they can accept or not. Whoever invites opens their own world: you play there, on their clock and in their seasons',
+      'The world belongs to the host, and what you carry stays yours: bag, coins, collections and looks come back with you. What you use up digging, though, stays used up in their world — which is why you invite people you know',
+      'The host\'s home and yard can be visited but not touched; at the Museum you can hand things in (new pieces stay in their cases, duplicates come back to you); the fountain gives ten tosses each',
+      'CHAT: press T and what you say appears above your head. It stays in the Notebook, one page per person, to read back whenever you like — and it lives on your device, not on a server',
+      'SLEEPING TOGETHER: whoever goes to bed dreams and waits, because there is one clock and it belongs to the host. If everyone sleeps the night passes at once; if only they sleep, they choose — and energy comes back to whoever was sleeping',
+      'Stand still for five minutes and you go back to your own world: you are in someone else\'s home, and a host should not find a statue in the house',
+      'THE POSTBOX in every town: signed in with your account, you can write a line to a friend who is not around. It costs 5 coins — chat only exists while you are together, a letter has to be carried',
+    ],
+  },
+  {
     v: 'v0.98.70', it: [
       'VISO: barba e baffi dal Barbiere (baffi, pizzetto, barba piena) e occhiali dalla Sartoria (tondi, rettangolari, da sole), ognuno col suo colore. Si provano gratis e si pagano alla conferma come tutto il resto; toglierli non costa niente',
       'La barba nasce del colore dei capelli e li segue, finché non le dai un colore suo',

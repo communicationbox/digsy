@@ -802,6 +802,11 @@ function buildMenu(inGame) {
     h += `</div>`;
   }
   menu.innerHTML = withIcons(h);
+  /* AMICI E TACCUINO PRENDONO TUTTA LA LARGHEZZA. Le voci del menu hanno una larghezza fissa
+     (`--w-menu`) perché in un elenco di scelte una colonna stretta si legge meglio; ma qui
+     dentro ci sono righe con dentro altre cose — un codice e un pulsante, due campi e un più,
+     un nome con «invita» accanto — e strette diventano una colonnina in mezzo al vuoto. */
+  if (menu.classList) menu.classList.toggle('largo', view === 'amici' || view === 'taccuino');
   /* IL PANNELLO DEGLI AMICI SI GUARDA DA SÉ. Collegarsi non è istantaneo: si preme Entra, la
      scheda si ridisegna con «mi collego», e poi — quando la stanza risponde — non cambiava
      più niente, perché nessuno la ridisegnava. Da fuori sembra che il pulsante non funzioni.
@@ -853,7 +858,14 @@ function buildMenu(inGame) {
   };
   { const a = document.getElementById('sp-mp-apri'); if (a) a.onclick = () => vaiDa(mioCodice(), true); }
   document.querySelectorAll('[data-vai]').forEach(b => { b.onclick = () => vaiDa(b.dataset.vai); });
-  document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => { dimenticaAmico(b.dataset.scorda); setAmici(amici().map(x => x.c)); go('amici'); }; });
+  /* TOGLIERE UN AMICO CHIEDE CONFERMA. È l'unico pulsante della pagina che distrugge qualcosa,
+     sta accanto a «Invita» ed è largo un dito: un tocco storto cancellava una persona senza un
+     avviso, e per rimetterla serve il suo codice — che magari non hai più.
+     Si usa lo stesso modo del resto del gioco (primo tocco arma, secondo conferma, e dopo due
+     secondi e mezzo si disarma da solo): una conferma che si impara una volta. */
+  document.querySelectorAll('[data-scorda]').forEach(b => { b.onclick = () => arm(b, tr('Tolgo?', 'Remove?'), () => {
+    dimenticaAmico(b.dataset.scorda); setAmici(amici().map(x => x.c)); go('amici');
+  }); });
   { const e = document.getElementById('sp-mp-entra'); if (e) e.onclick = () => {
       const c = document.getElementById('sp-mp-code');
       vaiDa(codiceDaTesto(c && c.value));
