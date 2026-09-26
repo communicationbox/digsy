@@ -1859,7 +1859,6 @@ export const RU = {
   'Kick out': 'Выгнать',
   'Moved faster than the game allows': 'Двигался быстрее, чем позволяет игра',
   'Nobody yet: pass the code to someone': 'Пока никого: дайте кому-нибудь код',
-  'Press T to talk': 'Нажмите T, чтобы говорить',
   'Leave the room': 'Выйти из комнаты',
   "It's their home: look, don't touch": 'Это их дом: смотрите, но не трогайте',
   'The clock here belongs to your host': 'Здесь часами распоряжается хозяин',

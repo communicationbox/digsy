@@ -613,7 +613,6 @@ function buildMenu(inGame) {
           h += `<button class="sp-btn small" id="sp-mp-segna" data-nome="${esc(chi)}" data-cod="${esc(suo)}">${tr('Segna ', 'Note ') + (chi ? esc(chi) : tr('questo mondo', 'this world')) + tr(' in rubrica', ' down')}</button>`;
         }
       }
-      h += `<div class="sp-note">${tr('Premi T per parlare', 'Press T to talk')}</div>`;
       h += `<button class="sp-btn danger" id="sp-mp-esci">${tr('Esci dalla stanza', 'Leave the room')}</button>`;
       h += `<div class="sp-sep"></div>`;
     }
