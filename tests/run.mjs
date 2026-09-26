@@ -10643,10 +10643,53 @@ sprites.applyLook();
   s2i.onmessage({ data: JSON.stringify({ t: 'online', cambia: 'LUCA123456', acceso: false }) });
   check('e quando se ne va il pallino si spegne da solo', mpI.inLinea('LUCA123456') === false);
 
-  /* INVITARE: una persona, non una stanza */
+  /* INVITARE: una persona, non una stanza. E si può fare solo da casa propria, quindi prima
+     la stanza dev'essere aperta davvero (il centralino risponde ROOM facendoti ospitante). */
+  s2i.onmessage({ data: netI.encode(netI.T.ROOM, { host: 'io', peers: [] }) });
   mpI.invita('LUCA123456');
   check('invitare manda l\'invito a QUELLA persona',
     s2i.inviati.some(x => x.t === 'invito' && x.a === 'LUCA123456'));
+
+  /* UN SOLO GESTO: «Invita» apre la stanza E chiama la persona. Aprire la stanza vuol dire
+     aprire una socket, e una socket si apre quando vuole lei: l'invito partiva PRIMA che la
+     linea esistesse e finiva nel vuoto — bisognava premere due volte, la prima per aprire e
+     la seconda per invitare davvero («non ha senso», segnalato). Ora aspetta in coda. */
+  mpI.connect('ws://finta/ws', { name: 'Marco', room: 'w-MARCO12345' });
+  const s3i = fatte[fatte.length - 1];
+  check('si invita anche prima che la linea sia pronta', mpI.invita('LUCA123456') === true);
+  check("e l'invito non parte nel vuoto: aspetta", !s3i.inviati.some(x => x.t === 'invito') && mpI.invitiInCoda() === 1);
+  s3i.onopen();
+  s3i.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
+  check('nemmeno appena aperta la linea: prima bisogna essere in casa propria', !s3i.inviati.some(x => x.t === 'invito'));
+  s3i.onmessage({ data: netI.encode(netI.T.ROOM, { host: 'io', peers: [] }) });
+  check('appena la stanza è aperta, parte da solo', s3i.inviati.some(x => x.t === 'invito' && x.a === 'LUCA123456'));
+  check('e la coda si svuota', mpI.invitiInCoda() === 0);
+
+  /* e non si spedisce due volte lo stesso: due tocchi sono un tocco ripetuto, non due inviti */
+  mpI.connect('ws://finta/ws', { name: 'Marco', room: 'w-MARCO12345' });
+  const s4i = fatte[fatte.length - 1];
+  mpI.invita('LUCA123456'); mpI.invita('LUCA123456');
+  check('due tocchi non fanno due inviti', mpI.invitiInCoda() === 1);
+  s4i.onopen();
+  s4i.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
+  s4i.onmessage({ data: netI.encode(netI.T.ROOM, { host: 'io', peers: [] }) });
+  check('…e ne parte uno solo', s4i.inviati.filter(x => x.t === 'invito').length === 1);
+
+  /* DA OSPITE non parte: il mondo non è tuo, e un invito che dice «vieni» a casa d'altri
+     sarebbe una promessa che non puoi mantenere */
+  mpI.connect('ws://finta/ws', { name: 'Marco', room: 'w-ALTRO12345', ospite: true });
+  const s5i = fatte[fatte.length - 1];
+  mpI.invita('LUCA123456');
+  s5i.onopen();
+  s5i.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
+  s5i.onmessage({ data: netI.encode(netI.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Ada', look: null }] }) });
+  check("da ospite l'invito in coda si butta, non si manda", !s5i.inviati.some(x => x.t === 'invito') && mpI.invitiInCoda() === 0);
+
+  /* si torna a casa propria per il resto della prova */
+  mpI.connect('ws://finta/ws', { name: 'Marco', room: 'w-MARCO12345' });
+  const s6i = fatte[fatte.length - 1];
+  s6i.onopen();
+  s6i.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
 
   /* RICEVERE: si passa a chi disegna, che lo chiede alla persona. Qui non si decide niente. */
   let chiesto = null;

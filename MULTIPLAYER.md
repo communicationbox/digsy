@@ -41,7 +41,18 @@ amico**, e solo mentre lui sta giocando.
    fatti in casa d'altri esaurirebbero la fontana di casa propria (stessa cella, mondi diversi).
 10. **Si torna dove si è partiti.** La posizione al momento dell'invito è quella del rientro.
 11. **La visita non paga l'idle.** Stavi giocando, non eri via.
-12. **Il compagno viene con te, e lo vedono tutti.** La bestia è roba di chi la porta: sta nel
+12. **«Invita» è UN gesto solo.** Invitare e aprire il proprio mondo sono la stessa cosa —
+    nessuno invita per poi restare fuori. Ma aprire il mondo vuol dire aprire una socket, e una
+    socket si apre quando vuole lei: l'invito partiva prima che la linea esistesse e finiva nel
+    vuoto, così bisognava premere due volte. Ora l'invito **aspetta in coda** e parte da solo
+    quando si è padroni di casa; la coda scade dopo dodici secondi (un invito che parte mezzo
+    minuto dopo, magari da un'altra stanza, nessuno se lo aspetta più) e da ospite si butta.
+    **Da ospite non si invita**: il mondo è di chi ospita, e l'unico modo per farlo davvero
+    sarebbe uscire e riaprire il proprio — cioè piantare in asso chi ti ospita, premendo un
+    pulsante che sembrava fare un'altra cosa. Il pulsante non c'è, e si legge perché.
+    Chi **aspetta** invece può: non è in casa di nessuno, e aprire il proprio è quello che gli
+    conviene fare.
+13. **Il compagno viene con te, e lo vedono tutti.** La bestia è roba di chi la porta: sta nel
     salvataggio, quindi attraversa le stanze da sé. Quello che mancava era **dirlo** agli
     altri — nessuno sapeva che c'era, né dove. Si manda lo **stampo** (le tre specie e la
     rarità: il modello lo ricostruisce chi guarda, quindi da una stanza non può arrivare una

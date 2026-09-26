@@ -189,6 +189,7 @@ export function ricevi(raw, now) {
        Prima si veniva buttati fuori, e due amici che si aspettavano a vicenda non si
        incontravano mai (visto in due schermate affiancate). */
     if (sonoOspitante() && MP.room.peers.size) mandaMondo();   // sono arrivato io: ecco il mio mondo
+    spediscoInviti();                  // la stanza è aperta: partono gli inviti che aspettavano
     /* NESSUNO PUÒ ASPETTARE SÉ STESSO. Se si è finiti ospiti in una stanza che non ha padrone
        e che porta il PROPRIO codice, la si apre: è casa nostra, e aspettare avrebbe voluto
        dire aspettarsi. Sta qui e non solo nel pannello perché la strada per arrivarci è più
@@ -198,6 +199,7 @@ export function ricevi(raw, now) {
       ricorda({ room: stanza, ospite: false, name: mio && mio.name });
       manda(T.JOIN, { room: stanza, ospite: false });
     }
+    spediscoInviti();
   }
   /* SONO L'OSPITANTE E QUALCUNO È ENTRATO: gli mando il mio mondo. Parte una volta sola, ed è
      l'unico messaggio grosso del protocollo — il mondo non si trasmette a pezzi perché è
@@ -418,8 +420,34 @@ function chiediChiCè() {
   return manda(T.AMICI, { codici: identita.amici });
 }
 export function inLinea(codice) { return MP.online.has(String(codice || '').toUpperCase()); }
-/* INVITO una persona: gli arriva dove sta giocando, e decide lui. */
-export function invita(codice) { return manda(T.INVITO, { a: String(codice || '').toUpperCase() }); }
+/* INVITO una persona: gli arriva dove sta giocando, e decide lui.
+   L'INVITO ASPETTA CHE LA STANZA SIA APERTA. Invitare qualcuno e aprire il proprio mondo sono
+   la stessa cosa — nessuno invita per poi restare fuori — ma aprire il mondo vuol dire aprire
+   una socket, e una socket si apre quando vuole lei: l'invito partiva PRIMA che la linea
+   esistesse e finiva nel vuoto, senza dire niente. Bisognava premere «Invita» due volte, la
+   prima per aprire la stanza e la seconda per invitare davvero («non ha senso»). Ora si mette
+   in coda e parte da solo appena si è padroni di casa.
+   La coda SCADE: un invito che parte mezzo minuto dopo, magari da un'altra stanza, è un
+   invito che nessuno si aspetta più. */
+const INVITO_ATTESA = 12000;
+let inCoda = [];
+export function invita(codice) {
+  const a = String(codice || '').toUpperCase();
+  if (!a) return false;
+  if (MP.stato === 'dentro' && sonoOspitante()) return manda(T.INVITO, { a });
+  inCoda = inCoda.filter(v => v.a !== a).concat([{ a, t: ora() }]);
+  return true;                       // «preso in carico»: parte appena la stanza è aperta
+}
+/* svuota la coda: si chiama quando si diventa padroni di casa */
+function spediscoInviti() {
+  if (!inCoda.length) return;
+  const adesso = ora();
+  const da = inCoda.filter(v => adesso - v.t < INVITO_ATTESA);
+  inCoda = [];
+  if (MP.stato !== 'dentro' || !sonoOspitante()) return;
+  for (const v of da) manda(T.INVITO, { a: v.a });
+}
+export function invitiInCoda() { return inCoda.length; }
 export function rifiuta(codice) { return manda(T.RIFIUTO, { a: String(codice || '').toUpperCase() }); }
 let suInvito = null, suRifiuto = null, suOnline = null, suRecapito = null;
 export function setSuRecapito(fn) { suRecapito = fn; }

@@ -443,6 +443,14 @@ async function main() {
         });
       });
     }
+    /* 'ospite' = il pannello Amici mentre si è NEL MONDO DI UN ALTRO: là il pulsante «Invita»
+       non c'è (il mondo non è tuo) e al suo posto si legge perché */
+    else if (${JSON.stringify(vista)} === 'ospite') {
+      if(sp) sp.classList.remove('off');
+      var So = G.state && G.state();
+      if (So) So.amici = [{ c:'Q2D4FG7HJK', n:'Luca' }, { c:'M7RAC3DEFG', n:'Ada' }];
+      if(G.mpFinta) { var osp=function(){ G.mpFinta(['Ada'], false).then(function(){ if(G.splashView) G.splashView('amici'); }); };
+        osp(); setInterval(osp, 200); } }
     /* 'compagnia' = il mondo CON qualcun altro dentro: serve a guardare il cartellino del
        nome, che sta sopra la testa e non deve coprirla */
     else if (${JSON.stringify(vista)} === 'compagnia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

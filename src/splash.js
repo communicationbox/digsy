@@ -653,11 +653,21 @@ function buildMenu(inGame) {
         h += `<div class="sp-acc-warn">${tr('Non sei collegato: finché non torna la linea non si sa chi sta giocando.',
           "You're not connected: until the line is back there's no telling who's playing.")}</div>`;
       }
+      /* DA OSPITE NON SI INVITA. Il mondo è di chi ospita: chiamare qualcuno qui vorrebbe dire
+         invitarlo in casa d'altri, e l'unico modo per farlo davvero sarebbe uscire e riaprire
+         il proprio — cioè piantare in asso chi ti ospita, premendo un pulsante che sembrava
+         fare un'altra cosa. Si dice, e basta. Chi ASPETTA invece può: non è ancora in casa di
+         nessuno, e aprire il proprio mondo è esattamente quello che gli conviene fare. */
+      const ospite = MP.stato === 'dentro' && !sonoOspitante() && !inAttesa();
+      if (ospite && rub.length) {
+        h += `<div class="sp-note">${tr('Sei nel mondo di un altro: per invitare qualcuno, esci e apri il tuo.',
+          "You're in someone else's world: to invite someone, leave and open yours.")}</div>`;
+      }
       for (const g of rub) {
         const qui = inLinea(g.c);
         h += `<div class="sp-riga"><span><i class="pallino${qui ? ' on' : ''}"></i>${esc(g.n)}`
           + `<br><small>${qui ? tr('sta giocando', 'playing now') : tr('non c\'è', 'away')}</small></span>`;
-        if (qui) h += `<button class="sp-btn small" data-invita="${esc(g.c)}">${tr('Invita', 'Invite')}</button>`;
+        if (qui && !ospite) h += `<button class="sp-btn small" data-invita="${esc(g.c)}">${tr('Invita', 'Invite')}</button>`;
         h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
         h += `</div>`;
       }
@@ -949,6 +959,10 @@ function buildMenu(inGame) {
      invita per poi restare fuori, e chiedere due gesti per uno era metà del pasticcio. */
   document.querySelectorAll('[data-invita]').forEach(b => { b.onclick = () => {
       const cod = b.dataset.invita;
+      /* UN SOLO GESTO. Se la stanza non è aperta la si apre, e l'invito ASPETTA che lo sia
+         (mp.js lo mette in coda): la socket non è pronta nell'istante in cui si preme, e
+         mandarlo subito voleva dire buttarlo via — da fuori sembrava che il primo «Invita»
+         non facesse niente e servisse premerlo due volte. */
       if (!sonoOspitante()) vaiDa(mioCodice(), true);
       invita(cod);      // il «mandato» (o il «non è arrivato») lo dice la ricevuta del centralino
       go('amici');

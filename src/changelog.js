@@ -1,11 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.99.9', it: [
+    v: 'v0.99.10', it: [
+      'INVITA fa una cosa sola: apre il tuo mondo e chiama la persona. Prima bisognava premerlo due volte — la prima apriva la stanza e l\'invito si perdeva per strada, perché la linea non era ancora pronta',
+      'E nel mondo di un altro il pulsante non c\'è: il mondo non è tuo, e si legge perché',
       'IL TUO COMPAGNO VIENE CON TE nel mondo degli altri, E LO VEDONO TUTTI: prima la bestia c\'era solo per chi la portava. Ora ognuno vede quella degli altri, dove sta davvero — anche quando si allontana a scavare per conto suo',
       'IL COMPAGNO CHE SCAVA DA SOLO non impazzisce più: non si gira avanti e indietro sul posto, non si teletrasporta da te mentre sta lavorando, e non parte più verso una casella talmente lontana da doverla mollare a metà strada (partiva, tornava, ripartiva, all\'infinito)',
       'Via il riflesso che scorreva sulla fascia d\'oro del Museo: un bagliore che attraversa una facciata ferma è il linguaggio dei bottoni, non di un edificio',
     ], en: [
+      'INVITE does one thing: it opens your world and calls the person. It used to take two presses — the first opened the room and the invite was lost on the way, because the line was not ready yet',
+      'And in someone else\'s world the button is gone: the world is not yours, and it says why',
       'YOUR COMPANION COMES WITH YOU into other people\'s worlds, AND EVERYONE SEES IT: before, the creature only existed for whoever brought it. Now everyone sees everyone else\'s, where it actually is — even when it wanders off to dig on its own',
       'THE COMPANION THAT DIGS ON ITS OWN no longer goes mad: it stops spinning left and right on the spot, it no longer teleports to you while it is working, and it no longer heads for a tile so far away that it has to give up halfway (it would set off, come back, set off again, forever)',
       'The shine that swept across the Museum gold band is gone: a glint crossing a still facade is the language of buttons, not of a building',
