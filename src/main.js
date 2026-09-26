@@ -19,7 +19,7 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, rifiuta } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, rifiuta, setIdentita } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { mioCodice, codiceDaTesto, valido, stanzaDi, amici, nomeDi, aggiungiAmico } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
@@ -380,7 +380,10 @@ function boot() {
     /* CI SI COLLEGA SEMPRE, anche giocando da soli: è l'unico modo perché un amico ti veda
        col pallino acceso e perché un invito ti ARRIVI. Se c'era una stanza aperta (o un link
        d'invito) si riprende quella, altrimenti si sta solo in linea. */
-    const chi = { name: (S && S.name) || 'Digsy', look: S && S.look, codice: mioCodice(), amici: amici().map(a => a.c) };
+    /* CHI SONO si dichiara UNA volta: vale per tutte le connessioni che verranno, comprese
+       quelle che si riaprono da sole e quella che si apre quando invito qualcuno. */
+    setIdentita(mioCodice(), amici().map(a => a.c));
+    const chi = { name: (S && S.name) || 'Digsy', look: S && S.look };
     if (valido(invito)) {
       mpConnect(relayUrl(), { ...chi, room: stanzaDi(invito), ospite: invito !== mioCodice() });
       try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* pazienza */ }

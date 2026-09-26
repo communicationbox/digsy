@@ -125,8 +125,11 @@ export function scordaStanza() { ricorda(null); }
 
 export function connect(url, me) {
   if (sock) disconnect('riconnessione');
-  mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null,
-    codice: (me && me.codice) || null, amici: (me && me.amici) || [] };
+  mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null };
+  /* se chi chiama dichiara anche chi è, lo si registra UNA volta: da lì in poi vale per tutte
+     le connessioni che verranno, comprese quelle che si riaprono da sole */
+  if (me && me.codice) identita.codice = me.codice;
+  if (me && me.amici) identita.amici = me.amici;
   /* CASA MIA O CASA D'ALTRI. Lo dichiara chi apre il collegamento, e il valore di partenza è
      «casa mia»: chi non dice niente sta aprendo la propria stanza (è così in tutti i punti
      che non sono il pulsante «entra col codice»). Serve a riconoscere il caso qui sotto: se
@@ -149,7 +152,7 @@ function aprire(url) {
        QUELLO che usa il gioco: mescolare due orologi (`performance.now` qui, il tempo del
        ciclo là) fa uscire differenze negative, e il battito non partirebbe mai. */
     ultimoPing = ultimoPong = ultimaAttività = null;
-    manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look, mio: mio.codice || null });
+    manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look, mio: identita.codice || null });
     chiediChiCè();
   };
   s.onmessage = (ev) => ricevi(ev && ev.data, ora());
@@ -378,11 +381,23 @@ export function setSuSonno(fn) { suSonno = fn; }
    Il codice serve a farsi aggiungere in rubrica. Tutto il resto passa da qui: si dice al
    centralino quali codici interessano, lui risponde chi è in linea e avvisa quando cambia;
    e un invito lo si manda a una persona, non a una stanza. */
-export function setAmici(codici) { mio = mio || {}; mio.amici = codici || []; chiediChiCè(); }
-export function setMioCodiceInvio(c) { mio = mio || {}; mio.codice = c || null; }
+/* CHI SONO NON DIPENDE DALLA CONNESSIONE. Il codice e la rubrica sono della PERSONA: restano
+   uguali se apro il mio mondo, se entro in quello di un altro, se la linea cade e si riattacca.
+   Tenerli dentro `mio` — che si riscrive a ogni `connect` — voleva dire perderli: aprendo il
+   proprio mondo si ripartiva senza dire più chi si era, e gli amici ti vedevano SPARIRE
+   proprio mentre li stavi aspettando (visto in due schermate: uno ospitava, l'altro lo dava
+   per assente). */
+const identita = { codice: null, amici: [] };
+export function setIdentita(codice, lista) {
+  identita.codice = codice || null;
+  identita.amici = lista || [];
+  chiediChiCè();
+}
+export function setAmici(codici) { identita.amici = codici || []; chiediChiCè(); }
+export function setMioCodiceInvio(c) { identita.codice = c || null; }
 function chiediChiCè() {
-  if (!mio || !mio.amici || !mio.amici.length) return false;
-  return manda(T.AMICI, { codici: mio.amici });
+  if (!identita.amici.length) return false;
+  return manda(T.AMICI, { codici: identita.amici });
 }
 export function inLinea(codice) { return MP.online.has(String(codice || '').toUpperCase()); }
 /* INVITO una persona: gli arriva dove sta giocando, e decide lui. */

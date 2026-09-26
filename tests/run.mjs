@@ -10473,29 +10473,42 @@ sprites.applyLook();
   si.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
   check('collegati senza stanza si è «in linea», non «dentro»', mpI.MP.stato === 'linea');
 
+  /* CHI SONO NON DIPENDE DALLA CONNESSIONE. Aprendo il proprio mondo ci si ricollega, e prima
+     si ripartiva senza dire più chi si era: gli amici ti vedevano SPARIRE proprio mentre li
+     stavi aspettando (due schermate: uno ospitava, l'altro lo dava per assente). */
+  mpI.connect('ws://finta/ws', { name: 'Marco', room: 'w-MARCO12345' });   // apro il mio mondo
+  const s2i = fatte[fatte.length - 1];
+  s2i.onopen();
+  const ciao2 = s2i.inviati.find(x => x.t === 'hello');
+  check('riaprendo la linea si dice ancora chi si è', ciao2 && ciao2.mio === 'MARCO12345');
+  check('e si continua a tenere d\'occhio gli stessi amici',
+    s2i.inviati.some(x => x.t === 'amici' && x.codici.join() === 'LUCA123456'));
+  s2i.onmessage({ data: netI.encode(netI.T.WELCOME, { id: 'io' }) });
+
   /* il centralino risponde chi c'è, e poi avvisa quando cambia */
-  si.onmessage({ data: netI.encode(netI.T.ONLINE, { attivi: ['LUCA123456'] }) });
+  s2i.onmessage({ data: netI.encode(netI.T.ONLINE, { attivi: ['LUCA123456'] }) });
   check('si sa chi sta giocando', mpI.inLinea('LUCA123456') === true);
-  si.onmessage({ data: JSON.stringify({ t: 'online', cambia: 'LUCA123456', acceso: false }) });
+  s2i.onmessage({ data: JSON.stringify({ t: 'online', cambia: 'LUCA123456', acceso: false }) });
   check('e quando se ne va il pallino si spegne da solo', mpI.inLinea('LUCA123456') === false);
 
   /* INVITARE: una persona, non una stanza */
   mpI.invita('LUCA123456');
   check('invitare manda l\'invito a QUELLA persona',
-    si.inviati.some(x => x.t === 'invito' && x.a === 'LUCA123456'));
+    s2i.inviati.some(x => x.t === 'invito' && x.a === 'LUCA123456'));
 
   /* RICEVERE: si passa a chi disegna, che lo chiede alla persona. Qui non si decide niente. */
   let chiesto = null;
   mpI.setSuInvito((inv) => { chiesto = inv; });
-  si.onmessage({ data: JSON.stringify({ t: 'invito', da: 'LUCA123456', nome: 'Luca' }) });
+  s2i.onmessage({ data: JSON.stringify({ t: 'invito', da: 'LUCA123456', nome: 'Luca' }) });
   check('un invito che arriva non entra in nessun mondo da solo: lo si chiede',
-    chiesto && chiesto.da === 'LUCA123456' && chiesto.nome === 'Luca' && mpI.MP.stato === 'linea');
+    chiesto && chiesto.da === 'LUCA123456' && chiesto.nome === 'Luca' && mpI.MP.stanza === 'w-MARCO12345',
+    'stanza ' + mpI.MP.stanza);
   /* il mittente lo scrive il CENTRALINO: un invito non si può firmare col nome di un altro */
   check('e un invito senza mittente non è un invito', netI.decode(JSON.stringify({ t: 'invito', nome: 'Tizio' })) === null);
 
   let detto = null;
   mpI.setSuRifiuto((r) => { detto = r; });
-  si.onmessage({ data: JSON.stringify({ t: 'rifiuto', da: 'LUCA123456', nome: 'Luca' }) });
+  s2i.onmessage({ data: JSON.stringify({ t: 'rifiuto', da: 'LUCA123456', nome: 'Luca' }) });
   check('e un no torna indietro, invece di lasciare qualcuno ad aspettare', detto && detto.da === 'LUCA123456');
   mpI.setSuInvito(null); mpI.setSuRifiuto(null);
   mpI.disconnect();
