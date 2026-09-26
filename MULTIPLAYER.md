@@ -70,6 +70,41 @@ amico**, e solo mentre lui sta giocando.
     Funziona perché la chat avviene solo mentre si è insieme: non esistono messaggi da
     recapitare a chi non c'è, quindi il server non ha niente da custodire.
 
+## Dove siamo (26 settembre 2026, v0.99.2 online)
+
+**Funziona e sta in piedi da solo.** Il centralino gira come servizio (`digsy-relay`, systemd,
+utente del sito, riavvio automatico, abilitato al boot), Apache inoltra `wss://digsy.dev-box.it/ws`
+con `timeout=600`, e il gioco pubblicato ha amici, inviti, chat, taccuino, sonno in compagnia e
+la posta. Per riprendere il filo, le cinque cose che contano:
+
+1. **Il ciclo di lavoro**: `npm test` · `npm run e2e` · `npm run cov -- --gate` · commit · push ·
+   `npm run deploy` (che si protegge da solo e torna indietro se qualcosa non torna). Il deploy
+   NON copre `server/`: il centralino si carica a mano con `scp` e si riavvia con
+   `sudo systemctl restart digsy-relay` (l'utente del sito ha quel permesso, e solo quello).
+   **Un centralino già acceso non prende il codice nuovo**: va riavviato.
+2. **Provare in due**: `npm run relay` + `npm run dev`, due finestre (una in incognito: due
+   schede condividono il salvataggio, quindi sarebbero la stessa persona). Oppure
+   `localhost:5173/?ws=online` per parlare col centralino pubblicato dal dev server — la scelta
+   si ricorda.
+3. **Quando «non funziona», si guarda il registro**, non si indovina:
+   `ssh digsy 'journalctl -u digsy-relay -f'` mostra ogni ingresso, con `(quanti, in attesa)`.
+   Tre sere di difetti sono usciti da lì in tre minuti, dopo ore di ipotesi.
+4. **Il codice vive nel SALVATAGGIO** (`S.codice`): ricominciare una partita cambia il codice, e
+   gli amici devono riaggiungere. È il prezzo di non avere account, e si paga in chiarezza:
+   l'invito che non arriva a nessuno adesso lo DICE (ricevuta dal centralino).
+5. **Niente è scritto sul server**: nessuna amicizia, nessun messaggio, nessuna stanza che
+   sopravviva alla connessione. La rubrica sta nel salvataggio, il taccuino nel dispositivo.
+
+### Cosa manca, in ordine di valore
+- **Il recapito della posta**: la buca c'è (si scrive, si paga, resta «in partenza»), il postino
+  no. Vuole un posto dove lasciare una lettera a chi non c'è — cioè la prima cosa che il server
+  dovrebbe *conservare*.
+- **Gli account Google** per dare un'identità stabile al codice (oggi è una chiave, non un nome)
+  e far sopravvivere la rubrica a una partita nuova.
+- **`manda via`** c'è e ha i suoi test, ma non è mai stato provato da due persone vere.
+- **`public/privacy.html`** parla del centralino e del taccuino; quando arriveranno account e
+  lista amici lato server andrà ripresa.
+
 ## Cosa NON è
 
 - Non è un mondo condiviso permanente: il tuo mondo resta tuo e nessuno ci entra se non lo inviti.
