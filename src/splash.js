@@ -613,13 +613,34 @@ function buildMenu(inGame) {
     } else {
       /* IL CODICE SERVE SOLO AD AGGIUNGERE. Tutto il resto passa dalla RUBRICA: si vede chi
          c'è (pallino acceso), gli si manda un invito, e lui accetta o no. Invitare è un gesto
-         fra persone; un codice da ribattere è un compito. Ci sono volute cinque versioni per
-         arrivarci, e la prova è stata una sera passata a entrare tutti e due come ospiti. */
+         fra persone; un codice da ribattere è un compito.
+         L'ORDINE è quello in cui si usano: il tuo codice sta in cima perché è la prima cosa
+         che dai a qualcuno, l'aggiunta subito sotto perché è la prima che fai, e la lista in
+         fondo perché è quella che poi resta e cresce. */
+      h += `<div class="sp-lab">${tr('Il tuo codice', 'Your code')}</div>`;
+      h += `<div class="sp-riga sp-riga-cod"><span class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</span>`
+        + `<button class="sp-btn small" id="sp-mp-link">${tr('Copia', 'Copy')}</button></div>`;
+
+      h += `<div class="sp-sep"></div>`;
+      h += `<div class="sp-lab">${tr('Aggiungi un amico', 'Add a friend')}</div>`;
+      h += `<div class="sp-riga sp-riga-agg">`
+        + `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('codice', 'code')}" value="">`
+        + `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('nome', 'name')}" value="">`
+        + `<button class="sp-btn small sp-piu" id="sp-mp-agg" title="${tr('Aggiungi', 'Add')}">+</button></div>`;
+
+      h += `<div class="sp-sep"></div>`;
       const rub = amici();
       h += `<div class="sp-lab">${tr('I tuoi amici', 'Your friends')}</div>`;
       if (!rub.length) {
-        h += `<div class="sp-note">${tr('Ancora nessuno. Fatti dare il codice da un amico e aggiungilo qui sotto: da quel momento lo vedi quando gioca, e puoi invitarlo.',
-          'Nobody yet. Get a friend\'s code and add it below: from then on you see them when they play, and you can invite them.')}</div>`;
+        h += `<div class="sp-note">${tr('Ancora nessuno. Fatti dare il codice da un amico e aggiungilo qui sopra: da quel momento lo vedi quando gioca, e puoi invitarlo.',
+          'Nobody yet. Get a friend\'s code and add it above: from then on you see them when they play, and you can invite them.')}</div>`;
+      }
+      /* SE NON SI È COLLEGATI, i pallini sono tutti spenti — e senza dirlo sembra che non
+         stia giocando nessuno. È successo: un gioco scollegato che mostrava un amico «in
+         gioco» (il pallino era vecchio) e un altro che non vedeva nessuno. */
+      if (rub.length && MP.stato !== 'linea' && MP.stato !== 'dentro') {
+        h += `<div class="sp-acc-warn">${tr('Non sei collegato: finché non torna la linea non si sa chi sta giocando.',
+          "You're not connected: until the line is back there's no telling who's playing.")}</div>`;
       }
       for (const g of rub) {
         const qui = inLinea(g.c);
@@ -629,19 +650,6 @@ function buildMenu(inGame) {
         h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
         h += `</div>`;
       }
-
-      h += `<div class="sp-sep"></div>`;
-      h += `<div class="sp-lab">${tr('Aggiungi un amico', 'Add a friend')}</div>`;
-      h += `<input id="sp-mp-code" class="nameinput" maxlength="24" placeholder="${tr('il suo codice', 'their code')}" value="">`;
-      h += `<input id="sp-mp-nome" class="nameinput" maxlength="20" placeholder="${tr('come lo chiami', 'what you call them')}" value="">`;
-      h += `<button class="sp-btn" id="sp-mp-agg">${tr('Aggiungi', 'Add')}</button>`;
-
-      h += `<div class="sp-sep"></div>`;
-      h += `<div class="sp-lab">${tr('Il tuo codice', 'Your code')}</div>`;
-      h += `<div class="sp-code" id="sp-mp-mio">${formatta(mioCodice())}</div>`;
-      h += `<button class="sp-btn small" id="sp-mp-link">${tr('Copia il codice', 'Copy code')}</button>`;
-      h += `<div class="sp-note">${tr('Dallo a chi vuoi: serve a lui per aggiungerti, e da lì in poi vi invitate col nome.',
-        'Give it to whoever you like: they use it to add you, and from then on you invite each other by name.')}</div>`;
 
       h += `<div class="sp-sep"></div>`;
       h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
@@ -800,10 +808,10 @@ function buildMenu(inGame) {
      Un battito lento finché la scheda è aperta, e si ferma appena si va altrove. */
   if (vigile) { clearInterval(vigile); vigile = null; }
   if (view === 'amici' && typeof setInterval === 'function') {
-    let visto = MP.stato + '|' + MP.room.peers.size;
+    let visto = MP.stato + '|' + MP.room.peers.size + '|' + MP.online.size;
     vigile = setInterval(() => {
       if (view !== 'amici' || !on) { clearInterval(vigile); vigile = null; return; }
-      const ora = MP.stato + '|' + MP.room.peers.size;
+      const ora = MP.stato + '|' + MP.room.peers.size + '|' + MP.online.size;
       if (ora !== visto) { visto = ora; buildMenu(inGame); }
     }, 400);
   }

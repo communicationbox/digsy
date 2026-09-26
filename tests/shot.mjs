@@ -402,7 +402,9 @@ async function main() {
     else if (${JSON.stringify(vista)} === 'amici') {
       if(sp) sp.classList.remove('off');
       var Sa = G.state && G.state();
-      if (Sa) Sa.amici = [{ c:'Q2D4FG7HJK', n:'Luca' }, { c:'M7RAC3DEFG', n:'Ada' }];
+      if (Sa) Sa.amici = [{ c:'Q2D4FG7HJK', n:'Luca' }, { c:'M7RAC3DEFG', n:'Ada' },
+        { c:'T4KWP9DENQ', n:'Fenn' }, { c:'W2RUC7MAJX', n:'Ettore' }, { c:'H6NDA3QTVK', n:'Zoe' },
+        { c:'P9XGE4RUMT', n:'Nadia' }, { c:'C3JWK8HEQR', n:'Bruno' }];
       if(G.splashView) G.splashView('amici');
     }
     /* 'sogno' = quello che vede chi dorme in compagnia e aspetta che la notte passi */
@@ -425,7 +427,7 @@ async function main() {
     var giu=(new URLSearchParams(location.search)).get('giu');
     if(giu) setTimeout(function(){ var y = giu === '1' ? 1e6 : +giu;
       (document.scrollingElement||document.documentElement).scrollTop = y;
-      document.querySelectorAll('.modal, #m-body, .edcol, .sheet').forEach(function(e){ e.scrollTop = y; });
+      document.querySelectorAll('.modal, #m-body, .edcol, .sheet, #sp-menu').forEach(function(e){ e.scrollTop = y; });
     }, 300);
     /* il badge è uno strumento di lavoro: con --pulito non si mette, perché queste foto
        finiscono anche nella vetrina e là un riquadro verde di debug stona parecchio */

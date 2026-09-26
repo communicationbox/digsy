@@ -9799,9 +9799,13 @@ sprites.applyLook();
   check('si vede chi è nel mondo con noi', mp.visibili(1e9, 'world').length === 1);
   check('e non si vede chi è entrato in una bottega', mp.visibili(1e9, 'stanza').length === 0);
 
-  /* 3 · CADUTA E RIPROVE: si riprova con attese che crescono, e poi si smette davvero */
+  /* 3 · CADUTA E RIPROVE: attese che crescono, e poi si continua PIANO — non ci si arrende.
+     Prima dopo quattro tentativi si smetteva per sempre: bastava un riavvio del centralino per
+     restare invisibili agli amici fino al prossimo ricaricamento, e senza che niente lo dicesse
+     (visto in una schermata: un gioco scollegato che mostrava un amico «in gioco»). */
   const prima = mp.prossimaAttesa();
   let giri = 0;
+  mp.MP.online = new Set(['LUCA123456']);   // un amico in gioco, PRIMA che cada la linea
   s0.onclose();
   check('caduta la linea si riprova (attesa ' + prima + 'ms)', mp.MP.stato === 'collego' && mp.MP.tentativi === 1);
   while (timer.length && giri < 10) {
@@ -9809,9 +9813,13 @@ sprites.applyLook();
     const s = fatte[fatte.length - 1];
     if (s && s.onclose) s.onclose();
   }
-  check('dopo qualche tentativo ci si ferma invece di insistere per sempre (' + giri + ' tentativi)',
-    mp.MP.stato === 'caduto' && giri >= 3 && giri <= 6);
+  check('dopo i tentativi fitti lo si DICE (' + giri + ' tentativi)', mp.MP.stato === 'caduto');
+  check('ma si continua a riprovare piano: il centralino torna, e bisogna esserci',
+    mp.prossimaAttesa() >= 30000 && timer.length > 0, 'attesa ' + mp.prossimaAttesa() + 'ms · in coda ' + timer.length);
   check('e si sa perché', typeof mp.MP.motivo === 'string' && mp.MP.motivo.length > 0);
+  /* E I PALLINI SI SPENGONO: «sta giocando» è la risposta del centralino a una domanda, e
+     senza centralino non c'è nessuna risposta. Tenerseli accesi è la bugia più facile. */
+  check('caduta la linea, non si sa più chi è in gioco', mp.MP.online.size === 0);
 
   /* 4 · USCIRE PULITI */
   mp.connect('ws://finta/ws', { name: 'Marco', room: 'casa' });

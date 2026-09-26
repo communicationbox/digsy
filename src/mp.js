@@ -30,7 +30,13 @@ export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 
      risposta del centralino a «di questi, chi c'è?», e si aggiorna quando uno arriva o se ne va. */
   online: new Set() };
 
-const RIPROVE = [500, 1500, 4000, 10000];   // attese fra un tentativo e l'altro, poi si smette
+/* ATTESE FRA UN TENTATIVO E L'ALTRO, e poi si continua PIANO — non ci si arrende.
+   Prima dopo quattro tentativi (sedici secondi) si smetteva per sempre: bastava un riavvio del
+   centralino, o un tunnel, per restare invisibili agli amici fino al prossimo ricaricamento —
+   e senza che niente lo dicesse. La ragione per cui si smetteva («un telefono che ritenta per
+   sempre si scalda in tasca») vale per i tentativi fitti, non per uno al minuto. */
+const RIPROVE = [500, 1500, 4000, 10000, 30000];
+const RIPROVA_LENTA = 60000;
 let sock = null, mio = null, stanza = null, invio = {}, riprova = 0;
 /* il battito della linea e l'ultima volta che la persona ha fatto qualcosa */
 let ultimoPing = null, ultimoPong = null, ultimaAttività = null;
@@ -411,6 +417,12 @@ export function disconnect(motivo) {
      o si resta con mezzo mondo altrui e niente che salva. */
   if (sonoOspite()) tornaACasa();
   MP.stato = 'spento'; MP.motivo = motivo || null;
+  /* CHI ERA IN LINEA NON LO SAPPIAMO PIÙ. Il pallino verde dice «sta giocando adesso»: è la
+     risposta del centralino a una domanda, e senza centralino non c'è nessuna risposta.
+     Tenerselo acceso dopo che la linea è caduta è la bugia più facile da raccontare — e si è
+     vista, in una schermata dove un amico risultava in gioco mentre quel gioco non era
+     collegato a niente. */
+  MP.online = new Set();
   MP.room = makeRoom(); invio = {}; stanza = null; MP.stanza = null;
   const s = sock; sock = null;
   if (s) { try { s.onclose = null; s.close(); } catch (e) { /* già morta */ } }
@@ -421,14 +433,18 @@ export function disconnect(motivo) {
 function caduta(motivo) {
   sock = null;
   MP.motivo = motivo;
-  if (riprova >= RIPROVE.length) { MP.stato = 'caduto'; return; }
-  MP.stato = 'collego';
-  const attesa = RIPROVE[riprova++];
+  MP.online = new Set();          // vedi disconnect: senza centralino non si sa chi c'è
+  const fitti = riprova < RIPROVE.length;
+  const attesa = fitti ? RIPROVE[riprova] : RIPROVA_LENTA;
+  riprova++;
   MP.tentativi = riprova;
-  dopo(() => { if (MP.stato === 'collego') aprire(MP.url); }, attesa);
+  /* dopo i tentativi fitti lo si DICE (il pannello mostra il motivo) ma si continua a
+     riprovare piano: il centralino torna, e quando torna ci si deve essere */
+  MP.stato = fitti ? 'collego' : 'caduto';
+  dopo(() => { if (MP.stato === 'collego' || MP.stato === 'caduto') aprire(MP.url); }, attesa);
 }
 
 /* attesa prima del prossimo tentativo: esposta per i test e per l'interfaccia */
-export function prossimaAttesa() { return riprova < RIPROVE.length ? RIPROVE[riprova] : null; }
+export function prossimaAttesa() { return riprova < RIPROVE.length ? RIPROVE[riprova] : RIPROVA_LENTA; }
 
 function ora() { return (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now(); }

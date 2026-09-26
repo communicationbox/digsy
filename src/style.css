@@ -361,6 +361,15 @@ kbd + .pxi{margin-left:2px}
 .pallino{display:inline-block;width:9px;height:9px;margin-right:6px;vertical-align:baseline;
   background:rgba(241,231,207,.22);box-shadow:inset 0 0 0 2px rgba(0,0,0,.35)}
 .pallino.on{background:#7bd88f;box-shadow:inset 0 0 0 2px rgba(0,0,0,.35),0 0 8px rgba(123,216,143,.7)}
+/* IL CODICE E IL SUO PULSANTE su una riga sola: sono la stessa cosa (questo è il mio codice,
+   eccotelo negli appunti), e una riga per ciascuno le faceva sembrare due passi. */
+.sp-riga-cod{gap:var(--sp-2)}
+.sp-riga-cod .sp-code{flex:1 1 auto;min-width:0;margin:0}
+.sp-riga-cod .sp-btn{flex:0 0 auto}
+/* AGGIUNGERE UN AMICO è un gesto solo: due campi e un più, in fila. */
+.sp-riga-agg{gap:var(--sp-1)}
+.sp-riga-agg .nameinput{flex:1 1 0;min-width:0;padding:8px 10px;font-size:14px}
+.sp-piu{flex:0 0 auto;width:44px;min-width:44px;padding:0;font-size:22px;line-height:1}
 /* titoletto di sezione: in oro maiuscolo, senza riquadri — come il resto del menu */
 .sp-lab{width:var(--w-menu);max-width:88vw;text-align:left;color:var(--c-gold);
   font-size:var(--fs-note);font-weight:800;letter-spacing:.12em;text-transform:uppercase;margin-bottom:-2px}
@@ -1450,7 +1459,8 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .sp-btn.ic:hover{background:var(--c-win-hover);box-shadow:0 0 0 2px var(--c-soot),0 0 0 4px var(--c-win-gold)}
 .sp-btn.ic .ic-lb{font-size:11px;letter-spacing:.5px;line-height:1;font-weight:700;color:var(--c-ink-2);text-shadow:none}
 .sp-iconrow{gap:var(--sp-3)}
-.sp-x{background:transparent;color:var(--c-ink);box-shadow:0 0 0 2px var(--c-win-edge);top:18px;right:18px}
+/* la X ha un FONDO suo: la barra di scorrimento le passa dietro invece di attraversarla */
+.sp-x{background:var(--c-win-2);color:var(--c-ink);box-shadow:0 0 0 2px var(--c-win-edge);top:18px;right:18px}
 .sp-x:hover{background:var(--c-clay)}
 
 /* SOTTOMENU: niente logo gigante, intestazione dorata */
@@ -1464,6 +1474,20 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
    sembrano un difetto di stampa («Amici» è diventato lungo e l'ha tirato fuori).
    Scorre UNA sola area (regola 15): la scheda no, l'elenco sì. */
 .sp-card.sub > .sp-menu{flex:1 1 auto;min-height:0;overflow-y:auto;padding-bottom:var(--sp-3)}
+/* LA BARRA DI SCORRIMENTO È DEL GIOCO, non del browser: sottile, coi bordi netti, nei colori
+   della scheda. E passa DIETRO la X, che sta sopra a tutto con un fondo suo — prima la
+   attraversava, e una X mezza coperta da una barra grigia sembra roba rotta. */
+.sp-card.sub > .sp-menu{scrollbar-width:thin;scrollbar-color:var(--c-win-edge) rgba(0,0,0,.28)}
+.sp-card.sub > .sp-menu::-webkit-scrollbar{width:8px}
+.sp-card.sub > .sp-menu::-webkit-scrollbar-track{background:rgba(0,0,0,.28);box-shadow:none}
+.sp-card.sub > .sp-menu::-webkit-scrollbar-thumb{background:var(--c-win-edge);border-radius:0;
+  box-shadow:inset 0 0 0 2px var(--c-soot)}
+.sp-card.sub > .sp-menu::-webkit-scrollbar-thumb:hover{background:var(--c-win-gold)}
+/* e l'ultima riga SFUMA: così si vede che sotto c'è dell'altro senza bisogno di una barra
+   sempre accesa (su macOS le barre compaiono solo mentre si scorre) */
+.sp-card.sub > .sp-menu{-webkit-mask-image:linear-gradient(#000 calc(100% - 22px),transparent);
+  mask-image:linear-gradient(#000 calc(100% - 22px),transparent)}
+.sp-x{z-index:6}
 /* …e allora l'elenco lungo DENTRO (le novità, i comandi, il taccuino) non scorre più per conto
    suo: due aree che scorrono una dentro l'altra sono la regola 15, e su un telefono si muove
    sempre quella sbagliata. Scorre la scheda, non il riquadro. */
