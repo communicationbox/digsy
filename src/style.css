@@ -1296,10 +1296,22 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
   color:var(--c-line-3);border-bottom:3px solid var(--c-parch)}
 .sk-x{font:inherit;font-weight:700;font-size:12px;color:var(--c-line-3);background:var(--c-parch);border:0;padding:6px 10px;cursor:pointer;box-shadow:inset 0 0 0 2px #8a6f42}
 .sk-board{position:relative;width:100%;aspect-ratio:1/1;background:#15120d;box-shadow:0 0 0 3px var(--c-deep);touch-action:none;overflow:hidden}
+/* LA SAGOMA sta sotto a tutto: è il fondo su cui i socket hanno un senso */
+#sk-fig{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
 .sk-sock{position:absolute;width:15%;aspect-ratio:1/1;transform:translate(-50%,-50%);border-radius:50%;
-  box-shadow:inset 0 0 0 2px #6b5636,0 0 0 2px #0006;background:#2a2115;
+  box-shadow:inset 0 0 0 2px #6b5636,0 0 0 2px #0006;background:rgba(42,33,21,.82);
   display:flex;align-items:center;justify-content:center;font-size:16px;color:#c9a86a}
 .sk-sock.hot{box-shadow:inset 0 0 0 3px var(--c-gold),0 0 0 2px #0006;background:#3a2e18}
+/* IL NOME DI OGNI POSTO, scritto. Le icone sono minuscole e astratte — un corno è una linea,
+   una coda una spiralina — e in cinque cerchi uguali non dicono niente: «non si capisce dove
+   va la coda, o dove vanno gli altri pezzi» (segnalato). Il minigioco non è un indovinello ma
+   un gesto rapido (il punteggio è sul TEMPO): quello che serve è arrivare subito al posto
+   giusto, non scoprire quale sia. */
+.sk-lb{position:absolute;top:104%;left:50%;transform:translateX(-50%);
+  font:800 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;
+  color:#c9a86a;white-space:nowrap;text-shadow:0 1px 0 #15120d,0 -1px 0 #15120d,1px 0 0 #15120d,-1px 0 0 #15120d}
+.sk-sock.hot .sk-lb{color:var(--c-gold-2)}
+@media(pointer:coarse){ .sk-lb{font-size:11px} }
 #sk-s-corno{left:50%;top:10%}#sk-s-cranio{left:50%;top:28%}#sk-s-torace{left:50%;top:52%}#sk-s-zampa{left:30%;top:80%}#sk-s-coda{left:70%;top:80%}
 .sk-piece{position:absolute;left:50%;top:92%;transform:translate(-50%,-50%);width:44px;height:36px;
   background:var(--c-parch);box-shadow:0 0 0 3px var(--c-amber);cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center}

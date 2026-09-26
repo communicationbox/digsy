@@ -42,7 +42,7 @@ import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawV
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
-import { nearestSocket, gradeForTime, SKIP_GRADE, SOCKETS, partLabel } from './skeletonfit.js';
+import { nearestSocket, gradeForTime, SKIP_GRADE, SOCKETS, partLabel, FIG as SK_FIG } from './skeletonfit.js';
 import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver as cmDeliver,
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
@@ -1478,13 +1478,39 @@ function skNext() {
   const sp = spById[skItem.s];
   const ttl = document.getElementById('sk-title'); if (ttl) ttl.innerHTML = withIcons(partName(skItem.t) + ' ' + tr('di', 'of') + ' ' + (sp ? sp.name : skItem.s));
   const hint = document.getElementById('sk-hint'); if (hint) hint.innerHTML = withIcons(tr('Trascina ogni osso al suo posto', 'Drag each bone into place'));
-  /* ogni socket mostra l'ICONA della sua parte (stessa del Libro/zaino): senza, sono 5 cerchi
-     identici e non è una sfida, è indovinare a caso (segnalato da un giocatore) */
-  for (const s of SOCKETS) { const el = document.getElementById('sk-s-' + s.id); if (el) el.innerHTML = withIcons(partLabel(s.id)); }
+  /* ogni socket mostra l'ICONA della sua parte (stessa del Libro/zaino) E IL NOME SCRITTO:
+     le icone da sole sono minuscole e astratte — un corno è una linea, una coda una spiralina
+     — e in cinque cerchi uguali su un fondo nero non dicono niente («non si capisce dove va la
+     coda, o dove vanno gli altri pezzi»). Il punteggio è sul TEMPO: quello che serve è
+     arrivare subito al posto giusto, non scoprire quale sia. */
+  for (const s of SOCKETS) {
+    const el = document.getElementById('sk-s-' + s.id);
+    if (el) el.innerHTML = withIcons(partLabel(s.id)) + `<span class="sk-lb">${partName(s.id)}</span>`;
+  }
+  drawSkeletonFig();
   skPlacePiece(0.5, 0.92); skHighlight(null);
   const pv = document.getElementById('sk-pv'); if (pv) { try { projectVox(pv, partVoxels(skItem.s, skItem.t)); } catch (e) { /* stub nei test */ } }
   const skip = document.getElementById('sk-skip'); if (skip) skip.onclick = () => skResolve(SK_SKIP);
   skWire();
+}
+/* LA SAGOMA DELLO SCHELETRO sotto i socket: senza, la tavola è un fondo nero con cinque
+   cerchietti in fila e nessun animale a cui appartengano. Disegnata da `FIG` (skeletonfit.js)
+   in frazioni della tavola, così segue la sua misura su qualsiasi schermo. */
+function drawSkeletonFig() {
+  const cv = document.getElementById('sk-fig'); if (!cv || !cv.getContext) return;
+  const W = 200, H = 200;
+  cv.width = W; cv.height = H;
+  const c = cv.getContext('2d'); if (!c || !c.fillRect) return;
+  c.clearRect(0, 0, W, H);
+  for (const [x, y, w, h] of SK_FIG) {
+    /* prima l'ombra, poi l'osso: una sagoma piatta su nero si legge appena */
+    c.fillStyle = 'rgba(0,0,0,.55)';
+    c.fillRect(Math.round(x * W) + 1, Math.round(y * H) + 1, Math.max(2, Math.round(w * W)), Math.max(2, Math.round(h * H)));
+    c.fillStyle = '#7a6b52';
+    c.fillRect(Math.round(x * W), Math.round(y * H), Math.max(2, Math.round(w * W)), Math.max(2, Math.round(h * H)));
+    c.fillStyle = '#9c8a6b';
+    c.fillRect(Math.round(x * W), Math.round(y * H), Math.max(2, Math.round(w * W)), 2);
+  }
 }
 function skWire() {
   const el = skPieceEl(), board = document.getElementById('sk-board');

@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.17', it: [
+      'IL MONTAGGIO DELLO SCHELETRO al Museo si capisce: ogni posto porta il NOME scritto (cranio, corno, torace, zampa, coda) e sotto c\'è la sagoma di uno scheletro. Prima erano cinque cerchietti uguali su un fondo nero, con dentro icone minuscole: non si capiva dove andasse la coda, né gli altri pezzi',
+    ], en: [
+      'THE SKELETON FITTING at the Museum makes sense now: every socket carries its NAME (skull, horn, ribcage, leg, tail) and a skeleton is drawn underneath. It used to be five identical circles on a black background with tiny icons inside: you could not tell where the tail went, nor any other piece',
+    ],
+  },
+  {
     v: 'v0.99.15', it: [
       'LA CASSETTA DELLE LETTERE ha aria attorno: era incastrata fra due panchine e il tetto di una bottega. Adesso si sceglie il punto più sgombro della piazza, ma comodo da raggiungere — nelle partite già avviate la troverai spostata',
       'QUELLO CHE SI DICE IN GIOCO NON RESTA SCRITTO: si dice, si sente e passa, come parlare di persona. Nel taccuino finiscono solo le LETTERE, quelle da cinque monete — ed è proprio per questo che costano',

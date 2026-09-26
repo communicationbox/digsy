@@ -466,6 +466,9 @@ async function main() {
         });
       });
     }
+    /* 'scheletro' = il minigioco del montaggio al Museo: dove va ogni osso */
+    else if (${JSON.stringify(vista)} === 'scheletro') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('play=skeleton').then(function(){ if(G.frame) G.frame(1200); }); }
     /* 'locanda' = il pannello della Locanda: dormire, e il REGISTRO dove si cambia nome */
     else if (${JSON.stringify(vista)} === 'locanda') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('go=city').then(function(){ var S2=G.state(); S2.name='Marco'; if(G.openInn) G.openInn(); }); }

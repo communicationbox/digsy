@@ -152,6 +152,13 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   NPC/player/banco ordinati per y (niente sovrapposizioni). Museo = edificio **5×2 con
   frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
+- **Il montaggio dello scheletro si capisce** (`FIG` in skeletonfit.js + `.sk-lb` in ui.js):
+  ogni socket porta il NOME scritto della parte e sotto c'è la sagoma di uno scheletro. Erano
+  cinque cerchi uguali su fondo nero con dentro icone minuscole e astratte — un corno è una
+  linea, una coda una spiralina — e «non si capiva dove andasse la coda». Il punteggio è sul
+  TEMPO, quindi il gioco è arrivare subito al posto giusto, non scoprire quale sia: dirlo non
+  toglie niente. Un test pretende che ogni socket caschi sopra un pezzo di sagoma.
+  Foto: `npm run shot -- scheletro 620,700`.
 - **Quello che si dice in gioco NON resta scritto** (chat.js): le nuvolette si dicono e
   passano, come parlare di persona. Nel taccuino finiscono solo le **lettere** (posta.js,
   5 monete): è il motivo per cui costano, ed è quello che rende una pagina degna di rilettura —

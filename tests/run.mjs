@@ -10849,6 +10849,53 @@ sprites.applyLook();
   check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
 }
 
+/* ---------- IL MONTAGGIO DELLO SCHELETRO SI DEVE CAPIRE ----------
+   «Non si capisce dove va la coda, o dove vanno gli altri pezzi.» Erano cinque cerchietti
+   uguali su un fondo nero, con dentro icone minuscole e astratte (un corno è una linea, una
+   coda una spiralina). Ora ogni posto porta il NOME scritto e sotto c'è la SAGOMA di uno
+   scheletro: la domanda non si pone più. */
+{
+  const sk = await import('../src/skeletonfit.js');
+  const u6 = await import('../src/ui.js');
+  check('la tavola ha una sagoma da disegnare', Array.isArray(sk.FIG) && sk.FIG.length > 10, (sk.FIG || []).length + ' ossa');
+  /* OGNI SOCKET STA SU UN PEZZO DI SCHELETRO: un cerchio in mezzo al nulla non spiega niente,
+     e uno appoggiato sulla coda disegnata dice da sé che lì va la coda. */
+  const sopraOsso = (s) => sk.FIG.some(([x, y, w, h]) =>
+    s.x >= x - sk.HIT_R && s.x <= x + w + sk.HIT_R && s.y >= y - sk.HIT_R && s.y <= y + h + sk.HIT_R);
+  const orfani = sk.SOCKETS.filter(s => !sopraOsso(s)).map(s => s.id);
+  check('ogni posto cade su un pezzo della sagoma', orfani.length === 0, orfani.join(', '));
+  /* la sagoma resta DENTRO la tavola: un osso a metà fuori è un errore di disegno */
+  const fuori = sk.FIG.filter(([x, y, w, h]) => x < 0 || y < 0 || x + w > 1 || y + h > 1).length;
+  check('e nessun osso esce dalla tavola', fuori === 0, fuori + ' fuori');
+  /* zampa e coda sono le due che si confondevano: devono stare da parti OPPOSTE */
+  const za = sk.socketFor('zampa'), co = sk.socketFor('coda');
+  check('zampa e coda stanno da parti opposte', (za.x < 0.5) !== (co.x < 0.5));
+  check('e abbastanza lontane da non prendersi a vicenda', Math.hypot(za.x - co.x, za.y - co.y) > sk.HIT_R * 2);
+
+  /* e nella schermata ogni posto porta il suo NOME scritto */
+  const ov6 = document.getElementById('skfitov');
+  if (!ov6) check('la schermata del montaggio esiste', false);
+  else {
+    /* senza `requestAnimationFrame` il minigioco si salta da solo (headless): qui lo si vuole
+       APRIRE, per guardare cosa c'è scritto sulla tavola */
+    const rafPrima = globalThis.requestAnimationFrame;
+    if (!rafPrima) globalThis.requestAnimationFrame = (f) => { void f; return 0; };
+    u6.openSkeletonFit([{ s: 'saltalepre', t: 'coda' }], () => {});
+    /* si guardano i socket UNO PER UNO e non l'HTML del riquadro che li contiene: nello stub
+       quello che si scrive dentro un figlio non ricompare nel genitore */
+    const conNome = sk.SOCKETS.filter(x => {
+      const e = document.getElementById('sk-s-' + x.id);
+      return e && /sk-lb/.test(e.innerHTML || '');
+    });
+    check('ogni posto porta il nome scritto', conNome.length === sk.SOCKETS.length,
+      conNome.length + ' etichette su ' + sk.SOCKETS.length);
+    const hCoda = (document.getElementById('sk-s-coda') || {}).innerHTML || '';
+    check('coda compresa', /[Cc]oda|[Tt]ail/.test(hCoda), hCoda.slice(0, 60));
+    u6.skeletonFitSkip();
+    if (!rafPrima) delete globalThis.requestAnimationFrame;
+  }
+}
+
 /* ---------- IL NOME SI CAMBIA IN GIOCO, ALLA LOCANDA ----------
    «Lo devo poter cambiare in game, NON nel menu.» Il registro della locanda: ci si presenta
    all'oste come in qualsiasi locanda, ed è l'unico servizio che c'è in OGNI paese — anche nei

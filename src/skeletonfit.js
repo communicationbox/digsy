@@ -19,6 +19,39 @@ export const SOCKETS = [
 ];
 export function socketFor(partId) { return SOCKETS.find(s => s.id === partId) || null; }
 
+/* LA SAGOMA SOTTO I SOCKET. Senza, la tavola è un fondo nero con cinque cerchietti in fila e
+   non c'è modo di sapere che quello in basso a destra è la CODA e quello a sinistra la ZAMPA —
+   «non si capisce dove va la coda, o dove vanno gli altri pezzi» (segnalato). Con lo scheletro
+   disegnato sotto, ogni socket sta su un pezzo di animale e la domanda non si pone più.
+   Segmenti in FRAZIONI della tavola (x, y, larghezza, altezza), come i socket: la tavola
+   cambia misura con lo schermo e una sagoma in pixel ci si scollerebbe. Modulo puro: si
+   misura che ogni socket caschi davvero sopra un pezzo di sagoma. */
+export const FIG = [
+  /* corna: due tratti che salgono dal cranio */
+  [0.455, 0.075, 0.020, 0.055], [0.525, 0.075, 0.020, 0.055],
+  [0.470, 0.060, 0.020, 0.030], [0.510, 0.060, 0.020, 0.030],
+  /* cranio: calotta e muso */
+  [0.440, 0.240, 0.120, 0.060], [0.455, 0.225, 0.090, 0.020], [0.470, 0.295, 0.060, 0.022],
+  /* collo: tre vertebre fra cranio e torace */
+  [0.482, 0.325, 0.036, 0.030], [0.482, 0.360, 0.036, 0.030], [0.482, 0.395, 0.036, 0.030],
+  /* torace: colonna e quattro costole per lato */
+  [0.484, 0.430, 0.032, 0.180],
+  [0.400, 0.450, 0.084, 0.018], [0.516, 0.450, 0.084, 0.018],
+  [0.390, 0.490, 0.094, 0.018], [0.516, 0.490, 0.094, 0.018],
+  [0.395, 0.530, 0.089, 0.018], [0.516, 0.530, 0.089, 0.018],
+  [0.412, 0.570, 0.072, 0.018], [0.516, 0.570, 0.072, 0.018],
+  /* bacino */
+  [0.430, 0.620, 0.140, 0.040],
+  /* zampa: femore, stinco, piede — scende a SINISTRA e SPORGE dal suo socket, o la sagoma
+     finisce tutta sotto il cerchio e non si vede più */
+  [0.355, 0.655, 0.080, 0.028], [0.312, 0.685, 0.034, 0.090], [0.262, 0.870, 0.096, 0.028],
+  [0.312, 0.770, 0.034, 0.110],
+  /* coda: segmenti che scendono a DESTRA e si assottigliano, fino oltre il cerchio */
+  [0.565, 0.650, 0.070, 0.028], [0.620, 0.688, 0.060, 0.026],
+  [0.664, 0.728, 0.052, 0.024], [0.700, 0.772, 0.046, 0.022],
+  [0.730, 0.818, 0.040, 0.020], [0.756, 0.862, 0.034, 0.018],
+];
+
 /* raggio di presa, in frazione della stessa scala x/y dei socket (0-1) */
 export const HIT_R = 0.10;
 /* il socket più vicino al punto di rilascio, se dentro il raggio di presa */
