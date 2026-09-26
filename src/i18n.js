@@ -162,7 +162,7 @@ export function applyStaticTexts() {
   /* la riga della chat: segnaposto e pulsante. Il markup non ha testo dentro apposta. */
   { const ci = document.getElementById('chati'); if (ci) ci.placeholder = tr('Scrivi qualcosa…', 'Say something…'); }
   set('#chatsend', tr('Invia', 'Send'));
-  const HUD_LBL = { bagbtn: tr('zaino ', 'bag '), mapbtn: tr(' mappa', ' map'), menubtn: tr(' menu', ' menu') };
+  const HUD_LBL = { bagbtn: tr('zaino ', 'bag '), mapbtn: tr(' mappa', ' map'), tacctag: tr(' taccuino', ' notebook'), menubtn: tr(' menu', ' menu') };
   for (const [id, txt] of Object.entries(HUD_LBL)) {
     const host = document.getElementById(id);
     const el = host && host.querySelector ? host.querySelector('.lbl') : null;

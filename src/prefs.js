@@ -24,6 +24,10 @@ export const DEFAULTS = {
      dalle Impostazioni, dove è scritto in chiaro cosa manda. */
   battito: true,
   marker: true,        // segnalino sulla destinazione quando si tocca dove andare
+  /* IL NOME DEGLI ALTRI sopra la testa. Acceso di serie — in compagnia sapere chi è chi è il
+     minimo — ma si spegne: la targa sta comunque davanti al personaggio, e chi gioca in due
+     davanti allo stesso schermo il nome dell'altro lo sa già. */
+  nomi: true,
   /* scheda del tutorial richiusa: su un telefono aperta occupa un terzo dello schermo, e chi
      ha già letto il passo vuole vedere il gioco. Si richiude toccandola, e resta com'è. */
   tutSmall: false,
@@ -48,6 +52,7 @@ export function resetPrefs() { prefs = { ...DEFAULTS }; try { localStorage.remov
 /* scorciatoie usate in giro */
 export function tipsOn() { return prefs.tips !== false; }
 export function tutSmall() { return prefs.tutSmall === true; }
+export function nomiOn() { return prefs.nomi !== false; }
 /* La LEVA FISSA disegnata in un angolo esiste solo nella modalità 'joystick': con quella
    fluttuante nasce sotto il dito e non c'è nulla da mostrare a riposo; col solo tocco non
    serve affatto e coprirebbe proprio la parte di schermo da toccare.

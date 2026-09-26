@@ -2260,7 +2260,8 @@ sprites.applyLook();
   document.getElementById('sp-saves').onclick();
   /* dai sottomenu si esce con la X in alto (una sola via d'uscita, sempre nello schermo:
      il vecchio pulsante "Indietro" in fondo su mobile finiva sotto il bordo) */
-  check('sottomenu Salvataggi: Salva/Carica/Nuova + X per uscire', ['data-save', 'data-n', 'sp-new', 'sp-x'].every(k => menuEl().innerHTML.includes(k)));
+  check('sottomenu Salvataggi: Salva/Carica/Nuova + X per uscire',
+    ['data-save', 'data-n', 'sp-new'].every(k => menuEl().innerHTML.includes(k)) && !!document.getElementById('sp-x'));
   /* GLI SLOT NON DEVONO MAI SPARIRE da questa schermata. Ci sono spariti davvero: dodici
      righe di statistiche in fondo hanno schiacciato `#sp-slots`, che sta in un contenitore
      flessibile, fino a farlo collassare. Qui si pretende che i tre slot ci siano e che le
@@ -8844,6 +8845,34 @@ sprites.applyLook();
     const body = rsrc.slice(rsrc.indexOf('export function plateBox'));
     check('plateBox non arrotonda ai pixel di GIOCO', !/Math\.round/.test(body.slice(0, body.indexOf('\n}'))));
   }
+  /* IL NOME DI CHI GIOCA CON TE STA SOPRA LA TESTA, non sulla testa. Era ancorato a `sy + 2`,
+     cioè due pixel DENTRO lo sprite: targa e codina coprivano cappello e fronte, e restavano
+     due piedi sotto un cartellino (segnalato con foto). Si misura il fondo vero della targa —
+     codina compresa — contro il punto più alto che il personaggio può raggiungere. */
+  {
+    const rnd2 = await import('../src/render.js');
+    const scr2 = await import('../src/screen.js');
+    const K1 = scr2.view.K, W1 = scr2.view.W, PX1 = scr2.view.PX;
+    scr2.view.K = 4; scr2.view.PX = 4; scr2.view.W = 400;
+    const sy = 200, h = 10;                       // una targa a una riga: 1*6 + 4
+    const b = rnd2.plateBox(100, rnd2.peerPlateY(sy), 40, h);
+    const CAPPELLO = 3;                           // quanto il cappello svetta sopra `sy` (hatArt)
+    check('il nome non tocca il personaggio, codina compresa', b.by + h + 2 <= sy - CAPPELLO);
+    check('e non se ne va per i fatti suoi: resta attaccato alla testa', sy - (b.by + h + 2) <= 4);
+    scr2.view.K = K1; scr2.view.PX = PX1; scr2.view.W = W1;
+  }
+  /* …e si può SPEGNERE: il nome è roba d'interfaccia messa davanti al gioco, e chi gioca in
+     due davanti allo stesso schermo sa già chi è l'altro. */
+  {
+    const fs7 = await import('node:fs');
+    const rsrc2 = fs7.readFileSync('src/render.js', 'utf8');
+    const pf = await import('../src/prefs.js');
+    check('il nome sopra la testa passa dalla preferenza', /nomiOn\(\)\)\s*plate\(/.test(rsrc2));
+    pf.setPref('nomi', false);
+    check('spento, resta spento', pf.nomiOn() === false);
+    pf.setPref('nomi', true);
+    check('acceso di serie', pf.nomiOn() === true);
+  }
 
   /* IL MUSEO STA CHIUSO finché il tutorial non ci manda. Senza, si entra al primo minuto e si
      consegna il reperto del nonno prima di aver capito cosa sia una consegna: il passo del
@@ -10256,22 +10285,32 @@ sprites.applyLook();
       state.S.amici = [];
     }
   }
-  /* DENTRO LA STANZA si deve leggere DOVE si è e DI CHI è il mondo. Due persone che sbagliano
+  /* DA OSPITE si deve leggere DOVE si è e DI CHI è il mondo. Due persone che sbagliano
      codice — o che aprono ognuna il proprio mondo — vedevano tutte e due «sei nella stanza» e
-     restavano sole senza capire perché (successo davvero, con una foto). */
+     restavano sole senza capire perché (successo davvero, con una foto).
+     A CHI OSPITA, invece, quelle tre righe non dicono niente: il mondo è suo, l'ha aperto lui,
+     e il codice della stanza è lo stesso stampato due dita sotto, sotto «Il tuo codice». */
   {
     const mpS = await import('../src/mp.js');
     const netS = await import('../src/net.js');
     const fatte = [];
     mpS.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
-    mpS.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK' });
-    const sk = fatte[fatte.length - 1];
-    sk.onopen(); sk.onmessage({ data: netS.encode(netS.T.WELCOME, { id: 'io' }) });
-    sk.onmessage({ data: netS.encode(netS.T.ROOM, { host: 'io', peers: [] }) });
-    sp2.setView('amici');
-    const hd = ((document.getElementById('sp-menu') || {}).innerHTML) || '';
-    check('nella stanza si legge QUALE stanza', /Q2D4F-G7HJK/.test(hd), hd.slice(0, 0));
-    check('e che il mondo è il TUO, se hai aperto tu', /TUO mondo|YOUR world/i.test(hd));
+    const entra = (host) => {
+      mpS.connect('ws://finta/ws', { name: 'Marco', room: 'w-Q2D4FG7HJK' });
+      const sk = fatte[fatte.length - 1];
+      sk.onopen(); sk.onmessage({ data: netS.encode(netS.T.WELCOME, { id: 'io' }) });
+      sk.onmessage({ data: netS.encode(netS.T.ROOM, { host, peers: host === 'io' ? [{ id: 'p1', name: 'Fenn' }] : [{ id: host, name: 'Ada' }] }) });
+      sp2.setView('amici');
+      return ((document.getElementById('sp-menu') || {}).innerHTML) || '';
+    };
+    const osp = entra('altro');
+    check('da ospite si legge QUALE stanza', /Q2D4F-G7HJK/.test(osp));
+    check('e di chi è il mondo in cui si sta giocando', /mondo di chi|world of whoever/i.test(osp));
+    mpS.disconnect();
+    const mio = entra('io');
+    check('a chi ospita non si ripete il codice della stanza', !/sp-code[^>]*>[^<]*Q2D4F-G7HJK/.test(mio));
+    check('né «sei nella stanza»: l\'ha aperta lui', !/Sei nella stanza|in the room/i.test(mio));
+    check('e chi c\'è si legge lo stesso', /Nel tuo mondo|In your world/i.test(mio));
     mpS.disconnect();
     mpS.setTransport((u) => new WebSocket(u));
   }

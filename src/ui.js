@@ -49,6 +49,7 @@ import { icon, withIcons } from './icons.js';
 import { cloud } from './cloud.js';
 import { inCasa, MP } from './mp.js';
 import { amici, nomeDi } from './amici.js';
+import { pagine as pagineChat } from './chat.js';
 import { scrivi as scriviLettera, ritira as ritiraLettera, inPartenza, COSTO_LETTERA, MAX_LETTERA } from './posta.js';
 import { groundPalette } from './tiles.js';
 import { tr, actKey, keyHint, keys, isTouch, LANG, rarLabel, partName, zoneName, bldName, seasonName, lookLabel, hairLabel, hatLabel, beardLabel, glassesLabel, shirtLabel, pantsLabel, furnLabel, furnThemeLabel, roomName } from './i18n.js';
@@ -182,6 +183,11 @@ export function updateHUD() {
         mt.style.display = '';
       } else mt.style.display = 'none';
     }
+    /* IL TACCUINO si apre da qui, in gioco. Si mostra solo se c'è qualcosa da rileggere:
+       un pulsante che apre una pagina vuota è un pulsante che delude una volta sola e poi
+       non lo preme più nessuno. */
+    const tt = document.getElementById('tacctag');
+    if (tt) tt.style.display = pagineChat().length ? '' : 'none';
   }
   const lt = document.getElementById('lvltag'), ln = document.getElementById('h-lvl');
   if (lt && ln) { ln.textContent = String(playerLevel()); lt.title = tr('Livello archeologo ', 'Archaeologist level ') + playerLevel() + ' · XP ' + playerXp() + '/' + xpToNext(); }
@@ -2422,6 +2428,16 @@ document.getElementById('bagbtn').onclick = () => { playSfx('ui'); openBag(); };
   if (mb) mb.onclick = () => { if (!isModalOpen()) { playSfx('ui'); openMap(); } }; }
 /* il Libro non sta più nell'HUD: si apre dallo zaino (📖) o col tasto L */
 { const qt = document.getElementById('questtag'); if (qt) qt.onclick = () => { if (!isModalOpen()) openQuests(); }; }
+/* TACCUINO e STANZA dall'HUD: la compagnia si governa da dove si gioca. La splash si importa
+   a runtime (non in cima) perché ui.js e splash.js si tengono già per mano: un import
+   statico in più chiuderebbe l'anello al caricamento. */
+{
+  const apri = (v) => import('./splash.js').then(sp => { sp.showSplash(); if (sp.setView) sp.setView(v); });
+  const tt = document.getElementById('tacctag');
+  if (tt) tt.onclick = () => { if (!isModalOpen()) { playSfx('ui'); apri('taccuino'); } };
+  const mt = document.getElementById('mptag');
+  if (mt) mt.onclick = () => { if (!isModalOpen()) { playSfx('ui'); apri('amici'); } };
+}
 /* HUD mobile: una sola icona espande/collassa; da collassato restano solo toggle + menu */
 { const ht = document.getElementById('hudtoggle'), hud = document.getElementById('hud');
   if (ht && hud) {

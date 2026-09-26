@@ -27,7 +27,7 @@ import { zoneAt, zoneIdxAt } from './regions.js';
 import { goal as goalMark } from './tapmove.js';
 import { MP, visibili } from './mp.js';
 import { bolla } from './chat.js';
-import { pref as prefOf } from './prefs.js';
+import { pref as prefOf, nomiOn } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
 import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal } from './props.js';
@@ -1943,8 +1943,19 @@ function drawPeer(sx, sy, q, time) {
      cose nello stesso punto si coprirebbero a vicenda. */
   const detta = bolla(q.id, time);
   if (detta) drawSayBalloon(sx, sy + 6, detta);
-  else plate(sx, sy + 2, q.name, null, false);
+  /* IL NOME STA SOPRA LA TESTA, NON SULLA TESTA. Era ancorato a `sy + 2`, cioè due pixel SOTTO
+     il bordo alto dello sprite: la targa e la sua codina coprivano cappello e fronte, e in
+     compagnia si guardava un cartellino con due piedi. Il cappello svetta fino a tre righe
+     sopra `sy` (hatArt), più i due pixel della codina e uno d'aria: `sy - 6`.
+     E si può spegnere (Impostazioni → A schermo): la targa è comunque roba davanti al gioco. */
+  else if (nomiOn()) plate(sx, peerPlateY(sy), q.name, null, false);
 }
+/* DOVE SI APPOGGIA IL NOME. Sta fuori da `drawPeer` per la stessa ragione di `plateBox`: è
+   la parte che si può sbagliare in silenzio, e così un test la può misurare.
+   `sy` è il bordo ALTO dello sprite; il cappello svetta fino a 3 righe più su (hatArt) e la
+   targa ha 2 px di codina sotto, più uno d'aria: 3 + 2 + 1. */
+export const PLATE_GAP = 6;
+export function peerPlateY(sy) { return sy - PLATE_GAP; }
 /* mette gli altri nella fila delle entità, ordinati per piedi come tutti: chi sta più in basso
    passa davanti. `scena` filtra chi è altrove — entrato in bottega, sceso in grotta. */
 function pushPeers(ents, camx, camy, time, scena) {

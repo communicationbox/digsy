@@ -1,6 +1,19 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.3', it: [
+      'AMICI, rimesso in ordine: se il mondo è il tuo non te lo si ripete più (niente «sei nella stanza» e niente codice stampato due volte), e la ✕ per uscire non arriva più tagliata a metà',
+      'Nella rubrica, Invita e la ✕ per togliere non si accavallano più: sono due pulsanti con la loro cornice e la loro aria',
+      'IL TACCUINO SI APRE MENTRE GIOCHI, dalla barra in alto: era una voce buttata in fondo al pannello Amici, e si rilegge giocando, non dal menu',
+      'Il nome di chi gioca con te sta SOPRA la testa, non sulla testa — e si può spegnere da Impostazioni → A schermo',
+    ], en: [
+      'FRIENDS, tidied up: when the world is yours nobody repeats it to you any more (no «you\'re in the room», no room code printed twice), and the ✕ to leave is no longer cut in half',
+      'In the address book, Invite and the ✕ to remove no longer overlap: two buttons, each with its own frame and its own air',
+      'THE NOTEBOOK OPENS WHILE YOU PLAY, from the top bar: it used to be an item dumped at the bottom of the Friends panel, and you read it back while playing, not from the menu',
+      'The name of whoever plays with you sits ABOVE the head, not on it — and it can be turned off in Settings → On screen',
+    ],
+  },
+  {
     v: 'v0.99.0', it: [
       'SI GIOCA IN DUE. Menu → Amici: dai il tuo codice a chi vuoi, lui ti aggiunge (e tu aggiungi lui), e da quel momento vi vedete quando siete in gioco — pallino acceso accanto al nome',
       'INVITARE: premi Invita e all\'altro arriva un biglietto nel suo gioco, che può accettare o no. Chi invita apre il proprio mondo: si gioca lì, col suo orologio e le sue stagioni',

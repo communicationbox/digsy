@@ -407,6 +407,11 @@ async function main() {
         { c:'P9XGE4RUMT', n:'Nadia' }, { c:'C3JWK8HEQR', n:'Bruno' }];
       if(G.splashView) G.splashView('amici');
     }
+    /* 'compagnia' = il mondo CON qualcun altro dentro: serve a guardare il cartellino del
+       nome, che sta sopra la testa e non deve coprirla */
+    else if (${JSON.stringify(vista)} === 'compagnia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.mpFinta) { var fin=function(){ G.mpFinta(['Fenn','Ada'], true).then(function(){ if(G.frame) G.frame(1200); }); };
+        fin(); setInterval(fin, 120); } }
     /* 'invito' = il biglietto che arriva quando un amico ti chiama nel suo mondo: compare
        SOPRA il gioco, mentre giochi, e resta finché non rispondi */
     else if (${JSON.stringify(vista)} === 'invito') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
@@ -419,7 +424,11 @@ async function main() {
        c'è e il «manda via» accanto al nome non si vedrebbero mai */
     else if (${JSON.stringify(vista)} === 'stanza') {
       if(sp) sp.classList.remove('off');
-      if(G.mpFinta) G.mpFinta(['Luca','Ada'], true).then(function(){ if(G.splashView) G.splashView('amici'); });
+      /* il pannello si ridisegna da solo ogni 400ms (il «vigile» in splash.js) e la partita
+         vera intanto prova a collegarsi: senza rimettere lo stato finto a ogni giro, la foto
+         esce sempre con «mi collego alla stanza» invece che con la stanza. */
+      if(G.mpFinta) { var finta=function(){ G.mpFinta(['Luca','Ada'], true).then(function(){ if(G.splashView) G.splashView('amici'); }); };
+        finta(); setInterval(finta, 200); }
     }
     else {
       if(sp) sp.classList.remove('off');

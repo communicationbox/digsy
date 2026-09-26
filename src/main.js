@@ -520,8 +520,12 @@ if (typeof window !== 'undefined') {
         m.MP.stato = 'dentro'; m.MP.stanza = 'w-QWG2DVH4D3';
         m.MP.room.me = 'io'; m.MP.room.host = ospito === false ? 'u1' : 'io';
         m.MP.room.joined = true; m.MP.room.peers.clear();
+        /* e li si mette ANCHE nel mondo, accanto a chi guarda: senza un campione nel
+           «buf» (quello che la rete avrebbe portato) `visibili` non ne restituisce nessuno,
+           e una foto della compagnia ritraeva sempre e solo il giocatore da solo. */
         (nomi || []).forEach((n, i) => m.MP.room.peers.set('u' + (i + 1),
-          { id: 'u' + (i + 1), name: n, look: null, buf: [], salti: i === 1 ? 3 : 0 }));
+          { id: 'u' + (i + 1), name: n, look: null, salti: i === 1 ? 3 : 0,
+            buf: [{ t: 0, x: P.x + (i + 1) * 22, y: P.y - 6, d: 'down', m: 0, s: 'world' }] }));
         return true;
       }),
       /* entrare/uscire dalle scene: serve agli e2e per DISEGNARLE davvero. Una regressione

@@ -259,8 +259,14 @@ let taccuinoChi = null;      // quale conversazione si sta rileggendo
    assolutamente niente» (segnalato da telefono, dove non c'è nemmeno la console a smentire). */
 let avvisoAmici = '';
 let vigile = null;           // controlla il collegamento mentre il pannello è aperto
+let xFuori = null;           // la X, spostata fuori dall'elenco che scorre (vedi buildMenu)
 
-export function setView(v) { view = v; buildMenu(inGameMode); }
+export function setView(v) {
+  /* il taccuino si riapre dall'ELENCO delle conversazioni: entrando dall'HUD, riprendere la
+     pagina aperta ieri fa sembrare che il pulsante porti sempre dalla stessa persona */
+  if (v === 'taccuino') taccuinoChi = null;
+  view = v; buildMenu(inGameMode);
+}
 
 /* in dev: salta la splash SOLO sui reload innescati da Vite (modifiche ai file) */
 if (import.meta.hot) {
@@ -482,6 +488,7 @@ function buildMenu(inGame) {
     /* SCHERMO: le due cose che si vedono mentre si gioca */
     h += grp('✨ ' + tr('A schermo', 'On screen'),
       riga(tr('Segnalino della meta', 'Destination marker'), sw('sp-marker', pf.marker))
+      + riga(tr('Nomi sopra gli altri', 'Names above others'), sw('sp-nomi', pf.nomi))
       + riga(tr('Suggerimenti', 'Tips'), sw('sp-tips', pf.tips))
       + `<div class="sp-hint2">${tr('Spiega ogni cosa la prima volta. Le ritrovi nella Guida (zaino → ❔).', 'Explains each thing the first time. Find them again in the Guide (bag → ❔).')}</div>`);
 
@@ -527,15 +534,6 @@ function buildMenu(inGame) {
        fatto l'accesso con Google legge "scollegato" e pensa all'account (segnalato: "sono
        collegato con Google, come mai mi dice che sono scollegato?"). Ogni riga adesso dice di
        cosa parla, e quella da fermi lo dice in chiaro (regola 7). */
-    /* SOLO IN CASA: a quale centralino si è attaccati. Sul computer di chi sviluppa ce ne sono
-       due (quello locale e quello pubblicato, con `?ws=online`) ed è la prima cosa da guardare
-       quando «l'altro non si vede»: due centralini diversi sono due mondi che non si toccano. */
-    if (inCasa()) {
-      /* si confronta con la costante, non con un pezzo di dominio scritto a mano: l'indirizzo
-         del centralino pubblicato sta in un posto solo (mp.js) e va cambiato lì */
-      const suOnline = (relayUrl() || '') === CENTRALINO_ONLINE;
-      h += `<div class="sp-note">${tr('Centralino: ', 'Switchboard: ')}${suOnline ? tr('quello online', 'the online one') : tr('quello locale', 'the local one')}</div>`;
-    }
     const stato = MP.stato === 'dentro' ? (inAttesa() ? tr('Sei in attesa nella stanza', "You're waiting in the room") : tr('Sei nella stanza', "You're in the room"))
       : MP.stato === 'collego' ? tr('Mi collego alla stanza…', 'Joining the room…')
         : MP.stato === 'caduto' ? tr('La stanza è caduta', 'Lost the room')
@@ -557,8 +555,16 @@ function buildMenu(inGame) {
         : tr('Il centralino non risponde. Riprova fra un momento.', 'The switchboard is not answering. Try again in a moment.'),
       'trasporto': tr('Il centralino non risponde.', 'The switchboard is not answering.'),
     };
+    /* IL MOTIVO GREZZO NON SI STAMPA. È un codice nostro («uscito», «trasporto»): stampato
+       così com'è diventa «Non sei in nessuna stanza · uscito», che non spiega niente a
+       nessuno e sembra un errore del gioco (regola 7). O si sa dirlo, o si tace. */
     const detto = MP.motivo ? (motivi[MP.motivo] || '') : '';
-    h += `<div class="sp-note">${stato}${(MP.motivo && !detto) ? ' · ' + esc(MP.motivo) : ''}</div>`;
+    /* CHI OSPITA SA GIÀ DOV'È. «Sei nella stanza», il codice in un riquadro grande e «è il TUO
+       mondo» erano tre righe per dire una cosa che hai appena fatto tu — e il codice era lo
+       stesso stampato due dita più sotto, sotto «Il tuo codice». Restano solo a chi è ospite o
+       sta aspettando, che è l'unico caso in cui quella riga risponde a una domanda vera. */
+    const ospito = MP.stato === 'dentro' && sonoOspitante() && !inAttesa();
+    if (!ospito) h += `<div class="sp-note">${stato}</div>`;
     if (detto) h += `<div class="sp-acc-warn">${detto}</div>`;
     if (avvisoAmici) h += `<div class="sp-acc-warn">${esc(avvisoAmici)}</div>`;
     if (MP.stato === 'dentro') {
@@ -568,13 +574,13 @@ function buildMenu(inGame) {
          scritto qui si confronta a voce in due secondi.
          E chi ospita lo deve sapere: il mondo è suo, ed è la regola che sorprende di più. */
       const dove = (MP.stanza || '').replace(/^w-/, '');
-      if (dove) h += `<div class="sp-code">${esc(formatta(dove))}</div>`;   // mai un riquadro vuoto
-      h += `<div class="sp-note">${inAttesa()
-        ? tr('Stai aspettando: chi ha questo codice non ha ancora aperto il suo mondo. Quando lo apre, ci sei già dentro.',
-          "You're waiting: whoever has this code hasn't opened their world yet. When they do, you're already in.")
-        : sonoOspitante()
-          ? tr('È il TUO mondo: gli altri stanno giocando qui da te.', "It's YOUR world: the others are playing here at your place.")
+      if (dove && !ospito) h += `<div class="sp-code">${esc(formatta(dove))}</div>`;   // mai un riquadro vuoto
+      if (!ospito) {
+        h += `<div class="sp-note">${inAttesa()
+          ? tr('Stai aspettando: chi ha questo codice non ha ancora aperto il suo mondo. Quando lo apre, ci sei già dentro.',
+            "You're waiting: whoever has this code hasn't opened their world yet. When they do, you're already in.")
           : tr('Sei nel mondo di chi ha aperto questa stanza.', "You're in the world of whoever opened this room.")}</div>`;
+      }
       const gente = presenti();
       /* CHI ASPETTA NON DEVE PASSARE NESSUN CODICE. «Ancora nessuno: passa il codice a
          qualcuno» è la riga di chi OSPITA; a chi sta aspettando diceva di fare una cosa che
@@ -586,7 +592,7 @@ function buildMenu(inGame) {
         h += `<button class="sp-btn small" id="sp-mp-apri">${tr('Apri il mio mondo', 'Open my world')}</button>`;
       } else if (!gente.length) h += `<div class="sp-note">${tr('Ancora nessuno: passa il codice a qualcuno', 'Nobody yet: pass the code to someone')}</div>`;
       else {
-        h += `<div class="sp-note">${tr('Con te', 'With you')}</div>`;
+        h += `<div class="sp-lab">${ospito ? tr('Nel tuo mondo', 'In your world') : tr('Con te', 'With you')}</div>`;
         /* CHI OSPITA PUÒ MANDARE VIA: è casa sua (MULTIPLAYER.md, regola 17). Accanto al nome,
            se ce ne sono, i SALTI contati: non è un'accusa e non succede niente in automatico —
            fra amici invitati non esiste un anti-cheat vero, e la decisione è di chi ospita. */
@@ -658,7 +664,6 @@ function buildMenu(inGame) {
 
       h += `<div class="sp-sep"></div>`;
     }
-    h += `<button class="sp-btn small" id="sp-mp-tacc">📝 ${tr('Taccuino', 'Notebook')}</button>`;
     h += backBar();
   } else if (view === 'taccuino') {
     /* IL TACCUINO — quello che ci si è detti, una pagina per persona. Sta sul dispositivo e
@@ -807,6 +812,17 @@ function buildMenu(inGame) {
     h += `</div>`;
   }
   menu.innerHTML = withIcons(h);
+  /* LA X VA FUORI DALL'ELENCO. `#sp-menu` è l'area che scorre e ha una MASCHERA (la sfumatura
+     in fondo): una maschera ritaglia tutto quello che sta dentro, anche quello che è
+     posizionato rispetto alla scheda — e la X, che sporge verso il bordo, arrivava tagliata
+     in alto e a destra. Spostata fra i figli della scheda non la tocca più nessuno. */
+  {
+    const card0 = document.querySelector ? document.querySelector('.sp-card') : null;
+    if (xFuori && xFuori.remove) xFuori.remove();
+    xFuori = null;
+    const nuova = menu.querySelector ? menu.querySelector('.sp-x') : null;
+    if (nuova && card0 && card0.appendChild) { card0.appendChild(nuova); xFuori = nuova; }
+  }
   /* AMICI E TACCUINO PRENDONO TUTTA LA LARGHEZZA. Le voci del menu hanno una larghezza fissa
      (`--w-menu`) perché in un elenco di scelte una colonna stretta si legge meglio; ma qui
      dentro ci sono righe con dentro altre cose — un codice e un pulsante, due campi e un più,
@@ -916,7 +932,6 @@ function buildMenu(inGame) {
     }; }
   { const u = document.getElementById('sp-mp-esci'); if (u) u.onclick = () => { esci('uscito'); go('amici'); }; }
   document.querySelectorAll('[data-via]').forEach(b => { b.onclick = () => { mandaVia(b.dataset.via); go('amici'); }; });
-  { const t = document.getElementById('sp-mp-tacc'); if (t) t.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
   { const gente = pagine(); document.querySelectorAll('[data-tacc]').forEach(b => { b.onclick = () => { taccuinoChi = gente[+b.dataset.tacc] || null; go('taccuino'); }; }); }
   { const b = document.getElementById('sp-tacc-back'); if (b) b.onclick = () => { taccuinoChi = null; go('taccuino'); }; }
   { const b = document.getElementById('sp-tacc-stracc'); if (b) b.onclick = () => { dimentica(taccuinoChi); taccuinoChi = null; go('taccuino'); }; }
@@ -942,6 +957,8 @@ function buildMenu(inGame) {
   if (bTips) bTips.onclick = () => { setPref('tips', !pref('tips')); buildMenu(inGameMode); };
   const bMark = document.getElementById('sp-marker');
   if (bMark) bMark.onclick = () => { setPref('marker', !pref('marker')); buildMenu(inGameMode); };
+  const bNomi = document.getElementById('sp-nomi');
+  if (bNomi) bNomi.onclick = () => { setPref('nomi', !pref('nomi')); buildMenu(inGameMode); };
   const setBox = document.querySelector('.sp-card');
   if (setBox && setBox.querySelectorAll) setBox.querySelectorAll('[data-mouse]').forEach(b => {
     b.onclick = () => { setPref('mouse', b.dataset.mouse); buildMenu(inGameMode); };
