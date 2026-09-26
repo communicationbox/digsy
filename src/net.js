@@ -33,6 +33,13 @@ export const LAG = 100;          // ms di ritardo su cui si interpola: sotto si 
 export const PING_MS = 30000;
 export const PONG_MAX = 60000;
 export const SEND_HZ = 10;       // quante volte al secondo si dice dove si è
+/* CHI TACE NON C'È PIÙ. Una partita viva dice dove sta almeno una volta al secondo, anche da
+   ferma (`shouldSend` ha un battito): uno che non apre bocca da venticinque secondi è un
+   FANTASMA — la sua socket è morta senza chiudersi e il centralino non se n'è accorto, e nella
+   stanza restano due volte la stessa persona (segnalato con foto: due «Teo» identici, uno dei
+   quali immobile). Non si CANCELLA, si smette di disegnarlo: se ricomincia a parlare — una
+   scheda tornata in primo piano — torna al suo posto senza dover rientrare. */
+export const MUTO_MS = 25000;
 const KEEP = 1200;               // ms di storia tenuti per ogni compagno (oltre non serve a niente)
 const MAX_PEERS = 8;             // una stanza è un salotto, non una piazza
 export const MAX_CHAT = 140;     // caratteri: una riga detta a voce, non un tema
@@ -49,6 +56,7 @@ export const T = {
   AT: 'at',          // dove sono (o dov'è un altro)
   MONDO: 'mondo',    // l'ospitante manda il suo mondo a chi entra (una volta sola, grosso)
   MUT: 'mut',        // una casella consumata: scavata, tagliata, spaccata, raccolta
+  CASA: 'casa',      // l'ospitante ha spostato un mobile: la sua casa, com'è adesso
   CLOCK: 'clock',    // l'orologio dell'ospitante: l'ospite non lo calcola, lo riceve
   CHAT: 'chat',      // una riga detta a voce alta nella stanza
   BYE: 'bye',        // esco di mia volontà
@@ -127,6 +135,10 @@ export function decode(raw) {
     case T.MUT:
       return (MUTAZIONI.includes(m.k) && typeof m.c === 'string' && /^-?\d{1,7},-?\d{1,7}$/.test(m.c))
         ? { t: m.t, id: id(m.id) ? m.id : null, k: m.k, c: m.c } : null;
+    case T.CASA: {
+      const h = cleanCasa(m.casa);
+      return h ? { t: m.t, id: id(m.id) ? m.id : null, casa: h } : null;
+    }
     case T.CLOCK:
       return (num(m.day) && num(m.tod)) ? { t: m.t, id: id(m.id) ? m.id : null, day: m.day, tod: m.tod } : null;
     case T.CHAT: {
@@ -211,12 +223,46 @@ export function cleanComp(c) {
   return { skull: c.skull, torso: c.torso, leg: c.leg, q: RARQ.includes(c.q) ? c.q : 'comune' };
 }
 
+/* LA CASA DI UN ALTRO. Arriva dalla rete, quindi entra solo quello che il disegno sa usare:
+   identificativi di pezzo, due coordinate e una rotazione. Niente numeri liberi, niente campi
+   a sorpresa — e dei tetti, perché una casa con diecimila mobili è un modo per fermare il
+   gioco di chi la guarda, non per arredare. */
+const FURN_ID = /^[a-z0-9_-]{2,40}$/i;
+const MAX_STANZE = 8, MAX_PEZZI = 200;
+const numero = v => typeof v === 'number' && Number.isFinite(v);
+export function cleanCasa(h) {
+  if (!h || typeof h !== 'object' || !Array.isArray(h.rooms)) return null;
+  const rooms = h.rooms.slice(0, MAX_STANZE).map((r, i) => {
+    const o = { id: Number.isFinite(r && r.id) ? r.id : i, unlocked: !!(r && r.unlocked), furn: [] };
+    if (r && FURN_ID.test(r.paper || '')) o.paper = r.paper;
+    if (r && FURN_ID.test(r.ground || '')) o.ground = r.ground;
+    const f = (r && Array.isArray(r.furn)) ? r.furn : [];
+    for (const p of f.slice(0, MAX_PEZZI)) {
+      if (!p || !FURN_ID.test(p.itemId || '') || !numero(p.gx) || !numero(p.gy)) continue;
+      o.furn.push({ itemId: p.itemId, gx: p.gx, gy: p.gy, rot: [0, 1, 2, 3].includes(p.rot) ? p.rot : 0 });
+    }
+    return o;
+  });
+  const yard = Array.isArray(h.yard) ? h.yard.slice(0, MAX_PEZZI).filter(p => p && FURN_ID.test(p.itemId || '') && numero(p.gx) && numero(p.gy))
+    .map(p => ({ itemId: p.itemId, gx: p.gx, gy: p.gy, rot: [0, 1, 2, 3].includes(p.rot) ? p.rot : 0 })) : [];
+  return { rooms, yard };
+}
+
 /* ---------- chi c'è, e dove ---------- */
 
 /* Un compagno di stanza. `buf` è la storia recente delle sue posizioni: si tiene perché
    l'interpolazione ha bisogno dei due campioni ATTORNO all'istante che si vuole disegnare. */
 function makePeer(id, name, look, comp) {
-  return { id, name, look, comp: comp || null, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0, dorme: false };
+  return { id, name, look, comp: comp || null, buf: [], wx: null, wy: null, scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0, dorme: false };
+}
+/* uno che non dice dove sta da venticinque secondi è un fantasma: c'è nella stanza ma non
+   nel gioco. Non si è mai sentito parlare = non è ancora arrivato nessun suo messaggio. */
+export function muto(p, now) {
+  if (!p || !p.buf.length) return true;
+  /* si misura sull'ULTIMO campione, la stessa scala di tempo su cui lavora `peerAt`: tenere un
+     orologio a parte vorrebbe dire due tempi da mantenere allineati, e quello che si sfasa
+     rende invisibile qualcuno che c'è */
+  return (now - p.buf[p.buf.length - 1].t) > MUTO_MS;
 }
 
 export function makeRoom() {
@@ -254,6 +300,12 @@ export function applyMessage(room, m, now = 0) {
         if (Math.hypot(m.x - ult.x, m.y - ult.y) / dt > MAX_VEL) { p.salti = (p.salti || 0) + 1; p.buf.length = 0; }
       }
       if (m.cs) p.comp = m.cs;
+      /* L'ULTIMO PASSO FATTO FUORI si tiene a parte. La storia delle posizioni dura poco più
+         di un secondo (serve a interpolare, non ad archiviare): chi è in bottega da dieci
+         minuti l'ha già persa, e sulla mappa non si saprebbe più dove metterlo — le coordinate
+         dentro una stanza sono relative alla stanza. Questo è il posto in cui è entrato, cioè
+         quello dove lo si va a prendere. */
+      if (m.s === 'world') { p.wx = m.x; p.wy = m.y; }
       p.buf.push({ t: now, x: m.x, y: m.y, d: m.d, m: m.m, s: m.s, c: m.c || null });
       /* la storia si pota QUI e non altrove: se la potatura dipendesse dal disegno, una scheda
          in secondo piano (che non disegna) accumulerebbe posizioni per tutto il tempo. */

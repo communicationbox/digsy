@@ -4,12 +4,12 @@
    nessuna di loro serve al mondo aperto. */
 import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools, FURN_BY_ID, PEDESTAL_ID, furnIsSolid, furnSize, furnPlace } from './data.js';
 import { drawFurnPiece, drawGroundTile, drawPaperBand, furnRise, roomDefault, furnRotatable } from './furnArt.js';
-import { drawReturnPortal } from './render.js'; // ciclo sicuro: chiamata solo a runtime, come drawInteriorScene(render.js→interiors.js)
+import { drawReturnPortal, peersQui, drawPeerLocal } from './render.js'; // ciclo sicuro: chiamata solo a runtime, come drawInteriorScene(render.js→interiors.js)
 import { S, P } from './state.js';
 import { isWall, areaAt, roomBox, roomDoor, ROT, ATRIO, CAVE_Y1 } from './museumPlan.js';
 import { ctx, view, hudPad } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
-import { INT, NPCS, FURN, benchList, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS } from './interior.js';
+import { INT, NPCS, FURN, benchList, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS, scenaInterni } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
@@ -281,6 +281,9 @@ export function drawMuseumGallery(time) {
     shadow(sx, sy + 12, 12);
     drawHero(null, sx - 16, sy - 20, INT.dir, fr);
   } });
+  /* e gli altri visitatori: la galleria è il posto che più di tutti si visita in due */
+  { const altri = peersQui(time, scenaInterni()); DENTRO.altri = altri.length;
+    for (const q of altri) ents.push({ y: q.y + 6, f: () => drawPeerLocal(q, time) }); }
   ents.sort((a, b) => a.y - b.y).forEach(e => e.f()); // chi ha y minore (più in alto) sta dietro
   /* fuori dalla porta si vede la piazza: è la zona su cui si clicca per uscire */
   for (let y = rh; y < rh + GAL_FOOT; y += TS) for (let x = (cxm - 4) * TS; x < (cxm + 5) * TS; x += TS) {
@@ -458,9 +461,10 @@ export function drawHouseCorridor(time) {
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
   const eroe = () => { shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12); drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr); };
   const dietro = S.returnPortal && INT.y < ATRIO_PORTAL.y;
-  if (dietro) eroe();
+  const tutti = () => ordinaConGliAltri(time, [{ y: Math.round(INT.y), f: eroe }]);
+  if (dietro) tutti();
   if (S.returnPortal) drawReturnPortal(ATRIO_PORTAL.x, ATRIO_PORTAL.y, time);   // centrato sul punto in cui si attiva
-  if (!dietro) eroe();
+  if (!dietro) tutti();
   /* muro davanti con la porta di casa: dopo il giocatore, che scendendo ci passa sotto */
   wallCap(g, -14, rh - 8, rw / 2 - 16 + 14 - 3, 22, 'top');
   wallCap(g, rw / 2 + 16 + 3, rh - 8, rw / 2 - 16 + 14 - 3, 22, 'top');
@@ -564,6 +568,10 @@ export function drawHouseRoomScene(time, id) {
     shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
     drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
   } });
+  /* e gli altri che sono in questa stanza, nella stessa fila dei mobili: uno dietro un
+     armadio deve stare dietro l'armadio */
+  { const altri = peersQui(time, scenaInterni()); DENTRO.altri = altri.length;
+    for (const q of altri) depth.push({ y: Math.round(q.y) + 12, draw: () => drawPeerLocal(q, time) }); }
   depth.sort((a, b) => a.y - b.y).forEach(d => d.draw());
   /* PEZZO IN MANO: l'anteprima sta NELLA STANZA, sulla casella dove finirebbe, e segue il
      puntatore (o i passi). Prima non c'era: si posava alla cieca sotto i piedi e per capire
@@ -614,6 +622,21 @@ function ombraArredo(cx, cy, rx) {
   }
 }
 
+/* disegna il giocatore E gli altri che sono in questa stessa stanza, ordinati per i piedi.
+   La chiave della scena la dà `scenaInterni()`: due botteghe diverse sono due scene diverse,
+   o si finirebbe a vedersi addosso gente che sta da tutt'altra parte. */
+/* quanti compagni di stanza ha disegnato l'ultima scena. Serve a misurare la cosa che conta —
+   che gli altri finiscano nella scena GIUSTA — senza contare pennellate: un personaggio è uno
+   sprite tenuto in cache, quindi dalla seconda volta in poi non lascia traccia nel conteggio
+   dei rettangoli e la prova tornerebbe uguale con e senza nessuno nella stanza. */
+export const DENTRO = { altri: 0 };
+function ordinaConGliAltri(time, mie) {
+  const fila = mie.slice();
+  const altri = peersQui(time, scenaInterni());
+  DENTRO.altri = altri.length;
+  for (const q of altri) fila.push({ y: Math.round(q.y), f: () => drawPeerLocal(q, time) });
+  fila.sort((a, b) => a.y - b.y).forEach(d => d.f());
+}
 export function drawInteriorScene(time) {
   const W = view.W, H = view.H;
   ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
@@ -644,8 +667,13 @@ export function drawInteriorScene(time) {
   drawNpc(rw / 2, 1.9 * TS, type, time);
   if (floorProps) { const e = type === 'lab' ? breedEgg() : null; floorProps(g, rw, rh, time, e, !!e && eggReady(), INT.pet); }
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
-  shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
-  drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
+  /* GLI ALTRI SONO NELLA STANZA CON TE. Prima si vedevano solo fuori: si entrava in due nello
+     stesso negozio e ognuno ci si trovava da solo. Si ordinano col giocatore per i piedi, come
+     dappertutto: chi sta più in basso passa davanti. */
+  ordinaConGliAltri(time, [{ y: Math.round(INT.y), f: () => {
+    shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
+    drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
+  } }]);
   drawShopFront(BRUSH, rw, rh);
   if (INT.say) drawSayBalloon(ox + rw / 2, oy + 1.9 * TS - 10, INT.say.text); // coord SCHERMO (stanza centrata in ox,oy)
   ctx.restore();

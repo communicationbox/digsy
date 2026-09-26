@@ -209,6 +209,20 @@ function cutStartBack() {
      sta nell'angolo accanto alla porta) e il Curatore ci camminava dentro */
   CUT.path = [[GAL_DESK.x0 - 26, GAL_DESK.y1 + 28], [GAL_DESK.x0 - 26, GAL_DESK.y0 - 12], [(GAL_DESK.x0 + GAL_DESK.x1) / 2, GAL_DESK.y0 - 12]];
 }
+/* QUALE STANZA, per la rete. «Dentro» non basta: due persone in due botteghe diverse — o una
+   in cucina e una in bagno — starebbero nella stessa scena e si vedrebbero una addosso
+   all'altra. Il campo viaggia in un messaggio di posizione e ha dodici caratteri di spazio,
+   quindi non ci sta un nome per esteso: si riduce a un numero in base 36. Dipende SOLO da cose
+   che l'ospitante e l'ospite hanno uguali (il tipo dell'edificio, le sue caselle, la stanza di
+   casa), mai da qualcosa di locale: due giochi devono calcolare la stessa chiave. */
+export function scenaInterni() {
+  if (!INT.active) return 'world';
+  const b = INT.b || {};
+  const t = `${b.type || '?'}:${b.x0 || 0},${b.y0 || 0}:${INT.room}:${INT.houseRoom === null ? 'a' : INT.houseRoom}`;
+  let hsh = 2166136261;
+  for (let i = 0; i < t.length; i++) { hsh ^= t.charCodeAt(i); hsh = Math.imul(hsh, 16777619); }
+  return 'st' + (hsh >>> 0).toString(36);
+}
 export function enterInterior(b, town) {
   INT.fromX = P.x; INT.fromY = P.y;      // da dove si è entrati: via di ritorno sicura
   clearGoal();                            // dentro non si cammina più verso la meta di fuori

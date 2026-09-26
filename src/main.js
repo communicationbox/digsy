@@ -27,7 +27,7 @@ import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
 import { armAudioResume } from './audio.js';
-import { INT, updateInterior, checkDoorEnter, enterInterior, enterHouseRoom } from './interior.js';
+import { INT, updateInterior, checkDoorEnter, enterInterior, enterHouseRoom, scenaInterni } from './interior.js';
 import { CAVE, updateCave, checkCaveEnter } from './cave.js';
 import { caveEntranceAt } from './world.js';
 import { showTip } from './ui.js';
@@ -155,7 +155,7 @@ function loop(ts) {
        volte al secondo, e solo se ci si è mossi) e non fa NIENTE se non si è in una stanza —
        chi gioca da solo non paga un centesimo di questo ramo. */
     if (MP.stato === 'dentro') {
-      const dove = CAVE.active ? { pos: CAVE, scena: 'grotta' } : INT.active ? { pos: INT, scena: 'stanza' } : { pos: P, scena: 'world' };
+      const dove = CAVE.active ? { pos: CAVE, scena: 'grotta' } : INT.active ? { pos: INT, scena: scenaInterni() } : { pos: P, scena: 'world' };
       /* E LA BESTIA VIENE CON ME. Il compagno è roba di chi lo porta — sta in `S`, quindi
          attraversa le stanze da sé — ma gli ALTRI non lo vedevano: nessuno diceva loro che
          c'era, né dove. Si manda la posizione (gira per conto suo: non si ricava dalla mia) e
@@ -176,7 +176,7 @@ function loop(ts) {
        riga detta da qualcuno che è dietro l'angolo, in bottega o in grotta va letta da
        qualunque scena. Ogni fotogramma perché la nuvoletta dura sei secondi e la riga deve
        comparire e sparire con lei, non due secondi dopo. */
-    updateChatLog(ts, CAVE.active ? 'grotta' : INT.active ? 'stanza' : 'world');
+    updateChatLog(ts, CAVE.active ? 'grotta' : INT.active ? scenaInterni() : 'world');
     /* TUTORIAL: sta qui sopra insieme all'HUD, e per la stessa ragione — i passi che si
        spuntano da soli (hai abbastanza da comprare la pala, hai la pala) vanno visti in
        QUALSIASI scena, compresi il Negozio e il Museo, che sono interni. */
@@ -522,7 +522,7 @@ if (typeof window !== 'undefined') {
       /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
          vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
       mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'), ui: () => import('./ui.js'),
-        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js') }[n] || (() => Promise.resolve(null)))(),
+        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
@@ -563,6 +563,9 @@ if (typeof window !== 'undefined') {
       /* la barra di chi parla fuori campo: la aggiorna il game loop, che in headless non
          gira — senza questo la foto la ritrae sempre spenta */
       chatlog: (t, sc) => import('./ui.js').then(u => u.updateChatLog(t || 0, sc || 'world')),
+      /* ridisegna la carta senza riaprirla: in headless il ciclo non gira, e una mappa già
+         aperta resta ferma all'istante in cui è stata disegnata */
+      mapRedraw: () => import('./mapui.js').then(m => { m.mapReset(); return true; }),
       /* dove si sta DENTRO la stanza. La galleria del museo è 60×62 tile e si entra sempre dalla
          porta in fondo: senza questo, ogni foto e ogni test la ritraggono dall'atrio e le sale
          con i piedistalli — cioè quasi tutta la scena — non vengono mai disegnate. */

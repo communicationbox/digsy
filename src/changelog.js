@@ -1,7 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.99.11', it: [
+    v: 'v0.99.13', it: [
+      'SE CHI OSPITA SPOSTA UN MOBILE, chi è in casa sua lo vede all\'istante: prima la stanza restava com\'era quando ci si era entrati',
+      'LA PERGAMENA apre un portale dove ti fa arrivare, e quel portale ti riporta dov\'eri: prima era un viaggio di sola andata e la strada indietro si rifaceva a piedi. Ce n\'è UNO solo — aprendone un altro, il primo si chiude',
+      'DENTRO LE STANZE ci si vede: si entrava in due nello stesso negozio e ognuno ci si trovava da solo. Vale per botteghe, casa e galleria del Museo — e due botteghe diverse restano due posti diversi',
+      'SULLA MAPPA ci sono anche gli altri, col nome. Chi è entrato da qualche parte resta segnato sulla porta da cui è entrato: è lì che lo vai a prendere',
+      'Niente più personaggi sdoppiati: quando la linea cade e il gioco riattacca, della vecchia connessione restava un gemello immobile',
+      'Il taccuino si vede anche da telefono: era fra le voci che la barra nasconde quando si ripiega',
       'SE CHI PARLA NON È IN CAMPO, quello che ha detto compare comunque: una riga «Nome: messaggio» in fondo allo schermo, che dura quanto durerebbe la nuvoletta. Prima la riga si perdeva e chi l\'aveva scritta non lo sapeva',
       'Il nome sopra la testa è una targhetta discreta e centrata: prima era un cartello bianco più evidente della persona',
       'INVITA fa una cosa sola: apre il tuo mondo e chiama la persona. Prima bisognava premerlo due volte — la prima apriva la stanza e l\'invito si perdeva per strada, perché la linea non era ancora pronta',
@@ -10,6 +16,12 @@ export const CHANGELOG = [
       'IL COMPAGNO CHE SCAVA DA SOLO non impazzisce più: non si gira avanti e indietro sul posto, non si teletrasporta da te mentre sta lavorando, e non parte più verso una casella talmente lontana da doverla mollare a metà strada (partiva, tornava, ripartiva, all\'infinito)',
       'Via il riflesso che scorreva sulla fascia d\'oro del Museo: un bagliore che attraversa una facciata ferma è il linguaggio dei bottoni, non di un edificio',
     ], en: [
+      'WHEN THE HOST MOVES A PIECE OF FURNITURE, whoever is in their house sees it at once: the room used to stay as it was when you walked in',
+      'THE SCROLL opens a portal where it drops you, and that portal takes you back where you were: it used to be a one-way trip and you walked the way back. There is only ONE — opening another closes the first',
+      'INSIDE ROOMS you see each other: two people entering the same shop each found themselves alone. Shops, home and the Museum gallery — and two different shops stay two different places',
+      'THE MAP shows the others too, with their names. Whoever went indoors stays marked on the door they went in by: that is where you go and get them',
+      'No more doubled characters: when the line dropped and the game reconnected, the old connection left behind a motionless twin',
+      'The notebook shows on phones too: it was among the tags the bar hides when it folds up',
       'IF THE SPEAKER IS OFF SCREEN, what they said shows up anyway: a «Name: message» line at the bottom, lasting as long as the speech bubble would. It used to be lost, and whoever wrote it never knew',
       'The name above the head is a discreet, centred tag: it used to be a white sign louder than the person under it',
       'INVITE does one thing: it opens your world and calls the person. It used to take two presses — the first opened the room and the invite was lost on the way, because the line was not ready yet',

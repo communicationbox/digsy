@@ -65,6 +65,16 @@ export function torna() {
 
 export function sonoOspite() { return VISITA.attiva; }
 
+/* L'OSPITANTE HA SPOSTATO UN MOBILE mentre lo guardavo. Si sostituisce la casa che sto
+   vedendo — che è la SUA, adottata entrando — non la mia: la mia sta da parte in `casa.mondo`
+   e torna al suo posto quando esco. Fuori da una visita non si fa niente: nessuno ha il
+   diritto di riarredare casa d'altri, tanto meno da un messaggio di rete. */
+export function applicaCasa(h) {
+  if (!VISITA.attiva || !h || !Array.isArray(h.rooms)) return false;
+  S.house = h;
+  return true;
+}
+
 /* ---------- cosa l'ospite NON può toccare ----------
    Casa e cortile dell'ospitante si visitano ma non si toccano: niente arredo spostato, niente
    dormire nel letto di un altro, niente scavare in giardino. Sono due rettangoli precisi, e la

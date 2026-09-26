@@ -349,9 +349,20 @@ export function useTeleport() {
       for (let yy = t.C.y + 4; yy < t.C.y + 12; yy++) if (openArea(sx, yy)) {
         if (INT.active) { INT.active = false; INT.justLeft = true; } // se sei dentro una struttura, esci e teletrasporta comunque
         if (CAVE.active) CAVE.active = false;
+        /* IL PORTALE DI RITORNO si apre DOVE SI ARRIVA, e riporta dove si era. Prima la
+           pergamena era un viaggio di sola andata: si arrivava in città e per tornare al
+           punto in cui si stava scavando bisognava rifare la strada a piedi.
+           UNO SOLO alla volta: aprendone un altro il primo si chiude — due portali aperti
+           vogliono dire due ritorni possibili e nessuno che si ricordi quale è quale. */
+        const daDove = { x: P.x, y: P.y };
         P.x = sx * TS + 8; P.y = yy * TS + 2;
         if (!isDebug()) S.teleports--;
+        const cera = !!S.cityPortal;
+        S.cityPortal = { x: Math.floor(P.x / TS), y: Math.floor((P.y + FOOT_DY) / TS) + 1, back: daDove };
         playSfx('found'); toast('📜 ' + tr('Teletrasportato a ', 'Teleported to ') + t.name);
+        toast('🌀 ' + (cera
+          ? tr('Portale aperto qui: quello di prima si è chiuso', 'Portal open here: the earlier one closed')
+          : tr('Il portale ti riporta dov\'eri', 'The portal takes you back where you were')));
         save(); updateHUD(); return true;
       }
     }
@@ -432,6 +443,21 @@ export function nearbyReturnPortal() {
   if (!S.returnPortal) return null;
   if (!INT.active || !INT.b || INT.b.type !== 'house' || INT.houseRoom != null) return null;
   return (Math.abs(INT.x - ATRIO_PORTAL.x) < 32 && Math.abs(INT.y - ATRIO_PORTAL.y) < 32) ? S.returnPortal : null;
+}
+/* ---------- IL PORTALE DELLA PERGAMENA, nel mondo ----------
+   Quello di casa sta nell'atrio (sopra); questo sta in città, dove la pergamena ti ha fatto
+   arrivare, e riporta dove stavi. Ce n'è UNO SOLO: aprendone un altro il primo si chiude. */
+export function nearbyCityPortal() {
+  if (!S.cityPortal || INT.active || CAVE.active) return null;
+  const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
+  return (Math.abs(ptx - S.cityPortal.x) <= 1 && Math.abs(pty - S.cityPortal.y) <= 1) ? S.cityPortal : null;
+}
+export function useCityPortal() {
+  const p = S.cityPortal; if (!p || !p.back) { S.cityPortal = null; return false; }
+  P.x = p.back.x; P.y = p.back.y;
+  S.cityPortal = null;                       // usato: si chiude, come quello di casa
+  playSfx('found'); toast('🌀 ' + tr('Sei tornato dove eri', 'Back where you were'));
+  save(); updateHUD(); return true;
 }
 export function useReturnPortal() {
   if (!S.teleportBack) { S.returnPortal = null; return false; }
@@ -1141,6 +1167,7 @@ export function act() {
   }
   if (INT.active) { // parla con l'NPC o leggi l'etichetta di un'esposizione
     if (nearbyReturnPortal()) { useReturnPortal(); return; } // portale di ritorno (goHome): in mezzo all'atrio
+    if (nearbyCityPortal()) { useCityPortal(); return; }     // portale della pergamena: in città, dove si è arrivati
     if (nearMentorInt()) { openMentor(); return; } // Maestro Scavatore: spiega i livelli
     if (nearNpc()) { openBuilding(INT.b); return; }
     { const pet = nearPet(); if (pet) { petShopAnimal(); return; } }

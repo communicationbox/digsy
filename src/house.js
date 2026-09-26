@@ -17,6 +17,7 @@ import { S, save } from './state.js';
 import { isDebug } from './debug.js';
 import { toast, updateHUD } from './ui.js';
 import { tr, roomName } from './i18n.js';
+import { mandaCasa } from './mp.js';
 import { furnRotatable } from './furnArt.js';
 import { playSfx } from './audio.js';
 import { playerLevel } from './progress.js';
@@ -158,7 +159,7 @@ export function tryUnlockRoom(i) {
   if (!isDebug()) S.coins -= price;
   r.unlocked = true;
   playSfx('coin'); toast('🔓 ' + tr('Sbloccato: ', 'Unlocked: ') + roomName(i) + '!');
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }
 
@@ -317,6 +318,14 @@ export function wallAt(room, gx, gy) {
 }
 /* id di tutti i pezzi già piazzati, in qualunque stanza (un pezzo comprato è uno solo: o è
    nel vassoio, o è piazzato da qualche parte, mai le due cose insieme) */
+/* LA CASA È CAMBIATA: si salva, si rinfresca la barra, e SE c'è gente in casa gliela si dice.
+   Sta in un posto solo apposta: i punti in cui l'arredo cambia sono sette, e sette copie della
+   stessa riga sono sette occasioni di dimenticarne una — e chi guarda resterebbe con la stanza
+   di prima senza capire perché. */
+function casaCambiata() {
+  save(); updateHUD();
+  try { mandaCasa(S.house); } catch (e) { /* senza compagnia non cambia niente */ }
+}
 export function placedItemIds() {
   ensureHouseState();
   return S.house.rooms.flatMap(r => r.furn.map(f => f.itemId));
@@ -390,7 +399,7 @@ export function tryPlaceFurniture(room, gx, gy, itemId, rot = 0) {
   rot = ((rot % 4) + 4) % 4;
   if (!canPlace(room, t.gx, t.gy, itemId, rot)) return false;
   S.house.rooms[room].furn.push({ itemId, gx: t.gx, gy: t.gy, rot });
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }
 /* ---------- FONDO della stanza: carta da parati e pavimento ---------- */
@@ -403,7 +412,7 @@ export function applyBackdrop(room, itemId) {
   if (!S.furnOwned.includes(itemId)) return false;
   const p = furnPlace(itemId);
   if (p === 'paper') r.paper = itemId; else if (p === 'ground') r.ground = itemId; else return false;
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }
 /* fondo attualmente in uso (null = quello di serie della stanza) */
@@ -414,7 +423,7 @@ export function clearBackdrop(room, kind) {
   ensureHouseState();
   const r = S.house.rooms[room]; if (!r) return false;
   if (kind === 'paper') r.paper = null; else if (kind === 'ground') r.ground = null; else return false;
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }
 /* ---------- ARREDO: "in mano" (raccogli e ripiazza, M4) ---------- */
@@ -492,7 +501,7 @@ export function pickUpFurniture(room, gx, gy, cat) {
   const [f] = r.furn.splice(i, 1);
   /* l'anteprima nasce ESATTAMENTE dov'era il mobile: alzandolo non deve saltare altrove */
   hold = { itemId: f.itemId, rot: f.rot || 0, gx: f.gx, gy: f.gy };
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }
 export function placeHold(room, gx, gy) {
@@ -510,7 +519,7 @@ export function removeFurnitureAt(room, gx, gy, cat) {
   const i = findFurnIndex(room, gx, gy, cat);
   if (i < 0) return false;
   r.furn.splice(i, 1);
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }
 /* una cella piazzata è SOLIDA (come un mobile) SOLO se il pezzo del suo strato solido lo è:
@@ -583,6 +592,6 @@ export function assignPedestal(room, gx, gy, spId) {
   if (!f || f.itemId !== PEDESTAL_ID) return false;
   if (spId && !((S.museum[spId] || []).length)) return false;
   f.spId = spId || null;
-  save(); updateHUD();
+  casaCambiata();
   return true;
 }

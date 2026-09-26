@@ -12,6 +12,7 @@ import { wonderName, isDiscovered, WONDERS } from './wonders.js';
 import { withIcons, iconPaths } from './icons.js';
 import { zoneIdxAt } from './regions.js';
 import { tr } from './i18n.js';
+import { MP, visibiliOvunque } from './mp.js';
 import { playSfx } from './audio.js';
 import { toast, setPromptFromMap as setPrompt, showBanner, openWonderBook } from './ui.js';
 import { dirTo, goHome, siteRemaining } from './gameplay.js';
@@ -142,6 +143,36 @@ function meStar(c, tx, ty, x0, y0, SC, cv) {
   c.beginPath(); c.arc(X, cy, r * 0.38, 0, Math.PI * 2); c.fill();
   c.strokeStyle = '#241a10'; c.lineWidth = RES; c.stroke();
   mapPins.push({ x: X, y: cy, r: r + 6 * RES, kind: 'me' });
+}
+/* ---------- GLI ALTRI SULLA CARTA ----------
+   In compagnia sapere DOVE sono gli altri è mezza partita: ci si dà appuntamento a una città,
+   si va a vedere cosa hanno trovato. Lo spillo è lo stesso, in un altro colore — sono persone
+   come te, non luoghi — e porta sempre il NOME, perché uno spillo senza nome, in quattro,
+   risponde alla domanda sbagliata. Chi è in bottega o in grotta si segna dov'è la porta: è lì
+   che lo si va a prendere. */
+function loroSpillo(c, q, x0, y0, SC, cv) {
+  const tx = Math.floor(q.x / TS), ty = Math.floor((q.y + FOOT_DY) / TS);
+  const X = Math.round((tx - x0) * SC), Y = Math.round((ty - y0) * SC);
+  if (X < -60 || Y < -60 || X > cv.width + 60 || Y > cv.height + 60) return;
+  const r = 6 * RES;
+  sagomaSpillo(c, X, Y, r + 3);
+  c.fillStyle = 'rgba(255,248,230,.85)'; c.fill();
+  const cy = sagomaSpillo(c, X, Y, r);
+  c.fillStyle = '#3f7fbf'; c.fill();
+  c.strokeStyle = '#241a10'; c.lineWidth = 2 * RES; c.lineJoin = 'round'; c.stroke();
+  c.fillStyle = '#e8f2ff';
+  c.beginPath(); c.arc(X, cy, r * 0.38, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = '#241a10'; c.lineWidth = RES; c.stroke();
+  /* il nome sotto lo spillo, su una targhetta: sulla pergamena il testo nudo si perde fra le
+     coste e i boschi */
+  const nome = String(q.name || '').slice(0, 14);
+  c.font = `bold ${8 * RES}px ui-monospace, monospace`;
+  const w = Math.ceil(c.measureText(nome).width) + 6 * RES, h = 11 * RES;
+  const bx = Math.round(X - w / 2), by = Math.round(Y + 5 * RES);
+  c.fillStyle = 'rgba(36,26,16,.82)'; c.fillRect(bx, by, w, h);
+  c.fillStyle = '#f3ecda'; c.textAlign = 'center'; c.textBaseline = 'middle';
+  c.fillText(nome, X, by + h / 2); c.textAlign = 'start'; c.textBaseline = 'alphabetic';
+  mapPins.push({ x: X, y: cy, r: r + 6 * RES, kind: 'peer', name: nome, tx, ty });
 }
 
 /* ---------- SEGNI della mappa ----------
@@ -320,6 +351,8 @@ function drawMapCanvas() {
     drawTreasureX(c, x, y, signK);
     mapPins.push({ x, y, r: 24 * signK, kind: 'map', rar: m.rar, tx: m.x, ty: m.y });
   }
+  /* gli altri PRIMA di te: il tuo spillo resta sopra, così in un gruppo non ti si perde */
+  if (MP.stato === 'dentro') for (const q of visibiliOvunque()) loroSpillo(c, q, x0, y0, SC, cv);
   meStar(c, Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS), x0, y0, SC, cv);  // dove sei
   paperFinish(c, cv.width, cv.height);
   const sub = document.getElementById('mp-sub');

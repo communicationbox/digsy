@@ -19,7 +19,13 @@ amico**, e solo mentre lui sta giocando.
    e la stagione del padrone di casa. Non calcola il tempo: lo riceve.
 2. **L'ospite gioca davvero.** Scava, taglia, pesca, raccoglie — e quello che consuma **resta
    consumato** nel mondo dell'ospitante. Per questo si invita solo chi si conosce.
-3. **Casa e cortile si visitano, non si toccano.** Dentro `houseFootprint()` e `yardRect()`
+3. **Casa e cortile si visitano, non si toccano.** …ma si vedono CAMBIARE: se chi ospita
+   sposta un mobile, cambia la carta da parati o sblocca una stanza, chi è dentro lo vede
+   all'istante (`T.CASA`, mandato da `house.js` a ogni modifica). Va in una direzione sola —
+   l'arredo è di chi la casa ce l'ha. Si manda tutta la casa e non il singolo pezzo: sono poche
+   decine di mobili, si sposta un mobile ogni tanto, e un messaggio che vale da sé non può
+   arrivare fuori ordine lasciando due stanze diverse sui due schermi. Quello che entra dalla
+   rete è ripulito (`cleanCasa`): solo identificativi di pezzo, due coordinate, una rotazione. Dentro `houseFootprint()` e `yardRect()`
    l'ospite entra e guarda: niente arredo spostato, niente dormire nel letto altrui. Sono due
    dei tre posti che il gioco ti fa costruire perché vengano visti; il terzo è il Museo.
 4. **La notte passa quando l'ospitante lo decide.** Chi dorme sogna e aspetta. Se dormono

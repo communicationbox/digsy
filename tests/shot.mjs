@@ -154,7 +154,30 @@ async function main() {
        con le X del tesoro: la schermata dove si deve capire subito cosa è cosa */
     else if (${JSON.stringify(vista)} === 'mappa') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('goditem').then(function(){ return G.cmd('goto=city'); }).then(function(){ return G.reveal(new URLSearchParams(location.search).get('r') ? +new URLSearchParams(location.search).get('r') : 160); })
-        .then(function(){ if(G.openMap) G.openMap(); }); }
+        .then(function(){
+          /* in due: gli spilli azzurri degli altri, col nome. soli=1 per la carta da soli */
+          if ((new URLSearchParams(location.search)).get('soli') || !G.mpFinta) return;
+          return G.mpFinta(['Ada','Fenn'], true).then(function(){ return G.mod('mp'); }).then(function(mp){
+            var P2 = G.player(), i = 0;
+            for (var p of mp.MP.room.peers.values()) { i++;
+              p.wx = P2.x + i * 900; p.wy = P2.y - i * 700;
+              p.buf = [{ t: performance.now(), x: p.wx, y: p.wy, d:'down', m:0, s:'world' }]; }
+          });
+        })
+        .then(function(){ if(G.openMap) G.openMap();
+          /* la partita vera intanto prova a collegarsi e spegne la stanza finta: si rimette
+             (e si ridisegna la carta) fino allo scatto, o gli spilli degli altri non ci sono */
+          if ((new URLSearchParams(location.search)).get('soli') || !G.mpFinta) return;
+          setInterval(function(){
+            G.mpFinta(['Ada','Fenn'], true).then(function(){ return G.mod('mp'); }).then(function(mp){
+              var P3 = G.player(), j = 0;
+              for (var p of mp.MP.room.peers.values()) { j++;
+                p.wx = P3.x + j * 900; p.wy = P3.y - j * 700;
+                p.buf = [{ t: performance.now(), x: p.wx, y: p.wy, d:'down', m:0, s:'world' }]; }
+              if (G.mapRedraw) G.mapRedraw();
+            });
+          }, 150);
+        }); }
     /* 'meraviglie' = le 18 meraviglie in griglia, ognuna sul terreno della sua zona */
     else if (${JSON.stringify(vista)} === 'meraviglie') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.wonderGallery) G.wonderGallery(+(new URLSearchParams(location.search).get('t') || 1000)); }
@@ -443,6 +466,34 @@ async function main() {
         });
       });
     }
+    /* 'portale' = il portale che la pergamena apre in città: riporta dov'eri */
+    else if (${JSON.stringify(vista)} === 'portale') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.cmd) G.cmd('money=999').then(function(){ return G.mod('gameplay'); }).then(function(gp){
+        var S2=G.state(); S2.teleports = 3;
+        gp.useTeleport();
+        var P2=G.player(), pt=S2.cityPortal;
+        if(pt){ P2.x = pt.x*32 + 8; P2.y = (pt.y+1)*32 + 2; }
+        if(G.updatePrompt) G.updatePrompt();
+        if(G.frame) G.frame(1200);
+      }); }
+    /* 'bottega-in-due' = la stessa bottega con qualcun altro dentro: prima ci si trovava
+       sempre da soli anche entrando insieme */
+    else if (${JSON.stringify(vista)} === 'bottega-in-due') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var tipo=(new URLSearchParams(location.search)).get('tipo')||'store';
+      if(G.enterRoom) G.enterRoom(tipo).then(function(){
+        return Promise.all([G.mpFinta(['Ada'], true), G.mod('mp'), G.mod('interior')]);
+      }).then(function(mm){
+        var mp=mm[1], itr=mm[2];
+        var mettili=function(){
+          G.mpFinta(['Ada'], true).then(function(){
+            var sc = itr.scenaInterni();
+            for (var p of mp.MP.room.peers.values())
+              p.buf = [{ t: performance.now(), x: 3*32, y: 4.6*32, d:'right', m:0, s: sc }];
+            if(G.frame) G.frame(performance.now());
+          });
+        };
+        mettili(); setInterval(mettili, 120);
+      }); }
     /* 'lontano' = qualcuno parla mentre è FUORI CAMPO: la riga «Nome: messaggio» in fondo */
     else if (${JSON.stringify(vista)} === 'lontano') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.mpFinta) G.mpFinta(['Ada','Fenn'], true).then(function(){

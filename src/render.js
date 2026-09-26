@@ -1824,6 +1824,14 @@ export function render(time) {
   /* IN VOLO si sta SOPRA a tutto: ordinato coi piedi come a terra, passando davanti a una casa la
      cavalcatura spariva dietro il tetto e sembrava attraversarla ("con il volo passo in mezzo agli
      oggetti e agli edifici"). L'ombra resta a terra, quindi si capisce dove si sorvola. */
+  /* IL PORTALE DELLA PERGAMENA, aperto dove ci si è teletrasportati: riporta dov'eri. Sta
+     nella fila delle entità come tutto il resto, così ci si passa dietro e davanti. */
+  if (S.cityPortal) {
+    const pp = S.cityPortal, ppx = snap(pp.x * TS + 16 - cam.x), ppy = snap(pp.y * TS + 16 - cam.y);
+    if (ppx > -40 && ppx < view.W + 40 && ppy > -48 && ppy < view.H + 48) {
+      ents.push({ y: pp.y * TS + 16 - cam.y, f: () => drawReturnPortal(ppx, ppy, time) });
+    }
+  }
   ents.push({ y: isMounted() ? 9e8 : P.y - cam.y + TS, f: drawPlayer });
   pushPeers(ents, cam.x, cam.y, time, 'world');          // gli altri giocatori, se c'è compagnia
   /* quello che ho detto io, sopra la mia testa: chi parla deve vedersi parlare */
@@ -1958,6 +1966,18 @@ export const PLATE_GAP = 6;
 export function peerPlateY(sy) { return sy - PLATE_GAP; }
 /* mette gli altri nella fila delle entità, ordinati per piedi come tutti: chi sta più in basso
    passa davanti. `scena` filtra chi è altrove — entrato in bottega, sceso in grotta. */
+/* GLI ALTRI DENTRO UNA STANZA. Fuori si ordinano insieme a tutto il resto (`pushPeers`); qui
+   la scena è piccola, disegnata dentro una traslazione, e l'unica cosa con cui vanno ordinati
+   è il giocatore. Coordinate LOCALI alla stanza, come quelle del giocatore: il contesto è già
+   traslato quando questa viene chiamata. */
+export function peersQui(time, scena) {
+  if (MP.stato !== 'dentro') return [];
+  return visibili(time, scena);
+}
+export function drawPeerLocal(q, time) {
+  /* la stessa convenzione del giocatore negli interni: `-16` per centrare, `-20` per i piedi */
+  drawPeer(Math.round(q.x), Math.round(q.y) - 20, q, time);
+}
 function pushPeers(ents, camx, camy, time, scena) {
   if (MP.stato !== 'dentro') return 0;
   let n = 0;

@@ -12,7 +12,7 @@ import { weatherAt, weatherLabel } from './weather.js';
 import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, breeders, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
-import { nearbyWonder, useWonder, bagFull, nearbyHarvest, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal , amberReward } from './gameplay.js';
+import { nearbyWonder, useWonder, bagFull, nearbyHarvest, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal, nearbyCityPortal, amberReward } from './gameplay.js';
 import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
@@ -315,6 +315,7 @@ export function updatePrompt() {
   }
   if (INT.active) {
     if (nearbyReturnPortal()) { setPrompt(withIcons(actKey() + ' ' + tr('Torna indietro 🌀', 'Teleport back 🌀'))); return; }
+    if (nearbyCityPortal()) { setPrompt(withIcons(actKey() + ' ' + tr('Torna indietro 🌀', 'Teleport back 🌀'))); return; }
     if (nearMentorInt()) { setPrompt(withIcons(actKey() + ' ' + tr('Parla col Maestro Scavatore 🎓', 'Talk to the Master Digger 🎓'))); return; }
     const nc = nearCase();
     if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/' + PARTS.length + (nc.n === PARTS.length ? ' 💫' : ''))); return; }

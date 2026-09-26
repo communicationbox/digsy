@@ -160,6 +160,19 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   accanto al taccuino, fuori dal salvataggio): la lettera si accende, il nome porta il conto, e
   il tag 📝 dell'HUD mostra il totale. Si apre **in gioco** dalla barra in alto, non dal menu.
   Foto: `npm run shot -- taccuino 560,720` · `"chi=Fenn"` per una pagina.
+- **In compagnia si è insieme davvero**: gli altri si vedono **dentro le stanze** (botteghe,
+  casa, galleria del Museo — `scenaInterni()` in interior.js dà una chiave per stanza, così due
+  botteghe diverse restano due posti diversi) e **sulla mappa**, col nome (`visibiliOvunque` in
+  mp.js: l'ultima posizione nota SUL MONDO, perché le coordinate dentro una stanza sono
+  relative alla stanza e sulla carta finirebbero in mezzo all'oceano). Chi **tace da 25 secondi**
+  non si disegna più (`muto` in net.js): è il fantasma di una socket morta dopo una
+  riconnessione — si vedeva la stessa persona due volte. Non si cancella: se riapre bocca torna.
+  L'**arredo di casa** cambia sotto gli occhi di chi guarda (`T.CASA`, da chi ospita a chi è in
+  casa sua). Foto: `bottega-in-due` · `mappa` · `compagnia`.
+- **La pergamena apre un portale** dove ti fa arrivare (`S.cityPortal`, `nearbyCityPortal`/
+  `useCityPortal` in gameplay.js) e quel portale riporta dov'eri. **Uno solo**: aprirne un altro
+  chiude il primo — due ritorni possibili e nessuno che si ricordi quale è quale.
+  Foto: `npm run shot -- portale 560,440`.
 - **Chi parla fuori campo si legge lo stesso** (`#chatlog` + `updateChatLog` in ui.js, chiamata
   dal game loop in OGNI scena): la nuvoletta sta sopra la testa, e una testa dietro l'angolo (o
   in bottega, o sottoterra) non ha dove metterla — la riga si perdeva e chi l'aveva scritta non

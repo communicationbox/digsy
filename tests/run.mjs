@@ -9915,8 +9915,11 @@ sprites.applyLook();
   /* chi disegnare: interpolato, e SOLO chi è nella stessa scena */
   s0.onmessage({ data: netm.encode(netm.T.AT, { id: 'u1', x: 0, y: 0, d: 'down', m: true, s: 'world' }) });
   s0.onmessage({ data: netm.encode(netm.T.AT, { id: 'u1', x: 200, y: 0, d: 'down', m: true, s: 'world' }) });
-  check('si vede chi è nel mondo con noi', mp.visibili(1e9, 'world').length === 1);
-  check('e non si vede chi è entrato in una bottega', mp.visibili(1e9, 'stanza').length === 0);
+  /* «adesso», non un tempo qualunque: un milione di secondi dopo, chi ha parlato l'ultima
+     volta poco fa è un fantasma per davvero (vedi `muto` in net.js) */
+  const adesso = () => performance.now() + 1;
+  check('si vede chi è nel mondo con noi', mp.visibili(adesso(), 'world').length === 1);
+  check('e non si vede chi è entrato in una bottega', mp.visibili(adesso(), 'stanza').length === 0);
 
   /* 3 · CADUTA E RIPROVE: attese che crescono, e poi si continua PIANO — non ci si arrende.
      Prima dopo quattro tentativi si smetteva per sempre: bastava un riavvio del centralino per
@@ -9965,7 +9968,7 @@ sprites.applyLook();
     s2.onmessage({ data: netm.encode(netm.T.ROOM, { host: 'io', peers: [{ id: 'u9', name: 'Luca', look: { shirt: '#c65a54' } }] }) });
     const vicino = { x: state.P.x + 20, y: state.P.y };
     s2.onmessage({ data: netm.encode(netm.T.AT, { id: 'u9', x: vicino.x, y: vicino.y, d: 'down', m: false, s: 'world' }) });
-    const visti = mp.visibili(1e9, 'world');
+    const visti = mp.visibili(performance.now() + 1, 'world');
     check('il compagno di stanza risulta visibile accanto a noi', visti.length === 1 && Math.abs(visti[0].x - vicino.x) < 1);
     /* si guarda il look PRIMA e DOPO: pretendere che non sia di un certo colore era fragile
        (quel rosso sta nella tavolozza del giocatore, e prima o poi qualcuno glielo mette) */
@@ -10054,7 +10057,7 @@ sprites.applyLook();
     check('e la storia si azzera: ricompare dov\'è, non ci scivola dentro', luca.buf.length === 1);
     netm.applyMessage(room5, netm.decode(netm.encode(netm.T.AT, { id: 'u1', x: 30000, y: 0, s: 'house' })), 700);
     check('ma entrare da una porta non è un salto (scena diversa)', luca.salti === 1);
-    check('e l\'ospitante lo vede accanto al nome', (mp.presenti().find(x => x.id === 'u1') || {}).salti === 1);
+    check('e l\'ospitante lo vede accanto al nome', (mp.presenti(700).find(x => x.id === 'u1') || {}).salti === 1);
     mp.disconnect();
   }
 
@@ -11268,9 +11271,8 @@ sprites.applyLook();
   check("l'HELLO che parte porta la bestia", sk.inviati.some(m => m.t === 'hello' && m.comp && m.comp.skull === 'gastrodonte'));
   sk.onmessage({ data: netB.encode(netB.T.WELCOME, { id: 'io' }) });
   sk.onmessage({ data: netB.encode(netB.T.ROOM, { host: 'io', peers: [{ id: 'u9', name: 'Ada', look: null, comp: BESTIA }] }) });
-  const now0 = 9000;
   sk.onmessage({ data: netB.encode(netB.T.AT, { id: 'u9', x: 50, y: 50, d: 'down', m: false, s: 'world', c: { x: 80, y: 60, d: 'right', f: 1 } }) });
-  const vis = mpB.visibili(now0 + 5000, 'world');
+  const vis = mpB.visibili(performance.now() + 1, 'world');
   check('il disegno riceve la bestia insieme alla persona', vis.length === 1 && !!vis[0].comp);
   check('con le tre specie e la sua posizione',
     vis[0].comp && vis[0].comp.skull === 'gastrodonte' && vis[0].comp.x === 80 && vis[0].comp.y === 60);
@@ -11282,6 +11284,207 @@ sprites.applyLook();
   check('chi non ha un compagno non ne porta uno finto', !a2.comp);
   mpB.disconnect();
   mpB.setTransport((u) => new WebSocket(u));
+}
+
+/* ---------- GLI ALTRI SI VEDONO ANCHE DENTRO ----------
+   «Dentro le stanze non vedo gli altri personaggi e vorrei vederli.» Si entrava in due nello
+   stesso negozio e ognuno ci si trovava da solo. E «dentro» non basta come indirizzo: due
+   persone in due botteghe diverse — o una in cucina e una in bagno — starebbero nella stessa
+   scena e si vedrebbero una addosso all'altra. */
+{
+  const it = await import('../src/interior.js');
+  const w2 = await import('../src/world.js');
+  const S = state.S, P = state.P;
+  /* due edifici DIVERSI danno due chiavi diverse; lo stesso edificio la stessa, sempre */
+  const b1 = { type: 'store', x0: 10, y0: 20, x1: 13, y1: 22 };
+  const b2 = { type: 'store', x0: 40, y0: 20, x1: 43, y1: 22 };
+  const chiave = (b, room) => { it.INT.active = true; it.INT.b = b; it.INT.room = 'main'; it.INT.houseRoom = room === undefined ? null : room; return it.scenaInterni(); };
+  const k1 = chiave(b1), k2 = chiave(b2);
+  check('due botteghe diverse sono due scene diverse', k1 !== k2, k1 + ' / ' + k2);
+  check('e la stessa bottega dà sempre la stessa chiave', chiave(b1) === k1);
+  check('la chiave sta nei dodici caratteri del messaggio', k1.length <= 12, k1.length + ' caratteri');
+  /* la CASA: atrio e stanze sono scene separate, e due stanze diverse non si mescolano */
+  const casa = { type: 'house', x0: 5, y0: 5, x1: 8, y1: 7 };
+  const atrio = chiave(casa), cucina = chiave(casa, 1), bagno = chiave(casa, 2);
+  check('atrio e stanze di casa sono scene diverse', atrio !== cucina && cucina !== bagno);
+  check('fuori da una stanza la scena è il mondo', (it.INT.active = false, it.scenaInterni()) === 'world');
+
+  /* e DENTRO si disegnano: la scena della bottega con un compagno in mezzo fa più pennellate */
+  const mpI2 = await import('../src/mp.js');
+  const netI2 = await import('../src/net.js');
+  const ints = await import('../src/interiors.js');
+  const fatte = [];
+  mpI2.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+  it.INT.active = true; it.INT.b = b1; it.INT.room = 'main'; it.INT.houseRoom = null;
+  it.INT.w = 10; it.INT.h = 7; it.INT.x = 5 * TS; it.INT.y = 5 * TS; it.INT.dir = 'down';
+  const scI = await import('../src/screen.js');
+  mpI2.connect('ws://finta/ws', { name: 'Io', room: 'w-AAAAAAAAAA' });
+  const sk2 = fatte[fatte.length - 1];
+  sk2.onopen();
+  sk2.onmessage({ data: netI2.encode(netI2.T.WELCOME, { id: 'io' }) });
+  sk2.onmessage({ data: netI2.encode(netI2.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Ada', look: null }] }) });
+  const dove2 = (sc) => sk2.onmessage({ data: netI2.encode(netI2.T.AT, { id: 'u1', x: 3 * TS, y: 5 * TS, d: 'down', m: false, s: sc }) });
+  /* si misura QUANTI compagni di stanza la scena ha messo in fila, non quante pennellate ha
+     dato: un personaggio è uno sprite tenuto in cache, e dalla seconda volta in poi non lascia
+     traccia nel conteggio dei rettangoli — la prova tornava identica con e senza nessuno
+     nella stanza (ci ho sbattuto la testa). */
+  /* «adesso», non un istante qualunque: chi disegna guarda un decimo di secondo NEL PASSATO
+     (è così che gli altri camminano invece di saltellare), e con un tempo più vecchio dei
+     messaggi si legge sempre il primo campione — quello di prima che cambiasse stanza. */
+  const poi = () => performance.now() + 500;
+  dove2(k1); ints.drawInteriorScene(poi());
+  check('nella bottega si vede chi è entrato con te', ints.DENTRO.altri === 1, ints.DENTRO.altri + ' altri');
+  dove2(k2); ints.drawInteriorScene(poi());
+  check('e non si vede chi è in un ALTRO negozio', ints.DENTRO.altri === 0, ints.DENTRO.altri + ' altri');
+  dove2(k1); ints.drawInteriorScene(poi());
+  check('e appena rientra, si rivede', ints.DENTRO.altri === 1);
+  mpI2.disconnect(); mpI2.setTransport((u) => new WebSocket(u));
+  it.INT.active = false;
+}
+
+/* ---------- IL FANTASMA DI UNA SOCKET MORTA ----------
+   «Il personaggio si è sdoppiato» (segnalato con foto: due «Teo» identici, uno immobile). È
+   una riconnessione: la linea cade, il gioco riattacca e il centralino gli dà un identificativo
+   NUOVO — ma della vecchia socket, rimasta semiaperta, non se n'è accorto nessuno, e nella
+   stanza restano due volte la stessa persona. Una partita viva dice dove sta almeno una volta
+   al secondo, anche da ferma: chi tace da venticinque secondi non c'è. */
+{
+  const nm = await import('../src/net.js');
+  const room = nm.makeRoom(); room.me = 'io';
+  nm.applyMessage(room, { t: nm.T.ROOM, host: 'io', peers: [
+    { id: 'vecchio', name: 'Teo', look: null }, { id: 'nuovo', name: 'Teo', look: null }] }, 0);
+  const at = (id, t, x) => nm.applyMessage(room, nm.decode(nm.encode(nm.T.AT, { id, x, y: 0, d: 'down', m: false, s: 'world' })), t);
+  at('vecchio', 1000, 10); at('nuovo', 1000, 50);
+  check('due che parlano sono due persone', !nm.muto(room.peers.get('vecchio'), 1200) && !nm.muto(room.peers.get('nuovo'), 1200));
+  /* passano venticinque secondi: il nuovo continua a dire dove sta, il vecchio tace */
+  for (let t = 2000; t <= 30000; t += 1000) at('nuovo', t, 50 + t / 100);
+  check('chi tace da venticinque secondi è un fantasma', nm.muto(room.peers.get('vecchio'), 30000) === true);
+  check('e chi parla no', nm.muto(room.peers.get('nuovo'), 30000) === false);
+  check('ma NON si cancella: se ritorna, torna', room.peers.has('vecchio'));
+  at('vecchio', 30500, 10);
+  check('e infatti basta che riapra bocca', nm.muto(room.peers.get('vecchio'), 30600) === false);
+  /* chi non ha ancora detto niente è «muto», ma è appena entrato: nel mondo non si disegna
+     (non si sa dove sia) e nell'elenco del pannello invece c'è */
+  nm.applyMessage(room, { t: nm.T.ENTER, id: 'terzo', name: 'Ada', look: null }, 30600);
+  check("chi è appena entrato non si disegna finché non dice dov'è", nm.muto(room.peers.get('terzo'), 30600) === true);
+}
+
+/* ---------- L'ARREDO CAMBIA SOTTO GLI OCCHI DI CHI GUARDA ----------
+   «Se cambio l'arredamento di casa anche gli altri lo devono vedere in tempo reale.» La casa
+   viaggiava già all'ingresso (sta nel pacchetto del mondo), ma poi restava ferma: chi era in
+   salotto vedeva la stanza com'era quando è entrato. Va solo da chi OSPITA a chi è in casa
+   sua — l'arredo è di chi la casa ce l'ha (MULTIPLAYER.md, regola 3). */
+{
+  const nh = await import('../src/net.js');
+  const CASA = { rooms: [{ id: 0, unlocked: true, paper: 'wp_rustico', furn: [{ itemId: 'letto_legno', gx: 2, gy: 3, rot: 1 }] }], yard: [] };
+  const pulita = nh.cleanCasa(CASA);
+  check('una casa che arriva dalla rete passa il controllo', !!pulita && pulita.rooms[0].furn[0].itemId === 'letto_legno');
+  check('con la sua rotazione e il suo fondo', pulita.rooms[0].furn[0].rot === 1 && pulita.rooms[0].paper === 'wp_rustico');
+  /* da fuori entrano SOLO identificativi di pezzo e due coordinate: niente campi a sorpresa */
+  const sporca = nh.cleanCasa({ rooms: [{ id: 0, unlocked: true, paper: '<img>', furn: [
+    { itemId: 'ok_pezzo', gx: 1, gy: 1 }, { itemId: '<script>', gx: 1, gy: 2 }, { itemId: 'ok2', gx: 'a', gy: 1 }] }] });
+  check('un pezzo con un nome storto non entra', sporca.rooms[0].furn.length === 1 && sporca.rooms[0].furn[0].itemId === 'ok_pezzo');
+  check('e nemmeno un fondo con un nome storto', sporca.rooms[0].paper === undefined);
+  check('niente rooms, niente casa', nh.cleanCasa({ }) === null && nh.cleanCasa(null) === null);
+  /* i TETTI: una casa con diecimila mobili è un modo per fermare il gioco di chi la guarda */
+  const enorme = nh.cleanCasa({ rooms: [{ id: 0, unlocked: true, furn: Array.from({ length: 900 }, (_, i) => ({ itemId: 'p' + (i % 7), gx: i % 10, gy: 1 })) }] });
+  check('e c\'è un tetto ai pezzi di una stanza', enorme.rooms[0].furn.length === 200);
+
+  /* il giro completo: l'ospitante sposta, l'ospite vede */
+  const mh = await import('../src/mp.js');
+  const vh = await import('../src/visita.js');
+  const S = state.S;
+  const fatte = [];
+  mh.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+  /* DA OSPITANTE: spostando un mobile lo si dice a chi è in casa */
+  mh.connect('ws://finta/ws', { name: 'Io', room: 'w-AAAAAAAAAA' });
+  const sh = fatte[fatte.length - 1];
+  sh.onopen();
+  sh.onmessage({ data: nh.encode(nh.T.WELCOME, { id: 'io' }) });
+  sh.onmessage({ data: nh.encode(nh.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Ada', look: null }] }) });
+  check('da soli non si manda niente: non c\'è nessuno a cui dirlo', true);
+  check('con gente in casa, spostare un mobile si racconta', mh.mandaCasa(CASA) === true
+    && sh.inviati.some(m => m.t === 'casa' && m.casa));
+  /* DA OSPITE non si manda: la casa non è tua */
+  mh.connect('ws://finta/ws', { name: 'Io', room: 'w-ALTRO12345', ospite: true });
+  const sh2 = fatte[fatte.length - 1];
+  sh2.onopen();
+  sh2.onmessage({ data: nh.encode(nh.T.WELCOME, { id: 'io' }) });
+  sh2.onmessage({ data: nh.encode(nh.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Ada', look: null }] }) });
+  check('da ospite non si riarreda casa d\'altri', mh.mandaCasa(CASA) === false
+    && !sh2.inviati.some(m => m.t === 'casa'));
+  /* e ricevendo, la casa che si sta guardando cambia — ma SOLO durante una visita */
+  const miaCasa = S.house;
+  check('fuori da una visita nessuno può riarredare casa tua', vh.applicaCasa(CASA) === false && S.house === miaCasa);
+  mh.disconnect(); mh.setTransport((u) => new WebSocket(u));
+}
+
+/* ---------- LA PERGAMENA APRE UN PORTALE, E UNO SOLO ----------
+   «La pergamena del teletrasporto deve aprire un portale in città da cui posso tornare a dove
+   ero prima. Se non lo uso per il ritorno e ne apro un altro, il primo creato deve sparire.»
+   Prima era un viaggio di sola andata: si arrivava in città e per tornare al punto in cui si
+   stava scavando si rifaceva la strada a piedi. */
+{
+  const gpP = await import('../src/gameplay.js');
+  const S = state.S, P = state.P;
+  const keepC = S.coins, keepT = S.teleports, kx = P.x, ky = P.y;
+  S.cityPortal = null; S.teleports = 5;
+  /* si parte da lontano, in mezzo al nulla */
+  P.x = 12000; P.y = 9000;
+  const partenza = { x: P.x, y: P.y };
+  check('la pergamena porta in città', gpP.useTeleport() === true);
+  check('e apre un portale dove si è arrivati', !!S.cityPortal
+    && Math.abs(S.cityPortal.x - Math.floor(P.x / TS)) <= 1);
+  check('che si ricorda da dove si veniva',
+    S.cityPortal.back.x === partenza.x && S.cityPortal.back.y === partenza.y);
+  /* il portale si usa stando a portata, non da mezza mappa */
+  P.x = S.cityPortal.x * TS + 900;
+  check('da lontano il portale non risponde', gpP.nearbyCityPortal() === null);
+  P.x = S.cityPortal.x * TS + 8; P.y = S.cityPortal.y * TS + 2;
+  check('standoci sopra sì', !!gpP.nearbyCityPortal());
+  check('e riporta esattamente dove si era', gpP.useCityPortal() === true
+    && P.x === partenza.x && P.y === partenza.y);
+  check('usato, il portale si chiude', S.cityPortal === null);
+
+  /* UNO SOLO alla volta: aprirne un altro chiude il primo */
+  P.x = 12000; P.y = 9000;
+  gpP.useTeleport();
+  const primo = { ...S.cityPortal };
+  P.x = 30000; P.y = 22000;                     // un altro posto lontanissimo
+  const secondaVolta = gpP.useTeleport();
+  check('si può ripartire da un altro posto', secondaVolta === true);
+  check('e il portale di prima non esiste più: ce n\'è uno solo',
+    S.cityPortal && (S.cityPortal.x !== primo.x || S.cityPortal.y !== primo.y || S.cityPortal.back.x !== primo.back.x));
+  check('e riporta all\'ULTIMO posto da cui si è partiti', S.cityPortal.back.x === 30000);
+  S.cityPortal = null; S.coins = keepC; S.teleports = keepT; P.x = kx; P.y = ky;
+}
+
+/* ---------- GLI ALTRI SULLA CARTA ----------
+   «Sulla mappa devo vedere anche gli altri personaggi con i nomi.» Serve l'ultima posizione
+   nota SUL MONDO, non quella di adesso: le coordinate dentro una bottega sono relative alla
+   stanza (una decina di caselle) e sulla carta finirebbero tutte in un angolo dell'oceano. */
+{
+  const nq = await import('../src/net.js');
+  const mq = await import('../src/mp.js');
+  const fatte = [];
+  mq.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+  mq.connect('ws://finta/ws', { name: 'Io', room: 'w-AAAAAAAAAA' });
+  const sq = fatte[fatte.length - 1];
+  sq.onopen();
+  sq.onmessage({ data: nq.encode(nq.T.WELCOME, { id: 'io' }) });
+  sq.onmessage({ data: nq.encode(nq.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Ada', look: null }] }) });
+  check('chi non si è ancora fatto vedere fuori non si mette sulla carta', mq.visibiliOvunque().length === 0);
+  sq.onmessage({ data: nq.encode(nq.T.AT, { id: 'u1', x: 4000, y: 2500, d: 'down', m: false, s: 'world' }) });
+  const fuori = mq.visibiliOvunque();
+  check('chi è nel mondo sta dov è, col suo nome', fuori.length === 1 && fuori[0].x === 4000 && fuori[0].name === 'Ada');
+  check('e non risulta «dentro»', fuori[0].dentro === false);
+  /* ora entra in bottega: le sue coordinate diventano quelle della stanza, e per un bel po' di
+     messaggi. La carta deve continuare a indicare la PORTA da cui è entrato. */
+  for (let k = 0; k < 40; k++) sq.onmessage({ data: nq.encode(nq.T.AT, { id: 'u1', x: 5 * TS, y: 4 * TS, d: 'down', m: false, s: 'stabc123' }) });
+  const dentro = mq.visibiliOvunque();
+  check("chi è entrato da qualche parte resta segnato dov'era fuori", dentro.length === 1 && dentro[0].x === 4000 && dentro[0].y === 2500);
+  check('ed è segnato come «dentro»', dentro[0].dentro === true);
+  mq.disconnect(); mq.setTransport((u) => new WebSocket(u));
 }
 
 /* ---------- CHI PARLA MA NON SI VEDE ----------

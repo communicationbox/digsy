@@ -19,8 +19,8 @@
  *    treno in galleria) si riprova con attese che crescono e poi ci si ferma. Un gioco che
  *    tenta di collegarsi per sempre scalda il telefono e non lo dice a nessuno.
  */
-import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent, PING_MS, PONG_MAX } from './net.js';
-import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite } from './visita.js';
+import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent, muto, PING_MS, PONG_MAX } from './net.js';
+import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite, applicaCasa } from './visita.js';
 import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
 
 /* stati, in italiano perché si leggono anche nell'interfaccia:
@@ -211,6 +211,8 @@ export function ricevi(raw, now) {
     invio = {};
     if (sonoOspitante()) mandaMondo();
   }
+  /* SONO OSPITE E L'OSPITANTE HA SPOSTATO UN MOBILE: la sua casa cambia sotto i miei occhi. */
+  if (m.t === T.CASA && !sonoOspitante() && sonoOspite()) applicaCasa(m.casa);
   /* SONO OSPITE E MI È ARRIVATO UN MONDO: si entra. Da qui in poi `S` è il suo. */
   if (m.t === T.MONDO && !sonoOspitante()) {
     if (!entraInVisita({ mondo: m.mondo, x: m.x, y: m.y }, m.id)) MP.motivo = 'mondo illeggibile';
@@ -326,6 +328,7 @@ function battito(now) {
 export function visibili(now, scena = 'world') {
   const out = [];
   for (const p of MP.room.peers.values()) {
+    if (muto(p, now)) continue;                 // fantasma di una socket morta: non si disegna
     const a = peerAt(p, now);
     if (!a || a.scene !== scena) continue;
     /* e la sua BESTIA, se ce l'ha e se questo è il momento in cui l'ha detto: `comp` è lo
@@ -336,6 +339,21 @@ export function visibili(now, scena = 'world') {
   return out;
 }
 
+/* DOVE SONO GLI ALTRI NEL MONDO, anche quelli che adesso stanno dentro da qualche parte. Per
+   la mappa non serve la posizione di ADESSO ma l'ultima nota SUL MONDO: le coordinate dentro
+   una bottega sono relative alla stanza (una decina di caselle), e messe sulla carta
+   finirebbero tutte in un angolo dell'oceano. L'ultimo passo fatto fuori è la porta da cui
+   sono entrati — cioè esattamente il posto dove si va a prenderli. */
+export function visibiliOvunque(now) {
+  const t = now === undefined ? ora() : now;
+  const out = [];
+  for (const p of MP.room.peers.values()) {
+    if (muto(p, t)) continue;
+    if (p.wx === null || p.wy === null) continue;   // mai visto fuori: non si sa dove metterlo
+    out.push({ id: p.id, name: p.name, x: p.wx, y: p.wy, dentro: p.buf[p.buf.length - 1].s !== 'world' });
+  }
+  return out;
+}
 /* sono io che ospito? Il mondo è mio, quindi decido io l'orologio e mando io il mondo. */
 export function sonoOspitante() { return !!MP.room.me && MP.room.host === MP.room.me; }
 /* stanza aperta ma senza padrone di casa: si sta aspettando che arrivi */
@@ -348,6 +366,17 @@ function mioStessoCodice() { const c = mioCodiceOra(); return !!c && MP.stanza =
 function mandaMondo() {
   const p = mondoDaMandare();
   return manda(T.MONDO, p);
+}
+/* LA CASA È CAMBIATA. La chiama house.js dopo ogni mobile spostato, comprato o tolto: chi sta
+   guardando la stanza deve vedere il cambio SUBITO, non alla prossima visita. Va solo da chi
+   OSPITA a chi è in casa sua — l'arredo è di chi la casa ce l'ha (MULTIPLAYER.md, regola 3),
+   e un ospite non ha niente da dire in proposito.
+   Si manda tutta la casa e non il singolo pezzo: sono poche decine di mobili, si sposta un
+   mobile ogni tanto (non dieci volte al secondo), e un messaggio che vale da sé non può
+   arrivare fuori ordine o perdersi lasciando due stanze diverse sui due schermi. */
+export function mandaCasa(casa) {
+  if (MP.stato !== 'dentro' || !sonoOspitante() || !MP.room.peers.size) return false;
+  return manda(T.CASA, { casa });
 }
 /* UNA CASELLA CONSUMATA. La chiama il gioco nel punto in cui consuma (gameplay.js): se non c'è
    compagnia non fa niente, quindi chi gioca da solo non paga questo ramo. */
@@ -465,8 +494,14 @@ export function mandaVia(id) {
   return manda(T.KICK, { who: id });
 }
 /* chi c'è nella stanza, per l'interfaccia: nome, e quanti salti gli sono stati contati */
-export function presenti() {
-  return [...MP.room.peers.values()].map(p => ({ id: p.id, name: p.name, salti: p.salti || 0 }));
+export function presenti(now) {
+  /* anche l'elenco del pannello salta i fantasmi: due volte la stessa persona fra «con te» è
+     la stessa bugia che si vedeva nel mondo. Chi non ha ancora detto niente invece SÌ: è
+     appena entrato, e non averlo in elenco per un secondo sarebbe peggio. */
+  const t = now === undefined ? ora() : now;
+  return [...MP.room.peers.values()]
+    .filter(p => !p.buf.length || !muto(p, t))
+    .map(p => ({ id: p.id, name: p.name, salti: p.salti || 0 }));
 }
 
 /* USCIRE È UNA DECISIONE: si dimentica la stanza, e all'avvio dopo non ci si rientra. Cadere

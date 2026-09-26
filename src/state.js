@@ -413,6 +413,8 @@ export function initState() {
   if (S.gear === undefined) S.gear = null;
   if (S.teleportBack === undefined) S.teleportBack = null; // punto da cui torni col portale di casa
   if (S.returnPortal === undefined) S.returnPortal = null; // portale di ritorno a uso singolo (mai più di uno)
+  /* il portale aperto dalla PERGAMENA, in città: uno solo, e aprirne un altro chiude il primo */
+  if (S.cityPortal === undefined) S.cityPortal = null;
   /* stanze della casa (M2): la 0 parte sempre sbloccata, le altre dietro un lucchetto a pagamento */
   if (!S.house) S.house = { rooms: ROOM_PRICES.map((_, i) => ({ id: i, unlocked: i === 0 })) };
   for (const r of S.house.rooms) {
