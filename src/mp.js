@@ -36,6 +36,7 @@ export const MP = { stato: 'spento', room: makeRoom(), motivo: null, tentativi: 
    e senza che niente lo dicesse. La ragione per cui si smetteva («un telefono che ritenta per
    sempre si scalda in tasca») vale per i tentativi fitti, non per uno al minuto. */
 const RIPROVE = [500, 1500, 4000, 10000, 30000];
+const COMP_RIDÌ = 5000;      // ogni quanto si ripete chi è la propria bestia, per chi è entrato dopo
 const RIPROVA_LENTA = 60000;
 let sock = null, mio = null, stanza = null, invio = {}, riprova = 0;
 /* il battito della linea e l'ultima volta che la persona ha fatto qualcosa */
@@ -125,7 +126,7 @@ export function scordaStanza() { ricorda(null); }
 
 export function connect(url, me) {
   if (sock) disconnect('riconnessione');
-  mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, room: (me && me.room) || null };
+  mio = { name: (me && me.name) || 'Digsy', look: (me && me.look) || null, comp: (me && me.comp) || null, room: (me && me.room) || null };
   /* se chi chiama dichiara anche chi è, lo si registra UNA volta: da lì in poi vale per tutte
      le connessioni che verranno, comprese quelle che si riaprono da sole */
   if (me && me.codice) identita.codice = me.codice;
@@ -152,7 +153,7 @@ function aprire(url) {
        QUELLO che usa il gioco: mescolare due orologi (`performance.now` qui, il tempo del
        ciclo là) fa uscire differenze negative, e il battito non partirebbe mai. */
     ultimoPing = ultimoPong = ultimaAttività = null;
-    manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look, mio: identita.codice || null });
+    manda(T.HELLO, { v: PROTO, name: mio.name, look: mio.look, comp: mio.comp || null, mio: identita.codice || null });
     chiediChiCè();
   };
   s.onmessage = (ev) => ricevi(ev && ev.data, ora());
@@ -266,7 +267,19 @@ export function tick(now, pos) {
   if (Math.abs(pos.x - (invio.lastX ?? pos.x)) > 0.5 || Math.abs(pos.y - (invio.lastY ?? pos.y)) > 0.5) attivo(now);
   battito(now);
   if (!shouldSend(invio, now, pos.x, pos.y, pos.dir, pos.moving)) return false;
-  const ok = manda(T.AT, { x: Math.round(pos.x * 10) / 10, y: Math.round(pos.y * 10) / 10, d: pos.dir, m: !!pos.moving, s: pos.scene || 'world' });
+  /* LO STAMPO DELLA BESTIA (quali specie) si dice all'ingresso e poi SOLO quando cambia, o
+     ogni tanto per chi è arrivato dopo: mandarlo dieci volte al secondo sarebbe ripetere
+     sessanta byte immutabili per tutta la partita, mandarlo una volta sola lascerebbe la
+     bestia invisibile a chi entra più tardi e sbagliata a chi era già lì quando la cambi. */
+  const st = pos.comp ? JSON.stringify(pos.comp.spec) : '';
+  const rinfresco = st && (st !== invio.compSt || (now - (invio.compT || 0)) > COMP_RIDÌ);
+  const ok = manda(T.AT, { x: Math.round(pos.x * 10) / 10, y: Math.round(pos.y * 10) / 10, d: pos.dir, m: !!pos.moving, s: pos.scene || 'world',
+    /* DOV'È LA MIA BESTIA. Non si ricava dalla mia posizione: il compagno gira per conto suo e
+       si allontana a scavare, quindi o si dice dov'è o gli altri la vedono incollata a me. */
+    c: pos.comp ? { x: Math.round(pos.comp.x * 10) / 10, y: Math.round(pos.comp.y * 10) / 10, d: pos.comp.dir, f: Math.round((pos.comp.anim || 0) * 100) / 100 } : null,
+    cs: rinfresco ? pos.comp.spec : undefined });
+  if (ok && rinfresco) { invio.compSt = st; invio.compT = now; }
+  if (ok && !st) { invio.compSt = ''; invio.compT = 0; }
   if (ok) markSent(invio, now, pos.x, pos.y, pos.dir, pos.moving);
   return ok;
 }
@@ -313,7 +326,10 @@ export function visibili(now, scena = 'world') {
   for (const p of MP.room.peers.values()) {
     const a = peerAt(p, now);
     if (!a || a.scene !== scena) continue;
-    out.push({ id: p.id, name: p.name, look: p.look, x: a.x, y: a.y, dir: a.dir, moving: a.moving });
+    /* e la sua BESTIA, se ce l'ha e se questo è il momento in cui l'ha detto: `comp` è lo
+       stampo (quali specie), `a.comp` è dove sta adesso. Senza tutte e due non si disegna. */
+    out.push({ id: p.id, name: p.name, look: p.look, x: a.x, y: a.y, dir: a.dir, moving: a.moving,
+      comp: (p.comp && a.comp) ? { ...p.comp, x: a.comp.x, y: a.comp.y, dir: a.comp.dir, anim: a.comp.anim } : null });
   }
   return out;
 }

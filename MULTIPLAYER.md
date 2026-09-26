@@ -41,6 +41,14 @@ amico**, e solo mentre lui sta giocando.
    fatti in casa d'altri esaurirebbero la fontana di casa propria (stessa cella, mondi diversi).
 10. **Si torna dove si è partiti.** La posizione al momento dell'invito è quella del rientro.
 11. **La visita non paga l'idle.** Stavi giocando, non eri via.
+12. **Il compagno viene con te, e lo vedono tutti.** La bestia è roba di chi la porta: sta nel
+    salvataggio, quindi attraversa le stanze da sé. Quello che mancava era **dirlo** agli
+    altri — nessuno sapeva che c'era, né dove. Si manda lo **stampo** (le tre specie e la
+    rarità: il modello lo ricostruisce chi guarda, quindi da una stanza non può arrivare una
+    creatura inventata) all'ingresso e poi solo quando cambia o ogni cinque secondi, per chi
+    è entrato dopo; e la **posizione** a ogni passo, perché il compagno gira per conto suo e
+    si allontana a scavare: incollarlo al padrone lo farebbe sbagliare sempre.
+    In volo non si manda: là la bestia **è** il cavaliere, e disegnarla due volte la sdoppia.
 
 ### Chi con chi
 

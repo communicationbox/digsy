@@ -4806,6 +4806,96 @@ sprites.applyLook();
   S.companion = keep; P.x = kx; P.y = ky; comp10.resetCompanionTrail();
 }
 
+/* ---------- IL COMPAGNO CHE LAVORA NON SI TELETRASPORTA, E NON FLIPPA ----------
+   Due segnalazioni insieme: «quando stanno andando a scavare si teletrasportano se io mi
+   muovo» e «ogni tanto impazziscono e flippano sul posto destra e sinistra». Due cause
+   diverse, tutte e due invisibili a occhio finché non si misura. */
+{
+  const S = state.S, P = state.P;
+  const cp = await import('../src/companion.js');
+  const gp2 = await import('../src/gameplay.js');
+  const { COMP } = cp;
+  const keep = S.companion, kx = P.x, ky = P.y;
+  /* uno SCAVATORE: il compagno raccoglitore lavora la fonte del suo cranio, e con una specie
+     d'acqua la prova andrebbe a cercare uno stagno invece di una casella di terra */
+  const spTerra = (await import('../src/data.js')).ALL_SPECIES.find(sp => !sp.src) || { id: 'abissodonte' };
+  S.companion = { key: 'teleT', skull: spTerra.id, torso: spTerra.id, leg: spTerra.id, q: 'leggendario' };
+  /* IL TELETRASPORTO. Il compagno è al lavoro (job fissato) e Digsy se ne va: la scia
+     DEVE continuare a scriversi, o al termine del lavoro il salto vale mezzo schermo e il
+     compagno ricompare di colpo accanto a te. Si misura di quanto si sposta nel fotogramma
+     in cui il lavoro finisce. */
+  P.x = 400; P.y = 400;
+  cp.resetCompanionTrail(); COMP.job = null;
+  cp.updateCompanion(1 / 30, false);
+  COMP.x = P.x; COMP.y = P.y + 20;
+  COMP.job = { type: 'terra', tx: 12, ty: 12, wx: COMP.x, wy: COMP.y, phase: 'work', t: 1, hit: -1 };
+  for (let i = 0; i < 60; i++) { P.x += 4; cp.updateCompanion(1 / 30, false); }   // 240px di cammino
+  const primaX = COMP.x, primaY = COMP.y;
+  COMP.job = null;                                    // il lavoro finisce qui
+  cp.updateCompanion(1 / 30, false);
+  const salto = Math.hypot(COMP.x - primaX, COMP.y - primaY);
+  check('finito il lavoro, il compagno non si teletrasporta', salto < 12, Math.round(salto) + 'px in un fotogramma');
+
+  /* IL FLIP. Con UNA sola soglia, Digsy fermo proprio a quella distanza faceva sì che ogni
+     fotogramma il compagno mollasse il lavoro (girandosi verso di te) e lo riprendesse
+     (girandosi verso la casella): destra-sinistra sul posto all'infinito. Ora molla a 4.5
+     caselle e riprende solo sotto 3, quindi a mezza distanza deve prima tornare vicino.
+     Serve un posto dove ci sia davvero da scavare, o non si crea nessun lavoro e il controllo
+     qui sotto non proverebbe niente. */
+  let zap = null;
+  for (let r = 1; r < 120 && !zap; r++) for (let x = -r; x <= r && !zap; x++) for (const y of [r, -r]) {
+    if (zap || world.townInfo(x, y) || world.isSolidTile(x, y)) continue;
+    if (world.diggable(world.baseTerrain(x, y))) zap = [x, y];
+  }
+  if (!zap) check('trovato un posto da scavare per la prova del compagno', false);
+  else {
+    P.x = zap[0] * TS + 8; P.y = zap[1] * TS + 8;
+    cp.resetCompanionTrail(); COMP.job = null; COMP.cool = 0;
+    COMP.x = P.x; COMP.y = P.y;                          // addosso: qui il lavoro DEVE partire
+    gp2.companionWorkTick(1 / 30);
+    check('stando vicino il compagno si mette al lavoro (se no il controllo qui sotto è vuoto)', !!COMP.job);
+    COMP.job = null; COMP.cool = 0;
+    COMP.x = P.x + 4 * TS; COMP.y = P.y;                 // fra «riprende» (3) e «molla» (4.5)
+    gp2.companionWorkTick(1 / 30);
+    check('a mezza distanza non si rimette al lavoro: prima torna vicino', COMP.job === null);
+  }
+  /* IL CICLO INFINITO. «Parte a scavare, arriva fino al margine, si teletrasporta dal
+     personaggio e ricomincia» (segnalato con foto). Due cause che si sommavano: la casella di
+     lavoro si cercava fino a 5 caselle dal COMPAGNO — cioè spesso oltre la distanza a cui
+     molla — e chi mollava veniva riportato indietro di colpo invece che a piedi. Qui si fa
+     girare il gioco per dieci secondi con Digsy FERMO e si contano i salti. */
+  if (zap) {
+    P.x = zap[0] * TS + 8; P.y = zap[1] * TS + 8;
+    /* ATTORNO A DIGSY NON C'È PIÙ NIENTE DA SCAVARE: è il caso in cui il difetto si vedeva —
+       in una piazza lastricata, o dopo aver ripulito la zona — perché la ricerca andava a
+       prendere una casella a cinque caselle di distanza, cioè oltre il limite a cui il
+       compagno molla. Con il terreno vergine sotto i piedi ne trova subito una a una casella
+       e non si accorge di niente. */
+    const segnate = [];
+    for (let dx = -4; dx <= 4; dx++) for (let dy = -4; dy <= 4; dy++) {
+      const k = (zap[0] + dx) + ',' + (zap[1] + dy);
+      if (!state.dugSet.has(k)) { state.dugSet.add(k); segnate.push(k); }
+    }
+    cp.resetCompanionTrail(); COMP.job = null; COMP.cool = 0;
+    cp.updateCompanion(1 / 30, false);
+    /* Digsy cammiucchia sul posto, come si fa scavando: serve una scia vera, se no il
+       compagno non ha dove tornare e il difetto non si vede nemmeno quando c'è */
+    let salti = 0, px2 = COMP.x, py2 = COMP.y, oltre = 0;
+    for (let i = 0; i < 300; i++) {
+      P.x += (i % 40 < 20) ? 0.8 : -0.8;
+      gp2.companionWorkTick(1 / 30);
+      cp.updateCompanion(1 / 30, false);
+      if (Math.hypot(COMP.x - px2, COMP.y - py2) > 12) salti++;
+      if (Math.hypot(COMP.x - P.x, COMP.y - P.y) > 4.5 * TS) oltre++;
+      px2 = COMP.x; py2 = COMP.y;
+    }
+    check('il compagno non salta avanti e indietro mentre lavora', salti === 0, salti + ' salti in 10 secondi');
+    check('e non esce mai dalla distanza a cui mollerebbe il lavoro', oltre === 0, oltre + ' fotogrammi oltre il limite');
+    for (const k of segnate) state.dugSet.delete(k);
+  }
+  S.companion = keep; P.x = kx; P.y = ky; cp.resetCompanionTrail(); COMP.job = null;
+}
+
 /* ---------- salvataggio a pezzi: l'autosave non rifà tutto ogni 5 secondi ----------
    con stress=5 impacchettare mappa e scavi da capo costava 300 ms a ogni autosave ("ogni tanto tira
    una laggata"), e gli scavi in chiaro erano 10 MB. Qui: stesso risultato del calcolo da capo dopo
@@ -11081,6 +11171,74 @@ sprites.applyLook();
   check('e accanto al nome c\'è il conto', /tn-bollo">1</.test(htmlR));
   spR.setView('main');
   ch.dimenticaTutto();
+}
+
+/* ---------- LA BESTIA VIENE CON TE, E LA VEDONO TUTTI ----------
+   «Il buddy deve viaggiare con me negli altri mondi e tutti gli animali devono essere
+   visibili». Viaggiare lo faceva già (il compagno sta nel salvataggio di chi lo porta, e il
+   salvataggio non cambia entrando in casa d'altri); quello che mancava era DIRLO agli altri.
+   Qui si misura il giro completo: quello che si manda, quello che si accetta, e quello che
+   ne esce per il disegno. */
+{
+  const nt = await import('../src/net.js');
+  const BESTIA = { skull: 'gastrodonte', torso: 'gastrodonte', leg: 'gastrodonte', q: 'raro' };
+  check('lo stampo della bestia passa il controllo', JSON.stringify(nt.cleanComp(BESTIA)) === JSON.stringify(BESTIA));
+  check('una rarità inventata diventa comune', nt.cleanComp({ ...BESTIA, q: 'divino' }).q === 'comune');
+  /* i NOMI DI SPECIE sono l'unica cosa che entra da fuori: niente colori, niente misure.
+     Il modello lo costruisce chi guarda, quindi da una stanza non può arrivare una creatura
+     inventata — al massimo una che qui non esiste, e quella non si disegna. */
+  check('senza le tre specie non si accetta niente', nt.cleanComp({ skull: 'x', q: 'raro' }) === null);
+  check('e nemmeno da un nome con caratteri strani', nt.cleanComp({ ...BESTIA, torso: '<img>' }) === null);
+
+  /* HELLO ed ENTER la portano, così chi c'è già la vede arrivare col padrone */
+  const hel = nt.decode(nt.encode(nt.T.HELLO, { v: 1, name: 'Ada', look: null, comp: BESTIA }));
+  check("l'ingresso dichiara la propria bestia", !!hel && !!hel.comp && hel.comp.skull === 'gastrodonte');
+
+  /* e il MESSAGGIO DI POSIZIONE dice dov'è: non si ricava da quella del padrone, perché il
+     compagno gira per conto suo e si allontana a scavare */
+  const room = nt.makeRoom(); room.me = 'io';
+  nt.applyMessage(room, { t: nt.T.ROOM, host: 'io', peers: [{ id: 'u1', name: 'Ada', look: null, comp: BESTIA }] }, 1000);
+  const pr = room.peers.get('u1');
+  check('la bestia arriva insieme a chi entra', !!pr && !!pr.comp && pr.comp.leg === 'gastrodonte');
+  const at = (t, x, y, cx, cy, cs) => nt.applyMessage(room,
+    nt.decode(nt.encode(nt.T.AT, { id: 'u1', x, y, d: 'right', m: true, s: 'world', c: { x: cx, y: cy, d: 'left', f: 2 }, cs })), t);
+  at(1000, 100, 100, 140, 100);
+  at(1200, 120, 100, 160, 100);
+  const a1 = nt.peerAt(pr, 1250, 100);
+  check('e la sua posizione viaggia e si interpola come quella del padrone',
+    !!a1.comp && a1.comp.x > 140 && a1.comp.x < 160, a1.comp && Math.round(a1.comp.x));
+  check('col suo verso', a1.comp.dir === 'left');
+  /* CAMBIARE COMPAGNO AL LAB si deve vedere anche da fuori: lo stampo si ripete ogni tanto,
+     e chi guarda si aggiorna. Senza, restavi con la bestia di mezz'ora prima. */
+  at(1400, 140, 100, 180, 100, { skull: 'ossodonte', torso: 'ossodonte', leg: 'ossodonte', q: 'comune' });
+  check('e se cambi compagno lo vedono cambiare', room.peers.get('u1').comp.skull === 'ossodonte');
+
+  /* infine: quello che `visibili` consegna al disegno ha tutto quello che serve a costruire
+     la creatura — le tre specie E dove sta adesso */
+  const mpB = await import('../src/mp.js');
+  const netB = await import('../src/net.js');
+  const fatte = [];
+  mpB.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+  mpB.connect('ws://finta/ws', { name: 'Io', room: 'w-AAAAAAAAAA', comp: BESTIA });
+  const sk = fatte[fatte.length - 1];
+  sk.onopen();
+  check("l'HELLO che parte porta la bestia", sk.inviati.some(m => m.t === 'hello' && m.comp && m.comp.skull === 'gastrodonte'));
+  sk.onmessage({ data: netB.encode(netB.T.WELCOME, { id: 'io' }) });
+  sk.onmessage({ data: netB.encode(netB.T.ROOM, { host: 'io', peers: [{ id: 'u9', name: 'Ada', look: null, comp: BESTIA }] }) });
+  const now0 = 9000;
+  sk.onmessage({ data: netB.encode(netB.T.AT, { id: 'u9', x: 50, y: 50, d: 'down', m: false, s: 'world', c: { x: 80, y: 60, d: 'right', f: 1 } }) });
+  const vis = mpB.visibili(now0 + 5000, 'world');
+  check('il disegno riceve la bestia insieme alla persona', vis.length === 1 && !!vis[0].comp);
+  check('con le tre specie e la sua posizione',
+    vis[0].comp && vis[0].comp.skull === 'gastrodonte' && vis[0].comp.x === 80 && vis[0].comp.y === 60);
+  /* e chi NON ha un compagno non ne porta uno finto */
+  const room2 = nt.makeRoom(); room2.me = 'io';
+  nt.applyMessage(room2, { t: nt.T.ROOM, host: 'io', peers: [{ id: 'u2', name: 'Bo', look: null }] }, 1000);
+  nt.applyMessage(room2, nt.decode(nt.encode(nt.T.AT, { id: 'u2', x: 1, y: 1, d: 'down', m: false, s: 'world' })), 1000);
+  const a2 = nt.peerAt(room2.peers.get('u2'), 1200, 100);
+  check('chi non ha un compagno non ne porta uno finto', !a2.comp);
+  mpB.disconnect();
+  mpB.setTransport((u) => new WebSocket(u));
 }
 
 failures += summary('digsy-world');

@@ -83,6 +83,7 @@ export function decode(raw) {
   switch (m.t) {
     case T.HELLO:
       return (num(m.v) && nome(m.name)) ? { t: m.t, v: m.v, name: m.name.slice(0, 20), look: cleanLook(m.look),
+        comp: cleanComp(m.comp),
         mio: typeof m.mio === 'string' ? m.mio.slice(0, 20) : null } : null;
     case T.WELCOME:
       return id(m.id) ? { t: m.t, id: m.id } : null;
@@ -93,11 +94,11 @@ export function decode(raw) {
          chi aspetta, e diventa un mondo quando arriva quello di cui porta il codice. */
       if (!(m.host === null || id(m.host)) || !Array.isArray(m.peers)) return null;
       const peers = m.peers.filter(p => p && id(p.id) && nome(p.name)).slice(0, MAX_PEERS)
-        .map(p => ({ id: p.id, name: String(p.name).slice(0, 20), look: cleanLook(p.look) }));
+        .map(p => ({ id: p.id, name: String(p.name).slice(0, 20), look: cleanLook(p.look), comp: cleanComp(p.comp) }));
       return { t: m.t, host: m.host === null ? null : m.host, peers };
     }
     case T.ENTER:
-      return (id(m.id) && nome(m.name)) ? { t: m.t, id: m.id, name: m.name.slice(0, 20), look: cleanLook(m.look) } : null;
+      return (id(m.id) && nome(m.name)) ? { t: m.t, id: m.id, name: m.name.slice(0, 20), look: cleanLook(m.look), comp: cleanComp(m.comp) } : null;
     case T.LEAVE:
       return id(m.id) ? { t: m.t, id: m.id } : null;
     case T.AT:
@@ -109,6 +110,14 @@ export function decode(raw) {
         d: DIRS.includes(m.d) ? m.d : 'down',
         m: !!m.m,
         s: typeof m.s === 'string' ? m.s.slice(0, 12) : 'world',   // in quale scena: mondo, stanza, grotta
+        /* e dove sta la sua BESTIA: un compagno non sta incollato al padrone (scava per conto
+           suo, gira attorno), quindi la sua posizione è una cosa a parte. Assente = non ne ha,
+           o è in volo e la bestia È lui. */
+        c: (m.c && num(m.c.x) && num(m.c.y))
+          ? { x: m.c.x, y: m.c.y, d: DIRS.includes(m.c.d) ? m.c.d : 'down', f: num(m.c.f) ? m.c.f : 0 } : null,
+        /* e ogni tanto CHI è quella bestia: chi entra a metà partita non ha sentito l'HELLO
+           di chi c'era già, e chi cambia compagno al Lab non deve restare con quello vecchio */
+        cs: cleanComp(m.cs),
       } : null;
     case T.MONDO:
       /* il MONDO di un altro entra nel gioco: si pretende almeno che abbia un seme, o si
@@ -188,13 +197,26 @@ export function cleanLook(look) {
   for (const k of FORME) if (typeof look[k] === 'string' && /^[a-z]{2,16}$/i.test(look[k])) out[k] = look[k];
   return Object.keys(out).length ? out : null;
 }
+/* IL COMPAGNO DI UN ALTRO. Chi viene a trovarti si porta dietro la sua bestia, e la bestia
+   dev'essere la SUA: tre identificativi di specie (cranio, torace, zampa) e una rarità, cioè
+   esattamente quello che serve a `drawCreature` per costruirla qui. Nomi di specie, non
+   colori né numeri: quelli li decide il modello a partire dagli identificativi, quindi da
+   fuori non entra mai una creatura inventata — al massimo una che qui non esiste, e allora
+   non si disegna niente. */
+const SPID = /^[a-z0-9_]{2,24}$/i;
+const RARQ = ['comune', 'raro', 'eccezionale', 'leggendario'];
+export function cleanComp(c) {
+  if (!c || typeof c !== 'object') return null;
+  if (!SPID.test(c.skull || '') || !SPID.test(c.torso || '') || !SPID.test(c.leg || '')) return null;
+  return { skull: c.skull, torso: c.torso, leg: c.leg, q: RARQ.includes(c.q) ? c.q : 'comune' };
+}
 
 /* ---------- chi c'è, e dove ---------- */
 
 /* Un compagno di stanza. `buf` è la storia recente delle sue posizioni: si tiene perché
    l'interpolazione ha bisogno dei due campioni ATTORNO all'istante che si vuole disegnare. */
-function makePeer(id, name, look) {
-  return { id, name, look, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0, dorme: false };
+function makePeer(id, name, look, comp) {
+  return { id, name, look, comp: comp || null, buf: [], scene: 'world', x: 0, y: 0, dir: 'down', moving: false, anim: 0, salti: 0, dorme: false };
 }
 
 export function makeRoom() {
@@ -210,10 +232,10 @@ export function applyMessage(room, m, now = 0) {
     case T.ROOM:
       room.host = m.host; room.joined = true;
       room.peers.clear();
-      for (const p of m.peers) if (p.id !== room.me) room.peers.set(p.id, makePeer(p.id, p.name, p.look));
+      for (const p of m.peers) if (p.id !== room.me) room.peers.set(p.id, makePeer(p.id, p.name, p.look, p.comp));
       return m.t;
     case T.ENTER:
-      if (m.id !== room.me && room.peers.size < MAX_PEERS) room.peers.set(m.id, makePeer(m.id, m.name, m.look));
+      if (m.id !== room.me && room.peers.size < MAX_PEERS) room.peers.set(m.id, makePeer(m.id, m.name, m.look, m.comp));
       return m.t;
     case T.LEAVE: room.peers.delete(m.id); return m.t;
     case T.SLEEP: {
@@ -231,7 +253,8 @@ export function applyMessage(room, m, now = 0) {
         const dt = Math.max(1, now - ult.t) / 1000;
         if (Math.hypot(m.x - ult.x, m.y - ult.y) / dt > MAX_VEL) { p.salti = (p.salti || 0) + 1; p.buf.length = 0; }
       }
-      p.buf.push({ t: now, x: m.x, y: m.y, d: m.d, m: m.m, s: m.s });
+      if (m.cs) p.comp = m.cs;
+      p.buf.push({ t: now, x: m.x, y: m.y, d: m.d, m: m.m, s: m.s, c: m.c || null });
       /* la storia si pota QUI e non altrove: se la potatura dipendesse dal disegno, una scheda
          in secondo piano (che non disegna) accumulerebbe posizioni per tutto il tempo. */
       while (p.buf.length > 2 && now - p.buf[0].t > KEEP) p.buf.shift();
@@ -261,12 +284,15 @@ export function peerAt(p, now, lag = LAG) {
       return {
         x: a.x + (c.x - a.x) * k, y: a.y + (c.y - a.y) * k,
         dir: c.d, moving: c.m || a.m, scene: c.s,
+        /* la bestia si interpola come il padrone, ma solo se in TUTTI E DUE i campioni c'è:
+           mescolare un campione con la bestia e uno senza la farebbe partire dall'origine */
+        comp: (a.c && c.c) ? { x: a.c.x + (c.c.x - a.c.x) * k, y: a.c.y + (c.c.y - a.c.y) * k, dir: c.c.d, anim: c.c.f } : (c.c || null),
       };
     }
   }
   return sample(last);
 }
-function sample(s) { return { x: s.x, y: s.y, dir: s.d, moving: s.m, scene: s.s }; }
+function sample(s) { return { x: s.x, y: s.y, dir: s.d, moving: s.m, scene: s.s, comp: s.c ? { x: s.c.x, y: s.c.y, dir: s.c.d, anim: s.c.f } : null }; }
 
 /* QUANDO DIRE DOVE SI È. Non a ogni fotogramma (sarebbe sei volte il necessario) e non solo a
    tempo: se si è fermi non c'è niente da dire, e un pacchetto ogni decimo di secondo per

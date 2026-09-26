@@ -72,6 +72,15 @@ async function main() {
         if (t && t.statue) { var P = G.player(); P.x = t.statue.x * 32 + 8; P.y = (t.statue.y + 3) * 32 + 2; }
         if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1400);
       }); }
+    /* 'museo-fuori' = la FACCIATA del Museo, inquadrata da davanti: è l'edificio con la
+       sagoma più riconoscibile del gioco (timpano e colonne) e non compare in nessun'altra
+       foto — «statua» lo lascia mezzo fuori dall'inquadratura */
+    if (${JSON.stringify(vista)} === 'museo-fuori') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if (G.cmd) G.cmd('go=museo').then(function(){ return G.townHere(); }).then(function(t){
+        var m = t && (t.buildings||[]).filter(function(b){ return b.type === 'museum'; })[0];
+        if (m) { var P = G.player(); P.x = (m.x0 + (m.x1 - m.x0) / 2) * 32 + 8; P.y = (m.y1 + 4) * 32; }
+        if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1400);
+      }); }
     /* cmd=<comando>: esegue un comando della console prima dello scatto (es. cmd=go=boschi) */
     var qcmd = new URLSearchParams(location.search).get('cmd');
     if (qcmd && G.cmd) G.cmd(qcmd).then(function(){ if (G.updateHUD) G.updateHUD(); if (G.frame) G.frame(1200); });
@@ -437,6 +446,9 @@ async function main() {
     /* 'compagnia' = il mondo CON qualcun altro dentro: serve a guardare il cartellino del
        nome, che sta sopra la testa e non deve coprirla */
     else if (${JSON.stringify(vista)} === 'compagnia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      /* con un compagno addosso: la foto serve anche a controllare che la bestia degli ALTRI
+         si veda, e senza sceglierne uno non ne ha nessuno */
+      if(G.cmd) G.cmd('companion=terra');
       if(G.mpFinta) { var fin=function(){ G.mpFinta(['Fenn','Ada'], true).then(function(){ if(G.frame) G.frame(1200); }); };
         fin(); setInterval(fin, 120); } }
     /* 'invito' = il biglietto che arriva quando un amico ti chiama nel suo mondo: compare

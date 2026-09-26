@@ -560,7 +560,12 @@ export function tryFish() {
    più una comodità, era un secondo giocatore più bravo di te. Il caso serve perché una cadenza
    fissa si impara a memoria e si aspetta col cronometro.
    `LUCK`: metà delle volte non trova nulla, esattamente come capita a te. */
-const CW = { GO: 118, WORK: 1.3, COOL: 6, SLOW_MIN: 3, SLOW_MAX: 10, LUCK: 0.5, RETRY: 1.6, R: 5 };
+/* MOLLA a 4.5 caselle, RIPRENDE solo sotto 3: due soglie, non una. Con una sola, stando tu
+   fermo proprio su quella distanza, ogni fotogramma il compagno mollava il lavoro (e si girava
+   verso di te), lo riprendeva (e si girava verso la casella), lo rimollava… cioè si girava
+   destra-sinistra sul posto all'infinito — «ogni tanto impazziscono e flippano» (segnalato). */
+const CW = { GO: 118, WORK: 1.3, COOL: 6, SLOW_MIN: 3, SLOW_MAX: 10, LUCK: 0.5, RETRY: 1.6, R: 5,
+  MOLLA: 4.5, RIPRENDE: 3 };
 const WORK_SRC = { terra: 'terra', acqua: 'acqua', albero: 'albero', roccia: 'roccia' };
 function tileValidForWork(type, tx, ty) {
   if (townInfo(tx, ty)) return false;
@@ -595,10 +600,20 @@ function segnaLavorata(type, tx, ty) {
   else if (type === 'albero' && !choppedSet.has(key)) { choppedSet.add(key); if (!S.chopped) S.chopped = []; S.chopped.push(key); mutazione('chop', key); }
   else if (type === 'roccia' && !minedSet.has(key)) { minedSet.add(key); if (!S.mined) S.mined = []; S.mined.push(key); mutazione('mine', key); }
 }
+/* DOVE ANDARE A LAVORARE. La casella si cerca attorno al compagno MA deve restare a portata
+   di DIGSY: il compagno molla il lavoro se si allontana da te più di `MOLLA`, quindi una meta
+   scelta più in là è una meta che lo farà mollare per forza — partiva, arrivava al limite,
+   veniva riportato indietro e ripartiva verso la stessa casella, all'infinito («arriva fino
+   al margine poi si teletrasporta dal personaggio ed entra in un loop infinito», con foto).
+   Il tetto è `RIPRENDE`, non `MOLLA`: arrivato a destinazione dev'esserci ancora margine,
+   altrimenti basta che tu faccia mezzo passo nella direzione opposta per rompere tutto. */
 function findWorkTile(type, cx, cy) {
+  const px = P.x, py = P.y, max2 = (CW.RIPRENDE * TS) * (CW.RIPRENDE * TS);
   for (let r = 1; r <= CW.R; r++) for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) {
     if (Math.max(Math.abs(dx), Math.abs(dy)) !== r) continue;
     const tx = cx + dx, ty = cy + dy;
+    const wx = tx * TS + 8, wy = ty * TS + 8;
+    if ((wx - px) * (wx - px) + (wy - py) * (wy - py) > max2) continue;
     if (tileValidForWork(type, tx, ty)) return { tx, ty };
   }
   return null;
@@ -615,12 +630,14 @@ export function companionWorkTick(dt) {
   /* se il player si è ALLONTANATO, molla il lavoro e RAGGIUNGILO (updateCompanion segue quando
      job=null): il raccoglitore lavora SOLO restandoti vicino, così non rimane "piantato" su una
      casella a scavare mentre tu te ne vai (segnalato: "il buddy è bloccato lì"). */
-  if (Math.hypot(P.x - COMP.x, P.y - COMP.y) > 4.5 * TS) { COMP.job = null; COMP.cool = 0; return; }
+  const lontano = Math.hypot(P.x - COMP.x, P.y - COMP.y);
+  if (lontano > CW.MOLLA * TS) { COMP.job = null; COMP.cool = 0; return; }
   const type = companionType(companionSpec());
   COMP.cool = Math.max(0, (COMP.cool || 0) - dt);
   const job = COMP.job;
   if (!job) {
     if (bagFull() || COMP.cool > 0 || pausaAttiva()) return; // zaino pieno o in pausa: segue e basta
+    if (lontano > CW.RIPRENDE * TS) return;                  // prima torna vicino, poi si rimette al lavoro
     const cx = Math.floor(COMP.x / TS), cy = Math.floor((COMP.y + FOOT_DY) / TS);
     const t = findWorkTile(type, cx, cy);
     if (!t) { COMP.cool = CW.RETRY; return; }                // niente da lavorare qui: riprova tra poco
@@ -641,7 +658,12 @@ export function companionWorkTick(dt) {
     return;
   }
   if (job.phase === 'work') {
-    job.t -= dt; COMP.anim += dt; COMP.dir = job.wx >= COMP.x ? 1 : -1; COMP.face = COMP.dir < 0 ? 'left' : 'right';
+    /* IL VERSO SI DECIDE UNA VOLTA, all'inizio del colpo. Ricalcolarlo a ogni fotogramma su
+       `job.wx >= COMP.x` con il compagno fermo a quattro pixel dalla casella vuol dire
+       riprendere una decisione al pelo sessanta volte al secondo: basta un arrotondamento
+       perché si giri avanti e indietro mentre scava. */
+    if (job.lato === undefined) job.lato = job.wx >= COMP.x ? 1 : -1;
+    job.t -= dt; COMP.anim += dt; COMP.dir = job.lato; COMP.face = job.lato < 0 ? 'left' : 'right';
     const ph = 1 - job.t / CW.WORK, hit = Math.floor(ph * 4);  // due colpi come lo scavo manuale
     if (hit !== job.hit) { job.hit = hit; if (hit % 2 === 1) playSfx(type === 'acqua' ? 'fish' : type === 'terra' ? 'dig' : type === 'albero' ? 'chop' : 'mine'); }
     if (job.t <= 0) {

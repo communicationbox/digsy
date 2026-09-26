@@ -89,27 +89,43 @@ export function updateCompanion(dt, mounted) {
   /* IN VOLO la cavalcatura È il player: tienila INCOLLATA a lui. Senza, il compagno resta indietro
      (segue a 90px/s mentre voli ×3) e all'atterraggio "torna" dal punto di decollo (segnalato). */
   if (mounted) { COMP.x = P.x; COMP.y = P.y; COMP.job = null; return; }
-  if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
   /* SEGUE LA SCIA DEI PASSI, non un punto fisso accanto a Digsy. Il vecchio bersaglio stava
      16px dietro al verso in cui si guardava: uscendo da una casa verso il basso "dietro"
      voleva dire DENTRO la casa, e il compagno ci finiva in mezzo, sul tetto (segnalato con
      foto: "il buddy si compenetra"). La scia passa solo dove Digsy ha camminato davvero, quindi
-     il compagno non può entrare in un muro, in una staccionata o in una porta. */
+     il compagno non può entrare in un muro, in una staccionata o in una porta.
+     LA SCIA SI SCRIVE SEMPRE, anche mentre il compagno sta scavando per conto suo. Prima si
+     usciva PRIMA (`if (COMP.job) return`): per tutta la durata del lavoro Digsy camminava e
+     la scia restava ferma all'ultimo passo, così appena il lavoro finiva il salto era di
+     mezzo schermo e il compagno si TELETRASPORTAVA accanto a te («quando stanno andando a
+     scavare si teletrasportano se io mi muovo» — segnalato). Scrivere la scia non muove
+     nessuno: dice solo dove sei passato. */
   const d0 = trail.length ? Math.hypot(P.x - trail[trail.length - 1].x, P.y - trail[trail.length - 1].y) : 0;
-  if (!COMP.init || d0 > TS * 2) {
-    /* SALTO (appena scelto, uscito da un edificio, teletrasporto): la scia vecchia non vale più,
-       e il compagno ricompare su una casella LIBERA accanto, mai dentro un edificio */
+  const salto = !COMP.init || d0 > TS * 2;
+  if (salto) {
+    /* SALTO VERO (appena scelto, uscito da un edificio, teletrasporto): la scia vecchia non
+       vale più, e il compagno ricompare su una casella LIBERA accanto, mai dentro un edificio.
+       Chi sta lavorando non lo si sposta: sta scavando dove ha deciso, e la sua casella è
+       comunque vicina — al massimo lo raggiungerà dopo. */
     trail.length = 0;
     trail.push({ x: P.x, y: P.y });
-    if (!COMP.init || Math.hypot(COMP.x - P.x, COMP.y - P.y) > TS * 2) {
+    /* IL TELETRASPORTO È L'ULTIMA SPIAGGIA, non il modo normale di recuperare distanza. Prima
+       bastavano due caselle: il compagno che tornava da una casella scavata poco più in là
+       spariva e ricompariva accanto a te — e se la sua meta stava oltre quel limite, ripartiva
+       e rispariva all'infinito. Uno che si vede deve tornare CAMMINANDO; si salta solo da
+       tanto lontano che il salto non si vede (sei uscito da una porta, o ti sei teletrasportato
+       tu) oppure se è rimasto chiuso in un solido. */
+    if (!COMP.init || Math.hypot(COMP.x - P.x, COMP.y - P.y) > TS * 8 || compBlocked(COMP.x, COMP.y)) {
       const f = freeSpotNear(P.x, P.y);
       COMP.x = f.x; COMP.y = f.y;
+      COMP.job = null;                     // dove stava lavorando non c'è più: il lavoro decade
     }
     COMP.init = true;
   } else if (d0 > 2) {
     trail.push({ x: P.x, y: P.y });
     if (trail.length > TRAIL_MAX) trail.shift();
   }
+  if (COMP.job) return;               // durante il lavoro guida il movimento gameplay.companionWorkTick
   const t = trailPointBehind(FOLLOW_PX);
   /* scia troppo corta (Digsy fermo o appena arrivato): si resta dove si è, invece di
      avvicinarsi fino a sovrapporsi a lui */

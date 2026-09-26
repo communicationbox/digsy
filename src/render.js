@@ -1964,6 +1964,18 @@ function pushPeers(ents, camx, camy, time, scena) {
   for (const q of visibili(time, scena)) {
     const sx = snap(q.x - camx), sy = snap(q.y - camy);
     ents.push({ y: q.y - camy + TS, f: () => drawPeer(sx, sy, q, time) });
+    /* LA BESTIA DI UN ALTRO, con la stessa convenzione della propria: i piedi a `FOOT_DY`
+       sotto l'ancora, la chiave di profondità dell'ancora più una casella, e l'acqua sotto la
+       casella dei piedi decide se nuota. Prima chi veniva a trovarti arrivava senza: il
+       compagno c'era (sta nel salvataggio di chi lo porta) ma nessuno lo vedeva. */
+    if (q.comp) {
+      const c = q.comp;
+      const cxs = snap(c.x - camx), cys = snap(c.y + FOOT_DY - camy);
+      const cswim = waterTile(Math.floor(c.x / TS), Math.floor((c.y + FOOT_DY) / TS));
+      const obj = { c: { skull: c.skull, torso: c.torso, leg: c.leg, q: c.q }, anim: c.anim || 0,
+        dir: c.dir === 'left' ? -1 : 1, face: c.dir };
+      ents.push({ y: c.y - camy + TS, f: () => drawCreature(obj, cxs - 16, cys - 26, cswim) });
+    }
     n++;
   }
   return n;

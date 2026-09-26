@@ -6,7 +6,7 @@ import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache, homeRoadBr
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
-import { updateCompanion } from './companion.js';
+import { updateCompanion, COMP, companionSpec } from './companion.js';
 import { playIntro, introActive, drawIntroLine } from './intro.js';
 import { updateHUD, updatePrompt, isModalOpen, isBagOpen, isBookOpen, isMapOpen, isPrepOpen, isTossOpen, openEditor, welcomeToasts, showBanner, lookPreviewPending, showIdleWelcome } from './ui.js';
 import { idleHours, idleCoins, idleEligible, IDLE_DNA_CHANCE } from './idle.js';
@@ -156,7 +156,15 @@ function loop(ts) {
        chi gioca da solo non paga un centesimo di questo ramo. */
     if (MP.stato === 'dentro') {
       const dove = CAVE.active ? { pos: CAVE, scena: 'grotta' } : INT.active ? { pos: INT, scena: 'stanza' } : { pos: P, scena: 'world' };
-      mpTick(ts, { x: dove.pos.x, y: dove.pos.y, dir: P.dir, moving: dove.pos.moving || P.moving, scene: dove.scena });
+      /* E LA BESTIA VIENE CON ME. Il compagno è roba di chi lo porta — sta in `S`, quindi
+         attraversa le stanze da sé — ma gli ALTRI non lo vedevano: nessuno diceva loro che
+         c'era, né dove. Si manda la posizione (gira per conto suo: non si ricava dalla mia) e
+         lo stampo, cioè quali specie lo compongono; il modello lo ricostruisce chi guarda.
+         In volo no: là la bestia È il cavaliere, e disegnarla due volte la sdoppia. */
+      const cspec = (!isMounted() && !CAVE.active && !INT.active) ? companionSpec() : null;
+      mpTick(ts, { x: dove.pos.x, y: dove.pos.y, dir: P.dir, moving: dove.pos.moving || P.moving, scene: dove.scena,
+        comp: cspec ? { x: COMP.x, y: COMP.y, dir: COMP.face, anim: COMP.anim,
+          spec: { skull: cspec.skull, torso: cspec.torso, leg: cspec.leg, q: cspec.q } } : null });
       /* se ospito, l'orologio lo do io: gli ospiti non lo calcolano, lo ricevono */
       mpOrologio(ts, S.day, S.tod);
     }
@@ -523,9 +531,13 @@ if (typeof window !== 'undefined') {
         /* e li si mette ANCHE nel mondo, accanto a chi guarda: senza un campione nel
            «buf» (quello che la rete avrebbe portato) `visibili` non ne restituisce nessuno,
            e una foto della compagnia ritraeva sempre e solo il giocatore da solo. */
+        /* ognuno con la SUA bestia accanto: è quello che si va a guardare in una foto della
+           compagnia, e senza non si vedrebbe mai */
+        const bes = S.companion ? { skull: S.companion.skull, torso: S.companion.torso, leg: S.companion.leg, q: S.companion.q } : null;
         (nomi || []).forEach((n, i) => m.MP.room.peers.set('u' + (i + 1),
-          { id: 'u' + (i + 1), name: n, look: null, salti: i === 1 ? 3 : 0,
-            buf: [{ t: 0, x: P.x + (i + 1) * 22, y: P.y - 6, d: 'down', m: 0, s: 'world' }] }));
+          { id: 'u' + (i + 1), name: n, look: null, salti: i === 1 ? 3 : 0, comp: bes,
+            buf: [{ t: 0, x: P.x + (i + 1) * 22, y: P.y - 6, d: 'down', m: 0, s: 'world',
+              c: bes ? { x: P.x + (i + 1) * 22 + 18, y: P.y + 10, d: 'left', f: 0 } : null }] }));
         return true;
       }),
       /* entrare/uscire dalle scene: serve agli e2e per DISEGNARLE davvero. Una regressione

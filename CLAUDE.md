@@ -160,6 +160,19 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   accanto al taccuino, fuori dal salvataggio): la lettera si accende, il nome porta il conto, e
   il tag 📝 dell'HUD mostra il totale. Si apre **in gioco** dalla barra in alto, non dal menu.
   Foto: `npm run shot -- taccuino 560,720` · `"chi=Fenn"` per una pagina.
+- **Il compagno viaggia e si vede** (`net.js` `cleanComp` + `T.AT`): la bestia sta nel
+  salvataggio di chi la porta (quindi attraversa le stanze da sé), ma agli altri va DETTA. Si
+  manda lo **stampo** (le tre specie + rarità: il modello lo ricostruisce chi guarda, quindi da
+  fuori non entra mai una creatura inventata) in `HELLO`/`ROOM`/`ENTER` e poi in `AT` solo
+  quando cambia o ogni 5 s (`COMP_RIDÌ`, per chi è entrato dopo); la **posizione** a ogni
+  passo, perché il compagno gira per conto suo. In volo non si manda: là la bestia È il
+  cavaliere. Foto: `npm run shot -- compagnia 820,560`.
+- **Il raccoglitore non impazzisce** (`CW.MOLLA`/`CW.RIPRENDE` in gameplay.js): molla il lavoro
+  a 4.5 caselle da Digsy e lo riprende solo sotto 3 — con UNA soglia sola, stando fermi proprio
+  lì si girava destra-sinistra all'infinito. La casella da lavorare si cerca **entro** quella
+  distanza dal giocatore, o il compagno partiva verso una meta che l'avrebbe fatto mollare a
+  metà strada (partiva, tornava, ripartiva). E la **scia si scrive anche mentre lavora**: senza,
+  al termine il salto valeva mezzo schermo e si teletrasportava addosso a te.
 - **Cassetta della posta in OGNI paese** (prima solo dove manca il Museo): resta il servizio
   di spedire i **grezzi** al Museo (2 monete a pezzo, pronti domani) dove il Museo non c'è, e si
   aggiunge la **posta fra persone** — visibile SOLO a chi è collegato col proprio account,

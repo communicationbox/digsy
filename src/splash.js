@@ -909,7 +909,11 @@ function buildMenu(inGame) {
       go('amici'); return;
     }
     avvisoAmici = '';
-    connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(codice), ospite: !mia });
+    /* la BESTIA si dichiara subito: chi è già nella stanza deve vederla arrivare con te, non
+       al primo passo che fai */
+    const bs = S && S.companion;
+    connect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(codice), ospite: !mia,
+      comp: bs ? { skull: bs.skull, torso: bs.torso, leg: bs.leg, q: bs.q } : null });
     go('amici');
   };
   { const a = document.getElementById('sp-mp-apri'); if (a) a.onclick = () => vaiDa(mioCodice(), true); }

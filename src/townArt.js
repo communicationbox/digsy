@@ -379,9 +379,10 @@ export function drawMuseumFront(g, w, h, BB, glass, night, an = NOAN) {
     g.rect(bx - 1, 28, 8, 20 + d, ln(g, '#8a3f3a')); g.rect(bx, 29, 6, 18 + d, '#8a3f3a'); g.rect(bx + 2, 34, 2, 6, '#c9a227');
     g.px(bx + (d ? 5 : 0), 47 + d, ln(g, '#8a3f3a'));
   }
-  /* un riflesso di luce che attraversa l'architrave d'oro ogni tanto */
-  const gx = Math.floor(((an.t / 14 + an.ph * 97) % (w + 360))) - 60;
-  if (an !== NOAN && gx > -3 && gx < w + 3) { g.rect(gx, 19, 3, 5, 'rgba(255,248,210,.75)'); g.rect(gx + 4, 19, 1, 5, 'rgba(255,248,210,.45)'); }
+  /* NIENTE RIFLESSO che scorre sull'architrave d'oro: un bagliore che attraversa una fascia
+     ferma è il linguaggio dei bottoni e delle cose da toccare, non di un edificio (regola 4),
+     e su una facciata che sta lì tutto il giorno diventa un tic. L'oro il suo volume ce l'ha
+     già dalla riga chiara in cima e dal contorno. */
 }
 export function drawHouseFront(g, w, h, BB, glass, night, an = NOAN) {
   base(g, w, h, '#d8a878', 'plaster', BB, 18);
