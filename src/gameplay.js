@@ -431,7 +431,9 @@ export function checkGateNotice() {
   const insideNow = ptx >= p.x0 && ptx <= p.x1 && pty >= p.y0 && pty <= p.y1;
   if (insideNow && (ptx === p.cx - 1 || ptx === p.cx) && pty >= p.y1 - 2 && pty <= p.y1) {
     gateNoticeShown = true;
-    toast('🚪 ' + tr('Caspita! È chiuso dall\'esterno!!', "Whoa! It's locked from outside!!"));
+    toast('🚪 ' + (S.returnPortal
+      ? tr('Caspita! È chiuso dall\'esterno!! Esci dal portale nell\'atrio di casa', "Whoa! It's locked from outside!! Leave through the portal in the hall")
+      : keys(tr('Caspita! È chiuso dall\'esterno!! Per fortuna la chiave ce l\'hai: {act} per aprire', "Whoa! It's locked from outside!! Luckily you have the key: {act} to open"))));
   }
 }
 /* il portale di ritorno a portata (E): torna dove eri prima di goHome() e sparisce.
@@ -479,7 +481,15 @@ export function nearbyLockedGate() {
   /* DUE caselle di tolleranza davanti al cancello, non una: camminando col tocco ci si ferma
      dove capita, e con una casella sola l'azione compariva solo se ci si incastrava contro il
      battente. Le colonne restano quelle del cancello (non si apre da un angolo del recinto). */
-  return (tx === p.cx - 1 || tx === p.cx) && (ty === p.y1 + 1 || ty === p.y1 + 2);
+  /* E DA DENTRO: la chiave di casa ce l'hai tu. Prima da dentro si usciva SOLO dal portale
+     dell'atrio, e senza quel portale (già usato, o mai aperto) si restava chiusi nel proprio
+     cortile per sempre — segnalato con foto: «non riesco ad uscire dal cancello e non c'è il
+     portale». Uno scherzo che può diventare una prigione non è uno scherzo. */
+  if ((tx !== p.cx - 1 && tx !== p.cx)) return false;
+  if (ty === p.y1 + 1 || ty === p.y1 + 2) return true;
+  /* …ma solo se il portale NON c'è: finché c'è, l'uscita è quella (a richiesta: «se c'è il
+     portale non si deve poter aprire dall'interno») */
+  return !S.returnPortal && (ty === p.y1 - 1 || ty === p.y1 - 2);
 }
 export function openLockedGate() {
   S.gateLocked = false;

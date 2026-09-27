@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.30', it: [
+      'NON SI RESTA PIÙ CHIUSI NEL CORTILE: dopo il teletrasporto a casa il cancello restava chiuso anche da dentro, e se il portale dell\'atrio non c\'era più non si usciva mai. Ora, se il portale non c\'è, la chiave ce l\'hai: il cancello si apre da dentro. Se il portale c\'è, si esce da lì',
+    ], en: [
+      'YOU CAN NO LONGER GET LOCKED IN YOUR YARD: after teleporting home the gate stayed locked from inside too, and without the hall portal there was no way out. Now, if the portal is gone, you have the key: the gate opens from inside. If the portal is there, you leave through it',
+    ],
+  },
+  {
     v: 'v0.99.29', it: [
       'TUTTO IL TELEFONO RIGUARDATO, schermata per schermata, anche col telefono girato: zaino, restauro, letto, bottega, museo, posta, lettere, missioni, compagno, teca, fontana, grotta e i menu. I pulsanti piccoli ora si prendono col pollice',
       'Col telefono girato la scheda del tutorial non si prende più mezzo schermo e non copre il joystick: si allarga e sta in due righe',

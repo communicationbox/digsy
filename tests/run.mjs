@@ -3871,8 +3871,24 @@ sprites.applyLook();
     }
     P.x = (pYard.cx + 4) * TS + 8; P.y = (pYard.y1 + 1) * TS + 2;
     check('ma non da un angolo qualsiasi del recinto', gameplay.nearbyLockedGate() === false);
+    /* E DA DENTRO SI APRE: la chiave di casa ce l'hai tu. Prima da dentro l'unica uscita era
+       il portale dell'atrio, e senza portale si restava chiusi nel cortile per sempre
+       («non riesco ad uscire dal cancello e non c'è il portale», con foto). */
+    /* …ma SOLO senza portale: finché il portale c'è, l'uscita è quella («se c'è il portale non
+       si deve poter aprire dall'interno») */
+    {
+      const rp0 = S.returnPortal;
+      S.returnPortal = rp0 || { x: 0, y: 0 };
+      P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - 1) * TS + 2;
+      check('da dentro, col portale aperto, il cancello NON si apre', gameplay.nearbyLockedGate() === false);
+      S.returnPortal = null;
+      for (const d of [1, 2]) {
+        P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - d) * TS + 2;
+        check('da dentro SENZA portale (a ' + d + ' casella dal cancello) si apre: niente prigioni', gameplay.nearbyLockedGate() === true);
+      }
+      S.returnPortal = rp0;
+    }
     P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - 1) * TS + 2; // appena dentro il cancello
-    check('da dentro, E sul cancello non lo sblocca', gameplay.nearbyLockedGate() === false);
     /* IL TONO ARRIVA QUI: avvicinandosi al cancello DA DENTRO il cortile — non al momento del
        teletrasporto (si era ancora nel corridoio, il cancello non si vedeva). Una volta sola
        per chiusura (checkGateNotice tiene un flag interno, non salvato). */
