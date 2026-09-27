@@ -154,8 +154,12 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
 - **Si viaggia** (`volo.js`): entrare nel mondo di un amico era uno stacco secco — premevi
-  accetta e ti ritrovavi altrove. Ora tre secondi d'aereo (Digsy al finestrino, paesaggio che
-  corre fuori dall'oblò con tre velocità di parallasse: nuvole, campi, colline), **saltabile con
+  accetta e ti ritrovavi altrove. Ora tre secondi d'aereo nella STESSA vista 3/4 del gioco:
+  cappelliere, parete con una fila di finestrini piccoli, poltrone viste da davanti in file
+  strette col corridoio, Digsy seduto in prima fila (la fila davanti gli copre le gambe). Le
+  misure vengono da una reference: un finestrino è mezza testa, una poltrona è un po' più
+  larga di chi ci siede. Il paesaggio è UNO SOLO visto da tutti i finestrini (coordinate di
+  mondo), con due velocità di parallasse: nuvole e campi. **Saltabile con
   un tocco** — una transizione che non si può interrompere è una tassa dalla seconda volta in
   poi. Il benvenuto arriva all'**atterraggio** (`alloAtterraggio`): nessuno legge un toast
   dietro a un oblò. `setSuVisita` in mp.js dice solo CHE si è arrivati; il viaggio lo racconta
