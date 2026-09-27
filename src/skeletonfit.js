@@ -8,15 +8,24 @@
    Modulo PURO (niente DOM): socket, punteggio e hit-test si testano da soli. */
 import { PARTS } from './data.js';
 
-/* posizioni FISSE dei 5 socket sulla tavola (percentuale 0-1 dentro il riquadro), stesse per
-   ogni specie: non è un puzzle di deduzione, è un gesto rapido di trascinamento. */
+/* LA TAVOLA È ORIZZONTALE E LO SCHELETRO È DI PROFILO, come un montaggio da museo: cranio a
+   sinistra, collo, gabbia toracica, bacino, coda che si assottiglia a destra, zampa che scende
+   sotto, corna che salgono dalla fronte. In verticale erano cinque cerchi incolonnati e due
+   affiancati in fondo, e non c'era verso di sapere quale fosse la coda e quale la zampa —
+   «non si capisce dove va la coda» (segnalato due volte). Di profilo la domanda non si pone:
+   la coda sta dove sta una coda.
+   Posizioni FISSE (frazioni 0-1 dentro il riquadro), le stesse per ogni specie: non è un
+   puzzle di deduzione, è un gesto rapido di trascinamento — il punteggio è sul tempo. */
 export const SOCKETS = [
-  { id: 'corno', x: 0.50, y: 0.10 },
-  { id: 'cranio', x: 0.50, y: 0.28 },
-  { id: 'torace', x: 0.50, y: 0.52 },
-  { id: 'zampa', x: 0.30, y: 0.80 },
-  { id: 'coda', x: 0.70, y: 0.80 },
+  { id: 'corno', x: 0.19, y: 0.18 },
+  { id: 'cranio', x: 0.22, y: 0.44 },
+  { id: 'torace', x: 0.52, y: 0.42 },
+  { id: 'zampa', x: 0.60, y: 0.72 },
+  { id: 'coda', x: 0.86, y: 0.36 },
 ];
+/* da dove parte il pezzo da trascinare: in basso a SINISTRA, nel vuoto sotto il cranio — al
+   centro finiva addosso al cerchio della zampa */
+export const HOME = { x: 0.28, y: 0.88 };
 export function socketFor(partId) { return SOCKETS.find(s => s.id === partId) || null; }
 
 /* LA SAGOMA SOTTO I SOCKET. Senza, la tavola è un fondo nero con cinque cerchietti in fila e
@@ -27,29 +36,24 @@ export function socketFor(partId) { return SOCKETS.find(s => s.id === partId) ||
    cambia misura con lo schermo e una sagoma in pixel ci si scollerebbe. Modulo puro: si
    misura che ogni socket caschi davvero sopra un pezzo di sagoma. */
 export const FIG = [
-  /* corna: due tratti che salgono dal cranio */
-  [0.455, 0.075, 0.020, 0.055], [0.525, 0.075, 0.020, 0.055],
-  [0.470, 0.060, 0.020, 0.030], [0.510, 0.060, 0.020, 0.030],
-  /* cranio: calotta e muso */
-  [0.440, 0.240, 0.120, 0.060], [0.455, 0.225, 0.090, 0.020], [0.470, 0.295, 0.060, 0.022],
-  /* collo: tre vertebre fra cranio e torace */
-  [0.482, 0.325, 0.036, 0.030], [0.482, 0.360, 0.036, 0.030], [0.482, 0.395, 0.036, 0.030],
-  /* torace: colonna e quattro costole per lato */
-  [0.484, 0.430, 0.032, 0.180],
-  [0.400, 0.450, 0.084, 0.018], [0.516, 0.450, 0.084, 0.018],
-  [0.390, 0.490, 0.094, 0.018], [0.516, 0.490, 0.094, 0.018],
-  [0.395, 0.530, 0.089, 0.018], [0.516, 0.530, 0.089, 0.018],
-  [0.412, 0.570, 0.072, 0.018], [0.516, 0.570, 0.072, 0.018],
-  /* bacino */
-  [0.430, 0.620, 0.140, 0.040],
-  /* zampa: femore, stinco, piede — scende a SINISTRA e SPORGE dal suo socket, o la sagoma
-     finisce tutta sotto il cerchio e non si vede più */
-  [0.355, 0.655, 0.080, 0.028], [0.312, 0.685, 0.034, 0.090], [0.262, 0.870, 0.096, 0.028],
-  [0.312, 0.770, 0.034, 0.110],
-  /* coda: segmenti che scendono a DESTRA e si assottigliano, fino oltre il cerchio */
-  [0.565, 0.650, 0.070, 0.028], [0.620, 0.688, 0.060, 0.026],
-  [0.664, 0.728, 0.052, 0.024], [0.700, 0.772, 0.046, 0.022],
-  [0.730, 0.818, 0.040, 0.020], [0.756, 0.862, 0.034, 0.018],
+  /* CORNA: due che salgono dalla fronte */
+  [0.180, 0.150, 0.022, 0.210], [0.228, 0.190, 0.022, 0.175],
+  /* CRANIO di profilo: calotta, muso allungato a sinistra, mandibola */
+  [0.168, 0.355, 0.105, 0.095], [0.098, 0.395, 0.078, 0.048], [0.118, 0.452, 0.100, 0.026],
+  /* COLLO: vertebre dal cranio alla colonna */
+  [0.275, 0.372, 0.048, 0.036], [0.322, 0.378, 0.048, 0.036], [0.368, 0.382, 0.048, 0.036],
+  /* TORACE: colonna, costole che scendono, sterno */
+  [0.408, 0.378, 0.230, 0.040],
+  [0.428, 0.415, 0.022, 0.155], [0.468, 0.415, 0.022, 0.175], [0.508, 0.415, 0.022, 0.175],
+  [0.548, 0.415, 0.022, 0.155], [0.588, 0.415, 0.022, 0.120],
+  [0.424, 0.565, 0.190, 0.028],
+  /* BACINO */
+  [0.620, 0.352, 0.090, 0.082],
+  /* ZAMPA: femore, stinco, piede — scende SOTTO il bacino */
+  [0.612, 0.425, 0.040, 0.120], [0.578, 0.535, 0.036, 0.150], [0.536, 0.675, 0.092, 0.032],
+  /* CODA: segmenti che si assottigliano verso DESTRA */
+  [0.700, 0.360, 0.062, 0.038], [0.756, 0.355, 0.056, 0.035], [0.806, 0.352, 0.050, 0.032],
+  [0.850, 0.350, 0.045, 0.029], [0.889, 0.348, 0.040, 0.026], [0.923, 0.346, 0.034, 0.023],
 ];
 
 /* raggio di presa, in frazione della stessa scala x/y dei socket (0-1) */

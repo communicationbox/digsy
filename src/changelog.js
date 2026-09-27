@@ -1,10 +1,12 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
-    v: 'v0.99.17', it: [
-      'IL MONTAGGIO DELLO SCHELETRO al Museo si capisce: ogni posto porta il NOME scritto (cranio, corno, torace, zampa, coda) e sotto c\'è la sagoma di uno scheletro. Prima erano cinque cerchietti uguali su un fondo nero, con dentro icone minuscole: non si capiva dove andasse la coda, né gli altri pezzi',
+    v: 'v0.99.18', it: [
+      'IL MONTAGGIO DELLO SCHELETRO è in ORIZZONTALE, con l\'animale di PROFILO come un montaggio da museo: cranio a sinistra, costole al centro, zampa sotto, coda a destra. Così dove va ogni pezzo non si indovina, si vede',
+      'E ogni posto porta il NOME scritto: ogni posto porta il NOME scritto (cranio, corno, torace, zampa, coda) e sotto c\'è la sagoma di uno scheletro. Prima erano cinque cerchietti uguali su un fondo nero, con dentro icone minuscole: non si capiva dove andasse la coda, né gli altri pezzi',
     ], en: [
-      'THE SKELETON FITTING at the Museum makes sense now: every socket carries its NAME (skull, horn, ribcage, leg, tail) and a skeleton is drawn underneath. It used to be five identical circles on a black background with tiny icons inside: you could not tell where the tail went, nor any other piece',
+      'THE SKELETON FITTING is now HORIZONTAL, with the animal in PROFILE like a museum mount: skull on the left, ribs in the middle, leg below, tail on the right. Where each piece goes is seen, not guessed',
+      'And every socket carries its NAME: every socket carries its NAME (skull, horn, ribcage, leg, tail) and a skeleton is drawn underneath. It used to be five identical circles on a black background with tiny icons inside: you could not tell where the tail went, nor any other piece',
     ],
   },
   {

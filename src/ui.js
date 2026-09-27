@@ -42,7 +42,7 @@ import { openBook, closeBook, isBookOpen, bookFlip, descFor, disposeViews, drawV
 export { openBook, closeBook, isBookOpen, bookFlip, descFor };
 import { openPrepare, closePrepare, isPrepOpen, prepCandidate } from './prepui.js';
 export { openPrepare, closePrepare, isPrepOpen, prepCandidate };
-import { nearestSocket, gradeForTime, SKIP_GRADE, SOCKETS, partLabel, FIG as SK_FIG } from './skeletonfit.js';
+import { nearestSocket, gradeForTime, SKIP_GRADE, SOCKETS, partLabel, FIG as SK_FIG, HOME as SK_HOME } from './skeletonfit.js';
 import { offerFor as cmOfferFor, active as cmActive, accept as cmAccept, deliver as cmDeliver,
   have as cmHave, canDeliver as cmCanDeliver, text as cmText, rewardText as cmRewardText,
   dueText as cmDueText, pruneExpired as cmPrune, DURATION as DURATION_CM, rewardParts as cmRewardParts } from './commission.js';
@@ -1488,7 +1488,7 @@ function skNext() {
     if (el) el.innerHTML = withIcons(partLabel(s.id)) + `<span class="sk-lb">${partName(s.id)}</span>`;
   }
   drawSkeletonFig();
-  skPlacePiece(0.5, 0.92); skHighlight(null);
+  skPlacePiece(SK_HOME.x, SK_HOME.y); skHighlight(null);
   const pv = document.getElementById('sk-pv'); if (pv) { try { projectVox(pv, partVoxels(skItem.s, skItem.t)); } catch (e) { /* stub nei test */ } }
   const skip = document.getElementById('sk-skip'); if (skip) skip.onclick = () => skResolve(SK_SKIP);
   skWire();
@@ -1498,7 +1498,7 @@ function skNext() {
    in frazioni della tavola, così segue la sua misura su qualsiasi schermo. */
 function drawSkeletonFig() {
   const cv = document.getElementById('sk-fig'); if (!cv || !cv.getContext) return;
-  const W = 200, H = 200;
+  const W = 400, H = 200;   // la tavola è larga il doppio: la sagoma segue le sue proporzioni
   cv.width = W; cv.height = H;
   const c = cv.getContext('2d'); if (!c || !c.fillRect) return;
   c.clearRect(0, 0, W, H);
@@ -1535,11 +1535,11 @@ function skWire() {
       const ms = ((typeof performance !== 'undefined' && performance.now) ? performance.now() : 0) - skStart;
       skResolve(gradeForTime(ms));
     } else {
-      skPlacePiece(0.5, 0.92); skHighlight(null); playSfx('nope');    // sbagliato: torna alla base, il tempo corre
+      skPlacePiece(SK_HOME.x, SK_HOME.y); skHighlight(null); playSfx('nope');    // sbagliato: torna alla base, il tempo corre
     }
   };
   el.addEventListener('pointerup', release);
-  el.addEventListener('pointercancel', () => { down = false; el.classList.remove('dragging'); skPlacePiece(0.5, 0.92); });
+  el.addEventListener('pointercancel', () => { down = false; el.classList.remove('dragging'); skPlacePiece(SK_HOME.x, SK_HOME.y); });
 }
 function skResolve(grade) {
   const it = skItem; skItem = null;

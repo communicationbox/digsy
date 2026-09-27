@@ -1290,16 +1290,21 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
 /* RICOMPONI LO SCHELETRO — museo: trascini il pezzo nuovo nel socket giusto della tavola */
 #skfitov{position:fixed;inset:0;z-index:24;background:rgba(14,12,10,.86);display:none;align-items:center;justify-content:center;padding:12px}
 #skfitov.on{display:flex}
-#skfitbox{width:min(340px,90vw);display:flex;flex-direction:column;
+#skfitbox{width:min(560px,94vw);display:flex;flex-direction:column;
   background:var(--c-parch-3);color:#3b2f1e;box-shadow:inset 0 0 0 3px var(--c-parch), inset 0 0 0 6px var(--c-parch-3), 0 0 0 3px var(--c-deep)}
 .sk-hd{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;font-weight:800;letter-spacing:1px;
   color:var(--c-line-3);border-bottom:3px solid var(--c-parch)}
 .sk-x{font:inherit;font-weight:700;font-size:12px;color:var(--c-line-3);background:var(--c-parch);border:0;padding:6px 10px;cursor:pointer;box-shadow:inset 0 0 0 2px #8a6f42}
-.sk-board{position:relative;width:100%;aspect-ratio:1/1;background:#15120d;box-shadow:0 0 0 3px var(--c-deep);touch-action:none;overflow:hidden}
+/* LA TAVOLA È ORIZZONTALE: lo scheletro sta di profilo, come un montaggio da museo. In
+   quadrato i cinque posti erano incolonnati con due affiancati in fondo, e non c'era verso di
+   sapere quale fosse la coda e quale la zampa. */
+.sk-board{position:relative;width:100%;aspect-ratio:2/1;background:#15120d;box-shadow:0 0 0 3px var(--c-deep);touch-action:none;overflow:hidden}
 /* LA SAGOMA sta sotto a tutto: è il fondo su cui i socket hanno un senso */
 #sk-fig{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;pointer-events:none}
-.sk-sock{position:absolute;width:15%;aspect-ratio:1/1;transform:translate(-50%,-50%);border-radius:50%;
-  box-shadow:inset 0 0 0 2px #6b5636,0 0 0 2px #0006;background:rgba(42,33,21,.82);
+/* su una tavola larga il doppio, 15% della larghezza vorrebbe dire il 30% dell'altezza: i
+   cerchi si mangerebbero la sagoma e si toccherebbero fra loro */
+.sk-sock{position:absolute;width:11%;aspect-ratio:1/1;transform:translate(-50%,-50%);border-radius:50%;
+  box-shadow:inset 0 0 0 2px #6b5636,0 0 0 2px #0006;background:rgba(30,24,15,.45);
   display:flex;align-items:center;justify-content:center;font-size:16px;color:#c9a86a}
 .sk-sock.hot{box-shadow:inset 0 0 0 3px var(--c-gold),0 0 0 2px #0006;background:#3a2e18}
 /* IL NOME DI OGNI POSTO, scritto. Le icone sono minuscole e astratte — un corno è una linea,
@@ -1311,9 +1316,9 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
   font:800 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;
   color:#c9a86a;white-space:nowrap;text-shadow:0 1px 0 #15120d,0 -1px 0 #15120d,1px 0 0 #15120d,-1px 0 0 #15120d}
 .sk-sock.hot .sk-lb{color:var(--c-gold-2)}
-@media(pointer:coarse){ .sk-lb{font-size:11px} }
-#sk-s-corno{left:50%;top:10%}#sk-s-cranio{left:50%;top:28%}#sk-s-torace{left:50%;top:52%}#sk-s-zampa{left:30%;top:80%}#sk-s-coda{left:70%;top:80%}
-.sk-piece{position:absolute;left:50%;top:92%;transform:translate(-50%,-50%);width:44px;height:36px;
+@media(pointer:coarse){ .sk-lb{font-size:10px} }
+#sk-s-corno{left:19%;top:18%}#sk-s-cranio{left:22%;top:44%}#sk-s-torace{left:52%;top:42%}#sk-s-zampa{left:60%;top:72%}#sk-s-coda{left:86%;top:36%}
+.sk-piece{position:absolute;left:28%;top:88%;transform:translate(-50%,-50%);width:44px;height:36px;
   background:var(--c-parch);box-shadow:0 0 0 3px var(--c-amber);cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center}
 .sk-piece.dragging{cursor:grabbing;box-shadow:0 0 0 3px var(--c-gold)}
 .sk-hint{padding:10px 12px 12px;font-size:13px;color:var(--c-line-3);font-weight:700;text-align:center}

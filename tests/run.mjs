@@ -10867,10 +10867,26 @@ sprites.applyLook();
   /* la sagoma resta DENTRO la tavola: un osso a metà fuori è un errore di disegno */
   const fuori = sk.FIG.filter(([x, y, w, h]) => x < 0 || y < 0 || x + w > 1 || y + h > 1).length;
   check('e nessun osso esce dalla tavola', fuori === 0, fuori + ' fuori');
-  /* zampa e coda sono le due che si confondevano: devono stare da parti OPPOSTE */
-  const za = sk.socketFor('zampa'), co = sk.socketFor('coda');
-  check('zampa e coda stanno da parti opposte', (za.x < 0.5) !== (co.x < 0.5));
+  /* ZAMPA E CODA sono le due che si confondevano. Di profilo la differenza è anatomica e non
+     va più indovinata: la coda sta DIETRO (più a destra) e ALLA QUOTA DELLA COLONNA, la zampa
+     scende SOTTO il bacino. Restano lontane più del raggio di presa, o rilasciando in mezzo si
+     prenderebbero a vicenda. */
+  const za = sk.socketFor('zampa'), co = sk.socketFor('coda'), to = sk.socketFor('torace');
+  check('la coda sta dietro alla zampa', co.x > za.x, co.x + ' contro ' + za.x);
+  check('e alla quota della colonna, mentre la zampa scende sotto', co.y < to.y + 0.1 && za.y > to.y + 0.2);
   check('e abbastanza lontane da non prendersi a vicenda', Math.hypot(za.x - co.x, za.y - co.y) > sk.HIT_R * 2);
+  /* il CRANIO davanti a tutto, come in un montaggio da museo */
+  check('il cranio sta davanti al torace, e il torace davanti alla coda',
+    sk.socketFor('cranio').x < to.x && to.x < co.x);
+  /* NESSUN CERCHIO SI SOVRAPPONE A UN ALTRO: due posti che si toccano sono due posti che si
+     sbagliano. Si misura sulla tavola VERA, che è larga il doppio di quanto è alta. */
+  const AR = 2, R = 0.055;                      // raggio del cerchio in frazioni di LARGHEZZA
+  let toccano = 0;
+  for (let a = 0; a < sk.SOCKETS.length; a++) for (let b = a + 1; b < sk.SOCKETS.length; b++) {
+    const p = sk.SOCKETS[a], q = sk.SOCKETS[b];
+    if (Math.hypot(p.x - q.x, (p.y - q.y) / AR) < R * 2) toccano++;
+  }
+  check('nessun posto si sovrappone a un altro', toccano === 0, toccano + ' coppie');
 
   /* e nella schermata ogni posto porta il suo NOME scritto */
   const ov6 = document.getElementById('skfitov');
