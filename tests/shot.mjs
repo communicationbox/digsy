@@ -466,6 +466,14 @@ async function main() {
         });
       });
     }
+    /* 'volo' = i tre secondi d'aereo quando si entra nel mondo di un altro. Con t=<ms> si
+       ferma l'animazione su un istante preciso, e due scatti si possono confrontare */
+    else if (${JSON.stringify(vista)} === 'volo') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      if(G.mod) G.mod('volo').then(function(v){
+        v.partiVolo('Ada', 0);
+        var t = +((new URLSearchParams(location.search)).get('t') || 900);
+        setInterval(function(){ v.disegnaVolo(t); }, 60);
+      }); }
     /* 'scheletro' = il minigioco del montaggio al Museo: dove va ogni osso */
     else if (${JSON.stringify(vista)} === 'scheletro') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       if(G.cmd) G.cmd('play=skeleton').then(function(){ if(G.frame) G.frame(1200); }); }

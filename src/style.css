@@ -560,6 +560,28 @@ kbd + .pxi{margin-left:2px}
 
 /* IL SOGNO — chi dorme in compagnia aspetta qui. Copre tutto, perché sta dormendo; ma il
    mondo sotto continua ad andare (regola 5: niente pausa quando c'è gente). */
+/* IL VOLO: la transizione verso il mondo di un altro. Copre tutto (è un viaggio, non un
+   riquadro) e si tocca per saltarla — una transizione che non si può interrompere diventa una
+   tassa dalla seconda volta in poi. */
+#volo{position:fixed;inset:0;z-index:951;display:none;align-items:center;justify-content:center;
+  background:#141018;cursor:pointer}
+#volo.on{display:flex}
+.vl-box{display:flex;flex-direction:column;align-items:center;gap:var(--sp-4);text-align:center;padding:var(--sp-3)}
+/* scala INTERA (regola 3): la scenetta è 160×96 pixel di gioco e si ingrandisce ×4 */
+/* la scenetta è 160×96: `max-height` la tiene dentro anche su una finestra bassa, dove
+   altrimenti le scritte finiscono SOPRA il riquadro (visto in una foto a 760×417) */
+/* 160×96 vuol dire larghezza = 1,667 × altezza: per stare in `66vh` la larghezza non può
+   superare 110vh. `max-height` da solo non basta con una larghezza dichiarata — il riquadro
+   restava largo e le scritte finivano SOPRA la scena (visto in una foto a 760×417). */
+/* si dichiara l'ALTEZZA e si lascia libera la larghezza: con la larghezza dichiarata e un
+   `max-height`, il riquadro restava largo e le scritte finivano SOPRA la scena (visto a
+   760×417). 384 = 96 × 4, cioè la scala intera piena (regola 3). */
+.vl-cv{height:min(384px,58vh);width:auto;max-width:92vw;image-rendering:pixelated;
+  box-shadow:0 0 0 3px var(--c-soot),0 0 0 6px var(--c-win-edge)}
+/* la cornice della scena è un `box-shadow`, che nel layout non occupa spazio: senza un
+   respiro dichiarato il titolo finisce appoggiato al bordo disegnato (visto in foto) */
+.vl-t{font-weight:800;font-size:var(--fs-md);line-height:1.3;color:var(--c-gold);letter-spacing:.06em}
+.vl-n{opacity:.6;font-size:var(--fs-note);line-height:1.3;letter-spacing:.08em;text-transform:uppercase}
 #dream{position:fixed;inset:0;z-index:950;display:none;align-items:center;justify-content:center;
   background:rgba(12,12,28,.86)}
 #dream.on{display:flex}

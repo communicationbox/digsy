@@ -10849,6 +10849,56 @@ sprites.applyLook();
   check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
 }
 
+/* ---------- IL VOLO: i tre secondi fra un mondo e l'altro ----------
+   Entrare in casa di qualcuno era uno stacco secco: premevi accetta e ti ritrovavi altrove,
+   senza che niente dicesse che avevi viaggiato. Ed è anche il momento in cui il gioco adotta
+   il mondo dell'altro — meglio guardare un oblò che uno schermo fermo. */
+{
+  const vo = await import('../src/volo.js');
+  /* una prova precedente può aver fatto partire un volo davvero (entrando nel mondo di un
+     altro): si atterra prima di cominciare, o il primo controllo qui misura quello */
+  vo.chiudiVolo(); vo.alloAtterraggio(null);
+  check('da fermi non si sta volando', vo.voloAttivo() === false);
+  let atterrato = 0;
+  vo.alloAtterraggio(() => { atterrato++; });
+  check('si parte', vo.partiVolo('Ada', 0) === true && vo.voloAttivo() === true);
+  /* la scena si DISEGNA davvero: un modulo che nessuno esegue è un crash che aspetta
+     (regola 9). Si contano le pennellate su un istante qualunque del volo. */
+  const box = document.getElementById('volo');
+  check('la scena esiste nel markup', !!box);
+  let n = 0;
+  const cvv = document.getElementById('volocv');
+  if (cvv && cvv.getContext) {
+    const c = cvv.getContext('2d'), o = c.fillRect;
+    c.fillRect = function (...a) { n++; return o.apply(this, a); };
+    try { vo.disegnaVolo(900); } finally { c.fillRect = o; }
+  }
+  check('e si disegna (' + n + ' pennellate)', n > 50);
+  /* il NOME di chi ospita lo sceglie un'altra persona: non entra grezzo nel markup */
+  vo.chiudiVolo();
+  vo.partiVolo('<img src=x>', 0);
+  check("il nome dell'ospitante non entra grezzo nel markup", !(box.innerHTML || '').includes('<img src=x>'));
+  /* IL BENVENUTO ARRIVA ALL'ATTERRAGGIO, non in volo: dirlo mentre si vola sarebbe parlare
+     sopra la scena, e nessuno legge un toast dietro a un oblò */
+  atterrato = 0;
+  vo.alloAtterraggio(() => { atterrato++; });
+  check('mentre si vola non è ancora arrivato niente', atterrato === 0);
+  vo.chiudiVolo();
+  check('atterrando, sì', atterrato === 1 && vo.voloAttivo() === false);
+  check('e non si atterra due volte', (vo.chiudiVolo(), atterrato) === 1);
+  /* IN VOLO NON SI CAMMINA: si è seduti in aereo (il mondo attorno invece va avanti) */
+  { const fs9 = await import('node:fs');
+    const m9 = fs9.readFileSync('src/main.js', 'utf8');
+    check('in volo i comandi restano a terra', /!isTossOpen\(\) && !voloAttivo\(\)/.test(m9)); }
+  /* la scena è in pixel di gioco e si ingrandisce di un numero TONDO (regola 3) */
+  { const fs10 = await import('node:fs');
+    const css = fs10.readFileSync('src/style.css', 'utf8');
+    const m = css.match(/\.vl-cv\{height:min\((\d+)px/);
+    check('la scenetta si ingrandisce di un numero tondo', !!m && (+m[1]) % vo.H === 0,
+      m ? m[1] + ' / ' + vo.H : 'misura non trovata');
+  }
+}
+
 /* ---------- IL MONTAGGIO DELLO SCHELETRO SI DEVE CAPIRE ----------
    «Non si capisce dove va la coda, o dove vanno gli altri pezzi.» Erano cinque cerchietti
    uguali su un fondo nero, con dentro icone minuscole e astratte (un corno è una linea, una

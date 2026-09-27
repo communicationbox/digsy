@@ -19,10 +19,11 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, rifiuta, setIdentita } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, setSuVisita, rifiuta, setIdentita } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { mioCodice, codiceDaTesto, valido, stanzaDi, amici, nomeDi, aggiungiAmico } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
+import { partiVolo, voloAttivo, alloAtterraggio } from './volo.js';
 import { advanceTime, seasonOf, SEASONS, isNight } from './daynight.js';
 import { tr, seasonName, applyStaticTexts } from './i18n.js';
 import { hydrateIcons } from './icons.js';
@@ -149,7 +150,9 @@ function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
   if (typeof window !== 'undefined' && window.__digsyFreeze) { requestAnimationFrame(loop); return; } // solo le foto di prova: tela ferma
-  if (!isModalOpen() && !splashActive() && !isTossOpen()) {
+  /* IN VOLO non si cammina: si è seduti in aereo. Il mondo attorno continua ad andare (regola
+     5: il tempo non si ferma quando c'è gente), ma i comandi restano a terra. */
+  if (!isModalOpen() && !splashActive() && !isTossOpen() && !voloAttivo()) {
     steerFollow();                  // col mouse tenuto premuto si va verso il puntatore
     /* IN COMPAGNIA: si dice dove si è. `tick` decide da solo se c'è qualcosa da dire (dieci
        volte al secondo, e solo se ci si è mossi) e non fa NIENTE se non si è in una stanza —
@@ -356,6 +359,14 @@ function boot() {
         amici: amici().map(a => a.c), room: stanzaDi(da), ospite: true }); },
       () => { rifiuta(da); });
   });
+  /* SI PARTE. Entrare in casa di qualcuno era uno stacco secco: premevi accetta e ti
+     ritrovavi altrove, senza che niente dicesse che avevi viaggiato. Tre secondi d'aereo, e
+     il benvenuto arriva all'ATTERRAGGIO — dirlo mentre si vola sarebbe parlare sopra la
+     scena, e nessuno legge un toast dietro a un oblò. */
+  setSuVisita((nome) => {
+    alloAtterraggio(() => { if (nome) toast('🚶 ' + tr('Sei nel mondo di ', "You're in ") + nome + tr('', "'s world")); });
+    partiVolo(nome);
+  });
   /* LA RICEVUTA: a quanti è arrivato l'invito. Zero non è un silenzio, è una risposta — e
      senza dirla un invito mandato a un codice che non ha nessuno è indistinguibile da un
      pulsante rotto («ho premuto invita e non compare nulla»). */
@@ -522,7 +533,7 @@ if (typeof window !== 'undefined') {
       /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
          vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
       mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'), ui: () => import('./ui.js'),
-        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js') }[n] || (() => Promise.resolve(null)))(),
+        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js'), volo: () => import('./volo.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a

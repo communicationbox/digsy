@@ -217,6 +217,9 @@ export function ricevi(raw, now) {
   /* SONO OSPITE E MI È ARRIVATO UN MONDO: si entra. Da qui in poi `S` è il suo. */
   if (m.t === T.MONDO && !sonoOspitante()) {
     if (!entraInVisita({ mondo: m.mondo, x: m.x, y: m.y }, m.id)) MP.motivo = 'mondo illeggibile';
+    /* SI È ARRIVATI DA QUALCHE PARTE, e si deve vedere. Chi disegna lo racconta a modo suo
+       (il volo in aereo): qui si dice solo che è successo, e di chi è il mondo. */
+    else if (suVisita) { const p = MP.room.peers.get(m.id); suVisita((p && p.name) || ''); }
   }
   if (m.t === T.PONG) ultimoPong = now;
   if (m.t === T.ONLINE) {
@@ -496,9 +499,11 @@ function spediscoInviti() {
 }
 export function invitiInCoda() { return inCoda.length; }
 export function rifiuta(codice) { return manda(T.RIFIUTO, { a: String(codice || '').toUpperCase() }); }
-let suInvito = null, suRifiuto = null, suOnline = null, suRecapito = null;
+let suInvito = null, suRifiuto = null, suOnline = null, suRecapito = null, suVisita = null;
 export function setSuRecapito(fn) { suRecapito = fn; }
 export function setSuInvito(fn) { suInvito = fn; }
+/* «sei appena arrivato nel mondo di X»: lo dice a chi disegna, che ci mette sopra il viaggio */
+export function setSuVisita(fn) { suVisita = fn; }
 export function setSuRifiuto(fn) { suRifiuto = fn; }
 export function setSuOnline(fn) { suOnline = fn; }
 

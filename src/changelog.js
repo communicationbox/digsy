@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.19', it: [
+      'SI VIAGGIA, quando si va nel mondo di un amico: tre secondi in aereo, Digsy seduto al finestrino e il paesaggio che corre fuori dall\'oblò. Prima era uno stacco secco — premevi accetta e ti ritrovavi altrove, senza che niente dicesse che avevi viaggiato. Si tocca per saltarlo',
+    ], en: [
+      'YOU TRAVEL now, when you go to a friend\'s world: three seconds on a plane, Digsy by the window and the landscape racing past the porthole. It used to be a hard cut — you pressed accept and you were somewhere else, with nothing to say you had travelled. Tap to skip',
+    ],
+  },
+  {
     v: 'v0.99.18', it: [
       'IL MONTAGGIO DELLO SCHELETRO è in ORIZZONTALE, con l\'animale di PROFILO come un montaggio da museo: cranio a sinistra, costole al centro, zampa sotto, coda a destra. Così dove va ogni pezzo non si indovina, si vede',
       'E ogni posto porta il NOME scritto: ogni posto porta il NOME scritto (cranio, corno, torace, zampa, coda) e sotto c\'è la sagoma di uno scheletro. Prima erano cinque cerchietti uguali su un fondo nero, con dentro icone minuscole: non si capiva dove andasse la coda, né gli altri pezzi',

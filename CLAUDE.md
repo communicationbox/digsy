@@ -60,6 +60,7 @@ src/chat.js         nuvolette (volatili: la chat non si archivia) + TACCUINO del
 src/posta.js        lettere a chi adesso non c'è: 5 monete, restano «in partenza» finché il recapito non esiste
 src/sonno.js        sonno in compagnia: chi dorme sogna e aspetta (puro, decide e basta)
 src/dream.js        il sogno a schermo: cielo a fasce, luna a falce, le Z che salgono, i pulsanti
+src/volo.js         i 3 secondi d'aereo fra il proprio mondo e quello di un altro (oblò, parallasse, saltabile)
 src/prefs.js        preferenze del giocatore FUORI dal salvataggio (suggerimenti, comandi, mano)
 src/tapmove.js      "tocca dove andare": meta, cammino, arrivo
 src/path.js         A* su caselle (aggira gli ostacoli, tetto 40 caselle)
@@ -152,6 +153,13 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   NPC/player/banco ordinati per y (niente sovrapposizioni). Museo = edificio **5×2 con
   frontone e 6 colonne elleniche**; ogni edificio ha sagoma sua (tenda a strisce, palo del
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
+- **Si viaggia** (`volo.js`): entrare nel mondo di un amico era uno stacco secco — premevi
+  accetta e ti ritrovavi altrove. Ora tre secondi d'aereo (Digsy al finestrino, paesaggio che
+  corre fuori dall'oblò con tre velocità di parallasse: nuvole, campi, colline), **saltabile con
+  un tocco** — una transizione che non si può interrompere è una tassa dalla seconda volta in
+  poi. Il benvenuto arriva all'**atterraggio** (`alloAtterraggio`): nessuno legge un toast
+  dietro a un oblò. `setSuVisita` in mp.js dice solo CHE si è arrivati; il viaggio lo racconta
+  chi disegna. Foto: `npm run shot -- volo 820,780` (con `t=<ms>` per fermare l'istante).
 - **Il montaggio dello scheletro si capisce** (`SOCKETS`/`FIG` in skeletonfit.js + `.sk-lb` in
   ui.js): tavola **ORIZZONTALE** (2:1) con l'animale **di PROFILO**, come un montaggio da museo —
   cranio a sinistra, collo, costole, bacino, zampa sotto, coda che si assottiglia a destra.
