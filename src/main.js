@@ -539,7 +539,9 @@ if (typeof window !== 'undefined') {
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
          mano lo stato che la rete avrebbe portato. */
       /* il SOGNO, per fotografarlo: si vede solo dormendo in due */
-      sogno: () => import('./sonno.js').then(so => { so.vadoADormire(true); return apriSogno(); }),
+      /* in PROVA: la foto non ha una stanza vera in cui dormire, e senza il sogno si
+         richiuderebbe al primo fotogramma (lo stesso difetto di anim=sogno) */
+      sogno: () => import('./sonno.js').then(so => { so.vadoADormire(true); return apriSogno({ prova: true }); }),
       mpFinta: (nomi, ospito) => import('./mp.js').then(m => {
         m.MP.stato = 'dentro'; m.MP.stanza = 'w-QWG2DVH4D3';
         m.MP.room.me = 'io'; m.MP.room.host = ospito === false ? 'u1' : 'io';

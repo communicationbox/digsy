@@ -17,6 +17,8 @@ import { tr } from './i18n.js';
 import { withIcons } from './icons.js';
 import { SONNO, svegli, miSveglio, inCompagnia } from './sonno.js';
 import { sonoOspitante } from './mp.js';
+import { drawHero } from './sprites.js';
+import { S } from './state.js';
 
 const W = 112, H = 72;          // pixel di gioco della scenetta
 let box = null, cv = null, ctx = null, raf = 0, fadeFino = 0;
@@ -66,37 +68,55 @@ export function disegnaSogno(t) {
     ctx.fillRect(92 + x, 14 + y, 1, 1);
   }
 
-  /* il letto, di profilo: testiera, materasso, coperta, cuscino */
-  const bx = 24, by = 46;
-  ctx.fillStyle = '#4a3527'; ctx.fillRect(bx - 4, by - 8, 4, 22);          // testiera
-  ctx.fillRect(bx + 56, by - 2, 4, 16);                                    // pediera
-  ctx.fillStyle = '#6b4a34'; ctx.fillRect(bx, by + 8, 56, 6);              // fusto
-  ctx.fillStyle = '#e8dfc4'; ctx.fillRect(bx, by, 56, 8);                  // materasso
-  ctx.fillStyle = '#c96f4a'; ctx.fillRect(bx + 18, by - 1, 38, 9);         // coperta
-  ctx.fillStyle = '#b25f3e'; ctx.fillRect(bx + 18, by + 6, 38, 2);         // ombra della coperta
-  ctx.fillStyle = '#f4ecd6'; ctx.fillRect(bx + 1, by - 2, 18, 5);          // cuscino
-  ctx.fillStyle = '#ded3b4'; ctx.fillRect(bx + 1, by + 2, 18, 1);          // la piega sotto: ci poggia sopra
-  /* LA TESTA, di profilo tre quarti, che respira: un pixel su e giù, lentamente, e SOLO dal
-     tempo (regola 1). Gli angoli si tagliano a mano: a questa taglia un rettangolo pieno non
-     è una testa, è una scatola (e uno sprite piccolo si disegna a mano, mai con un'ellisse). */
-  const resp = Math.sin(s * 1.6) > 0 ? 0 : 1;
-  const hx = bx + 4, hy = by - 8 + resp;
-  ctx.fillStyle = '#e8b88a';
-  for (let y = 0; y < 10; y++) {
-    const dentro = (y === 0 || y === 9) ? 1 : 0;      // angoli smussati
-    ctx.fillRect(hx + dentro, hy + y, 12 - dentro * 2, 1);
-  }
-  ctx.fillStyle = '#3b2b1d';                           // capelli: calotta e basetta
-  ctx.fillRect(hx + 1, hy, 10, 1); ctx.fillRect(hx, hy + 1, 12, 2); ctx.fillRect(hx, hy + 3, 2, 3);
-  ctx.fillStyle = '#2b2118';                           // occhi CHIUSI: due trattini con lo stacco
-  ctx.fillRect(hx + 3, hy + 5, 2, 1); ctx.fillRect(hx + 7, hy + 5, 2, 1);
-  ctx.fillStyle = '#c98f6a'; ctx.fillRect(hx + 5, hy + 7, 3, 1);   // bocca appena accennata
-  ctx.fillStyle = '#d8a377'; ctx.fillRect(hx + 1, hy + 9, 10, 1);  // ombra del mento sul cuscino
+  /* IL LETTO, e dentro DIGSY — il personaggio vero, col suo aspetto (capelli, barba,
+     occhiali, colore della pelle), non una testina disegnata a parte: «perché non usare il
+     personaggio??» (con foto).
+     Il letto si vede DALL'ALTO in 3/4, come tutto il resto del gioco: testiera in cima, la
+     testa dritta sul cuscino, la coperta tirata fino al collo. Il primo tentativo girava lo
+     sprite di un quarto di giro per sdraiarlo di profilo — il viso finiva coricato di lato,
+     gli occhiali in verticale e la coperta un mattone («proporzioni sbagliate», con foto).
+     Il letto è largo quanto Digsy più un palmo, e lungo quasi due volte: un letto a una
+     piazza, non un materasso da campeggio. */
+  const bx = 30, TOP = 14;                             // bordo sinistro del letto, cima della testiera
+  const resp = Math.sin(s * 1.6) > 0 ? 0 : 1;          // il respiro: SOLO dal tempo (regola 1)
+  ctx.fillStyle = '#3a2a1f'; ctx.fillRect(bx - 2, TOP, 34, 10);            // testiera
+  ctx.fillStyle = '#4a3527'; ctx.fillRect(bx - 1, TOP + 1, 32, 7);
+  ctx.fillStyle = '#5c4331'; ctx.fillRect(bx - 1, TOP + 1, 32, 2);         // luce sul legno
+  ctx.fillStyle = '#e8dfc4'; ctx.fillRect(bx, TOP + 8, 30, 46);            // lenzuolo
+  ctx.fillStyle = '#f4ecd6'; ctx.fillRect(bx + 3, TOP + 9, 24, 8);         // cuscino
+  ctx.fillStyle = '#ded3b4'; ctx.fillRect(bx + 3, TOP + 16, 24, 1);
+
+  /* DIGSY, dritto: lo stesso sprite del gioco, senza cappello (a letto non si dorme col
+     casco) e con gli occhi CHIUSI — lo sprite li ha aperti e si ridipingono; se porta gli
+     occhiali le lenti li coprono già e si lasciano come sono */
+  const hx = bx - 1, hy = TOP + 3;
+  try {
+    drawHero(ctx, hx, hy, 'down', 0, true);
+    const L = S.look || {};
+    if (!L.glassesStyle || L.glassesStyle === 'none') {
+      /* nello sprite gli occhi stanno alle colonne 11-12 e 19-20, righe 8-11 (bodyArt.js) */
+      ctx.fillStyle = L.skin || '#e8b88a';
+      ctx.fillRect(hx + 11, hy + 8, 2, 4); ctx.fillRect(hx + 19, hy + 8, 2, 4);
+      ctx.fillStyle = '#2b2118';
+      ctx.fillRect(hx + 11, hy + 10, 2, 1); ctx.fillRect(hx + 19, hy + 10, 2, 1);
+    }
+  } catch (e) { /* stub dei test */ }
+
+  /* LA COPERTA, tirata fino al collo: il risvolto chiaro del lenzuolo in cima, il piumone
+     sotto, il lato in ombra. Sale e scende di un pixel col respiro. */
+  const cy = TOP + 20 - resp;
+  ctx.fillStyle = '#c96f4a'; ctx.fillRect(bx, cy, 30, TOP + 54 - cy);
+  ctx.fillStyle = '#d98460'; ctx.fillRect(bx + 2, cy + 4, 24, 2);          // luce sul gonfio
+  ctx.fillStyle = '#b25f3e'; ctx.fillRect(bx + 27, cy + 2, 3, TOP + 52 - cy);   // lato in ombra
+  ctx.fillStyle = '#f4ecd6'; ctx.fillRect(bx, cy, 30, 3);                  // risvolto del lenzuolo
+  ctx.fillStyle = '#ded3b4'; ctx.fillRect(bx, cy + 3, 30, 1);
+  ctx.fillStyle = '#3a2a1f'; ctx.fillRect(bx - 2, TOP + 54, 34, 4);        // pediera
+  ctx.fillStyle = '#4a3527'; ctx.fillRect(bx - 1, TOP + 54, 32, 2);
 
   /* le Z che salgono: tre, sfasate, ognuna sale e sfuma. Tutto dal tempo. */
   for (let i = 0; i < 3; i++) {
     const k = ((s * 0.45) + i / 3) % 1;
-    const zx = bx + 20 + Math.round(k * 16), zy = by - 10 - Math.round(k * 26);
+    const zx = bx + 26 + Math.round(k * 16), zy = TOP + 8 - Math.round(k * 16);
     const g = 2 + Math.round(k * 2);
     ctx.fillStyle = k > 0.75 ? '#8e8ab0' : '#f1e7cf';
     ctx.fillRect(zx, zy, g * 2, 1);
