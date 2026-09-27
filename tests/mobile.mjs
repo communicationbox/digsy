@@ -82,7 +82,10 @@ const SCENES = [
   ['taccuino', SPLASH + 'return G.mod("chat").then(c=>{c.dimenticaTutto(); c.segna("Ada","ci vediamo al museo domani?",false); c.segna("Bruno","guarda che pinne ho trovato",false); c.segna("Zoe","il mio parco è pieno",true);}).then(()=>new Promise(r=>setTimeout(r,300))).then(()=>G.splashView("taccuino"))', '.tacc-carta'],
   ['chat', IN_DUE + 'return new Promise(r=>setTimeout(r,300)).then(()=>{ G.updateHUD && G.updateHUD(); const b=document.getElementById("chattag"); if(!b||getComputedStyle(b).display==="none") throw new Error("in compagnia il pulsante Parla non c\'è"); b.click(); })', '#chatbar.on'],
   ['sottotitoli', IN_DUE + 'return G.mod("chat").then(c=>G.mod("mp").then(mp=>{ const P2=G.player(); setInterval(()=>{ for (const q of mp.MP.room.peers.values()) q.buf=[{t:performance.now(),x:P2.x+4000,y:P2.y,d:"down",m:0,s:"world"}]; c.arrivato("u1","Ada","ci vediamo alla fontana appena finisco di scavare",performance.now()); c.arrivato("u2","Fenn","ho trovato un cranio enorme",performance.now()); G.chatlog(performance.now(),"world"); },150); }))', '#chatlog.on'],
-  ['nomi', IN_DUE + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.frame && G.frame(1200))'],
+  /* i NOMI e i FUMETTI sopra la testa: fuori, in città, con uno che parla. Sono disegnati nel
+     gioco e non nella pagina, quindi il controllo del testo minuto non li vede: la misura la
+     dà `G.testoGioco()` — quanti pixel di schermo è alta la scritta più piccola */
+  ['nomi', 'G.mod("prefs").then(p=>p.setPref("tips",false)).then(()=>G.leaveRoom && G.leaveRoom()).then(()=>G.cmd("goto=city")).then(()=>{ if (G.closeModal) G.closeModal(true); ' + IN_DUE + ' return G.mod("chat").then(c=>{ setInterval(()=>{ c.arrivato("u1","Ada","ci vediamo alla fontana!",performance.now()); G.frame && G.frame(performance.now()); },150); }); })'],
   ['volo', 'G.mod("volo").then(v=>v.partiVolo("Ada"))', '#volo.on'],
   ['sogno', 'G.sogno()', '#dream.on'],
   ['locanda', 'Promise.resolve(G.leaveRoom && G.leaveRoom()).then(()=>G.cmd("goto=city")).then(()=>G.openInn())', '#innName'],
@@ -205,6 +208,16 @@ for (const [dname, dev] of DEV) {
         piccoli: [...new Set(piccoli)].slice(0, 6), minuti: [...new Set(minuti)].slice(0, 6), coperti,
         tagliati: [...new Set(tagliati)].slice(0, 6) };
     });
+    /* FUMETTI E NOMI stanno sulla tela, non nella pagina: il controllo del testo minuto non
+       li vede. Nella scena dei nomi si chiede al gioco quanto li ha disegnati grandi. */
+    if (sname === 'nomi') {
+      const tg = await page.evaluate(() => window.__digsy.testoGioco ? window.__digsy.testoGioco() : null);
+      if (!tg || !tg.fumetto || !tg.nome) m.minuti.push('fumetto o nome non disegnati');
+      else {
+        if (tg.fumetto < 11) m.minuti.push('fumetto ' + tg.fumetto + 'px');
+        if (tg.nome < 11) m.minuti.push('nome sopra la testa ' + tg.nome + 'px');
+      }
+    }
     await page.screenshot({ path: `${OUT}${dname}-${sname}.png` });
     report.push({ dname, sname, ...m, errs });
     await ctxb.close();

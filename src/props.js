@@ -680,18 +680,31 @@ export function drawIcecrystal(sx, sy, tx = 0, ty = 0) {
    Disegna in coordinate schermo (reset del transform): così il clamp è corretto SEMPRE,
    indipendente dalle traslazioni della scena (centratura stanza / camera). Il baloon sta
    SOPRA chi parla, resta DENTRO lo schermo e MAI sotto la HUD in alto (topSafe da view.K). */
+/* LA SCRITTA DEL GIOCO NON SCENDE SOTTO GLI 11 PIXEL DI SCHERMO. I fumetti e i nomi sono
+   disegnati in pixel di GIOCO, e un pixel di gioco è `view.K` pixel di schermo: sul monitor
+   K è 3 o 4 e 6 pixel di gioco sono una scritta comoda, ma su un telefono piccolo K vale 1 e
+   la stessa scritta era alta 6 pixel — un fumetto di chat che non si leggeva (misurato con i
+   telefoni emulati: iPhone SE, fumetto 6 px, nome 5). Qui la misura si calcola sullo schermo:
+   almeno `minSchermo` pixel VERI, e in pixel di gioco quanti ne servono. */
+export const TESTO_GIOCO = { fumetto: 0, nome: 0 };
+export function corpoTesto(base, minSchermo) {
+  const k = view.K || 1;
+  return Math.max(base, Math.ceil(minSchermo / k));
+}
 export function drawSayBalloon(sx, sy, text) {
   ctx.save();
   ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0); // schermo puro
-  ctx.font = '600 6px ui-monospace, Menlo, monospace';
+  const fs = corpoTesto(6, 11), u = fs / 6;          // tutto il fumetto cresce con la scritta
+  TESTO_GIOCO.fumetto = fs * (view.K || 1);
+  ctx.font = `600 ${fs}px ui-monospace, Menlo, monospace`;
   ctx.textBaseline = 'top';
-  const measure = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * 3.6; };
-  const M = 6, maxW = Math.min(view.W - M * 2, 150); // largo, ma sempre dentro lo schermo
+  const measure = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * fs * 0.6; };
+  const M = 6, maxW = Math.min(view.W - M * 2, Math.round(150 * u)); // largo, ma sempre dentro lo schermo
   const words = String(text).split(' '), lines = []; let line = '';
   for (const w of words) { const test = line ? line + ' ' + w : w; if (line && measure(test) > maxW) { lines.push(line); line = w; } else line = test; }
   if (line) lines.push(line);
   let maxw = 0; for (const l of lines) maxw = Math.max(maxw, measure(l));
-  const padX = 5, padY = 4, lh = 7, bw = Math.ceil(maxw) + padX * 2, bh = lines.length * lh + padY * 2;
+  const padX = Math.round(5 * u), padY = Math.round(4 * u), lh = fs + 1, bw = Math.ceil(maxw) + padX * 2, bh = lines.length * lh + padY * 2;
   let bx = Math.round(sx - bw / 2); bx = Math.max(M, Math.min(view.W - bw - M, bx));
   const topSafe = Math.ceil(56 / view.K) + 4; // altezza HUD (~56px schermo) in game-px
   let by = Math.round(sy - bh - 6);            // sopra la testa

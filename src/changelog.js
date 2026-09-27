@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.28', it: [
+      'I FUMETTI DELLA CHAT E I NOMI SOPRA LA TESTA SI LEGGONO DA TELEFONO: erano alti 5-6 pixel sullo schermo, ora non scendono mai sotto una misura leggibile',
+      'Il fumetto di chi parla sta sopra tutto: prima il nome di chi gli stava accanto gli finiva in mezzo alla frase',
+    ], en: [
+      'CHAT BUBBLES AND NAMES ABOVE HEADS ARE READABLE ON PHONES: they were 5-6 pixels tall on screen, now they never go below a readable size',
+      'The speaker\'s bubble sits on top of everything: the name of whoever stood next to them used to land in the middle of the sentence',
+    ],
+  },
+  {
     v: 'v0.99.27', it: [
       'DA TELEFONO SI PUÒ PARLARE: la chat si apriva solo col tasto T, che su un telefono non c\'è. Ora, quando sei in compagnia, nella barra c\'è «Parla». La riga per scrivere sta in alto, così la tastiera del telefono non la copre',
       'I messaggi di chi è fuori campo stanno sopra il joystick e vanno a capo invece di troncarsi a metà frase',

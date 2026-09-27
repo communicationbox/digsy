@@ -216,6 +216,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   **sottotitoli** stanno **sopra i comandi** e vanno a capo invece di troncarsi. Volo, sogno e
   chat aperta **nascondono joystick e tasto A**: stanno dentro la cornice del gioco e i comandi
   fuori, e un z-index alto dentro la cornice non basta — i comandi restavano sopra la scena.
+  **Fumetti e nomi sopra la testa** sono disegnati in pixel di GIOCO, e su un telefono un pixel
+  di gioco è UN pixel di schermo: erano alti 5-6 px. `corpoTesto(base, minSchermo)` in props.js
+  li fa crescere fino a 11 px veri (le targhe delle case a 9: sono tante e restano accese), e la
+  prova sui telefoni lo misura con `G.testoGioco()` — la pagina non vede cosa c'è sulla tela. I
+  fumetti degli altri si disegnano PER ULTIMI: prima il nome del vicino finiva in mezzo alla frase.
   Nel menu nessun figlio si **schiaccia** (`flex-shrink:0`: «Nuova partita» ed «Esci dalla
   stanza» finivano alti 20px) e i pulsanti piccoli col dito sono alti almeno 40.
 - **Chi parla fuori campo si legge lo stesso** (`#chatlog` + `updateChatLog` in ui.js, chiamata

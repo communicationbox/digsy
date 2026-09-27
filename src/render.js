@@ -30,7 +30,7 @@ import { bolla, nuoviTotali as nuoviTacc } from './chat.js';
 import { pref as prefOf, nomiOn } from './prefs.js';
 import { tutActive, tutShowLabels, tutTarget, tutStepId, bldPurpose } from './tutorial.js';
 import { alive } from './goal.js';
-import { drawSayBalloon, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal } from './props.js';
+import { drawSayBalloon, corpoTesto, TESTO_GIOCO, drawTree, drawBoulder, drawFlower, drawShell, drawHole, drawPickup, glint, drawCactus, drawSandspire, drawDeadtree, drawMushroom, drawRedspire, drawOrecrystal, drawReed, drawIcecrystal } from './props.js';
 import { drawInteriorScene, interiorCam } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
@@ -1952,8 +1952,12 @@ function drawPeer(sx, sy, q, time) {
   /* quello che ha detto, se l'ha detto da poco: la stessa nuvoletta degli NPC, che sa già
      andare a capo e restare dentro lo schermo sotto la barra. O il nome, se non parla — le due
      cose nello stesso punto si coprirebbero a vicenda. */
-  const detta = bolla(q.id, time);
+  /* il FUMETTO non si disegna qui ma alla fine, sopra tutto (`pushPeers`): disegnato insieme
+     al personaggio, quello che veniva disegnato dopo — il vicino — gli copriva il fumetto col
+     proprio nome (visto con i telefoni emulati: «Fenn» in mezzo alla frase di Ada) */
+  const detta = q.fumettoFuori ? null : bolla(q.id, time);
   if (detta) drawSayBalloon(sx, sy + 6, detta);
+  else if (q.fumettoFuori && bolla(q.id, time)) { /* il nome no: parla, e sopra c'è il fumetto */ }
   /* IL NOME STA SOPRA LA TESTA, NON SULLA TESTA. Era ancorato a `sy + 2`, cioè due pixel SOTTO
      il bordo alto dello sprite: la targa e la sua codina coprivano cappello e fronte, e in
      compagnia si guardava un cartellino con due piedi. Il cappello svetta fino a tre righe
@@ -1986,7 +1990,12 @@ function pushPeers(ents, camx, camy, time, scena) {
   let n = 0;
   for (const q of visibili(time, scena)) {
     const sx = snap(q.x - camx), sy = snap(q.y - camy);
+    const detta = bolla(q.id, time);
+    q.fumettoFuori = true;
     ents.push({ y: q.y - camy + TS, f: () => drawPeer(sx, sy, q, time) });
+    /* il fumetto va in fondo alla fila, sopra ogni personaggio e ogni nome: è quello che si
+       sta leggendo, e niente gli deve passare davanti */
+    if (detta) ents.push({ y: 9e9 - 1, f: () => drawSayBalloon(sx, sy + 6, detta) });
     /* LA BESTIA DI UN ALTRO, con la stessa convenzione della propria: i piedi a `FOOT_DY`
        sotto l'ancora, la chiave di profondità dell'ancora più una casella, e l'acqua sotto la
        casella dei piedi decide se nuota. Prima chi veniva a trovarti arrivava senza: il
@@ -2015,17 +2024,23 @@ function plate(sx, sy, name, sub, hot, soft) {
   if (sx < -8 || sx > view.W + 8 || sy < -8 || sy > view.H + 20) return;
   ctx.save();
   /* 5px e non 6: il fumetto di dialogo di props.js sta a 6 perché compare da solo e per pochi
-     secondi; qui le targhe sono SEI e restano accese, e a 6px coprivano mezza piazza. */
-  ctx.font = '600 5px ui-monospace, Menlo, monospace';
+     secondi; qui le targhe sono SEI e restano accese, e a 6px coprivano mezza piazza.
+     …ma MAI sotto una misura leggibile sullo SCHERMO (`corpoTesto`): su un telefono piccolo un
+     pixel di gioco è un pixel di schermo, e 5 pixel non si leggono. Il nome di una persona sta
+     a 11 come i fumetti; le targhe delle case a 9, perché sono tante e restano accese. */
+  const fs = corpoTesto(5, soft ? 11 : 9), u = fs / 5;
+  if (soft) TESTO_GIOCO.nome = fs * (view.K || 1);
+  ctx.font = `600 ${fs}px ui-monospace, Menlo, monospace`;
   ctx.textBaseline = 'top';
-  const meas = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * 3; };
+  const meas = s => { const m = ctx.measureText && ctx.measureText(s); return (m && m.width) || s.length * fs * 0.6; };
   const lines = sub ? [name, sub] : [name];
   let mw = 0; for (const l of lines) mw = Math.max(mw, meas(l));
   /* LARGHEZZA PARI: la targa si centra su `sx` con `sx - w/2`, e con una larghezza dispari
      quel mezzo pixel si perde nell'arrotondamento — sempre dalla stessa parte. Un pixel di
      gioco è tre o quattro sullo schermo, e un nome storto sopra la testa si vede. */
-  let w = Math.ceil(mw) + 6; w += w & 1;
-  const h = lines.length * 6 + 4;
+  const pad = Math.round(3 * u), lh = fs + 1;
+  let w = Math.ceil(mw) + pad * 2; w += w & 1;
+  const h = lines.length * lh + Math.round(4 * u);
   const { bx, by } = plateBox(sx, sy, w, h);
   const tip = Math.max(bx + 3, Math.min(bx + w - 3, snap(sx)));
   /* SOFT = il nome di una persona, non una targa del gioco. Le targhe (le botteghe, il museo)
@@ -2042,7 +2057,7 @@ function plate(sx, sy, name, sub, hot, soft) {
     ctx.fillStyle = '#241a10'; ctx.fillRect(tip - 1, by + h, 2, 2);            // codina in giù
     ctx.fillStyle = '#2a2016';
   }
-  lines.forEach((l, i) => ctx.fillText(l, snap(bx + Math.round((w - meas(l)) / 2)), by + 2 + i * 6));
+  lines.forEach((l, i) => ctx.fillText(l, snap(bx + Math.round((w - meas(l)) / 2)), by + Math.round(2 * u) + i * lh));
   ctx.restore();
 }
 /* DOVE si appoggia la targa. Sta fuori da `plate` per una ragione sola: è la parte che si può
