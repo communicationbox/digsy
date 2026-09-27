@@ -161,13 +161,17 @@ export function disegnaVolo(t) {
   /* POLTRONA di profilo, vista da sinistra: schienale a sinistra, seduta che va verso il
      finestrino, due gambe. NIENTE bracciolo: di profilo passerebbe davanti al bacino e da
      lontano sembra un tavolo appoggiato addosso al passeggero (provato: peggiorava). */
-  rect(14, 34, 20, 42, '#6a5f7e');                    // schienale, largo come una poltrona
-  rect(12, 31, 24, 5, '#7d7192');                     // poggiatesta che sporge
-  rect(16, 38, 16, 4, 'rgba(255,255,255,.16)');       // luce sul velluto
-  rect(16, 48, 16, 2, '#584e6b'); rect(16, 60, 16, 2, '#584e6b');   // due cuciture
-  rect(14, 68, 56, 8, '#5b5170');                     // seduta
-  rect(14, 68, 56, 2, '#6a5f7e');
-  rect(16, 76, 7, 11, '#3f3852'); rect(61, 76, 7, 11, '#3f3852');   // gambe
+  /* LA POLTRONA È A MISURA DI DIGSY, non di cabina: lo schienale arriva alle spalle (la testa
+     spunta sopra, come su un sedile vero) e la seduta finisce alle ginocchia. Era larga il
+     doppio e alta quanto lui — «la sedia è troppo grande», con foto: sembrava un bambino
+     su un divano. */
+  rect(23, 48, 10, 24, '#6a5f7e');                    // schienale, dietro la schiena
+  rect(22, 46, 12, 3, '#7d7192');                     // bordo in alto
+  rect(24, 50, 8, 2, 'rgba(255,255,255,.16)');        // luce sul velluto
+  rect(24, 60, 8, 1, '#584e6b');                      // cucitura
+  rect(23, 68, 30, 5, '#5b5170');                     // seduta, fino alle ginocchia
+  rect(23, 68, 30, 1, '#6a5f7e');
+  rect(25, 73, 4, 9, '#3f3852'); rect(47, 73, 4, 9, '#3f3852');     // gambe
 
   /* DIGSY: il suo aspetto vero, seduto (la posa `ride` è quella delle gambe piegate) e di
      profilo verso il finestrino. Si disegna sulla tela della scenetta, non su quella del
