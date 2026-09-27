@@ -7,12 +7,18 @@
 import { ctx, view } from './screen.js';
 
 export function snap(v) { const k = view.PX || view.K; return Math.round(v * k) / k; }   // griglia dei pixel FISICI
-export function px(x, y, c) { ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1); }
-export function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(x, y, w, h); }
+/* LA TELA SU CUI SI DIPINGE. Di solito è quella del gioco; `dipingiIn` la sposta per un momento
+   su un'altra (la cache del terreno in render.js): chi disegna con px/rect non se ne accorge,
+   e il disegno che finisce nella copia è esattamente quello che finirebbe sullo schermo. */
+let tela = null;
+export function dipingiIn(c, fn) { const prima = tela; tela = c; try { fn(); } finally { tela = prima; } }
+export function px(x, y, c) { const g = tela || ctx; g.fillStyle = c; g.fillRect(x, y, 1, 1); }
+export function rect(x, y, w, h, c) { const g = tela || ctx; g.fillStyle = c; g.fillRect(x, y, w, h); }
 /* ombra di contatto: ellisse schiacciata, sempre della stessa forma (PIXELART.md regola 5) */
 export function shadow(cx, cy, rw) {
-  ctx.fillStyle = 'rgba(15,25,15,.16)';
-  for (let i = -rw; i <= rw; i++) { const h = Math.round(2 * Math.sqrt(Math.max(0, 1 - (i * i) / (rw * rw)))); ctx.fillRect(cx + i, cy - h, 1, h * 2); }
+  const g = tela || ctx;
+  g.fillStyle = 'rgba(15,25,15,.16)';
+  for (let i = -rw; i <= rw; i++) { const h = Math.round(2 * Math.sqrt(Math.max(0, 1 - (i * i) / (rw * rw)))); g.fillRect(cx + i, cy - h, 1, h * 2); }
 }
 /* schiarisce/scurisce un colore #rrggbb (k<1 scuro, k>1 chiaro) */
 export function shade8(hex, k) {
@@ -23,7 +29,7 @@ export function shade8(hex, k) {
   return '#' + (r << 16 | g << 8 | b).toString(16).padStart(6, '0');
 }
 /* il pennello passato ai moduli che disegnano "a ricetta" (wonderart, spritebank) */
-export const BRUSH = { rect, px, shadow, shade8, snap, get ctx() { return ctx; } };
+export const BRUSH = { rect, px, shadow, shade8, snap, get ctx() { return tela || ctx; } };
 
 /* PENNELLO SU UNA CANVAS QUALSIASI (miniature del negozio/vassoio, pagine di prova): stesse
    primitive, ma su un contesto che non è quello del gioco. Serve perché le anteprime devono

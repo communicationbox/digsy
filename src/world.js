@@ -86,6 +86,7 @@ export function nearHouseZone(tx, ty, margin) {
 export function resetWorldCaches() {
   terrCache.clear(); decoCache.clear(); townCache.clear(); tiCache.clear();
   caveCache.clear(); siteCache.clear(); boneSiteCache.clear(); landmarkCache.clear(); wreckCache.clear();
+  caveNearCache.clear(); boneTileCache.clear(); pickupCache.clear();
   homeTownKey = null; homeTownCache = null; homeRoadKey = null; homeRoadGeomC = null;
   resetZoneCache();
 }
@@ -99,10 +100,23 @@ export function invalidateHouseDecoCache() {
   for (let cx = scx0; cx <= scx1; cx++) for (let cy = scy0; cy <= scy1; cy++) siteCache.delete(cx + ',' + cy);
   const bcx0 = Math.floor(x0 / BCELL), bcx1 = Math.floor(x1 / BCELL), bcy0 = Math.floor(y0 / BCELL), bcy1 = Math.floor(y1 / BCELL);
   for (let cx = bcx0; cx <= bcx1; cx++) for (let cy = bcy0; cy <= bcy1; cy++) boneSiteCache.delete(cx + ',' + cy);
+  boneTileCache.clear();              // la memoria per casella degli scheletri deriva da quella per cella
+  pickupCache.clear();                // e i raccoglibili guardano la zona di casa
 }
 export function decoNatural(tx, ty) {
   const key = tx + ',' + ty;
   if (choppedSet.has(key) || minedSet.has(key)) return null;
+  const c = decoCache.get(key); if (c !== undefined) return c;
+  const r = decoCompute(tx, ty);
+  decoCache.set(key, r); return r;
+}
+/* la parte FISSA di decoAt (masso della grotta, spiazzo, decorazione naturale), senza guardare
+   abbattuti e spaccati: chi tiene quelli per conto suo (la scheda per casella di render.js) la
+   può ricordare. decoAt(x,y) === (abbattuto o spaccato ? null : decoStaticAt(x,y)). */
+export function decoStaticAt(tx, ty) {
+  if (caveGuardAt(tx, ty)) return 'boulder';
+  if (caveClearingAt(tx, ty)) return null;
+  const key = tx + ',' + ty;
   const c = decoCache.get(key); if (c !== undefined) return c;
   const r = decoCompute(tx, ty);
   decoCache.set(key, r); return r;
@@ -226,12 +240,34 @@ function nearTownBand(tx, ty) {
   return false;
 }
 export function pickupAt(tx, ty) {
-  if (pickedSet.has(tx + ',' + ty)) return null;
+  const k = tx + ',' + ty;
+  if (pickedSet.has(k)) return null;
+  /* la parte FISSA (terreno, città, casa, densità attorno agli abitati) si ricorda: guardare le
+     città vicine per ogni casella in vista a ogni fotogramma era la ricerca più cara del mondo
+     aperto. Restano dal vivo le due cose che cambiano giocando: raccolto e decorazione tolta. */
+  let base = pickupCache.get(k);
+  if (base === undefined) {
+    base = pickupStatic(tx, ty);
+    if (pickupCache.size > 60000) pickupCache.clear();
+    pickupCache.set(k, base);
+  }
+  if (!base) return null;
+  if (decoAt(tx, ty)) return null;                     // libero: mai sopra decorazioni/ostacoli
+  return base;
+}
+const pickupCache = new Map();
+/* la parte FISSA di pickupAt: pickupAt(x,y) === (raccolto o decorazione ? null : pickupBaseAt(x,y)) */
+export function pickupBaseAt(tx, ty) {
+  const k = tx + ',' + ty;
+  let base = pickupCache.get(k);
+  if (base === undefined) { base = pickupStatic(tx, ty); if (pickupCache.size > 60000) pickupCache.clear(); pickupCache.set(k, base); }
+  return base;
+}
+function pickupStatic(tx, ty) {
   const t = baseTerrain(tx, ty);
   if (t === FLOOR || !walkableGround(t)) return null; // niente su pavimenti città/parco né acqua
   if (townInfo(tx, ty)) return null;
   if (nearHouseZone(tx, ty, HOUSE_DECO_MARGIN)) return null; // né a casa: STESSA falla di decoAt/siteForCell, sistema diverso (segnalato: "segna ancora delle cose da raccogliere sotto casa")
-  const d = decoAt(tx, ty); if (d) return null;        // libero: mai sopra decorazioni/ostacoli
   /* DENSITÀ: la raccolta è il BOOTSTRAP (i primi 15🪙 per la pala), non una rendita che
      compete con lo scavo — quello costa energia e deve restare la fonte principale.
      0.8% dava ~200🪙 in 5 minuti camminando: più dell'intera giornata di scavi. */
@@ -543,11 +579,23 @@ function caveCompute(tx, ty) {
 }
 /* il MASSO che sigilla la grotta: una sola tile, subito davanti all'imbocco.
    È un 'boulder' normale → si spacca col piccone (tryMine) e sparisce per sempre (minedSet). */
-export function caveGuardAt(tx, ty) { return !!caveEntranceAt(tx, ty - 1); }
+export function caveGuardAt(tx, ty) { return (caveNear(tx, ty) & 1) !== 0; }
 /* le altre 8 tile dello spiazzo: niente decorazioni, così la grotta è sempre raggiungibile */
-export function caveClearingAt(tx, ty) {
-  for (let dy = 1; dy <= 3; dy++) for (let dx = -1; dx <= 1; dx++) if (caveEntranceAt(tx - dx, ty - dy)) return true;
-  return false;
+export function caveClearingAt(tx, ty) { return (caveNear(tx, ty) & 2) !== 0; }
+/* MEMORIA PER CASELLA di masso e spiazzo: `decoAt` le chiede per ogni casella in vista a ogni
+   fotogramma, e lo spiazzo da solo erano nove ricerche nella cache delle grotte — nel profilo
+   era la funzione di gioco più pesante dopo il disegno. Dipendono solo dal seme (come
+   caveEntranceAt, da cui derivano), quindi si calcolano una volta: bit 1 masso, bit 2 spiazzo. */
+const caveNearCache = new Map();
+function caveNear(tx, ty) {
+  const k = tx + ',' + ty;
+  let v = caveNearCache.get(k);
+  if (v !== undefined) return v;
+  v = caveEntranceAt(tx, ty - 1) ? 1 : 0;
+  for (let dy = 1; dy <= 3 && !(v & 2); dy++) for (let dx = -1; dx <= 1; dx++) if (caveEntranceAt(tx - dx, ty - dy)) { v |= 2; break; }
+  if (caveNearCache.size > 60000) caveNearCache.clear();
+  caveNearCache.set(k, v);
+  return v;
 }
 export function isSolidTile(tx, ty) {
   const ti = townInfo(tx, ty); if (ti) { if (ti.solid) return true; if (ti.floor) return false; }
@@ -875,7 +923,21 @@ export function boneSiteForCell(cx, cy) {
 /* la casella (tx,ty) fa parte di uno scheletro sepolto? torna {site, part} o null.
    Guarda anche la cella VICINA (offset fino a 2): l'ancora può stare in una cella diversa
    da quella della parte più lontana (corno/coda), come i confini dei siti normali. */
-export function boneSiteAt(tx, ty) {
+/* MEMORIA PER CASELLA degli scheletri: parte e riquadro di scavo si chiedevano per ogni casella in
+   vista a ogni fotogramma, nove celle ciascuno — diciotto ricerche per casella. Una volta sola. */
+const boneTileCache = new Map();
+function boneTile(tx, ty) {
+  const k = tx + ',' + ty;
+  let v = boneTileCache.get(k);
+  if (v !== undefined) return v;
+  v = { at: boneSiteAtRaw(tx, ty), pit: boneSitePitAtRaw(tx, ty) };
+  if (boneTileCache.size > 60000) boneTileCache.clear();
+  boneTileCache.set(k, v);
+  return v;
+}
+export function boneSiteAt(tx, ty) { return boneTile(tx, ty).at; }
+export function boneSitePitAt(tx, ty) { return boneTile(tx, ty).pit; }
+function boneSiteAtRaw(tx, ty) {
   const bcx = Math.floor(tx / BCELL), bcy = Math.floor(ty / BCELL);
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
     const s = boneSiteForCell(bcx + dx, bcy + dy); if (!s) continue;
@@ -887,7 +949,7 @@ export function boneSiteAt(tx, ty) {
    il bounding-box delle 5 parti, coi margini per i paletti d'angolo. Deve essere UN riquadro
    solo (non 5 monticelli sparsi) perché SI VEDA da lontano che lì c'è qualcosa di grosso. */
 const BONE_BOX = { x0: -1, x1: 1, y0: -2, y1: 1 };
-export function boneSitePitAt(tx, ty) {
+function boneSitePitAtRaw(tx, ty) {
   const bcx = Math.floor(tx / BCELL), bcy = Math.floor(ty / BCELL);
   for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
     const s = boneSiteForCell(bcx + dx, bcy + dy); if (!s) continue;

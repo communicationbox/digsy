@@ -3,10 +3,10 @@ import { TS, spColor, spById } from './data.js';
 import { FOOT_DY } from './body.js';
 import { partParams, composedPartsVox, buildFleshVoxels, clampSpec, BP } from './bones.js';
 import { ctx, view } from './screen.js';
-import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
+import { snap, px, rect, shadow, shade8, BRUSH, dipingiIn } from './brush.js';
 export { BRUSH };
-import { S, P, cam, dugSet } from './state.js';
-import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect } from './world.js';
+import { S, P, cam, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
+import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, decoStaticAt, pickupBaseAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
@@ -34,10 +34,10 @@ import { drawSayBalloon, corpoTesto, TESTO_GIOCO, drawTree, drawBoulder, drawFlo
 import { drawInteriorScene, interiorCam } from './interiors.js';
 import { FRONTS } from './townArt.js';
 import { hasLetter } from './letters.js';
-import { caveWall, caveFloor, caveCrystal } from './caveArt.js';
+import { caveWall, caveFloor, caveCrystal, caveFloorAnimata } from './caveArt.js';
 import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, STATUE_FEET, mailboxArt, siteArt } from './decoArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
-import { groundTile, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
+import { groundTile, fondoAcqua, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
 
 /* stato del frame: oscurità (0..1) e stagione corrente, letti dalle funzioni di disegno */
 
@@ -76,22 +76,63 @@ function drawSign(type, cx, y) {
   drawSignIcon(type, cx, y + 1);
 }
 /* Edifici RICONOSCIBILI a colpo d'occhio: ogni mestiere ha la sua sagoma */
+/* ---------- LA CACHE DEGLI EDIFICI ----------
+   Una bottega erano più di mille `fillRect` a ogni fotogramma, e in città ce ne sono sette più
+   la casa: la città costava il doppio del mondo aperto. Ma un edificio cambia solo a SCATTI (la
+   tenda che ondeggia, il palo che gira, la lucina: `step` in townArt.js, ogni 110-700 ms) e di
+   giorno o di notte. Si impara una volta da quali scatti dipende (`passi`), e per ogni
+   combinazione si tiene una copia; fumo e sedia a dondolo, che si muovono di continuo, restano
+   disegnati dal vivo sopra (`vivi`). Stessa prova della cache del terreno: pixel uguali.
+   `box` = quanto il disegno sborda dalla sua casella (tetti, fumo, ombre). */
+const ART_META = new Map(), ART_SPR = new Map();
+const NOOP_TELA = { fillStyle: '', fillRect() {} };
+function artCached(id, sx, sy, ph, box, draw) {
+  if (!tileCacheOn || typeof document === 'undefined' || !document.createElement) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
+  let meta = ART_META.get(id);
+  if (!meta) {                                            // la prima volta: da cosa dipende?
+    const an0 = { t: frameTime, ph, passi: [], vivi: [] };
+    dipingiIn(NOOP_TELA, () => draw(an0));
+    meta = { passi: an0.passi, vivi: an0.vivi };
+    ART_META.set(id, meta);
+  }
+  let k = id;
+  for (let i = 0; i < meta.passi.length; i += 2) k += '|' + ((Math.floor(frameTime / meta.passi[i]) + ph) % meta.passi[i + 1]);
+  let cv = ART_SPR.get(k);
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = box.w; cv.height = box.h;
+    const g = cv.getContext && cv.getContext('2d');
+    if (!g) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
+    g.translate(box.ox, box.oy);
+    dipingiIn(g, () => draw({ t: frameTime, ph, vivi: [] }));
+    if (ART_SPR.size > 600) ART_SPR.clear();
+    ART_SPR.set(k, cv);
+  }
+  ctx.drawImage(cv, sx - box.ox, sy - box.oy);
+  if (meta.vivi.length) {
+    ctx.save(); ctx.translate(sx, sy);
+    const an = { t: frameTime, ph };
+    for (const [fn, x, y, ...resto] of meta.vivi) fn(BRUSH, x, y, an, ...resto);
+    ctx.restore();
+  }
+}
 export function drawBuilding(b, sx, sy) {
   /* il disegno sta in townArt.js (materiali per mestiere, tetto della zona, porta col gradino);
      qui si decide solo dove, con quali materiali di bioma e se è notte */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const w = (b.x1 - b.x0 + 1) * TS, h = (b.y1 - b.y0 + 1) * TS; // il museo è 5 tile largo
   const BB = biomeBuild(b.x0, b.y0);   // materiali del bioma (tetto, zoccolo, neve)
-  shadow(sx + w / 2, sy + h + 4, Math.floor(w / 2) - 4);
-  const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
-  const dcx = sx + w / 2;
-  /* ESTERNI (townArt.js): ogni mestiere coi suoi materiali, tetto della zona, porta col gradino */
-  const front = FRONTS[b.type] || FRONTS.lab;
-  front(BRUSH, w, h, BB, glass, night() > 0.4, { t: frameTime, ph: (b.x0 * 7 + b.y0 * 13) & 1023 });   // fase dalle caselle, mai dai pixel
-  const doorOff = { barber: -6, tailor: 6, furniture: 4 }[b.type] || 0;
-  // insegna appesa sopra la porta (comunque utile da lontano)
-  if (b.type !== 'museum') drawSign(b.type, dcx + doorOff, sy + 17);
-  ctx.restore();
+  const notte = night() > 0.4;
+  const glass = notte ? '#ffdf8a' : '#8fd0e6';
+  const ph = (b.x0 * 7 + b.y0 * 13) & 1023;              // fase dalle caselle, mai dai pixel
+  const box = { ox: 16, oy: 80, w: w + 32, h: h + 104 };
+  artCached('b:' + b.type + ':' + b.x0 + ',' + b.y0 + ':' + (notte ? 1 : 0) + ':' + w + 'x' + h + ':' + SEED, sx, sy, ph, box, (an) => {
+    shadow(w / 2, h + 4, Math.floor(w / 2) - 4);
+    /* ESTERNI (townArt.js): ogni mestiere coi suoi materiali, tetto della zona, porta col gradino */
+    const front = FRONTS[b.type] || FRONTS.lab;
+    front(BRUSH, w, h, BB, glass, notte, an);
+    const doorOff = { barber: -6, tailor: 6, furniture: 4 }[b.type] || 0;
+    // insegna appesa sopra la porta (comunque utile da lontano)
+    if (b.type !== 'museum') drawSign(b.type, w / 2 + doorOff, 17);
+  });
 }
 /* CASA del giocatore: un cottage piccolo e caldo (3×2, fuori dal sistema città), non un
    mestiere — pareti terracotta, una finestrella tonda, nessuna vetrina. */
@@ -99,14 +140,15 @@ export function drawHouse(hf, sx, sy) {
   /* FASE 2: nativa a piena scala, stesso trattamento di drawBuilding — porta a due
      pannelli con maniglia, finestrella col telaio a croce, tetto più ricco, seconda riga
      di tono sul muro. */
-  ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const w = (hf.x1 - hf.x0 + 1) * TS, h = (hf.y1 - hf.y0 + 1) * TS;
   const BB = biomeBuild(hf.x0, hf.y0);
-  const glass = night() > 0.4 ? '#ffdf8a' : '#8fd0e6';
-  const dcx = sx + w / 2;
-  FRONTS.house(BRUSH, w, h, BB, glass === '#ffdf8a' ? '#8fd0e6' : glass, night() > 0.4, { t: frameTime, ph: (hf.x0 * 7 + hf.y0 * 13) & 1023 });
-  drawSign('house', dcx, sy + 17);
-  ctx.restore();
+  const notte = night() > 0.4;
+  const glass = notte ? '#ffdf8a' : '#8fd0e6';
+  const ph = (hf.x0 * 7 + hf.y0 * 13) & 1023;
+  artCached('h:' + hf.x0 + ',' + hf.y0 + ':' + (notte ? 1 : 0) + ':' + SEED, sx, sy, ph, { ox: 16, oy: 80, w: w + 32, h: h + 104 }, (an) => {
+    FRONTS.house(BRUSH, w, h, BB, glass === '#ffdf8a' ? '#8fd0e6' : glass, notte, an);
+    drawSign('house', w / 2, 17);
+  });
 }
 /* ---------- arredo urbano ---------- */
 export function drawFountain(sx, sy, time) {
@@ -200,14 +242,25 @@ function drawTownDeco(d, sx, sy, time) {
      Statue/Board si scalano da sole al loro interno) — questo wrapper NON deve più
      raddoppiare, altrimenti li disegna a 4× (bug reale trovato e corretto: la cassetta
      della posta lo faceva già prima di questo giro). */
+  /* l'arredo FERMO (panchina, cespuglio, lampione, cassetta) è uguale in tutte le città: una
+     copia per tipo (e per giorno/notte, paletta su/giù) invece di ricalcolarne la sagoma a ogni
+     fotogramma. Fontana, bacheca e statua si muovono (acqua, riflessi): dal vivo. */
+  const fermo = d.type === 'bench' ? 'bench' : d.type === 'lamp' ? 'lamp' + (night() > 0.4 ? 1 : 0)
+    : d.type === 'mailbox' ? 'mail' + (nuoviTacc() > 0 ? 1 : 0)
+      : (d.type === 'fountain' || d.type === 'board' || d.type === 'statue') ? null : 'bush';
+  if (fermo) {
+    artCached('d:' + fermo, sx, sy, 0, { ox: 16, oy: 32, w: 64, h: 80 }, () => {
+      if (d.type === 'bench') drawBench(0, 0);
+      else if (d.type === 'lamp') drawLamp(0, 0);
+      else if (d.type === 'mailbox') drawMailbox(0, 0);
+      else drawBushDeco(0, 0);
+    });
+    return;
+  }
   ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   if (d.type === 'fountain') drawFountain(sx, sy, time);
-  else if (d.type === 'bench') drawBench(sx, sy);
-  else if (d.type === 'lamp') drawLamp(sx, sy);
   else if (d.type === 'board') drawBoard(sx, sy, time);
-  else if (d.type === 'mailbox') drawMailbox(sx, sy);
   else if (d.type === 'statue') drawStatue(sx, sy, time);
-  else drawBushDeco(sx, sy);
   ctx.restore();
 }
 /* CARTELLO delle missioni: due pali + tabellone di legno con fogli e un pennino luccicante */
@@ -1575,6 +1628,9 @@ const CAVE_INFO = {
   nodeNear: (x, y, r) => { for (let dy = -r; dy <= r; dy++) for (let dx = -r; dx <= r; dx++) if (caveNodeAt(x + dx, y + dy) && !caveNodeDone(x + dx, y + dy)) return true; return false; },
   nearEntrance: (x, y) => y >= CAVE.h - 9 && Math.abs(x - (CAVE.w >> 1)) <= 4,
 };
+/* le poche trasparenze del buio della grotta, scritte una volta: costruire la stringa del colore
+   per ogni quarto di casella a ogni fotogramma erano mille stringhe da buttare */
+const BUIO_GROTTA = {};
 function drawCaveScene(time) {
   const W = view.W, H = view.H, rw = CAVE.w * TS, rh = CAVE.h * TS;
   /* La camera la calcola caveCam(), NON questa funzione: la formula era copiata qui e le due
@@ -1587,12 +1643,19 @@ function drawCaveScene(time) {
   const t0x = Math.max(0, Math.floor(camx / TS) - 1), t1x = Math.min(CAVE.w, Math.ceil((camx + W) / TS) + 1);
   const t0y = Math.max(0, Math.floor(camy / TS) - 1), t1y = Math.min(CAVE.h, Math.ceil((camy + H) / TS) + 1);
   const pcx = Math.floor(CAVE.x / TS), pcy = Math.floor((CAVE.y + FOOT_DY) / TS);
+  /* LE CASELLE DELLA GROTTA DALL'ARCHIVIO, come il terreno di fuori: pareti e pavimento non
+     cambiano col tempo, tranne dove cade la goccia di una stalattite o pulsano i funghi
+     (`caveFloorAnimata`), che restano dal vivo. La chiave porta la grotta (il seme) e quanti
+     giacimenti sono stati staccati: una parete accanto a un giacimento si disegna diversa. */
+  tileCacheFrame();
+  const cv0 = 'grotta' + CAVE.seed + ':' + ((S.caveDug || []).length);
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
     /* disegno in caveArt.js: roccia con cresta, bordi e parete a strati; pavimento con le
        decorazioni dove hanno senso (sotto le stalattiti, contro le pareti, nelle zone umide) */
-    if (caveSolid(tx, ty)) caveWall(BRUSH, tx, ty, sx, sy, CAVE_INFO, time);
-    else caveFloor(BRUSH, tx, ty, sx, sy, CAVE_INFO, time);
+    const muro = caveSolid(tx, ty);
+    const dipingi = (x, y) => { if (muro) caveWall(BRUSH, tx, ty, x, y, CAVE_INFO, time); else caveFloor(BRUSH, tx, ty, x, y, CAVE_INFO, time); };
+    if ((!muro && caveFloorAnimata(tx, ty, CAVE_INFO)) || !cacheTile(cv0, numKey(tx, ty), sx, sy, dipingi)) dipingi(sx, sy);
   }
   /* ORME sul pavimento (aiutano a ritrovare la strada), più sbiadite col tempo */
   for (const f of CAVE.trail) {
@@ -1658,7 +1721,7 @@ function drawCaveScene(time) {
     /* vicinanza all'imbocco: quanto più si è in fondo e in mezzo, tanto più c'è luce */
     const dEx = Math.hypot(tx - exTx, ty - (CAVE.h - 1));
     if (dEx < 5) a = Math.min(a, dEx < 2 ? 0 : dEx < 3 ? 0.35 : dEx < 4 ? 0.7 : 0.88);
-    if (a > 0) { ctx.fillStyle = 'rgba(4,4,8,' + a + ')'; ctx.fillRect(sx, sy, HC, HC); }
+    if (a > 0) { ctx.fillStyle = BUIO_GROTTA[a] || (BUIO_GROTTA[a] = 'rgba(4,4,8,' + a + ')'); ctx.fillRect(sx, sy, HC, HC); }
   }
   ctx.restore();
   /* FRECCIA verso l'USCITA a bordo schermo (per non perdersi) */
@@ -1683,6 +1746,112 @@ function goalMarkIn(camx, camy, time) {
 }
 
 /* ---------- frame ---------- */
+/* ---------- LA CACHE DEL TERRENO ----------
+   Il terreno era la voce più pesante di tutto il gioco: ogni casella in vista ridipinta pixel
+   per pixel a ogni fotogramma — erba a tre toni, ciuffi, sassolini, rive, frange fra biomi —
+   18-30 mila `fillRect` al fotogramma nel mondo aperto, 27 ms su un telefono (32 fps, un
+   nucleo pieno: «su iPhone 13 Pro lagga»). Ma una casella di TERRA non cambia mai col tempo:
+   dipende solo da dov'è, dal mondo, dalla casa e dalla tavolozza della stagione. Si dipinge UNA
+   volta in un archivio (una tela da 64×64 caselle) e da lì si copia. L'ACQUA no: increspature e
+   schiuma si muovono, e resta dipinta dal vivo come prima.
+   La chiave porta tutto quello da cui la casella dipende e che può cambiare mentre si gioca: il
+   seme del mondo (si cambia mondo andando in visita), la casa (il cortile ha il suo terreno) e
+   la tavolozza delle stagioni (che sfuma lentamente da una all'altra). Un test confronta i
+   pixel con la cache e senza: devono essere gli stessi. */
+/* ogni casella ha un MARGINE attorno nell'archivio: quello che sborda nella casella vicina
+   (sassi, detriti ai piedi delle pareti) finisce nella copia e si incolla nello stesso ordine di
+   prima, quindi la vicina disegnata dopo lo ricopre esattamente come faceva. */
+const TC_M = 8, TC_SLOT = 32 + 2 * TC_M, TC_N = 42;      // 42×42 caselle in 2016×2016 px
+let tcAtlas = null, tcCtx = null, tcNext = 0, tcVer = '', tcPal = null, tcPalSig = '';
+const tcMap = new Map();
+let tileCacheOn = true;
+/* per le prove: spegnerla e riaccenderla, per confrontare i pixel */
+export function setTileCache(on) { tileCacheOn = !!on; tcMap.clear(); tcNext = 0; ART_META.clear(); ART_SPR.clear(); }
+export function tileCacheSize() { return tcMap.size; }
+function tileCacheFrame() {
+  const pal = seaTile();
+  if (pal !== tcPal) { tcPal = pal; const sig = JSON.stringify(pal); if (sig !== tcPalSig) tcPalSig = sig + '#' + tcNext; }
+  tcVer = SEED + '|' + (S.home ? S.home.x + ',' + S.home.y : '-') + '|' + tcPalSig.length + tcPalSig.slice(-24) + '|';
+  if (tcAtlas || !tileCacheOn || typeof document === 'undefined' || !document.createElement) return;
+  const c = document.createElement('canvas'); c.width = c.height = TC_SLOT * TC_N;
+  const g = c.getContext && c.getContext('2d');
+  if (!g || !g.drawImage) return;
+  tcAtlas = c; tcCtx = g;
+}
+/* la casella con chiave `k`: dall'archivio se c'è, altrimenti la si dipinge lì una volta.
+   `paint(x, y)` dipinge la casella con l'angolo in (x,y). Restituisce false se la cache non c'è. */
+/* `ver` = il «mondo» delle chiavi (seme, casa e stagione fuori, grotta e giacimenti dentro):
+   se cambia si ricomincia l'archivio. Le chiavi sono NUMERI: una stringa per casella a ogni
+   fotogramma era spazzatura che il browser doveva poi raccogliere (vedi la scheda per casella). */
+let tcCur = '';
+function cacheTile(ver, k, sx, sy, paint) {
+  if (!tileCacheOn || !tcAtlas) return false;
+  if (ver !== tcCur) { tcCur = ver; tcMap.clear(); tcNext = 0; }
+  let slot = tcMap.get(k);
+  if (slot === undefined) {
+    if (tcNext >= TC_N * TC_N) { tcMap.clear(); tcNext = 0; }   // archivio pieno: si ricomincia (le caselle in vista sono molte meno)
+    slot = tcNext++;
+    const ax = (slot % TC_N) * TC_SLOT, ay = Math.floor(slot / TC_N) * TC_SLOT;
+    tcCtx.setTransform(1, 0, 0, 1, 0, 0);
+    tcCtx.clearRect(ax, ay, TC_SLOT, TC_SLOT);
+    tcCtx.save(); tcCtx.beginPath(); tcCtx.rect(ax, ay, TC_SLOT, TC_SLOT); tcCtx.clip();
+    dipingiIn(tcCtx, () => paint(ax + TC_M, ay + TC_M));
+    tcCtx.restore();
+    tcMap.set(k, slot);
+  }
+  ctx.drawImage(tcAtlas, (slot % TC_N) * TC_SLOT, Math.floor(slot / TC_N) * TC_SLOT, TC_SLOT, TC_SLOT, sx - TC_M, sy - TC_M, TC_SLOT, TC_SLOT);
+  return true;
+}
+function groundFromCache(t, tx, ty, sx, sy, paint) { return cacheTile(tcVer, numKey(tx, ty) * 64 + t, sx, sy, paint); }
+/* GLI OGGETTI FERMI DEL PAESAGGIO (massi, cactus, guglie, cristalli di ghiaccio, fiori,
+   conchiglie, staccionata): stessa storia del terreno — nel bioma innevato i soli cristalli
+   erano più di mille `fillRect` a fotogramma. Stanno tutti dentro la loro casella (misurato:
+   al più un pixel fuori, e l'archivio ha il margine), si disegnano a partire da (0,0) — alcuni
+   spostano la tela da sé — quindi l'archivio si sposta lui sulla casella. `codice` distingue il
+   tipo di oggetto dal terreno sotto (0-9) nella stessa chiave. */
+function propFromCache(codice, tx, ty, sx, sy, paint) {
+  return cacheTile(tcVer, numKey(tx, ty) * 64 + codice, sx, sy, (x, y) => {
+    tcCtx.translate(x, y);
+    paint();
+  });
+}
+
+/* ---------- LA SCHEDA DI OGNI CASELLA ----------
+   Per ogni casella in vista, a ogni fotogramma, il mondo rispondeva a una dozzina di domande
+   (città? sito? scheletro? relitto? grotta? meraviglia? decorazione? oggetto?) e ogni risposta
+   costruiva una stringa «x,y» per cercarla nella sua cache: migliaia di stringhe usa-e-getta al
+   fotogramma, che il browser ogni tanto si ferma a raccogliere — fotogrammi da 40-60 ms ogni
+   secondo o due, uno strappo che si vede. Le risposte FISSE (dipendono solo dal seme e dalla
+   casa) si scrivono in una scheda con chiave NUMERICA; le quattro cose che cambiano giocando
+   (scavato, abbattuto, spaccato, raccolto) si guardano in copie numeriche dei loro insiemi, rifatte
+   solo quando quegli insiemi cambiano. Le risposte sono le stesse di prima: decoAt/pickupAt sono
+   state spezzate in parte fissa + parte che cambia apposta (world.js). */
+const REC = new Map();
+let recVer = '';
+const numKey = (tx, ty) => (tx + 1048576) * 2097152 + (ty + 1048576);
+function tileRec(tx, ty) {
+  const k = numKey(tx, ty);
+  let r = REC.get(k);
+  if (r) return r;
+  const ti = townInfo(tx, ty);
+  r = { ti, tb: baseTerrain(tx, ty), pit: null, st: null, bs: null, wk: null, cave: null, lm: null, dn: null, pk: null };
+  if (!ti) {
+    r.pit = boneSitePitAt(tx, ty); r.st = siteAt(tx, ty); r.bs = boneSiteAt(tx, ty); r.wk = wreckAt(tx, ty);
+    r.cave = caveEntranceAt(tx, ty); r.lm = landmarkAt(tx, ty); r.dn = decoStaticAt(tx, ty); r.pk = pickupBaseAt(tx, ty);
+  }
+  if (REC.size > 40000) REC.clear();
+  REC.set(k, r);
+  return r;
+}
+/* copia numerica di un insieme di caselle «x,y», rifatta solo quando l'insieme cambia */
+function specchio(m, set) {
+  if (m.src === set && m.n === set.size) return m.num;
+  m.src = set; m.n = set.size; m.num = new Set();
+  for (const s2 of set) { const i = s2.indexOf(','); if (i > 0) m.num.add(numKey(+s2.slice(0, i), +s2.slice(i + 1))); }
+  return m.num;
+}
+const MIR_DUG = {}, MIR_CHOP = {}, MIR_MINE = {}, MIR_PICK = {};
+
 export function render(time) {
   frameTime = time; setHeroTime(time); // twinkle del glitter dei cappelli platino
   if (CAVE.active) { const c2 = caveCam(); drawCaveScene(time); goalMarkIn(snap(c2.x), snap(c2.y), time); return; }
@@ -1709,6 +1878,7 @@ export function render(time) {
      scala sbagliata è identica a quella giusta (segnalato con foto). */
   ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0);
   ctx.clearRect(0, 0, W, H);
+  tileCacheFrame();
   // UNICA passata tile: disegna il terreno E raccoglie le entità (townInfo 1× per tile)
   const ents = [];
   const lampGlows = [];
@@ -1722,22 +1892,35 @@ export function render(time) {
     const ptx = Math.floor(P.x / TS), pty = Math.floor((P.y + FOOT_DY) / TS);
     return ptx >= yrNow.x0 && ptx <= yrNow.x1 && pty >= yrNow.y0 && pty <= yrNow.y1;
   })();
+  { const v = SEED + '|' + (S.home ? S.home.x + ',' + S.home.y : '-'); if (v !== recVer) { recVer = v; REC.clear(); } }
+  const dugN = specchio(MIR_DUG, dugSet), chopN = specchio(MIR_CHOP, choppedSet), mineN = specchio(MIR_MINE, minedSet), pickN = specchio(MIR_PICK, pickedSet);
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const sx = tx * TS - cam.x, sy = ty * TS - cam.y;
-    const ti = townInfo(tx, ty);
-    const yd = ti ? null : yardInfo(tx, ty); // CORTILE di casa: fuori dal sistema città, un solo rettangolo fisso
+    const rec = tileRec(tx, ty), nk = numKey(tx, ty);
+    const ti = rec.ti;
+    /* CORTILE di casa: fuori dal sistema città, un solo rettangolo fisso. Non va nella scheda:
+       il cancello cambia (chiuso a chiave o no). Si chiede solo dentro il suo rettangolo. */
+    const yd = ti || !yrNow || tx < yrNow.x0 || tx > yrNow.x1 || ty < yrNow.y0 || ty > yrNow.y1 ? null : yardInfo(tx, ty);
     /* terreno */
-    let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : baseTerrain(tx, ty);
-    /* i vicini servono ai BORDI fra terreni (riva, schiuma, erba sulla sabbia); solo per il terreno naturale */
-    const nb = (ti || yd) ? null : [baseTerrain(tx, ty - 1), baseTerrain(tx + 1, ty), baseTerrain(tx, ty + 1), baseTerrain(tx - 1, ty)];
-    /* le zone dei VICINI: servono alla fascia di mescolanza fra due biomi (tiles.zoneBlend),
-       che fa mordere l'una dentro l'altra invece di tagliare netto fra una casella e la
-       successiva. Quattro letture in più per casella, tutte già in cache a blocchi. */
-    const ziQui = (ti || yd) ? 0 : zoneIdxAt(tx, ty);
-    const nbz = (ti || yd) ? null : [zoneIdxAt(tx, ty - 1), zoneIdxAt(tx + 1, ty), zoneIdxAt(tx, ty + 1), zoneIdxAt(tx - 1, ty)];
-    groundTile(t, tx, ty, sx, sy, time, ziQui, nb, nbz);
-    if (dugSet.has(tx + ',' + ty) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
-    if (!ti && !yd) { const pit = boneSitePitAt(tx, ty); if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
+    let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : rec.tb;
+    const dipingi = (x, y, senzaFondo) => {
+      /* i vicini servono ai BORDI fra terreni (riva, schiuma, erba sulla sabbia); solo per il terreno naturale */
+      const nb = (ti || yd) ? null : [baseTerrain(tx, ty - 1), baseTerrain(tx + 1, ty), baseTerrain(tx, ty + 1), baseTerrain(tx - 1, ty)];
+      /* le zone dei VICINI: servono alla fascia di mescolanza fra due biomi (tiles.zoneBlend),
+         che fa mordere l'una dentro l'altra invece di tagliare netto fra una casella e la
+         successiva. Quattro letture in più per casella, tutte già in cache a blocchi. */
+      const ziQui = (ti || yd) ? 0 : zoneIdxAt(tx, ty);
+      const nbz = (ti || yd) ? null : [zoneIdxAt(tx, ty - 1), zoneIdxAt(tx + 1, ty), zoneIdxAt(tx, ty + 1), zoneIdxAt(tx - 1, ty)];
+      groundTile(t, tx, ty, x, y, time, ziQui, nb, nbz, senzaFondo);
+    };
+    /* la TERRA dall'archivio (non cambia col tempo); l'ACQUA col FONDO dall'archivio e sopra, dal
+       vivo e nello stesso ordine di prima, increspature, ghiaccio, ninfee, riva e schiuma */
+    if (t === WATER || t === DEEP) {
+      if (groundFromCache(t, tx, ty, sx, sy, (x, y) => fondoAcqua(t, tx, ty, x, y, (ti || yd) ? 0 : zoneIdxAt(tx, ty)))) dipingi(sx, sy, true);
+      else dipingi(sx, sy);
+    } else if (!groundFromCache(t, tx, ty, sx, sy, dipingi)) dipingi(sx, sy);
+    if (dugN.has(nk) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
+    if (!ti && !yd) { const pit = rec.pit; if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */
     if (!ti && !yd && hf && tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) {
       /* dalla PRIMA casella visibile, non dall'angolo: con l'angolo fuori schermo la casa non c'era */
@@ -1767,36 +1950,39 @@ export function render(time) {
           else if (pd.kind === 'bush') ents.push({ y: sy + 13, f: () => drawBushDeco(sx, sy) });
           else if (pd.kind === 'rock') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy, tx, ty) });
         }
-      } else if (yd.fence) { const fv = yd.fv, fh = yd.fh; ents.push({ y: sy + 12, f: () => drawFence(sx, sy, fv, fh) }); }
+      } else if (yd.fence) { const fv = yd.fv, fh = yd.fh; ents.push({ y: sy + 12, f: () => { if (!propFromCache(40 + (fv ? 1 : 0) + (fh ? 2 : 0), tx, ty, sx, sy, () => drawFence(0, 0, fv, fh))) drawFence(sx, sy, fv, fh); } }); }
       continue;
     }
-    const st = siteAt(tx, ty);
+    const st = rec.st;
     if (st) { ents.push({ y: sy + 14, f: () => drawSite(sx, sy, siteRemaining(st), time, tx, ty) }); continue; }
-    const bs = boneSiteAt(tx, ty);
+    const bs = rec.bs;
     if (bs) {
       const dug = boneSiteDug(bs.site, bs.part);
       ents.push({ y: sy + 14, f: () => dug ? drawHole(sx, sy, tx, ty) : drawBonePart(sx, sy, bs.part, time, tx, ty) });
       continue;
     }
-    const wk = wreckAt(tx, ty);
+    const wk = rec.wk;
     if (wk) { ents.push({ y: sy + 14, f: () => drawWreck(sx, sy, time, tx, ty) }); continue; }
-    if (caveEntranceAt(tx, ty)) { ents.push({ y: sy + 14, f: () => drawCaveEntrance(sx, sy, time) }); continue; }
-    const lm = landmarkAt(tx, ty);
+    if (rec.cave) { ents.push({ y: sy + 14, f: () => drawCaveEntrance(sx, sy, time) }); continue; }
+    const lm = rec.lm;
     if (lm) { ents.push({ y: sy + 15, f: () => drawLandmark(lm, sx, sy, time) }); continue; }
-    const d = decoAt(tx, ty);
-    if (!d) { const pk = pickupAt(tx, ty); if (pk) ents.push({ y: sy + 12, f: () => drawPickup(pk, sx, sy, time, tx, ty) }); continue; }
+    /* = decoAt(tx, ty) e pickupAt(tx, ty), dalla scheda + gli insiemi che cambiano */
+    const d = (chopN.has(nk) || mineN.has(nk)) ? null : rec.dn;
+    if (!d) { const pk = pickN.has(nk) ? null : rec.pk; if (pk) ents.push({ y: sy + 12, f: () => drawPickup(pk, sx, sy, time, tx, ty) }); continue; }
+    /* gli oggetti fermi dall'archivio (propFromCache); se l'archivio non c'è, come sempre */
+    const fermo = (codice, disegna) => () => { if (!propFromCache(codice, tx, ty, sx, sy, () => disegna(0, 0))) disegna(sx, sy); };
     if (d === 'tree') ents.push({ y: sy + 15, f: () => drawTree(sx, sy, time, tx, ty) });
-    else if (d === 'boulder') ents.push({ y: sy + 13, f: () => drawBoulder(sx, sy, tx, ty) });
-    else if (d === 'flower') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 3); drawFlower(sx, sy, tx, ty, rip); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
-    else if (d === 'shell') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { if (rip) shadow(sx + 8, sy + 13, 4); drawShell(sx, sy, rip, tx, ty); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
-    else if (d === 'cactus') ents.push({ y: sy + 15, f: () => drawCactus(sx, sy, tx, ty) });
-    else if (d === 'sandspire') ents.push({ y: sy + 15, f: () => drawSandspire(sx, sy, tx, ty) });
-    else if (d === 'deadtree') ents.push({ y: sy + 15, f: () => drawDeadtree(sx, sy, tx, ty) });
+    else if (d === 'boulder') ents.push({ y: sy + 13, f: fermo(16, (x, y) => drawBoulder(x, y, tx, ty)) });
+    else if (d === 'flower') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { fermo(rip ? 24 : 23, (x, y) => { if (rip) shadow(x + 8, y + 13, 3); drawFlower(x, y, tx, ty, rip); })(); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
+    else if (d === 'shell') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 2, f: () => { fermo(rip ? 26 : 25, (x, y) => { if (rip) shadow(x + 8, y + 13, 4); drawShell(x, y, rip, tx, ty); })(); if (rip) glint(sx + 12, sy + 3, time, tx, ty); } }); }
+    else if (d === 'cactus') ents.push({ y: sy + 15, f: fermo(17, (x, y) => drawCactus(x, y, tx, ty)) });
+    else if (d === 'sandspire') ents.push({ y: sy + 15, f: fermo(18, (x, y) => drawSandspire(x, y, tx, ty)) });
+    else if (d === 'deadtree') ents.push({ y: sy + 15, f: fermo(19, (x, y) => drawDeadtree(x, y, tx, ty)) });
     else if (d === 'mushroom') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 8, f: () => { if (rip) shadow(sx + 8, sy + 12, 4); drawMushroom(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 2, time, tx, ty); } }); }
-    else if (d === 'redspire') ents.push({ y: sy + 15, f: () => drawRedspire(sx, sy, tx, ty) });
-    else if (d === 'orecrystal') ents.push({ y: sy + 13, f: () => drawOrecrystal(sx, sy, tx, ty) });
+    else if (d === 'redspire') ents.push({ y: sy + 15, f: fermo(20, (x, y) => drawRedspire(x, y, tx, ty)) });
+    else if (d === 'orecrystal') ents.push({ y: sy + 13, f: fermo(21, (x, y) => drawOrecrystal(x, y, tx, ty)) });
     else if (d === 'reed') { const rip = !!harvestDecoAt(tx, ty); ents.push({ y: sy + 14, f: () => { if (rip) shadow(sx + 8, sy + 14, 4); drawReed(sx, sy, time, tx, ty, rip); if (rip) glint(sx + 12, sy + 1, time, tx, ty); } }); }
-    else if (d === 'icecrystal') ents.push({ y: sy + 13, f: () => drawIcecrystal(sx, sy, tx, ty) });
+    else if (d === 'icecrystal') ents.push({ y: sy + 13, f: fermo(22, (x, y) => drawIcecrystal(x, y, tx, ty)) });
   }
   // X delle mappe del tesoro in vista
   for (const m of (S.maps || [])) {

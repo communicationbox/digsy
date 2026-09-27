@@ -67,11 +67,17 @@ export function installStubs() {
           st.buf[b2] = im.data[a2]; st.buf[b2 + 1] = im.data[a2 + 1]; st.buf[b2 + 2] = im.data[a2 + 2]; st.buf[b2 + 3] = im.data[a2 + 3];
         }
       },
-      drawImage(src, x = 0, y = 0) {
+      /* anche la forma a nove argomenti (un RIQUADRO della sorgente): la cache del terreno copia
+         una casella da un archivio grande, e copiare tutto l'archivio a ogni casella rendeva la
+         suite lenta come un disegno vero */
+      drawImage(src, a = 0, b = 0, c, d, e, f) {
         assicura(); const sc = src && src.__ctx && src.__ctx.__st; if (!sc || !sc.buf) return;
+        let sx0 = 0, sy0 = 0, sw = sc.w, sh = sc.h, x = a, y = b;
+        if (e !== undefined) { sx0 = a | 0; sy0 = b | 0; sw = c | 0; sh = d | 0; x = e; y = f; }
         x += st.tx; y += st.ty;
-        for (let j = 0; j < sc.h; j++) for (let i = 0; i < sc.w; i++) {
-          const o = (j * sc.w + i) * 4, a2 = sc.buf[o + 3] / 255;
+        for (let j = 0; j < sh; j++) for (let i = 0; i < sw; i++) {
+          const X = sx0 + i, Y = sy0 + j; if (X < 0 || Y < 0 || X >= sc.w || Y >= sc.h) continue;
+          const o = (Y * sc.w + X) * 4, a2 = sc.buf[o + 3] / 255;
           if (a2 > 0) dipingi(Math.round(x) + i, Math.round(y) + j, sc.buf[o], sc.buf[o + 1], sc.buf[o + 2], a2);
         }
       },

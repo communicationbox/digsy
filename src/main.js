@@ -15,7 +15,8 @@ import { trackPlayer } from './map.js';
 import { checkWonderDiscovery, checkGateNotice } from './gameplay.js';
 import { wonderName } from './wonders.js';
 import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
-import { render } from './render.js';
+import { render, setTileCache } from './render.js';
+import { tocca } from './ritmo.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
@@ -148,7 +149,10 @@ function walk(dt) {
 
 let last = 0, hudAcc = 0;
 let invitoFermo = false;   // un link d'invito aperto a tutorial in corso: fermato, lo si dice a gioco iniziato
+/* al massimo 60 fotogrammi al secondo anche sugli schermi a 120 Hz (ritmo.js) */
+const RITMO = { prossimo: 0 };
 function loop(ts) {
+  if (!tocca(RITMO, ts)) { requestAnimationFrame(loop); return; }
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
   if (typeof window !== 'undefined' && window.__digsyFreeze) { requestAnimationFrame(loop); return; } // solo le foto di prova: tela ferma
@@ -643,6 +647,9 @@ if (typeof window !== 'undefined') {
          requestAnimationFrame non avanza, quindi senza questo i test "visivi" non
          disegnavano davvero nulla e ogni crash di rendering restava invisibile. */
       frame: (t) => { render(t || 1000); return true; },
+      /* le cache del disegno si spengono per CONFRONTARE i pixel con e senza (tests/perf.mjs):
+         un'ottimizzazione che cambia anche un pixel non è un'ottimizzazione, è un'altra grafica */
+      cacheDisegno: (on) => { setTileCache(on); return true; },
       /* un passo del mondo su richiesta: in headless il rAF è fermo, quindi senza questo
          gli e2e non potrebbero verificare NIENTE di ciò che accade camminando */
       stepWorld: (dt) => { steerFollow(); walk(dt || 1 / 60); updateCompanion(dt || 1 / 60, isMounted()); return { moving: P.moving, anim: P.anim, x: P.x, y: P.y }; },

@@ -901,6 +901,37 @@ sfumature dei singoli pannelli) restano dove sono: un token per un posto solo è
 da ricordare e basta. Niente riquadri dove il resto del gioco non ne ha: per separare bastano un titoletto
 in oro maiuscolo e una riga `.sp-sep`.
 
+## Prestazioni: cache del disegno e misure vere (v0.99.35)
+Si lamentava che «su iPhone 13 Pro lagga» e che due schede facessero partire la ventola di un
+M2 Pro. Misurato con `npm run perf` (Playwright: portatile 1440×900@2 e iPhone 13 Pro con la
+CPU rallentata ×4; per scena: ms di disegno, CPU, fps, strappi >25 ms nel ciclo vero, chiamate
+di disegno, e **confronto dei pixel con e senza cache**; `PERF_PROFILO=1` dà le funzioni più
+pesanti dal dev server). Prima: mondo 24 ms e città 27 ms per fotogramma sul telefono (32-38 fps,
+CPU al 101%). Dopo: 1,7 e 2,9 ms, CPU 14-25%, 60 fps, zero strappi. Cosa c'è ora:
+- **Archivio delle caselle** (`cacheTile` in render.js): una tela 42×42 caselle con 8 px di
+  margine per casella. Il terreno di TERRA si dipinge una volta; dell'ACQUA si archivia solo il
+  fondo a chiazze (`fondoAcqua` in tiles.js) e sopra si dipingono dal vivo, nello stesso ordine,
+  increspature, ghiaccio, ninfee, riva e schiuma. Gli **oggetti fermi** (massi, cactus, guglie,
+  cristalli, fiori, conchiglie, staccionata: `propFromCache`) e le **caselle della grotta**
+  (tranne stalattiti e funghi, `caveFloorAnimata`) usano lo stesso archivio. Chiavi NUMERICHE,
+  `ver` (seme, casa, tavolozza della stagione / grotta e giacimenti) azzera tutto quando cambia.
+- **Edifici e arredo** (`artCached`): una copia per ogni combinazione degli scatti di animazione
+  (`step` in townArt.js annota `an.passi`); fumo e sedia a dondolo si mettono da parte in
+  `an.vivi` e si disegnano dal vivo sopra. Panchine, cespugli, lampioni e cassetta: una copia per tipo.
+- **Il personaggio** (`drawHero` → `drawHeroRaw` una volta per aspetto/vista/passo/posa; chiave
+  sulle FORME e sulla TAVOLOZZA in uso, non sui colori scritti in S.look).
+- **`volume` in decoArt.js** ricorda i tratti (pixel vicini dello stesso colore uniti).
+- **La scheda per casella** (`tileRec` in render.js, chiavi numeriche) raccoglie le risposte FISSE
+  del mondo; scavato/abbattuto/spaccato/raccolto si guardano in copie numeriche dei loro insiemi
+  (`specchio`). `decoAt`/`pickupAt` sono spezzate in parte fissa (`decoStaticAt`/`pickupBaseAt`)
+  + parte che cambia. Prima: migliaia di stringhe «x,y» a fotogramma e raccolte di memoria da
+  40-60 ms ogni secondo o due.
+- **Al massimo 60 fps** anche a 120 Hz (`ritmo.js`, scadenza che avanza di 1/60: a 90 Hz resta 60).
+- Niente DOM riscritto a vuoto: pulsante Esci, bussola, `hudPad` (misura al più 2 volte al secondo).
+**Regola**: chi aggiunge un disegno che cambia col tempo dentro una di queste funzioni deve farlo
+passare da `step` (edifici) o tenerlo fuori dalla cache; il controllo «la cache del disegno non
+cambia un pixel» in run.mjs e il confronto in `npm run perf` lo scoprono.
+
 ## REGOLE FERREE (già sbagliate in passato — non ripeterle)
 1. **Animazioni: la fase viene SOLO dal tempo.** Mai da `sx`/`sy`/`cx` (coordinate schermo):
    con la camera in movimento l'animazione "corre" col personaggio. Se serve variare per

@@ -18,7 +18,13 @@ export const view = { K: 3, PX: 3, VW: 17, VH: 13, W: 17 * TS, H: 13 * TS };
    e si parte da una stima prudente (l'HUD non è mai più basso di così). */
 const HUD_CSS_FALLBACK = 52;   // px CSS: altezza tipica della barra col tag più alto
 let hudCss = HUD_CSS_FALLBACK;
+/* si misura al più due volte al secondo: chiederlo a ogni fotogramma (grotte e galleria del museo
+   lo fanno) obbligava il browser a ricalcolare l'impaginazione di tutta la pagina ogni volta */
+let hudMisurato = -1e9;
 export function hudPad() {
+  const adesso = typeof performance !== 'undefined' && performance.now ? performance.now() : 0;
+  if (adesso - hudMisurato < 500 && adesso >= hudMisurato) return Math.ceil(hudCss / view.K) + 6;
+  hudMisurato = adesso;
   if (typeof document !== 'undefined') {
     const el = document.getElementById('hud');
     if (el && typeof el.getBoundingClientRect === 'function') {
@@ -45,4 +51,5 @@ export function fit() {
   cv.width = view.W * view.PX; cv.height = view.H * view.PX;
   cv.style.width = (view.W * K) + 'px'; cv.style.height = (view.H * K) + 'px';
   ctx.setTransform(view.PX, 0, 0, view.PX, 0, 0); ctx.imageSmoothingEnabled = false;
+  hudMisurato = -1e9;                     // cambiata la finestra: l'HUD va rimisurato subito
 }

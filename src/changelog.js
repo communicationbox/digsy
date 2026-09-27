@@ -1,6 +1,17 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.35', it: [
+      'IL GIOCO È MOLTO PIÙ LEGGERO: su un telefono il mondo aperto costava 24 millisecondi a fotogramma (sotto i 40 fps, un processore sempre pieno), ora meno di 2; la città da 27 a 3. Stessa grafica, pixel per pixel: terreno, acqua, edifici, arredo e oggetti del paesaggio si disegnano una volta e poi si ricopiano, invece di essere ridipinti da capo sessanta volte al secondo',
+      'Sugli schermi a 120 Hz il gioco non disegna più il doppio dei fotogrammi: si resta a 60, e il portatile non scalda più',
+      'Niente più piccoli strappi periodici mentre si cammina',
+    ], en: [
+      'THE GAME IS MUCH LIGHTER: on a phone the open world cost 24 milliseconds per frame (under 40 fps, a processor always busy), now under 2; towns went from 27 to 3. Same graphics, pixel for pixel: ground, water, buildings, street furniture and landscape objects are drawn once and then copied, instead of being repainted from scratch sixty times a second',
+      'On 120 Hz screens the game no longer draws twice as many frames: it stays at 60, and laptops no longer heat up',
+      'No more small periodic hitches while walking',
+    ],
+  },
+  {
     v: 'v0.99.34', it: [
       'FAMMI ENTRARE: se un amico sta giocando puoi chiedergli di aprirti il suo mondo, il contrario di «Invita». Se dice sì entri da solo, senza un secondo sì da parte tua',
       'NIENTE INSISTENZE: dopo un no si può richiedere subito, poi dopo 10 secondi, un minuto, cinque, e su fino a un\'ora al massimo. Vale per inviti e richieste insieme, e il pulsante dice quanto manca',

@@ -348,9 +348,12 @@ function landColor(t, ZP, zi) {
   if (t === MTN) return '#948c7f';
   return zi === 1 ? '#e9d9a8' : zi === 5 ? '#d7dee3' : '#e6cf96';
 }
-export function groundTile(t, tx, ty, sx, sy, time, zi, nb, nbz) {
+/* `senzaFondo`: per l'acqua il fondo a chiazze (la prima cosa che si dipinge, ed è ferma) l'ha
+   già messo chi chiama, dalla cache (fondoAcqua qui sotto); qui si dipinge solo quello che si
+   muove e quello che gli sta sopra, nello stesso ordine di sempre. */
+export function groundTile(t, tx, ty, sx, sy, time, zi, nb, nbz, senzaFondo) {
   const ZP = ZONE_TILES[zi] || null;
-  groundBase(t, tx, ty, sx, sy, time, zi, ZP);
+  groundBase(t, tx, ty, sx, sy, time, zi, ZP, senzaFondo);
   zoneBlend(t, tx, ty, sx, sy, zi, nbz);
   tileEdges(t, tx, ty, sx, sy, time, nb, ZP, zi);
 }
@@ -384,7 +387,27 @@ function ripples(tx, ty, sx, sy, time, light) {
     if (ph > 0.8) px(x + 2, y - 1, '#ffffff');
   }
 }
-function groundBase(t, tx, ty, sx, sy, time, zi, ZP) {
+/* il FONDO dell'acqua: le chiazze di tono, ferme. È la prima cosa che una casella d'acqua dipinge */
+export function fondoAcqua(t, tx, ty, sx, sy, zi) {
+  if (t === DEEP) {
+    if (zi === 5) patches(tx, ty, sx, sy, ['#6a9abd', '#6493b5', '#74a5c6'], 133, 0.18);
+    else if (zi === 4) patches(tx, ty, sx, sy, ['#2f5148', '#2a4a41', '#355a50'], 135, 0.18);
+    else patches(tx, ty, sx, sy, ['#3a7aa2', '#357297', '#3f84ad'], 131, 0.18);
+  } else if (t === WATER) {
+    if (zi === 5) patches(tx, ty, sx, sy, ['#8abad6', '#84b3cf', '#95c4de'], 134, 0.2);
+    else if (zi === 4) patches(tx, ty, sx, sy, ['#3a6154', '#35594d', '#42695b'], 136, 0.2);
+    else patches(tx, ty, sx, sy, ['#56b0d2', '#4fa7ca', '#62bddb'], 132, 0.2);
+  }
+}
+function groundBase(t, tx, ty, sx, sy, time, zi, ZP, senzaFondo) {
+  if (senzaFondo && (t === DEEP || t === WATER)) {
+    /* il fondo c'è già: da qui in poi è identico ai casi qui sotto, meno le chiazze */
+    const L = t === DEEP ? (zi === 5 ? '#b0d4e6' : zi === 4 ? '#5f9a82' : '#6aa9cf') : (zi === 5 ? '#d2ecf6' : zi === 4 ? '#7fb8a0' : '#9ad9ec');
+    ripples(tx, ty, sx, sy, time, L);
+    if (t === WATER && zi === 5 && vhash(tx, ty, 51) < 0.35) { rect(sx + 4, sy + 4, 6, 4, '#e6f2f8'); rect(sx + 4, sy + 4, 6, 1, '#ffffff'); }
+    if (t === WATER && zi === 4 && vhash(tx, ty, 52) < 0.18) { rect(sx + 5, sy + 6, 5, 3, '#3f9a58'); px(sx + 7, sy + 5, '#e08aa8'); }
+    return;
+  }
   switch (t) {
     case DEEP: {
       if (zi === 5) { // mare gelato profondo: acqua bluastra con onde chiare (chiaramente liquido)

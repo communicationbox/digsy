@@ -44,13 +44,37 @@ export function volume(g, shapes, fill, light, dark, line) {
     x0 = Math.min(x0, b[0]); y0 = Math.min(y0, b[1]); x1 = Math.max(x1, b[2]); y1 = Math.max(y1, b[3]);
   }
   const dentro = (x, y) => shapes.some(s => dentroForma(s, x, y));
-  for (let y = Math.round(y0) - 1; y <= Math.round(y1) + 1; y++) for (let x = Math.round(x0) - 1; x <= Math.round(x1) + 1; x++) {
-    if (!dentro(x, y)) { if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) g.rect(x, y, 1, 1, line); continue; }
-    const luce = !dentro(x - 1, y) || !dentro(x, y - 1), ombra = !dentro(x + 1, y) || !dentro(x, y + 1);
-    g.rect(x, y, 1, 1, luce ? light : ombra ? dark : fill);
+  /* LA FORMA SI CALCOLA UNA VOLTA. Il test «dentro/fuori» per ogni pixel, ripetuto a ogni
+     fotogramma per ogni panchina, lampione e fontana in vista, era la voce più pesante della
+     città. Il risultato dipende solo da forme e colori: si ricorda come elenco di TRATTI (pixel
+     vicini sulla stessa riga dello stesso colore uniti in un rettangolo solo — nessun tratto si
+     sovrappone a un altro, quindi i pixel sono gli stessi), nello stesso ordine di prima. */
+  const k = JSON.stringify(shapes) + '|' + fill + '|' + light + '|' + dark + '|' + line;
+  let tratti = VOLUMI.get(k);
+  if (!tratti) {
+    tratti = [];
+    for (let y = Math.round(y0) - 1; y <= Math.round(y1) + 1; y++) {
+      let rx = 0, rw = 0, rc;
+      const chiudi = () => { if (rw) tratti.push(rx, y, rw, rc); rw = 0; };
+      for (let x = Math.round(x0) - 1; x <= Math.round(x1) + 1; x++) {
+        let c;
+        if (!dentro(x, y)) { if (dentro(x + 1, y) || dentro(x - 1, y) || dentro(x, y + 1) || dentro(x, y - 1)) c = line; else { chiudi(); continue; } }
+        else {
+          const luce = !dentro(x - 1, y) || !dentro(x, y - 1), ombra = !dentro(x + 1, y) || !dentro(x, y + 1);
+          c = luce ? light : ombra ? dark : fill;
+        }
+        if (rw && c === rc && rx + rw === x) rw++;
+        else { chiudi(); rx = x; rw = 1; rc = c; }
+      }
+      chiudi();
+    }
+    if (VOLUMI.size > 2000) VOLUMI.clear();
+    VOLUMI.set(k, tratti);
   }
+  for (let i = 0; i < tratti.length; i += 4) g.rect(tratti[i], tratti[i + 1], tratti[i + 2], 1, tratti[i + 3]);
   return dentro;
 }
+const VOLUMI = new Map();
 
 /* FONTANA (2×2 caselle): vasca tonda di pietra, zampillo a coppa, riflessi, monetine */
 export function fountainArt(g, time) {

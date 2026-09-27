@@ -110,6 +110,14 @@ export function caveWall(g, tx, ty, sx, sy, info, time) {
 }
 
 /* ---------- PAVIMENTO ---------- */
+/* la casella di pavimento si MUOVE (goccia della stalattite, funghi che pulsano)? Stessa regola
+   di caveFloor qui sotto: chi disegna in cache la tiene fuori dall'archivio e la dipinge dal vivo */
+export function caveFloorAnimata(tx, ty, info) {
+  const wallAbove = info.solid(tx, ty - 1);
+  if (wallAbove && vhash(tx, ty - 1, 490) < 0.45) return true;
+  const nearWall = wallAbove || info.solid(tx - 1, ty) || info.solid(tx + 1, ty) || info.solid(tx, ty + 1);
+  return !!(damp(tx, ty) && nearWall && vhash(tx, ty, 560) < 0.4);
+}
 export function caveFloor(g, tx, ty, sx, sy, info, time) {
   const H = TS >> 1;
   for (let q = 0; q < 4; q++) {

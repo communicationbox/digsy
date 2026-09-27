@@ -22,9 +22,18 @@ function sh(g, c, k) { return g.shade8(c, k); }
    palo del barbiere che gira, fumo dai comignoli, frange delle tende nel vento, una lucina che
    lampeggia. Senza `an` (miniature, prove) il disegno resta fermo com'era. */
 const NOAN = { t: 0, ph: 0 };
-const step = (an, ms, n) => (Math.floor(an.t / ms) + an.ph) % n;
-/* fumo: tre sbuffi che salgono, si allargano e svaniscono, ognuno a un terzo di giro dal precedente */
+/* LA CACHE DEGLI EDIFICI (render.js) deve sapere DA COSA dipende il disegno: gli scatti delle
+   animazioni si annotano in `an.passi` (periodo e numero di scatti), e quello che si muove di
+   continuo — fumo e sedia a dondolo — si mette da parte in `an.vivi` invece di disegnarlo, così
+   resta disegnato dal vivo sopra la copia. Senza quei due campi (miniature, prove) non cambia
+   niente: si disegna tutto come sempre. */
+const step = (an, ms, n) => { if (an.passi) an.passi.push(ms, n); return (Math.floor(an.t / ms) + an.ph) % n; };
 function smoke(g, x, y, an, rgb, still) {
+  if (an.vivi) { an.vivi.push([smokeVero, x, y, rgb, still]); return; }
+  smokeVero(g, x, y, an, rgb, still);
+}
+/* fumo: tre sbuffi che salgono, si allargano e svaniscono, ognuno a un terzo di giro dal precedente */
+function smokeVero(g, x, y, an, rgb, still) {
   for (let i = 0; i < 3; i++) {
     const k = still ? [0.15, 0.45, 0.75][i] : ((an.t / 2400 + i / 3 + an.ph * 0.137) % 1 + 1) % 1;
     const sz = 3 + Math.round(k * 3), yy = y - Math.round(k * 22), xx = x + Math.round(Math.sin(k * 6.28 + i * 2) * 1.5) - (sz >> 1);
@@ -221,6 +230,10 @@ const CHAIR = (() => {
   return pts;
 })();
 function rockingChair(g, x, y, an) {
+  if (an.vivi) { an.vivi.push([rockingChairVero, x, y]); return; }
+  rockingChairVero(g, x, y, an);
+}
+function rockingChairVero(g, x, y, an) {
   const a = an === NOAN ? 0 : Math.sin(an.t / 650 + an.ph) * 0.16;
   const ca = Math.cos(a), sa = Math.sin(a), cells = new Map();
   for (const [px, py, c] of CHAIR) {

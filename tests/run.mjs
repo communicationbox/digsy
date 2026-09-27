@@ -5508,6 +5508,7 @@ sprites.applyLook();
      preparate una volta sola e poi TIMBRATE, quindi il pennello a colori non le vedrebbe
      e un recinto pieno risulterebbe identico a uno vuoto. */
   const crashes = [];
+  const render2Cache = (await import('../src/render.js')).setTileCache;
   /* `c` = su quale contesto spiare. Di serie è la canvas del gioco; le prove che disegnano su
      una tela a parte (miniature, pagine del Libro) devono passare LA LORO, perché ogni canvas
      ha il suo contesto — prima erano tutte lo stesso oggetto finto e la distinzione non
@@ -5515,12 +5516,17 @@ sprites.applyLook();
   const spy = (fn, c = ctx) => {
     seen.clear();
     let img = 0;
+    /* LE CACHE DEL DISEGNO SI SPENGONO mentre si spia: queste prove guardano COSA si dipinge
+       (i colori), e con le cache accese terreno, oggetti ed edifici arrivano incollati da un
+       archivio invece che pennellati qui. Che le due strade diano gli stessi pixel lo prova
+       un controllo a parte («la cache del disegno non cambia un pixel»). */
+    render2Cache(false);
     c.fillRect = () => seen.add(String(c.fillStyle));
     c.drawImage = () => seen.add('<sprite ' + (++img) + '>');
     /* un disegno che esplode viene ANNOTATO, non lasciato salire: se buttasse giù il
        processo si perderebbero tutte le prove successive, e col crash di una sola entità
        non si saprebbe più nulla di tutte le altre */
-    try { fn(); } catch (e) { crashes.push(e.message); } finally { delete c.fillRect; delete c.drawImage; }
+    try { fn(); } catch (e) { crashes.push(e.message); } finally { delete c.fillRect; delete c.drawImage; render2Cache(true); }
     return new Set(seen);
   };
   const at = (tx, ty) => { P.x = tx * TS + 8; P.y = ty * TS + 8; cam.x = P.x; cam.y = P.y; };
@@ -5947,7 +5953,8 @@ sprites.applyLook();
   const shotSk = (dir, moving, fr) => {
     P.dir = dir; P.moving = moving; W = []; amb = []; tx = 0; ty = 0; scX = 1; scY = 1; tstack = [];
     const bob = fr === 1 ? -1 : 0;
-    sprMod.drawHero(null, SX - 16, 100 + bob, dir, fr);
+    /* il disegno VERO del personaggio (quello che la cache di drawHero copia): si spia fillRect */
+    sprMod.drawHeroRaw(null, SX - 16, 100 + bob, dir, fr);
     tx = 0; ty = 0; scX = 1; scY = 1; tstack = [];
     render.drawBankSkates(SX, 100 + bob, fr);
     const feetY = Math.max(...W.map(p => p[1]));                     // scarpe = riga più in basso
@@ -11975,6 +11982,90 @@ sprites.applyLook();
   const bF = uiF.mostraInvito('Luca', () => {}, () => {}, true);
   check('il biglietto di una richiesta dice «fallo entrare»', !bF || /Fallo entrare/.test(bF.innerHTML));
   uiF.chiudiInvito && uiF.chiudiInvito();
+}
+
+/* ---------- IL PERSONAGGIO DALLA CACHE È LO STESSO PERSONAGGIO ----------
+   drawHero disegna una volta per aspetto e poi incolla (prestazioni: erano 500 fillRect a
+   chiamata). La promessa è che i PIXEL siano identici a quelli del disegno diretto — in ogni
+   vista, passo, posa, col cappello e senza, per un aspetto qualunque e per i bottegai. */
+{
+  const spr = await import('../src/sprites.js');
+  const S = (await import('../src/state.js')).S;       // quello VIVO: altri test lo rifanno
+  const { DEFAULT_LOOK } = await import('../src/data.js');
+  const tela = () => { const c = document.createElement('canvas'); c.width = 80; c.height = 80; return c; };
+  const pixel = c => Array.from(c.getContext('2d').getImageData(0, 0, 80, 80).data).join(',');
+  const keep = S.look;
+  const looks = [DEFAULT_LOOK, { ...DEFAULT_LOOK, hairStyle: 'curly', hatStyle: 'none', beardStyle: 'full', glassesStyle: 'round', shirtStyle: 'hoodie', pantsStyle: 'skirt', hat: '#3060a0', skin: '#8a5a3a' }];
+  let prove = 0, diverse = [];
+  for (const L of looks) {
+    S.look = { ...L }; spr.applyLook();
+    for (const dir of ['down', 'up', 'left', 'right']) for (const fr of [0, 1]) for (const pose of [undefined, 'lift', 'ride']) for (const noHat of [false, true]) {
+      const a = tela(), b = tela();
+      spr.drawHeroRaw(a.getContext('2d'), 20, 24, dir, fr, noHat, pose);
+      spr.drawHero(b.getContext('2d'), 20, 24, dir, fr, noHat, pose);
+      spr.drawHero(b.getContext('2d'), 20, 24, dir, fr, noHat, pose);   // seconda volta: dalla cache (sopra sé stesso: stessi pixel)
+      const c2 = tela(); spr.drawHero(c2.getContext('2d'), 20, 24, dir, fr, noHat, pose);
+      prove++;
+      if (pixel(a) !== pixel(c2)) diverse.push(dir + fr + (pose || '') + (noHat ? 'nh' : ''));
+    }
+  }
+  check('il personaggio dalla cache ha gli STESSI pixel del disegno diretto', diverse.length === 0 && prove === 96, diverse.slice(0, 5).join(' ') + ' su ' + prove);
+  /* cambiare colore senza cambiare forma DEVE cambiare il disegno: la chiave guarda la tavolozza */
+  S.look = { ...DEFAULT_LOOK }; spr.applyLook();
+  const x1 = tela(); spr.drawHero(x1.getContext('2d'), 20, 24, 'down', 0);
+  S.look = { ...DEFAULT_LOOK, shirt: '#c03030' }; spr.applyLook();
+  const x2 = tela(); spr.drawHero(x2.getContext('2d'), 20, 24, 'down', 0);
+  check('e cambiando solo un colore il disegno cambia (la cache guarda la tavolozza)', pixel(x1) !== pixel(x2));
+  S.look = keep; spr.applyLook();
+}
+
+/* AL MASSIMO 60 FOTOGRAMMI AL SECONDO, su qualunque schermo: a 120 Hz si disegnava il doppio per
+   la stessa immagine (la ventola del portatile). E uno schermo a 90 Hz non deve scendere a 45. */
+{
+  const rit = await import('../src/ritmo.js');
+  const fps = (hz) => { const r = { prossimo: 0 }; let n = 0; for (let i = 0; i < hz * 10; i++) if (rit.tocca(r, i * 1000 / hz)) n++; return n / 10; };
+  const a60 = fps(60), a90 = fps(90), a120 = fps(120), a144 = fps(144), a30 = fps(30);
+  check('a 60 Hz si disegna ogni fotogramma', a60 >= 59.9 && a60 <= 60.1, a60);
+  check('a 120 Hz e a 144 Hz non si supera 60', a120 <= 60.1 && a120 >= 59 && a144 <= 60.1 && a144 >= 57, a120 + ' · ' + a144);
+  check('a 90 Hz si resta a 60 (non 45)', a90 >= 59 && a90 <= 60.1, a90);
+  check('uno schermo lento (30 Hz) disegna tutto quello che può', a30 >= 29.9, a30);
+  /* a 120 Hz i fotogrammi disegnati sono REGOLARI: uno sì e uno no, mai due di fila saltati */
+  { const r = { prossimo: 0 }, fatti = []; for (let i = 0; i < 240; i++) fatti.push(rit.tocca(r, i * 1000 / 120) ? 1 : 0);
+    check('a 120 Hz uno sì e uno no, senza buchi', !fatti.join('').slice(4).includes('00') && !fatti.join('').slice(4).includes('11'), fatti.join('').slice(0, 24)); }
+}
+
+/* ---------- LA CACHE DEL DISEGNO NON CAMBIA UN PIXEL ----------
+   Terreno, acqua, oggetti fermi, edifici e arredo passano da archivi (render.js) invece di essere
+   ridipinti a ogni fotogramma. La promessa è che l'immagine sia la STESSA: qui si disegna lo
+   stesso istante nei due modi, in posti diversi del mondo, e si confrontano tutti i pixel.
+   (Nel browser vero lo fa anche tests/perf.mjs, a scala e densità vere.) */
+{
+  const rnd = await import('../src/render.js');
+  const st = await import('../src/state.js');
+  const scr = await import('../src/screen.js');
+  const wld = await import('../src/world.js');
+  const { TS: TS2 } = await import('../src/data.js');
+  const cvx = scr.ctx.canvas, W0 = cvx.width, H0 = cvx.height, v0 = { ...scr.view };
+  scr.view.W = 320; scr.view.H = 240; scr.view.VW = 10; scr.view.VH = 8; scr.view.K = 1; scr.view.PX = 1;
+  cvx.width = 320; cvx.height = 240;
+  const P3 = st.P, keepP = { x: P3.x, y: P3.y };
+  const leggi = () => Array.from(scr.ctx.getImageData(0, 0, 320, 240).data);
+  const posti = [];
+  /* una città (edifici e arredo), e prati, acqua e ghiaccio trovati a spirale */
+  for (let cx = -3; cx <= 3 && posti.length < 1; cx++) for (let cy = -3; cy <= 3 && posti.length < 1; cy++) { const t = wld.townForCell(cx, cy); if (t) posti.push([t.C.x, t.C.y + 2]); }
+  const cerca = (ok) => { for (let r = 2; r < 400; r += 3) for (let a = 0; a < 8; a++) { const x = Math.round(Math.cos(a) * r), y = Math.round(Math.sin(a) * r); if (ok(x, y)) return [x, y]; } return null; };
+  for (const p of [cerca((x, y) => wld.baseTerrain(x, y) === wld.WATER && wld.baseTerrain(x + 2, y) !== wld.WATER), cerca((x, y) => wld.decoAt(x, y) === 'icecrystal'), cerca((x, y) => wld.decoAt(x, y) === 'boulder')]) if (p) posti.push(p);
+  let diversi = [];
+  for (const [tx, ty] of posti) {
+    P3.x = tx * TS2 + 8; P3.y = ty * TS2 + 8;
+    rnd.setTileCache(false); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); const a = leggi();
+    rnd.setTileCache(true); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); const b = leggi();
+    let n = 0, mx = 0; for (let i = 0; i < a.length; i++) { const d = Math.abs(a[i] - b[i]); if (d) { n++; if (d > mx) mx = d; } }
+    if (mx > 1) diversi.push(tx + ',' + ty + ': ' + n + ' valori, fino a ' + mx);
+  }
+  check('la cache del disegno non cambia un pixel (città, acqua, ghiaccio, massi)', posti.length >= 3 && diversi.length === 0, diversi.join(' · ') || posti.length + ' posti');
+  P3.x = keepP.x; P3.y = keepP.y;
+  cvx.width = W0; cvx.height = H0; Object.assign(scr.view, v0);
 }
 
 failures += summary('digsy-world');

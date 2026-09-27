@@ -257,8 +257,11 @@ export function syncExitBtn() {
   if (!exitBtn || !exitBtn.classList) return;
   const show = (INT.active && nearExit()) || (CAVE.active && nearCaveExit());
   exitBtn.classList.toggle('on', !!show);
-  if (show) exitBtn.innerHTML = withIcons('🚪 ' + tr('Esci', 'Leave'));
+  /* si riscrive solo se cambia: questa funzione gira a OGNI fotogramma, e riscrivere l'HTML
+     obbligava il browser a ricalcolare stili e impaginazione sessanta volte al secondo */
+  if (show) { const h = withIcons('🚪 ' + tr('Esci', 'Leave')); if (h !== exitHtml) { exitHtml = h; exitBtn.innerHTML = h; } }
 }
+let exitHtml = '';
 /* ARREDO IN MANO: Ruota/Annulla — un mobile appena raccolto non ha un tasto dedicato (su
    mobile non c'è nemmeno la tastiera), quindi due bottoni a schermo come per l'uscita. */
 const furnHold = document.getElementById('furnhold');
@@ -303,7 +306,7 @@ function syncFurnHold() {
      comparire il bottone di rotate". */
   if (furnRotBtn && on) {
     const hv = holdItem(); const ok = !!hv && furnRotatable(hv.itemId);
-    furnRotBtn.hidden = !ok;
+    if (furnRotBtn.hidden !== !ok) furnRotBtn.hidden = !ok;
   }
 
 }

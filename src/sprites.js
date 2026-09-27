@@ -215,8 +215,54 @@ function hairUnderHat(hairId, hatId, view, hair, hat, crown) {
   return out;
 }
 
-/* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere */
+/* IL PERSONAGGIO SI DISEGNA UNA VOLTA SOLA per aspetto e fotogramma, poi si incolla.
+   Pixel per pixel erano più di cinquecento `fillRect` a ogni chiamata — per Digsy, per ogni
+   bottegaio e per ogni amico nella stanza, sessanta volte al secondo: nel profilo era la voce
+   più pesante del gioco dopo il riempimento della tela («su iPhone 13 Pro lagga, e due schede
+   fanno partire la ventola di un M2 Pro»). Il disegno è lo STESSO (`drawHeroRaw`, qui sotto),
+   fatto su una tela piccola a un pixel per pixel di gioco; incollarlo con la scala intera e
+   senza sfumatura dà gli stessi pixel. La chiave è tutto quello che cambia il disegno: l'aspetto
+   intero (da `S.look` dipende anche la tavolozza, vedi applyLook), vista, passo, posa, cappello.
+   Il luccichio del cappello di platino si muove col tempo e resta fuori, disegnato sopra. */
+const HERO_CACHE = new Map();
+const HERO_PAD = 8, HERO_W = 48, HERO_H = 48;
+/* LA FIRMA di quello che finisce sui pixel: le FORME dall'aspetto e i COLORI dalla tavolozza
+   in uso — non i colori scritti in `S.look`, perché il disegno legge PAL. Se qualcuno cambiasse
+   l'aspetto senza rifare la tavolozza, una firma sull'aspetto salverebbe per sempre il disegno
+   coi colori vecchi sotto la chiave nuova; così invece la copia è sempre di quel che si vede. */
+function lookSig() {
+  const L = S.look || {};
+  let k = L.hairStyle + ',' + L.hatStyle + ',' + L.beardStyle + ',' + L.glassesStyle + ',' + L.acc + ',' + L.shirtStyle + ',' + L.pantsStyle + ',' + (S.glitterHats ? 'g' : '');
+  for (const c in PAL) k += PAL[c];
+  return k;
+}
 export function drawHero(tctx, x, y, dir, frame, noHat, pose) {
+  const doc = typeof document !== 'undefined' ? document : null;
+  const dest = tctx || ctx;
+  if (!doc || !doc.createElement || !dest || !dest.drawImage) { drawHeroRaw(tctx, x, y, dir, frame, noHat, pose); return; }
+  const k = lookSig() + '|' + dir + '|' + frame + '|' + (noHat ? 1 : 0) + '|' + (pose || '');
+  let cv = HERO_CACHE.get(k);
+  if (!cv) {
+    cv = doc.createElement('canvas'); cv.width = HERO_W; cv.height = HERO_H;
+    const g = cv.getContext && cv.getContext('2d');
+    if (!g) { drawHeroRaw(tctx, x, y, dir, frame, noHat, pose); return; }
+    drawHeroRaw(g, HERO_PAD, HERO_PAD, dir, frame, noHat, pose, true);
+    if (HERO_CACHE.size > 400) HERO_CACHE.clear();          // tetto: chi prova cento look non riempie la memoria
+    HERO_CACHE.set(k, cv);
+  }
+  dest.drawImage(cv, x - HERO_PAD, y - HERO_PAD);
+  heroGlitter(dest, x, y, dir, noHat);
+}
+function heroGlitter(g, x, y, dir, noHat) {
+  const hat = !noHat ? HATS[S.look.hatStyle] : null;
+  if (!(hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0)) return;
+  const flip = dir === 'left', t = Math.floor(heroTime / 260) % 3;
+  const sp = [[10, -2], [20, 0], [14, 2], [8, 2], [18, -2]];
+  for (let i = 0; i < sp.length; i++) { if ((i + t) % 3 !== 0) continue; const [sx, sy] = sp[i]; g.fillStyle = (i % 2 ? '#ffffff' : '#f8dd82'); g.fillRect(x + (flip ? 31 - sx : sx), y + sy, 1, 1); }
+}
+/* eroe completo: corpo → capelli → cappello (se indossato); noHat per l'anteprima dal barbiere.
+   `noGlitter`: il luccichio lo aggiunge chi incolla (è animato, non va nella copia) */
+export function drawHeroRaw(tctx, x, y, dir, frame, noHat, pose, noGlitter) {
   /* niente più ctx.scale(2,2) qui: il corpo è ORA disegnato nativamente a 32×26,
      non più 16×13 raddoppiato meccanicamente — vero dettaglio, non blocchi 2×2. */
   const key = (dir === 'left' || dir === 'right') ? 'side' : dir;
@@ -248,11 +294,7 @@ export function drawHero(tctx, x, y, dir, frame, noHat, pose) {
   if (gl) blitPairs(gl[key], x, y, flip, tctx);
   if (hat) blitPairs(hat[key], x, y, flip, tctx);
   /* GLITTER del cappello PLATINO: qualche scintilla brillante sulla forma (twinkle dal tempo). */
-  if (hat && S.glitterHats && S.glitterHats.indexOf(S.look.hatStyle) >= 0) {
-    const g = tctx || ctx, t = Math.floor(heroTime / 260) % 3;
-    const sp = [[10, -2], [20, 0], [14, 2], [8, 2], [18, -2]];
-    for (let i = 0; i < sp.length; i++) { if ((i + t) % 3 !== 0) continue; const [sx, sy] = sp[i]; g.fillStyle = (i % 2 ? '#ffffff' : '#f8dd82'); g.fillRect(x + (flip ? 31 - sx : sx), y + sy, 1, 1); }
-  }
+  if (!noGlitter) heroGlitter(tctx || ctx, x, y, dir, noHat);
 }
 /* tempo per il twinkle del glitter (aggiornato da render); default 0 per test/anteprime statiche */
 let heroTime = 0;
