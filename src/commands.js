@@ -600,7 +600,7 @@ const GO_V = { city: ['city', 'città', 'citta', 'museum', 'museo'], park: ['par
 /* LE SCENE che si possono rivedere a comando: sono animazioni che capitano una volta ogni
    tanto (una schiusa costa due giorni di cova), e per guardarle mentre le si disegna bisognava
    giocarsele davvero. `anim=` le fa partire subito. */
-const ANIM_V = { hatch: ['hatch', 'schiusa', 'uovo'], awaken: ['awaken', 'risveglio'], banner: ['banner', 'annuncio'], letter: ['letter', 'lettera'], dream: ['dream', 'sogno'] };
+const ANIM_V = { hatch: ['hatch', 'schiusa', 'uovo'], awaken: ['awaken', 'risveglio'], banner: ['banner', 'annuncio'], letter: ['letter', 'lettera'], dream: ['dream', 'sogno'], fly: ['fly', 'volo', 'aereo', 'viaggio'] };
 const PLAY_V = { prep: ['prep', 'restauro'], restore: ['restore', 'ritiro'], toss: ['toss', 'fountain', 'fontana'], skeleton: ['skeleton', 'scheletro'], egg: ['egg', 'uovo'], hatch: ['hatch', 'schiudi'], fuse: ['fuse', 'fondi', 'doppioni'] };
 const TIME_V = { night: ['night', 'notte'], dawn: ['dawn', 'alba'], day: ['day', 'giorno', 'noon', 'mezzogiorno'] };
 const WEATHER_V = { rain: ['rain', 'pioggia'], sandstorm: ['sandstorm', 'sabbia'], fog: ['fog', 'nebbia'], ash: ['ash', 'cenere'], snow: ['snow', 'neve'], clear: ['clear', 'sereno'], off: ['off', 'auto'] };
@@ -661,6 +661,17 @@ export const COMMANDS = {
          di collegarsi apposta: qui si apre da soli. È la scenetta vera, quella di dream.js —
          i pulsanti fanno quello che farebbero, e "alzati" lo chiude. */
       if (k === 'dream') { import('./dream.js').then(d => d.apriSogno()); return '😴 ' + tr('Sogno', 'Dream'); }
+      /* IL VOLO si vede solo entrando nel mondo di un amico: per guardarlo non si deve chiedere
+         a qualcuno di aprire il suo. È la scenetta vera di volo.js, col nome che si scrive dopo
+         (`anim=volo Ada`); senza nome vola verso un amico qualunque della rubrica. */
+      if (k === 'fly') {
+        /* la console abbassa tutto in minuscolo: un nome si rialza la prima lettera, o sopra
+           la scena si legge «ada» */
+        const scritto = String(v).split(/\s+/).slice(1).join(' ');
+        const nome = scritto ? scritto.charAt(0).toUpperCase() + scritto.slice(1) : (((S.amici || [])[0] || {}).n || 'Ada');
+        import('./volo.js').then(vo => vo.partiVolo(nome));
+        return '🌀 ' + tr('In volo verso ', 'Flying to ') + nome;
+      }
       import('./ui.js').then(u => {
         if (k === 'hatch') u.playHatching(cr0);
         else if (k === 'awaken') u.playAwakening(sp0.id);

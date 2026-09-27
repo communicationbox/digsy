@@ -28,7 +28,7 @@ la partita com'era prima del primo cheat.
 | `play=skeleton` | ✔ | montaggio dello scheletro |
 | `play=egg` / `play=hatch` | ✔ | uovo nel cortile / schiudilo |
 | `play=fuse [rarità]` | ✔ | 3 doppioni da fondere al Lab |
-| `anim=hatch\|awaken\|banner\|letter` | ✔ | rivedi una **scena** senza aspettarla (alias `scena`, `animazione`) |
+| `anim=hatch\|awaken\|banner\|letter\|sogno\|volo [nome]` | ✔ | rivedi una **scena** senza aspettarla (alias `scena`, `animazione`). `volo` = i tre secondi d'aereo verso il mondo di un amico (`anim=volo Ada`) |
 | `buddy=earth\|water\|tree\|rock\|cave [rarità]` | ✔ | compagno di quel tipo (leggendario di base) |
 | `mount` | ✔ | drago di cristallo, in volo |
 | `chimera` | ✔ | una chimera di prova nel cortile |

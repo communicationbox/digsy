@@ -159,7 +159,8 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   un tocco** — una transizione che non si può interrompere è una tassa dalla seconda volta in
   poi. Il benvenuto arriva all'**atterraggio** (`alloAtterraggio`): nessuno legge un toast
   dietro a un oblò. `setSuVisita` in mp.js dice solo CHE si è arrivati; il viaggio lo racconta
-  chi disegna. Foto: `npm run shot -- volo 820,780` (con `t=<ms>` per fermare l'istante).
+  chi disegna. Per rivederlo senza entrare da nessuno: console → `anim=volo [nome]` (anche
+  `aereo`, `viaggio`). Foto: `npm run shot -- volo 820,780` (con `t=<ms>` per fermare l'istante).
 - **Il montaggio dello scheletro si capisce** (`SOCKETS`/`FIG` in skeletonfit.js + `.sk-lb` in
   ui.js): tavola **ORIZZONTALE** (2:1) con l'animale **di PROFILO**, come un montaggio da museo —
   cranio a sinistra, collo, costole, bacino, zampa sotto, coda che si assottiglia a destra.

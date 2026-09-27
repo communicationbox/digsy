@@ -10886,6 +10886,18 @@ sprites.applyLook();
   vo.chiudiVolo();
   check('atterrando, sì', atterrato === 1 && vo.voloAttivo() === false);
   check('e non si atterra due volte', (vo.chiudiVolo(), atterrato) === 1);
+  /* e si RIVEDE senza dover entrare nel mondo di qualcuno: `anim=volo` dalla console */
+  { const cm = await import('../src/commands.js');
+    vo.chiudiVolo();
+    const r = cm.runCommand('anim=volo Fenn');
+    await new Promise(res => setTimeout(res, 0));
+    check('dalla console si rivede il volo', vo.voloAttivo() === true, r);
+    check('verso il nome che si scrive', /Fenn/.test((box.innerHTML || '')));
+    vo.chiudiVolo();
+    const r2 = cm.runCommand('anim=aereo');
+    await new Promise(res => setTimeout(res, 0));
+    check('anche con gli altri nomi (aereo, viaggio)', vo.voloAttivo() === true, r2);
+    vo.chiudiVolo(); }
   /* IN VOLO NON SI CAMMINA: si è seduti in aereo (il mondo attorno invece va avanti) */
   { const fs9 = await import('node:fs');
     const m9 = fs9.readFileSync('src/main.js', 'utf8');
