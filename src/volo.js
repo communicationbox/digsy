@@ -40,15 +40,20 @@ function nodo() {
    Prima era un oblò gigante accanto a un divano di profilo — «gli oblò sono molto più
    piccoli, i posti più ravvicinati: non sembra un aereo» — e la reference mandata dà le
    misure: un finestrino è mezza testa, una poltrona è larga quanto chi ci siede. */
-/* una poltrona è un po' PIÙ LARGA di chi ci siede, come nella reference: a 17 pixel Digsy
-   ci stava sopra invece che dentro */
-const SEDILE = 22;
-/* colonne: due a sinistra, corridoio, e a destra una fila che continua oltre il bordo —
-   la cabina non finisce dove finisce il quadro */
-const COLONNE = [3, 27, 71, 95, 119, 143];
-const MIO = 3;                                        // Digsy: prima fila, seconda poltrona a destra
-/* un finestrino per poltrona, sopra la sua colonna */
-const FINESTRE = COLONNE.map(x => ({ x: x + 6, y: 15, w: 10, h: 12 }));
+/* COME STA FATTO UN AEREO: i finestrini sono sul FIANCO della fusoliera e le poltrone
+   guardano verso la PRUA. Con la parete dei finestrini in alto, la fusoliera corre da
+   sinistra a destra: le file stanno una accanto all'altra lungo la parete, ogni fila ha il
+   posto al finestrino (più in alto, più lontano) e quello verso il corridoio (più vicino), e
+   il corridoio passa in orizzontale sotto. Le poltrone si vedono DI LATO, rivolte a destra.
+   Prima erano tutte girate verso di noi con le spalle ai finestrini, come in un cinema —
+   «perché i seggiolini sono disposti in questo ordine?» (con foto). */
+/* il passo fra le file è quello che lascia lo schienale davanti alle GINOCCHIA di chi siede
+   dietro: a 24 pixel passava in mezzo alla faccia di Digsy (visto in foto) */
+const FILE = [2, 32, 62, 92, 122, 152];               // x dello schienale di ogni fila
+const POSTI = [56, 78];                               // y della seduta: finestrino, corridoio
+const MIO = { fila: 2, posto: 1 };                    // Digsy: terza fila, lato corridoio
+/* un finestrino per fila, sopra il posto al finestrino */
+const FINESTRE = FILE.map(x => ({ x: x + 9, y: 15, w: 10, h: 12 }));
 
 /* IL PAESAGGIO È UNO SOLO, visto da tutti i finestrini: si calcola in coordinate di MONDO (la
    x dello schermo più quanto si è volato), così una nuvola che esce da un finestrino entra
@@ -79,21 +84,16 @@ function rect(x, y, w, h, c) { ctx.fillStyle = c; ctx.fillRect(Math.round(x), Ma
 /* quanto si stringe una riga agli angoli: un rettangolo con gli spigoli smussati a gradini */
 function smusso(r, h) { return r === 0 || r === h - 1 ? 2 : (r === 1 || r === h - 2 ? 1 : 0); }
 
-/* UNA POLTRONA vista da davanti: schienale alto col poggiatesta chiaro, seduta sotto, due
-   braccioli ai lati. `davanti` la divide in due: lo schienale va DIETRO a chi siede, i
-   braccioli e il bordo della seduta DAVANTI. */
-function poltrona(x, y, parte) {
-  if (parte !== 'davanti') {
-    rect(x + 1, y, SEDILE - 2, 3, '#cbb89a');                   // poggiatesta
-    rect(x, y + 3, SEDILE, 15, '#3e4a73');                      // schienale
-    rect(x + 2, y + 4, SEDILE - 4, 2, '#56638f');               // luce sulla stoffa
-    rect(x + 1, y + 17, SEDILE - 2, 7, '#34406a');              // seduta
-  }
-  if (parte !== 'dietro') {
-    rect(x + 1, y + 23, SEDILE - 2, 2, '#29335a');              // bordo della seduta
-    rect(x - 1, y + 13, 2, 10, '#2a3152'); rect(x + SEDILE - 1, y + 13, 2, 10, '#2a3152');   // braccioli
-    rect(x - 1, y + 13, 2, 1, '#4a557f'); rect(x + SEDILE - 1, y + 13, 2, 1, '#4a557f');
-  }
+/* UNA POLTRONA vista di lato, rivolta a destra: schienale alto a sinistra col poggiatesta,
+   seduta che va verso la fila davanti, due gambe. `y` è la quota della seduta. */
+function poltrona(x, y) {
+  rect(x, y - 20, 6, 24, '#3e4a73');                  // schienale
+  rect(x - 1, y - 22, 7, 3, '#cbb89a');               // poggiatesta
+  rect(x + 1, y - 18, 2, 12, '#56638f');              // luce sulla stoffa
+  rect(x, y, 18, 4, '#34406a');                       // seduta
+  rect(x, y, 18, 1, '#4a557f');
+  rect(x + 6, y - 6, 10, 2, '#2a3152');               // bracciolo
+  rect(x + 2, y + 4, 2, 5, '#232a45'); rect(x + 14, y + 4, 2, 5, '#232a45');   // gambe
 }
 
 export function disegnaVolo(t) {
@@ -128,26 +128,29 @@ export function disegnaVolo(t) {
     }
     rect(f.x + 2, f.y + 2, 1, 3, 'rgba(255,255,255,.5)');       // riflesso fermo: è vetro
   }
-  /* PAVIMENTO: legno ai lati, moquette nel corridoio */
+  /* PAVIMENTO: legno sotto le file, moquette nel corridoio che corre in orizzontale */
   rect(0, 33, W, H - 30, '#6b4d33');
-  for (let y = 36; y < H; y += 5) rect(0, y, W, 1, '#5e432c');
-  rect(50, 33, 20, H - 30, '#3b3f55');                           // corridoio
-  rect(50, 33, 1, H - 30, '#2e3145'); rect(69, 33, 1, H - 30, '#2e3145');
+  for (let y = 36; y < 84; y += 5) rect(0, y, W, 1, '#5e432c');
+  rect(0, 84, W, H - 84, '#3b3f55');                  // corridoio
+  rect(0, 84, W, 1, '#2e3145');
 
-  /* ---------- le POLTRONE, due file strette una dietro l'altra ---------- */
-  const FILA1 = 36, FILA2 = 64;
-  for (let c = 0; c < COLONNE.length; c++) poltrona(COLONNE[c], FILA1, c === MIO ? 'dietro' : 'tutta');
-
-  /* DIGSY: il suo aspetto vero, seduto e rivolto verso di noi (la posa `ride` è quella da
-     seduto: gambe piegate, mani appoggiate — qui sui braccioli). Va FRA lo schienale e i
-     braccioli, come chi siede davvero in poltrona. Si disegna sulla tela della scenetta:
-     `drawHero` accetta un contesto suo apposta per casi come questo. */
-  try { drawHero(ctx, COLONNE[MIO] + SEDILE / 2 - 16, FILA1 - 4, 'down', 0, false, 'ride'); } catch (e) { /* stub dei test */ }
-  poltrona(COLONNE[MIO], FILA1, 'davanti');
-
-  /* la fila DAVANTI copre le gambe di chi siede dietro: è quello che fa sembrare i posti
-     stretti come su un aereo vero */
-  for (let c = 0; c < COLONNE.length; c++) poltrona(COLONNE[c], FILA2, 'tutta');
+  /* ---------- le POLTRONE ----------
+     Si disegnano dal fondo verso chi guarda (prima i posti al finestrino, poi quelli sul
+     corridoio) e, dentro ogni riga, da sinistra a destra: così la poltrona della fila
+     davanti copre le ginocchia di chi siede dietro — è quello che fa sembrare i posti
+     stretti come su un aereo vero. */
+  for (let p = 0; p < POSTI.length; p++) {
+    for (let f = 0; f < FILE.length; f++) {
+      poltrona(FILE[f], POSTI[p]);
+      if (f === MIO.fila && p === MIO.posto) {
+        /* DIGSY: il suo aspetto vero, seduto (la posa `ride`: gambe piegate) e di profilo
+           verso la prua. Si disegna sulla tela della scenetta: `drawHero` accetta un
+           contesto suo apposta per casi come questo. La schiena combacia con lo schienale e
+           il sedere con la seduta. */
+        try { drawHero(ctx, FILE[f] - 1, POSTI[p] - 28, 'right', 0, false, 'ride'); } catch (e) { /* stub dei test */ }
+      }
+    }
+  }
 
   ctx.restore();
   return true;

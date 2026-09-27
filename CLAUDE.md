@@ -155,8 +155,10 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   barbiere, torretta del lab, locanda a 2 piani, vetrina della sartoria).
 - **Si viaggia** (`volo.js`): entrare nel mondo di un amico era uno stacco secco — premevi
   accetta e ti ritrovavi altrove. Ora tre secondi d'aereo nella STESSA vista 3/4 del gioco:
-  cappelliere, parete con una fila di finestrini piccoli, poltrone viste da davanti in file
-  strette col corridoio, Digsy seduto in prima fila (la fila davanti gli copre le gambe). Le
+  cappelliere, parete con una fila di finestrini piccoli sul FIANCO della fusoliera, file di
+  poltrone viste di lato rivolte verso la PRUA (posto al finestrino dietro, lato corridoio
+  davanti), corridoio in orizzontale sotto. Digsy siede di profilo e lo schienale della fila
+  davanti gli arriva alle ginocchia. Erano girate verso di noi come in un cinema. Le
   misure vengono da una reference: un finestrino è mezza testa, una poltrona è un po' più
   larga di chi ci siede. Il paesaggio è UNO SOLO visto da tutti i finestrini (coordinate di
   mondo), con due velocità di parallasse: nuvole e campi. **Saltabile con
