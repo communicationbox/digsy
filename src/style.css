@@ -454,10 +454,12 @@ kbd + .pxi{margin-left:2px}
    punta del cursore — e su uno schermo piccolo è proprio il bordo la via più rapida per
    arrivare a una lettera, quindi è l'ultimo posto dove rimpicciolire. */
 @media(pointer:coarse){
-  .tacc-tab{min-height:24px;width:30px;font-size:13px}
-  /* e la carta si prende quasi tutta la larghezza: due colonne di linguette su un telefono
-     lasciano poco ai fogli, e un nome troncato non serve a nessuno */
-  .tacc-carta{width:min(var(--w-panel),94vw)}
+  .tacc-tab{min-height:22px;width:30px;font-size:13px}
+  /* e la carta si prende tutta la larghezza CHE C'È: dentro la scheda, non dentro lo schermo.
+     A `94vw` su un telefono da 320 la carta era più larga della scheda di una ventina di pixel,
+     e la seconda colonna di linguette e le lettere a sinistra finivano tagliate (misurato con
+     i telefoni emulati). 64 = i margini della scheda e della sua cornice. */
+  .tacc-carta{width:min(var(--w-panel),calc(100vw - 64px));max-width:100%}
 }
 /* una riga di conversazione: le mie a destra come in qualsiasi chat, le altrui a sinistra */
 .tacc-riga{padding:0 8px;margin:0;line-height:22px;font-size:12px;text-align:left;color:#3a2f22}
@@ -535,7 +537,14 @@ kbd + .pxi{margin-left:2px}
   font:700 13px/1.35 ui-monospace,Menlo,monospace;
   overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #chatlog .cl-chi{color:var(--c-gold-2);margin-right:6px}
-@media(max-width:760px),(pointer:coarse){ #chatlog .cl-riga{font-size:12px} }
+/* COL DITO i sottotitoli stanno SOPRA i comandi: in basso ci sono il joystick (alto 150, a
+   24 dal fondo) e il tasto azione con «Esci» sopra, e una riga detta da un amico finiva sotto
+   il pollice (misurato con i telefoni emulati). E vanno A CAPO, due righe al massimo: troncata
+   a metà una frase non dice niente — «ci vediamo alla fontana appena f…». */
+@media(pointer:coarse){
+  #chatlog{bottom:calc(190px + env(safe-area-inset-bottom))}
+  #chatlog .cl-riga{font-size:12px;white-space:normal;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+}
 #chatbar{position:fixed;left:0;right:0;bottom:calc(96px + env(safe-area-inset-bottom));z-index:900;
   display:none;gap:8px;padding:0 12px;align-items:center}
 #chatbar.on{display:flex}
@@ -543,7 +552,11 @@ kbd + .pxi{margin-left:2px}
   border:2px solid var(--c-line);background:rgba(246,239,221,.97);color:var(--c-dark)}
 #chati:focus{outline:none;border-color:var(--c-amber)}
 #chatsend{min-height:42px}
-@media(max-width:760px),(pointer:coarse){ #chatbar{bottom:calc(120px + env(safe-area-inset-bottom))} }
+/* COL DITO la riga per scrivere sta IN ALTO, sotto la barra: in basso c'è il joystick (ci
+   finiva sopra, misurato) e, appena si tocca il campo, arriva la tastiera del telefono che si
+   prende tutta la metà bassa dello schermo — il campo in cui si scrive sarebbe sparito sotto
+   le dita. */
+@media(pointer:coarse){ #chatbar{bottom:auto;top:calc(58px + env(safe-area-inset-top))} }
 
 /* L'INVITO DI UN AMICO: un biglietto in alto, due risposte. Sta FUORI dal riquadro del gioco
    (come i toast, e per la stessa ragione: là dentro finirebbe sotto ogni pannello) e resta
@@ -1056,6 +1069,11 @@ body:has(#cmd.on) #touch{display:none!important}
    sbilenca senza che si capisse dove fosse l'errore. Qui i margini verticali dei figli
    diretti si azzerano: la spaziatura la decide una riga sola, e vale in ogni sottomenu. */
 .sp-menu > *{margin-top:0;margin-bottom:0}
+/* E NESSUNO SI SCHIACCIA. La colonna è un flex che scorre: se il contenuto non ci sta, deve
+   SCORRERE — invece i figli si restringevano, e su un telefono «Nuova partita», «Account» ed
+   «Esci dalla stanza» finivano alti 20 pixel, o 14 in orizzontale (misurato con i telefoni
+   emulati). Un pulsante non si accorcia: si va a cercarlo più giù. */
+.sp-menu > *{flex-shrink:0}
 .sp-ver{margin-top:16px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px;letter-spacing:1px;color:#7f8a86;opacity:.8}
 /* Intro IN-GAME (lore): scena sul canvas + BANDELLE nere cinema + textbox visual-novel */
 #introbox{position:fixed;inset:0;z-index:59;pointer-events:none}
@@ -1340,7 +1358,16 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
   font:800 10px/1 ui-monospace,Menlo,monospace;letter-spacing:.06em;text-transform:uppercase;
   color:#c9a86a;white-space:nowrap;text-shadow:0 1px 0 #15120d,0 -1px 0 #15120d,1px 0 0 #15120d,-1px 0 0 #15120d}
 .sk-sock.hot .sk-lb{color:var(--c-gold-2)}
-@media(pointer:coarse){ .sk-lb{font-size:10px} }
+@media(pointer:coarse){
+  .sk-lb{font-size:11px}
+  /* «Salta» si prende col pollice: 49×26 era un bersaglio da cursore */
+  .sk-x{min-height:40px;min-width:64px;padding:8px 14px;font-size:13px}
+  #dream .sp-btn{min-height:44px}
+}
+/* IN ORIZZONTALE la tavola 2:1 larga 560 è alta 280, e con intestazione e suggerimento il
+   riquadro superava lo schermo (342 px di altezza su un telefono girato: misurato). La
+   larghezza la decide anche l'altezza disponibile: due volte quello che resta in verticale. */
+#skfitbox{width:min(560px,94vw,calc((100dvh - 120px) * 2))}
 #sk-s-corno{left:19%;top:18%}#sk-s-cranio{left:22%;top:44%}#sk-s-torace{left:52%;top:42%}#sk-s-zampa{left:60%;top:72%}#sk-s-coda{left:86%;top:36%}
 .sk-piece{position:absolute;left:28%;top:88%;transform:translate(-50%,-50%);width:44px;height:36px;
   background:var(--c-parch);box-shadow:0 0 0 3px var(--c-amber);cursor:grab;touch-action:none;display:flex;align-items:center;justify-content:center}
@@ -1448,7 +1475,12 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
    cioè il punto su cui si deve poter cliccare */
 /* i comandi a schermo spariscono sotto un overlay: leva e tasto A restavano attivi e
    disegnati sopra zaino, libro e mappa, e il dito li incontrava prima del pannello */
-body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov.on) #touch{display:none}
+/* …e anche col VOLO, col SOGNO e con la RIGA DELLA CHAT aperti: il volo e il sogno stanno dentro
+   la cornice del gioco, i comandi fuori, e un z-index alto dentro la cornice non basta a stare
+   sopra ciò che ne è fuori — joystick e tasto A restavano SOPRA la scena, sul titolo e sui
+   pulsanti (visto con i telefoni emulati). Mentre si scrive invece i comandi non servono, e
+   la tastiera del telefono li coprirebbe comunque a metà. */
+body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov.on,#volo.on,#dream.on,#chatbar.on) #touch{display:none}
 #exitbtn{position:absolute;right:calc(16px + env(safe-area-inset-right));bottom:calc(18px + env(safe-area-inset-bottom));
   display:none;align-items:center;gap:6px;z-index:14;
   background:#3a2f1e;color:var(--c-paper);border:2px solid var(--c-gold);border-radius:10px;
@@ -1943,3 +1975,21 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
 .mp-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:6px 12px 8px}
 .mp-foot .mp-legbtn{margin:0}
 .mp-homebtn{font:800 13px ui-monospace,monospace;background:var(--c-line-2);color:var(--c-paper);border:0;padding:10px 12px;min-height:38px;cursor:pointer;box-shadow:0 0 0 2px var(--c-line-3)}
+
+/* ====================== COL DITO ======================
+   Misurato con i telefoni emulati (npm run mobile): nel menu e nei suoi pannelli i pulsanti
+   piccoli erano alti 26-34 pixel e certe scritte 9-10. Un pollice centra bene un bersaglio
+   da 40 in su, e sotto gli 11 pixel su un telefono non si legge. Col mouse restano come sono:
+   lì la precisione c'è, e la stessa misura farebbe sembrare il menu gonfio. */
+@media(pointer:coarse){
+  .sp-btn.small{min-height:40px}
+  .sp-riga .sp-btn{min-height:40px;min-width:40px}
+  .sp-sw{min-height:40px}
+  .sp-seg .sp-btn,.sp-set .sp-btn,.sp-slotbtns .sp-btn{min-height:40px}
+  .sp-piu{min-height:40px;min-width:44px}
+  .sp-riga small,.sp-slot small,.sp-card small{font-size:11px}
+  .sp-btn.ic .ic-lb{font-size:11px}
+}
+/* MENTRE SI SCRIVE la riga della chat sta in alto, dove c'è anche la scheda del tutorial: le
+   due si accavallavano. La scheda torna appena si chiude la riga. */
+body:has(#chatbar.on) #tutbox{display:none!important}

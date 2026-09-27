@@ -125,6 +125,9 @@ function inviaChat() {
   chiudiChat();
 }
 { const b = document.getElementById('chatsend'); if (b) b.onclick = () => inviaChat(); }
+/* il pulsante PARLA della barra: su telefono è l'unico modo di aprire la riga */
+{ const b = document.getElementById('chattag'); if (b) b.onclick = () => { if (chatAperta()) chiudiChat(); else apriChat(); }; }
+export function apriChatDaFuori() { return apriChat(); }
 
 addEventListener('keydown', e => {
   /* UN TASTO È UN SEGNO DI VITA. In compagnia chi non fa niente da cinque minuti esce dal

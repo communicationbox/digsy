@@ -1,6 +1,23 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.27', it: [
+      'DA TELEFONO SI PUÒ PARLARE: la chat si apriva solo col tasto T, che su un telefono non c\'è. Ora, quando sei in compagnia, nella barra c\'è «Parla». La riga per scrivere sta in alto, così la tastiera del telefono non la copre',
+      'I messaggi di chi è fuori campo stanno sopra il joystick e vanno a capo invece di troncarsi a metà frase',
+      'Il volo e il sogno non hanno più joystick e tasto A sopra la scena',
+      'Nel menu i pulsanti non si schiacciano più su uno schermo piccolo («Nuova partita» ed «Esci dalla stanza» finivano alti un dito di bambino) e col dito sono tutti abbastanza grandi da prendere',
+      'Il taccuino sta dentro lo schermo anche sui telefoni piccoli: la seconda colonna di lettere veniva tagliata',
+      'Il montaggio dello scheletro sta nello schermo anche col telefono girato',
+    ], en: [
+      'YOU CAN TALK FROM A PHONE: chat only opened with the T key, which a phone does not have. Now, when you are in company, the bar has «Talk». The line you type in sits at the top, so the phone keyboard does not cover it',
+      'Messages from people off screen sit above the joystick and wrap instead of being cut mid-sentence',
+      'The flight and the dream no longer have the joystick and A button on top of the scene',
+      'Menu buttons no longer get squashed on a small screen («New game» and «Leave the room» ended up a child\'s finger tall) and are all big enough to hit with a thumb',
+      'The notebook fits on small phones: the second column of letters used to be cut off',
+      'The skeleton fitting fits the screen with the phone turned sideways too',
+    ],
+  },
+  {
     v: 'v0.99.19', it: [
       'SI VIAGGIA, quando si va nel mondo di un amico: tre secondi in aereo, Digsy seduto al finestrino e il paesaggio che corre fuori dall\'oblò. Prima era uno stacco secco — premevi accetta e ti ritrovavi altrove, senza che niente dicesse che avevi viaggiato. Si tocca per saltarlo',
     ], en: [

@@ -209,6 +209,15 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   `useCityPortal` in gameplay.js) e quel portale riporta dov'eri. **Uno solo**: aprirne un altro
   chiude il primo — due ritorni possibili e nessuno che si ricordi quale è quale.
   Foto: `npm run shot -- portale 560,440`.
+- **In compagnia col dito** (misurato coi telefoni emulati): la chat si apriva SOLO col tasto
+  T — da telefono non si poteva dire niente a nessuno. Ora c'è **Parla** nella barra (`#chattag`,
+  solo in compagnia). Col dito la riga per scrivere sta **in alto** (in basso c'erano il joystick
+  e poi arriva la tastiera del telefono) e nasconde la scheda del tutorial mentre si scrive; i
+  **sottotitoli** stanno **sopra i comandi** e vanno a capo invece di troncarsi. Volo, sogno e
+  chat aperta **nascondono joystick e tasto A**: stanno dentro la cornice del gioco e i comandi
+  fuori, e un z-index alto dentro la cornice non basta — i comandi restavano sopra la scena.
+  Nel menu nessun figlio si **schiaccia** (`flex-shrink:0`: «Nuova partita» ed «Esci dalla
+  stanza» finivano alti 20px) e i pulsanti piccoli col dito sono alti almeno 40.
 - **Chi parla fuori campo si legge lo stesso** (`#chatlog` + `updateChatLog` in ui.js, chiamata
   dal game loop in OGNI scena): la nuvoletta sta sopra la testa, e una testa dietro l'angolo (o
   in bottega, o sottoterra) non ha dove metterla — la riga si perdeva e chi l'aveva scritta non
@@ -823,6 +832,16 @@ rossa e diventava una suite piantata — che è molto peggio, perché si dà la 
 `npm run build && npm run mobile` apre il gioco in **telefoni emulati con Playwright** (iPhone SE,
 iPhone 13 in verticale e in orizzontale, Pixel 7, col tocco), conferma il personaggio, salta
 l'intro, attraversa le scene e fotografa in `.shots/mobile/`, segnalando cosa esce dallo schermo.
+Copre anche le schermate della COMPAGNIA (amici, taccuino, chat, sottotitoli, nomi, volo, sogno,
+locanda, invito, montaggio): erano nate dopo e nessuno le aveva mai aperte su un telefono.
+Per ogni scena misura: **fuori schermo**, **bersagli piccoli** (<40×36; le linguette del
+taccuino sono un indice e si pretende 28×22), **testo minuto** (<11px), **coperti dai
+comandi** (chat, sottotitoli e invito sopra joystick/tasto A/Esci), **tagliati di lato**
+(un pezzo più largo del riquadro che lo nasconde: il controllo "fuori schermo" non lo vede) e
+**che la schermata ci sia davvero** (terzo campo di `SCENES`: menu, salvataggi e impostazioni
+passavano verdi senza aver mai mostrato il menu — la splash restava nascosta).
+`MOBILE_SOLO=amici,chat npm run mobile` fa girare solo quelle. Playwright si trova da solo anche
+nella cache di `npx`; altrimenti `npx playwright install chromium` o `PLAYWRIGHT_PATH=…`.
 Serve perché gli e2e girano in Chrome headless, che su macOS non scende sotto ~500px: lo zoom
 sbagliato su telefono (5 caselle visibili invece di 13, stanze tagliate) lì non si vedeva.
 Playwright NON è una dipendenza: `npm i -g playwright` o `PLAYWRIGHT_PATH=…/playwright/index.mjs`.

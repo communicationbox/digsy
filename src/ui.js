@@ -187,6 +187,9 @@ export function updateHUD() {
     /* IL TACCUINO si apre da qui, in gioco. Si mostra solo se c'è qualcosa da rileggere:
        un pulsante che apre una pagina vuota è un pulsante che delude una volta sola e poi
        non lo preme più nessuno. */
+    /* il pulsante per PARLARE c'è solo quando c'è qualcuno con cui parlare */
+    const ct = document.getElementById('chattag');
+    if (ct) { ct.style.display = MP.stato === 'dentro' ? '' : 'none'; ct.title = tr('Parla (T)', 'Talk (T)'); }
     const tt = document.getElementById('tacctag');
     if (tt) {
       tt.style.display = pagineChat().length ? '' : 'none';

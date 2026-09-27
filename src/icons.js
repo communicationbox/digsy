@@ -8,7 +8,7 @@ try { files = import.meta.glob('./pxicons/*.svg', { query: '?raw', import: 'defa
 const SVGS = {};
 for (const [p, raw] of Object.entries(files)) SVGS[p.split('/').pop().replace('.svg', '')] = raw;
 
-export const ICON_NAMES = ["arD", "arDL", "arDR", "arL", "arR", "arU", "arUL", "arUR", "axe", "bag", "barber", "bed", "bike", "bolt", "bone", "book", "bread", "bug", "cal", "cave", "chartdown", "chartup", "check", "close", "coin", "compass", "cloud", "dice", "discord", "dna", "door", "dune", "egg", "fire", "fish", "flower", "gear", "gem", "star", "bulb", "gift", "target", "warn", "mail", "tree", "village", "human", "info", "frog", "globe", "hat", "home", "horn", "ice", "lab", "leaf", "lock", "map", "menu", "moon", "mount", "museum", "note", "palette", "paw", "pick", "pine", "rib", "save", "scroll", "shell", "shirt", "ship", "shovel", "skate", "skull", "snow", "sofa", "sparkle", "spiral", "sprout", "stats", "store", "sun", "torch", "trash", "wheat"];
+export const ICON_NAMES = ["arD", "arDL", "arDR", "arL", "arR", "arU", "arUL", "arUR", "axe", "bag", "barber", "bed", "bike", "bolt", "bone", "book", "bread", "bug", "cal", "cave", "chartdown", "chartup", "check", "close", "coin", "compass", "cloud", "dice", "discord", "dna", "door", "dune", "egg", "fire", "fish", "flower", "gear", "gem", "star", "bulb", "gift", "target", "warn", "mail", "tree", "village", "human", "info", "frog", "globe", "hat", "home", "horn", "ice", "lab", "leaf", "lock", "map", "menu", "moon", "mount", "museum", "note", "palette", "paw", "pick", "pine", "rib", "save", "scroll", "shell", "shirt", "ship", "shovel", "skate", "skull", "snow", "sofa", "sparkle", "spiral", "sprout", "stats", "store", "sun", "talk", "torch", "trash", "wheat"];
 
 
 /* colore tematico per icona (fill=currentColor eredita da style) */
@@ -60,7 +60,7 @@ const EMAP = {
   '⛏️': 'pick', '🌱': 'sprout', '💾': 'save', '🎵': 'note', '🌍': 'globe', '🍞': 'bread', '🌐': 'globe',
   '🪓': 'axe', '🪏': 'shovel', '⛵': 'ship', '🚤': 'ship', '🎣': 'fish', '🌊': 'fish', '🕳️': 'cave', '🕳': 'cave',
   '🛼': 'skate', '🚲': 'bike', '🔦': 'torch', '📜': 'scroll', '🐚': 'shell', '🧰': 'pick',
-  '🗑️': 'trash', '🗑': 'trash', '⚙️': 'gear', '⚙': 'gear', '🚪': 'door', '💬': 'discord', '☁️': 'cloud', '☁': 'cloud',
+  '🗑️': 'trash', '🗑': 'trash', '⚙️': 'gear', '⚙': 'gear', '🚪': 'door', '💬': 'discord', '🗨️': 'talk', '🗨': 'talk', '☁️': 'cloud', '☁': 'cloud',
   /* icone aggiunte quando il test ha trovato le emoji che restavano mute */
   '💎': 'gem', '⭐': 'star', '💡': 'bulb', '🎁': 'gift', '🎯': 'target', '⚠️': 'warn', '⚠': 'warn',
   '✉️': 'mail', '✉': 'mail', '📮': 'mail', '📭': 'mail', '📨': 'mail', '📇': 'human', '🔗': 'mail', '📦': 'bag', '🌳': 'tree', '🏘️': 'village', '🏘': 'village', '🚶': 'human', '🏃': 'human',

@@ -9,9 +9,21 @@
  *
  * Playwright NON è una dipendenza del gioco: se manca, `npm i -g playwright` oppure
  * PLAYWRIGHT_PATH=/percorso/a/playwright/index.mjs npm run mobile. Usa il Chrome del sistema. */
+/* PLAYWRIGHT SI TROVA DA SOLO: prima quello indicato, poi quello installato, poi quello che
+   `npx playwright` ha lasciato in cache — c'è quasi sempre, e chiedere ogni volta il percorso
+   era il modo sicuro perché questa prova non la facesse girare nessuno. */
 let chromium, devices;
-try { ({ chromium, devices } = await import(process.env.PLAYWRIGHT_PATH || 'playwright')); }
-catch (e) { console.error('mobile: Playwright non trovato — `npm i -g playwright` o PLAYWRIGHT_PATH=…'); process.exit(1); }
+{
+  const { readdirSync, existsSync: ex } = await import('node:fs');
+  const home = process.env.HOME || '';
+  const cache = home + '/.npm/_npx';
+  const candidati = [process.env.PLAYWRIGHT_PATH, 'playwright'];
+  try { for (const d of readdirSync(cache)) { const f = `${cache}/${d}/node_modules/playwright/index.mjs`; if (ex(f)) candidati.push(f); } } catch (e) { /* niente cache */ }
+  for (const c of candidati.filter(Boolean)) {
+    try { ({ chromium, devices } = await import(c)); break; } catch (e) { /* il prossimo */ }
+  }
+  if (!chromium) { console.error('mobile: Playwright non trovato — `npx playwright install chromium` oppure PLAYWRIGHT_PATH=…'); process.exit(1); }
+}
 import http from 'node:http';
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { join, extname } from 'node:path';
@@ -35,6 +47,10 @@ const DEV = [
   ['iphone13-land', devices['iPhone 13 landscape']],
   ['pixel7', devices['Pixel 7']],
 ];
+/* la stanza finta, rimessa ogni poco: il gioco vero prova a collegarsi a un centralino che
+   qui non c'è e la spegnerebbe prima dello scatto */
+const IN_DUE = 'setInterval(()=>{ if (G.mpFinta) G.mpFinta(["Ada","Fenn"], true); }, 150); ';
+const SPLASH = 'const sp0=document.getElementById("splash"); if(sp0) sp0.style.display=""; document.getElementById("menubtn").click(); ';
 const SCENES = [
   ['mondo', 'Promise.resolve(G.leaveRoom && G.leaveRoom()).then(()=>G.cmd("goto=prati"))'],
   ['citta', 'Promise.resolve(G.leaveRoom && G.leaveRoom()).then(()=>G.cmd("goto=city"))'],
@@ -48,16 +64,41 @@ const SCENES = [
   ['mappa', 'G.openMap()'],
   ['libro', 'G.openBook()'],
   /* il menu in legno: titolo, salvataggi (tre schede intere) e impostazioni */
-  ['menu', 'Promise.resolve(G.closeModal && G.closeModal(true)).then(()=>document.getElementById("menubtn").click())'],
-  ['salvataggi', 'Promise.resolve(document.getElementById("menubtn").click()).then(()=>new Promise(r=>setTimeout(r,300))).then(()=>document.getElementById("sp-saves").click())'],
-  ['impostazioni', 'Promise.resolve(document.getElementById("menubtn").click()).then(()=>new Promise(r=>setTimeout(r,300))).then(()=>document.getElementById("sp-settings").click())'],
+  /* ANCHE QUESTE TRE non mostravano il menu: la splash era nascosta con `display:none` e
+     cliccare ☰ toglie solo la classe `off`. Le foto ritraevano la stanza, e la prova passava
+     senza aver guardato niente — per questo ora ogni scena dice COSA deve vedersi (terzo
+     campo), e se non si vede la prova fallisce. */
+  ['menu', 'Promise.resolve(G.closeModal && G.closeModal(true)).then(()=>{ ' + SPLASH + ' })', '#sp-menu'],
+  ['salvataggi', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>document.getElementById("sp-saves").click())', '#sp-slots'],
+  ['impostazioni', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>document.getElementById("sp-settings").click())', '.sp-card.cfg'],
+  /* ---- LE SCHERMATE DELLA COMPAGNIA. Erano tutte fuori da questa prova: nate dopo, provate
+     solo su un monitor, e su un telefono non le aveva mai aperte nessuno. `IN_DUE` rimette la
+     stanza finta ogni poco — la partita vera intanto prova a collegarsi a un centralino che qui
+     non c'è, e la spegnerebbe prima dello scatto. */
+  /* la splash va RIACCESA: all'avvio la prova la nasconde con `display:none`, e riaprire il
+     menu toglie solo la classe `off` — la foto mostrava il gioco, e la misura non trovava
+     niente di storto perché non c'era niente da misurare */
+  ['amici', IN_DUE + 'G.state().amici=[{c:"Q2D4FG7HJK",n:"Luca"},{c:"M7RAC3DEFG",n:"Ada"},{c:"T4KWP9DENQ",n:"Fenn"}]; ' + SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("amici"))', '#sp-mp-mio'],
+  ['taccuino', SPLASH + 'return G.mod("chat").then(c=>{c.dimenticaTutto(); c.segna("Ada","ci vediamo al museo domani?",false); c.segna("Bruno","guarda che pinne ho trovato",false); c.segna("Zoe","il mio parco è pieno",true);}).then(()=>new Promise(r=>setTimeout(r,300))).then(()=>G.splashView("taccuino"))', '.tacc-carta'],
+  ['chat', IN_DUE + 'return new Promise(r=>setTimeout(r,300)).then(()=>{ G.updateHUD && G.updateHUD(); const b=document.getElementById("chattag"); if(!b||getComputedStyle(b).display==="none") throw new Error("in compagnia il pulsante Parla non c\'è"); b.click(); })', '#chatbar.on'],
+  ['sottotitoli', IN_DUE + 'return G.mod("chat").then(c=>G.mod("mp").then(mp=>{ const P2=G.player(); setInterval(()=>{ for (const q of mp.MP.room.peers.values()) q.buf=[{t:performance.now(),x:P2.x+4000,y:P2.y,d:"down",m:0,s:"world"}]; c.arrivato("u1","Ada","ci vediamo alla fontana appena finisco di scavare",performance.now()); c.arrivato("u2","Fenn","ho trovato un cranio enorme",performance.now()); G.chatlog(performance.now(),"world"); },150); }))', '#chatlog.on'],
+  ['nomi', IN_DUE + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.frame && G.frame(1200))'],
+  ['volo', 'G.mod("volo").then(v=>v.partiVolo("Ada"))', '#volo.on'],
+  ['sogno', 'G.sogno()', '#dream.on'],
+  ['locanda', 'Promise.resolve(G.leaveRoom && G.leaveRoom()).then(()=>G.cmd("goto=city")).then(()=>G.openInn())', '#innName'],
+  ['invito', 'G.mod("ui").then(u=>u.mostraInvito("Luca",()=>{},()=>{}))', '#invito'],
+  ['scheletro', 'G.cmd("play=skeleton")', '#skfitov.on'],
 ];
 
 const report = [];
 const CHROME = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', '/usr/bin/google-chrome', '/usr/bin/chromium'].find(p => existsSync(p));
 const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+/* MOBILE_SOLO=amici,chat fa girare solo quelle scene: sedici scene per quattro telefoni sono
+   cinque minuti, e mentre si sistema una schermata basta guardare quella */
+const SOLO = process.env.MOBILE_SOLO ? process.env.MOBILE_SOLO.split(',') : null;
 for (const [dname, dev] of DEV) {
-  for (const [sname, code] of SCENES) {
+  for (const [sname, code, atteso] of SCENES) {
+    if (SOLO && !SOLO.includes(sname)) continue;
     const ctxb = await browser.newContext({ ...dev });
     const page = await ctxb.newPage();
     const errs = [];
@@ -71,8 +112,21 @@ for (const [dname, dev] of DEV) {
     for (let k = 0; k < 3; k++) { const sk = await page.$('#introskip'); if (sk && await sk.isVisible()) { await sk.tap().catch(() => {}); await page.waitForTimeout(700); } }
     await page.evaluate(() => { const G = window.__digsy; if (G && G.closeModal) G.closeModal(true); });
     await page.waitForTimeout(400);
-    try { await page.evaluate(`(async()=>{ const G = window.__digsy; await (${code}); })()`); } catch (e) { errs.push('scena: ' + e.message); }
+    /* una scena è un'espressione, oppure (quelle in compagnia) un corpo con dentro un return */
+    const corpo = /\breturn\b/.test(code) ? code : 'return (' + code + ');';
+    try { await page.evaluate(`(async()=>{ const G = window.__digsy; await (async()=>{ ${corpo} })(); })()`); } catch (e) { errs.push('scena: ' + e.message); }
     await page.waitForTimeout(900);
+    /* LA SCHERMATA C'È DAVVERO? Senza questo controllo una scena che non si apre passa verde:
+       niente esce dallo schermo, niente è piccolo… perché non c'è niente. È successo a menu,
+       salvataggi e impostazioni per chissà quanto. */
+    if (atteso) {
+      const c = await page.evaluate((q) => {
+        const el = document.querySelector(q); if (!el) return 'manca';
+        if (el.checkVisibility && !el.checkVisibility({ checkOpacity: true, checkVisibilityCSS: true })) return 'nascosta';
+        const r = el.getBoundingClientRect(); return (r.width > 4 && r.height > 4) ? '' : 'vuota';
+      }, atteso);
+      if (c) errs.push('la schermata non si è aperta (' + atteso + ' ' + c + ')');
+    }
     /* cosa esce dallo schermo: elementi visibili dell'interfaccia oltre i bordi */
     const m = await page.evaluate(() => {
       const W = innerWidth, H = innerHeight, out = [];
@@ -96,6 +150,10 @@ for (const [dname, dev] of DEV) {
       for (const el of document.querySelectorAll('button, .btn, [data-comp], [data-yard], [role="button"], #joy, #abtn')) {
         const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) continue;
         const r = el.getBoundingClientRect(); if (r.width < 2 || r.height < 2) continue;
+        /* LE LINGUETTE DEL TACCUINO sono un indice, come quello laterale della rubrica di un
+           telefono: ventisei lettere in una colonna non possono essere alte 36 l'una su uno
+           schermo da 568. Si pretende che restino PRENDIBILI (30×22), non che siano pulsanti. */
+        if (el.classList.contains('tacc-tab')) { if (r.width < 28 || r.height < 22) piccoli.push(nome(el) + ' ' + Math.round(r.width) + '×' + Math.round(r.height)); continue; }
         if (r.width < 40 || r.height < 36) piccoli.push(nome(el) + ' ' + Math.round(r.width) + '×' + Math.round(r.height));
       }
       for (const el of document.querySelectorAll('body *')) {
@@ -107,9 +165,45 @@ for (const [dname, dev] of DEV) {
         const r = el.getBoundingClientRect(); if (r.width < 4 || r.height < 4) continue;
         if (parseFloat(cs.fontSize) < 11) minuti.push(nome(el) + ' ' + cs.fontSize);
       }
+      /* COPERTI DAI COMANDI. La riga della chat, i sottotitoli di chi parla e l'invito stanno
+         in basso, dove stanno anche joystick e tasto azione: se si toccano, sotto il pollice
+         c'è quello che si voleva leggere — o il tasto azione sopra il campo in cui si scrive. */
+      const coperti = [];
+      const vis = el => { if (!el) return null; const cs = getComputedStyle(el); if (cs.display === 'none' || cs.visibility === 'hidden' || +cs.opacity === 0) return null; const r = el.getBoundingClientRect(); return (r.width > 2 && r.height > 2) ? r : null; };
+      const tocca = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+      const comandi = ['#joy', '#abtn', '#exitbtn'].map(q => [q, vis(document.querySelector(q))]).filter(x => x[1]);
+      for (const q of ['#chatbar', '#chatlog', '.invito', '#inv']) {
+        const r = vis(document.querySelector(q)); if (!r) continue;
+        for (const [cq, cr] of comandi) if (tocca(r, cr)) coperti.push(q + '×' + cq);
+      }
+      /* TAGLIATI DI LATO. Un pezzo più largo del riquadro che lo contiene non esce dallo
+         schermo — il riquadro lo nasconde — e quindi il controllo qui sopra non lo vede: è
+         così che la seconda colonna di linguette del taccuino spariva su un telefono piccolo.
+         Si guarda solo in orizzontale: in verticale quel riquadro scorre, ed è giusto. */
+      const tagliati = [];
+      for (const el of document.querySelectorAll('.tacc-carta, .tacc-abc, .sp-riga, .sp-code, .sp-btn, .cl-riga, .vl-cv, .dr-cv, .sk-board')) {
+        const r = vis(el); if (!r) continue;
+        let a = el.parentElement;
+        while (a && a !== document.body) {
+          const s2 = getComputedStyle(a);
+          if (/(hidden|auto|scroll|clip)/.test(s2.overflowX + s2.overflow)) break;
+          a = a.parentElement;
+        }
+        if (!a || a === document.body) continue;
+        const ra = a.getBoundingClientRect();
+        if (r.left < ra.left - 1 || r.right > ra.right + 1) tagliati.push(nome(el) + ' ' + Math.round(r.left - ra.left) + '/' + Math.round(ra.right - r.right));
+      }
+      /* le LINGUETTE del taccuino dentro il loro foglio, anche in verticale: sul telefono
+         più piccolo l'ultima (M) usciva dal fondo e si vedeva a metà */
+      for (const el of document.querySelectorAll('.tacc-tab')) {
+        const r = vis(el), f = el.closest('.tacc-carta'); if (!r || !f) continue;
+        const rf = f.getBoundingClientRect();
+        if (r.bottom > rf.bottom + 1 || r.top < rf.top - 1) tagliati.push('linguetta ' + el.textContent + ' fuori dal foglio');
+      }
       const doc = document.documentElement;
       return { W, H, scrollW: doc.scrollWidth, scrollH: doc.scrollHeight, out: out.slice(0, 8),
-        piccoli: [...new Set(piccoli)].slice(0, 6), minuti: [...new Set(minuti)].slice(0, 6) };
+        piccoli: [...new Set(piccoli)].slice(0, 6), minuti: [...new Set(minuti)].slice(0, 6), coperti,
+        tagliati: [...new Set(tagliati)].slice(0, 6) };
     });
     await page.screenshot({ path: `${OUT}${dname}-${sname}.png` });
     report.push({ dname, sname, ...m, errs });
@@ -193,11 +287,13 @@ const prova = [];
 await browser.close(); server.close();
 let problemi = 0;
 for (const r of report) {
-  if (r.out.length || r.errs.length || r.piccoli.length || r.minuti.length) problemi++;
+  if (r.out.length || r.errs.length || r.piccoli.length || r.minuti.length || (r.coperti || []).length || (r.tagliati || []).length) problemi++;
   console.log(`${r.dname.padEnd(14)} ${r.sname.padEnd(8)} ${r.W}x${r.H} scroll ${r.scrollW}x${r.scrollH}`
     + (r.out.length ? '  FUORI: ' + r.out.join(' ') : '')
     + (r.piccoli.length ? '  PICCOLI: ' + r.piccoli.join(' ') : '')
     + (r.minuti.length ? '  TESTO MINUTO: ' + r.minuti.join(' ') : '')
+    + ((r.coperti || []).length ? '  COPERTI DAI COMANDI: ' + r.coperti.join(' ') : '')
+    + ((r.tagliati || []).length ? '  TAGLIATI DI LATO: ' + r.tagliati.join(' ') : '')
     + (r.errs.length ? '  ERRORI: ' + r.errs.join(' | ') : ''));
 }
 if (prova.length) { problemi += prova.length; console.log('GIOCABILITÀ COL DITO: ' + prova.join(' · ')); }
