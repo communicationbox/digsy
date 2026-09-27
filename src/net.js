@@ -65,6 +65,7 @@ export const T = {
   ONLINE: 'online',  // …questi (o: questo è appena comparso/sparito)
   INVITO: 'invito',  // vieni nel mio mondo
   RIFIUTO: 'rifiuto',// no, non adesso
+  CHIEDI: 'chiedi',  // fammi entrare nel tuo mondo (il contrario di un invito)
   RECAPITO: 'recapito', // a quanti è arrivato l'invito (zero è una risposta, non un silenzio)
   PING: 'ping',      // ci sono ancora (e la linea in mezzo è viva)
   PONG: 'pong',      // il centralino risponde: sì, ti sento
@@ -161,8 +162,10 @@ export function decode(raw) {
       if (Array.isArray(m.attivi)) return { t: m.t, attivi: m.attivi.filter(x => typeof x === 'string').slice(0, 50) };
       return (typeof m.cambia === 'string') ? { t: m.t, cambia: m.cambia.slice(0, 20), acceso: !!m.acceso } : null;
     case T.RECAPITO:
-      return (typeof m.a === 'string' && num(m.quanti)) ? { t: m.t, a: m.a.slice(0, 20), quanti: m.quanti } : null;
-    case T.INVITO: case T.RIFIUTO:
+      /* `cosa`: la ricevuta di un invito o di una richiesta — «invito mandato» e «richiesta
+         mandata» sono due frasi diverse */
+      return (typeof m.a === 'string' && num(m.quanti)) ? { t: m.t, a: m.a.slice(0, 20), quanti: m.quanti, cosa: m.cosa === 'chiedi' ? 'chiedi' : 'invito' } : null;
+    case T.INVITO: case T.RIFIUTO: case T.CHIEDI:
       /* `da` è il codice di chi invita: lo scrive il CENTRALINO, non il client, quindi un
          invito non si può firmare col nome di un altro. */
       return (typeof m.da === 'string' && m.da) ? { t: m.t, da: m.da.slice(0, 20),

@@ -241,6 +241,14 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   (`amiciAperti` in tutorial.js, `fatto` sopravvive a `tutRestart`): prima col lucchetto.
   Vale anche per il link `?vai=`: a tutorial in corso si toglie dall'indirizzo senza entrare, e
   a gioco iniziato un toast dice di riaprirlo dopo (`invitoFermo` in main.js).
+- **«Fammi entrare» e la cortesia dopo un no** (`chiedi` in mp.js, `T.CHIEDI`, `cortesia.js`):
+  il contrario dell'invito. Il sì di chi riceve apre il SUO mondo e lo invita; l'invito arriva
+  segnato `chiesto` e si accetta da solo (entro `CHIESTO_MS`). Ogni `rifiuto` allunga l'attesa
+  verso quella persona — subito, 10 s, 1 min, 5, 15, 30, 60 min al massimo (`ATTESE`), un
+  conto solo per inviti e richieste, nel dispositivo (`digsy_cortesia`) così un ricaricamento
+  non lo azzera; chi ci cerca fa pace, e dopo un giorno si ricomincia. Il pulsante mostra
+  «tra 40 s» aggiornato sul posto. **Il centralino va ricopiato a mano** (scp + restart): il
+  tipo `chiedi` e la ricevuta con `cosa` stanno in `server/relay/relay.js`.
 - **Il compagno viaggia e si vede** (`net.js` `cleanComp` + `T.AT`): la bestia sta nel
   salvataggio di chi la porta (quindi attraversa le stanze da sé), ma agli altri va DETTA. Si
   manda lo **stampo** (le tre specie + rarità: il modello lo ricostruisce chi guarda, quindi da

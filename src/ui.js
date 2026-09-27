@@ -568,13 +568,17 @@ export function chiudiInvito() {
   if (invitoAperto && invitoAperto.remove) invitoAperto.remove();
   invitoAperto = null;
 }
-export function mostraInvito(chi, onSi, onNo) {
+/* `chiede`: è una RICHIESTA («fammi entrare»), non un invito — stesso biglietto, parole
+   rovesciate: il sì apre il TUO mondo e ci fa entrare lui */
+export function mostraInvito(chi, onSi, onNo, chiede) {
   if (typeof document === 'undefined' || !document.createElement || !document.body) return null;
   chiudiInvito();
   const b = document.createElement('div');
   b.className = 'invito'; b.id = 'invito';
-  b.innerHTML = withIcons(`<div class="inv-t">🚶 <b>${String(chi || '?').replace(/[<>&]/g, '')}</b> ${tr('ti invita nel suo mondo', 'invites you to their world')}</div>`
-    + `<div class="inv-b"><button class="btn amber" id="inv-si">${tr('Vai da lui', 'Go to them')}</button>`
+  const frase = chiede ? tr('vorrebbe entrare nel tuo mondo', 'would like to join your world') : tr('ti invita nel suo mondo', 'invites you to their world');
+  const siT = chiede ? tr('Fallo entrare', 'Let them in') : tr('Vai da lui', 'Go to them');
+  b.innerHTML = withIcons(`<div class="inv-t">🚶 <b>${String(chi || '?').replace(/[<>&]/g, '')}</b> ${frase}</div>`
+    + `<div class="inv-b"><button class="btn amber" id="inv-si">${siT}</button>`
     + `<button class="btn ghost" id="inv-no">${tr('Non adesso', 'Not now')}</button></div>`);
   document.body.appendChild(b);
   invitoAperto = b;

@@ -90,14 +90,15 @@ wss.on('connection', (ws) => {
     /* UN INVITO. Il centralino lo porta a destinazione e basta: non sa cosa sia un mondo, non
        decide chi può invitare chi. Se la persona ha due dispositivi accesi, arriva a tutti e
        due — accetterà da quello che ha in mano. */
-    if (m.t === 'invito' || m.t === 'rifiuto') {
+    /* E LA RICHIESTA («fammi entrare»): stessa strada dell'invito, al contrario */
+    if (m.t === 'invito' || m.t === 'rifiuto' || m.t === 'chiedi') {
       const dove = perCodice(hub, m.a).filter(q => q.id !== id);
       const fuori = JSON.stringify({ t: m.t, da: p.codice, nome: p.name, stanza: m.stanza || null });
       for (const q of dove) q.send(fuori);
       /* RICEVUTA. Chi invita deve sapere se è arrivato a qualcuno: un invito mandato a un
          codice che non ha nessuno è indistinguibile, da fuori, da un pulsante rotto — ed è
          esattamente quello che è sembrato («ho premuto invita e non compare nulla»). */
-      if (m.t === 'invito') manda('recapito', { a: String(m.a || '').toUpperCase(), quanti: dove.length });
+      if (m.t !== 'rifiuto') manda('recapito', { a: String(m.a || '').toUpperCase(), quanti: dove.length, cosa: m.t });
       return;
     }
     if (m.t === 'bye') { chiudiStanza(); return; }

@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.34', it: [
+      'FAMMI ENTRARE: se un amico sta giocando puoi chiedergli di aprirti il suo mondo, il contrario di «Invita». Se dice sì entri da solo, senza un secondo sì da parte tua',
+      'NIENTE INSISTENZE: dopo un no si può richiedere subito, poi dopo 10 secondi, un minuto, cinque, e su fino a un\'ora al massimo. Vale per inviti e richieste insieme, e il pulsante dice quanto manca',
+    ], en: [
+      'LET ME IN: if a friend is playing you can ask them to open their world to you, the reverse of «Invite». If they say yes you join straight away, no second yes needed from you',
+      'NO NAGGING: after a no you can ask again right away, then after 10 seconds, a minute, five, and up to an hour at most. It covers invites and requests together, and the button says how long is left',
+    ],
+  },
+  {
     v: 'v0.99.33', it: [
       'Anche i LINK D\'INVITO aspettano il tutorial: aperti a tutorial in corso non portano nel mondo dell\'amico, e il gioco dice di riaprirli quando hai finito (o saltato) il tutorial',
     ], en: [

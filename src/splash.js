@@ -4,7 +4,7 @@ import { drawCornerScene, SCENE_W, SCENE_H } from './splashScene.js';
 import { S, load, save, slotInfo, saveToSlot, loadFromSlot, newGame, SLOTS } from './state.js';
 import { audioOpts, setMusicOn, setVolume, setSfxOn, setSfxVolume, startAudio } from './audio.js';
 import { MP, connect, disconnect, esci, relayUrl, presenti, mandaVia, sonoOspitante, inAttesa, inCasa,
-  CENTRALINO_ONLINE, inLinea, invita, setAmici } from './mp.js';
+  CENTRALINO_ONLINE, inLinea, invita, chiedi, setAmici } from './mp.js';
 import { pagine, pagina, dimentica, dimenticaTutto, rubrica, segnaLetto, LETTERE, ALTRE } from './chat.js';
 import { tr, LANG, setLang, LANGS, isTouch, keys } from './i18n.js';
 import { getPrefs, pref, setPref } from './prefs.js';
@@ -19,6 +19,7 @@ import { battitoAcceso, accendiBattito } from './beat.js';
 import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico, linkInvito, codiceDaTesto, nomeDi } from './amici.js';
 import { toast } from './ui.js';
 import { amiciAperti } from './tutorial.js';
+import { attesa as attesaCortesia, traQuanto } from './cortesia.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
    si cambia, e deve esserci un posto solo da aggiornare. */
@@ -668,7 +669,17 @@ function buildMenu(inGame) {
         const qui = inLinea(g.c);
         h += `<div class="sp-riga"><span><i class="pallino${qui ? ' on' : ''}"></i>${esc(g.n)}`
           + `<br><small>${qui ? tr('sta giocando', 'playing now') : tr('non c\'è', 'away')}</small></span>`;
-        if (qui && !ospite) h += `<button class="sp-btn small" data-invita="${esc(g.c)}">${tr('Invita', 'Invite')}</button>`;
+        /* INVITARE E CHIEDERE, i due versi della stessa porta: «vieni da me» e «fammi entrare».
+           Dopo un «no» si aspetta (cortesia.js), e il pulsante lo DICE invece di spegnersi e
+           basta: «tra 40 s». Chiedere non serve se si è già nel suo mondo. */
+        const aspetta = qui ? attesaCortesia(g.c) : 0;
+        const giaDaLui = MP.stato === 'dentro' && MP.stanza === stanzaDi(g.c);
+        if (qui && aspetta > 0 && !giaDaLui) {
+          h += `<button class="sp-btn small sp-attesa" disabled data-cod="${esc(g.c)}" title="${tr('Ha detto di no da poco', 'They said no a moment ago')}">${traQuanto(aspetta, tr)}</button>`;
+        } else if (qui) {
+          if (!ospite) h += `<button class="sp-btn small" data-invita="${esc(g.c)}">${tr('Invita', 'Invite')}</button>`;
+          if (!giaDaLui) h += `<button class="sp-btn small" data-chiedi="${esc(g.c)}">${tr('Fammi entrare', 'Let me in')}</button>`;
+        }
         h += `<button class="sp-btn small sp-via" data-scorda="${esc(g.c)}" title="${tr('Togli dalla rubrica', 'Remove')}">✕</button>`;
         h += `</div>`;
       }
@@ -891,7 +902,15 @@ function buildMenu(inGame) {
     vigile = setInterval(() => {
       if (view !== 'amici' || !on) { clearInterval(vigile); vigile = null; return; }
       const ora = MP.stato + '|' + MP.room.peers.size + '|' + MP.online.size;
-      if (ora !== visto) { visto = ora; buildMenu(inGame); }
+      if (ora !== visto) { visto = ora; buildMenu(inGame); return; }
+      /* il conto alla rovescia dell'attesa si aggiorna SUL POSTO: ridisegnare tutta la scheda
+         ogni secondo cancellerebbe quello che si sta scrivendo nel campo «aggiungi». A zero,
+         si ridisegna una volta e ricompaiono i pulsanti. */
+      if (menu.querySelectorAll) for (const b of menu.querySelectorAll('.sp-attesa[data-cod]')) {
+        const a = attesaCortesia(b.dataset.cod);
+        if (a <= 0) { buildMenu(inGame); return; }
+        const t = traQuanto(a, tr); if (b.textContent !== t) b.textContent = t;
+      }
     }, 400);
   }
   const card = document.querySelector ? document.querySelector('.sp-card') : null;
@@ -976,6 +995,11 @@ function buildMenu(inGame) {
          non facesse niente e servisse premerlo due volte. */
       if (!sonoOspitante()) vaiDa(mioCodice(), true);
       invita(cod);      // il «mandato» (o il «non è arrivato») lo dice la ricevuta del centralino
+      go('amici');
+    }; });
+  /* «FAMMI ENTRARE»: si chiede, e se dice sì il suo invito si accetta da solo (mp.js) */
+  document.querySelectorAll('[data-chiedi]').forEach(b => { b.onclick = () => {
+      if (!chiedi(b.dataset.chiedi)) toast('🚶 ' + tr('Adesso non si può chiedere: aspetta un momento', "You can't ask right now: wait a moment"));
       go('amici');
     }; });
   /* COPIARE IL PROPRIO CODICE. `navigator.clipboard` non c'è dappertutto (e su http nudo

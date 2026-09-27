@@ -448,7 +448,14 @@ async function main() {
       if (Sa) Sa.amici = [{ c:'Q2D4FG7HJK', n:'Luca' }, { c:'M7RAC3DEFG', n:'Ada' },
         { c:'T4KWP9DENQ', n:'Fenn' }, { c:'W2RUC7MAJX', n:'Ettore' }, { c:'H6NDA3QTVK', n:'Zoe' },
         { c:'P9XGE4RUMT', n:'Nadia' }, { c:'C3JWK8HEQR', n:'Bruno' }];
-      if(G.splashView) G.splashView('amici');
+      /* due in linea: uno coi pulsanti, uno che ha detto no da poco (l'attesa scritta) */
+      try { localStorage.setItem('digsy_cortesia', JSON.stringify({ M7RAC3DEFG: { n: 3, t: Date.now() } })); } catch (e) {}
+      /* senza centralino la linea cade e il pallino si spegne: lo si tiene acceso a mano */
+      if (G.mod) G.mod('mp').then(function(m){
+        setInterval(function(){ m.MP.stato = 'linea'; m.MP.online = new Set(['Q2D4FG7HJK', 'M7RAC3DEFG']); }, 50);
+        setTimeout(function(){ if(G.splashView) G.splashView('amici'); }, 200);
+      });
+      else if(G.splashView) G.splashView('amici');
     }
     /* 'taccuino' = la rubrica con dentro qualcuno, e con roba da leggere: vuota è una riga
        di testo, e le due cose da guardare (le lettere sul bordo, la lettera che si accende)

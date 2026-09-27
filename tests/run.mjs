@@ -11906,5 +11906,76 @@ sprites.applyLook();
   check('e il chinato usa lo sprite di profilo, colonna per colonna', /creatureSprite\(a, 'side'\)/.test(corpo('drawCreatureTilted')) && /drawImage\(cv, src, 0, 1, H/.test(corpo('drawCreatureTilted')));
 }
 
+/* ---------- «FAMMI ENTRARE» E LA CORTESIA DOPO UN NO ----------
+   Si può chiedere a un amico in linea di aprirci il suo mondo (il contrario dell'invito). Dopo
+   un «no» si aspetta sempre di più: subito, 10 s, 1 min, 5 min… fino a un'ora al massimo
+   («così evitiamo lo spam»). Un conto solo per persona, per inviti e richieste insieme. */
+{
+  const co = await import('../src/cortesia.js');
+  try { localStorage.removeItem('digsy_cortesia'); } catch (e) { /* stub */ }
+  const T0 = 1e12, L = 'LUCA123456';
+  check('mai detto di no: si chiede subito', co.attesa(L, T0) === 0);
+  const passi = [];
+  for (let i = 0; i < 9; i++) { co.rifiutato(L, T0); passi.push(co.attesa(L, T0)); }
+  check('dopo ogni no si aspetta di più: subito, 10 s, 1 min, 5 min… fino a un\'ora',
+    passi.slice(0, 4).join() === [0, 10e3, 60e3, 5 * 60e3].join() && passi.every((v, i) => i === 0 || v >= passi[i - 1]) && Math.max(...passi) === 60 * 60e3,
+    passi.map(v => v / 1000).join(','));
+  check('e l\'ora è il tetto', passi[8] === 60 * 60e3);
+  check('passato il tempo si può di nuovo', co.attesa(L, T0 + 60 * 60e3 + 1) === 0);
+  co.rifiutato(L, T0 + co.DIMENTICA + 5);
+  check('passato un giorno si ricomincia daccapo', co.attesa(L, T0 + co.DIMENTICA + 5) === 0);
+  co.rifiutato(L, T0); co.rifiutato(L, T0);
+  co.pace(L);
+  check('un sì (o se è lui a cercarci) azzera tutto', co.attesa(L, T0) === 0);
+  check('l\'attesa si dice come la direbbe una persona', co.traQuanto(40e3, (it) => it) === 'tra 40 s' && co.traQuanto(5 * 60e3, (it) => it) === 'tra 5 min');
+
+  /* LA RETE: chiedere, sentirsi dire no, e l'invito che arriva dopo un sì */
+  const mpF = await import('../src/mp.js');
+  const netF = await import('../src/net.js');
+  const fatte = [];
+  mpF.setTransport(() => { const x = { readyState: 1, inviati: [], close() {}, send(v) { x.inviati.push(JSON.parse(v)); } }; fatte.push(x); return x; });
+  mpF.connect('ws://finta/ws', { name: 'Marco', codice: 'MARCO12345', amici: [L] });
+  const sF = fatte[fatte.length - 1];
+  sF.onopen(); sF.onmessage({ data: netF.encode(netF.T.WELCOME, { id: 'io' }) });
+  check('«fammi entrare» parte', mpF.chiedi(L) === true && sF.inviati.some(x => x.t === 'chiedi' && x.a === L));
+  let invF = null; mpF.setSuInvito(v => { invF = v; });
+  sF.onmessage({ data: JSON.stringify({ t: 'invito', da: L, nome: 'Luca' }) });
+  check('se dice sì, il suo invito arriva segnato come «chiesto da me» (si entra senza richiedere il sì)', invF && invF.chiesto === true);
+  /* un invito che NON ho chiesto resta una domanda */
+  let inv2 = null; mpF.setSuInvito(v => { inv2 = v; });
+  sF.onmessage({ data: JSON.stringify({ t: 'invito', da: 'ADA1234567', nome: 'Ada' }) });
+  check('un invito non chiesto resta da accettare', inv2 && inv2.chiesto === false);
+  /* il no */
+  let noF = null; mpF.setSuRifiuto(v => { noF = v; });
+  mpF.chiedi(L);
+  sF.onmessage({ data: JSON.stringify({ t: 'rifiuto', da: L, nome: 'Luca' }) });
+  check('il primo no non costa niente: si può richiedere subito', noF && noF.attesa === 0 && co.attesa(L) === 0);
+  mpF.chiedi(L);
+  sF.onmessage({ data: JSON.stringify({ t: 'rifiuto', da: L, nome: 'Luca' }) });
+  check('al secondo no si aspetta, e il no lo dice', noF.attesa > 9000 && noF.attesa <= 10e3, String(noF.attesa));
+  const primaF = sF.inviati.length;
+  check('e nell\'attesa non si chiede né si invita', mpF.chiedi(L) === false && mpF.invita(L) === false && sF.inviati.length === primaF);
+  /* un amico che CHIEDE di entrare da me: si passa a chi disegna */
+  let chF = null; mpF.setSuChiesta(v => { chF = v; });
+  sF.onmessage({ data: JSON.stringify({ t: 'chiedi', da: L, nome: 'Luca' }) });
+  check('una richiesta che arriva si passa a chi la chiede alla persona', chF && chF.da === L);
+  check('e chi ci cerca fa pace: l\'attesa verso di lui si azzera', co.attesa(L) === 0);
+  check('una richiesta senza mittente non è una richiesta', netF.decode(JSON.stringify({ t: 'chiedi', nome: 'Tizio' })) === null);
+  check('la ricevuta dice se era un invito o una richiesta', netF.decode(JSON.stringify({ t: 'recapito', a: L, quanti: 1, cosa: 'chiedi' })).cosa === 'chiedi');
+  mpF.setSuChiesta(null); mpF.setSuRifiuto(null); mpF.setSuInvito(null);
+  mpF.disconnect();
+  mpF.setTransport((u) => new WebSocket(u));
+  try { localStorage.removeItem('digsy_cortesia'); } catch (e) { /* stub */ }
+
+  /* IL CENTRALINO porta la richiesta come porta l'invito, e ne dà la ricevuta */
+  const rsrcF = (await import('node:fs')).readFileSync('server/relay/relay.js', 'utf8');
+  check('il centralino inoltra «fammi entrare»', /m\.t === 'chiedi'/.test(rsrcF) && /cosa: m\.t/.test(rsrcF));
+  /* e il biglietto a schermo è rovesciato: il sì fa entrare LUI */
+  const uiF = await import('../src/ui.js');
+  const bF = uiF.mostraInvito('Luca', () => {}, () => {}, true);
+  check('il biglietto di una richiesta dice «fallo entrare»', !bF || /Fallo entrare/.test(bF.innerHTML));
+  uiF.chiudiInvito && uiF.chiudiInvito();
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

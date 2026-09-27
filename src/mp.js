@@ -19,6 +19,7 @@
  *    treno in galleria) si riprova con attese che crescono e poi ci si ferma. Un gioco che
  *    tenta di collegarsi per sempre scalda il telefono e non lo dice a nessuno.
  */
+import { attesa as attesaCortesia, rifiutato as rifiutatoDa, pace } from './cortesia.js';
 import { PROTO, T, encode, decode, makeRoom, applyMessage, peerAt, shouldSend, markSent, muto, PING_MS, PONG_MAX } from './net.js';
 import { entra as entraInVisita, torna as tornaACasa, mondoDaMandare, applicaMutazione, applicaOrologio, sonoOspite, applicaCasa } from './visita.js';
 import { arrivato as chatArrivata, detto as chatDetto } from './chat.js';
@@ -230,10 +231,15 @@ export function ricevi(raw, now) {
   }
   /* UN INVITO ARRIVATO. Qui non si decide niente: si passa a chi disegna, che lo chiederà alla
      persona. Accettare o no è una risposta, non una conseguenza. */
-  if (m.t === T.INVITO && suInvito) suInvito({ da: m.da, nome: m.nome });
-  if (m.t === T.RIFIUTO && suRifiuto) suRifiuto({ da: m.da, nome: m.nome });
+  /* CHI CI CERCA fa pace: se mi invita o chiede di entrare, l'attesa verso di lui si azzera */
+  if ((m.t === T.INVITO || m.t === T.CHIEDI) && m.da) pace(m.da);
+  if (m.t === T.INVITO && suInvito) suInvito({ da: m.da, nome: m.nome, chiesto: chiestoDa(m.da, now) });
+  if (m.t === T.CHIEDI && suChiesta) suChiesta({ da: m.da, nome: m.nome });
+  /* un «no» (a un invito O a una richiesta) allunga l'attesa prima della prossima volta */
+  if (m.t === T.RIFIUTO && m.da) { rifiutatoDa(m.da); delete chiesti[String(m.da).toUpperCase()]; }
+  if (m.t === T.RIFIUTO && suRifiuto) suRifiuto({ da: m.da, nome: m.nome, attesa: attesaCortesia(m.da) });
   /* LA RICEVUTA dell'invito: a quante persone è arrivato. Zero è una risposta — e va detta. */
-  if (m.t === T.RECAPITO && suRecapito) suRecapito({ a: m.a, quanti: m.quanti });
+  if (m.t === T.RECAPITO && suRecapito) suRecapito({ a: m.a, quanti: m.quanti, cosa: m.cosa });
   if (m.t === T.MUT) applicaMutazione(m.k, m.c);
   if (m.t === T.CLOCK) applicaOrologio(m.day, m.tod);
   if (m.t === T.CHAT && m.id) {
@@ -489,6 +495,7 @@ let inCoda = [];
 export function invita(codice) {
   const a = String(codice || '').toUpperCase();
   if (!a) return false;
+  if (attesaCortesia(a) > 0) return false;        // ha detto no da poco: si aspetta (cortesia.js)
   if (MP.stato === 'dentro' && sonoOspitante()) return manda(T.INVITO, { a });
   inCoda = inCoda.filter(v => v.a !== a).concat([{ a, t: ora() }]);
   return true;                       // «preso in carico»: parte appena la stanza è aperta
@@ -504,6 +511,25 @@ function spediscoInviti() {
 }
 export function invitiInCoda() { return inCoda.length; }
 export function rifiuta(codice) { return manda(T.RIFIUTO, { a: String(codice || '').toUpperCase() }); }
+/* «FAMMI ENTRARE»: il contrario di un invito. Si chiede a un amico in linea di aprirci il suo
+   mondo; se dice sì, apre e ci invita, e quell'invito si accetta DA SOLO — l'abbiamo chiesto
+   noi, rispondere «sì» una seconda volta sarebbe un gesto in più per niente. Il ricordo della
+   richiesta dura CHIESTO_MS: un invito che arriva un quarto d'ora dopo si chiede di nuovo. */
+export const CHIESTO_MS = 2 * 60e3;
+let chiesti = {};
+export function chiedi(codice) {
+  const a = String(codice || '').toUpperCase();
+  if (!a || attesaCortesia(a) > 0) return false;
+  const ok = manda(T.CHIEDI, { a });
+  if (ok) chiesti[a] = ora();
+  return ok;
+}
+export function chiestoDa(codice, now) {
+  const t = chiesti[String(codice || '').toUpperCase()];
+  return t !== undefined && (now ?? ora()) - t < CHIESTO_MS;
+}
+let suChiesta = null;
+export function setSuChiesta(fn) { suChiesta = fn; }
 let suInvito = null, suRifiuto = null, suOnline = null, suRecapito = null, suVisita = null;
 export function setSuRecapito(fn) { suRecapito = fn; }
 export function setSuInvito(fn) { suInvito = fn; }

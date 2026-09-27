@@ -19,7 +19,8 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, setSuVisita, rifiuta, setIdentita, svegliati as mpSvegliati } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, setSuVisita, rifiuta, setIdentita, svegliati as mpSvegliati, setSuChiesta, invita as mpInvita, sonoOspitante as mpSonoOspitante } from './mp.js';
+import { traQuanto } from './cortesia.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { mioCodice, codiceDaTesto, valido, stanzaDi, amici, nomeDi, aggiungiAmico } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
@@ -353,12 +354,29 @@ function boot() {
      e se dice di sì si entra nel mondo di chi ha invitato — che è già aperto, perché invitare
      vuol dire aprirlo. Se dice di no, chi ha invitato lo sa: aspettare una risposta che non
      arriva mai è la cosa più scortese che un gioco possa far fare a qualcuno. */
-  setSuInvito(({ da, nome }) => {
+  setSuInvito(({ da, nome, chiesto }) => {
     const come = nomeDi(da) || nome || da;
-    mostraInvito(come,
-      () => { mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, codice: mioCodice(),
-        amici: amici().map(a => a.c), room: stanzaDi(da), ospite: true }); },
-      () => { rifiuta(da); });
+    const vai = () => { mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, codice: mioCodice(),
+      amici: amici().map(a => a.c), room: stanzaDi(da), ospite: true }); };
+    /* L'AVEVO CHIESTO IO («fammi entrare»): il suo sì È l'invito, e si parte senza chiedere
+       un'altra volta */
+    if (chiesto) { toast('🚶 ' + come + ' ' + tr('ti fa entrare', 'lets you in')); vai(); return; }
+    mostraInvito(come, vai, () => { rifiuta(da); });
+  });
+  /* UN AMICO CHIEDE DI ENTRARE. Il sì apre il MIO mondo e lo invita (l'invito parte appena la
+     stanza è aperta, e da lui si accetta da solo); il no gli arriva, e allunga la sua attesa
+     prima di poter richiedere. A tutorial in corso gli Amici non ci sono ancora: si dice no. */
+  setSuChiesta(({ da, nome }) => {
+    if (!amiciAperti()) { rifiuta(da); return; }
+    const come = nomeDi(da) || nome || da;
+    mostraInvito(come, () => {
+      if (!mpSonoOspitante()) {
+        const bs = S && S.companion;
+        mpConnect(relayUrl(), { name: (S && S.name) || 'Digsy', look: S && S.look, room: stanzaDi(mioCodice()), ospite: false,
+          comp: bs ? { skull: bs.skull, torso: bs.torso, leg: bs.leg, q: bs.q } : null });
+      }
+      mpInvita(da);
+    }, () => { rifiuta(da); }, true);
   });
   /* SI PARTE. Entrare in casa di qualcuno era uno stacco secco: premevi accetta e ti
      ritrovavi altrove, senza che niente dicesse che avevi viaggiato. Tre secondi d'aereo, e
@@ -371,14 +389,17 @@ function boot() {
   /* LA RICEVUTA: a quanti è arrivato l'invito. Zero non è un silenzio, è una risposta — e
      senza dirla un invito mandato a un codice che non ha nessuno è indistinguibile da un
      pulsante rotto («ho premuto invita e non compare nulla»). */
-  setSuRecapito(({ a, quanti }) => {
+  setSuRecapito(({ a, quanti, cosa }) => {
     const come = nomeDi(a) || a;
-    if (quanti > 0) toast('🚶 ' + tr('Invito mandato a ', 'Invite sent to ') + come);
+    if (quanti > 0 && cosa === 'chiedi') toast('🚶 ' + tr('Hai chiesto a ', 'You asked ') + come + tr(' di farti entrare', ' to let you in'));
+    else if (quanti > 0) toast('🚶 ' + tr('Invito mandato a ', 'Invite sent to ') + come);
     else toast('🚶 ' + come + ' ' + tr('non ha ricevuto l\'invito: forse gioca con un altro codice. Fattelo ridire.',
       "didn't get the invite: maybe they play with a different code now. Ask them for it again."));
   });
-  setSuRifiuto(({ da, nome }) => {
-    toast('🚶 ' + (nomeDi(da) || nome || da) + ' ' + tr('non può adesso', "can't right now"));
+  setSuRifiuto(({ da, nome, attesa }) => {
+    /* e si dice QUANDO si può riprovare: un pulsante spento senza motivo sembra rotto */
+    toast('🚶 ' + (nomeDi(da) || nome || da) + ' ' + tr('non può adesso', "can't right now")
+      + (attesa > 0 ? ' · ' + tr('puoi riprovare ', 'you can try again ') + traQuanto(attesa, tr) : ''));
   });
   setSuAlba(() => {
     const dormivo = albaRicevuta();
