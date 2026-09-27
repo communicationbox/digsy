@@ -1757,7 +1757,6 @@ export const RU = {
   'Hanging lily': 'Подвесная кувшинка', 'Ice mirror': 'Ледяное зеркало',
   /* cancello del cortile chiuso a chiave dal teletrasporto */
   "Whoa! It's locked from outside!! Leave through the portal in the hall": 'Ого! Заперто снаружи!! Выходи через портал в прихожей',
-  "Whoa! It's locked from outside!! Luckily you have the key: {act} to open": 'Ого! Заперто снаружи!! К счастью, ключ у тебя: {act}, чтобы открыть',
   'You reopen the gate': 'Ты снова открываешь калитку',
   /* comando godfurn (tono in gioco) */
   'furniture pieces added to your tray: place them at home': 'предметов мебели добавлено в лоток: расставь их дома',

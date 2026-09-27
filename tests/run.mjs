@@ -3871,23 +3871,6 @@ sprites.applyLook();
     }
     P.x = (pYard.cx + 4) * TS + 8; P.y = (pYard.y1 + 1) * TS + 2;
     check('ma non da un angolo qualsiasi del recinto', gameplay.nearbyLockedGate() === false);
-    /* E DA DENTRO SI APRE: la chiave di casa ce l'hai tu. Prima da dentro l'unica uscita era
-       il portale dell'atrio, e senza portale si restava chiusi nel cortile per sempre
-       («non riesco ad uscire dal cancello e non c'è il portale», con foto). */
-    /* …ma SOLO senza portale: finché il portale c'è, l'uscita è quella («se c'è il portale non
-       si deve poter aprire dall'interno») */
-    {
-      const rp0 = S.returnPortal;
-      S.returnPortal = rp0 || { x: 0, y: 0 };
-      P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - 1) * TS + 2;
-      check('da dentro, col portale aperto, il cancello NON si apre', gameplay.nearbyLockedGate() === false);
-      S.returnPortal = null;
-      for (const d of [1, 2]) {
-        P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - d) * TS + 2;
-        check('da dentro SENZA portale (a ' + d + ' casella dal cancello) si apre: niente prigioni', gameplay.nearbyLockedGate() === true);
-      }
-      S.returnPortal = rp0;
-    }
     P.x = pYard.cx * TS + 8; P.y = (pYard.y1 - 1) * TS + 2; // appena dentro il cancello
     /* IL TONO ARRIVA QUI: avvicinandosi al cancello DA DENTRO il cortile — non al momento del
        teletrasporto (si era ancora nel corridoio, il cancello non si vedeva). Una volta sola
@@ -3930,13 +3913,25 @@ sprites.applyLook();
       check('già bloccato: il tono "caspita" NON si ripete alla seconda volta', !said.some(t => /chiuso dall.esterno|locked from outside/i.test(t)));
     }
 
-    /* DALL'ESTERNO LO SI PUÒ SEMPRE RIAPRIRE (a richiesta esplicita: "dall'esterno lo posso
-       sempre aprire") — non è un vicolo cieco, solo una porta come un'altra. */
-    P.x = gtx * TS + 8; P.y = (gty + 1) * TS + 2; // subito fuori dal cancello, come dopo un'uscita a piedi
-    check('subito fuori dal cancello bloccato: E lo riapre', gameplay.nearbyLockedGate() === true);
-    check('riaprirlo riesce', gameplay.openLockedGate() === true);
-    check('il cancello non è più bloccato', S.gateLocked === false && world.isSolidTile(gtx, gty) === false);
-    check('già aperto: E non fa più nulla di speciale lì', gameplay.nearbyLockedGate() === false);
+    /* IL CANCELLO TIENE CHIUSO IN UN CASO SOLO: dentro il cortile col portale aperto. Da fuori
+       si entra sempre e senza portale da dentro si esce — senza premere niente: si apre da sé
+       («da dentro se non c'è il portale si deve aprire senza fare nulla, anche dall'esterno si
+       deve poter entrare sempre senza fare nulla»). Prima senza portale si restava chiusi nel
+       proprio cortile per sempre (segnalato con foto). */
+    check('dentro col portale aperto il cancello tiene', S.gateLocked === true && world.isSolidTile(gtx, gty) === true);
+    P.y = (gty + 1) * TS + 2;
+    gameplay.checkGateNotice();
+    check('da fuori si entra sempre: il cancello si apre da sé', S.gateLocked === false && world.isSolidTile(gtx, gty) === false);
+    /* e dentro, SENZA portale, idem */
+    S.gateLocked = true; const rpS = S.returnPortal; S.returnPortal = null;
+    P.x = gtx * TS + 8; P.y = (gty - 1) * TS + 2;
+    gameplay.checkGateNotice();
+    check('da dentro senza portale si esce: il cancello si apre da sé', S.gateLocked === false && world.isSolidTile(gtx, gty) === false);
+    /* col portale e da dentro invece resta chiuso: l'uscita è il portale */
+    S.gateLocked = true; S.returnPortal = rpS || { x: 0, y: 0 };
+    gameplay.checkGateNotice();
+    check('da dentro col portale resta chiuso', S.gateLocked === true && world.isSolidTile(gtx, gty) === true);
+    S.returnPortal = rpS;
     S.gateLocked = false; // ripristina: i test seguenti (e altri file più giù) non devono trovare il cancello bloccato
 
     /* già a casa: nessun effetto (niente doppio portale) */

@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.31', it: [
+      'IL CANCELLO DI CASA SI APRE DA SOLO: da fuori si entra sempre, e da dentro si esce appena il portale dell\'atrio non c\'è più, senza premere niente. Resta chiuso solo quando sei nel cortile e il portale per tornare indietro è ancora aperto',
+    ], en: [
+      'THE HOME GATE OPENS BY ITSELF: from outside you can always get in, and from inside you can leave as soon as the hall portal is gone, without pressing anything. It only stays shut while you are in the yard and the portal back is still open',
+    ],
+  },
+  {
     v: 'v0.99.30', it: [
       'NON SI RESTA PIÙ CHIUSI NEL CORTILE: dopo il teletrasporto a casa il cancello restava chiuso anche da dentro, e se il portale dell\'atrio non c\'era più non si usciva mai. Ora, se il portale non c\'è, la chiave ce l\'hai: il cancello si apre da dentro. Se il portale c\'è, si esce da lì',
     ], en: [
