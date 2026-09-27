@@ -18,9 +18,15 @@ import { withIcons } from './icons.js';
 import { SONNO, svegli, miSveglio, inCompagnia } from './sonno.js';
 import { sonoOspitante } from './mp.js';
 import { drawHero } from './sprites.js';
+import { drawFurnPiece } from './furnArt.js';
+import { makeCanvasBrush } from './brush.js';
+import { STARTER_BED_ID } from './data.js';
 import { S } from './state.js';
 
-const W = 112, H = 72;          // pixel di gioco della scenetta
+/* 128×96 e non più 112×72: il letto è quello VERO della casa (un letto singolo, 32×64) e ci
+   vuole aria attorno — nella tela piccola toccava il bordo in basso («serve un po' di aria
+   attorno al letto», con foto) */
+const W = 128, H = 96;          // pixel di gioco della scenetta
 let box = null, cv = null, ctx = null, raf = 0, fadeFino = 0;
 
 function nodo() {
@@ -37,7 +43,8 @@ function nodo() {
 /* le stelle stanno FERME dove sono: un elenco scritto a mano, non un random a ogni apertura —
    un cielo che cambia a ogni sonno non è un cielo, è rumore */
 const STELLE = [[8, 8], [23, 5], [39, 11], [52, 6], [67, 9], [81, 4], [95, 10], [104, 17],
-  [14, 19], [31, 24], [60, 20], [88, 22], [46, 30], [74, 33], [20, 36], [100, 30]];
+  [14, 19], [31, 24], [60, 20], [88, 22], [46, 30], [74, 33], [20, 36], [100, 30],
+  [118, 12], [112, 44], [6, 52], [122, 62], [16, 74], [108, 80], [28, 88], [96, 90]];
 
 export function disegnaSogno(t) {
   if (!ctx) return false;
@@ -65,31 +72,25 @@ export function disegnaSogno(t) {
     if (x * x + y * y > 36) continue;
     if ((x - 4) * (x - 4) + (y - 2) * (y - 2) <= 30) continue;
     ctx.fillStyle = (x * x + y * y > 28) ? '#d8c072' : '#f6e18a';   // un bordo più spento: volume
-    ctx.fillRect(92 + x, 14 + y, 1, 1);
+    ctx.fillRect(110 + x, 16 + y, 1, 1);
   }
 
-  /* IL LETTO, e dentro DIGSY — il personaggio vero, col suo aspetto (capelli, barba,
-     occhiali, colore della pelle), non una testina disegnata a parte: «perché non usare il
-     personaggio??» (con foto).
-     Il letto si vede DALL'ALTO in 3/4, come tutto il resto del gioco: testiera in cima, la
-     testa dritta sul cuscino, la coperta tirata fino al collo. Il primo tentativo girava lo
-     sprite di un quarto di giro per sdraiarlo di profilo — il viso finiva coricato di lato,
-     gli occhiali in verticale e la coperta un mattone («proporzioni sbagliate», con foto).
-     Il letto è largo quanto Digsy più un palmo, e lungo quasi due volte: un letto a una
-     piazza, non un materasso da campeggio. */
-  const bx = 30, TOP = 14;                             // bordo sinistro del letto, cima della testiera
+  /* IL LETTO è quello VERO della casa — il letto singolo del catalogo, con la sua ricetta di
+     disegno: testiera, struttura, lenzuolo, trapunta, cuscino, ombre. Prima era un mucchio di
+     rettangoli fatti apposta, senza spigoli smussati né ombre («la grafica del letto è
+     pessima», con foto). Stessa funzione della stanza da letto: se il letto migliora là,
+     migliora anche qui.
+     E dentro DIGSY — il personaggio vero, col suo aspetto, non una testina disegnata a parte
+     («perché non usare il personaggio??»): dritto sul cuscino come in tutto il resto del
+     gioco (3/4 dall'alto), senza cappello e con gli occhi chiusi. */
+  const bx = 48, by = 16;                              // il letto in mezzo, con aria attorno
   const resp = Math.sin(s * 1.6) > 0 ? 0 : 1;          // il respiro: SOLO dal tempo (regola 1)
-  ctx.fillStyle = '#3a2a1f'; ctx.fillRect(bx - 2, TOP, 34, 10);            // testiera
-  ctx.fillStyle = '#4a3527'; ctx.fillRect(bx - 1, TOP + 1, 32, 7);
-  ctx.fillStyle = '#5c4331'; ctx.fillRect(bx - 1, TOP + 1, 32, 2);         // luce sul legno
-  ctx.fillStyle = '#e8dfc4'; ctx.fillRect(bx, TOP + 8, 30, 46);            // lenzuolo
-  ctx.fillStyle = '#f4ecd6'; ctx.fillRect(bx + 3, TOP + 9, 24, 8);         // cuscino
-  ctx.fillStyle = '#ded3b4'; ctx.fillRect(bx + 3, TOP + 16, 24, 1);
+  try { drawFurnPiece(makeCanvasBrush(ctx), STARTER_BED_ID, bx, by, 32, 64, t, 0); } catch (e) { /* stub dei test */ }
 
-  /* DIGSY, dritto: lo stesso sprite del gioco, senza cappello (a letto non si dorme col
-     casco) e con gli occhi CHIUSI — lo sprite li ha aperti e si ridipingono; se porta gli
-     occhiali le lenti li coprono già e si lasciano come sono */
-  const hx = bx - 1, hy = TOP + 3;
+  /* Digsy si ritaglia sotto il mento: il resto del corpo è sotto le coperte */
+  const hx = bx, hy = by - 1;
+  ctx.save();
+  ctx.beginPath(); ctx.rect(bx, by - 12, 32, 32); ctx.clip();
   try {
     drawHero(ctx, hx, hy, 'down', 0, true);
     const L = S.look || {};
@@ -101,22 +102,18 @@ export function disegnaSogno(t) {
       ctx.fillRect(hx + 11, hy + 10, 2, 1); ctx.fillRect(hx + 19, hy + 10, 2, 1);
     }
   } catch (e) { /* stub dei test */ }
-
-  /* LA COPERTA, tirata fino al collo: il risvolto chiaro del lenzuolo in cima, il piumone
-     sotto, il lato in ombra. Sale e scende di un pixel col respiro. */
-  const cy = TOP + 20 - resp;
-  ctx.fillStyle = '#c96f4a'; ctx.fillRect(bx, cy, 30, TOP + 54 - cy);
-  ctx.fillStyle = '#d98460'; ctx.fillRect(bx + 2, cy + 4, 24, 2);          // luce sul gonfio
-  ctx.fillStyle = '#b25f3e'; ctx.fillRect(bx + 27, cy + 2, 3, TOP + 52 - cy);   // lato in ombra
-  ctx.fillStyle = '#f4ecd6'; ctx.fillRect(bx, cy, 30, 3);                  // risvolto del lenzuolo
-  ctx.fillStyle = '#ded3b4'; ctx.fillRect(bx, cy + 3, 30, 1);
-  ctx.fillStyle = '#3a2a1f'; ctx.fillRect(bx - 2, TOP + 54, 34, 4);        // pediera
-  ctx.fillStyle = '#4a3527'; ctx.fillRect(bx - 1, TOP + 54, 32, 2);
+  ctx.restore();
+  /* la coperta tirata fino al collo, col risvolto del lenzuolo: sale e scende col respiro.
+     Stessi colori della trapunta del letto (il blu del letto singolo), così continua lei. */
+  const cy = by + 19 - resp;
+  ctx.fillStyle = '#5a86c8'; ctx.fillRect(bx + 5, cy, 22, by + 26 - cy);
+  ctx.fillStyle = '#f4ecd6'; ctx.fillRect(bx + 5, cy, 22, 3);
+  ctx.fillStyle = '#ded3b4'; ctx.fillRect(bx + 5, cy + 3, 22, 1);
 
   /* le Z che salgono: tre, sfasate, ognuna sale e sfuma. Tutto dal tempo. */
   for (let i = 0; i < 3; i++) {
     const k = ((s * 0.45) + i / 3) % 1;
-    const zx = bx + 26 + Math.round(k * 16), zy = TOP + 8 - Math.round(k * 16);
+    const zx = bx + 26 + Math.round(k * 18), zy = by + 2 - Math.round(k * 16);
     const g = 2 + Math.round(k * 2);
     ctx.fillStyle = k > 0.75 ? '#8e8ab0' : '#f1e7cf';
     ctx.fillRect(zx, zy, g * 2, 1);
