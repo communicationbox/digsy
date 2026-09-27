@@ -18,6 +18,7 @@ import { gameStats } from './stats.js';
 import { battitoAcceso, accendiBattito } from './beat.js';
 import { mioCodice, formatta, normalizza, valido, stanzaDi, amici, aggiungiAmico, dimenticaAmico, linkInvito, codiceDaTesto, nomeDi } from './amici.js';
 import { toast } from './ui.js';
+import { amiciAperti } from './tutorial.js';
 
 /* Il ritrovo dei giocatori. Sta qui e non sparso nei testi: un invito Discord si rinnova o
    si cambia, e deve esserci un posto solo da aggiornare. */
@@ -845,7 +846,12 @@ function buildMenu(inGame) {
     /* AMICI sta nella riga delle icone, non fra le tre voci grandi: quelle sono giocare,
        i salvataggi e le impostazioni, e restano tre (vedi il commento qui sopra). Chi apre il
        gioco per la prima volta non deve trovarsi davanti una scelta che non lo riguarda. */
-    h += `<button class="sp-btn ic" id="sp-mp" title="${tr('Amici', 'Friends')}">🚶<span class="ic-lb">${tr('Amici', 'Friends')}</span></button>`;
+    /* …e si apre SOLO a tutorial finito o saltato: prima si impara a giocare. Il pulsante resta
+       al suo posto col lucchetto, e toccato dice perché: un pulsante che sparisce non spiega
+       niente, uno spento senza motivo sembra rotto. */
+    h += amiciAperti()
+      ? `<button class="sp-btn ic" id="sp-mp" title="${tr('Amici', 'Friends')}">🚶<span class="ic-lb">${tr('Amici', 'Friends')}</span></button>`
+      : `<button class="sp-btn ic chiuso" id="sp-mp" aria-disabled="true" title="${tr('Amici: dopo il tutorial', 'Friends: after the tutorial')}">🔒<span class="ic-lb">${tr('Amici', 'Friends')}</span></button>`;
     /* NIENTE VOCE "COMANDI" NEL MENU. La console (`money`, `godmode`, `goto=…`) è uno
        strumento dell'autore per provare il gioco, non una funzione da offrire: un elenco di
        cheat in bella vista invita a usarli, e una partita con le monete infinite non racconta
@@ -904,7 +910,10 @@ function buildMenu(inGame) {
   const bS = document.getElementById('sp-saves'); if (bS) bS.onclick = () => go('saves');
   const bT = document.getElementById('sp-troph'); if (bT) bT.onclick = () => go('trophies');
   const bLg = document.getElementById('sp-log'); if (bLg) bLg.onclick = () => go('changelog');
-  const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => go('amici');
+  const bMp = document.getElementById('sp-mp'); if (bMp) bMp.onclick = () => {
+    if (!amiciAperti()) { toast('🔒 ' + tr('Gli Amici si aprono quando finisci il tutorial (o lo salti)', 'Friends open once you finish the tutorial (or skip it)')); return; }
+    go('amici');
+  };
   /* ENTRARE è sempre la stessa cosa: ci si collega alla stanza di QUALCUNO, e quel qualcuno
      può essere anche sé stessi (aprire il proprio mondo). Una funzione sola, tre pulsanti. */
   const vaiDa = (codice, mia) => {

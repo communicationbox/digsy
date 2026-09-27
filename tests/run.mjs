@@ -779,6 +779,27 @@ sprites.applyLook();
   sp3.pwa.ios = false;
   check('dove non si può, non si propone', sp3.pwaProponibile() === false);
 
+  /* GLI AMICI SI APRONO A TUTORIAL FINITO O SALTATO: prima col lucchetto, e toccati dicono perché */
+  {
+    const tutM = await import('../src/tutorial.js');
+    const tut0 = S.tut;
+    S.tut = { i: 0, n: 0, done: false };
+    sp3.setView('main');
+    const bm = () => document.getElementById('sp-mp');
+    check('a tutorial in corso gli Amici hanno il lucchetto', !!bm() && /chiuso/.test(bm().className) && tutM.amiciAperti() === false);
+    const box = document.getElementById('toasts'), detti = [], orig = box.appendChild;
+    box.appendChild = c => { detti.push(String(c.innerHTML)); return c; };
+    bm().onclick();
+    box.appendChild = orig;
+    check('e toccati dicono perché, senza aprirsi', detti.some(t => /tutorial/i.test(t)) && !/sp-mp-mio/.test(document.getElementById('sp-menu').innerHTML), detti.join(' | ').slice(0, 80));
+    tutM.tutSkip();
+    sp3.setView('main');
+    check('saltato il tutorial si aprono', tutM.amiciAperti() === true && !/chiuso/.test(bm().className));
+    tutM.tutRestart();
+    check('e rifare il tutorial non li richiude', tutM.amiciAperti() === true);
+    S.tut = tut0;
+  }
+
   /* il pulsante compare DAVVERO nel menu quando serve */
   sp3.pwa.invito = { prompt() {}, userChoice: Promise.resolve() };
   sp3.showSplash();
@@ -10045,7 +10066,8 @@ sprites.applyLook();
 
     /* e se ne va: il mondo era suo, quindi si torna a casa */
     mp.ricevi(JSON.stringify({ t: netm.T.LEAVE, id: 'stanza', host: true }), 0);
-    check('chiusa la stanza, sono tornato a casa mia', vis2.sonoOspite() === false && mp.MP.stato === 'spento');
+    /* e si RESTA IN LINEA (senza stanza): chiusa la stanza non si diventa «offline» per gli amici */
+    check('chiusa la stanza, sono tornato a casa mia', vis2.sonoOspite() === false && mp.MP.stato === 'collego' && mp.MP.stanza === null, mp.MP.stato);
     check('col MIO mondo, identico a prima', JSON.stringify(state.snapshotMondo()) === mioPrima,
       'seme ' + Sm.seed + ' giorno ' + Sm.day);
     check('e il salvataggio funziona di nuovo', state.save() !== false);
@@ -10095,7 +10117,7 @@ sprites.applyLook();
     mp.ricevi(JSON.stringify({ t: 'kick', id: 'u2', who: 'io' }), 0);
     check('un altro ospite non può mandarmi via', mp.MP.stato === 'dentro' && vis3.sonoOspite() === true);
     mp.ricevi(JSON.stringify({ t: 'kick', id: 'u1', who: 'io' }), 0);
-    check('il padrone di casa sì, e si torna a casa propria', mp.MP.stato === 'spento' && vis3.sonoOspite() === false);
+    check('il padrone di casa sì, e si torna a casa propria (restando in linea)', mp.MP.stato === 'collego' && mp.MP.stanza === null && vis3.sonoOspite() === false, mp.MP.stato);
   }
 
   mp.setTransport((u) => new WebSocket(u));      // si rimette il trasporto vero
@@ -11287,7 +11309,8 @@ sprites.applyLook();
   mpC.connect('ws://finta/ws', { name: 'Marco', room: 'w-QDFG' });
   const sC = fatteC[fatteC.length - 1];
   sC.onopen(); sC.onmessage({ data: netC.encode(netC.T.WELCOME, { id: 'io' }) });
-  sC.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  sC.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'u1', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  sC.onmessage({ data: netC.encode(netC.T.MONDO, { mondo: { seed: 77, day: 2, tod: 0.2 }, x: 10, y: 10 }) });
   const fermo = { x: 50, y: 50, dir: 'down', moving: false, scene: 'world' };
 
   mpC.attivo(0);
@@ -11304,7 +11327,38 @@ sprites.applyLook();
     mpC.tick(t, fermo);
     mpC.ricevi(netC.encode(netC.T.PONG, {}), t);
   }
-  check('ma cinque minuti senza fare niente sì: si esce', mpC.MP.stato === 'spento', mpC.MP.stato + ' · ' + mpC.MP.motivo);
+  /* si esce dalla stanza MA SI RESTA IN LINEA: si riattacca da soli, senza stanza */
+  check('ma cinque minuti senza fare niente sì: si esce', mpC.MP.stanza === null && mpC.MP.stato === 'collego' && /fermo/.test(mpC.MP.motivo || ''), mpC.MP.stato + ' · ' + mpC.MP.motivo);
+
+  /* DA SOLI (in linea senza stanza) NON SI ESCE MAI: il conto dell'attività si fa solo dentro
+     una stanza, quindi prima dopo cinque minuti di gioco da soli si risultava «offline» agli
+     amici e ci si restava fino al riavvio (segnalato col telefono acceso in mano) */
+  mpC.connect('ws://finta/ws', { name: 'Marco' });
+  const sL = fatteC[fatteC.length - 1];
+  sL.onopen(); sL.onmessage({ data: netC.encode(netC.T.WELCOME, { id: 'io' }) });
+  check('da soli si è in linea', mpC.MP.stato === 'linea');
+  for (let t = 0; t <= mpC.FERMO_MS * 3; t += 30000) { mpC.tick(t, null); mpC.ricevi(netC.encode(netC.T.PONG, {}), t); }
+  check('e dopo un quarto d\'ora da soli si è ancora in linea', mpC.MP.stato === 'linea', mpC.MP.stato + ' · ' + mpC.MP.motivo);
+  /* e chi OSPITA, fermo, non si spegne: chiuderebbe la stanza a chi è da lui */
+  mpC.connect('ws://finta/ws', { name: 'Marco', room: 'w-QDFG' });
+  const sH = fatteC[fatteC.length - 1];
+  sH.onopen(); sH.onmessage({ data: netC.encode(netC.T.WELCOME, { id: 'io' }) });
+  sH.onmessage({ data: netC.encode(netC.T.ROOM, { host: 'io', peers: [{ id: 'u1', name: 'Luca' }] }) });
+  mpC.attivo(0);
+  for (let t = 0; t <= mpC.FERMO_MS * 2; t += 30000) { mpC.tick(t, fermo); mpC.ricevi(netC.encode(netC.T.PONG, {}), t); }
+  check('chi ospita, fermo, non chiude la stanza', mpC.MP.stato === 'dentro', mpC.MP.stato);
+  /* USCIRE DALLA STANZA NON È USCIRE DAL GIOCO */
+  mpC.esci();
+  check('uscire dalla stanza lascia in linea', mpC.MP.stato === 'collego' && mpC.MP.stanza === null, mpC.MP.stato);
+  /* IL TELEFONO SI RISVEGLIA: caduta la linea si riattacca SUBITO, non al prossimo tentativo */
+  {
+    const n0 = fatteC.length;
+    const attese = []; mpC.setTimer((fn, ms) => attese.push(ms));
+    fatteC[n0 - 1].onclose();                   // la socket in tasca è morta
+    check('risvegliarsi riapre subito', mpC.svegliati() === true && fatteC.length === n0 + 1, String(fatteC.length - n0));
+    check('e una seconda volta no: c\'è già una linea aperta', mpC.svegliati() === false);
+    mpC.setTimer((fn, ms) => (typeof setTimeout === 'function' ? setTimeout(fn, ms) : null));
+  }
 
   /* CHI DORME È FERMO APPOSTA: sta aspettando che passi la notte */
   mpC.connect('ws://finta/ws', { name: 'Marco', room: 'w-QDFG' });

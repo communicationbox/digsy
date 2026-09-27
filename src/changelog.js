@@ -1,6 +1,21 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.32', it: [
+      'GLI AMICI TI VEDONO IN LINEA DAVVERO: giocando da soli, dopo cinque minuti il gioco staccava la linea e per gli amici risultavi offline finché non lo riavviavi. Ora resti in linea finché il gioco è aperto',
+      'Uscire da una stanza, essere mandati via o vedere chiudersi la stanza non ti mette più offline: torni nel tuo mondo e resti in linea',
+      'Il telefono che torna in mano (o la rete che torna) si ricollega subito, invece di aspettare anche un minuto',
+      'Si esce per inattività solo quando si è ospiti in casa d\'altri: chi ospita, fermo, non chiude più la stanza a chi è da lui',
+      'GLI AMICI SI APRONO A TUTORIAL FINITO (O SALTATO): prima il pulsante ha il lucchetto e, toccato, dice perché',
+    ], en: [
+      'FRIENDS REALLY SEE YOU ONLINE: playing alone, after five minutes the game dropped the line and friends saw you offline until you restarted. Now you stay online as long as the game is open',
+      'Leaving a room, being sent away or seeing the room close no longer takes you offline: you go back to your world and stay online',
+      'A phone picked up again (or the network coming back) reconnects right away instead of waiting up to a minute',
+      'Idle kick now only applies to guests in someone else\'s world: an idle host no longer closes the room on their guests',
+      'FRIENDS OPEN ONCE THE TUTORIAL IS DONE (OR SKIPPED): until then the button has a padlock and, when tapped, says why',
+    ],
+  },
+  {
     v: 'v0.99.31', it: [
       'IL CANCELLO DI CASA SI APRE DA SOLO: da fuori si entra sempre, e da dentro si esce appena il portale dell\'atrio non c\'è più, senza premere niente. Resta chiuso solo quando sei nel cortile e il portale per tornare indietro è ancora aperto',
     ], en: [

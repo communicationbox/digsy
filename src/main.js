@@ -19,7 +19,7 @@ import { render } from './render.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
-  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, setSuVisita, rifiuta, setIdentita } from './mp.js';
+  connect as mpConnect, relayUrl, stanzaRicordata, setMioCodice, setSuInvito, setSuRifiuto, setSuRecapito, setSuVisita, rifiuta, setIdentita, svegliati as mpSvegliati } from './mp.js';
 import { albaRicevuta, qualcunoSiCorica, notteSubito, riscuoti, SONNO } from './sonno.js';
 import { mioCodice, codiceDaTesto, valido, stanzaDi, amici, nomeDi, aggiungiAmico } from './amici.js';
 import { apriSogno, chiudiSogno, fadeNotte, sognoAperto } from './dream.js';
@@ -425,6 +425,11 @@ function boot() {
     } else {
       mpConnect(relayUrl(), chi);
     }
+    /* il telefono torna in mano o torna la rete: si riattacca subito, non al prossimo tentativo
+       (in tasca i timer rallentano e l'attesa diventava di minuti, da «offline» per gli amici) */
+    const sveglia = () => { if (document.visibilityState !== 'hidden') mpSvegliati(); };
+    document.addEventListener('visibilitychange', sveglia);
+    addEventListener('online', sveglia); addEventListener('pageshow', sveglia);
   }
   armAudioResume(); // musica in loop anche dopo un refresh (parte al primo gesto)
   updateHUD();

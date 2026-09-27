@@ -249,10 +249,10 @@ export function ricevi(raw, now) {
   if (m.t === T.DAWN && m.id && m.id === MP.room.host && suAlba) suAlba(!!m.notte);
   if (m.t === T.KICK && m.who === MP.room.me && m.id && m.id === MP.room.host) {
     scordaStanza();                       // mandati via non si rientra da soli al prossimo avvio
-    disconnect('ti ha mandato via chi ospita');
+    restaInLinea('ti ha mandato via chi ospita');
     return t;
   }
-  if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) { scordaStanza(); disconnect('la stanza si è chiusa'); }
+  if (m.t === T.LEAVE && raw && String(raw).includes('"host":true')) { scordaStanza(); restaInLinea('la stanza si è chiusa'); }
   return t;
 }
 
@@ -321,9 +321,14 @@ function battito(now) {
     caduta('la linea non risponde');
     return;
   }
-  if (!dormiente() && ultimaAttività !== null && now - ultimaAttività > FERMO_MS) {
+  /* SOLO CHI È OSPITE IN CASA D'ALTRI. Da soli (in linea senza stanza) e in casa propria non
+     c'è nessuno a cui dare fastidio — e l'attività si misura solo dentro una stanza, quindi da
+     soli il conto correva sempre: dopo cinque minuti di gioco il telefono risultava «offline»
+     agli amici e restava così fino al riavvio (segnalato). E anche l'ospite fermo non va
+     spento: esce dalla stanza e resta IN LINEA, così un invito gli arriva ancora. */
+  if (sonoOspite() && !dormiente() && ultimaAttività !== null && now - ultimaAttività > FERMO_MS) {
     scordaStanza();                       // chi si è alzato dalla sedia non rientra da solo
-    disconnect('fermo da cinque minuti');
+    restaInLinea('fermo da cinque minuti');
   }
 }
 
@@ -529,7 +534,28 @@ export function presenti(now) {
 
 /* USCIRE È UNA DECISIONE: si dimentica la stanza, e all'avvio dopo non ci si rientra. Cadere
    invece no — la linea che salta non è una scelta di nessuno, e al ritorno si riprende. */
-export function esci(motivo) { scordaStanza(); return disconnect(motivo || 'uscito'); }
+export function esci(motivo) { scordaStanza(); return restaInLinea(motivo || 'uscito'); }
+/* USCIRE DA UNA STANZA NON È USCIRE DAL GIOCO. Si chiude la stanza e si riattacca SENZA stanza:
+   in linea da soli, col pallino acceso per gli amici e gli inviti che arrivano. Prima uscire,
+   essere mandati via o vedere la stanza chiudersi spegneva la linea del tutto, e agli amici si
+   risultava «offline» finché non si riavviava il gioco (segnalato). */
+export function restaInLinea(motivo) {
+  const url = MP.url, me = mio ? { ...mio, room: null, ospite: false } : null;
+  disconnect(motivo);
+  if (!url || !me) return;
+  connect(url, me);
+  MP.motivo = motivo || null;          // il perché resta da leggere nel pannello
+}
+/* IL TELEFONO SI È RISVEGLIATO (la scheda torna visibile, la rete torna). In tasca il sistema
+   chiude le socket e rallenta i timer: l'attesa del prossimo tentativo può durare minuti, e
+   intanto agli amici si risulta «offline» mentre si sta giocando. Si riprova SUBITO. */
+export function svegliati() {
+  if (sock || !MP.url) return false;
+  if (MP.stato !== 'collego' && MP.stato !== 'caduto') return false;
+  riprova = 0; MP.stato = 'collego';
+  aprire(MP.url);
+  return true;
+}
 
 export function disconnect(motivo) {
   /* TORNARE A CASA VIENE PRIMA DI TUTTO: se si stacca la linea mentre si è ospiti, il mondo di
@@ -561,7 +587,9 @@ function caduta(motivo) {
   /* dopo i tentativi fitti lo si DICE (il pannello mostra il motivo) ma si continua a
      riprovare piano: il centralino torna, e quando torna ci si deve essere */
   MP.stato = fitti ? 'collego' : 'caduto';
-  dopo(() => { if (MP.stato === 'collego' || MP.stato === 'caduto') aprire(MP.url); }, attesa);
+  /* `!sock`: se nel frattempo ha già riaperto qualcun altro (svegliati), una seconda socket
+     vorrebbe dire la stessa persona due volte nella stanza */
+  dopo(() => { if (!sock && (MP.stato === 'collego' || MP.stato === 'caduto')) aprire(MP.url); }, attesa);
 }
 
 /* attesa prima del prossimo tentativo: esposta per i test e per l'interfaccia */

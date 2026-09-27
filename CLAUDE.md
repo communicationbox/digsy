@@ -231,6 +231,14 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   Il nome sopra la testa è una targhetta discreta (`plate(..., soft)`), non il cartello avorio
   delle botteghe: quello dice «questo è un posto», un nome non deve gridare più della persona.
   Foto: `npm run shot -- lontano 700,480`.
+- **In linea finché il gioco è aperto** (mp.js): l'uscita per inattività (`FERMO_MS`) vale SOLO
+  per l'ospite in casa d'altri — l'attività si misura solo dentro una stanza, quindi da soli il
+  conto correva sempre e dopo cinque minuti si risultava «offline» agli amici fino al riavvio.
+  Uscire, essere mandati via o vedere chiudersi la stanza passa da `restaInLinea`: si riattacca
+  SENZA stanza invece di spegnere tutto. `svegliati()` (visibilitychange/online/pageshow in
+  main.js) riapre subito la linea caduta in tasca, dove i timer rallentano e il tentativo
+  successivo arrivava dopo un minuto. **Gli Amici si aprono a tutorial finito o saltato**
+  (`amiciAperti` in tutorial.js, `fatto` sopravvive a `tutRestart`): prima col lucchetto.
 - **Il compagno viaggia e si vede** (`net.js` `cleanComp` + `T.AT`): la bestia sta nel
   salvataggio di chi la porta (quindi attraversa le stanze da sé), ma agli altri va DETTA. Si
   manda lo **stampo** (le tre specie + rarità: il modello lo ricostruisce chi guarda, quindi da

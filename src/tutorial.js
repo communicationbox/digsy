@@ -126,7 +126,7 @@ export function tutBump(id, k = 1) {
 function advance() {
   const t = st();
   t.i++; t.n = 0;
-  if (t.i >= STEPS.length) { t.done = true; t.i = STEPS.length; }
+  if (t.i >= STEPS.length) { t.done = true; t.fatto = true; t.i = STEPS.length; }
   save();
   return 'step';                       // chi chiama sa che è ora di annunciare il passo dopo
 }
@@ -224,6 +224,10 @@ export function museumClosedText() {
   return tr('Il Curatore è occupato. Torna quando avrai un reperto.', 'The Curator is busy. Come back when you have a find.');
 }
 
-export function tutSkip() { const t = st(); t.done = true; t.skipped = true; save(); return true; }
-/* rifacibile dalla Guida: chi salta per sbaglio non perde l'insegnamento per sempre */
-export function tutRestart() { S.tut = { i: 0, n: 0, done: false }; save(); return true; }
+export function tutSkip() { const t = st(); t.done = true; t.fatto = true; t.skipped = true; save(); return true; }
+/* rifacibile dalla Guida: chi salta per sbaglio non perde l'insegnamento per sempre.
+   `fatto` resta: rifare il tutorial non richiude quello che finirlo aveva aperto (gli Amici) */
+export function tutRestart() { const fatto = !!(S.tut && (S.tut.done || S.tut.fatto)); S.tut = { i: 0, n: 0, done: false, fatto }; save(); return true; }
+/* GLI AMICI SI APRONO A TUTORIAL FINITO O SALTATO (a richiesta): prima si impara a scavare,
+   poi si invita qualcuno. Chi l'ha finito una volta li tiene anche se lo rifà. */
+export function amiciAperti() { const t = st(); return !!(t.done || t.fatto); }
