@@ -241,6 +241,13 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   (`amiciAperti` in tutorial.js, `fatto` sopravvive a `tutRestart`): prima col lucchetto.
   Vale anche per il link `?vai=`: a tutorial in corso si toglie dall'indirizzo senza entrare, e
   a gioco iniziato un toast dice di riaprirlo dopo (`invitoFermo` in main.js).
+- **Il pallino in linea regge alle ricollegate** (`server/relay/relay.js`, chiusura della
+  socket): un telefono che si risveglia apre una linea nuova mentre la vecchia è ancora appesa,
+  e quando il battito di servizio chiudeva la vecchia il centralino annunciava «spento» — la
+  persona risultava offline agli amici pur essendo collegata. Ora si avvisa solo se quel codice
+  non ha più NESSUNA linea aperta (vale anche per due dispositivi). Provato con socket vere:
+  `npm run presenza` (centralino locale) o `node tests/presenza.mjs wss://digsy.dev-box.it/ws`
+  (quello pubblicato, codici a caso). Gira anche dentro `npm test`.
 - **«Fammi entrare» e la cortesia dopo un no** (`chiedi` in mp.js, `T.CHIEDI`, `cortesia.js`):
   il contrario dell'invito. Il sì di chi riceve apre il SUO mondo e lo invita; l'invito arriva
   segnato `chiesto` e si accetta da solo (entro `CHIESTO_MS`). Ogni `rifiuto` allunga l'attesa

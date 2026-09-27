@@ -127,7 +127,18 @@ wss.on('connection', (ws) => {
     for (const q of chiGuarda(hub, p.codice)) if (q.id !== id) q.send(avviso);
   }
 
-  ws.on('close', () => { avvisaChiGuarda(false); chiudiStanza(); dropPeer(hub, id); });
+  /* «È USCITO» SOLO SE È USCITO DAVVERO. Un telefono che si risveglia apre una linea nuova
+     mentre quella vecchia è ancora appesa: la vecchia la chiude il battito di servizio anche un
+     minuto dopo, e annunciare lì «spento» spegneva il pallino di chi era già di nuovo in linea
+     con l'altra — agli amici risultava offline finché non riavviava il gioco (segnalato).
+     Stesso discorso per chi ha due dispositivi accesi e ne chiude uno. Si toglie prima questa
+     linea, e si avvisa solo se lo stesso codice non ha più nessun'altra linea aperta. */
+  ws.on('close', () => {
+    chiudiStanza();
+    const cod = p.codice;
+    dropPeer(hub, id);
+    if (cod && !inLinea(hub, [cod]).length) avvisaChiGuarda(false);
+  });
   ws.on('error', () => { try { ws.close(); } catch (e) { /* già morta */ } });
 });
 
