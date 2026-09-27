@@ -660,7 +660,7 @@ export const COMMANDS = {
       /* IL SOGNO si vede solo dormendo in due, e per guardarlo non si può chiedere a qualcuno
          di collegarsi apposta: qui si apre da soli. È la scenetta vera, quella di dream.js —
          i pulsanti fanno quello che farebbero, e "alzati" lo chiude. */
-      if (k === 'dream') { import('./dream.js').then(d => d.apriSogno()); return '😴 ' + tr('Sogno', 'Dream'); }
+      if (k === 'dream') { import('./dream.js').then(d => d.apriSogno({ prova: true })); return '😴 ' + tr('Sogno', 'Dream'); }
       /* IL VOLO si vede solo entrando nel mondo di un amico: per guardarlo non si deve chiedere
          a qualcuno di aprire il suo. È la scenetta vera di volo.js, col nome che si scrive dopo
          (`anim=volo Ada`); senza nome vola verso un amico qualunque della rubrica. */

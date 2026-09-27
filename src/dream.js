@@ -139,9 +139,9 @@ function dipingi() {
   cv = document.getElementById('dreamcv');
   if (cv) { cv.width = W; cv.height = H; ctx = cv.getContext('2d'); ctx.imageSmoothingEnabled = false; }
   const p = document.getElementById('dr-passa');
-  if (p) p.onclick = () => { if (miSveglio(true)) chiudiSogno(true); else chiudiSogno(false); };
+  if (p) p.onclick = () => { if (prova) { chiudiSogno(false); return; } if (miSveglio(true)) chiudiSogno(true); else chiudiSogno(false); };
   const u = document.getElementById('dr-su');
-  if (u) u.onclick = () => { miSveglio(false); chiudiSogno(false); };
+  if (u) u.onclick = () => { if (!prova) miSveglio(false); chiudiSogno(false); };
 }
 
 let alSveglio = null;
@@ -149,8 +149,16 @@ let alSveglio = null;
    niente — questo modulo disegna e raccoglie un clic. */
 export function setAlSveglio(fn) { alSveglio = fn; }
 
-export function apriSogno() {
+/* LA PROVA DALLA CONSOLE (`anim=sogno`). Il sogno si guarda da solo a ogni fotogramma se si
+   sta ancora dormendo in compagnia, e si chiude se no — giusto nel gioco, perché la stanza può
+   finire mentre si dorme. Ma dalla console non si dorme con nessuno: la risposta era sempre
+   no, e il sogno si apriva e si richiudeva nello stesso fotogramma («anim=sogno non fa
+   comparire nessuna animazione»). In prova quel controllo si salta, e i pulsanti chiudono e
+   basta: non c'è nessuna notte da far passare né nessuno da svegliare. */
+let prova = false;
+export function apriSogno(opz) {
   const b = nodo(); if (!b) return false;
+  prova = !!(opz && opz.prova);
   dipingi();
   b.classList.add('on');
   gira();
@@ -160,7 +168,9 @@ export function chiudiSogno(passata) {
   const b = nodo(); if (b) { b.classList.remove('on'); b.classList.remove('fade'); }
   if (raf && typeof cancelAnimationFrame === 'function') cancelAnimationFrame(raf);
   raf = 0;
-  if (alSveglio) alSveglio(!!passata);
+  /* in prova non si è mai dormito: niente da raccontare a chi aspetta il risveglio */
+  const eraProva = prova; prova = false;
+  if (alSveglio && !eraProva) alSveglio(!!passata);
   return true;
 }
 export function sognoAperto() { const b = nodo(); return !!b && b.classList.contains('on'); }
@@ -192,7 +202,7 @@ function gira() {
       /* LA STANZA PUÒ FINIRE MENTRE SI DORME: l'ospitante esce, cade la linea, o si viene
          mandati via. Il sogno si accorge da sé che non c'è più nessuno e si chiude, invece di
          lasciare uno schermo di stelle sopra un gioco tornato a casa. */
-      if (!staSognando()) { chiudiSogno(false); return; }
+      if (!prova && !staSognando()) { chiudiSogno(false); return; }
       disegnaSogno(t);
     }
     raf = requestAnimationFrame(passo);

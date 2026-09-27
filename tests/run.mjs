@@ -10849,6 +10849,34 @@ sprites.applyLook();
   check('ogni script che apre Chrome gli dà un profilo suo', senza.length === 0, senza.join(' '));
 }
 
+/* ---------- ANIM=SOGNO SI VEDE DAVVERO ----------
+   «anim=sogno non fa comparire nessuna animazione.» Il sogno si guardava a ogni fotogramma
+   («sto ancora dormendo in compagnia?») e dalla console la risposta era sempre no: si apriva e
+   si richiudeva nello stesso fotogramma. Qui si fa girare UN fotogramma vero e si guarda se è
+   ancora aperto. */
+{
+  const dr = await import('../src/dream.js');
+  const rafPrima = globalThis.requestAnimationFrame;
+  const unGiro = () => { let fatto = false; globalThis.requestAnimationFrame = (f) => { if (!fatto) { fatto = true; f(1000); } return 1; }; };
+  unGiro();
+  dr.apriSogno({ prova: true });
+  check('dalla console il sogno resta aperto dopo il primo fotogramma', dr.sognoAperto() === true);
+  dr.chiudiSogno(false);
+  /* e nel gioco vero, se NON si sta dormendo in compagnia, si chiude da sé: quella regola
+     resta, è quella che evita uno schermo di stelle sopra un gioco tornato a casa */
+  unGiro();
+  dr.apriSogno();
+  check('ma nel gioco, se non si dorme con nessuno, si chiude da sé', dr.sognoAperto() === false);
+  /* e la console passa davvero per la prova */
+  { const cmS = await import('../src/commands.js');
+    unGiro();
+    cmS.runCommand('anim=sogno');
+    await new Promise(res => setTimeout(res, 0));
+    check('anim=sogno apre il sogno e lo tiene aperto', dr.sognoAperto() === true);
+    dr.chiudiSogno(false); }
+  globalThis.requestAnimationFrame = rafPrima;
+}
+
 /* ---------- IL VOLO: i tre secondi fra un mondo e l'altro ----------
    Entrare in casa di qualcuno era uno stacco secco: premevi accetta e ti ritrovavi altrove,
    senza che niente dicesse che avevi viaggiato. Ed è anche il momento in cui il gioco adotta
