@@ -91,6 +91,32 @@ const SCENES = [
   ['locanda', 'Promise.resolve(G.leaveRoom && G.leaveRoom()).then(()=>G.cmd("goto=city")).then(()=>G.openInn())', '#innName'],
   ['invito', 'G.mod("ui").then(u=>u.mostraInvito("Luca",()=>{},()=>{}))', '#invito'],
   ['scheletro', 'G.cmd("play=skeleton")', '#skfitov.on'],
+  /* ---- TUTTO IL RESTO. «Non lasciare indietro nulla»: ogni schermata che un giocatore può
+     aprire da telefono sta qui, con quello che deve vedersi. Fuori c'è solo la console dei
+     comandi, che si apre col tasto \ e soltanto nella versione di sviluppo: su un telefono non
+     esiste né l'una né l'altro. */
+  ['zaino', 'G.openBag()', '#bagov.on'],
+  ['editor', 'G.openEditor()', '#modal.on'],
+  ['barbiere', 'G.openBarber()', '#modal.on'],
+  ['sartoria', 'G.openTailor()', '#modal.on'],
+  ['laboratorio', 'G.openLab()', '#modal.on'],
+  ['museo-banco', 'G.openMuseum()', '#modal.on'],
+  ['posta', 'Promise.all([G.mod("cloud"), G.mod("posta")]).then(m=>{ m[0].cloud.user={email:"io@digsy",name:"Io"}; const S=G.state(); S.amici=[{c:"Q2D4FG7HJK",n:"Luca"}]; S.coins=40; S.posta=[]; m[1].scrivi("Q2D4FG7HJK","Ho trovato un cranio enorme vicino al fiume!",true); return G.openMailbox(); })', '#modal.on'],
+  ['lettere', 'G.openLetters()', '#modal.on'],
+  ['missioni', 'G.openQuests()', '#modal.on'],
+  ['compagno', 'G.openCompanion()', '#modal.on'],
+  ['letto', 'G.enterRoom("house").then(()=>{ const f=((G.state().house.rooms[0]||{}).furn||[]).find(x=>/letto|giaciglio|amaca|baldacchino/.test(x.itemId)); return G.openBed(0, f?f.gx:1, f?f.gy:2); })', '#modal.on'],
+  ['teca', 'G.openExhibit()', '#modal.on'],
+  ['restauro', 'G.cmd("play=prep")', '#prepov.on'],
+  ['fontana', 'G.cmd("play=toss")', '#tossov.on'],
+  ['grotta', 'G.enterCave()', ''],
+  ['trofei', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("trophies"))', '.sp-hall'],
+  ['novita', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("changelog"))', '.sp-log'],
+  ['crediti', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("credits"))', '.sp-credits'],
+  ['comandi', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("commands"))', '.sp-keys'],
+  ['account', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("account"))', '#sp-menu'],
+  ['statistiche', SPLASH + 'G.state().started=true; G.state().playSec=3700; return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("stats"))', '#sp-menu'],
+  ['installa', SPLASH + 'return new Promise(r=>setTimeout(r,300)).then(()=>G.splashView("install"))', '#sp-menu'],
 ];
 
 const report = [];
@@ -196,6 +222,10 @@ for (const [dname, dev] of DEV) {
         const ra = a.getBoundingClientRect();
         if (r.left < ra.left - 1 || r.right > ra.right + 1) tagliati.push(nome(el) + ' ' + Math.round(r.left - ra.left) + '/' + Math.round(ra.right - r.right));
       }
+      /* LA SCHEDA DEL TUTORIAL non si prende lo schermo: sta in alto e accompagna la prima
+         ora, e se occupa più di un terzo dell'altezza si gioca guardando una pagina */
+      { const t = vis(document.getElementById('tutbox'));
+        if (t && t.height > H * 0.34) coperti.push('tutorial alto ' + Math.round(t.height / H * 100) + '% dello schermo'); }
       /* le LINGUETTE del taccuino dentro il loro foglio, anche in verticale: sul telefono
          più piccolo l'ultima (M) usciva dal fondo e si vedeva a metà */
       for (const el of document.querySelectorAll('.tacc-tab')) {

@@ -1993,3 +1993,43 @@ button.bitile{width:100%;min-width:0}                          /* ogni casella r
 /* MENTRE SI SCRIVE la riga della chat sta in alto, dove c'è anche la scheda del tutorial: le
    due si accavallavano. La scheda torna appena si chiude la riga. */
 body:has(#chatbar.on) #tutbox{display:none!important}
+/* ====================== COL DITO, IL RESTO ======================
+   Tutto quello che la prova sui telefoni ha misurato sotto la soglia del pollice (40 px) o
+   della lettura (11 px): i quadratini dei colori e la ✕ «senza cappello» (38), la ✕ dello
+   zaino (32) e il «lascia a terra» (34), le linguette del Museo (32), gli strumenti e la ✕ del
+   restauro (31 e 26), le etichette di rarità e del lucchetto (10). Col mouse restano come sono. */
+@media(pointer:coarse){
+  .sw{min-width:42px;min-height:42px}
+  #hatOff{min-width:42px;min-height:42px}
+  #bagX{min-width:44px;min-height:44px}
+  .bdrop{width:40px;height:40px}
+  .pn-tab{min-height:40px}
+  .pr-tool{min-height:40px}
+  #pr-close{min-width:44px;min-height:44px}
+  .lockp{font-size:11px}
+  .rar{font-size:11px}
+}
+/* IL RESTAURO IN ORIZZONTALE: la tela quadrata è larga l'80% dello schermo, quindi alta
+   anche lei l'80% della LARGHEZZA — su un telefono girato (342 di altezza) usciva di sotto
+   con strumenti e barre. La misura la decide anche l'altezza che resta. */
+#pr-cv{width:min(336px,80vw,calc(100dvh - 190px))}
+/* ====================== IL TELEFONO GIRATO ======================
+   Con 342 pixel d'altezza (iPhone 13 in orizzontale, misurato) le tasche dello zaino andavano
+   su due file e uscivano di sotto, e nel restauro il pulsante «Fatto» finiva sotto il bordo.
+   In orizzontale lo spazio è in LARGHEZZA: le tasche tornano su una fila sola, e la tela del
+   restauro si stringe su quello che resta in altezza. */
+@media (pointer:coarse) and (max-height:480px){
+  .bag-foot{flex-wrap:nowrap;padding:6px 8px;margin-bottom:6px}
+  .bag-foot .btn{flex:1 1 0;min-height:40px;padding:6px 8px}
+  .bf-sep{flex:0 0 10px;height:auto}
+  #pr-cv{width:min(336px,80vw,calc(100dvh - 230px))}
+  .pr-stage{padding:6px 12px}
+  .pr-meters{padding-top:6px}
+  .pr-foot{padding:6px 12px 8px}
+  /* la scheda del tutorial: stretta e alta si prendeva il 40% dello schermo e finiva sopra
+     il joystick. In orizzontale si allarga e si abbassa: stesse parole su meno righe */
+  #tutbox{width:min(440px,calc(55vw - 20px));padding:0 var(--sp-2) 6px}
+  #tutbox .tut-top{padding-bottom:2px;margin-bottom:4px}
+  #tutbox .tut-skip,#tutbox .tut-fold{margin:-3px 0}
+  #tutbox .tut-bar{margin-top:4px}
+}

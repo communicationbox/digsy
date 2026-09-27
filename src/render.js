@@ -310,48 +310,57 @@ export function drawMailbox(sx, sy) {
      su per sempre (il giro della posta fra giocatori non è ancora aperto). */
   ctx.save(); ctx.translate(sx, sy); mailboxArt(BRUSH, nuoviTacc() > 0); ctx.restore();
 }
-/* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — sedere/coda fuori dall'acqua
-   che si tuffa e riemerge, zampe palmate che remano, increspature e bollicine. Sostituisce il
-   disegno normale della creatura durante il lavoro d'acqua. Colore dal torace della creatura. */
-function drawCompanionDabble(cx, cyBase, time, obj) {
-  /* FASE 2: nativa — posizioni/ampiezze raddoppiate (cx/cyBase arrivano già alla scala vera). */
-  const body = (obj && spColor[obj.c.torso]) || '#c8b078';
-  const dark = shade8(body, 0.7), light = shade8(body, 1.18);
-  const wy = cyBase + 6;                                    // pelo dell'acqua
-  const bob = Math.round(Math.sin(time / 260) * 4);         // il sedere si tuffa e riemerge
-  const top = wy - 22 + bob;
-  const rows = [1, 1, 2, 2, 3, 3, 4, 4, 4];                 // rump a goccia: stretto in cima (coda)
-  for (let r = 0; r < rows.length; r++) { const yy = top + r * 2, hw = rows[r] * 2;
-    for (let x = -hw; x <= hw; x++) rect(cx + x, yy, 1, 2, (x === -hw || x === hw) ? dark : yy >= wy - 6 ? light : body); }
-  px(cx, top - 2, dark);
-  const wag = Math.round(Math.sin(time / 130)) * 2;         // coda che scodinzola
-  px(cx + wag, top - 2, body); px(cx + wag, top - 4, light);
-  const pad = Math.floor(time / 160) % 2;                   // zampe palmate che remano
-  px(cx - 10, wy + 2 - pad * 2, dark); px(cx - 12, wy + 2 - pad * 2, dark);
-  px(cx + 10, wy + pad * 2, dark); px(cx + 12, wy + pad * 2, dark);
-  rect(cx - 12, wy, 26, 4, '#4d8fb5'); rect(cx - 12, wy, 26, 2, '#83cfe6'); // acqua che copre la testa
-  const rr = 1 + Math.floor((time / 200) % 3);              // increspature
-  for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(cx + Math.cos(an) * (rr + 2) * 2), Math.round(wy + 2 + Math.sin(an) * (rr + 1)), 'rgba(190,233,244,.45)'); }
-  if (Math.floor(time / 300) % 2) { px(cx - 4, wy + 4, '#bfe9f4'); px(cx + 4, wy + 6, '#e8f6fb'); } // bollicine
+/* LA CREATURA VERA, CHINATA: lo sprite del compagno (lo stesso del parco e del Libro) disegnato a
+   colonne di un pixel, ognuna calata un po' più della precedente andando verso il muso. È un
+   taglio obliquo a pixel interi, non una rotazione: i pixel restano quadrati e il contorno resta
+   quello dello sprite. Il perno è la coda (ci restano le zampe di dietro), il muso scende e sotto
+   `clipY` sparisce — nella buca o sott'acqua. Prima qui c'era una goccia di colore piatto a
+   blocchi 2×2 senza contorno: la vecchia grafica, l'unica rimasta nel gioco («il sedere dei buddy
+   che scavano è rimasto con la grafica vecchia»). Restituisce false se lo sprite non c'è. */
+function drawCreatureTilted(a, cx, base, dir, drop, clipY, nod) {
+  const cv = creatureSprite(a, 'side');
+  if (!cv) return false;
+  const W = cv.width, H = cv.height, x0 = cx - Math.round(W / 2);
+  const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
+  ctx.save(); ctx.beginPath(); ctx.rect(x0 - 4, clipY - 200, W + 8, 200); ctx.clip();
+  for (let i = 0; i < W; i++) {
+    /* colonna di schermo i: il muso sta dal lato di `dir` (lo sprite ha il muso a sinistra) */
+    const src = dir > 0 ? W - 1 - i : i;
+    const t = dir > 0 ? i / (W - 1) : 1 - i / (W - 1);           // 0 = coda, 1 = muso
+    const off = Math.round(t * drop) + (t > 0.5 ? nod : 0);
+    ctx.drawImage(cv, src, 0, 1, H, x0 + i, base - H + off, 1, H);
+  }
+  ctx.restore(); ctx.imageSmoothingEnabled = sm;
+  return true;
 }
-/* SCAVO da ANIMALE (niente pala!): come un cane/talpa — testa nella buca, sedere/coda su che
-   scodinzola, zampe che grattano e TERRA che schizza indietro a ondate, mucchietto che cresce
-   dietro. Sostituisce il disegno normale della creatura. Colore dal torace. Fase dal TEMPO. */
+/* PESCA da ANIMALE (niente canna!): come le oche a testa in giù — la creatura si china col muso
+   sott'acqua e il sedere fuori, che si tuffa e riemerge; increspature e bollicine. Fase dal TEMPO. */
+function drawCompanionDabble(cx, cyBase, time, obj, dir) {
+  const wy = cyBase - 6;                                    // pelo dell'acqua
+  const bob = Math.round(Math.sin(time / 260) * 2);         // il sedere si tuffa e riemerge
+  const drew = obj && drawCreatureTilted(obj, cx, wy + 6 + bob, dir, 20, wy, 0);
+  if (!drew) { const b = (obj && spColor[obj.c.torso]) || '#c8b078'; rect(cx - 6, wy - 12 + bob, 12, 12, b); }
+  const pad = Math.floor(time / 160) % 2;                   // schizzi delle zampe che remano
+  px(cx - dir * 12, wy - 2 - pad * 2, '#e8f6fb'); px(cx - dir * 16, wy - pad, '#bfe9f4');
+  rect(cx - 16, wy, 32, 2, '#83cfe6');                       // il pelo dell'acqua che taglia il muso
+  const rr = 1 + Math.floor((time / 200) % 3);              // increspature
+  for (let a = 0; a < 8; a++) { const an = a / 8 * 6.283; px(Math.round(cx + dir * 6 + Math.cos(an) * (rr + 2) * 2), Math.round(wy + 2 + Math.sin(an) * (rr + 1)), 'rgba(190,233,244,.45)'); }
+  if (Math.floor(time / 300) % 2) { px(cx + dir * 4, wy + 4, '#bfe9f4'); px(cx + dir * 10, wy + 6, '#e8f6fb'); } // bollicine
+}
+/* SCAVO da ANIMALE (niente pala!): come un cane — la creatura vera chinata col muso NELLA buca e
+   il sedere su, le zampe davanti che grattano (il muso fa su e giù), TERRA che schizza indietro a
+   ondate e il mucchietto dietro. Fase dal TEMPO. */
 function drawCompanionDig(cx, cyBase, time, obj, dir) {
-  /* FASE 2: nativa — posizioni/ampiezze raddoppiate. */
-  const body = (obj && spColor[obj.c.torso]) || '#c8b078';
-  const dark = shade8(body, 0.7), light = shade8(body, 1.18);
-  const gy = cyBase + 8, back = -dir;                       // la terra vola DIETRO (opposto al muso)
-  for (let x = -8; x <= 8; x += 2) { const d = Math.round(4 * Math.sqrt(Math.max(0, 1 - x * x / 64))); if (d) rect(cx + x, gy - d + 2, 2, d, '#3a2a18'); } // buca
-  rect(cx - 8, gy, 18, 2, '#5a4326');
-  for (let x = -4; x <= 4; x += 2) { const h = Math.max(0, 6 - Math.abs(x)); for (let k = 0; k < h; k += 2) px(cx + back * 14 + x, gy - k, k >= h - 2 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
-  const bob = Math.round(Math.sin(time / 110)) * 2, rx = cx + back * 4, top = gy - 12 - bob; // sedere su, il muso NELLA buca (niente gap)
-  const rows = [1, 1, 2, 2, 3, 3, 3];
-  for (let r = 0; r < rows.length; r++) { const yy = top + r * 2, hw = rows[r] * 2; for (let x = -hw; x <= hw; x++) rect(rx + x, yy, 1, 2, (x === -hw || x === hw) ? dark : yy >= gy - 6 ? light : body); }
-  const wag = Math.round(Math.sin(time / 85)) * 2;         // coda che scodinzola
-  px(rx + wag, top - 2, body); px(rx + wag, top - 4, light);
-  const scr = Math.floor(time / 70) % 2;                    // zampe davanti che grattano
-  px(cx - dir * 4, gy - scr * 2, dark); px(cx - dir * 6, gy - 2 + scr * 2, dark);
+  const gy = cyBase + 2, back = -dir;                       // la terra vola DIETRO (opposto al muso)
+  const cvs = obj && creatureSprite(obj, 'side');           // la buca sta SOTTO IL MUSO, qualunque sia la taglia
+  const hx = cx + dir * (cvs ? Math.max(4, Math.round(cvs.width / 2) - 7) : 10);
+  for (let x = -8; x <= 8; x += 2) { const d = Math.round(4 * Math.sqrt(Math.max(0, 1 - x * x / 64))); if (d) rect(hx + x, gy - 2, 2, d + 2, '#3a2a18'); } // buca
+  for (let x = -4; x <= 4; x += 2) { const h = Math.max(0, 6 - Math.abs(x)); for (let k = 0; k < h; k += 2) px(cx + back * 20 + x, gy - k, k >= h - 2 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
+  shadow(cx - dir * 6, gy, 8);
+  const nod = Math.floor(time / 70) % 2;                    // zampe davanti che grattano: il muso fa su e giù
+  const drew = obj && drawCreatureTilted(obj, cx, gy, dir, 16, gy - 1, nod);
+  if (!drew) { const b = (obj && spColor[obj.c.torso]) || '#c8b078'; rect(cx - 6, gy - 12, 12, 11, b); }
+  rect(hx - 9, gy - 2, 18, 2, '#5a4326'); rect(hx - 8, gy - 2, 16, 1, '#8a6a42'); // il bordo della buca DAVANTI al muso
   const beat = (time / 70) % 1;                             // TERRA a ondate indietro
   if (Math.floor(time / 70) % 2 === 0) {
     const OX = [4, 8, 12, 16], H = [12, 16, 12, 8], CC = ['#8a6a42', '#c9a06a', '#6d4f30', '#b98d59'];
@@ -400,7 +409,7 @@ function drawCompanionWork(cxs, cys, time, obj) {
      scalare (altrimenti le raddoppia una seconda volta). */
   const j = COMP.job; if (!j || j.phase !== 'work') return;
   const dir = j.wx >= COMP.x ? 1 : -1;
-  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj); return; }
+  if (j.type === 'acqua') { drawCompanionDabble(cxs, cys, time, obj, dir); return; }
   if (j.type === 'terra') { drawCompanionDig(cxs, cys, time, obj, dir); return; }
   if (j.type === 'albero') { drawCompanionChop(cxs, cys, time, dir); return; }
   drawCompanionMine(cxs, cys, time, dir); // roccia
@@ -1220,15 +1229,29 @@ export function drawBoat(sx, sy, noHero) {
       /* scafo di PROFILO: chiglia curva con la prua che sale, fasciame a tre corsi, bordo chiaro
          alla vita di Digsy, remo appoggiato, contorno scuro e la linea dell'acqua */
       const d = P.dir === 'left' ? -1 : 1, L = '#2a1a10';
-      rect(sx - 18, y0 + 13, 36, 13, '#8a5f38');                          // corpo pieno: le gambe restano sempre coperte
+      /* LO SCAFO È UNA CURVA DA PUNTA A PUNTA. Sotto c'era un rettangolo pieno «per coprire le
+         gambe» che scavalcava la curva della chiglia, e la poppa finiva con un taglio dritto:
+         la barca sembrava segata a metà («la barca sembra tagliata», con foto). Le gambe le
+         coprono già le colonne dello scafo, che in mezzo scendono fin sotto i piedi.
+         La chiglia è una curva di secondo grado (fianchi arrotondati, non a spigolo), la prua
+         sale in avanti e anche la poppa si alza di un poco: tutte e due le punte sono PUNTE. */
+      const hull = x => {
+        const u = (x * d + 22) / 44;
+        const top = y0 + 12 - Math.round(Math.max(0, u - 0.72) * 22) - Math.round(Math.max(0, 0.14 - u) * 22);
+        const bot = y0 + 27 - Math.round(Math.pow(Math.abs(x) / 22, 2) * 12);
+        return [top, bot];
+      };
       for (let x = -22; x <= 22; x++) {
-        const u = (x * d + 22) / 44, top = y0 + 12 - Math.round(Math.max(0, u - 0.72) * 22), bot = y0 + 27 - Math.round(Math.pow(Math.abs(x) / 22, 3) * 9);
+        const [top, bot] = hull(x);
+        if (bot <= top) continue;
         rect(sx + x, top - 1, 1, bot - top + 2, L);
         rect(sx + x, top, 1, bot - top, '#8a5f38');
         rect(sx + x, top, 1, 2, '#c49a63');
-        for (const k of [6, 11]) if (top + k < bot) rect(sx + x, top + k, 1, 1, '#6e4a2e');
-        if (bot - 3 > top) rect(sx + x, bot - 3, 1, 3, '#6e4a2e');
+        for (const k of [6, 11]) if (top + k < bot - 1) rect(sx + x, top + k, 1, 1, '#6e4a2e');
+        if (bot - 3 > top + 2) rect(sx + x, bot - 3, 1, 3, '#6e4a2e');
       }
+      /* il contorno CHIUDE anche le punte: senza, l'ultima colonna restava un bordo aperto */
+      for (const x of [-22, 22]) { const [top, bot] = hull(x); rect(sx + x + Math.sign(x), top - 1, 1, bot - top + 2, L); }
       rect(sx - 10 * d - 2, y0 + 8, 3, 18, L); rect(sx - 10 * d - 1, y0 + 9, 1, 16, '#b07c4a');     // remo
       rect(sx - 10 * d - 3, y0 + 22, 5, 6, L); rect(sx - 10 * d - 2, y0 + 23, 3, 4, '#a97a4c');
       ctx.fillStyle = 'rgba(200,235,245,.55)'; ctx.fillRect(sx - 20, y0 + 26, 40, 1); ctx.fillRect(sx - 14, y0 + 29, 28, 1);

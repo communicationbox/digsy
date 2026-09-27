@@ -609,6 +609,15 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   (48×46 → 48×62) **e** i lembi della sella si disegnavano DOPO il cavaliere, quindi passavano
   davanti agli stinchi. Ora la sella sta fra la bestia e la gamba, com'è nella realtà.
   Foto: `npm run shot -- pose 1000,600 "solo=volo&zoom=5"` (e `solo=bici`).
+- **Il compagno al lavoro è la creatura VERA** (`drawCreatureTilted` in render.js): scavo e pesca
+  disegnano lo sprite di profilo a colonne di un pixel, ognuna calata un po' più andando verso il
+  muso — un taglio obliquo a pixel interi, non una rotazione — col perno sulla coda e il muso
+  ritagliato sotto il bordo della buca o il pelo dell'acqua. Prima era una goccia di colore a
+  blocchi 2×2 senza contorno, l'ultima grafica vecchia rimasta. Foto:
+  `npm run shot -- buddy-lavoro 500,300 "tipo=terra&verso=sx"` (tipo terra|acqua|albero|roccia).
+- **La barca di profilo è UNA curva da punta a punta** (`hull` in `drawBoat`): sotto c'era un
+  rettangolo pieno che scavalcava la chiglia e la poppa finiva dritta ("sembra tagliata"). Il
+  test dello scafo misura la COPERTURA (le colonne sono larghe un pixel), non i pezzi larghi.
 - **Ogni scena si rimette la scala della tela** (`ctx.setTransform(view.PX…)` in cima a mondo,
   grotta e interni): il mondo aperto era l'unico a fidarsi di quella lasciata da `fit()`, ma
   l'intro disegna a `view.PX × Z` (Z fino a 3 sugli schermi grandi) e non la rimetteva. Finita

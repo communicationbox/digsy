@@ -4604,6 +4604,7 @@ sprites.applyLook();
        larghezza positiva, altrimenti "largo -30" non somiglia a niente */
     ctx2.fillRect = (x, y, w, h) => {
       const x0 = tr.x + x * tr.kx, w0 = w * tr.kx;
+      if (String(ctx2.fillStyle).startsWith('rgba')) return;   // la linea dell'acqua non è scafo
       rects.push([w0 < 0 ? x0 + w0 : x0, tr.y + y * tr.ky, Math.abs(w0), Math.abs(h * tr.ky)]);
     };
     ctx2.save = () => pila.push({ ...tr });
@@ -4611,10 +4612,19 @@ sprites.applyLook();
     ctx2.translate = (x, y) => { tr.x += x * tr.kx; tr.y += y * tr.ky; };
     ctx2.scale = (kx, ky) => { tr.kx *= kx; tr.ky *= (ky === undefined ? kx : ky); };
     try { disegna(); } finally { ctx2.fillRect = oldFill; ctx2.save = oldSave; ctx2.restore = oldRestore; ctx2.translate = oldTr; ctx2.scale = oldSc; }
-    const largo = rects.filter(r => r[2] >= 18).sort((a2, b2) => a2[1] - b2[1]);   // i pezzi di scafo
-    if (!largo.length) return null;
-    const top = largo[0][1], w = Math.max(...largo.map(r => r[2]));
-    const fondo = Math.max(...largo.map(r => r[1] + r[3])) - top;
+    /* LO SCAFO SI MISURA PER COPERTURA, non per rettangoli larghi: quello di profilo è disegnato
+       a colonne di un pixel (la curva della chiglia), e un conto dei soli pezzi larghi lo
+       avrebbe dichiarato inesistente. Il bordo alto è quello sopra il centro del corpo. */
+    const copre = (x, y) => rects.some(r => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3]);
+    const sopra = rects.filter(r => 0 >= r[0] && 0 < r[0] + r[2]);
+    if (!sopra.length) return null;
+    /* di prua la punta sta sopra il bordo: dove ci sono righe larghe (viste di fronte/retro) il
+       bordo è la prima di quelle */
+    const larghe = rects.filter(r => r[2] >= 18);
+    const top = larghe.length ? Math.min(...larghe.map(r => r[1])) : Math.min(...sopra.map(r => r[1]));
+    let fondo = 0; while (copre(0, top + fondo) && fondo < 60) fondo++;
+    let a = 0, b = 0; while (copre(a - 1, top + 3) && a > -60) a--; while (copre(b + 1, top + 3) && b < 60) b++;
+    const w = b - a + 1;
     const buchi = [];
     for (let x = -7; x <= 7; x += 2) for (let y = top + 1; y <= top + 9; y += 2) {
       if (!rects.some(r => x >= r[0] && x < r[0] + r[2] && y >= r[1] && y < r[1] + r[3])) buchi.push(x + ',' + y);
@@ -11810,6 +11820,16 @@ sprites.applyLook();
   scC.view.W = W0; scC.view.H = H0; st.cam.x = cx0; st.cam.y = cy0;
   mpC.disconnect();
   mpC.setTransport((u) => new WebSocket(u));
+}
+
+/* IL COMPAGNO AL LAVORO è la sua creatura vera: scavo e pesca passano dallo sprite della bestia
+   (chinato a colonne), non da una goccia di colore disegnata a mano — era l'ultima grafica vecchia */
+{
+  const rsrc = (await import('node:fs')).readFileSync(new URL('../src/render.js', import.meta.url), 'utf8');
+  const corpo = n => { const i = rsrc.indexOf('function ' + n + '('); return i < 0 ? '' : rsrc.slice(i, rsrc.indexOf('\n}', i)); };
+  for (const n of ['drawCompanionDig', 'drawCompanionDabble'])
+    check(n + ' disegna lo sprite della creatura, chinato', corpo(n).includes('drawCreatureTilted('), corpo(n) ? 'no' : 'funzione sparita');
+  check('e il chinato usa lo sprite di profilo, colonna per colonna', /creatureSprite\(a, 'side'\)/.test(corpo('drawCreatureTilted')) && /drawImage\(cv, src, 0, 1, H/.test(corpo('drawCreatureTilted')));
 }
 
 failures += summary('digsy-world');

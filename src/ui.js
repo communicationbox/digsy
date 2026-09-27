@@ -891,7 +891,10 @@ export function openBed(room, gx, gy) {
   if (manca.length) h += `<div class="row"><span class="em">🎨</span><div><div class="nm">${tr('Per stare più comodi', 'To make it comfier')}</div><div class="sub">${manca.join(' · ')}</div></div></div>`;
   const dorme = canSleep();
   h += `<div class="row"><div class="btn2">${dorme ? `<button class="btn amber" data-sleep="1">😴 ${tr('Dormi', 'Sleep')}</button>` : `<button class="btn ghost" disabled>😴 ${tr('Non hai ancora sonno', 'Not sleepy yet')}</button>`}<button class="btn ghost" data-bedmove="1">🎨 ${tr('Sposta il letto', 'Move the bed')}</button></div></div>`;
-  mTitle.innerHTML = withIcons('🛏️ ' + furnLabel(furnAt(room, gx, gy).itemId));
+  /* senza un mobile in quella casella il titolo resta generico: prima leggeva `.itemId` di
+     niente e il pannello non si apriva affatto (trovato dalla prova sui telefoni) */
+  const lettoQui = furnAt(room, gx, gy);
+  mTitle.innerHTML = withIcons('🛏️ ' + (lettoQui ? furnLabel(lettoQui.itemId) : tr('Letto', 'Bed')));
   mBody.innerHTML = withIcons(h); openModal();
   mBody.querySelectorAll('[data-sleep]').forEach(b => b.onclick = () => { if (sleepAtHome(room)) closeModal(); });
   mBody.querySelectorAll('[data-bedmove]').forEach(b => b.onclick = () => {

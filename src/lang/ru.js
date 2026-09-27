@@ -1841,6 +1841,7 @@ export const RU = {
   'A name is needed: it is what the others read above your head.': 'Имя нужно: его читают у тебя над головой.',
   'You are now called ': 'Теперь тебя зовут ',
   ' talk': ' говорить',
+  'Bed': 'Кровать',
   'Talk (T)': 'Говорить (T)',
   'Flying to ': 'Летим к ',
   'In flight': 'В полёте',

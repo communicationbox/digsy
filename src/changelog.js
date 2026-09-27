@@ -1,6 +1,21 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.29', it: [
+      'TUTTO IL TELEFONO RIGUARDATO, schermata per schermata, anche col telefono girato: zaino, restauro, letto, bottega, museo, posta, lettere, missioni, compagno, teca, fontana, grotta e i menu. I pulsanti piccoli ora si prendono col pollice',
+      'Col telefono girato la scheda del tutorial non si prende più mezzo schermo e non copre il joystick: si allarga e sta in due righe',
+      'Toccare il letto in una casella vuota non blocca più il gioco',
+      'LA BARCA NON SEMBRA PIÙ SEGATA: di profilo lo scafo è una curva da punta a punta, con la prua e la poppa che salgono',
+      'IL COMPAGNO CHE SCAVA è la sua creatura vera, chinata col muso nella buca e il sedere su (e col muso sott\'acqua quando pesca): era rimasta l\'ultima cosa con la grafica vecchia',
+    ], en: [
+      'THE WHOLE PHONE EXPERIENCE CHECKED, screen by screen, with the phone turned sideways too: bag, restoration, bed, shop, museum, mail, letters, quests, companion, display case, fountain, cave and menus. Small buttons can now be hit with a thumb',
+      'With the phone sideways the tutorial card no longer takes half the screen or covers the joystick: it widens and fits in two lines',
+      'Tapping the bed on an empty tile no longer freezes the game',
+      'THE BOAT NO LONGER LOOKS SAWN IN HALF: from the side the hull is one curve from tip to tip, bow and stern rising',
+      'THE DIGGING COMPANION is its real creature, bent with its snout in the hole and its rump up (and snout under water when it fishes): it was the last thing left with the old graphics',
+    ],
+  },
+  {
     v: 'v0.99.28', it: [
       'I FUMETTI DELLA CHAT E I NOMI SOPRA LA TESTA SI LEGGONO DA TELEFONO: erano alti 5-6 pixel sullo schermo, ora non scendono mai sotto una misura leggibile',
       'Il fumetto di chi parla sta sopra tutto: prima il nome di chi gli stava accanto gli finiva in mezzo alla frase',

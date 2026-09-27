@@ -276,6 +276,17 @@ async function main() {
           if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1500);
 
         }); }
+    /* 'buddy-lavoro' = il compagno fermo nel mezzo del lavoro (tipo=terra|acqua|albero|roccia):
+       la creatura vera chinata col muso nella buca o sott'acqua */
+    else if (${JSON.stringify(vista)} === 'buddy-lavoro') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var qw = new URLSearchParams(location.search), tw = qw.get('tipo') || 'terra', fw = qw.get('verso') === 'sx' ? -1 : 1;
+      if(G.cmd) G.cmd('godmode').then(function(){ return G.debug(false); }).then(function(){ return G.cmd('companion=terra raro'); })
+        .then(function(){ return G.companion(); }).then(function(m){
+          var P2 = G.player(); P2.dir = 'down';
+          m.COMP.x = P2.x + 64; m.COMP.y = P2.y; m.COMP.init = true; m.COMP.face = fw > 0 ? 'right' : 'left';
+          m.COMP.job = { type: tw, phase: 'work', t: 999, wx: m.COMP.x + fw * 32, wy: m.COMP.y, hit: -1 };
+          if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1500);
+        }); }
     /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
        o il doppio (era il caso delle creature) */
     else if (${JSON.stringify(vista)} === 'meraviglia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
