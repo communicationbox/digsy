@@ -36,7 +36,7 @@ import { waterTile, avanzaNotte } from './gameplay.js';
 import { pruneExpired } from './commission.js';
 import { eggReady } from './breeding.js';
 import { expireQuests, questExpiryText } from './quests.js';
-import { tutTick, tutActive } from './tutorial.js';
+import { tutTick, tutActive, amiciAperti } from './tutorial.js';
 import { announceTutStep } from './ui.js';
 import { advance, hasGoal, clearGoal } from './tapmove.js';
 import { toast, mostraInvito } from './ui.js';
@@ -146,6 +146,7 @@ function walk(dt) {
 }
 
 let last = 0, hudAcc = 0;
+let invitoFermo = false;   // un link d'invito aperto a tutorial in corso: fermato, lo si dice a gioco iniziato
 function loop(ts) {
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
@@ -417,7 +418,14 @@ function boot() {
        quelle che si riaprono da sole e quella che si apre quando invito qualcuno. */
     setIdentita(mioCodice(), amici().map(a => a.c));
     const chi = { name: (S && S.name) || 'Digsy', look: S && S.look };
-    if (valido(invito)) {
+    /* …MA NON DURANTE IL TUTORIAL: gli Amici si aprono a tutorial finito o saltato, e un link
+       era la porta di servizio che li scavalcava (a richiesta: «blocca anche i link»). Il link
+       si toglie dall'indirizzo lo stesso, e a gioco iniziato si dice perché non si è partiti. */
+    if (valido(invito) && !amiciAperti()) {
+      invitoFermo = true;
+      try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* pazienza */ }
+      mpConnect(relayUrl(), chi);
+    } else if (valido(invito)) {
       mpConnect(relayUrl(), { ...chi, room: stanzaDi(invito), ospite: invito !== mioCodice() });
       try { history.replaceState(null, '', location.pathname + location.hash); } catch (e) { /* pazienza */ }
     } else if (dove) {
@@ -448,7 +456,10 @@ function boot() {
   requestAnimationFrame(loop);
   /* splash → (prima volta) editor personaggio → INTRO (lore) → gioco */
   initSplash(() => {
-    const startGame = () => { if (!loaded) welcomeToasts(); else if (idleResult) showIdleWelcome(idleResult); };
+    const startGame = () => {
+      if (!loaded) welcomeToasts(); else if (idleResult) showIdleWelcome(idleResult);
+      if (invitoFermo) toast('🔒 ' + tr('Il link d\'invito si apre quando finisci il tutorial (o lo salti): poi riaprilo', 'The invite link works once you finish the tutorial (or skip it): open it again then'));
+    };
     /* "la prima cosa che vede è la sua casa": per una partita NUOVA si entra dritti nella Sala
        (stessa strada di `checkDoorEnter`/`enterHouseRoom`, mai un mondo a parte), DOPO editor e
        intro — mai prima, o si sovrapporrebbe alle loro scene. La posizione FUORI (P.x/P.y) va

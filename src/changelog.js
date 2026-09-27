@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.33', it: [
+      'Anche i LINK D\'INVITO aspettano il tutorial: aperti a tutorial in corso non portano nel mondo dell\'amico, e il gioco dice di riaprirli quando hai finito (o saltato) il tutorial',
+    ], en: [
+      'INVITE LINKS wait for the tutorial too: opened mid-tutorial they don\'t take you to your friend\'s world, and the game tells you to open them again once you finish (or skip) the tutorial',
+    ],
+  },
+  {
     v: 'v0.99.32', it: [
       'GLI AMICI TI VEDONO IN LINEA DAVVERO: giocando da soli, dopo cinque minuti il gioco staccava la linea e per gli amici risultavi offline finché non lo riavviavi. Ora resti in linea finché il gioco è aperto',
       'Uscire da una stanza, essere mandati via o vedere chiudersi la stanza non ti mette più offline: torni nel tuo mondo e resti in linea',

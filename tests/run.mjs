@@ -10628,6 +10628,15 @@ sprites.applyLook();
   check('e un link con altra roba attorno', amL.codiceDaTesto('guarda qua https://digsy.dev-box.it/?vai=' + mioL + ' ci vediamo!') === mioL);
   check('mentre una frase qualunque non è un invito', amL.valido(amL.codiceDaTesto('ci vediamo domani')) === false);
   check('e un codice storto resta storto', amL.valido(amL.codiceDaTesto('?vai=OOOOOOOOOO')) === false);
+  /* IL LINK NON SCAVALCA IL TUTORIAL: gli Amici si aprono a tutorial finito o saltato, e il link
+     d'invito era la porta di servizio. All'avvio il ramo che entra col link deve venire DOPO
+     quello che lo ferma (se il tutorial è in corso), e il fermo va detto a gioco iniziato. */
+  {
+    const msrc = (await import('node:fs')).readFileSync('src/main.js', 'utf8');
+    const ferma = msrc.indexOf('if (valido(invito) && !amiciAperti())'), entra = msrc.indexOf('} else if (valido(invito)) {');
+    check('il link d\'invito si ferma a tutorial in corso', ferma > 0 && entra > ferma);
+    check('e a gioco iniziato si dice perché', /if \(invitoFermo\) toast\(/.test(msrc));
+  }
 }
 
 /* L'INVITO A SCHERMO (regola 9: una schermata che nessun test disegna è un crash che aspetta).

@@ -1756,6 +1756,7 @@ export const RU = {
   'Mushroom shelf': 'Грибная полка', 'Clay painting': 'Глиняная картина',
   'Hanging lily': 'Подвесная кувшинка', 'Ice mirror': 'Ледяное зеркало',
   /* cancello del cortile chiuso a chiave dal teletrasporto */
+  'The invite link works once you finish the tutorial (or skip it): open it again then': 'Ссылка-приглашение сработает, когда закончишь обучение (или пропустишь его): тогда открой её снова',
   'Friends: after the tutorial': 'Друзья: после обучения',
   'Friends open once you finish the tutorial (or skip it)': 'Друзья откроются, когда закончишь обучение (или пропустишь его)',
   "Whoa! It's locked from outside!! Leave through the portal in the hall": 'Ого! Заперто снаружи!! Выходи через портал в прихожей',

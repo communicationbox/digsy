@@ -239,6 +239,8 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   main.js) riapre subito la linea caduta in tasca, dove i timer rallentano e il tentativo
   successivo arrivava dopo un minuto. **Gli Amici si aprono a tutorial finito o saltato**
   (`amiciAperti` in tutorial.js, `fatto` sopravvive a `tutRestart`): prima col lucchetto.
+  Vale anche per il link `?vai=`: a tutorial in corso si toglie dall'indirizzo senza entrare, e
+  a gioco iniziato un toast dice di riaprirlo dopo (`invitoFermo` in main.js).
 - **Il compagno viaggia e si vede** (`net.js` `cleanComp` + `T.AT`): la bestia sta nel
   salvataggio di chi la porta (quindi attraversa le stanze da sé), ma agli altri va DETTA. Si
   manda lo **stampo** (le tre specie + rarità: il modello lo ricostruisce chi guarda, quindi da
