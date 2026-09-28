@@ -12447,5 +12447,27 @@ sprites.applyLook();
   check('il mantello finisce nel modello (il lupo delle terre ha il dorso scuro)', vox.some(v => v.col && v.col.toLowerCase() === '#3a1c14'));
 }
 
+/* IL CORTILE SI ACCENDE PRIMA DI ENTRARE IN VISTA: le creature non devono comparire di colpo
+   («il popup degli animali è clamoroso»). Si misura dal BORDO del cortile rispetto
+   all'inquadratura: appena un pezzo di recinto sta per entrare nello schermo, è acceso. */
+{
+  const pk = await import('../src/park.js');
+  const { TS: T4 } = await import('../src/data.js');
+  const { S: S4, P: P4 } = await import('../src/state.js');
+  const { view: v4 } = await import('../src/screen.js');
+  const { yardRect: yR } = await import('../src/world.js');
+  const salva = { home: S4.home, x: P4.x, y: P4.y, W: v4.W, H: v4.H };
+  S4.home = S4.home || { x: 100, y: 100 };
+  v4.W = 960; v4.H = 540;
+  const yr = yR();
+  const prova = (px) => { P4.x = px; P4.y = (yr.y0 + 8) * T4; pk.refreshVisParks(); return pk.yardNear; };
+  /* il bordo sinistro del cortile appena dentro lo schermo (a mezza inquadratura dal giocatore) */
+  check('il cortile è acceso quando il suo bordo entra nello schermo', prova(yr.x0 * T4 - v4.W / 2 + 10));
+  check('e anche un po\' prima (le creature ci sono già)', prova(yr.x0 * T4 - v4.W / 2 - 3 * T4));
+  check('ma lontano resta spento (non si simula mezzo mondo)', !prova(yr.x0 * T4 - v4.W));
+  Object.assign(v4, { W: salva.W, H: salva.H }); S4.home = salva.home; P4.x = salva.x; P4.y = salva.y;
+  pk.refreshVisParks();
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

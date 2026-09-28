@@ -4,6 +4,7 @@
    (`S.house.yard`, elenco di `key`), non più "tutte le creature, in ogni città". */
 import { TS, spById } from './data.js';
 import { S, P } from './state.js';
+import { view } from './screen.js';
 import { FOOT_DY, placeOnTile } from './body.js';
 import { yardRect, houseFootprint } from './world.js';
 import { COMP } from './companion.js';
@@ -59,11 +60,22 @@ export function parkPopulation() {
   return out;
 }
 
+export const YARD_MARGINE = 6 * TS;   // quanto prima dell'inquadratura si accende (le creature più grandi sforano la casella)
+export function yardInVista(yr, px, py, W, H) {
+  const dx = Math.max(yr.x0 * TS - px, 0, px - (yr.x1 + 1) * TS);
+  const dy = Math.max(yr.y0 * TS - py, 0, py - (yr.y1 + 1) * TS);
+  return dx < W / 2 + YARD_MARGINE && dy < H / 2 + YARD_MARGINE;
+}
 export function refreshVisParks() {
   const yr = yardRect();
   if (!yr) { yardNear = false; return; }
-  const cx = (yr.x0 + yr.x1) / 2 * TS, cy = (yr.y0 + yr.y1) / 2 * TS;
-  yardNear = Math.abs(P.x - cx) < 500 && Math.abs(P.y - cy) < 400; // ben oltre lo schermo
+  /* IL CORTILE SI ACCENDE PRIMA DI ENTRARE IN VISTA. Si misurava dal CENTRO (500 px), ma il
+     cortile è largo diciassette caselle: i suoi bordi erano già sullo schermo quando il centro era
+     ancora oltre la soglia, e si vedeva il recinto vuoto finché, un passo dopo, tutte le creature
+     comparivano di colpo (segnalato con foto: «il popup degli animali è clamoroso»). Ora conta
+     la distanza dal BORDO del cortile, confrontata con mezza inquadratura più un margine: quando
+     un pezzo di cortile sta per entrare nello schermo, le sue creature ci sono già. */
+  yardNear = yardInVista(yr, P.x, P.y, view.W, view.H);
   checkGateClose(yr);
 }
 /* Il cancello (render.js) si chiude appena visto da FUORI: qui si accorge del passaggio

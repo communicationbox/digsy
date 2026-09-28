@@ -277,6 +277,12 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   vista e solo su terra) e ha i **bordi seghettati** da tutte e due le parti (`bordiVialetto` in
   render.js + `frangiaStrada`). `homePathAt` = vialetto fuori dal recinto: niente scavo (tu, il
   compagno) e le buche vecchie si tolgono al boot. Foto: `npm run shot -- vialetto 900,700`.
+- **Le creature del cortile ci sono già quando il recinto entra in vista** (`yardInVista` in
+  park.js): `yardNear` si misurava dal CENTRO del cortile (500×400 px), ma il cortile è largo 17
+  caselle — il recinto era sullo schermo vuoto e un passo dopo tutte le bestie comparivano
+  insieme («il popup degli animali è clamoroso»). Ora conta la distanza dal BORDO contro mezza
+  inquadratura + 6 caselle; e il ritaglio in render.js lascia 80 px di margine (a 20 le chimere
+  grandi spuntavano al bordo).
 - **Il raccoglitore non lavora a casa** (`tileValidForWork`): né nel cortile (prato, alberi, sassi,
   stagno) né sul vialetto e attorno alla casa (`nearHouseZone`). Le buche già fatte nel cortile si
   tolgono al boot (main.js).

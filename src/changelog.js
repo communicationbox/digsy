@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.46', it: [
+      'Le creature del cortile non compaiono più di colpo: ci sono già quando il recinto entra nello schermo, e quelle grandi non spuntano né spariscono al bordo',
+    ], en: [
+      'Yard creatures no longer pop in: they are already there when the fence comes on screen, and the big ones no longer blink in or out at the edge',
+    ],
+  },
+  {
     v: 'v0.99.45', it: [
       'Impostazioni in ordine: ogni interruttore sta sulla riga della sua voce, tutti incolonnati a destra, e i pulsanti non vanno più a capo a seconda di quanto è lunga la scritta',
     ], en: [

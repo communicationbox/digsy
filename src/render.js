@@ -1993,7 +1993,9 @@ export function render(time) {
     const yr = yardRect();
     for (const a of yardAnimals) {
       const ax = snap(a.x - cam.x), ay = snap(a.y - cam.y);
-      if (ax < -20 || ax > W + 20 || ay < -20 || ay > H + 20) continue;
+      /* margine largo: le chimere grandi sforano di parecchio i piedi (-16/-26 e oltre), e a
+         20 px spuntavano o sparivano di colpo al bordo dello schermo */
+      if (ax < -80 || ax > W + 80 || ay < -40 || ay > H + 90) continue;
       /* stesso `alive()` del disegno: senza, una creatura nuoterebbe in uno stagno che non
          è ancora comparso */
       const pd = yr && parkDeco(yr, yr.cx, Math.floor(a.x / TS), Math.floor(a.y / TS), alive());
