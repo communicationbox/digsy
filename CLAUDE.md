@@ -146,6 +146,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   Dune di NOTTE (18–06) — due metà uguali (`eSera`: tod ≥ 0.5), non la notte vera (42% del giorno,
   e chi dorme la salta). Il prompt in barca lo dice; fuori orario il lancio non parte e non costa
   energia (`pescaQui`). Prima si pescava solo di notte ovunque e di giorno si pagava a vuoto.
+  **I punti si esauriscono** (`S.pescati`, `puntoEsaurito`): 2 fossili nello stesso punto (la
+  casella del primo, quelle a 1 casella contano uguale) e lì non abbocca più niente — si sposta
+  la barca di almeno 2 caselle; si ripopola dopo 3 giorni dall'ultimo pescato, e lo si dice.
+  Roba della persona come le fontane: ogni punto porta il seme del suo mondo.
+  Foto: `npm run shot -- pesca 700,500 "ora=0.7&esaurito=1"`.
 - **Fonti dei fossili** (`sp.src` in data.js): per zona 1 raro vive negli ALBERI, 1 raro in
   ACQUA, 1 eccezionale nelle ROCCE — lo scavo a terra li ESCLUDE (`makeRaw(zone,dist,rar,src)`,
   siti/fontana/mappe = 'any'); il **Libro indica la fonte** nella riga meta (accetta/piccone/

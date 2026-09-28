@@ -13,7 +13,7 @@ import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compa
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo, houseFootprint } from './world.js';
 import { compass } from './compass.js';
 import { landmarkNear, harvestDecoAt } from './world.js';
-import { vhash as vhashW } from './noise.js';
+import { vhash as vhashW, SEED } from './noise.js';
 import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememberArch, addBuff, useBuff } from './wonders.js';
 import { marketPrice } from './market.js';
 import { zoneAt } from './regions.js';
@@ -571,7 +571,46 @@ export function waterTile(tx, ty) {
 export function onBoat() {
   return hasBoat() && waterTile(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
 }
+/* ---------- PUNTI DI PESCA CHE SI ESAURISCONO ----------
+   Due fossili pescati nello stesso punto e lì non abbocca più niente: per ripescare si sposta la
+   barca di almeno DUE caselle (a richiesta: «per evitare lo spam di pescate nello stesso punto…
+   e bisogna spostare la barca di almeno 2 blocchi»). Il punto è la casella del primo pescato; le
+   pescate a una casella di distanza contano per lo stesso punto, così non si scappa spostandosi
+   di una. Dopo PESCA_RIPOSO giorni il punto si ripopola, e il gioco lo dice. È roba della
+   persona, come i lanci nella fontana: la chiave porta il seme del mondo, o pescare in casa
+   d'altri esaurirebbe il laghetto di casa propria. */
+export const PESCA_MAX = 2, PESCA_RIPOSO = 3, PESCA_DIST = 2;
+function puntiPesca() {
+  if (!Array.isArray(S.pescati)) S.pescati = [];
+  const oggi = S.day || 1;
+  if (S.pescati.length && S.pescati.some(p => oggi - p.d >= PESCA_RIPOSO)) S.pescati = S.pescati.filter(p => oggi - p.d < PESCA_RIPOSO);
+  return S.pescati;
+}
+/* il punto esaurito vicino a (tx,ty), se c'è: {x, y, fra} con `fra` = giorni al ripopolamento */
+export function puntoEsaurito(tx, ty) {
+  const seme = SEED;
+  for (const p of puntiPesca()) {
+    if (p.s !== seme || p.n < PESCA_MAX) continue;
+    if (Math.max(Math.abs(p.x - tx), Math.abs(p.y - ty)) < PESCA_DIST) return { x: p.x, y: p.y, fra: Math.max(1, PESCA_RIPOSO - ((S.day || 1) - p.d)) };
+  }
+  return null;
+}
+function segnaPescato(tx, ty) {
+  const seme = SEED, lista = puntiPesca();
+  let p = lista.find(q => q.s === seme && Math.max(Math.abs(q.x - tx), Math.abs(q.y - ty)) < PESCA_DIST);
+  if (!p) { p = { s: seme, x: tx, y: ty, n: 0, d: S.day || 1 }; lista.push(p); }
+  p.n++; p.d = S.day || 1;                                   // il riposo parte dall'ultimo pescato
+}
+/* per le prove: segnare un pescato senza lanciare la lenza (il lancio ha il caso di mezzo) */
+export const __prova = { segna: (x, y) => segnaPescato(x, y) };
+export function puntoEsauritoTesto(e) {
+  return tr('Qui non abbocca più niente: sposta la barca di almeno 2 caselle', 'Nothing bites here any more: move the boat at least 2 tiles')
+    + ' · ' + tr('si ripopola fra ', 'restocks in ') + e.fra + (e.fra === 1 ? tr(' giorno', ' day') : tr(' giorni', ' days'));
+}
 export function tryFish() {
+  /* PUNTO ESAURITO: non si lancia, non si paga, e si dice dove andare */
+  { const e = puntoEsaurito(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
+    if (e && !isDebug()) { toast('🎣 ' + puntoEsauritoTesto(e)); playSfx('nope'); return; } }
   /* FUORI ORARIO non si lancia: lo si dice sempre, e non costa energia. Prima di giorno si pescava
      a vuoto pagando e l'indizio usciva una volta su due. */
   { const q = pescaQui(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
@@ -586,7 +625,11 @@ export function tryFish() {
     const fishCh = Math.min(0.85, 0.4 * companionYieldMul('acqua')); // compagno Pescatore: più abboccate
     const raw = Math.random() < fishCh ? makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), null, 'acqua') : null;
     if (raw) {
-      if (addFossil(raw, tx, ty)) toast('🎣 ' + tr('Fossile acquatico!', 'Aquatic fossil!'));
+      if (addFossil(raw, tx, ty)) {
+        segnaPescato(tx, ty);
+        /* l'ultimo che il punto dà: lo si dice subito, non al lancio dopo */
+        toast('🎣 ' + tr('Fossile acquatico!', 'Aquatic fossil!') + (puntoEsaurito(tx, ty) ? ' · ' + tr('qui ormai non abbocca più niente', 'nothing more will bite here') : ''));
+      }
       playSfx('found');
     } else {
       toast('🎣 ' + tr('…non abbocca niente', '…nothing bites'));

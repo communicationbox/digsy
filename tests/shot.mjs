@@ -292,6 +292,8 @@ async function main() {
       var qp = new URLSearchParams(location.search);
       if(G.cmd) G.cmd('goditem').then(function(){ return G.leaveRoom ? G.leaveRoom() : null; }).then(function(){ return G.cmd('go=water'); })
         .then(function(){ var S2 = G.state(); S2.tod = +(qp.get('ora') || 0.3); if (S2.tut) { S2.tut.done = true; } if(G.updateHUD) G.updateHUD();
+          /* esaurito=1: il punto sotto la barca ha già dato i suoi due fossili */
+          if (qp.get('esaurito')) { var P3 = G.player(); return G.mod('gameplay').then(function(gp){ var tx = Math.floor(P3.x / 32), ty = Math.floor((P3.y + 26) / 32); gp.__prova.segna(tx, ty); gp.__prova.segna(tx, ty); return G.mod('ui'); }); }
           return G.mod('ui'); }).then(function(u){ if (u && u.updatePrompt) u.updatePrompt(); if(G.frame) G.frame(1500); }); }
     /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
        o il doppio (era il caso delle creature) */

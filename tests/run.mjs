@@ -9661,6 +9661,25 @@ sprites.applyLook();
     check('di sera invece è il momento', gp2.pescaQui(acqua[0], acqua[1]).adesso === true);
     P5.x = kp.x; P5.y = kp.y; S.energy = ken; S.tod = ktod;
   }
+  /* PUNTI DI PESCA CHE SI ESAURISCONO: due fossili nello stesso punto e lì non abbocca più niente;
+     si sposta la barca di almeno 2 caselle, e dopo 3 giorni il punto si ripopola */
+  {
+    const gp3 = await import('../src/gameplay.js');
+    const keepD = S.day, keepP = S.pescati; S.pescati = []; S.day = 20;
+    const X = 500, Y = 700;
+    const quanti = () => (S.pescati || []).length;
+    check('un punto nuovo non è esaurito', gp3.puntoEsaurito(X, Y) === null);
+    gp3.__prova.segna(X, Y); gp3.__prova.segna(X + 1, Y);            // il secondo a una casella conta per lo stesso punto
+    check('due fossili nello stesso punto (anche a una casella) lo esauriscono', !!gp3.puntoEsaurito(X, Y) && !!gp3.puntoEsaurito(X + 1, Y + 1) && quanti() === 1);
+    check('a una casella di distanza è ancora esaurito', !!gp3.puntoEsaurito(X - 1, Y));
+    check('a due caselle si pesca di nuovo', gp3.puntoEsaurito(X + 2, Y) === null && gp3.puntoEsaurito(X, Y - 2) === null);
+    check('e il gioco dice di spostarsi e fra quanto si ripopola', /almeno 2 caselle/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))) && /fra 3 giorni/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))));
+    S.day = 22;
+    check('il giorno dopo manca meno', /fra 1 giorno/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))));
+    S.day = 23;
+    check('dopo 3 giorni il punto si ripopola (e la lista si svuota)', gp3.puntoEsaurito(X, Y) === null && quanti() === 0);
+    S.pescati = keepP; S.day = keepD;
+  }
   check('availableNow: diurna presente di giorno, assente di notte',
     data.availableNow(win.find(x => x.when.day), false, 0) && !data.availableNow(win.find(x => x.when.day), true, 0));
   /* e il pescato notturno deve davvero cambiare: di giorno quella specie non esce mai */

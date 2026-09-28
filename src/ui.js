@@ -14,7 +14,7 @@ import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, breeders, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal, nearbyCityPortal, amberReward } from './gameplay.js';
-import { pescaQui, quandoPescaTesto, sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { pescaQui, quandoPescaTesto, puntoEsaurito, puntoEsauritoTesto, sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc , nearPet } from './interior.js';
@@ -392,6 +392,8 @@ export function updatePrompt() {
   /* IN BARCA SI PESCA, e il prompt dice QUANDO: ogni zona ha la sua metà della giornata */
   if (onBoat() && !nearbyWreck()) {
     const q = pescaQui(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
+    const es = puntoEsaurito(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
+    if (es) { setPrompt(withIcons('🎣 ' + puntoEsauritoTesto(es))); return; }
     setPrompt(withIcons(q.adesso
       ? actKey() + ' ' + tr('Pesca 🎣 · qui abboccano ', 'Fish 🎣 · here they bite ') + quandoPescaTesto(q.quando)
       : '🎣 ' + tr('Qui si pesca ', 'Here fish bite ') + quandoPescaTesto(q.quando)));

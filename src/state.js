@@ -103,6 +103,7 @@ export function markLookBought(look) { if (look) for (const f of LOOK_FIELDS) ma
    collezioni, aspetto, progressi) viaggia con te ed è l'unica cosa che torna a casa.
 
    Chi NON è qui dentro, e perché:
+   - `pescati`: come le fontane, roba della persona (ogni punto porta il seme del suo mondo).
    - `fountains`: dieci lanci a TESTA, non per città — quindi è roba della persona. La chiave
      però deve portarsi dietro il seme, o i lanci fatti in casa d'altri esaurirebbero la
      fontana di casa propria (stessa cella, mondi diversi).
@@ -361,6 +362,7 @@ export function initState() {
   if (!S.awakened) S.awakened = [];
   if (!S.museum) S.museum = {};
   if (!S.fountains) S.fountains = {}; // lanci nella fontana per città {n, d0}
+  if (!Array.isArray(S.pescati)) S.pescati = []; // punti di pesca esauriti {s: seme, x, y, n, d} (gameplay.js)
   if (!S.maps) S.maps = []; // mappe del tesoro attive {x, y, rar, uid}
   if (!S.snacks) S.snacks = 0; // ristori nello zaino
   if (!S.npcSeen) S.npcSeen = {}; // edifici già visitati (tutorial 1-volta)

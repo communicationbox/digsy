@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.40', it: [
+      'I PUNTI DI PESCA SI ESAURISCONO: dopo due fossili pescati nello stesso punto lì non abbocca più niente, e bisogna spostare la barca di almeno 2 caselle. Il punto si ripopola dopo 3 giorni, e il gioco dice quanto manca. Un lancio in un punto esaurito non costa energia',
+    ], en: [
+      'FISHING SPOTS RUN OUT: after two fossils caught in the same spot nothing bites there any more, and you need to move the boat at least 2 tiles. The spot restocks after 3 days, and the game says how long is left. Casting in a spent spot costs no energy',
+    ],
+  },
+  {
     v: 'v0.99.39', it: [
       'OGNI BIOMA HA LA SUA ORA DI PESCA: nei Prati, nelle Lande Gelide e nelle Terre Rosse si pesca di giorno (dalle 6 alle 18), nella Palude, nei Boschi e nelle Dune di notte (dalle 18 alle 6). Prima si pescava solo di notte dappertutto, e il gioco non lo diceva',
       'In barca il suggerimento dice quando si pesca in quella zona, e fuori orario il lancio non costa energia: il gioco dice quando tornare. Anche il Libro lo scrive accanto alla specie',
