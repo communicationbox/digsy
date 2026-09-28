@@ -928,6 +928,17 @@ CPU al 101%). Dopo: 1,7 e 2,9 ms, CPU 14-25%, 60 fps, zero strappi. Cosa c'è or
   40-60 ms ogni secondo o due.
 - **Al massimo 60 fps** anche a 120 Hz (`ritmo.js`, scadenza che avanza di 1/60: a 90 Hz resta 60).
 - Niente DOM riscritto a vuoto: pulsante Esci, bussola, `hudPad` (misura al più 2 volte al secondo).
+**La v0.99.35 andava a 3 fps** su una GPU vera, e le misure non lo vedevano perché Chrome headless
+disegna in software. Tre errori: (1) scrivere nell'archivio e leggerne subito, casella per casella,
+ferma la GPU a ogni casella → ora le caselle nuove si dipingono DAL VIVO e l'archivio si scrive in
+coda a inizio del fotogramma dopo (`scriviArchivio`), prima di ogni lettura; (2) a fine stagione la
+tavolozza è un oggetto nuovo a ogni fotogramma e la firma era sbagliata → archivio rifatto sempre;
+ora si confrontano i colori, e i cambi si ridipingono al più 12 caselle per fotogramma (`soft`);
+(3) gli edifici con molti scatti d'animazione creavano una tela nuova quasi a ogni fotogramma →
+cache solo se le combinazioni sono ≤ `ART_MAX_COMBO` (4), al più 48 copie. In più la **guardia**
+(`guardia` in ritmo.js): se con le cache i fotogrammi arrivano lenti, le prova spente e tiene la
+strada più veloce. `npm run perf` è SEMPRE headless e muto (`PERF_GPU=1` per la GPU, `PERF_WEBKIT=1`
+per il motore di Safari): una finestra che si apriva con la musica mentre Marco lavorava era un disturbo.
 **Regola**: chi aggiunge un disegno che cambia col tempo dentro una di queste funzioni deve farlo
 passare da `step` (edifici) o tenerlo fuori dalla cache; il controllo «la cache del disegno non
 cambia un pixel» in run.mjs e il confronto in `npm run perf` lo scoprono.

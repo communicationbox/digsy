@@ -85,6 +85,7 @@ function drawSign(type, cx, y) {
    disegnati dal vivo sopra (`vivi`). Stessa prova della cache del terreno: pixel uguali.
    `box` = quanto il disegno sborda dalla sua casella (tetti, fumo, ombre). */
 const ART_META = new Map(), ART_SPR = new Map();
+const ART_MAX_COMBO = 4;
 const NOOP_TELA = { fillStyle: '', fillRect() {} };
 function artCached(id, sx, sy, ph, box, draw) {
   if (!tileCacheOn || typeof document === 'undefined' || !document.createElement) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
@@ -95,6 +96,12 @@ function artCached(id, sx, sy, ph, box, draw) {
     meta = { passi: an0.passi, vivi: an0.vivi };
     ART_META.set(id, meta);
   }
+  /* SOLO SE LE COPIE SONO POCHE. Ogni scatto di animazione moltiplica le copie (una tenda da 12
+     scatti e una lucina da 5 fanno 60 combinazioni): oltre ART_MAX_COMBO una tela nuova quasi a
+     ogni fotogramma costa più del disegno che risparmia — su una scheda grafica vera centinaia
+     di MB e allocazioni continue (è stato il «va a 3 fps» della v0.99.35). Lì si disegna dal vivo. */
+  if (meta.combo === undefined) { meta.combo = 1; for (let i = 1; i < meta.passi.length; i += 2) meta.combo *= meta.passi[i]; }
+  if (meta.combo > ART_MAX_COMBO) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
   let k = id;
   for (let i = 0; i < meta.passi.length; i += 2) k += '|' + ((Math.floor(frameTime / meta.passi[i]) + ph) % meta.passi[i + 1]);
   let cv = ART_SPR.get(k);
@@ -104,7 +111,7 @@ function artCached(id, sx, sy, ph, box, draw) {
     if (!g) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
     g.translate(box.ox, box.oy);
     dipingiIn(g, () => draw({ t: frameTime, ph, vivi: [] }));
-    if (ART_SPR.size > 600) ART_SPR.clear();
+    if (ART_SPR.size > 48) ART_SPR.clear();           // poche copie vive: la memoria della scheda grafica è poca
     ART_SPR.set(k, cv);
   }
   ctx.drawImage(cv, sx - box.ox, sy - box.oy);
@@ -1648,14 +1655,14 @@ function drawCaveScene(time) {
      (`caveFloorAnimata`), che restano dal vivo. La chiave porta la grotta (il seme) e quanti
      giacimenti sono stati staccati: una parete accanto a un giacimento si disegna diversa. */
   tileCacheFrame();
-  const cv0 = 'grotta' + CAVE.seed + ':' + ((S.caveDug || []).length);
+  const cv0 = 'grotta' + CAVE.seed, cvSoft = (S.caveDug || []).length;
   for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
     const sx = tx * TS, sy = ty * TS;
     /* disegno in caveArt.js: roccia con cresta, bordi e parete a strati; pavimento con le
        decorazioni dove hanno senso (sotto le stalattiti, contro le pareti, nelle zone umide) */
     const muro = caveSolid(tx, ty);
     const dipingi = (x, y) => { if (muro) caveWall(BRUSH, tx, ty, x, y, CAVE_INFO, time); else caveFloor(BRUSH, tx, ty, x, y, CAVE_INFO, time); };
-    if ((!muro && caveFloorAnimata(tx, ty, CAVE_INFO)) || !cacheTile(cv0, numKey(tx, ty), sx, sy, dipingi)) dipingi(sx, sy);
+    if ((!muro && caveFloorAnimata(tx, ty, CAVE_INFO)) || !cacheTile(cv0, cvSoft, numKey(tx, ty), sx, sy, dipingi)) dipingi(sx, sy);
   }
   /* ORME sul pavimento (aiutano a ritrovare la strada), più sbiadite col tempo */
   for (const f of CAVE.trail) {
@@ -1762,16 +1769,20 @@ function goalMarkIn(camx, camy, time) {
    (sassi, detriti ai piedi delle pareti) finisce nella copia e si incolla nello stesso ordine di
    prima, quindi la vicina disegnata dopo lo ricopre esattamente come faceva. */
 const TC_M = 8, TC_SLOT = 32 + 2 * TC_M, TC_N = 42;      // 42×42 caselle in 2016×2016 px
-let tcAtlas = null, tcCtx = null, tcNext = 0, tcVer = '', tcPal = null, tcPalSig = '';
+let tcAtlas = null, tcCtx = null, tcNext = 0, tcVer = '', tcPal = null, tcPalSig = '', tcPalN = 0;
 const tcMap = new Map();
 let tileCacheOn = true;
 /* per le prove: spegnerla e riaccenderla, per confrontare i pixel */
-export function setTileCache(on) { tileCacheOn = !!on; tcMap.clear(); tcNext = 0; ART_META.clear(); ART_SPR.clear(); }
+export function setTileCache(on) { tileCacheOn = !!on; tcMap.clear(); tcNext = 0; tcSlotVer.length = 0; tcCoda.length = 0; ART_META.clear(); ART_SPR.clear(); }
 export function tileCacheSize() { return tcMap.size; }
 function tileCacheFrame() {
+  /* la tavolozza delle stagioni: a fine stagione sfuma, e ogni fotogramma arriva un oggetto NUOVO
+     con quasi sempre gli stessi colori. Si confrontano i colori, non l'oggetto: prima ogni oggetto
+     nuovo azzerava l'archivio e si ridipingeva tutto a ogni fotogramma. */
   const pal = seaTile();
-  if (pal !== tcPal) { tcPal = pal; const sig = JSON.stringify(pal); if (sig !== tcPalSig) tcPalSig = sig + '#' + tcNext; }
-  tcVer = SEED + '|' + (S.home ? S.home.x + ',' + S.home.y : '-') + '|' + tcPalSig.length + tcPalSig.slice(-24) + '|';
+  if (pal !== tcPal) { tcPal = pal; const sig = JSON.stringify(pal); if (sig !== tcPalSig) { tcPalSig = sig; tcPalN++; } }
+  tcVer = SEED + '|' + (S.home ? S.home.x + ',' + S.home.y : '-');
+  tcBudget = TC_BUDGET;
   if (tcAtlas || !tileCacheOn || typeof document === 'undefined' || !document.createElement) return;
   const c = document.createElement('canvas'); c.width = c.height = TC_SLOT * TC_N;
   const g = c.getContext && c.getContext('2d');
@@ -1783,26 +1794,49 @@ function tileCacheFrame() {
 /* `ver` = il «mondo» delle chiavi (seme, casa e stagione fuori, grotta e giacimenti dentro):
    se cambia si ricomincia l'archivio. Le chiavi sono NUMERI: una stringa per casella a ogni
    fotogramma era spazzatura che il browser doveva poi raccogliere (vedi la scheda per casella). */
-let tcCur = '';
-function cacheTile(ver, k, sx, sy, paint) {
+let tcCur = '', tcBudget = 0;
+const tcSlotVer = [], tcCoda = [];
+/* `ver` = il mondo delle chiavi (seme e casa fuori, grotta dentro): se cambia si ricomincia.
+   `soft` = quello che cambia pian piano (la tavolozza a fine stagione, i giacimenti staccati):
+   una casella con un `soft` vecchio si ridipinge, ma al più TC_BUDGET per fotogramma — le altre
+   restano un attimo coi colori di un istante fa, che a occhio non si distinguono.
+   PRIMA SI LEGGE, POI SI SCRIVE. Scrivere nell'archivio e subito dopo copiarne un pezzo, casella
+   per casella, costringe la scheda grafica a finire ogni scrittura prima di ogni lettura: in
+   software non costa niente, su una GPU vera ferma tutto (il «va a 3 fps» della v0.99.35). Così
+   una casella MAI vista si dipinge dal vivo sulla tela del gioco — come prima delle cache — e
+   intanto si mette in coda; la coda si scrive nell'archivio tutta insieme a fine fotogramma
+   (`scriviArchivio`), quando non c'è più niente da leggere. Dal fotogramma dopo è una copia. */
+const TC_BUDGET = 12;
+function cacheTile(ver, soft, k, sx, sy, paint) {
   if (!tileCacheOn || !tcAtlas) return false;
-  if (ver !== tcCur) { tcCur = ver; tcMap.clear(); tcNext = 0; }
+  if (ver !== tcCur) { tcCoda.length = 0; tcCur = ver; tcMap.clear(); tcNext = 0; }
   let slot = tcMap.get(k);
   if (slot === undefined) {
-    if (tcNext >= TC_N * TC_N) { tcMap.clear(); tcNext = 0; }   // archivio pieno: si ricomincia (le caselle in vista sono molte meno)
+    if (tcNext >= TC_N * TC_N) { tcCoda.length = 0; tcMap.clear(); tcNext = 0; }   // archivio pieno: si ricomincia (le caselle in vista sono molte meno)
     slot = tcNext++;
-    const ax = (slot % TC_N) * TC_SLOT, ay = Math.floor(slot / TC_N) * TC_SLOT;
-    tcCtx.setTransform(1, 0, 0, 1, 0, 0);
-    tcCtx.clearRect(ax, ay, TC_SLOT, TC_SLOT);
-    tcCtx.save(); tcCtx.beginPath(); tcCtx.rect(ax, ay, TC_SLOT, TC_SLOT); tcCtx.clip();
-    dipingiIn(tcCtx, () => paint(ax + TC_M, ay + TC_M));
-    tcCtx.restore();
-    tcMap.set(k, slot);
+    tcMap.set(k, slot); tcSlotVer[slot] = soft;
+    tcCoda.push(slot, paint);
+    return false;                                         // questa volta la dipinge chi chiama, dal vivo
   }
+  if (tcSlotVer[slot] !== soft && tcBudget > 0) { tcBudget--; tcSlotVer[slot] = soft; tcCoda.push(slot, paint); }
   ctx.drawImage(tcAtlas, (slot % TC_N) * TC_SLOT, Math.floor(slot / TC_N) * TC_SLOT, TC_SLOT, TC_SLOT, sx - TC_M, sy - TC_M, TC_SLOT, TC_SLOT);
   return true;
 }
-function groundFromCache(t, tx, ty, sx, sy, paint) { return cacheTile(tcVer, numKey(tx, ty) * 64 + t, sx, sy, paint); }
+/* la coda nell'archivio, a fotogramma finito */
+function scriviArchivio() {
+  if (!tcCoda.length || !tcCtx) return;
+  tcCtx.setTransform(1, 0, 0, 1, 0, 0);
+  for (let i = 0; i < tcCoda.length; i += 2) {
+    const slot = tcCoda[i], paint = tcCoda[i + 1];
+    const ax = (slot % TC_N) * TC_SLOT, ay = Math.floor(slot / TC_N) * TC_SLOT;
+    tcCtx.clearRect(ax, ay, TC_SLOT, TC_SLOT);
+    tcCtx.save(); tcCtx.beginPath(); tcCtx.rect(ax, ay, TC_SLOT, TC_SLOT); tcCtx.clip();
+    try { dipingiIn(tcCtx, () => paint(ax + TC_M, ay + TC_M)); } catch (e) { tcMap.forEach((v, k) => { if (v === slot) tcMap.delete(k); }); }
+    tcCtx.restore();
+  }
+  tcCoda.length = 0;
+}
+function groundFromCache(t, tx, ty, sx, sy, paint) { return cacheTile(tcVer, tcPalN, numKey(tx, ty) * 64 + t, sx, sy, paint); }
 /* GLI OGGETTI FERMI DEL PAESAGGIO (massi, cactus, guglie, cristalli di ghiaccio, fiori,
    conchiglie, staccionata): stessa storia del terreno — nel bioma innevato i soli cristalli
    erano più di mille `fillRect` a fotogramma. Stanno tutti dentro la loro casella (misurato:
@@ -1810,7 +1844,7 @@ function groundFromCache(t, tx, ty, sx, sy, paint) { return cacheTile(tcVer, num
    spostano la tela da sé — quindi l'archivio si sposta lui sulla casella. `codice` distingue il
    tipo di oggetto dal terreno sotto (0-9) nella stessa chiave. */
 function propFromCache(codice, tx, ty, sx, sy, paint) {
-  return cacheTile(tcVer, numKey(tx, ty) * 64 + codice, sx, sy, (x, y) => {
+  return cacheTile(tcVer, tcPalN, numKey(tx, ty) * 64 + codice, sx, sy, (x, y) => {
     tcCtx.translate(x, y);
     paint();
   });
@@ -1853,6 +1887,8 @@ function specchio(m, set) {
 const MIR_DUG = {}, MIR_CHOP = {}, MIR_MINE = {}, MIR_PICK = {};
 
 export function render(time) {
+  /* l'archivio si aggiorna QUI, prima di qualsiasi lettura: è la coda del fotogramma precedente */
+  scriviArchivio();
   frameTime = time; setHeroTime(time); // twinkle del glitter dei cappelli platino
   if (CAVE.active) { const c2 = caveCam(); drawCaveScene(time); goalMarkIn(snap(c2.x), snap(c2.y), time); return; }
   if (INT.active) { setNight(darknessAt(S.tod || 0)); drawInteriorScene(time); const ic = interiorCam(); goalMarkIn(ic.x, ic.y, time); return; }

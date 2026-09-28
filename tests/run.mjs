@@ -10004,10 +10004,12 @@ sprites.applyLook();
   /* 5 · SI DISEGNANO DAVVERO. Regola 9: una scena che nessun test disegna è un crash che
      aspetta — e questa ha in più il fatto che l'aspetto arriva da un'altra persona. */
   {
-    const { render } = await import('../src/render.js');
+    const { render, setTileCache: stc } = await import('../src/render.js');
     const { ctx } = await import('../src/screen.js');
+    /* a cache spente: con le cache il primo fotogramma dipinge dal vivo e i successivi copiano,
+       e il conto delle pennellate non direbbe più se c'è una persona in più */
     const conta = () => { let n = 0; const vero = ctx.fillRect; ctx.fillRect = function (...a) { n++; return vero.apply(this, a); };
-      try { render(1000); } finally { ctx.fillRect = vero; } return n; };
+      stc(false); try { render(1000); } finally { ctx.fillRect = vero; stc(true); } return n; };
     mp.disconnect();
     const senza = conta();
     /* si mette in piedi una stanza con dentro qualcuno, proprio accanto a noi */
@@ -12066,6 +12068,24 @@ sprites.applyLook();
   check('la cache del disegno non cambia un pixel (città, acqua, ghiaccio, massi)', posti.length >= 3 && diversi.length === 0, diversi.join(' · ') || posti.length + ' posti');
   P3.x = keepP.x; P3.y = keepP.y;
   cvx.width = W0; cvx.height = H0; Object.assign(scr.view, v0);
+}
+
+/* LA GUARDIA DELLE CACHE: il gioco non può andare peggio di prima delle cache. Se con le cache i
+   fotogrammi arrivano lenti le prova spente, e tiene la strada più veloce. */
+{
+  const rit = await import('../src/ritmo.js');
+  const gira = (g, ms, n, t0) => { for (let i = 0; i < n; i++) rit.guardia(g, ms, t0 + i * ms); return g.on; };
+  const g1 = { on: true };
+  check('veloci con le cache: restano accese', gira(g1, 16.7, 400, 0) === true);
+  const g2 = { on: true };
+  gira(g2, 300, rit.CAMPIONE, 0);            // 3 fps con le cache
+  check('lente con le cache: si provano spente', g2.on === false && g2.fase === 'prova');
+  gira(g2, 20, rit.CAMPIONE, 1e5);          // spente vanno molto meglio
+  check('e se spente vanno meglio restano spente', g2.on === false && g2.fase === 'decisa');
+  const g3 = { on: true };
+  gira(g3, 40, rit.CAMPIONE, 0); gira(g3, 40, rit.CAMPIONE, 1e5);   // uguali: non era colpa loro
+  check('se spente non cambia niente si riaccendono', g3.on === true);
+  check('e una pausa lunga (scheda nascosta) non conta', rit.guardia({ on: true }, 5000, 0) === true);
 }
 
 failures += summary('digsy-world');

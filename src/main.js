@@ -16,7 +16,7 @@ import { checkWonderDiscovery, checkGateNotice } from './gameplay.js';
 import { wonderName } from './wonders.js';
 import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render, setTileCache } from './render.js';
-import { tocca } from './ritmo.js';
+import { tocca, guardia } from './ritmo.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
 import { MP, tick as mpTick, orologio as mpOrologio, setSuAlba, setSuSonno, setDormiente,
@@ -151,8 +151,11 @@ let last = 0, hudAcc = 0;
 let invitoFermo = false;   // un link d'invito aperto a tutorial in corso: fermato, lo si dice a gioco iniziato
 /* al massimo 60 fotogrammi al secondo anche sugli schermi a 120 Hz (ritmo.js) */
 const RITMO = { prossimo: 0 };
+const GUARDIA = { on: true };
 function loop(ts) {
   if (!tocca(RITMO, ts)) { requestAnimationFrame(loop); return; }
+  /* la guardia delle cache (ritmo.js): se col disegno in cache si va lenti, le prova spente */
+  { const prima = GUARDIA.on; if (guardia(GUARDIA, ts - last, ts) !== prima) setTileCache(GUARDIA.on); }
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
   if (typeof window !== 'undefined' && window.__digsyFreeze) { requestAnimationFrame(loop); return; } // solo le foto di prova: tela ferma

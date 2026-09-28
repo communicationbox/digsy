@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.36', it: [
+      'RISOLTO IL GIOCO A SCATTI della versione di prima: a fine stagione e in città ridisegnava molto più del necessario, e su certe schede grafiche scendeva a pochi fotogrammi al secondo',
+      'E per sicurezza il gioco si misura da solo: se il disegno veloce su quel dispositivo andasse più lento del normale, torna da solo al disegno di sempre',
+    ], en: [
+      'FIXED THE CHOPPY GAME from the previous version: at the end of a season and in towns it redrew far more than needed, and on some graphics cards it dropped to a few frames per second',
+      'And to be safe the game now measures itself: if the fast drawing ran slower than normal on a device, it falls back to the usual drawing on its own',
+    ],
+  },
+  {
     v: 'v0.99.35', it: [
       'IL GIOCO È MOLTO PIÙ LEGGERO: su un telefono il mondo aperto costava 24 millisecondi a fotogramma (sotto i 40 fps, un processore sempre pieno), ora meno di 2; la città da 27 a 3. Stessa grafica, pixel per pixel: terreno, acqua, edifici, arredo e oggetti del paesaggio si disegnano una volta e poi si ricopiano, invece di essere ridipinti da capo sessanta volte al secondo',
       'Sugli schermi a 120 Hz il gioco non disegna più il doppio dei fotogrammi: si resta a 60, e il portatile non scalda più',

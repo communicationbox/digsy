@@ -13,13 +13,13 @@
  *    per 3 s (è quella che scalda: 100% = un nucleo sempre pieno);
  *  - FPS: fotogrammi davvero disegnati in quei 3 s.
  * Playwright come in mobile.mjs (non è una dipendenza). */
-let chromium, devices;
+let chromium, devices, webkit;
 {
   const { readdirSync, existsSync: ex } = await import('node:fs');
   const cache = (process.env.HOME || '') + '/.npm/_npx';
   const cand = [process.env.PLAYWRIGHT_PATH, 'playwright'];
   try { for (const d of readdirSync(cache)) { const f = `${cache}/${d}/node_modules/playwright/index.mjs`; if (ex(f)) cand.push(f); } } catch (e) { /* no */ }
-  for (const c of cand.filter(Boolean)) { try { ({ chromium, devices } = await import(c)); break; } catch (e) { /* next */ } }
+  for (const c of cand.filter(Boolean)) { try { ({ chromium, devices, webkit } = await import(c)); break; } catch (e) { /* next */ } }
   if (!chromium) { console.error('perf: Playwright non trovato'); process.exit(1); }
 }
 import http from 'node:http';
@@ -41,12 +41,15 @@ const BASE = PROFILO ? 'http://localhost:5173' : `http://127.0.0.1:${server.addr
 
 const FORMATI = [
   ['portatile', { viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 }, 1],
-  ['telefono', { ...devices['iPhone 13 Pro'] }, 4],
+  ['telefono', (() => { const d = { ...devices['iPhone 13 Pro'] }; if (process.env.PERF_WEBKIT) delete d.defaultBrowserType; return d; })(), 4],
 ];
 const SCENE = [
   /* la partita nuova parte DENTRO casa: per il mondo aperto bisogna prima uscire */
   ['mondo', 'G.leaveRoom().then(()=>G.cmd("goto=prati"))'],
   ['camminata', 'G.leaveRoom().then(()=>G.cmd("goto=prati"))', true],
+  /* FINE STAGIONE: la tavolozza sfuma verso la stagione dopo (ultimo 30% di ogni stagione) — è
+     il caso che le cache del terreno avevano sbagliato (ridipingevano tutto a ogni fotogramma) */
+  ['finestagione', 'G.leaveRoom().then(()=>G.cmd("goto=prati")).then(()=>{ const S=G.state(); S.day=3; S.tod=0.25; })', true],
   ['citta', 'G.leaveRoom().then(()=>G.cmd("goto=city"))'],
   ['notte', 'G.leaveRoom().then(()=>G.cmd("goto=city")).then(()=>G.cmd("time=22"))'],
   ['casa', 'G.enterRoom("house")'],
@@ -57,7 +60,15 @@ const SCENE = [
   ['menu', 'G.leaveRoom().then(()=>G.cmd("goto=city")).then(()=>{ const sp=document.getElementById("splash"); if(sp) sp.style.display=""; document.getElementById("menubtn").click(); })'],
 ];
 const CHROME = ['/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'].find(p => existsSync(p));
-const browser = await chromium.launch(CHROME ? { executablePath: CHROME } : {});
+/* CON LA SCHEDA GRAFICA (PERF_GPU=1): senza, Chrome disegna in software e i costi che esistono
+   solo sulla GPU non si vedono. SEMPRE senza finestra e senza audio: una finestra che si apre con
+   la musica ogni tre secondi mentre si lavora non è una prova, è un disturbo (segnalato). */
+const GPU = !!process.env.PERF_GPU;
+/* PERF_WEBKIT=1: il motore di Safari (quello di OGNI browser su iPhone). Niente CDP lì: si misurano
+   solo disegno e fps, la CPU resta vuota. */
+const WK = !!process.env.PERF_WEBKIT;
+const browser = WK ? await webkit.launch({ headless: true }) : await chromium.launch({ ...(CHROME ? { executablePath: CHROME } : {}), headless: true,
+  args: ['--mute-audio', ...(GPU ? ['--ignore-gpu-blocklist', '--enable-gpu', '--use-angle=metal', '--enable-gpu-rasterization'] : [])] });
 const righe = [];
 const pesi = new Map();
 for (const [fname, fopt, rallenta] of FORMATI) {
@@ -76,8 +87,8 @@ for (const [fname, fopt, rallenta] of FORMATI) {
     await page.evaluate(() => { const G = window.__digsy; if (G && G.closeModal) G.closeModal(true); try { G.state().tut = { i: 99, n: 0, done: true, fatto: true }; } catch (e) {} });
     try { await page.evaluate(`(async()=>{ const G = window.__digsy; await (${code}); })()`); } catch (e) { errs.push('scena: ' + e.message); }
     await page.waitForTimeout(1500);                    // cache calde, come dopo un minuto di gioco
-    const cdp = await ctx.newCDPSession(page);
-    await cdp.send('Emulation.setCPUThrottlingRate', { rate: rallenta });
+    const cdp = WK ? null : await ctx.newCDPSession(page);
+    if (cdp) await cdp.send('Emulation.setCPUThrottlingRate', { rate: rallenta });
     /* 1) COSTO del disegno, fotogramma per fotogramma */
     const costo = await page.evaluate(async (cammina) => {
       const G = window.__digsy, t = [];
@@ -147,17 +158,17 @@ for (const [fname, fopt, rallenta] of FORMATI) {
       }
     }
     /* 2) CPU e FPS lasciando girare il gioco da solo */
-    await cdp.send('Performance.enable');
-    const m0 = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value]));
+    if (cdp) await cdp.send('Performance.enable');
+    const m0 = cdp ? Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value])) : { TaskDuration: 0 };
     if (cammina) await page.evaluate(() => dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' })));
     /* gli STRAPPI veri: intervalli fra un fotogramma e il successivo nel ciclo del gioco, oltre 25 ms */
     const f0 = await page.evaluate(() => { window.__nf = 0; window.__strappi = 0; window.__peggiore = 0; let prima = 0; const c = (t) => { window.__nf++; if (prima) { const d = t - prima; if (d > 25) window.__strappi++; if (d > window.__peggiore) window.__peggiore = d; } prima = t; if (window.__nfOn) requestAnimationFrame(c); }; window.__nfOn = true; requestAnimationFrame(c); return performance.now(); });
-    if (PROFILO) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.start'); }
+    if (PROFILO && cdp) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.start'); }
     await page.waitForTimeout(3000);
     let prof = null;
-    if (PROFILO) prof = (await cdp.send('Profiler.stop')).profile;
+    if (PROFILO && cdp) prof = (await cdp.send('Profiler.stop')).profile;
     const f1 = await page.evaluate(() => { window.__nfOn = false; return { t: performance.now(), n: window.__nf, strappi: window.__strappi, peggiore: window.__peggiore }; });
-    const m1 = Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value]));
+    const m1 = cdp ? Object.fromEntries((await cdp.send('Performance.getMetrics')).metrics.map(m => [m.name, m.value])) : { TaskDuration: 0 };
     const secs = (f1.t - f0) / 1000;
     const cpu = (m1.TaskDuration - m0.TaskDuration) / secs;
     const fps = f1.n / secs;
