@@ -272,6 +272,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   quando cambia o ogni 5 s (`COMP_RIDÌ`, per chi è entrato dopo); la **posizione** a ogni
   passo, perché il compagno gira per conto suo. In volo non si manda: là la bestia È il
   cavaliere. Foto: `npm run shot -- compagnia 820,560`.
+- **Il vialetto di casa è largo quanto il cancello** (`homeRoadWideAt` in world.js: la spezzata di
+  `homeRoadGeomFor` resta larga uno — è lei che decide dove può stare la casa — e si allarga solo a
+  vista e solo su terra) e ha i **bordi seghettati** da tutte e due le parti (`bordiVialetto` in
+  render.js + `frangiaStrada`). `homePathAt` = vialetto fuori dal recinto: niente scavo (tu, il
+  compagno) e le buche vecchie si tolgono al boot. Foto: `npm run shot -- vialetto 900,700`.
 - **Il raccoglitore non lavora a casa** (`tileValidForWork`): né nel cortile (prato, alberi, sassi,
   stagno) né sul vialetto e attorno alla casa (`nearHouseZone`). Le buche già fatte nel cortile si
   tolgono al boot (main.js).

@@ -12135,11 +12135,83 @@ sprites.applyLook();
     dentro++;
     for (const tipo of ['terra', 'albero', 'roccia', 'acqua']) if (gp.__provaLavoro.valida(tipo, tx, ty)) sbagli.push(tipo + '@' + tx + ',' + ty);
   }
+  /* e sul VIALETTO, compresa la parte allargata: né lui né tu */
+  { let viale = 0, male = [];
+    const toasts = document.getElementById('toasts'), o = toasts.appendChild, detti = [];
+    for (let y = yr.y1 + 1; y < yr.y1 + 40; y++) for (let x = yr.x0 - 20; x <= yr.x1 + 20; x++) {
+      if (!wld.homePathAt(x, y)) continue; viale++;
+      if (gp.__provaLavoro.valida('terra', x, y)) male.push('compagno@' + x + ',' + y);
+    }
+    check('sul vialetto (anche allargato) il compagno non scava', male.length === 0, male.slice(0, 3).join(' ') || viale + ' caselle');
+    /* tu: tryDig sulla casella del vialetto sotto i piedi */
+    const st2 = await import('../src/state.js');
+    let pv = null; for (let y = yr.y1 + 1; y < yr.y1 + 40 && !pv; y++) for (let x = yr.x0 - 20; x <= yr.x1 + 20 && !pv; x++) if (wld.homePathAt(x, y) && !wld.homePathAt(x, y + 1) === false) pv = [x, y];
+    if (pv) {
+      const P6 = st2.P, kp = { x: P6.x, y: P6.y, dir: P6.dir }, en = st2.S.energy;
+      P6.x = pv[0] * 32 + 16; P6.y = pv[1] * 32 + 16 - 26; P6.dir = 'down'; st2.S.energy = 10;
+      toasts.appendChild = c => { detti.push(String(c.innerHTML)); return c; };
+      const primaBuche = st2.dugSet.size; gp.tryDig(); toasts.appendChild = o;
+      check('sul vialetto non si scava (e lo si dice)', st2.dugSet.size === primaBuche && st2.S.energy === 10 && detti.some(t => /non si può scavare/.test(t)), detti.join(' | ').slice(0, 80));
+      P6.x = kp.x; P6.y = kp.y; P6.dir = kp.dir; st2.S.energy = en;
+    }
+  }
   check('il compagno non scava, non taglia e non spacca nel cortile di casa', !!yr && dentro > 20 && sbagli.length === 0, sbagli.slice(0, 4).join(' ') || (dentro + ' caselle'));
   /* e fuori dal cortile continua a lavorare: si cerca una casella scavabile lì vicino */
   let fuori = null;
   for (let r = 4; r < 40 && !fuori; r++) for (let dx = -r; dx <= r && !fuori; dx++) { const tx = yr.cx + dx, ty = yr.y1 + r; if (gp.__provaLavoro.valida('terra', tx, ty)) fuori = [tx, ty]; }
   check('ma fuori dal giardino il lavoro c\'è', !!fuori);
+}
+
+/* ---------- LA CACHE DEL DISEGNO NON CAMBIA UN PIXEL ----------
+   (Era sparita per sbaglio nella v0.99.37 togliendo le prove vicine, e in quei giorni una
+   scorciatoia sbagliata ha fatto sparire il vialetto di casa: non toglierla mai.)
+   Terreno, acqua, oggetti fermi, edifici e arredo passano da archivi (render.js) invece di essere
+   ridipinti a ogni fotogramma. La promessa è che l'immagine sia la STESSA: qui si disegna lo
+   stesso istante nei due modi, in posti diversi del mondo, e si confrontano tutti i pixel.
+   (Nel browser vero lo fa anche tests/perf.mjs, a scala e densità vere.) */
+{
+  const rnd = await import('../src/render.js');
+  const st = await import('../src/state.js');
+  const scr = await import('../src/screen.js');
+  const wld = await import('../src/world.js');
+  const { TS: TS2 } = await import('../src/data.js');
+  const cvx = scr.ctx.canvas, W0 = cvx.width, H0 = cvx.height, v0 = { ...scr.view };
+  scr.view.W = 320; scr.view.H = 240; scr.view.VW = 10; scr.view.VH = 8; scr.view.K = 1; scr.view.PX = 1;
+  cvx.width = 320; cvx.height = 240;
+  const P3 = st.P, keepP = { x: P3.x, y: P3.y };
+  const leggi = () => Array.from(scr.ctx.getImageData(0, 0, 320, 240).data);
+  const posti = [];
+  /* una città (edifici e arredo), e prati, acqua e ghiaccio trovati a spirale */
+  for (let cx = -3; cx <= 3 && posti.length < 1; cx++) for (let cy = -3; cy <= 3 && posti.length < 1; cy++) { const t = wld.townForCell(cx, cy); if (t) posti.push([t.C.x, t.C.y + 2]); }
+  const cerca = (ok) => { for (let r = 2; r < 400; r += 3) for (let a = 0; a < 8; a++) { const x = Math.round(Math.cos(a) * r), y = Math.round(Math.sin(a) * r); if (ok(x, y)) return [x, y]; } return null; };
+  for (const p of [cerca((x, y) => wld.baseTerrain(x, y) === wld.WATER && wld.baseTerrain(x + 2, y) !== wld.WATER), cerca((x, y) => wld.decoAt(x, y) === 'icecrystal'), cerca((x, y) => wld.decoAt(x, y) === 'boulder')]) if (p) posti.push(p);
+  /* il VIALETTO di casa FUORI dal recinto: una scorciatoia lo aveva fatto sparire (v0.99.35-42) */
+  /* una casa VERA, vicina a una città e col suo vialetto (quella che lasciano le prove prima di
+     questa può non averne uno): si rimette com'era alla fine */
+  const homePrima = st.S.home;
+  { let h = null; for (let cx = -4; cx <= 4 && !h; cx++) for (let cy = -4; cy <= 4 && !h; cy++) {
+      const t = wld.townForCell(cx, cy); if (!t) continue;
+      const c = wld.findHomeSpot(t); if (c && wld.homeRoadOk(c.x, c.y, t)) h = c; }
+    if (h) { st.S.home = h; wld.invalidateHouseDecoCache(); } }
+  { const yr2 = wld.yardRect(); let v = null;
+    if (yr2) for (let y = yr2.y0 - 40; y <= yr2.y1 + 40 && !v; y++) for (let x = yr2.x0 - 40; x <= yr2.x1 + 40 && !v; x++) {
+      const fuori = x < yr2.x0 || x > yr2.x1 || y < yr2.y0 || y > yr2.y1;
+      if (fuori && wld.homeRoadAt(x, y) && !wld.townInfo(x, y)) v = [x, y];
+    }
+    check('c\'è un tratto di vialetto fuori dal recinto da fotografare', !!v);
+    if (v) posti.push(v); }
+  let diversi = [];
+  for (const [tx, ty] of posti) {
+    P3.x = tx * TS2 + 8; P3.y = ty * TS2 + 8;
+    rnd.setTileCache(false); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); const a = leggi();
+    rnd.setTileCache(true); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); const b = leggi();
+    let n = 0, mx = 0; for (let i = 0; i < a.length; i++) { const d = Math.abs(a[i] - b[i]); if (d) { n++; if (d > mx) mx = d; } }
+    if (mx > 1) diversi.push(tx + ',' + ty + ': ' + n + ' valori, fino a ' + mx);
+  }
+  check('la cache del disegno non cambia un pixel (città, acqua, ghiaccio, massi, vialetto di casa)', posti.length >= 4 && diversi.length === 0, diversi.join(' · ') || posti.length + ' posti');
+  st.S.home = homePrima; wld.invalidateHouseDecoCache();
+  P3.x = keepP.x; P3.y = keepP.y;
+  cvx.width = W0; cvx.height = H0; Object.assign(scr.view, v0);
 }
 
 failures += summary('digsy-world');

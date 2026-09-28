@@ -3,7 +3,7 @@ import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearChea
 import { resetDugPack } from './packmap.js';
 import { FOOT_DY } from './body.js';
 import { fit, view } from './screen.js';
-import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache, homeRoadBroken, homeRoadOk, homeTown, yardRect } from './world.js';
+import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache, homeRoadBroken, homeRoadOk, homeTown, yardRect, homePathAt } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
@@ -343,6 +343,8 @@ function boot() {
     if (yr) {
       let tolte = 0;
       for (let ty = yr.y0; ty <= yr.y1; ty++) for (let tx = yr.x0; tx <= yr.x1; tx++) if (dugSet.delete(tx + ',' + ty)) tolte++;
+      /* e sul VIALETTO fino alla città: una strada non ha buche */
+      for (const k of [...dugSet]) { const i = k.indexOf(','); if (homePathAt(+k.slice(0, i), +k.slice(i + 1)) && dugSet.delete(k)) tolte++; }
       if (tolte) { resetDugPack(); save(); }
     }
   }

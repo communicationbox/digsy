@@ -6,7 +6,7 @@ import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH, dipingiIn, setStrati } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
-import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, decoStaticAt, pickupBaseAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect } from './world.js';
+import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, decoStaticAt, pickupBaseAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect, homeRoadAt, homePathAt } from './world.js';
 import { CAVE, caveSolid, caveNodeAt, caveNodeDone, caveNodeReach, caveCam, CAVE_FOOT } from './cave.js';
 import { COMP, companionDrawObj, companionHelps, companionLightBonus } from './companion.js';
 import { weatherAt, weatherStep } from './weather.js';
@@ -37,7 +37,7 @@ import { hasLetter } from './letters.js';
 import { caveWall, caveFloor, caveCrystal, caveFloorAnimata } from './caveArt.js';
 import { fountainArt, benchArt, bushArt, lampArt, boardArt, statueArt, STATUE_FEET, mailboxArt, siteArt } from './decoArt.js';
 import { updateFireflies, drawFireflies } from './firefly.js';
-import { groundTile, fondoAcqua, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
+import { groundTile, fondoAcqua, frangiaStrada, coloreStrada, coloreTerra, soilDetail, seaTile, seaTree, zoneTree, updateSeasonPalette, ZONE_TILES, BIOME_BUILD, biomeBuild, INT_WOOD, night, setNight, season, setSeason } from './tiles.js';
 
 /* stato del frame: oscurità (0..1) e stagione corrente, letti dalle funzioni di disegno */
 
@@ -1873,7 +1873,7 @@ function tileRec(tx, ty) {
   let r = REC.get(k);
   if (r) return r;
   const ti = townInfo(tx, ty);
-  r = { ti, tb: baseTerrain(tx, ty), pit: null, st: null, bs: null, wk: null, cave: null, lm: null, dn: null, pk: null };
+  r = { ti, tb: baseTerrain(tx, ty), strada: !ti && homePathAt(tx, ty), pit: null, st: null, bs: null, wk: null, cave: null, lm: null, dn: null, pk: null };
   if (!ti) {
     r.pit = boneSitePitAt(tx, ty); r.st = siteAt(tx, ty); r.bs = boneSiteAt(tx, ty); r.wk = wreckAt(tx, ty);
     r.cave = caveEntranceAt(tx, ty); r.lm = landmarkAt(tx, ty); r.dn = decoStaticAt(tx, ty); r.pk = pickupBaseAt(tx, ty);
@@ -1881,6 +1881,27 @@ function tileRec(tx, ty) {
   if (REC.size > 40000) REC.clear();
   REC.set(k, r);
   return r;
+}
+function tileRecVivo(tx, ty) {
+  const ti = townInfo(tx, ty);
+  return { ti, tb: baseTerrain(tx, ty), strada: !ti && homePathAt(tx, ty),
+    pit: ti ? null : boneSitePitAt(tx, ty), st: ti ? null : siteAt(tx, ty), bs: ti ? null : boneSiteAt(tx, ty),
+    wk: ti ? null : wreckAt(tx, ty), cave: ti ? null : caveEntranceAt(tx, ty), lm: ti ? null : landmarkAt(tx, ty), dn: null, pk: null };
+}
+const LATI = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+function bordiVialetto(tx, ty, x, y, quiStrada, t) {
+  if (t === WATER || t === DEEP) return;
+  const yr = yardRect();
+  for (let i = 0; i < 4; i++) {
+    const nx = tx + LATI[i][0], ny = ty + LATI[i][1];
+    const laStrada = homePathAt(nx, ny);
+    if (laStrada === quiStrada) continue;
+    if (townInfo(nx, ny)) continue;
+    if (yr && nx >= yr.x0 && nx <= yr.x1 && ny >= yr.y0 && ny <= yr.y1) continue;   // il recinto ha il suo bordo
+    const tn = baseTerrain(nx, ny);
+    if (quiStrada) { if (tn === WATER || tn === DEEP) continue; frangiaStrada(tx, ty, x, y, i, coloreTerra(tn, zoneIdxAt(nx, ny))); }
+    else if (!quiStrada && (yardInfo(tx, ty) === null)) frangiaStrada(tx, ty, x, y, i, coloreStrada(nx, ny));
+  }
 }
 /* copia numerica di un insieme di caselle «x,y», rifatta solo quando l'insieme cambia */
 function specchio(m, set) {
@@ -1937,11 +1958,18 @@ export function render(time) {
   const dugN = specchio(MIR_DUG, dugSet), chopN = specchio(MIR_CHOP, choppedSet), mineN = specchio(MIR_MINE, minedSet), pickN = specchio(MIR_PICK, pickedSet);
   for (let ty = ty0; ty <= ty1; ty++) for (let tx = tx0; tx <= tx1; tx++) {
     const sx = tx * TS - cam.x, sy = ty * TS - cam.y;
-    const rec = tileRec(tx, ty), nk = numKey(tx, ty);
+    /* a cache spente la scheda si rifà ogni volta con le funzioni del mondo (tileRecVivo): è il
+       riferimento che il confronto dei pixel usa per scoprire una scheda sbagliata */
+    const rec = tileCacheOn ? tileRec(tx, ty) : tileRecVivo(tx, ty), nk = numKey(tx, ty);
     const ti = rec.ti;
     /* CORTILE di casa: fuori dal sistema città, un solo rettangolo fisso. Non va nella scheda:
-       il cancello cambia (chiuso a chiave o no). Si chiede solo dentro il suo rettangolo. */
-    const yd = ti || !yrNow || tx < yrNow.x0 || tx > yrNow.x1 || ty < yrNow.y0 || ty > yrNow.y1 ? null : yardInfo(tx, ty);
+       il cancello cambia (chiuso a chiave o no). Si chiede dentro il suo rettangolo — e sul
+       VIALETTO che da lì prosegue fino alla città, che yardInfo tratta come cortile: chiedendolo
+       solo dentro il recinto il vialetto fuori spariva (v0.99.35-42, segnalato con foto). */
+    const inRecinto = !ti && yrNow && tx >= yrNow.x0 && tx <= yrNow.x1 && ty >= yrNow.y0 && ty <= yrNow.y1;
+    /* a cache spente niente scorciatoie: si chiede sempre (è la strada di riferimento che il
+       confronto dei pixel usa per scoprire una scorciatoia sbagliata) */
+    const yd = ti ? null : (!tileCacheOn || inRecinto || rec.strada) ? yardInfo(tx, ty) : null;
     /* terreno */
     let t = ti ? (ti.road ? ROAD : FLOOR) : yd ? (yd.path ? ROAD : PARK) : rec.tb;
     const dipingi = (x, y, senzaFondo) => {
@@ -1953,6 +1981,8 @@ export function render(time) {
       const ziQui = (ti || yd) ? 0 : zoneIdxAt(tx, ty);
       const nbz = (ti || yd) ? null : [zoneIdxAt(tx, ty - 1), zoneIdxAt(tx + 1, ty), zoneIdxAt(tx, ty + 1), zoneIdxAt(tx - 1, ty)];
       groundTile(t, tx, ty, x, y, time, ziQui, nb, nbz, senzaFondo);
+      /* il bordo del vialetto di casa, da tutte e due le parti */
+      if (!ti) bordiVialetto(tx, ty, x, y, rec.strada, t);
     };
     /* la TERRA dall'archivio (non cambia col tempo); l'ACQUA col FONDO dall'archivio e sopra, dal
        vivo e nello stesso ordine di prima, increspature, ghiaccio, ninfee, riva e schiuma */
@@ -1960,7 +1990,7 @@ export function render(time) {
       if (groundFromCache(t, tx, ty, sx, sy, (x, y) => fondoAcqua(t, tx, ty, x, y, (ti || yd) ? 0 : zoneIdxAt(tx, ty)))) dipingi(sx, sy, true);
       else dipingi(sx, sy);
     } else if (!groundFromCache(t, tx, ty, sx, sy, dipingi)) dipingi(sx, sy);
-    if (dugN.has(nk) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
+    if ((tileCacheOn ? dugN.has(nk) : dugSet.has(tx + ',' + ty)) && !(ti && ti.floor)) drawHole(sx, sy, tx, ty);
     if (!ti && !yd) { const pit = rec.pit; if (pit) drawBonePit(sx, sy, tx - pit.x, ty - pit.y); }
     /* CASA: un edificio 3×2 fuori dal sistema città — niente decorazioni/siti sotto */
     if (!ti && !yd && hf && tx >= hf.x0 && tx <= hf.x1 && ty >= hf.y0 && ty <= hf.y1) {
@@ -2008,8 +2038,8 @@ export function render(time) {
     const lm = rec.lm;
     if (lm) { ents.push({ y: sy + 15, f: () => drawLandmark(lm, sx, sy, time) }); continue; }
     /* = decoAt(tx, ty) e pickupAt(tx, ty), dalla scheda + gli insiemi che cambiano */
-    const d = (chopN.has(nk) || mineN.has(nk)) ? null : rec.dn;
-    if (!d) { const pk = pickN.has(nk) ? null : rec.pk; if (pk) ents.push({ y: sy + 12, f: () => drawPickup(pk, sx, sy, time, tx, ty) }); continue; }
+    const d = !tileCacheOn ? decoAt(tx, ty) : (chopN.has(nk) || mineN.has(nk)) ? null : rec.dn;
+    if (!d) { const pk = !tileCacheOn ? pickupAt(tx, ty) : pickN.has(nk) ? null : rec.pk; if (pk) ents.push({ y: sy + 12, f: () => drawPickup(pk, sx, sy, time, tx, ty) }); continue; }
     /* gli oggetti fermi dall'archivio (propFromCache); se l'archivio non c'è, come sempre */
     const fermo = (codice, disegna) => () => { if (!propFromCache(codice, tx, ty, sx, sy, () => disegna(0, 0))) disegna(sx, sy); };
     if (d === 'tree') ents.push({ y: sy + 15, f: () => drawTree(sx, sy, time, tx, ty) });

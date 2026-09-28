@@ -533,3 +533,10 @@ function groundBase(t, tx, ty, sx, sy, time, zi, ZP, senzaFondo) {
 
 /* ---------- decorazioni ---------- */
 /* solo ~1 albero su 3 ondeggia (vhash sul tile): movimento senza appesantire */
+
+/* IL BORDO DEL VIALETTO DI CASA contro il terreno attorno: lo stesso dente del confine fra due
+   biomi (frangiaLato), disegnato da TUTTE E DUE le caselle — la strada morde nell'erba e l'erba
+   nella strada, lungo una linea sola (regola 14). A righello sembrava un nastro appiccicato. */
+export function frangiaStrada(tx, ty, sx, sy, lato, colAltro) { frangiaLato(tx, ty, sx, sy, lato, colAltro, null, 7, 191); }
+export function coloreStrada(tx, ty) { return biomeBuild(tx, ty).road[0]; }
+export function coloreTerra(t, zi) { return landColor(t, ZONE_TILES[zi] || null, zi); }

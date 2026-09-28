@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.43', it: [
+      'IL VIALETTO DI CASA È TORNATO, ed è più bello: parte dal cancello, è largo quanto il cancello fino alla città e ha i bordi morbidi contro l\'erba invece che a righello. Nelle ultime versioni era sparito il tratto fuori dal recinto',
+      'Sul vialetto non si scava, né tu né il compagno, e le buche che c\'erano sono sparite',
+    ], en: [
+      'THE PATH TO YOUR HOUSE IS BACK, and nicer: it starts at the gate, it is as wide as the gate all the way to town and its edges blend into the grass instead of being ruler-straight. In the last few versions the part outside the fence had gone missing',
+      'Nobody digs on the path, neither you nor your companion, and the holes that were there are gone',
+    ],
+  },
+  {
     v: 'v0.99.42', it: [
       'IL COMPAGNO NON SCAVA PIÙ NEL GIARDINO: niente buche nel prato del cortile né attorno alla casa, e niente alberi o sassi del giardino. Le buche già fatte sono sparite',
     ], en: [

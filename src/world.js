@@ -676,9 +676,30 @@ export function yardInfo(tx, ty) {
   }
   // vialetto: poche tile a sud del cancello, fuori dal recinto, verso terreno qualunque
   if ((tx === p.cx - 1 || tx === p.cx) && ty > p.y1 && ty <= p.y1 + HOME_PATH_LEN) return { floor: true, path: true };
-  // prosecuzione: dal fondo del vialetto fino alla città vicina (vedi homeRoadAt)
-  if (homeRoadAt(tx, ty)) return { floor: true, path: true };
+  // prosecuzione: dal fondo del vialetto fino alla città vicina (vedi homeRoadAt), LARGA DUE come il cancello
+  if (homeRoadWideAt(tx, ty)) return { floor: true, path: true };
   return null;
+}
+/* IL VIALETTO È LARGO QUANTO IL CANCELLO. La spezzata (homeRoadGeomFor) è larga una casella e
+   partiva da una sola delle due colonne del cancello: una striscia storta e sottile appiccicata
+   sull'erba (segnalato con foto: «il vialetto è proprio brutto»). Qui si allarga di una casella
+   — a sinistra dove scende, sotto dove corre di lato, e l'angolo dove si piega — ma SOLO su
+   terra camminabile e fuori città: sull'acqua resta la spezzata di prima, e la spezzata stessa
+   non cambia (è lei che findHomeSpot controlla: cambiarla sposterebbe case già fatte). */
+function homeRoadWideAt(tx, ty) {
+  if (homeRoadAt(tx, ty)) return true;
+  const v = (x, y) => homeRoadAt(x, y) && (homeRoadAt(x, y - 1) || homeRoadAt(x, y + 1));     // tratto che scende
+  const o = (x, y) => homeRoadAt(x, y) && (homeRoadAt(x - 1, y) || homeRoadAt(x + 1, y));     // tratto che corre di lato
+  if (!(v(tx + 1, ty) || o(tx, ty - 1) || (v(tx + 1, ty - 1) && o(tx + 1, ty - 1)))) return false;
+  return walkableGround(baseTerrain(tx, ty)) && !townInfo(tx, ty);
+}
+/* la casella fa parte del vialetto di casa FUORI dal recinto (il tratto corto sotto il cancello
+   e la strada fino alla città): ferma finché la casa resta dov'è */
+export function homePathAt(tx, ty) {
+  const p = yardRect(); if (!p) return false;
+  if (tx >= p.x0 && tx <= p.x1 && ty >= p.y0 && ty <= p.y1) return false;
+  const y = yardInfo(tx, ty);
+  return !!(y && y.path);
 }
 /* Cerca un posto per la porta di casa vicino a una città: fuori dal suo ingombro (con un
    margine, non appena fuori il muro — "un pelo più lontana"), su terreno camminabile, con

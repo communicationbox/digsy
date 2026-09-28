@@ -12,7 +12,7 @@ import { apriSogno, staSognando } from './dream.js';
 import { S, P, save, spendEnergy, dugSet, choppedSet, minedSet, pickedSet, compactGoods, GOOD_STACK } from './state.js';
 import { baseTerrain, diggable, digChance, townInfo, townForTile, townForCell, openArea, TCELL, solidPx, siteForCell, siteAt, wreckForCell, WCELL, decoAt, pickupAt, SCELL, DEEP, WATER, CHOPPABLE, MINEABLE, boneSiteForCell, boneSiteAt, BCELL, hasMuseum, yardRect, yardInfo, houseFootprint } from './world.js';
 import { compass } from './compass.js';
-import { landmarkNear, harvestDecoAt, nearHouseZone } from './world.js';
+import { landmarkNear, harvestDecoAt, nearHouseZone, homePathAt } from './world.js';
 import { vhash as vhashW, SEED } from './noise.js';
 import { discoverWonder, wonderReadyIn, wonderStatusText, markWonderUsed, rememberArch, addBuff, useBuff } from './wonders.js';
 import { marketPrice } from './market.js';
@@ -661,7 +661,7 @@ function tileValidForWork(type, tx, ty) {
   /* NIENTE LAVORI A CASA: né nel cortile (il prato, gli alberi e i sassi del giardino) né sul
      vialetto e attorno alla casa — la stessa zona dove il mondo non mette decorazioni. Tu nel
      cortile non puoi scavare, e il compagno ci faceva le buche (segnalato con foto). */
-  if (yardInfo(tx, ty) || nearHouseZone(tx, ty, 0)) return false;
+  if (yardInfo(tx, ty) || nearHouseZone(tx, ty, 0) || homePathAt(tx, ty)) return false;
   if (type === 'acqua') return waterTile(tx, ty);
   /* albero e roccia: `decoAt` restituisce già null su quelli abbattuti e spaccati */
   if (type === 'albero') return CHOPPABLE.includes(decoAt(tx, ty));
