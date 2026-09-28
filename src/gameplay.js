@@ -1,5 +1,5 @@
 /* Meccaniche: scavo, economia, chimere, collisioni, interazione */
-import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PREMIUM_HATS, PEDESTAL_ID, FURN_BY_ID } from './data.js';
+import { TS, PARTS, RAR, ptById, spById, zonePools, SPECIES, ALL_SPECIES, GOODS, goodById, availableNow, hasWindow, PESCA, eSera, PREMIUM_HATS, PEDESTAL_ID, FURN_BY_ID } from './data.js';
 import { fusibleGroups, fuse, NEEDED as FUSE_NEEDED } from './fuse.js';
 import { fits } from './path.js';
 import { bodyHits, feetTile, FOOT_DY } from './body.js';
@@ -31,11 +31,20 @@ import { isNight, seasonOf } from './daynight.js';
 import { expireQuests, questExpiryText } from './quests.js';
 import { tutBump, tutStepId } from './tutorial.js';
 import { goalLine, goalTitle, alive, aliveTotal, milestoneReached, milestoneGift } from './goal.js';
-import { tr, actKey, keys, LANG, partName, rarLabel, seasonName, hatLabel, furnLabel } from './i18n.js';
+import { tr, actKey, keys, LANG, partName, rarLabel, seasonName, hatLabel, furnLabel, zoneName } from './i18n.js';
 import { noteDug } from './packmap.js';
 
 /* momento attuale del mondo, per le finestre di presenza delle specie */
-function availableNow2() { return { night: isNight(), season: seasonOf(S.day) }; }
+function availableNow2() { return { night: eSera(S.tod), season: seasonOf(S.day) }; }
+/* QUANDO SI PESCA QUI: 'giorno' o 'notte' secondo la zona, e se adesso è il momento */
+export function pescaQui(tx, ty) {
+  const z = zoneAt(tx, ty), quando = PESCA[z.id] || 'notte';
+  return { zona: z, quando, adesso: (quando === 'notte') === eSera(S.tod) };
+}
+/* «di notte, dalle 18 alle 6» / «di giorno, dalle 6 alle 18»: come si dice, dappertutto uguale */
+export function quandoPescaTesto(quando) {
+  return quando === 'giorno' ? tr('di giorno, dalle 6 alle 18', 'by day, from 6 to 18') : tr('di notte, dalle 18 alle 6', 'at night, from 18 to 6');
+}
 /* elenco delle specie che escono SOLO adesso (usato dai testi: "stanotte si sente il Grillosso") */
 export function windowSpeciesNow(zoneId) {
   const now = availableNow2();
@@ -563,6 +572,13 @@ export function onBoat() {
   return hasBoat() && waterTile(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
 }
 export function tryFish() {
+  /* FUORI ORARIO non si lancia: lo si dice sempre, e non costa energia. Prima di giorno si pescava
+     a vuoto pagando e l'indizio usciva una volta su due. */
+  { const q = pescaQui(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
+    if (!q.adesso && !isDebug()) {
+      toast('🎣 ' + tr('Qui (', 'Here (') + zoneName(q.zona.id) + tr(') si pesca ', ') fish bite ') + quandoPescaTesto(q.quando) + tr(': adesso non abbocca niente', ': nothing bites right now'));
+      playSfx('nope'); return;
+    } }
   if (S.energy <= 0 && !isDebug()) { toast(tr('Sei senza energia: riposa alla Locanda', 'You\'re out of energy: rest at the Inn')); playSfx('nope'); return; }
   beginDig(0.9, () => {
     if (!isDebug()) spendEnergy(1);
@@ -573,11 +589,7 @@ export function tryFish() {
       if (addFossil(raw, tx, ty)) toast('🎣 ' + tr('Fossile acquatico!', 'Aquatic fossil!'));
       playSfx('found');
     } else {
-      /* indizio, non frustrazione: se qui c'è una specie notturna, il gioco lo lascia capire */
-      const hint = !isNight() && (zonePools[zoneAt(tx, ty).id] || []).some(sp => sp.src === 'acqua' && sp.when && sp.when.night);
-      toast('🎣 ' + (hint && Math.random() < 0.5
-        ? tr('…niente. Di notte qui l\'acqua cambia', '…nothing. At night the water changes here')
-        : tr('…non abbocca niente', '…nothing bites')));
+      toast('🎣 ' + tr('…non abbocca niente', '…nothing bites'));
       playSfx('fish');
     }
     save(); updateHUD();

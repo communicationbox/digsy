@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.39', it: [
+      'OGNI BIOMA HA LA SUA ORA DI PESCA: nei Prati, nelle Lande Gelide e nelle Terre Rosse si pesca di giorno (dalle 6 alle 18), nella Palude, nei Boschi e nelle Dune di notte (dalle 18 alle 6). Prima si pescava solo di notte dappertutto, e il gioco non lo diceva',
+      'In barca il suggerimento dice quando si pesca in quella zona, e fuori orario il lancio non costa energia: il gioco dice quando tornare. Anche il Libro lo scrive accanto alla specie',
+    ], en: [
+      'EVERY BIOME HAS ITS FISHING HOURS: in the Meadows, the Frozen Wastes and the Red Lands fish bite by day (6 to 18), in the Swamp, the Woods and the Dunes at night (18 to 6). Before, fishing only worked at night everywhere, and the game never said so',
+      'On the boat the hint says when fish bite in that zone, and out of hours casting costs no energy: the game tells you when to come back. The Book shows it next to the species too',
+    ],
+  },
+  {
     v: 'v0.99.38', it: [
       'CASA, BOTTEGHE E MUSEO PIÙ LEGGERI: pavimenti, tappeti e pareti si disegnano una volta sola invece che a ogni fotogramma — la casa costa un quinto di prima, il museo un terzo in meno, le botteghe un terzo in meno. Stessa grafica, pixel per pixel',
       'In città i tetti e le sagome dell\'arredo si ricopiano invece di ridisegnarsi, anche mentre le botteghe si animano',

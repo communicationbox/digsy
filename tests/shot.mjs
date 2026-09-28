@@ -287,6 +287,12 @@ async function main() {
           m.COMP.job = { type: tw, phase: 'work', t: 999, wx: m.COMP.x + fw * 32, wy: m.COMP.y, hit: -1 };
           if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1500);
         }); }
+    /* 'pesca' = in barca sull'acqua: il prompt dice QUANDO si pesca in quella zona (ora=… per l'ora) */
+    else if (${JSON.stringify(vista)} === 'pesca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var qp = new URLSearchParams(location.search);
+      if(G.cmd) G.cmd('goditem').then(function(){ return G.leaveRoom ? G.leaveRoom() : null; }).then(function(){ return G.cmd('go=water'); })
+        .then(function(){ var S2 = G.state(); S2.tod = +(qp.get('ora') || 0.3); if (S2.tut) { S2.tut.done = true; } if(G.updateHUD) G.updateHUD();
+          return G.mod('ui'); }).then(function(u){ if (u && u.updatePrompt) u.updatePrompt(); if(G.frame) G.frame(1500); }); }
     /* 'meraviglia' = un landmark nel mondo: si guarda se i suoi pixel sono quelli del mondo
        o il doppio (era il caso delle creature) */
     else if (${JSON.stringify(vista)} === 'meraviglia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }

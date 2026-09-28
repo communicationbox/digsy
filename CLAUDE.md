@@ -141,7 +141,11 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   `tryChop`, CHOPPABLE, `S.chopped/choppedSet`), **piccone** ⛏️ (massi/guglie, `tryMine`,
   MINEABLE, `S.mined`), **barca** ⛵ (mai si rompe: sull'acqua — anche gelata — spawna da
   sola, `onBoat()`, collide passa su WATER/DEEP, sprite barca con bob+scia, niente camminata;
-  **E sull'acqua = PESCA** `tryFish` con lenza/galleggiante).
+  **E sull'acqua = PESCA** `tryFish` con lenza/galleggiante). **Ogni bioma ha la sua ora di
+  pesca** (`PESCA` in data.js): Prati, Lande Gelide, Terre Rosse di GIORNO (06–18), Palude, Boschi,
+  Dune di NOTTE (18–06) — due metà uguali (`eSera`: tod ≥ 0.5), non la notte vera (42% del giorno,
+  e chi dorme la salta). Il prompt in barca lo dice; fuori orario il lancio non parte e non costa
+  energia (`pescaQui`). Prima si pescava solo di notte ovunque e di giorno si pagava a vuoto.
 - **Fonti dei fossili** (`sp.src` in data.js): per zona 1 raro vive negli ALBERI, 1 raro in
   ACQUA, 1 eccezionale nelle ROCCE — lo scavo a terra li ESCLUDE (`makeRaw(zone,dist,rar,src)`,
   siti/fontana/mappe = 'any'); il **Libro indica la fonte** nella riga meta (accetta/piccone/

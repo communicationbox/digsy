@@ -18,7 +18,8 @@ import { seasonName } from './i18n.js';
    cosa fa davvero). "Solo di notte" · "Solo in estate — ora è autunno" */
 function windowText(sp) {
   const w = sp && sp.when; if (!w) return '';
-  if (w.night) return '🌙 ' + tr('Solo di notte', 'Only at night');
+  if (w.night) return '🌙 ' + tr('Si pesca solo di notte (18–6)', 'Only bites at night (18–6)');
+  if (w.day) return '☀️ ' + tr('Si pesca solo di giorno (6–18)', 'Only bites by day (6–18)');
   const now = seasonOf(S.day);
   const when = seasonName(w.season);
   return '🍂 ' + tr('Solo in ', 'Only in ') + when + (now === w.season ? tr(' — è adesso!', ' — that\'s now!') : '');

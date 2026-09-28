@@ -9609,11 +9609,19 @@ sprites.applyLook();
   const S = state.S;
   const data = await import('../src/data.js');
   const win = data.SPECIES.filter(x => x.when);
-  check('12 specie hanno una finestra: 1 notturna e 1 stagionale per zona', win.length === 12 &&
+  check('12 specie hanno una finestra: 1 di pesca (giorno o notte) e 1 stagionale per zona', win.length === 12 &&
     data.ZONES.every(z => {
       const p = data.zonePools[z.id];
-      return p.filter(x => x.when && x.when.night).length === 1 && p.filter(x => x.when && x.when.season != null).length === 1;
+      return p.filter(x => x.when && (x.when.night || x.when.day)).length === 1 && p.filter(x => x.when && x.when.season != null).length === 1;
     }));
+  /* QUANDO SI PESCA: ogni zona ha la sua voce (giorno o notte), metà e metà, e la specie d'acqua
+     di quella zona segue la tabella — «o si pesca di notte o di giorno, dichiarato bene» */
+  check('ogni zona dice quando si pesca, tre di giorno e tre di notte',
+    data.ZONES.every(z => data.PESCA[z.id] === 'giorno' || data.PESCA[z.id] === 'notte')
+      && Object.values(data.PESCA).filter(v => v === 'giorno').length === 3 && Object.values(data.PESCA).filter(v => v === 'notte').length === 3);
+  check('e la specie d\'acqua di ogni zona segue la sua voce',
+    data.ZONES.every(z => { const a = data.zonePools[z.id].find(x => x.src === 'acqua'); return a && (data.PESCA[z.id] === 'giorno' ? a.when.day : a.when.night); }));
+  check('giorno e notte di pesca durano uguale (06–18 e 18–06)', !data.eSera(0) && !data.eSera(0.49) && data.eSera(0.5) && data.eSera(0.99));
   check('le finestre stanno solo su specie con fonte dedicata (barca/piccone)',
     win.every(x => x.src === 'acqua' || x.src === 'roccia'));
   /* la regola che tiene in piedi il pity: scavando la TERRA ogni rarità resta raggiungibile
@@ -9628,6 +9636,33 @@ sprites.applyLook();
     check('availableNow: stagionale solo nella sua stagione',
       data.availableNow(sp, false, sp.when.season) && !data.availableNow(sp, false, (sp.when.season + 1) % 4));
   }
+  /* FUORI ORARIO non si lancia, non si paga, e lo si dice sempre (prima: energia spesa a vuoto e
+     l'indizio una volta su due) */
+  {
+    const gp2 = await import('../src/gameplay.js');
+    const wld = await import('../src/world.js');
+    const reg = await import('../src/regions.js');
+    const { TS: TS3 } = await import('../src/data.js');
+    let acqua = null;
+    for (let r = 2; r < 900 && !acqua; r += 2) for (let a = 0; a < 16 && !acqua; a++) {
+      const x = Math.round(Math.cos(a / 16 * 6.283) * r), y = Math.round(Math.sin(a / 16 * 6.283) * r);
+      if (wld.baseTerrain(x, y) === wld.WATER && data.PESCA[reg.zoneAt(x, y).id] === 'notte') acqua = [x, y];
+    }
+    const P5 = state.P, kp = { x: P5.x, y: P5.y }, ken = S.energy, ktod = S.tod;
+    P5.x = acqua[0] * TS3 + 16; P5.y = acqua[1] * TS3 + 16 - 26;
+    S.tod = 0.3; S.energy = 10;
+    const box = document.getElementById('toasts'), detti = [], orig = box.appendChild;
+    box.appendChild = c => { detti.push(String(c.innerHTML)); return c; };
+    gp2.tryFish();
+    box.appendChild = orig;
+    check('pescare fuori orario non costa energia e dice quando tornare', S.energy === 10 && detti.some(t => /dalle 18 alle 6/.test(t)), detti.join(' | ').slice(0, 90));
+    check('e la zona dice la sua metà della giornata', gp2.pescaQui(acqua[0], acqua[1]).quando === 'notte' && gp2.pescaQui(acqua[0], acqua[1]).adesso === false);
+    S.tod = 0.7;
+    check('di sera invece è il momento', gp2.pescaQui(acqua[0], acqua[1]).adesso === true);
+    P5.x = kp.x; P5.y = kp.y; S.energy = ken; S.tod = ktod;
+  }
+  check('availableNow: diurna presente di giorno, assente di notte',
+    data.availableNow(win.find(x => x.when.day), false, 0) && !data.availableNow(win.find(x => x.when.day), true, 0));
   /* e il pescato notturno deve davvero cambiare: di giorno quella specie non esce mai */
   {
     const gp = await import('../src/gameplay.js');

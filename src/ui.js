@@ -1,4 +1,5 @@
 /* UI DOM: HUD, prompt, toast, modale edifici, zaino, editor/barbiere/sartoria */
+import { FOOT_DY } from './body.js';
 import { TS, furnSize, furnPlace, furnIsSolid, SPECIES, ALL_SPECIES, MUSEUM_ZONES, spById, ptById, PARTS, RAR, ZONES, zonePools, SERVICE_COST, LOOKS, LOOK_LABELS, HAIR_STYLES, HAIR_COLORS, EYE_COLORS, HAT_STYLES, SHIRT_STYLES, PANTS_STYLES, BEARD_STYLES, GLASSES_STYLES, GLASSES_COLORS, ZONE_COSMETICS, PREMIUM_HATS, PREMIUM_HAT_COST, NAMES, randomName, FURN_SETS, FURN_BY_ID, PEDESTAL_ID } from './data.js';
 import { zoneAt } from './regions.js';
 import { S, P, save, dugSet, isCheatLock, cosmeticOwned, markBought, markLookBought, LOOK_FIELDS, cam } from './state.js';
@@ -13,7 +14,7 @@ import { marketPrice, marketLabel } from './market.js';
 import { egg as breedEgg, eggReady, eggDaysLeft, foodPreview, mutationChance, bumpChance, previewOffspring, canLay, layEgg, hatchEgg, breeders, EGG_FOOD, EGG_ENERGY, EGG_DAYS } from './breeding.js';
 import { applyLook, drawHero, HATS, HAIRS } from './sprites.js';
 import { nearbyWonder, useWonder, bagFull, nearbyHarvest, nearbyBoneSite, boneSiteProgress, nearbyReturnPortal, nearbyCityPortal, amberReward } from './gameplay.js';
-import { sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
+import { pescaQui, quandoPescaTesto, sellItem, sellAll, sellGood, sellAllGoods, goodName, restInn, sleepAtHome, canSleep, nearbyLockedGate, buyEnergy, eatSnack, snackPrice, snacksLeftToday, nearbyDoor, nearbyFountain, nearbySite, nearbyPickup, nearbyGround, nearbyDrop, nearbyWreck, nearbyBoard, nearbyYard, wreckRemaining, onBoat, gainXp, buyBag, bagCap, bagLevel, fossilCount, nextBagCost, BAG_CAPS, discardToGround, siteRemaining, awakenReady, awakenSpecies, museumDeposit, museumCollect, museumJobReady, shipToMuseum, MAIL_COST, buyMap, buyDna, dnaOf, buyTool, buyTeleport, useTeleport, fuseDupes, gearActive, toggleGear, compassActive, toggleCompass, companionRides, isMounted, toggleMount, debugSpawnAll, dirTo, tossLuck, MAP_COST, MAP_DIST, DNA_COST, TOOL_COST, TELEPORT_COST } from './gameplay.js';
 import { darknessAt, seasonOf, SEASONS, isNight } from './daynight.js';
 import { fireflyInReach } from './firefly.js';
 import { INT, nearNpc, nearCase, nearMentorInt, nearExit, nearLockedGate, houseFloorHere, nudgeOffFurniture, interiorLeave, npcName, sayNpc , nearPet } from './interior.js';
@@ -388,6 +389,14 @@ export function updatePrompt() {
   if (nearbyYard()) { setPrompt(withIcons(actKey() + ' ' + tr('Compagno e cortile 🐾', 'Companion & yard 🐾'))); return; }
   if (nearbyDrop()) { setPrompt(withIcons(actKey() + ' ' + tr('Raccogli da terra ✨', 'Pick up from the ground ✨'))); return; } // il fossile caduto viene prima della fontana
   if (nearbyFountain()) { setPrompt(withIcons(actKey() + ' ' + tr('Lancia 1 🪙 nella fontana', 'Toss 1 🪙 into the fountain'))); return; }
+  /* IN BARCA SI PESCA, e il prompt dice QUANDO: ogni zona ha la sua metà della giornata */
+  if (onBoat() && !nearbyWreck()) {
+    const q = pescaQui(Math.floor(P.x / TS), Math.floor((P.y + FOOT_DY) / TS));
+    setPrompt(withIcons(q.adesso
+      ? actKey() + ' ' + tr('Pesca 🎣 · qui abboccano ', 'Fish 🎣 · here they bite ') + quandoPescaTesto(q.quando)
+      : '🎣 ' + tr('Qui si pesca ', 'Here fish bite ') + quandoPescaTesto(q.quando)));
+    return;
+  }
   if (onBoat() && nearbyWreck()) { const rem = wreckRemaining(nearbyWreck()); setPrompt(withIcons(rem > 0 ? actKey() + ' ' + tr('Fruga nel relitto 🚢 (', 'Search the wreck 🚢 (') + rem + tr(' rimasti)', ' left)') : tr('Relitto ripulito', 'Wreck picked clean'))); return; }
   if (nearbyGround()) {
     const h = nearbyHarvest();

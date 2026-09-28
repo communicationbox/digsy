@@ -188,7 +188,6 @@ export const RU = {
   "In the roots: a find!": "В корнях: находка!",
   "In the rock: a find!": "В камне: находка!",
   "Aquatic fossil!": "Водная окаменелость!",
-  "…nothing. At night the water changes here": "…ничего. Ночью вода здесь меняется",
 
 
   "Needs a legendary cave companion": "Нужен легендарный пещерный спутник",
@@ -329,7 +328,6 @@ export const RU = {
 
 
   /* ---- descrizioni del Libro (generate dalla ricetta dello scheletro) ---- */
-  'Only at night': 'Только ночью',
   'Only in ': 'Только ',
   " — that's now!": ' — сейчас как раз!',
   'A tiny creature': 'Крошечное существо',
@@ -1766,6 +1764,15 @@ export const RU = {
   "They said no a moment ago": "Только что отказали",
   "Let me in": "Впусти меня",
   "You can't ask right now: wait a moment": "Сейчас просить нельзя: подожди немного",
+  "Only bites at night (18–6)": "Клюёт только ночью (18–6)",
+  "Only bites by day (6–18)": "Клюёт только днём (6–18)",
+  "Here (": "Здесь (",
+  ") fish bite ": ") клюёт ",
+  "by day, from 6 to 18": "днём, с 6 до 18",
+  "at night, from 18 to 6": "ночью, с 18 до 6",
+  ": nothing bites right now": ": сейчас ничего не клюёт",
+  "Fish 🎣 · here they bite ": "Рыбачить 🎣 · здесь клюёт ",
+  "Here fish bite ": "Здесь клюёт ",
   'Friends: after the tutorial': 'Друзья: после обучения',
   'Friends open once you finish the tutorial (or skip it)': 'Друзья откроются, когда закончишь обучение (или пропустишь его)',
   "Whoa! It's locked from outside!! Leave through the portal in the hall": 'Ого! Заперто снаружи!! Выходи через портал в прихожей',

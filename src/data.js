@@ -61,16 +61,27 @@ export const SRC_ICON = { albero: '🌲', roccia: '⛰️', acqua: '🌊' };
    Le finestre stanno di proposito sulle specie che hanno GIÀ una fonte dedicata (barca,
    piccone): così ogni rarità resta comunque raggiungibile scavando la terra a qualsiasi ora,
    e il pity timer non può restare a secco. */
+/* QUANDO SI PESCA, zona per zona: metà dei biomi di GIORNO (06–18) e metà di NOTTE (18–06), e
+   si dice. Prima in ogni zona la specie d'acqua usciva solo di notte, e di giorno si lanciava
+   la lenza a vuoto pagando energia senza che niente lo dicesse («si può pescare solo di notte?»).
+   La scelta è tematica: col sole nei prati, nel ghiaccio e fra le rocce rosse; al buio nella
+   palude delle lucciole, nei boschi e nel fresco della sera sulle dune. Le due metà durano
+   uguale (dodici ore l'una), così nessuna zona pesca più delle altre. */
+export const PESCA = { prati: 'giorno', ghiacci: 'giorno', terre: 'giorno', palude: 'notte', boschi: 'notte', dune: 'notte' };
+/* la metà della giornata, dall'orologio del mondo (tod 0 = alba alle 06:00, 0.5 = 18:00) */
+export function eSera(tod) { return (tod || 0) >= 0.5; }
 for (const [zi, z] of ZONES.entries()) {
   const pool = zonePools[z.id];
   const acq = pool.find(s => s.src === 'acqua'), roc = pool.find(s => s.src === 'roccia');
-  if (acq) acq.when = { night: true };
+  if (acq) acq.when = PESCA[z.id] === 'giorno' ? { day: true } : { night: true };
   if (roc) roc.when = { season: zi % 4 };
 }
-/* la specie è pescabile adesso? (night/season arrivano da chi chiama: data.js resta puro) */
+/* la specie è pescabile adesso? `night` = è la metà notturna della giornata (18–06, `eSera`);
+   night/season arrivano da chi chiama: data.js resta puro */
 export function availableNow(sp, night, season) {
   const w = sp && sp.when; if (!w) return true;
   if (w.night && !night) return false;
+  if (w.day && night) return false;
   if (w.season != null && w.season !== season) return false;
   return true;
 }
