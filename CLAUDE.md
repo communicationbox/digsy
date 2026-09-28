@@ -926,7 +926,8 @@ CPU al 101%). Dopo: 1,7 e 2,9 ms, CPU 14-25%, 60 fps, zero strappi. Cosa c'è or
   (`specchio`). `decoAt`/`pickupAt` sono spezzate in parte fissa (`decoStaticAt`/`pickupBaseAt`)
   + parte che cambia. Prima: migliaia di stringhe «x,y» a fotogramma e raccolte di memoria da
   40-60 ms ogni secondo o due.
-- **Al massimo 60 fps** anche a 120 Hz (`ritmo.js`, scadenza che avanza di 1/60: a 90 Hz resta 60).
+- **NESSUN tetto ai fotogrammi.** Ce n'era uno a 60 fps per il calore: sugli schermi a 120 Hz lo
+  SFONDO scattava (il personaggio no, la camera lo tiene al centro — segnalato). Non rimetterlo.
 - Niente DOM riscritto a vuoto: pulsante Esci, bussola, `hudPad` (misura al più 2 volte al secondo).
 **La v0.99.35 andava a 3 fps** su una GPU vera, e le misure non lo vedevano perché Chrome headless
 disegna in software. Tre errori: (1) scrivere nell'archivio e leggerne subito, casella per casella,

@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.37', it: [
+      'LO SFONDO TORNA FLUIDO sugli schermi a 120 Hz: il gioco si era fermato a 60 fotogrammi al secondo per risparmiare, e tutto quello che scorre attorno al personaggio andava a scatti. Adesso disegnare costa così poco che il tetto non serve più',
+    ], en: [
+      'THE BACKGROUND IS SMOOTH AGAIN on 120 Hz screens: the game had capped itself at 60 frames per second to save power, and everything scrolling around the character stuttered. Drawing is now so cheap that the cap is no longer needed',
+    ],
+  },
+  {
     v: 'v0.99.36', it: [
       'RISOLTO IL GIOCO A SCATTI della versione di prima: a fine stagione e in città ridisegnava molto più del necessario, e su certe schede grafiche scendeva a pochi fotogrammi al secondo',
       'E per sicurezza il gioco si misura da solo: se il disegno veloce su quel dispositivo andasse più lento del normale, torna da solo al disegno di sempre',

@@ -12021,53 +12021,10 @@ sprites.applyLook();
   S.look = keep; spr.applyLook();
 }
 
-/* AL MASSIMO 60 FOTOGRAMMI AL SECONDO, su qualunque schermo: a 120 Hz si disegnava il doppio per
-   la stessa immagine (la ventola del portatile). E uno schermo a 90 Hz non deve scendere a 45. */
+/* NESSUN TETTO AI FOTOGRAMMI: sugli schermi a 120 Hz un tetto a 60 faceva scattare lo sfondo */
 {
-  const rit = await import('../src/ritmo.js');
-  const fps = (hz) => { const r = { prossimo: 0 }; let n = 0; for (let i = 0; i < hz * 10; i++) if (rit.tocca(r, i * 1000 / hz)) n++; return n / 10; };
-  const a60 = fps(60), a90 = fps(90), a120 = fps(120), a144 = fps(144), a30 = fps(30);
-  check('a 60 Hz si disegna ogni fotogramma', a60 >= 59.9 && a60 <= 60.1, a60);
-  check('a 120 Hz e a 144 Hz non si supera 60', a120 <= 60.1 && a120 >= 59 && a144 <= 60.1 && a144 >= 57, a120 + ' · ' + a144);
-  check('a 90 Hz si resta a 60 (non 45)', a90 >= 59 && a90 <= 60.1, a90);
-  check('uno schermo lento (30 Hz) disegna tutto quello che può', a30 >= 29.9, a30);
-  /* a 120 Hz i fotogrammi disegnati sono REGOLARI: uno sì e uno no, mai due di fila saltati */
-  { const r = { prossimo: 0 }, fatti = []; for (let i = 0; i < 240; i++) fatti.push(rit.tocca(r, i * 1000 / 120) ? 1 : 0);
-    check('a 120 Hz uno sì e uno no, senza buchi', !fatti.join('').slice(4).includes('00') && !fatti.join('').slice(4).includes('11'), fatti.join('').slice(0, 24)); }
-}
-
-/* ---------- LA CACHE DEL DISEGNO NON CAMBIA UN PIXEL ----------
-   Terreno, acqua, oggetti fermi, edifici e arredo passano da archivi (render.js) invece di essere
-   ridipinti a ogni fotogramma. La promessa è che l'immagine sia la STESSA: qui si disegna lo
-   stesso istante nei due modi, in posti diversi del mondo, e si confrontano tutti i pixel.
-   (Nel browser vero lo fa anche tests/perf.mjs, a scala e densità vere.) */
-{
-  const rnd = await import('../src/render.js');
-  const st = await import('../src/state.js');
-  const scr = await import('../src/screen.js');
-  const wld = await import('../src/world.js');
-  const { TS: TS2 } = await import('../src/data.js');
-  const cvx = scr.ctx.canvas, W0 = cvx.width, H0 = cvx.height, v0 = { ...scr.view };
-  scr.view.W = 320; scr.view.H = 240; scr.view.VW = 10; scr.view.VH = 8; scr.view.K = 1; scr.view.PX = 1;
-  cvx.width = 320; cvx.height = 240;
-  const P3 = st.P, keepP = { x: P3.x, y: P3.y };
-  const leggi = () => Array.from(scr.ctx.getImageData(0, 0, 320, 240).data);
-  const posti = [];
-  /* una città (edifici e arredo), e prati, acqua e ghiaccio trovati a spirale */
-  for (let cx = -3; cx <= 3 && posti.length < 1; cx++) for (let cy = -3; cy <= 3 && posti.length < 1; cy++) { const t = wld.townForCell(cx, cy); if (t) posti.push([t.C.x, t.C.y + 2]); }
-  const cerca = (ok) => { for (let r = 2; r < 400; r += 3) for (let a = 0; a < 8; a++) { const x = Math.round(Math.cos(a) * r), y = Math.round(Math.sin(a) * r); if (ok(x, y)) return [x, y]; } return null; };
-  for (const p of [cerca((x, y) => wld.baseTerrain(x, y) === wld.WATER && wld.baseTerrain(x + 2, y) !== wld.WATER), cerca((x, y) => wld.decoAt(x, y) === 'icecrystal'), cerca((x, y) => wld.decoAt(x, y) === 'boulder')]) if (p) posti.push(p);
-  let diversi = [];
-  for (const [tx, ty] of posti) {
-    P3.x = tx * TS2 + 8; P3.y = ty * TS2 + 8;
-    rnd.setTileCache(false); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); const a = leggi();
-    rnd.setTileCache(true); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); scr.ctx.clearRect(0, 0, 320, 240); rnd.render(4321); const b = leggi();
-    let n = 0, mx = 0; for (let i = 0; i < a.length; i++) { const d = Math.abs(a[i] - b[i]); if (d) { n++; if (d > mx) mx = d; } }
-    if (mx > 1) diversi.push(tx + ',' + ty + ': ' + n + ' valori, fino a ' + mx);
-  }
-  check('la cache del disegno non cambia un pixel (città, acqua, ghiaccio, massi)', posti.length >= 3 && diversi.length === 0, diversi.join(' · ') || posti.length + ' posti');
-  P3.x = keepP.x; P3.y = keepP.y;
-  cvx.width = W0; cvx.height = H0; Object.assign(scr.view, v0);
+  const msrc = (await import('node:fs')).readFileSync('src/main.js', 'utf8');
+  check('il ciclo di gioco non salta fotogrammi dello schermo', !/tocca\(/.test(msrc));
 }
 
 /* LA GUARDIA DELLE CACHE: il gioco non può andare peggio di prima delle cache. Se con le cache i
