@@ -1773,7 +1773,7 @@ export const RU = {
   ": nothing bites right now": ": сейчас ничего не клюёт",
   "Fish 🎣 · here they bite ": "Рыбачить 🎣 · здесь клюёт ",
   "Here fish bite ": "Здесь клюёт ",
-  "Nothing bites here any more: move the boat at least 2 tiles": "Здесь больше не клюёт: отплыви хотя бы на 2 клетки",
+  "Nothing bites here any more: move the boat a little": "Здесь больше не клюёт: отплыви немного",
   "restocks in ": "рыба вернётся через ",
   " day": " день",
   " days": " дн.",

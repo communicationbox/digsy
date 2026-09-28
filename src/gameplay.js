@@ -604,7 +604,7 @@ function segnaPescato(tx, ty) {
 /* per le prove: segnare un pescato senza lanciare la lenza (il lancio ha il caso di mezzo) */
 export const __prova = { segna: (x, y) => segnaPescato(x, y) };
 export function puntoEsauritoTesto(e) {
-  return tr('Qui non abbocca più niente: sposta la barca di almeno 2 caselle', 'Nothing bites here any more: move the boat at least 2 tiles')
+  return tr('Qui non abbocca più niente: sposta un po\' la barca', 'Nothing bites here any more: move the boat a little')
     + ' · ' + tr('si ripopola fra ', 'restocks in ') + e.fra + (e.fra === 1 ? tr(' giorno', ' day') : tr(' giorni', ' days'));
 }
 export function tryFish() {

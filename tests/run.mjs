@@ -9673,7 +9673,7 @@ sprites.applyLook();
     check('due fossili nello stesso punto (anche a una casella) lo esauriscono', !!gp3.puntoEsaurito(X, Y) && !!gp3.puntoEsaurito(X + 1, Y + 1) && quanti() === 1);
     check('a una casella di distanza è ancora esaurito', !!gp3.puntoEsaurito(X - 1, Y));
     check('a due caselle si pesca di nuovo', gp3.puntoEsaurito(X + 2, Y) === null && gp3.puntoEsaurito(X, Y - 2) === null);
-    check('e il gioco dice di spostarsi e fra quanto si ripopola', /almeno 2 caselle/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))) && /fra 3 giorni/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))));
+    check('e il gioco dice di spostarsi e fra quanto si ripopola', /sposta un po' la barca/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))) && /fra 3 giorni/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))));
     S.day = 22;
     check('il giorno dopo manca meno', /fra 1 giorno/.test(gp3.puntoEsauritoTesto(gp3.puntoEsaurito(X, Y))));
     S.day = 23;
