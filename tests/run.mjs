@@ -12124,5 +12124,23 @@ sprites.applyLook();
   c0.drawImage = di; cv0.width = W1; cv0.height = H1;
 }
 
+/* IL COMPAGNO NON LAVORA NEL GIARDINO: niente buche nel prato del cortile, niente alberi o sassi
+   del giardino, niente sul vialetto e attorno alla casa (segnalato con foto: una buca nel cortile) */
+{
+  const gp = await import('../src/gameplay.js');
+  const wld = await import('../src/world.js');
+  const yr = wld.yardRect();
+  let dentro = 0, sbagli = [];
+  if (yr) for (let ty = yr.y0; ty <= yr.y1; ty++) for (let tx = yr.x0; tx <= yr.x1; tx++) {
+    dentro++;
+    for (const tipo of ['terra', 'albero', 'roccia', 'acqua']) if (gp.__provaLavoro.valida(tipo, tx, ty)) sbagli.push(tipo + '@' + tx + ',' + ty);
+  }
+  check('il compagno non scava, non taglia e non spacca nel cortile di casa', !!yr && dentro > 20 && sbagli.length === 0, sbagli.slice(0, 4).join(' ') || (dentro + ' caselle'));
+  /* e fuori dal cortile continua a lavorare: si cerca una casella scavabile lì vicino */
+  let fuori = null;
+  for (let r = 4; r < 40 && !fuori; r++) for (let dx = -r; dx <= r && !fuori; dx++) { const tx = yr.cx + dx, ty = yr.y1 + r; if (gp.__provaLavoro.valida('terra', tx, ty)) fuori = [tx, ty]; }
+  check('ma fuori dal giardino il lavoro c\'è', !!fuori);
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

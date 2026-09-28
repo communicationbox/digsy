@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.42', it: [
+      'IL COMPAGNO NON SCAVA PIÙ NEL GIARDINO: niente buche nel prato del cortile né attorno alla casa, e niente alberi o sassi del giardino. Le buche già fatte sono sparite',
+    ], en: [
+      'THE COMPANION NO LONGER DIGS IN THE GARDEN: no holes in the yard lawn or around the house, and it leaves the garden trees and rocks alone. The holes already dug are gone',
+    ],
+  },
+  {
     v: 'v0.99.41', it: [
       'I PUNTI DI PESCA SI ESAURISCONO: dopo due fossili pescati nello stesso punto lì non abbocca più niente, e bisogna spostare un po\' la barca. Il punto si ripopola dopo 3 giorni, e il gioco dice quanto manca. Un lancio in un punto esaurito non costa energia',
     ], en: [

@@ -1,8 +1,9 @@
 /* Boot + game loop */
-import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearCheatSnapshot } from './state.js';
+import { S, P, cam, save, initState, setSaveErrorHandler, sanitizePos, clearCheatSnapshot, dugSet } from './state.js';
+import { resetDugPack } from './packmap.js';
 import { FOOT_DY } from './body.js';
 import { fit, view } from './screen.js';
-import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache, homeRoadBroken, homeRoadOk, homeTown } from './world.js';
+import { findStart, findHomeSpot, openArea, invalidateHouseDecoCache, homeRoadBroken, homeRoadOk, homeTown, yardRect } from './world.js';
 import { TS } from './data.js';
 import { applyLook } from './sprites.js';
 import { collide, stepDig, gearSpeedMul, grantStarterGift, companionWorkTick, isMounted } from './gameplay.js';
@@ -333,6 +334,17 @@ function boot() {
     const t2 = homeTown();
     const meglio = t2 ? findHomeSpot(t2) : null;
     if (meglio && homeRoadOk(meglio.x, meglio.y, t2)) { S.home = meglio; invalidateHouseDecoCache(); save(); }
+  }
+  /* BUCHE NEL GIARDINO: il compagno raccoglitore scavava anche nel cortile di casa (dove tu non
+     puoi), e le buche restavano per sempre nel prato. Da adesso non ci scava più (gameplay.js,
+     tileValidForWork); quelle già fatte si tolgono una volta, qui. */
+  if (S.home) {
+    const yr = yardRect();
+    if (yr) {
+      let tolte = 0;
+      for (let ty = yr.y0; ty <= yr.y1; ty++) for (let tx = yr.x0; tx <= yr.x1; tx++) if (dugSet.delete(tx + ',' + ty)) tolte++;
+      if (tolte) { resetDugPack(); save(); }
+    }
   }
   cam.x = P.x; cam.y = P.y;
   fit(); addEventListener('resize', fit);

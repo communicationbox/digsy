@@ -272,6 +272,9 @@ avvengono a runtime dentro le funzioni, mai a top-level.
   quando cambia o ogni 5 s (`COMP_RIDÌ`, per chi è entrato dopo); la **posizione** a ogni
   passo, perché il compagno gira per conto suo. In volo non si manda: là la bestia È il
   cavaliere. Foto: `npm run shot -- compagnia 820,560`.
+- **Il raccoglitore non lavora a casa** (`tileValidForWork`): né nel cortile (prato, alberi, sassi,
+  stagno) né sul vialetto e attorno alla casa (`nearHouseZone`). Le buche già fatte nel cortile si
+  tolgono al boot (main.js).
 - **Il raccoglitore non impazzisce** (`CW.MOLLA`/`CW.RIPRENDE` in gameplay.js): molla il lavoro
   a 4.5 caselle da Digsy e lo riprende solo sotto 3 — con UNA soglia sola, stando fermi proprio
   lì si girava destra-sinistra all'infinito. La casella da lavorare si cerca **entro** quella
