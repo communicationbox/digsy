@@ -12045,5 +12045,30 @@ sprites.applyLook();
   check('e una pausa lunga (scheda nascosta) non conta', rit.guardia({ on: true }, 5000, 0) === true);
 }
 
+/* UN PEZZO FERMO si copia come immagine (brush.pezzo) — ma solo se la copia è identica. Due casi
+   che non lo sarebbero: coordinate non intere, e un colore «nessuno» (null), che sulla tela vera
+   riusa l'ultimo colore impostato (ha fatto le panchine col contorno nero: lo ha visto solo il
+   confronto dei pixel nel browser, perché qui lo stub ignora i colori nulli). */
+{
+  const br = await import('../src/brush.js');
+  const { ctx: c0 } = await import('../src/screen.js');
+  const cv0 = c0.canvas, W1 = cv0.width, H1 = cv0.height; cv0.width = 64; cv0.height = 64;
+  const disegno = (g) => { g.rect(2, 3, 10, 4, '#aa3322'); g.px(5, 9, '#113355'); g.rect(1, 1, 3, 3, 'rgba(0,0,0,.3)'); };
+  const leggi = () => Array.from(c0.getImageData(0, 0, 64, 64).data).join(',');
+  c0.clearRect(0, 0, 64, 64); disegno(br.BRUSH); const vivo = leggi();
+  let copie = 0; const di = c0.drawImage; c0.drawImage = function (...a) { copie++; return di.apply(this, a); };
+  c0.clearRect(0, 0, 64, 64); br.pezzo(br.BRUSH, 'prova:1', disegno); br.pezzo(br.BRUSH, 'prova:1', disegno);
+  c0.clearRect(0, 0, 64, 64); br.pezzo(br.BRUSH, 'prova:1', disegno); const copia = leggi();
+  check('un pezzo fermo copiato ha gli stessi pixel del disegno', copia === vivo && copie >= 2, 'copie ' + copie);
+  copie = 0;
+  br.pezzo(br.BRUSH, 'prova:null', (g) => { g.rect(0, 0, 4, 4, '#ff0000'); g.rect(4, 0, 1, 1, null); });
+  br.pezzo(br.BRUSH, 'prova:null', (g) => { g.rect(0, 0, 4, 4, '#ff0000'); g.rect(4, 0, 1, 1, null); });
+  check('con un colore nullo il pezzo resta dal vivo (la copia non sarebbe uguale)', copie === 0);
+  copie = 0;
+  br.pezzo(br.BRUSH, 'prova:mezzo', (g) => g.rect(0.5, 0, 4, 4, '#ff0000')); br.pezzo(br.BRUSH, 'prova:mezzo', (g) => g.rect(0.5, 0, 4, 4, '#ff0000'));
+  check('e con coordinate non intere pure', copie === 0);
+  c0.drawImage = di; cv0.width = W1; cv0.height = H1;
+}
+
 failures += summary('digsy-world');
 process.exit(failures ? 1 : 0);

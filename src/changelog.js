@@ -1,6 +1,15 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.38', it: [
+      'CASA, BOTTEGHE E MUSEO PIÙ LEGGERI: pavimenti, tappeti e pareti si disegnano una volta sola invece che a ogni fotogramma — la casa costa un quinto di prima, il museo un terzo in meno, le botteghe un terzo in meno. Stessa grafica, pixel per pixel',
+      'In città i tetti e le sagome dell\'arredo si ricopiano invece di ridisegnarsi, anche mentre le botteghe si animano',
+    ], en: [
+      'HOME, SHOPS AND MUSEUM ARE LIGHTER: floors, rugs and walls are drawn once instead of every frame — home costs a fifth of before, the museum a third less, shops a third less. Same graphics, pixel for pixel',
+      'In towns roofs and street-furniture shapes are copied instead of redrawn, even while the shops animate',
+    ],
+  },
+  {
     v: 'v0.99.37', it: [
       'LO SFONDO TORNA FLUIDO sugli schermi a 120 Hz: il gioco si era fermato a 60 fotogrammi al secondo per risparmiare, e tutto quello che scorre attorno al personaggio andava a scatti. Adesso disegnare costa così poco che il tetto non serve più',
     ], en: [

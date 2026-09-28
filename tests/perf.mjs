@@ -53,6 +53,8 @@ const SCENE = [
   ['citta', 'G.leaveRoom().then(()=>G.cmd("goto=city"))'],
   ['notte', 'G.leaveRoom().then(()=>G.cmd("goto=city")).then(()=>G.cmd("time=22"))'],
   ['casa', 'G.enterRoom("house")'],
+  ['stanza', 'G.enterRoom("house").then(()=>{ G.state().house.rooms[3].unlocked=true; return G.enterHouseRoom(3); })'],
+  ['bottega', 'G.leaveRoom().then(()=>G.enterRoom("inn"))'],
   ['museo', 'G.cmd("godmode").then(()=>G.debug(false)).then(()=>G.enterRoom("museum"))'],
   ['grotta', 'G.leaveRoom().then(()=>G.cmd("goto=grotta"))'],
   ['cortile', 'G.leaveRoom().then(()=>G.cmd("chimera")).then(()=>G.cmd("chimera")).then(()=>G.cmd("chimera")).then(()=>G.cmd("gotopark"))'],

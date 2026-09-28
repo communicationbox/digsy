@@ -8,13 +8,13 @@ import { drawReturnPortal, peersQui, drawPeerLocal } from './render.js'; // cicl
 import { S, P } from './state.js';
 import { isWall, areaAt, roomBox, roomDoor, ROT, ATRIO, CAVE_Y1 } from './museumPlan.js';
 import { ctx, view, hudPad } from './screen.js';
-import { snap, px, rect, shadow, shade8, BRUSH } from './brush.js';
+import { snap, px, rect, shadow, shade8, BRUSH, strato } from './brush.js';
 import { INT, NPCS, FURN, benchList, pedList, roomOrigin, ROOM_W, ROOM_H, GAL_DESK, MENTOR, CUT, museumPetSpot, CENTRO, ATRIO_PLANTS, scenaInterni } from './interior.js';
 import { CORR_W, CORR_H, ROOM_TILE_W, ROOM_TILE_H, houseGates, roomUnlocked, ATRIO_PORTAL, furnLayer, roomPaper, roomGround, isHolding, holdItem, holdPlacement, rotateHandleRect } from './house.js';
 import { drawHero, applyLook } from './sprites.js';
 import { drawMarbleTile, drawParquetTile, drawRoomFloor, drawColumn, drawBench, drawCaseBack, drawCaseFront, drawRope, drawCentrepiece, drawDeskArt, drawGalleryTopWall, WINGS, drawWingFloor, drawWallTile, drawArch, drawSkylight } from './museumArt.js';
 import { EMAP, iconPaths } from './icons.js';
-import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps, drawMuseumPet} from './shopArt.js';
+import { SHOP_TOP, SHOP_WINDOWS, drawShopFloor, drawShopWall, drawShopWallFissa, drawShopWindows, drawShopShell, drawShopFront, drawCounter, drawStoreProps, drawStoreFloorProps, drawInnProps, drawInnFloorProps, drawBarberProps, drawBarberFloorProps, drawTailorProps, drawTailorFloorProps, drawLabProps, drawLabFloorProps, drawFurnitureProps, drawFurnitureFloorProps, drawMuseumPet} from './shopArt.js';
 import { ATRIO_TOP, ATRIO_BOTTOM, ROOM_TOP, ROOM_BOTTOM, sceneShift, roomStyle, wallCap, drawCrown, drawWainscot, drawBaseboard, floorShadow, drawWindow, drawWindowLight, drawDoormat, drawRunner, drawBackDoor, drawSideDoor, drawFrontDoorway, drawSconce, drawFramedPicture, drawCoatHooks, drawWallPlant } from './houseArt.js';
 import { composedPartsVox, shadeHex, buildVoxels, baseSpec } from './bones.js';
 import { zoneName } from './i18n.js';
@@ -142,7 +142,11 @@ export function drawMuseumGallery(time) {
   const t0y = Math.max(-1, Math.floor(camy / TS) - 1), t1y = Math.min(INT.h + 2, Math.ceil((camy + H) / TS) + 2);
   /* --------- PAVIMENTI: marmo negli spazi comuni, materiale proprio in ogni ala --------- */
   const wingOf = a => a.startsWith('sala') ? +a.slice(4) : a === 'grotte' ? 6 : -1;
-  for (let ty = t0y; ty < t1y; ty++) for (let tx = t0x; tx < t1x; tx++) {
+  /* PAVIMENTO, PASSATOIA, MEDAGLIONE E LUCERNARI sono fermi: si disegnano UNA volta in uno strato
+     grande quanto la galleria (brush.strato) e poi se ne copia il pezzo in vista. Erano quasi
+     cinquemila pennellate a ogni fotogramma per un pavimento che non cambia mai. */
+  strato('museo:' + INT.w + 'x' + INT.h, -TS, -TS, (INT.w + 3) * TS, (INT.h + 3) * TS, () => {
+  for (let ty = -1; ty < INT.h + 2; ty++) for (let tx = -1; tx < INT.w + 1; tx++) {
     const a = areaAt(tx, ty);
     if (a === 'muro') continue;
     const wi = wingOf(a);
@@ -177,6 +181,7 @@ export function drawMuseumGallery(time) {
     const b = roomBox(zi);
     drawSkylight(BRUSH, (b.rx + b.rw / 2) * TS, (b.ry + b.rh / 2) * TS, (b.rw - 4) * TS, (b.rh - 4) * TS);
   });
+  }, { x: camx, y: camy, w: W, h: H });
   /* --------- I MURI: gli stessi di museumPlan, quindi quello che si vede è quello che ferma.
      Entrano nella lista per profondità: l'alzata sfora in alto e il giocatore ci passa davanti. */
   const ents = [];
@@ -428,9 +433,11 @@ export function drawHouseCorridor(time) {
   const { ox, oy } = houseOrigin(view.W, view.H);
   ctx.save(); ctx.translate(ox, oy);
   const g = BRUSH, FY0 = -26, FY1 = 14;
-  for (let ty = 0; ty < CORR_H; ty++) for (let tx = 0; tx < CORR_W; tx++) drawGroundTile(g, null, tx * TS, ty * TS, tx, ty, ATRIO_FLOOR);
-  drawRunner(g, rw / 2 - 16, 150, 32, 74);
-  drawDoormat(g, rw / 2 - 18, rh - 26, 36, 14, '#8a6a3a');
+  strato('atrio', 0, 0, rw, rh, () => {                  // pavimento, passatoia e zerbino: fermi
+    for (let ty = 0; ty < CORR_H; ty++) for (let tx = 0; tx < CORR_W; tx++) drawGroundTile(g, null, tx * TS, ty * TS, tx, ty, ATRIO_FLOOR);
+    drawRunner(g, rw / 2 - 16, 150, 32, 74);
+    drawDoormat(g, rw / 2 - 18, rh - 26, 36, 14, '#8a6a3a');
+  });
   /* parete di fondo */
   rect(0, FY0, rw, FY1 - FY0, '#dcc6a0');
   rect(0, FY0 + 4, rw, 10, '#e6d3b0');
@@ -515,9 +522,12 @@ export function drawHouseRoomScene(time, id) {
      Il fondo è arredo anche lui: due stanze con gli stessi mobili e parati diversi sembrano
      due case, ed è la prima cosa che si vuole cambiare quando si arreda. */
   const def = roomDefault(id), gid = roomGround(id), pid = roomPaper(id);
-  for (let ty = 0; ty < ROOM_TILE_H; ty++) for (let tx = 0; tx < ROOM_TILE_W; tx++)
-    drawGroundTile(BRUSH, gid, tx * TS, ty * TS, tx, ty, def.ground);
-  drawPaperBand(BRUSH, pid, 0, 0, rw, WALL_H, def.paper);
+  /* pavimento e carta da parati: fermi finché non si cambia il fondo — uno strato solo */
+  strato('stanza:' + id + ':' + gid + ':' + pid + ':' + def.ground + ':' + def.paper, 0, 0, rw, rh, () => {
+    for (let ty = 0; ty < ROOM_TILE_H; ty++) for (let tx = 0; tx < ROOM_TILE_W; tx++)
+      drawGroundTile(BRUSH, gid, tx * TS, ty * TS, tx, ty, def.ground);
+    drawPaperBand(BRUSH, pid, 0, 0, rw, WALL_H, def.paper);
+  });
   /* ARCHITETTURA (houseArt.js): cornice in cima, zoccolo col carattere della stanza (pannelli
      in sala, cotto in cucina, piastrelle in bagno, perline in camera), battiscopa, la finestra
      con le tende del colore della stanza e la luce che cade sul pavimento, lo spessore dei muri
@@ -651,8 +661,12 @@ export function drawInteriorScene(time) {
      bancone vero e gli arredi ridisegnati. Gli ingombri (FURN in interior.js) non cambiano. */
   const g = BRUSH, nk = night(), wins = SHOP_WINDOWS[type] || [];
   const wood = INT_WOOD[INT.town ? zoneIdxAt(INT.town.C.x, INT.town.C.y) : 0] || INT_WOOD[0];
-  drawShopFloor(g, type, rw, rh, wood, drawGroundTile);
-  drawShopWall(g, type, rw, rh, nk, time, wins);
+  /* pavimento, passatoia e parete di fondo sono fermi: uno strato per bottega (brush.strato) */
+  strato('bottega:' + type + ':' + rw + 'x' + rh + ':' + wood.join(','), 0, 0, rw, rh, () => {
+    drawShopFloor(g, type, rw, rh, wood, drawGroundTile);
+    drawShopWallFissa(g, type, rw);
+  });
+  drawShopWindows(g, type, nk, time, wins);
   drawShopShell(g, type, rw, rh, nk, wins);
   const wallProps = { store: drawStoreProps, inn: drawInnProps, barber: drawBarberProps, tailor: drawTailorProps, lab: drawLabProps, furniture: drawFurnitureProps }[type];
   const floorProps = { store: drawStoreFloorProps, inn: drawInnFloorProps, barber: drawBarberFloorProps, tailor: drawTailorFloorProps, lab: drawLabFloorProps, furniture: drawFurnitureFloorProps }[type];

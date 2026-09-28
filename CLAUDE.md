@@ -921,6 +921,14 @@ CPU al 101%). Dopo: 1,7 e 2,9 ms, CPU 14-25%, 60 fps, zero strappi. Cosa c'è or
 - **Il personaggio** (`drawHero` → `drawHeroRaw` una volta per aspetto/vista/passo/posa; chiave
   sulle FORME e sulla TAVOLOZZA in uso, non sui colori scritti in S.look).
 - **`volume` in decoArt.js** ricorda i tratti (pixel vicini dello stesso colore uniti).
+- **Strati fermi** (`strato` in brush.js): pavimento+passatoia+medaglione+lucernari del museo (copiato
+  solo il pezzo in vista), pavimento e carta della stanza di casa, atrio, pavimento+parete di fondo
+  delle botteghe (le finestre, che cambiano col giorno, restano fuori: `drawShopWindows`).
+- **Pezzi fermi dentro disegni animati** (`pezzo` in brush.js, chiesto dai moduli puri come
+  `g.pezzo`): tetti (`roof`) e sagome di `volume`. Si registrano i rettangoli e si stampa una
+  tela; NON si copia se un colore è `null` (sulla tela vera riusa l'ULTIMO colore impostato — le
+  panchine uscivano col contorno nero, lo ha visto solo il confronto dei pixel nel browser: lo
+  stub Node ignora i colori nulli) o se le coordinate non sono intere.
 - **La scheda per casella** (`tileRec` in render.js, chiavi numeriche) raccoglie le risposte FISSE
   del mondo; scavato/abbattuto/spaccato/raccolto si guardano in copie numeriche dei loro insiemi
   (`specchio`). `decoAt`/`pickupAt` sono spezzate in parte fissa (`decoStaticAt`/`pickupBaseAt`)

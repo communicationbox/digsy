@@ -241,11 +241,20 @@ function passatoia(g, cx, y0, y1, w, col) {
 }
 /* parete di fondo con le sue finestre (in `wins`, coordinate x) */
 export function drawShopWall(g, type, rw, rh, nightK, time, wins) {
+  drawShopWallFissa(g, type, rw);
+  drawShopWindows(g, type, nightK, time, wins);
+}
+/* la parete senza le finestre: ferma (chi disegna in cache la mette nello strato del pavimento) */
+export function drawShopWallFissa(g, type, rw) {
   const st = shopStyle(type), W = SHOP_WALL;
   wallFill(g, st.wall, 0, 0, rw, W);
   drawCrown(g, 0, 0, rw);
   wainscot(g, st.wains, 0, W - 22, rw, 16);
   drawBaseboard(g, 0, W - 6, rw);
+}
+/* le finestre: cambiano col giorno e con la notte, restano dal vivo */
+export function drawShopWindows(g, type, nightK, time, wins) {
+  const st = shopStyle(type);
   for (const wx of wins || []) drawWindow(g, wx, 10, st, nightK, time);
 }
 export function drawShopShell(g, type, rw, rh, nightK, wins) {

@@ -3,7 +3,7 @@ import { TS, spColor, spById } from './data.js';
 import { FOOT_DY } from './body.js';
 import { partParams, composedPartsVox, buildFleshVoxels, clampSpec, BP } from './bones.js';
 import { ctx, view } from './screen.js';
-import { snap, px, rect, shadow, shade8, BRUSH, dipingiIn } from './brush.js';
+import { snap, px, rect, shadow, shade8, BRUSH, dipingiIn, setStrati } from './brush.js';
 export { BRUSH };
 import { S, P, cam, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, decoStaticAt, pickupBaseAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect } from './world.js';
@@ -85,7 +85,7 @@ function drawSign(type, cx, y) {
    disegnati dal vivo sopra (`vivi`). Stessa prova della cache del terreno: pixel uguali.
    `box` = quanto il disegno sborda dalla sua casella (tetti, fumo, ombre). */
 const ART_META = new Map(), ART_SPR = new Map();
-const ART_MAX_COMBO = 4;
+const ART_MAX_COMBO = 16, ART_MAX_COPIE = 160;
 const NOOP_TELA = { fillStyle: '', fillRect() {} };
 function artCached(id, sx, sy, ph, box, draw) {
   if (!tileCacheOn || typeof document === 'undefined' || !document.createElement) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
@@ -93,7 +93,10 @@ function artCached(id, sx, sy, ph, box, draw) {
   if (!meta) {                                            // la prima volta: da cosa dipende?
     const an0 = { t: frameTime, ph, passi: [], vivi: [] };
     dipingiIn(NOOP_TELA, () => draw(an0));
-    meta = { passi: an0.passi, vivi: an0.vivi };
+    /* lo stesso scatto dichiarato più volte (la locanda ha tre fiori sullo stesso ritmo) conta una volta */
+    const passi = [], visti = new Set();
+    for (let i = 0; i < an0.passi.length; i += 2) { const k2 = an0.passi[i] + ':' + an0.passi[i + 1]; if (!visti.has(k2)) { visti.add(k2); passi.push(an0.passi[i], an0.passi[i + 1]); } }
+    meta = { passi, vivi: an0.vivi };
     ART_META.set(id, meta);
   }
   /* SOLO SE LE COPIE SONO POCHE. Ogni scatto di animazione moltiplica le copie (una tenda da 12
@@ -111,7 +114,9 @@ function artCached(id, sx, sy, ph, box, draw) {
     if (!g) { ctx.save(); ctx.translate(sx, sy); draw({ t: frameTime, ph }); ctx.restore(); return; }
     g.translate(box.ox, box.oy);
     dipingiIn(g, () => draw({ t: frameTime, ph, vivi: [] }));
-    if (ART_SPR.size > 48) ART_SPR.clear();           // poche copie vive: la memoria della scheda grafica è poca
+    /* al più ART_MAX_COPIE copie (~15 MB): si butta la più vecchia, non tutte — svuotare tutto
+       voleva dire ricrearle tutte insieme al fotogramma dopo */
+    if (ART_SPR.size >= ART_MAX_COPIE) ART_SPR.delete(ART_SPR.keys().next().value);
     ART_SPR.set(k, cv);
   }
   ctx.drawImage(cv, sx - box.ox, sy - box.oy);
@@ -1773,7 +1778,7 @@ let tcAtlas = null, tcCtx = null, tcNext = 0, tcVer = '', tcPal = null, tcPalSig
 const tcMap = new Map();
 let tileCacheOn = true;
 /* per le prove: spegnerla e riaccenderla, per confrontare i pixel */
-export function setTileCache(on) { tileCacheOn = !!on; tcMap.clear(); tcNext = 0; tcSlotVer.length = 0; tcCoda.length = 0; ART_META.clear(); ART_SPR.clear(); }
+export function setTileCache(on) { setStrati(on); tileCacheOn = !!on; tcMap.clear(); tcNext = 0; tcSlotVer.length = 0; tcCoda.length = 0; ART_META.clear(); ART_SPR.clear(); }
 export function tileCacheSize() { return tcMap.size; }
 function tileCacheFrame() {
   /* la tavolozza delle stagioni: a fine stagione sfuma, e ogni fotogramma arriva un oggetto NUOVO

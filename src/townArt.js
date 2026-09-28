@@ -79,6 +79,12 @@ export function foundation(g, x, y, w) {
 }
 /* ---------- tetto visto di fronte, con la gronda che sporge ---------- */
 export function roof(g0, x, y, w, h, BB) {
+  /* il tetto è fermo anche quando la bottega sotto si anima: il pennello del gioco lo tiene
+     pronto come immagine (brush.pezzo), le miniature lo disegnano come sempre */
+  if (g0.pezzo) { g0.pezzo('roof:' + x + ',' + y + ',' + w + ',' + h + ':' + JSON.stringify(BB), (g1) => roofVero(g1, x, y, w, h, BB)); return; }
+  roofVero(g0, x, y, w, h, BB);
+}
+function roofVero(g0, x, y, w, h, BB) {
   /* TETTO A FALDA, non una lastra: la copertura si stringe salendo (5 px per lato) e le due
      linee oblique si vedono. Con la lastra dritta ogni casa era una scatola col coperchio
      (segnalato: "case, panchine, cartelli e tutto il resto restano molto squadrate").

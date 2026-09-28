@@ -71,7 +71,9 @@ export function volume(g, shapes, fill, light, dark, line) {
     if (VOLUMI.size > 2000) VOLUMI.clear();
     VOLUMI.set(k, tratti);
   }
-  for (let i = 0; i < tratti.length; i += 4) g.rect(tratti[i], tratti[i + 1], tratti[i + 2], 1, tratti[i + 3]);
+  /* col pennello del gioco la sagoma finita è un'immagine pronta (brush.pezzo): un'operazione sola */
+  if (g.pezzo) g.pezzo('vol:' + k, (g1) => { for (let i = 0; i < tratti.length; i += 4) g1.rect(tratti[i], tratti[i + 1], tratti[i + 2], 1, tratti[i + 3]); });
+  else for (let i = 0; i < tratti.length; i += 4) g.rect(tratti[i], tratti[i + 1], tratti[i + 2], 1, tratti[i + 3]);
   return dentro;
 }
 const VOLUMI = new Map();
