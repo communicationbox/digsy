@@ -166,7 +166,7 @@ export function partiVolo(nome, quando) {
   VOLO.on = true;
   n.innerHTML = `<div class="vl-box">
       <canvas class="vl-cv" id="volocv" width="${W}" height="${H}"></canvas>
-      <div class="vl-t">${chi ? tr('In volo verso il mondo di ', 'Flying to ') + esc(chi) + tr('', "'s world") : tr('In volo', 'In flight')}</div>
+      <div class="vl-t">${chi ? tr('In volo verso il mondo di {n}', "Flying to {n}'s world").replace('{n}', esc(chi)) : tr('In volo', 'In flight')}</div>
       <div class="vl-n">${tr('Tocca per saltare', 'Tap to skip')}</div>
     </div>`;
   n.classList.add('on');

@@ -733,7 +733,9 @@ export function drawXmark(sx, sy, time) {
    Contorno scuro ovunque, perché stacchi dal parquet (REGOLE FERREE #4). */
 const PORTAL_SPIRAL = ['#1c1030', '#3a2470', '#6a4fa0', '#9a7ee0', '#c7b6f2'];
 export function drawReturnPortal(cx, cy, time) {
-  ctx.save(); ctx.translate(Math.round(cx), Math.round(cy)); 
+  /* snap, non Math.round: chi chiama passa già la griglia dei pixel FISICI; arrotondare ai pixel
+     di gioco lo faceva scattare contro il pavimento camminando (regola 2) */
+  ctx.save(); ctx.translate(snap(cx), snap(cy));
   const base = 12;                                   // riga del pavimento sotto il portale
   const t = (time || 0) / 1000;
   /* alone a terra che respira */

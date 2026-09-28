@@ -405,7 +405,7 @@ function boot() {
      il benvenuto arriva all'ATTERRAGGIO — dirlo mentre si vola sarebbe parlare sopra la
      scena, e nessuno legge un toast dietro a un oblò. */
   setSuVisita((nome) => {
-    alloAtterraggio(() => { if (nome) toast('🚶 ' + tr('Sei nel mondo di ', "You're in ") + nome + tr('', "'s world")); });
+    alloAtterraggio(() => { if (nome) toast('🚶 ' + tr('Sei nel mondo di {n}', "You're in {n}'s world").replace('{n}', nome)); });
     partiVolo(nome);
   });
   /* LA RICEVUTA: a quanti è arrivato l'invito. Zero non è un silenzio, è una risposta — e

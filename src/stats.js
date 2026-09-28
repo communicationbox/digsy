@@ -50,7 +50,7 @@ export function gameStats(st) {
       value: arr('awakened').length + '/' + ALL_SPECIES.length },
     { id: 'codex', icon: '📖', label: tr('Specie scoperte', 'Species discovered'),
       value: arr('codex').length + '/' + ALL_SPECIES.length },
-    { id: 'cases', icon: '🏛️', label: tr('Teche complete', 'Complete cases'),
+    { id: 'cases', icon: '🏛️', label: tr('Teche completate', 'Completed cases'),
       value: completeCases(s) + '/' + ALL_SPECIES.length },
     /* LE SALE sono la strada lunga: sette piene = l'ultima lettera del nonno, cioè il finale.
        Era l'unico traguardo del gioco che nessuna schermata nominasse. */
@@ -63,7 +63,7 @@ export function gameStats(st) {
     { id: 'caves', icon: '🕳️', label: tr('Grotte esplorate', 'Caves explored'),
       value: String(Object.keys((s.caves && typeof s.caves === 'object') ? s.caves : {}).length) },
     { id: 'dug', icon: '⛏️', label: tr('Caselle scavate', 'Tiles dug'), value: String(arr('dug').length) },
-    { id: 'quests', icon: '📋', label: tr('Missioni consegnate', 'Missions delivered'),
+    { id: 'quests', icon: '📋', label: tr('Missioni completate', 'Missions completed'),
       value: String(s.questTotal || 0) },
   ];
 }

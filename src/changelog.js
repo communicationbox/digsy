@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.45', it: [
+      'Impostazioni in ordine: ogni interruttore sta sulla riga della sua voce, tutti incolonnati a destra, e i pulsanti non vanno più a capo a seconda di quanto è lunga la scritta',
+    ], en: [
+      'Tidier settings: every switch sits on the same line as its label, all lined up on the right, and buttons no longer wrap depending on how long the text is',
+    ],
+  },
+  {
     v: 'v0.99.44', it: [
       'LE CREATURE RIDISEGNATE: vista dall\'alto come il resto del gioco, luce vera che ne fa vedere il volume, ombra nelle pieghe e contorno del loro colore — erano sagome piatte a blocchi',
       'OGNI SPECIE HA IL SUO ASPETTO: un colore scelto a mano, un mantello (dorso scuro, strisce, macchie, pancia chiara, zampe e coda scure, anelli), e forme sue — i palchi del cervo, le corna ricurve del toro, le spirali della pecora, le orecchie a punta del lupo e tonde dell\'orso, la proboscide del mammut, la lontra di palude. Tanti animali prima si somigliavano',

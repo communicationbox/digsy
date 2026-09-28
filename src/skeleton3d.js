@@ -2,6 +2,7 @@
    Caricato in lazy-import solo quando serve (libro / anteprima chimera). */
 import * as THREE from 'three';
 import { buildVoxels, buildFleshVoxels } from './bones.js';
+import { frameVox } from './voxview.js';
 
 const COLS = { bone: 0xe8e2d0, shade: 0xcbbfa4, dark: 0x8f836b, eye: 0x3a3128, dim: 0x4a4458, dim2: 0x3a3448 };
 const SIL = 0x5a4a3a;
@@ -20,12 +21,7 @@ export function mountSkeleton(canvas, spec, opts = {}) {
      Chi passa un modello suo (`given`: meraviglie) lo porta alla sua risoluzione. */
   const RES = given ? 1 : 2;
   const voxels = given || (flesh ? buildFleshVoxels(spec, { res: 4 }) : buildVoxels(spec, { res: 4 }));
-  /* bounding box per centrare e inquadrare */
-  let mn = [9e9, 9e9, 9e9], mx = [-9e9, -9e9, -9e9];
-  for (const v of voxels) { [v.x, v.y, v.z].forEach((c, i) => { mn[i] = Math.min(mn[i], c); mx[i] = Math.max(mx[i], c); }); }
-  const cx = (mn[0] + mx[0]) / 2, cy = (mn[1] + mx[1]) / 2, cz = (mn[2] + mx[2]) / 2;
-  /* inquadratura con minimo fisso: le creature piccole APPAIONO piccole (la taglia si legge) */
-  const span = Math.max(26 * RES, Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) + 4 * RES);
+  const { cx, cy, cz, span, pos, near, far } = frameVox(voxels, RES);
 
   const group = new THREE.Group();
   const geo = new THREE.BoxGeometry(1, 1, 1);
@@ -50,8 +46,8 @@ export function mountSkeleton(canvas, spec, opts = {}) {
   const sun = new THREE.DirectionalLight(0xfff2d0, 1.1); sun.position.set(4, 8, 6); scene.add(sun);
 
   const aspect = canvas.width / canvas.height;
-  const camera = new THREE.OrthographicCamera(-span * aspect / 2, span * aspect / 2, span / 2, -span / 2, 0.1, 100);
-  camera.position.set(span, span * 0.7, span); camera.lookAt(0, 0, 0);
+  const camera = new THREE.OrthographicCamera(-span * aspect / 2, span * aspect / 2, span / 2, -span / 2, near, far);
+  camera.position.set(...pos); camera.lookAt(0, 0, 0);
 
   /* drag per ruotare (mouse/touch); lo spin riprende dopo 2s di inattività */
   let dragging = false, lx = 0, ly = 0, lastDrag = 0;

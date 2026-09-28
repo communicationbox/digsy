@@ -500,7 +500,8 @@ export function pickUpFurniture(room, gx, gy, cat) {
   if (i < 0) return false;
   const [f] = r.furn.splice(i, 1);
   /* l'anteprima nasce ESATTAMENTE dov'era il mobile: alzandolo non deve saltare altrove */
-  hold = { itemId: f.itemId, rot: f.rot || 0, gx: f.gx, gy: f.gy };
+  /* la teca porta con sé il fossile esposto: riposata non deve tornare vuota */
+  hold = { itemId: f.itemId, rot: f.rot || 0, gx: f.gx, gy: f.gy, spId: f.spId || null };
   casaCambiata();
   return true;
 }
@@ -509,6 +510,7 @@ export function placeHold(room, gx, gy) {
   /* senza coordinate si posa DOVE SI VEDE l'anteprima: è quello che il giocatore sta guardando */
   if (gx === undefined || gx === null) { const t = holdTarget(); if (!t) return false; gx = t.gx; gy = t.gy; }
   const ok = tryPlaceFurniture(room, gx, gy, hold.itemId, hold.rot);
+  if (ok && hold.spId) assignPedestal(room, gx, gy, hold.spId);
   if (ok) hold = null;
   return ok;
 }

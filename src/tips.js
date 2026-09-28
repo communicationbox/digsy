@@ -11,7 +11,7 @@ import { tr, keys } from './i18n.js';
    muro di testo da scorrere: nessuno lo legge, e chi lo legge non si ricorda niente. Qui c'è
    il gesto e basta — il resto lo insegna il gioco. */
 export const TIPS = {
-  dig: () => [tr('Scavare', 'Digging'), tr('{act} per scavare: costa 1 ⚡, un punto una volta sola.', '{act} to dig: costs 1 ⚡, one spot only once.')],
+  dig: () => [tr('Scavare', 'Digging'), tr('{act} per scavare: costa 1 ⚡; ogni punto si scava una volta sola.', '{act} to dig: costs 1 ⚡; each spot can be dug only once.')],
   raw: () => [tr('Reperti grezzi', 'Raw finds'), tr('I grezzi si identificano al <b>Museo</b>.', 'Raw finds get identified at the <b>Museum</b>.')],
   energy: () => [tr('Energia', 'Energy'), tr('Finita l\'energia: dormi, o mangia un ristoro (+15 ⚡).', 'Out of energy: sleep, or eat a snack (+15 ⚡).')],
   bagfull: () => [tr('Zaino pieno', 'Bag full'), tr('Zaino pieno: i reperti restano <b>a terra</b>. Zaini più grandi al Negozio.', 'Bag full: finds stay <b>on the ground</b>. Bigger bags at the Shop.')],
@@ -22,7 +22,7 @@ export const TIPS = {
   wonder: () => [tr('Meraviglie', 'Wonders'), tr('Ogni meraviglia fa un dono, poi riposa qualche giorno.', 'Each wonder gives a gift, then rests a few days.')],
   water: () => [tr('Acqua', 'Water'), tr('Con la <b>barca</b> si va sull\'acqua: {act} per pescare.', 'The <b>boat</b> takes you on the water: {act} to fish.')],
   cave: () => [tr('Grotte', 'Caves'), tr('Le grotte si aprono col <b>piccone</b>: 6 specie solo lì.', 'Caves open with the <b>pickaxe</b>: 6 species only there.')],
-  night: () => [tr('Notte e stagioni', 'Night and seasons'), tr('Un giorno dura 20 minuti; la stagione cambia ogni 3.', 'A day lasts 20 minutes; the season changes every 3.')],
+  night: () => [tr('Notte e stagioni', 'Night and seasons'), tr('Un giorno dura 20 minuti; la stagione cambia ogni 3 giorni.', 'A day lasts 20 minutes; the season changes every 3 days.')],
 };
 export const TIP_IDS = Object.keys(TIPS);
 export function tipSeen(id) { return !!(S.tips || {})[id]; }

@@ -4,6 +4,30 @@
    ripiego quando WebGL non c'è. Stava dentro ui.js, ma non ha nulla a che fare con l'interfaccia. */
 import { spriteDaVoxel } from './voxsprite.js';
 
+/* INQUADRATURA del Libro 3D (skeleton3d.js): centro, lato inquadrato e profondità della camera
+   ortografica. near/far vengono dal raggio vero del modello (spigoli dei voxel compresi): la
+   rotazione lo tiene dentro la sfera, quindi nessun pezzo esce dai piani di taglio. Con far fisso
+   a 100 la metà dietro della creatura spariva a fette mentre girava.
+   res = voxel per pixel di gioco (2 nel Libro, 1 per i modelli dati già alla loro misura). */
+export function frameVox(voxels, res) {
+  let mn = [9e9, 9e9, 9e9], mx = [-9e9, -9e9, -9e9];
+  for (const v of voxels) { [v.x, v.y, v.z].forEach((c, i) => { mn[i] = Math.min(mn[i], c); mx[i] = Math.max(mx[i], c); }); }
+  if (!voxels.length) mn = mx = [0, 0, 0];
+  const cx = (mn[0] + mx[0]) / 2, cy = (mn[1] + mx[1]) / 2, cz = (mn[2] + mx[2]) / 2;
+  /* inquadratura con minimo fisso: le creature piccole APPAIONO piccole (la taglia si legge) */
+  const span = Math.max(26 * res, Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) + 4 * res);
+  let radius = 0;
+  for (const v of voxels) radius = Math.max(radius, Math.hypot(Math.abs(v.x - cx) + 0.5, Math.abs(v.y - cy) + 0.5, Math.abs(v.z - cz) + 0.5));
+  const dir = [1, 0.7, 1], len = Math.hypot(...dir);
+  const dist = span * len;
+  return {
+    cx, cy, cz, span, radius, dist,
+    pos: dir.map(d => (d / len) * dist),
+    near: Math.max(0.1, Math.floor(dist - radius - 2)),
+    far: Math.ceil(dist + radius + 2),
+  };
+}
+
 /* proiezione laterale di una lista di voxel qualsiasi (usata anche per i PEZZI nello zaino).
    lit = pezzi consegnati al museo: gli altri restano oscurati */
 export function projectVox(cv, vox, silhouette, lit, bg, maxS) {

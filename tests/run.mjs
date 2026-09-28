@@ -1522,7 +1522,7 @@ sprites.applyLook();
        le teche e le sale — è il fine, quelle sono la strada */
     check('il Museo mostra lo scopo sopra teche e sale',
       corpo10.indexOf('goalTitle()') >= 0
-      && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Complete cases')
+      && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Completed cases')
       && corpo10.indexOf('goalTitle()') < corpo10.indexOf('Museum rooms'));
   }
   /* IL PARCO È IL FINE: le risvegliate devono davvero camminarci, o il traguardo è una bugia */
@@ -2446,7 +2446,7 @@ sprites.applyLook();
     }
     /* e i NUMERI dall'altra */
     const iProg = corpo18.indexOf("} else {");
-    for (const [che, cosa] of [['lo scopo', 'goalTitle()'], ['le sale', 'roomsDone()'], ['le teche', 'Complete cases']]) {
+    for (const [che, cosa] of [['lo scopo', 'goalTitle()'], ['le sale', 'roomsDone()'], ['le teche', 'Completed cases']]) {
       check(`${che} sta nella scheda dei progressi`, corpo18.indexOf(cosa) > iProg);
     }
     /* niente spiegazione murata sotto i numeri: le sale si leggono dal contatore ("gli utenti non leggono") */
@@ -4739,11 +4739,11 @@ sprites.applyLook();
   const sp = dW.SPECIES[7];
   S.dna = { [sp.id]: 2 }; S.awakened = [];
   const ok = gpW.awakenSpecies(sp.id);
-  check('risveglio: la specie va da sola nel giardino di casa', ok && S.house && (S.house.yard || []).includes('sp' + sp.id));
+  check('risveglio: la specie va da sola nel cortile di casa', ok && S.house && (S.house.yard || []).includes('sp' + sp.id));
   let crash = null;
   try { uiW.playAwakening(sp.id); } catch (e) { crash = e.message; }
   const ov = document.getElementById('awakenov');
-  check('risveglio: la scena si apre e dice dove ritrovarla', crash === null && uiW.isAwakeningOpen() && /giardino|garden/i.test((ov && ov.innerHTML) || ''), crash || '');
+  check('risveglio: la scena si apre e dice dove ritrovarla', crash === null && uiW.isAwakeningOpen() && /cortile|yard/i.test((ov && ov.innerHTML) || ''), crash || '');
   if (ov && ov.remove) ov.remove();
   /* LA SCHIUSA HA LA SUA SCENA: l'uovo che si apre è il momento dell'allevamento, e prima era
      una riga di testo. La scena si disegna davvero (il canvas riceve dei pixel) e dice dove
@@ -5338,6 +5338,35 @@ sprites.applyLook();
     check('e mostra quanti pezzi sono esposti', /2\/5|2 \/ 5/.test(document.getElementById('m-body').innerHTML));
     ui.closeModal(true);
 
+    /* IL PIEDISTALLO È UNA TECA: plinto, fossile dentro, vetro e telaio d'ottone davanti — la
+       stessa del Museo. Prima il fossile esposto stava a terra da solo al posto del piedistallo. */
+    {
+      const inter2 = await import('../src/interiors.js'), scr = await import('../src/screen.js');
+      /* la tela dei test è 64×64: la teca con la casella in (12, 56) ci sta tutta, telaio in alto a y 4 */
+      const c2 = scr.ctx; if (c2.setTransform) c2.setTransform(1, 0, 0, 1, 0, 0);
+      const px2 = (x, y) => [...c2.getImageData(x, y, 1, 1).data].slice(0, 3).join(',');
+      const interno = () => { let h = 0; for (let y = 10; y < 50; y += 2) for (let x = 7; x < 47; x += 2) h = (h * 31 + c2.getImageData(x, y, 1, 1).data.reduce((a, b) => a + b, 0)) >>> 0; return h; };
+      c2.fillStyle = '#000'; c2.fillRect(0, 0, 64, 64);
+      inter2.drawTeca(12, 56, null, [], 0);
+      const vuota = interno();
+      check('teca vuota: telaio d\'ottone sopra la casella', ['216,178,60', '168,132,42'].includes(px2(7, 4)), px2(7, 4));
+      c2.fillStyle = '#000'; c2.fillRect(0, 0, 64, 64);
+      inter2.drawTeca(12, 56, sp.id, S.museum[sp.id], 0);
+      check('teca con la specie: il fossile sta dentro il vetro', interno() !== vuota);
+      /* SPOSTANDOLA è la stessa teca, non la miniatura: in mano sembrava piccola («quando la sposto
+         è troppo piccola»). Posata e in mano passano da drawMobile, e il telaio sta alla stessa quota. */
+      c2.fillStyle = '#000'; c2.fillRect(0, 0, 64, 64);
+      inter2.drawMobile(dataM.PEDESTAL_ID, null, 12, 56, TS, TS, 0, 0);
+      check('la teca in mano è grande quanto quella posata', ['216,178,60', '168,132,42'].includes(px2(7, 4)), px2(7, 4));
+    }
+
+    /* SPOSTARE UNA TECA non la svuota: il fossile viaggia con lei, si vede in mano e resta posandola */
+    {
+      const alzata = house.pickUpFurniture(0, cell.gx, cell.gy);
+      check('la teca assegnata si solleva, col fossile in mano', alzata && house.holdItem().spId === sp.id, JSON.stringify(house.holdItem()));
+      const posata = house.placeHold(0, cell.gx, cell.gy);
+      check('e riposata tiene il suo fossile', posata && house.furnAt(0, cell.gx, cell.gy).spId === sp.id);
+    }
     /* reimposta a vuoto (cambia specie) e riprova l'apertura sul ramo "scegli" */
     check('si può rimettere a vuoto (cambia specie)', house.assignPedestal(0, cell.gx, cell.gy, null) === true);
     check('il piedistallo torna senza specie', house.furnAt(0, cell.gx, cell.gy).spId == null);
@@ -5877,6 +5906,22 @@ sprites.applyLook();
     const withComp = panel(() => ui.openCompanionPicker());
     check('Compagno: con una chimera la si può scegliere', withComp.includes('Provolone') && withComp.includes('data-comp'));
     check('Compagno: si può anche mettere nel cortile', withComp.includes('data-yard'));
+    /* tutte dentro / tutte fuori in un colpo: con venti creature erano venti clic */
+    S.creatures = [
+      { uid: 77, name: 'Provolone', skull: SPECIES[0].id, torso: SPECIES[0].id, leg: SPECIES[0].id, q: 'comune' },
+      { uid: 78, name: 'Caciotta', skull: SPECIES[1].id, torso: SPECIES[1].id, leg: SPECIES[1].id, q: 'comune' },
+    ];
+    const keepYard = S.house && S.house.yard;
+    if (S.house) S.house.yard = ['altra-mia'];
+    const bulk = panel(() => ui.openCompanionPicker());
+    check('Compagno: ci sono «tutte nel cortile» e «togli tutte»', bulk.includes('data-yard-all="in"') && bulk.includes('data-yard-all="out"'));
+    mBody.querySelector('[data-yard-all="in"]').onclick();
+    check('Compagno: «tutte nel cortile» le mette tutte, una volta sola, senza toccare le altre', ['altra-mia', 'chi77', 'chi78'].every(k => S.house.yard.filter(x => x === k).length === 1), S.house.yard.join(','));
+    check('Compagno: con tutte dentro, «tutte nel cortile» non ha più niente da fare', /data-yard-all="in" disabled/.test(mBody.innerHTML));
+    mBody.querySelector('[data-yard-all="out"]').onclick();
+    check('Compagno: «togli tutte» svuota il cortile di queste creature e basta', S.house.yard.join(',') === 'altra-mia', S.house.yard.join(','));
+    check('Compagno: con il cortile vuoto, «togli tutte» è spento', /data-yard-all="out" disabled/.test(mBody.innerHTML));
+    S.house.yard = keepYard || [];
     S.creatures = keepCre;
 
     const exSp = SPECIES[0].id;
@@ -7648,6 +7693,135 @@ sprites.applyLook();
     vv.projectVox(cv, bn.buildFleshVoxels(bn.baseSpec('lepre')));  // versione VIVA
   } catch (e) { e1 = e.message; }
   check('la proiezione voxel regge tutte le varianti', e1 === '', e1);
+
+  /* Libro 3D: la camera ortografica aveva far fisso a 100, ma sta a ~1,58×span dal centro (≥ 82
+     a risoluzione doppia): ruotando, la metà dietro della creatura usciva dal piano di taglio e si
+     vedeva a fette. Ogni voxel, a qualunque rotazione, deve cadere fra near e far. */
+  const { SPECIES } = await import('../src/data.js');
+  const fuori = [];
+  for (const sp of SPECIES) for (const flesh of [false, true]) {
+    const v4 = flesh ? bn.buildFleshVoxels(bn.baseSpec(sp), { res: 4 }) : bn.buildVoxels(bn.baseSpec(sp), { res: 4 });
+    const f = vv.frameVox(v4, 2);
+    if (!(f.near > 0 && f.dist - f.radius >= f.near && f.dist + f.radius <= f.far)) fuori.push(`${sp.id}${flesh ? ' viva' : ''}: raggio ${f.radius.toFixed(1)}, camera ${f.dist.toFixed(1)}, near ${f.near}, far ${f.far}`);
+  }
+  check('Libro 3D: la creatura intera sta fra i piani di taglio a ogni rotazione', fuori.length === 0, fuori.slice(0, 3).join(' · '));
+  const f0 = vv.frameVox([{ x: 0, y: 0, z: 0 }], 2);
+  check('Libro 3D: una creatura minuscola tiene l\'inquadratura minima (la taglia si legge)', f0.span === 52, f0.span);
+
+  /* ZAMPE da vertebrato: erano colonne dritte con un blocco per piede, uguali per tutti — «piloni,
+     niente personalità, fuori contesto col resto del voxel». Ora sono ossa con i giunti (ginocchio
+     avanti e garretto indietro dietro, gomito indietro davanti) e un piede che dice chi è. */
+  const tipi = {};
+  const piloni = [], sospese = [], senzaPiede = [];
+  for (const sp of SPECIES) {
+    const bp = bn.BP[sp.id] || {}; const nz = (bp.legs || [4, 1])[0];
+    const tipo = bn.tipoZampa(bp, Math.round(nz / 2));
+    if (!nz || tipo === 'ragno') continue;
+    tipi[tipo] = (tipi[tipo] || 0) + 1;
+    for (const flesh of [false, true]) {
+      const v4 = (flesh ? bn.buildFleshVoxels : bn.buildVoxels)(bn.baseSpec(sp), { res: 4 }).filter(v => v.p === 'zampa');
+      const nome = sp.id + (flesh ? ' viva' : '');
+      if (Math.min(...v4.map(v => v.y)) !== 0) sospese.push(nome);
+      /* una colonna ha lo stesso baricentro a ogni altezza; una zampa vera piega */
+      const alto = Math.max(...v4.map(v => v.y)), xs = v4.map(v => v.x).sort((a, b) => a - b), mid = xs[xs.length >> 1];
+      const bipede = tipo === 'uccello' || tipo === 'salto';   // una gamba per lato: non c'è un davanti e un dietro
+      for (const meta of bipede ? [v4] : [v4.filter(v => v.x < mid), v4.filter(v => v.x >= mid)]) {
+        /* la zampa tozza non piega avanti/indietro: si apre di lato (z), come quella di una talpa */
+        const cx = [], cz = [];
+        for (let y = 2; y < alto * 0.8; y++) {
+          const r = meta.filter(v => v.y === y && v.z > 0);
+          if (r.length) { cx.push(r.reduce((a, v) => a + v.x, 0) / r.length); cz.push(r.reduce((a, v) => a + v.z, 0) / r.length); }
+        }
+        const piega = Math.max(Math.max(...cx) - Math.min(...cx), Math.max(...cz) - Math.min(...cz));
+        if (cx.length > 2 && piega < 2) { piloni.push(nome); break; }
+      }
+      if (tipo === 'zoccolo' && !flesh && !v4.some(v => v.y <= 1 && v.k === 'dark')) senzaPiede.push(nome + ' (zoccolo)');
+      if (tipo !== 'zoccolo' && !flesh) {
+        /* le dita sporgono in avanti (verso il muso, x più basse) oltre lo stinco */
+        const suolo = v4.filter(v => v.y === 0), stinco = v4.filter(v => v.y === 3);
+        if (!(suolo.length && stinco.length && Math.min(...suolo.map(v => v.x)) < Math.min(...stinco.map(v => v.x)) - 1)) senzaPiede.push(nome + ' (dita)');
+      }
+    }
+  }
+  check('zampe: i piedi toccano terra', sospese.length === 0, sospese.slice(0, 4).join(', '));
+  check('zampe: nessuna è una colonna dritta (giunti che piegano)', piloni.length === 0, piloni.slice(0, 4).join(', '));
+  check('zampe: zoccoli per gli erbivori, dita per gli altri', senzaPiede.length === 0, senzaPiede.slice(0, 4).join(', '));
+  check('zampe: almeno quattro tipi diversi fra le specie (' + JSON.stringify(tipi) + ')', Object.keys(tipi).length >= 4);
+  /* CHIMERA col torace d'insetto e le zampe di un vertebrato: lo stile della zampa lo decide la
+     specie delle ZAMPE, non quella del torace. Prima prendeva le zampette d'insetto, che nel Libro
+     (risoluzione 4) erano pilastri larghi quattro voxel con una fascia scura («queste non mi piacciono»). */
+  {
+    const sp = id => SPECIES.find(x => x.id === id);
+    const chim = { heads: [{ sp: sp('prato') }], chest: sp('rugiadino'), arms: [sp('prato'), sp('prato')], legs: [sp('prato'), sp('prato')], tails: [sp('prato')] };
+    const z = bn.buildVoxels(chim, { res: 4 }).filter(v => v.p === 'zampa');
+    const zoccoli = z.some(v => v.y <= 1 && v.k === 'dark'), piedi0 = Math.min(...z.map(v => v.y));
+    check('chimera col torace d\'insetto: le zampe di prato hanno lo zoccolo e toccano terra', zoccoli && piedi0 === 0);
+  }
+  /* ZAMPE D'INSETTO: non più colonne. Sottili (metà dello spessore di un osso) ed escono di lato. */
+  {
+    const tozze = [];
+    for (const id of ['rugiadino', 'dunavespa', 'scorpio', 'muschio']) {
+      const z = bn.buildVoxels(bn.baseSpec(SPECIES.find(x => x.id === id)), { res: 4 }).filter(v => v.p === 'zampa' && v.z > 0);
+      const zs = z.map(v => v.z), largo = Math.max(...zs) - Math.min(...zs);
+      if (!z.length || Math.min(...z.map(v => v.y)) !== 0 || largo < 4) tozze.push(id + ' (apertura ' + largo + ')');
+    }
+    check('zampe d\'insetto: escono di lato fino a terra, non sono colonne', tozze.length === 0, tozze.join(', '));
+  }
+  /* NIENTE PEZZI VOLANTI: corna staccate dal cranio, costole lontane dalla spina, metà di un corpo a più
+     segmenti sospesa accanto all'altra («alcuni pezzi sono staccati e volanti, tipo le corna»). Ogni
+     modello, scheletro o vivo, a ogni risoluzione, è UN pezzo solo (vicini anche in diagonale). */
+  {
+    const pezzi = m => {
+      const map = new Map(); for (const p of m) map.set(p.x + ',' + p.y + ',' + p.z, p);
+      const seen = new Set(); let n = 0;
+      for (const [k0, p0] of map) {
+        if (seen.has(k0)) continue; n++; seen.add(k0); const st = [p0];
+        while (st.length) { const p = st.pop(); for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let e = -1; e <= 1; e++) { const k = (p.x + a) + ',' + (p.y + b) + ',' + (p.z + e); if (map.has(k) && !seen.has(k)) { seen.add(k); st.push(map.get(k)); } } }
+      }
+      return n;
+    };
+    const volanti = [];
+    for (const sp of (await import('../src/data.js')).ALL_SPECIES || SPECIES) for (const flesh of [false, true]) for (const res of [2, 4]) {
+      const n = pezzi((flesh ? bn.buildFleshVoxels : bn.buildVoxels)(bn.baseSpec(sp), { res }));
+      if (n !== 1) volanti.push(`${sp.id}${flesh ? ' viva' : ''} r${res}: ${n} pezzi`);
+    }
+    check('nessun pezzo volante: ogni creatura è un pezzo solo', volanti.length === 0, volanti.length + ' modelli, es. ' + volanti.slice(0, 4).join(' · '));
+    /* il PIEDISTALLO con tutti i pezzi esposti è lo scheletro intero: il cranio di una specie dal
+       collo lungo restava per aria (segnalato con foto: Ninfeasauro) */
+    const PARTS5 = ['cranio', 'torace', 'zampa', 'coda', 'corno'];
+    const stacchi = [];
+    for (const sp of (await import('../src/data.js')).ALL_SPECIES || SPECIES) {
+      const n = pezzi(bn.composedPartsVox(sp.id, PARTS5));
+      if (n !== 1) stacchi.push(sp.id + ': ' + n + ' pezzi');
+    }
+    check('piedistallo completo: lo scheletro esposto è un pezzo solo', stacchi.length === 0, stacchi.slice(0, 4).join(' · '));
+  }
+  /* IN SELLA SULLA GROPPA anche di spalle e di fronte: la sella si misurava sulla cima della
+     sagoma al centro, che di profilo è la schiena ma di spalle è il COLLO (la testa sta sopra il
+     corpo). Il pilota finiva sul collo del drago (segnalato con foto). */
+  {
+    const vs = await import('../src/voxsprite.js');
+    const all = (await import('../src/data.js')).ALL_SPECIES;
+    const abisso = all.find(x => x.id === 'abissodonte');
+    const vox = bn.buildFleshVoxels(bn.baseSpec(abisso), { res: 3, addWings: [2, 'm'], wingFlap: 1, tuckLegs: true });
+    for (const view of ['back', 'front']) {
+      const cv = vs.spriteDaVoxel(vox, view, {}, 1);
+      /* la cima della sagoma nelle colonne centrali (collo e testa) */
+      const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data, mid = Math.round(cv._ax);
+      let cima = 1e9;
+      for (let x = mid - 2; x <= mid + 2; x++) for (let y = 0; y < cv.height; y++) if (d[(y * cv.width + x) * 4 + 3]) { cima = Math.min(cima, y); break; }
+      /* la groppa attesa: cima del torace a metà corpo, proiettata (y su, profondità d verso chi guarda) */
+      const torso = vox.filter(v => v.p === 'torace' && !v.wing), xs = torso.map(v => v.x), midX = (Math.min(...xs) + Math.max(...xs)) / 2;
+      const alto = torso.filter(v => Math.abs(v.x - midX) <= 3).reduce((a, v) => (!a || v.y > a.y ? v : a), null);
+      const testa = vox.filter(v => v.p === 'cranio').reduce((a, v) => (!a || v.y > a.y ? v : a), null);
+      const riga = v => { const d = view === 'back' ? v.x : -v.x; return -v.y + d * vs.INCLINA; };
+      check('in sella ' + (view === 'back' ? 'di spalle' : 'di fronte') + ': sulla groppa, non sul collo (sella ' + cv._back + ', cima del collo ' + cima + ')',
+        cv._back >= cima + 3 && (view !== 'back' || riga(alto) - riga(testa) >= 4), 'groppa ' + riga(alto).toFixed(1) + ' testa ' + riga(testa).toFixed(1));
+    }
+  }
+  check('zampe: il cervo ha lo zoccolo, il lupo la zampa, la lepre salta, il gufo ha gli artigli, la talpa è tozza',
+    bn.tipoZampa(bn.BP.spigacervo, 2) === 'zoccolo' && bn.tipoZampa(bn.BP.lavalupo, 2) === 'zampa' && bn.tipoZampa(bn.BP.lepre, 1) === 'salto' &&
+    bn.tipoZampa(bn.BP.gufo, 1) === 'uccello' && bn.tipoZampa(bn.BP.talpaurea, 2) === 'tozza');
 }
 
 /* ---------- TAVOLO DI PREPARAZIONE: il gesto completo ---------- */
@@ -9374,7 +9548,7 @@ sprites.applyLook();
     check('nessun modulo sceglie la lingua scavalcando tr()', sneaky.length === 0, sneaky.join(' '));
   }
   const missing = [...en].filter(k => k && RU[k] === undefined);
-  check('il russo copre il 99% delle stringhe', missing.length <= en.size * 0.01,
+  check('il russo copre tutte le stringhe', missing.length === 0,
     missing.length + '/' + en.size + ' senza traduzione: ' + missing.slice(0, 3).map(x => JSON.stringify(x)).join(' '));
 
   /* GLI SPAZI CONTANO: le stringhe si concatenano a numeri e nomi. Se la traduzione perde lo
@@ -11854,9 +12028,32 @@ sprites.applyLook();
   check('da lontano il portale non risponde', gpP.nearbyCityPortal() === null);
   P.x = S.cityPortal.x * TS + 8; P.y = S.cityPortal.y * TS + 2;
   check('standoci sopra sì', !!gpP.nearbyCityPortal());
-  check('e riporta esattamente dove si era', gpP.useCityPortal() === true
-    && P.x === partenza.x && P.y === partenza.y);
+  /* e accanto compare la scritta col tasto: il prompt del portale di città era fra quelli degli
+     interni, dove non risponde mai («vicino al portale deve comparire la scritta E usa il portale») */
+  {
+    const uiP = await import('../src/ui.js');
+    uiP.updatePrompt();
+    const pe = document.getElementById('prompt');
+    check('vicino al portale di città compare «Usa il portale» col tasto', !!pe && /Usa il portale|Use the portal/.test(pe.innerHTML), pe && pe.innerHTML);
+  }
+  /* con E, come il giocatore: il test chiamava useCityPortal() da sé e non vedeva che act(), nel
+     mondo, il portale non lo cercava — si finiva a scavare («non posso scavare in città») */
+  P.digging = null;
+  gpP.act();
+  check('premendo E riporta esattamente dove si era', P.x === partenza.x && P.y === partenza.y, P.x + ',' + P.y);
   check('usato, il portale si chiude', S.cityPortal === null);
+
+  /* CAMMINANDO IL PORTALE NON TREMA (regola 2): la posizione arriva già sulla griglia dei pixel
+     FISICI; arrotondarla ai pixel interi di gioco lo faceva scattare contro il pavimento, che
+     scorre di un pixel fisico alla volta («quando cammino il portale in città trema») */
+  {
+    const rP = await import('../src/render.js'), scrP = await import('../src/screen.js');
+    const keepPX = scrP.view.PX; scrP.view.PX = 4;
+    const t0 = scrP.ctx.translate, fatte = [];
+    scrP.ctx.translate = function (x, y) { fatte.push([x, y]); return t0 && t0.call(this, x, y); };
+    try { rP.drawReturnPortal(10.25, 20.5, 0); } finally { scrP.ctx.translate = t0; scrP.view.PX = keepPX; }
+    check('il portale sta sulla griglia dei pixel fisici, non salta a pixel interi', fatte.length > 0 && fatte[0][0] === 10.25 && fatte[0][1] === 20.5, JSON.stringify(fatte[0]));
+  }
 
   /* UNO SOLO alla volta: aprirne un altro chiude il primo */
   P.x = 12000; P.y = 9000;

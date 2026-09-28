@@ -214,20 +214,25 @@ function drawLamp(g, x, y, w, h, col, t) {
   g.rect(bx - 6, by - 21, 12, 2, g.shade8(p.lite, 0.7 + glow * 0.5));
 }
 /* PIEDISTALLO: base larga, colonna, ripiano — deve leggersi come "museo", non come sgabello */
+/* LA TECA in piccolo (anteprima in mano, vetrina degli arredi): plinto di pietra, velluto, vetro
+   e telaio d'ottone, gli stessi colori della teca del Museo (museumArt.js) che in stanza la
+   sostituisce a grandezza vera. Era un piedistallo a colonna, e il fossile esposto ci stava sopra
+   a terra da solo. Stesso ingombro di prima: 22 di largo, 30 di alto. */
 function drawPedestal(g, x, y, w, h, col) {
-  const p = pal(g, col), bx = x + w / 2, by = y + h - 2;
-  g.rect(bx - 11, by - 6, 22, 6, p.line);                   // zoccolo a due gradini
-  g.rect(bx - 10, by - 5, 20, 4, p.base);
-  g.rect(bx - 10, by - 5, 20, 2, p.lite);
-  g.rect(bx - 8, by - 10, 16, 5, p.line);
-  g.rect(bx - 7, by - 9, 14, 3, p.base);
-  g.rect(bx - 7, by - 24, 14, 15, p.line);                  // colonna
-  g.rect(bx - 6, by - 23, 12, 14, p.dark);
-  g.rect(bx - 6, by - 23, 4, 14, p.base);                   // lato in luce
-  g.rect(bx - 5, by - 23, 1, 14, p.lite);
-  g.rect(bx - 11, by - 29, 22, 6, p.line);                  // ripiano
-  g.rect(bx - 10, by - 28, 20, 4, p.base);
-  g.rect(bx - 10, by - 28, 20, 2, p.lite);
+  const bx = x + w / 2, by = y + h - 2;
+  g.rect(bx - 11, by - 7, 22, 7, '#8f8670');                // plinto di pietra
+  g.rect(bx - 10, by - 6, 20, 5, '#d9d0bb');
+  g.rect(bx - 10, by - 6, 20, 1, '#f4eedf');
+  g.rect(bx - 10, by - 2, 20, 1, '#a89c82');
+  g.rect(bx - 4, by - 5, 8, 2, '#b99a4a');                  // targhetta
+  g.rect(bx - 10, by - 29, 20, 22, '#241a10');              // cassa: contorno
+  g.rect(bx - 9, by - 28, 18, 20, g.shade8(col || '#6b5137', 0.32));   // velluto
+  g.rect(bx - 9, by - 28, 18, 9, g.shade8(col || '#6b5137', 0.42));
+  g.rect(bx - 9, by - 28, 18, 20, 'rgba(200,230,240,.10)'); // vetro
+  for (let i = 0; i < 5; i++) g.rect(bx + 3 - i, by - 26 + i * 3, 1, 2, 'rgba(255,255,255,.22)');   // riflesso
+  g.rect(bx - 10, by - 29, 20, 1, '#d8b23c');               // telaio d'ottone
+  g.rect(bx - 10, by - 29, 1, 22, '#a8842a'); g.rect(bx + 9, by - 29, 1, 22, '#a8842a');
+  g.rect(bx - 11, by - 31, 22, 2, '#a8842a'); g.rect(bx - 11, by - 31, 22, 1, '#d8b23c');   // cappello
 }
 /* PEZZO DA PARETE: cornice + motivo per zona. Sta SULLA parete di fondo, quindi non ha ombra
    di contatto a terra ma un'ombra portata sul muro, come un quadro vero. */

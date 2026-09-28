@@ -287,16 +287,28 @@ export function drawMuseumGallery(time) {
 }
 /* la teca di un piedistallo: sfondo, i pezzi consegnati, il vetro davanti */
 function drawCase(pd, time) {
-  const bx = pd.tx * TS, by = pd.ty * TS;
-  const parts = S.museum[pd.sp.id] || [];
-  const full = parts.length === PARTS.length;
-  const col = (WINGS[pd.zi] || WINGS[0]).acc;
-  drawCaseBack(BRUSH, bx, by, col, full, time);
-  const cv = parts.length ? exhibitSprite(pd.sp.id, parts) : null;
+  drawTeca(pd.tx * TS, pd.ty * TS, pd.sp.id, S.museum[pd.sp.id] || [], time, pd.zi);
+}
+/* UN MOBILE NELLA STANZA, posato o in mano: lo stesso disegno. La teca in mano usava la miniatura
+   dell'elenco degli arredi e sembrava piccola («quando la sposto è troppo piccola»). */
+export function drawMobile(itemId, spId, x, y, w, h, time, rot) {
+  if (itemId === PEDESTAL_ID) { drawTeca(x, y, spId || null, (spId && S.museum[spId]) || [], time); return; }
+  drawFurnPiece(BRUSH, itemId, x, y, w, h, time, rot || 0);
+}
+/* LA TECA, uguale al Museo e in casa: (bx, by) = la casella del plinto. Senza specie è vuota (il
+   vetro e il faretto). In casa era un piedistallo, e il fossile esposto ne prendeva il posto
+   stando a terra da solo: ora ci sta dentro. `zi` = la sala (colore del velluto); in casa si
+   prende la zona della specie. */
+export function drawTeca(bx, by, spId, parts, time, zi) {
+  const sp = spId ? spById[spId] : null;
+  const full = !!sp && parts.length === PARTS.length;
+  const wi = zi != null ? zi : sp && sp.zi != null ? sp.zi : 0;
+  drawCaseBack(BRUSH, bx, by, (WINGS[wi] || WINGS[0]).acc, full, time);
+  const cv = sp && parts.length ? exhibitSprite(spId, parts) : null;
   if (cv) { try { ctx.drawImage(cv, bx - 20, by - 50); } catch (e) { /* stub */ } }
   else { rect(bx + 13, by - 30, 6, 6, 'rgba(255,255,255,.12)'); rect(bx + 15, by - 22, 2, 10, 'rgba(255,255,255,.12)'); }
-  const rc = { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[pd.sp.r] || '#b8b0a2';
-  drawCaseFront(BRUSH, bx, by, rc, full, time, (S.amberDone || []).includes(pd.sp.id));
+  const rc = (sp && { comune: '#b8b0a2', raro: '#4e8d7c', eccezionale: '#d8973c', leggendario: '#8d6ac8' }[sp.r]) || '#b8b0a2';
+  drawCaseFront(BRUSH, bx, by, rc, full, time, !!sp && (S.amberDone || []).includes(spId));
 }
 /* TARGA di una sala: icona del bioma, nome e quante specie sono esposte. Senza, le sette ali
    sono indistinguibili e non si capisce in quale si è entrati. */
@@ -551,13 +563,7 @@ export function drawHouseRoomScene(time, id) {
      fila, altrimenti resterebbe sempre davanti a tutto (o sempre dietro). */
   const fr = INT.moving ? (Math.floor(INT.anim * 7) % 2) : 0;
   const depth = placed.filter(f => furnLayer(f.itemId) === 'floor')
-    .map(f => { const r = cellsOf(f); return { y: r.y + r.h, draw: () => {
-      if (f.itemId === PEDESTAL_ID && f.spId) {
-        const cv = exhibitSprite(f.spId, S.museum[f.spId] || []);
-        if (cv) { try { ctx.drawImage(cv, r.x - Math.floor((cv.width - r.w) / 2), r.y - (cv.height - r.h)); return; } catch (e) { /* stub */ } }
-      }
-      drawFurnPiece(BRUSH, f.itemId, r.x, r.y, r.w, r.h, time, f.rot || 0);
-    } }; });
+    .map(f => { const r = cellsOf(f); return { y: r.y + r.h, draw: () => drawMobile(f.itemId, f.spId, r.x, r.y, r.w, r.h, time, f.rot || 0) }; });
   depth.push({ y: Math.round(INT.y) + 12, draw: () => {
     shadow(Math.round(INT.x), Math.round(INT.y) + 12, 12);
     drawHero(null, Math.round(INT.x) - 16, Math.round(INT.y) - 20, INT.dir, fr);
@@ -584,7 +590,7 @@ export function drawHouseRoomScene(time, id) {
       const bordo = pl.ok ? '#7ec069' : '#c95a4a';
       rect(gx, gy, gw, gh, tinta);                                   // la casella che occuperebbe
       ctx.globalAlpha = 0.72;
-      drawFurnPiece(BRUSH, hv.itemId, gx, gy, gw, gh, time, hv.rot || 0);
+      drawMobile(hv.itemId, hv.spId, gx, gy, gw, gh, time, hv.rot || 0);
       ctx.globalAlpha = 1;
       const tratto = Math.floor(time / 120) % 2 ? 0 : 1;             // cornice che lampeggia piano
       for (let i = 0; i < gw; i += 4) { rect(gx + i + tratto, gy, 2, 1, bordo); rect(gx + i + tratto, gy + gh - 1, 2, 1, bordo); }

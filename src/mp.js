@@ -308,8 +308,8 @@ export function tick(now, pos) {
      di qualcun altro, e chi ospita non deve trovarsi in casa una statua che non risponde.
    Chi DORME in compagnia è fermo apposta — sta aspettando che passi la notte — e non conta. */
 export const FERMO_MS = 5 * 60 * 1000;
-export function attivo(now) { ultimaAttività = now || ora(); }
-export function fermoDa(now) { return ultimaAttività === null ? 0 : (now || ora()) - ultimaAttività; }
+export function attivo(now) { ultimaAttività = now ?? ora(); }   // 0 è un istante valido (i test contano da lì): con || prendeva l'orologio vero
+export function fermoDa(now) { return ultimaAttività === null ? 0 : (now ?? ora()) - ultimaAttività; }
 /* lo dichiara chi lo sa: sta dormendo e aspetta, non è sparito */
 let dormiente = () => false;
 export function setDormiente(fn) { dormiente = fn || (() => false); }

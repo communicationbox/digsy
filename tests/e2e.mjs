@@ -1200,6 +1200,28 @@ const PROBE = `
          lasciava di larghezze diverse a seconda di quanto stava dentro ognuna: cinque
          riquadri sfalsati invece di una colonna, e fuori posto rispetto a tutto il resto
          del gioco, che è verticale. Qui si misurano davvero. */
+      /* I CONTROLLI NON VANNO A CAPO A CASO: in ogni riga «etichetta + interruttore» il
+         controllo sta sulla STESSA riga dell'etichetta (centri verticali vicini), e gli
+         interruttori di uno stesso gruppo hanno il bordo destro allineato. Prima, a seconda
+         della lunghezza del testo, alcuni restavano accanto e altri scendevano sotto
+         (segnalato con foto). */
+      var righe = box.querySelectorAll('.sp-row'), aCapo = [], storti = [];
+      for (var q = 0; q < righe.length; q++) {
+        var rw = righe[q]; if (rw.querySelector('.sp-seg')) continue;     // Mano: Destra/Sinistra può andare a capo apposta
+        var lab = rw.firstElementChild, ctl = rw.lastElementChild;
+        if (!lab || !ctl || lab === ctl) continue;
+        var rl = lab.getBoundingClientRect(), rc = ctl.getBoundingClientRect();
+        if (rc.width < 2) continue;
+        if (Math.abs((rl.top + rl.bottom) / 2 - (rc.top + rc.bottom) / 2) > 6) aCapo.push((lab.textContent || '').trim().slice(0, 18));
+      }
+      var gr = box.querySelectorAll('.sp-grp');
+      for (var g2 = 0; g2 < gr.length; g2++) {
+        var dx = [], sws = gr[g2].querySelectorAll('.sp-row > .sp-sw');
+        for (var k2 = 0; k2 < sws.length; k2++) dx.push(Math.round(sws[k2].getBoundingClientRect().right));
+        if (dx.length > 1 && Math.max.apply(null, dx) - Math.min.apply(null, dx) > 1) storti.push(dx.join('/'));
+      }
+      A('impostazioni: ogni interruttore sta sulla riga della sua etichetta', aCapo.length === 0, aCapo.join(' · '));
+      A('impostazioni: gli interruttori di un gruppo sono incolonnati a destra', storti.length === 0, storti.join(' '));
       var cards = box.querySelectorAll('.sp-grp');
       A('impostazioni: ci sono i gruppi', cards.length >= 4, cards.length + ' gruppi');
       /* niente riquadri: nel resto del gioco non ce ne sono, e cinque scatole incolonnate

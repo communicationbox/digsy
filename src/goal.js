@@ -85,6 +85,6 @@ export function goalHint(st) {
   }
   const m = toNextMilestone(st);
   return m === 1
-    ? tr('Ne manca 1 al prossimo traguardo.', '1 more to the next milestone.')
-    : tr('Ne mancano ', '') + m + tr(' al prossimo traguardo.', ' more to the next milestone.');
+    ? tr('Ne manca 1 per il prossimo traguardo.', '1 more to reach the next milestone.')
+    : tr('Ne mancano {n} per il prossimo traguardo.', '{n} more to reach the next milestone.').replace('{n}', m);
 }

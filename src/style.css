@@ -1547,9 +1547,22 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 /* riga: etichetta a sinistra, controlli a destra, tutti della stessa altezza */
 /* la riga VA A CAPO se non ci sta: su uno schermo stretto "Mano · Destra · Sinistra"
    sbordava a destra e il secondo pulsante finiva fuori dallo schermo, irraggiungibile */
-.sp-row{display:flex;align-items:center;justify-content:flex-end;gap:var(--sp-2);flex-wrap:wrap;
+/* IL CONTROLLO NON VA MAI A CAPO: resta sulla riga, a destra, nella stessa colonna degli altri.
+   Se la scritta è lunga va a capo LEI. Prima la riga andava a capo intera e l'etichetta non si
+   accorciava mai, quindi a seconda della lunghezza del testo l'interruttore stava accanto
+   («Musica», «Suggerimenti») o scendeva sotto («Effetti», «Segnalino della meta»): pulsanti che
+   andavano a capo a caso (segnalato con foto). */
+.sp-row{display:flex;align-items:center;justify-content:flex-end;gap:var(--sp-2);flex-wrap:nowrap;
   font-size:var(--fs-sm);color:var(--c-ink-2);min-height:var(--h-ctl)}
-.sp-row > span:first-child{margin-right:auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sp-row > span:first-child{margin-right:auto;flex:1 1 0;min-width:0;white-space:normal;overflow-wrap:anywhere;line-height:var(--lh)}
+.sp-row > :not(span:first-child){flex:none}
+/* …tranne una scelta a più pulsanti accanto all'etichetta (Mano: Destra/Sinistra): su uno
+   schermo stretto sbordava e il secondo pulsante finiva fuori, quindi lei sì va a capo, intera */
+/* i pulsanti d'azione di un gruppo («Come», «v0.99.44») hanno la stessa misura: uno sotto l'altro
+   a larghezze diverse sembravano messi a caso */
+.sp-cfg .sp-row > .sp-btn:not(.sp-sw){min-width:112px}
+.sp-row:has(.sp-seg){flex-wrap:wrap}
+.sp-row:has(.sp-seg) > span:first-child{flex:1 0 auto}
 
 /* TUTTI i controlli dentro le impostazioni: stessa altezza, stesso raggio, stesso testo */
 .sp-cfg .sp-btn{height:var(--h-ctl);min-height:var(--h-ctl);padding:0 var(--sp-3);
@@ -1602,6 +1615,9 @@ body:has(#bagov.on,#bookov.on,#mapov.on,#modal.on,#prepov.on,#tossov.on,#skfitov
 .cmp-k{font-size:10px;font-weight:700;padding:1px 6px;border-radius:5px;background:#e2d7bd;color:#6b5a3a}
 .cmp.chimera .cmp-k{background:#e4dcf0;color:#5b4a75}
 .cmp-p{grid-column:2;grid-row:2;font-size:var(--fs-note);color:#8a755a;line-height:1.35}
+.cmp-bulk{display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);margin-bottom:var(--sp-2)}
+.cmp-bulk .btn{width:100%;padding:8px 6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cmp-bulk .btn:disabled{opacity:.45;cursor:default}
 .cmp-a{grid-column:1/-1;grid-row:3;display:grid;grid-template-columns:1fr 1fr;gap:var(--sp-2);margin-top:var(--sp-1)}
 .cmp-a .btn{width:100%;padding:8px 6px;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 /* "vai da solo": la stessa scheda senza creatura, un bottone solo a tutta larghezza */

@@ -38,8 +38,8 @@ export const WONDERS = {
     p: ['Acqua fresca: energia al massimo.', 'Fresh water: energy fully restored.'] },
   ribcage: { w: 9, cd: 4, zone: 'dune',
     n: ['Scheletro di Drago', 'The Dragon Skeleton'],
-    d: ['Uno dei figli di Neladan, il drago più potente vissuto migliaia di anni fa: ora è ossa nella sabbia, ali spiegate un\'ultima volta.', 'One of the children of Neladan, the mightiest dragon that lived thousands of years ago: now bones in the sand, wings spread one last time.'],
-    gp: ['Sotto le sue costole la sabbia è vergine: lì i reperti sono sempre buoni.', 'Under its ribs the sand is untouched: the finds there are always good.'],
+    d: ['Uno dei figli di Neladan, il più potente dei draghi, vissuto migliaia di anni fa. Oggi ne restano le ossa, distese nella sabbia con le ali aperte un\'ultima volta.', 'One of the children of Neladan, the mightiest dragon that lived thousands of years ago: now bones in the sand, wings spread one last time.'],
+    gp: ['Sotto le sue costole non ha mai scavato nessuno: lì i reperti sono sempre di prima scelta.', 'Under its ribs the sand is untouched: the finds there are always good.'],
     p: ['Scavo protetto: 3 reperti pregiati.', 'Sheltered dig: 3 fine finds.'] },
   /* --- BOSCHI CINEREI --- */
   mushring: { w: 7, cd: 3, zone: 'boschi',

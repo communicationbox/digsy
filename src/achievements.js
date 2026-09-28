@@ -18,7 +18,7 @@ export function tierCol(i) { return TIER_COL[TIERS[i - 1]] || '#8a755a'; }
    reward = cappello-TROFEO d'oro sbloccato all'ORO (al PLATINO la stessa forma diventa glitter). */
 export const TRACKS = [
   { id: 'discover', ic: '📖', it: 'Scopritore', en: 'Discoverer', dit: 'Specie scoperte', den: 'Species discovered', metric: s => (s.codex || []).length, tiers: [10, 25, 45, SP_TOT], reward: 'pithGold' },
-  { id: 'cases', ic: '🏛️', it: 'Collezionista', en: 'Collector', dit: 'Teche complete', den: 'Complete cases', metric: s => (s.donated || []).length, tiers: [1, 5, 20, SP_TOT], reward: 'laurelGold' },
+  { id: 'cases', ic: '🏛️', it: 'Collezionista', en: 'Collector', dit: 'Teche completate', den: 'Completed cases', metric: s => (s.donated || []).length, tiers: [1, 5, 20, SP_TOT], reward: 'laurelGold' },
   { id: 'awaken', ic: '🧬', it: 'Genetista', en: 'Geneticist', dit: 'Specie risvegliate', den: 'Species awakened', metric: s => (s.awakened || []).length, tiers: [1, 10, 30, SP_TOT], reward: 'gogglesGold' },
   { id: 'chimera', ic: '🐾', it: 'Creatore', en: 'Creator', dit: 'Chimere assemblate', den: 'Chimeras assembled', metric: s => (s.creatures || []).length, tiers: [1, 5, 15, 30], reward: 'hornsGold' },
   { id: 'coins', ic: '🪙', it: 'Danaroso', en: 'Wealthy', dit: 'Monete accumulate', den: 'Coins amassed', metric: s => s.coins || 0, tiers: [500, 2500, 10000, 40000], reward: 'crownGold' },

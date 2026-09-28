@@ -190,5 +190,21 @@ export function spriteDaVoxel(vox, view, o, seme, ss = 1) {
   let back = -1; const mid = Math.round(spanH / 2 + pad);
   for (let dx = -2; dx <= 2; dx++) { const tpy = colTop[mid + dx]; if (tpy !== undefined && tpy > back) back = tpy; }
   cv._back = back < 0 ? 0 : back;
+  /* DI FRONTE E DI SPALLE la cima delle colonne centrali è il COLLO (la testa sta sopra il corpo, e
+     di spalle è la cosa più lontana, quindi più in alto): il pilota ci finiva seduto sopra
+     (segnalato con foto). Lì la groppa si prende dal modello: la cima del torace a metà corpo,
+     proiettata come il resto del disegno. */
+  if (view !== 'side') {
+    const torso = vox.filter(v => v.p === 'torace' && !v.wing);
+    if (torso.length) {
+      let x0 = 1e9, x1 = -1e9;
+      for (const v of torso) { if (v.x < x0) x0 = v.x; if (v.x > x1) x1 = v.x; }
+      const midX = (x0 + x1) / 2, fascia = Math.max(1, Math.round((x1 - x0) / 8));
+      let cima = null;
+      for (const v of torso) if (Math.abs(v.x - midX) <= fascia && (!cima || v.y > cima.y)) cima = v;
+      const riga = sy(cima.y, proj(cima)[1]);
+      cv._back = Math.max(0, ss === 2 ? riga >> 1 : riga);
+    }
+  }
   return cv;
 }

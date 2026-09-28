@@ -199,7 +199,7 @@ export function updateHUD() {
       const tn = document.getElementById('h-tacc');
       if (tn) tn.textContent = n ? String(n) : '';
       if (tt.classList) tt.classList.toggle('nuovo', n > 0);
-      tt.title = n ? (tr('Taccuino: ', 'Notebook: ') + n + tr(' da leggere', ' to read'))
+      tt.title = n ? tr('Taccuino: {n} da leggere', 'Notebook: {n} to read').replace('{n}', n)
         : tr('Taccuino: le lettere che vi siete scritti', 'Notebook: the letters you wrote each other');
     }
   }
@@ -321,7 +321,6 @@ export function updatePrompt() {
   }
   if (INT.active) {
     if (nearbyReturnPortal()) { setPrompt(withIcons(actKey() + ' ' + tr('Torna indietro 🌀', 'Teleport back 🌀'))); return; }
-    if (nearbyCityPortal()) { setPrompt(withIcons(actKey() + ' ' + tr('Torna indietro 🌀', 'Teleport back 🌀'))); return; }
     if (nearMentorInt()) { setPrompt(withIcons(actKey() + ' ' + tr('Parla col Maestro Scavatore 🎓', 'Talk to the Master Digger 🎓'))); return; }
     const nc = nearCase();
     if (nc) { setPrompt(withIcons((S.codex.includes(nc.sp.id) ? nc.sp.name : '???') + ' · ' + nc.n + '/' + PARTS.length + (nc.n === PARTS.length ? ' 💫' : ''))); return; }
@@ -359,6 +358,9 @@ export function updatePrompt() {
     }
     setPrompt(null); return;
   }
+  /* il portale della pergamena sta NEL MONDO: il suo prompt era fra quelli degli interni, dove
+     nearbyCityPortal() non risponde mai, e accanto al portale non compariva niente */
+  if (nearbyCityPortal()) { setPrompt(withIcons(actKey() + ' ' + tr('Usa il portale 🌀', 'Use the portal 🌀'))); return; }
   { /* MERAVIGLIA: il prompt dice sempre se il dono è pronto o quanto deve riposare */
     const w = nearbyWonder();
     if (w) {
@@ -418,7 +420,7 @@ export function playAwakening(spId) {
   const ov = document.createElement('div'); ov.id = 'awakenov'; ov.className = 'awaken-ov';
   ov.innerHTML = withIcons(`<canvas id="awakenCv" width="200" height="130"></canvas>
     <div class="aw-t">🧬 ${sp.name} ${tr('è di nuovo vivo!', 'is alive again!')}</div>
-    <div class="aw-s">🏡 ${tr('Lo troverai nel tuo giardino', "You'll find it in your garden")}</div>
+    <div class="aw-s">🏡 ${tr('Lo troverai nel tuo cortile', "You'll find it in your yard")}</div>
     <div class="aw-h">${tr('clicca per continuare', 'click to continue')}</div>
     <button class="btn ghost aw-skip" id="awSkip">${tr('Salta', 'Skip')}</button>`);
   document.body.appendChild(ov); awakenOpen = true; playSfx('found');
@@ -900,7 +902,7 @@ export function openBed(room, gx, gy) {
   /* COSA MANCA, detto per nome: un punteggio senza la lista è un giudizio, non un consiglio */
   const ha = k => c.bits.some(b => b.k === k);
   const manca = [];
-  if (!ha('mobili') || c.bits.find(b => b.k === 'mobili').n < 4) manca.push(tr('altri mobili (fino a 4 contano)', 'more furniture (up to 4 counts)'));
+  if (!ha('mobili') || c.bits.find(b => b.k === 'mobili').n < 4) manca.push(tr('altri mobili (ne contano fino a 4)', 'more furniture (up to 4 pieces count)'));
   if (!ha('tappeto')) manca.push(tr('qualcosa a terra (un tappeto)', 'something on the floor (a rug)'));
   if (!ha('parete')) manca.push(tr('qualcosa alla parete', 'something on the wall'));
   if (!ha('parato')) manca.push(tr('la carta da parati', 'wallpaper'));
@@ -1281,6 +1283,12 @@ export function openCompanionPicker() {
   if (!cands.length) h += `<div class="center muted">${tr('Nessuna creatura. Risvegliane una al Lab.', 'No creatures yet. Awaken one at the Lab.')}</div>`;
   else {
     h += `<div class="sub" style="margin:2px 0 6px">${tr('Il compagno ti segue e ti aiuta. Quelle nel cortile restano a casa.', 'Your companion follows and helps you. The ones in the yard stay home.')}</div>`;
+    /* tutte dentro / tutte fuori in un colpo: con tante creature erano tanti clic uno per uno */
+    const fuori = cands.filter(c => !yard.has(c.key)).length, dentro = cands.length - fuori;
+    h += `<div class="cmp-bulk">`
+      + `<button class="btn ghost" data-yard-all="in"${fuori ? '' : ' disabled'}>☑ ${tr('Tutte nel cortile', 'All in the yard')}${fuori ? ` (${fuori})` : ''}</button>`
+      + `<button class="btn ghost" data-yard-all="out"${dentro ? '' : ' disabled'}>◻ ${tr('Togli tutte dal cortile', 'All out of the yard')}</button>`
+      + `</div>`;
     h += '<div class="cmp-list">' + cands.map(c => {
       const on = isCurrentCompanion(c.key);
       const inYard = yard.has(c.key);
@@ -1313,6 +1321,18 @@ export function openCompanionPicker() {
     const i = S.house.yard.indexOf(key);
     if (i >= 0) { S.house.yard.splice(i, 1); toast('🏠 ' + tr('Tolta dal cortile', 'Out of the yard')); }
     else { S.house.yard.push(key); toast('🏠 ' + tr('Ora vive nel cortile', 'Now lives in your yard')); }
+    save(); updateHUD(); openCompanionPicker();
+  });
+  mBody.querySelectorAll('[data-yard-all]').forEach(b => b.onclick = () => {
+    ensureHouseState();
+    const keys = cands.map(c => c.key);
+    if (b.dataset.yardAll === 'in') {
+      for (const k of keys) if (!S.house.yard.includes(k)) S.house.yard.push(k);
+      toast('🏠 ' + tr('Ora vivono tutte nel cortile', 'They all live in your yard now'));
+    } else {
+      S.house.yard = S.house.yard.filter(k => !keys.includes(k));
+      toast('🏠 ' + tr('Cortile vuoto', 'Yard emptied'));
+    }
     save(); updateHUD(); openCompanionPicker();
   });
 }
@@ -1741,7 +1761,7 @@ const NPC_FIRST = {
   inn: ['Dormi qui per recuperare le energie: ti sveglierai all\'alba del giorno dopo. Utile prima di una lunga battuta di scavo.',
     'Sleep here to restore your energy: you\'ll wake at dawn the next day. Handy before a long dig.'],
   barber: ['Taglio, barba, colore e pelle. Prova quanto vuoi: paghi solo alla conferma. Ogni zona ha uno stile esclusivo da scoprire.',
-    'Haircut, beard, colour and skin. Try as much as you like: you only pay on confirm. Each region hides an exclusive style.'],
+    'Haircut, beard, colour and skin. Try as much as you like: you only pay when you confirm. Each region hides an exclusive style.'],
   furniture: ['Qui si compra tutto per la casa: mobili, quadri, tappeti, carta da parati e pavimenti. Scegli un argomento; ogni giorno arrivano pezzi nuovi, e lo stile di questa zona costa un quarto in meno.',
     'Everything for your home is here: furniture, pictures, rugs, wallpaper and floors. Pick a topic; new pieces arrive every day, and this area\'s style is a quarter cheaper.'],
   tailor: ['Qui scegli maglia, pantaloni, cappello e occhiali. Prova liberamente e paghi alla conferma; alcuni cappelli speciali si sbloccano a parte.',
@@ -2135,7 +2155,7 @@ function renderMuseum() {
       <div class="sub">${goalHint()}</div></div></div>`;
     h += '<div class="letter" style="padding:2px 4px">';
     h += `<div class="pn-stat"><span class="k">${tr('Specie scoperte', 'Species discovered')}</span><span class="v">${S.codex.length}/${ALL_SPECIES.length}</span></div>`;
-    h += `<div class="pn-stat"><span class="k">${tr('Teche complete', 'Complete cases')}</span><span class="v">${complete}/${ALL_SPECIES.length}</span></div>`;
+    h += `<div class="pn-stat"><span class="k">${tr('Teche completate', 'Completed cases')}</span><span class="v">${complete}/${ALL_SPECIES.length}</span></div>`;
     h += `<div class="pn-stat"><span class="k">✨ ${tr('Teche d\'ambra', 'Amber cases')}</span><span class="v">${(S.amberDone || []).length}/${ALL_SPECIES.length}</span></div>`;
     h += `<div class="pn-stat"><span class="k">${tr('Sale del Museo', 'Museum rooms')}`
       + (prossima ? `<small>${tr('più vicina: ', 'closest: ')}${zoneName(prossima.id)} ${prossima.have}/${prossima.need}</small>`

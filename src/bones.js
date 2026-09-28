@@ -245,7 +245,8 @@ function orecchie(P, tipo, cy, col) {
    legs: [numero, lunghezza 0-2] (0 zampe = striscia/fluttua) · wings: [n, 'm'embrana|'f'piume|'i'nsetto]
    head: 0 tozzo · 1 muso lungo · 2 becco · 3 cupola · 'none' (occhi sul corpo)
    mand/ant/prob: mandibole·antenne·proboscide · tail: none|short|long|club|sting|fin
-   extra: sail|spikes|shell|hump · float: fluttua · wave: corpo ondulato · tall: eretto */
+   extra: sail|spikes|shell|hump · float: fluttua · wave: corpo ondulato · tall: eretto
+   piede: zoccolo|zampa|tozza|uccello|salto — solo quando quello scelto da tipoZampa non va */
 export const BP = {
   /* GROTTE (specie esclusive delle caverne) */
   cavernide: { seg: [2, 2], legs: [4, 1], horns: 1, tail: 'short', head: 0 },
@@ -309,7 +310,7 @@ export const BP = {
   torbalupo: { seg: [2, 2], legs: [4, 1], tail: 'long', head: 1, extra: 'hump' },
   zanzarone: { seg: [1, 1], legs: [6, 2], wings: [2, 'i'], prob: true, tail: 'none', head: 'none' },
   melmalince: { seg: [2, 1], legs: [4, 2], tail: 'short', head: 0, extra: 'spikes' },
-  brontorana: { seg: [3], legs: [4, 1], tail: 'none', head: 0, horns: 0, extra: 'hump' },
+  brontorana: { seg: [3], legs: [4, 1], tail: 'none', head: 0, horns: 0, extra: 'hump', piede: 'salto' },
   pantanarca: { seg: [2, 2, 2, 2], legs: [0], wave: true, ant: true, tail: 'sting', head: 1 },
   /* GHIACCI */
   gelodonte: { seg: [3, 3], legs: [4, 1], head: 0, tail: 'short', extra: 'spikes' },
@@ -448,7 +449,7 @@ function segRing(cx, cy, cz, r, mode, colT, out) {
 }
 /* ZAMPA: si assottiglia dall'anca al piede, e il piede appoggia largo. A un voxel di spessore
    (com'era) una zampa a scala doppia sembrerebbe un filo di ferro. */
-function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse = 0) {
+function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse = 0, forma = { kind: 'zampa', hind: true }) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, k === 'dark' ? 0.7 : 0.88) });
   const spesso = (x, y, z, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x + d, y, z + e * side, k); };
   /* ZAMPA RACCOLTA, in volo: coscia corta verso il basso, ginocchio, stinco RIPIEGATO
@@ -474,21 +475,102 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse
   /* la zampona ad arco è da RAGNO/insetto: data ai vertebrati dalle gambe lunghe (cervi, alci, rapaci)
      li trasformava in trampoli da un voxel sotto un corpo sospeso */
   if (len >= 2 && arthro) { // ZAMPONA ad arco (ragno/zanzara): esce dal fianco, sale, poi scende
+    /* sottile fino in fondo, con il ginocchio scuro e l'unghia: il piede a blocco la chiudeva in un pilastro */
+    const th = Math.max(1, Math.round(R / 2));
     let z = cz + side * sr;
-    spesso(lx, cy, z, 'bone', R);                                        // anca sul fianco
-    for (let j = 1; j <= U(2); j++) { z = cz + side * (sr + j); spesso(lx, cy + j, z, 'bone', R - (j > U(1) ? 1 : 0)); }
-    P(lx, cy + U(2), z, 'dark');
-    for (let y = cy + U(1); y >= 0; y--) spesso(lx, y, z, y % R ? 'shade' : 'bone', y < U(1) ? R : 1);   // scende e poggia largo
-  } else {
-    const attachY = cy - sr, zz = cz + side;
-    spesso(lx, attachY, cz, 'bone', R);                                  // giunzione al ventre
-    for (let y = attachY; y >= 0; y--) {
-      /* nella carne la coscia è piena e si assottiglia verso la caviglia; lo scheletro resta osso */
-      const th = mode === 'flesh' ? Math.max(R, (y > attachY * 0.55 ? R + 2 : R + 1) + grosse) : R;   // gambe piene (robuste +1, sottili -1)
-      spesso(lx - (mode === 'flesh' && y > attachY * 0.55 ? 1 : 0), y, zz, y === Math.floor(attachY / 2) && mode !== 'flesh' ? 'dark' : 'bone', th);
+    spesso(lx, cy, z, 'bone', th);                                       // anca sul fianco
+    for (let j = 1; j <= U(2); j++) { z = cz + side * (sr + j); spesso(lx, cy + j, z, 'bone', th); }
+    if (mode !== 'flesh') spesso(lx, cy + U(2), z, 'dark', th);          // il ginocchio in alto
+    for (let y = cy + U(2) - 1; y >= 0; y--) {                          // scende e si apre appena verso terra
+      const zz = z + (y < U(1) ? side : 0);
+      spesso(lx, y, zz, y % U(2) ? 'shade' : 'bone', th);
     }
-    for (let d = -1; d < R + 2; d++) for (let e = 0; e < R; e++) P(lx + d, 0, zz + e * side, mode === 'flesh' ? 'dark' : 'shade');   // piede largo
+    P(lx - 1, 0, z + side, 'dark');                                      // l'unghia
+    return;
   }
+  /* ZAMPETTA D'INSETTO: sottile, a tre pezzi. Esce dal fianco, sale di poco al ginocchio e scende
+     aperta fino a terra con un'unghia scura. Era una colonna dritta con una fascia scura: nel
+     Libro (risoluzione 4) un pilastro largo quattro voxel sotto un corpo d'insetto. */
+  if (arthro) {
+    const th = mode === 'flesh' ? Math.max(1, Math.round(R * 0.75)) : Math.max(1, Math.round(R / 2));
+    const hipZ = cz + side * Math.max(1, sr - R), kneeZ = hipZ + side * U(1.5), footZ = kneeZ + side * U(1);
+    const hipY = Math.max(1, cy - Math.round(sr / 2)), kneeY = hipY + U(0.5);
+    const linea = (a, b, k) => {
+      const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), Math.abs(b[2] - a[2]), 1);
+      for (let i = 0; i <= n; i++) { const t = i / n; spesso(Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t), k, th); }
+    };
+    linea([lx, hipY, hipZ], [lx, kneeY, kneeZ], 'bone');              // femore: di lato, appena in su
+    linea([lx, kneeY, kneeZ], [lx, 0, footZ], 'shade');                // tibia: giù, aperta
+    if (mode !== 'flesh') spesso(lx, kneeY, kneeZ, 'dark', th);        // il ginocchio
+    P(lx - 1, 0, footZ, 'dark');                                       // l'unghia
+    return;
+  }
+  /* ZAMPA DA VERTEBRATO: ossa con i GIUNTI, non una colonna. Erano pilastri dritti col piede a
+     blocco, uguali per tutti («piloni, niente personalità»). Il muso sta alle x basse: la zampa
+     di DIETRO piega il ginocchio in avanti e il garretto indietro, quella DAVANTI il gomito
+     indietro; il piede dice chi è (tipoZampa). Le proporzioni sono in frazioni dell'altezza
+     dell'anca, così la stessa zampa regge a risoluzione 2 (mondo) e 4 (Libro). */
+  const H = cy - sr, zz = cz + side;
+  const carne = mode === 'flesh';
+  const sottile = grosse < 0 ? 1 : 0;
+  const osso = carne ? R + 1 + grosse : Math.max(1, R - sottile);          // spessore dello stinco
+  const coscia = carne ? R + 2 + grosse : Math.max(1, R - sottile);
+  const { kind, hind } = forma;
+  /* giunti: [dx in frazioni di H, y in frazioni di H, dz in caselle] dall'anca al piede */
+  const J = {
+    dietro: [[-0.2, 0.62, 0], [0.2, 0.28, 0], [0.08, 0, 0]],
+    davanti: [[0.14, 0.6, 0], [0.02, 0.2, 0], [-0.02, 0, 0]],
+    tozza: [[0.15, 0.55, U(1.5)], [-0.1, 0.2, U(1)], [-0.15, 0, U(1)]],
+    salto: [[-0.28, 0.66, 0], [0.34, 0.16, 0], [0.3, 0, 0]],
+    uccello: [[-0.24, 0.64, 0], [0.18, 0.34, 0], [0.04, 0, 0]],
+  }[kind === 'tozza' ? 'tozza' : kind === 'salto' ? (hind ? 'salto' : 'davanti') : kind === 'uccello' ? 'uccello' : (hind ? 'dietro' : 'davanti')];
+  const pts = [[lx, H, zz], ...J.map(([dx, fy, dz]) => [lx + Math.round(dx * H), Math.round(fy * H), zz + side * dz])];
+  const tratto = (a, b, t0, t1, k) => {
+    const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), Math.abs(b[2] - a[2]), 1);
+    for (let i = 0; i <= n; i++) {
+      const t = i / n;
+      spesso(Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t), k, Math.round(t0 + (t1 - t0) * t));
+    }
+  };
+  spesso(lx, H, cz, 'bone', coscia);                                      // giunzione al ventre
+  tratto(pts[0], pts[1], coscia, osso + (carne ? 1 : 0), 'bone');         // femore / omero
+  tratto(pts[1], pts[2], osso + (carne ? 1 : 0), osso, 'bone');           // tibia / radio
+  tratto(pts[2], pts[3], osso, osso, 'bone');                             // metatarso
+  /* nello scheletro i giunti si vedono: un nodo più scuro, appena più grosso dell'osso */
+  if (!carne) for (const g of [pts[1], pts[2]]) spesso(g[0], g[1], g[2], 'shade', osso + (R > 1 ? 1 : 0));
+  /* IL PIEDE */
+  const [fx, , fz] = pts[3];
+  const dita = (n, lung, artiglio) => {
+    for (let d = 0; d < n; d++) {
+      const z = fz + side * d;
+      for (let i = 0; i <= lung; i++) P(fx - i, 0, z, i === lung && artiglio ? 'dark' : 'bone');
+    }
+  };
+  if (kind === 'zoccolo') {
+    for (let y = 0; y < Math.max(1, R); y++) for (let d = -1; d < osso; d++) for (let e = 0; e < osso; e++) P(fx + d, y, fz + e * side, 'dark');
+  } else if (kind === 'uccello') {
+    dita(Math.max(1, osso), U(2.5), true);                                // tre dita lunghe avanti…
+    for (let i = 1; i <= U(1); i++) P(fx + osso - 1 + i, 0, fz, i === U(1) ? 'dark' : 'bone');   // …e il pollice dietro
+  } else if (kind === 'salto') {
+    if (hind) for (let i = 0; i <= U(3); i++) for (let e = 0; e < osso; e++) P(fx - i, 0, fz + e * side, i === U(3) ? 'dark' : 'bone');   // piede lungo e piatto
+    else dita(osso, U(1), true);
+  } else if (kind === 'tozza') {
+    for (let d = -1; d < osso + 1; d++) for (let e = 0; e < osso + 1; e++) P(fx + d, 0, fz + e * side, 'bone');   // pianta larga
+    dita(osso + 1, U(1.5), true);                                         // artigli da scavo
+  } else {
+    dita(osso, U(1.5), true);                                             // zampa con le dita e le unghie
+  }
+}
+/* IL PIEDE DI UNA SPECIE, dalla sua ricetta: zampette e zampone d'insetto restano com'erano
+   ('ragno'); le corte sono tozze e da scavo; i bipedi saltano (orecchie lunghe) o camminano
+   sulle dita come un uccello; fra i quadrupedi gli erbivori con le corna hanno lo zoccolo. */
+export function tipoZampa(bp, pairs) {
+  const r = bp || {}, legs = r.legs || [4, 1];
+  if (r.ant || r.head === 'none' || legs[0] >= 6) return 'ragno';
+  if (r.piede) return r.piede;                                    // la specie lo dice lei (la rana salta)
+  if (!legs[1]) return 'tozza';
+  if (pairs === 1) return r.ears ? 'salto' : 'uccello';
+  return r.horns && !r.mand ? 'zoccolo' : 'zampa';
 }
 /* `flap` (opzionale, 0..3: su, metà, giù, metà) alza o abbassa le punte delle ali a membrana: la
    cavalcatura in volo le batte costruendo quattro pose dello STESSO modello */
@@ -719,11 +801,21 @@ function buildFromRecipe(spec, mode, opts) {
     const pairs = Math.round(nLegs / 2);
     for (let i = 0; i < pairs; i++) {
       const si = Math.min(segs.length - 1, Math.floor(i * segs.length / pairs));
-      const lx = segsX[si] - U(1) + (i % 2) * U(2);
+      /* un corpo di un solo segmento: davanti sotto il petto, dietro sotto i fianchi. A due voxel
+         l'una dall'altra le zampe si sovrapponevano in un blocco solo */
+      const lx = segs.length === 1 && pairs > 1 ? segsX[0] + Math.round((i / (pairs - 1) - 0.5) * segs[0] * 1.2) : segsX[si] - U(1) + (i % 2) * U(2);
       /* i BIPEDI hanno le due gambe una avanti e una indietro: nella stessa colonna, di profilo se ne
          vedeva una sola, un trampolo */
       const stag = pairs === 1 ? U(1.2) : 0;
-      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, !!(r.ant || r.head === 'none' || legDef[0] >= 6), !!(opts && opts.tuckLegs), r.zampe === 'robuste' ? 1 : r.zampe === 'sottili' ? -1 : 0);
+      /* davanti o dietro: il primo paio sta sotto il petto; i bipedi hanno solo le zampe di dietro */
+      /* LO STILE DELLA ZAMPA è della specie delle ZAMPE: una chimera col torace d'insetto e le zampe
+         di un cervo cammina sugli zoccoli. Prendendolo dal torace aveva le zampette d'insetto, che nel
+         Libro erano pilastri. L'altezza resta quella del torace: è lui che decide dove sta la pancia. */
+      const legSp = isBase ? chest : (spec.legs[i] || spec.legs[spec.legs.length - 1] || chest);
+      const lr = BP[legSp.id] || r, ld = lr.legs || [4, 1];
+      const arthro = !!(lr.ant || lr.head === 'none' || ld[0] >= 6);
+      const forma = { kind: tipoZampa(lr, isBase ? pairs : Math.max(1, Math.round(ld[0] / 2))), hind: pairs === 1 || i >= pairs / 2 };
+      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, arthro, !!(opts && opts.tuckLegs), lr.zampe === 'robuste' ? 1 : lr.zampe === 'sottili' ? -1 : 0, forma);
     }
   } else if (!r.float && !noLegs) { // striscia: spuntoni ventrali attaccati al ventre
     segsX.forEach((sx, i) => { for (let d = 0; d < R; d++) {
@@ -799,7 +891,50 @@ function buildFromRecipe(spec, mode, opts) {
   if (mode === 'flesh' && r.mantello) mantello(out, r, colT);
   const seen = new Set(), ded = [];
   for (const v of out) { const k = v.x + ',' + v.y + ',' + v.z; if (!seen.has(k)) { seen.add(k); ded.push(v); } }
-  return ded;
+  return saldaPezzi(ded);
+}
+
+/* NIENTE PEZZI VOLANTI. Le forme si disegnano ognuna per conto suo e gli arrotondamenti lasciano
+   buchi: corna a un voxel dal cranio, costole staccate dalla spina, la metà dietro di un corpo a
+   più segmenti sospesa accanto a quella davanti («alcuni pezzi sono staccati e volanti, tipo le
+   corna»). Dal pezzo più grande si salda ogni volta il pezzo più VICINO, con un ponte di voxel
+   uguali al suo punto più vicino: così le due metà di un corpo si ritrovano prima, e le costole si
+   attaccano alla metà giusta invece di tirare un filo lungo. Vicini = anche in diagonale. */
+export function saldaPezzi(vox) {
+  if (vox.length < 2) return vox;
+  const K = (x, y, z) => ((x + 512) * 1024 + (y + 512)) * 1024 + (z + 512);
+  const at = new Map(); for (const v of vox) at.set(K(v.x, v.y, v.z), v);
+  const comp = new Map(), pezzi = [];
+  for (const v of vox) {
+    const k0 = K(v.x, v.y, v.z); if (comp.has(k0)) continue;
+    const id = pezzi.length, lista = [v], st = [v]; comp.set(k0, id);
+    while (st.length) {
+      const p = st.pop();
+      for (let a = -1; a <= 1; a++) for (let b = -1; b <= 1; b++) for (let e = -1; e <= 1; e++) {
+        const k = K(p.x + a, p.y + b, p.z + e), q = at.get(k);
+        if (q && !comp.has(k)) { comp.set(k, id); lista.push(q); st.push(q); }
+      }
+    }
+    pezzi.push(lista);
+  }
+  if (pezzi.length === 1) return vox;
+  pezzi.sort((a, b) => b.length - a.length);
+  const corpo = pezzi[0].slice(), resto = pezzi.slice(1), ponti = [];
+  while (resto.length) {
+    /* 2 è la distanza minima fra due pezzi separati, ed è quella di quasi tutti: trovata, si smette */
+    let best = null;
+    cerca: for (let i = 0; i < resto.length; i++) for (const p of resto[i]) for (const q of corpo) {
+      const d = Math.max(Math.abs(p.x - q.x), Math.abs(p.y - q.y), Math.abs(p.z - q.z));
+      if (!best || d < best.d) { best = { d, i, p, q }; if (d <= 2) break cerca; }
+    }
+    const { i, p, q, d } = best;
+    for (let t = 1; t < d; t++) {
+      const x = p.x + Math.round((q.x - p.x) * t / d), y = p.y + Math.round((q.y - p.y) * t / d), z = p.z + Math.round((q.z - p.z) * t / d);
+      if (!at.has(K(x, y, z))) { const v = { ...p, x, y, z }; at.set(K(x, y, z), v); ponti.push(v); corpo.push(v); }
+    }
+    corpo.push(...resto[i]); resto.splice(i, 1);
+  }
+  return vox.concat(ponti);
 }
 
 /* voxel del SINGOLO pezzo (zaino/negozio/museo): stesso modello del 3D, isolato.
@@ -829,15 +964,14 @@ export function partVoxels(spId, part) {
   return out;
 }
 
-/* montaggio museale: SOLO i pezzi consegnati, disposti in posa anatomica */
-const EX_OFF = { torace: [0, 0], cranio: [-U(7), U(3)], zampa: [U(3), -U(5)], coda: [U(8), U(1)], corno: [-U(7), U(9)] };
+/* IL PIEDISTALLO mostra lo SCHELETRO VERO della specie (lo stesso del Libro, già saldato) coi soli
+   pezzi consegnati. Rimontarli a mano con spostamenti fissi uguali per tutti lasciava il cranio per
+   aria sulle specie dal collo lungo (Ninfeasauro, segnalato con foto). Con tutti i pezzi è lo
+   scheletro intero; con alcuni, ognuno sta al suo posto anatomico. */
 export function composedPartsVox(spId, parts) {
-  const vox = [];
-  for (const p of parts) {
-    const o = EX_OFF[p] || [0, 0];
-    for (const v of partVoxels(spId, p)) vox.push({ x: v.x + o[0], y: v.y + o[1], z: v.z, k: v.k });
-  }
-  return vox;
+  const full = buildFromRecipe(clampSpec(baseSpec({ id: spId })), 'skel');
+  const want = new Set(parts);
+  return full.filter(v => want.has(v.p)).map(v => ({ x: v.x, y: v.y, z: v.z, k: v.k, p: v.p }));
 }
 
 export function buildVoxels(rawSpec, opts) { return atRes(opts, () => buildFromRecipe(clampSpec(rawSpec), 'skel', opts)); }

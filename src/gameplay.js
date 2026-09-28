@@ -254,7 +254,7 @@ export function tryDig() {
       S.maps = S.maps.filter(m => m !== mp);
       if (S.trackMap === mp.uid) S.trackMap = null; // la bussola torna alla città
       const raw = makeRaw(zoneAt(tx, ty).id, Math.hypot(tx, ty), mp.rar, 'any');
-      if (addFossil(raw, tx, ty)) toast('🗺️ ✨ ' + tr('La X non mentiva! Reperto ', 'The X was true! A ') + rarLabel(mp.rar) + tr(' (da identificare)', ' find (needs identifying)'));
+      if (addFossil(raw, tx, ty)) toast('🗺️ ✨ ' + tr('La X non mentiva! Reperto ', 'The X was right! A ') + rarLabel(mp.rar) + tr(' (da identificare)', ' find (needs identifying)'));
       playSfx('found');
     } else {
       let ch = digChance[t] || 0.2;
@@ -291,7 +291,7 @@ export const TOOL_COST = { spade: 15, shovel: 45, axe: 90, pick: 200, boat: 460,
 const TOOL_MSG = {
   spade: () => '🪏 ' + tr('Pala: ora puoi scavare ', 'Spade: now you can dig ') + actKey(),
   axe: () => '🪓 ' + tr('Accetta: abbatti gli alberi ', 'Hatchet: chop trees ') + actKey(),
-  pick: () => '⛏️ ' + tr('Piccone: spacca massi ', 'Pickaxe: breaks boulders ') + actKey(),
+  pick: () => '⛏️ ' + tr('Piccone: spacca massi ', 'Pickaxe: break boulders ') + actKey(),
   boat: () => '⛵ ' + tr('Barca: entra in acqua per salire', 'Boat: walk into water to board'),
   skates: () => '🛼 ' + tr('Pattini: corri al doppio della velocità', 'Skates: move at double speed'),
   bike: () => '🚲 ' + tr('Bicicletta: velocità tripla a piedi', 'Bicycle: triple speed on foot'),
@@ -801,7 +801,7 @@ function landingSpot() {
 }
 export function toggleMount() {
   if (CAVE.active || INT.active) { toast('🕳️ ' + tr('Qui non si vola: scendi e cammina', 'No flying here: get down and walk')); return false; }
-  if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario', 'Needs a legendary cave companion')); return false; }
+  if (!companionRides()) { toast('🐾 ' + tr('Serve un compagno di grotta leggendario', 'You need a legendary cave companion')); return false; }
   if (S.mounted) {                          // sto per SCENDERE: serve una casella CALPESTABILE
     const spot = landingSpot();
     if (!spot) { toast('🐾 ' + tr('Qui non si scende: cerca un punto libero', "Can't land here: find open ground")); playSfx('nope'); return false; }
@@ -1236,7 +1236,6 @@ export function act() {
   }
   if (INT.active) { // parla con l'NPC o leggi l'etichetta di un'esposizione
     if (nearbyReturnPortal()) { useReturnPortal(); return; } // portale di ritorno (goHome): in mezzo all'atrio
-    if (nearbyCityPortal()) { useCityPortal(); return; }     // portale della pergamena: in città, dove si è arrivati
     if (nearMentorInt()) { openMentor(); return; } // Maestro Scavatore: spiega i livelli
     if (nearNpc()) { openBuilding(INT.b); return; }
     { const pet = nearPet(); if (pet) { petShopAnimal(); return; } }
@@ -1269,6 +1268,9 @@ export function act() {
     }
     return;
   }
+  /* il portale della pergamena sta NEL MONDO (in città, dove si è arrivati): il suo controllo era finito fra
+     quelli degli interni, dove nearbyCityPortal() non risponde mai, e premendo E si scavava («non si scava in città») */
+  if (nearbyCityPortal()) { useCityPortal(); return; }
   { const w = nearbyWonder(); if (w) { openWonder(w); return; } } // meraviglia: pannello col suo dono
   if (nearbyLockedGate()) { openLockedGate(); return; } // cancello chiuso a chiave: si riapre sempre da fuori
   if (nearbyBoard()) { openQuestBoard(); return; } // cartello delle missioni
@@ -1318,7 +1320,7 @@ export function useWonder(lm) {
   const give = (rar, src, n, msg) => {
     let got = 0;
     for (let i = 0; i < n; i++) { const raw = makeRaw(zid, dist, rar, src); if (addFossil(raw, lm.x, lm.y)) got++; }
-    playSfx('found'); return msg + (got < n ? tr(' (zaino pieno: resto a terra)', ' (bag full: rest on the ground)') : '');
+    playSfx('found'); return msg + (got < n ? tr(' (zaino pieno: il resto è a terra)', ' (bag full: the rest is on the ground)') : '');
   };
   let out = null;
   switch (t) {
@@ -1655,9 +1657,9 @@ export function awakenSpecies(spId) {
   /* la PRIMA volta si dice dove porta tutto questo: è l'unico istante in cui il giocatore ha
      appena visto con i suoi occhi cosa vuol dire "riportarle in vita", ed è lì che la frase
      attacca. Dalla seconda in poi basta il conto. */
-  toast('🧬 ' + spById[spId].name + tr(' è nel tuo giardino.', ' is in your garden.')
+  toast('🧬 ' + spById[spId].name + tr(' è nel tuo cortile.', ' is in your yard.')
     + (alive() === 1
-      ? tr(' Il nonno non ne vide mai una viva: tu sì. Ne restano ', ' Your grandparent never saw one alive: you did. ')
+      ? tr(' Il nonno non ne vide mai una viva: tu sì. Ne restano ', ' Your grandparent never saw one alive, but you have. ')
         + (aliveTotal() - 1) + tr('.', ' left to go.')
       : ' ' + goalTitle() + ': ' + goalLine()));
   /* LA SOGLIA SI ANNUNCIA QUANDO SCATTA, dicendo cosa è comparso nel parco. Il parco cresce da

@@ -77,7 +77,7 @@ const TEXT = {
   bed: () => [tr('Questo è il tuo letto', 'This is your bed'),
     tr('Premi {act} sul letto: qui dormi gratis quando finisci l\'energia ⚡.', 'Press {act} on the bed: you sleep here for free when your energy ⚡ runs out.')],
   furn: () => [tr('Arreda la Sala', 'Furnish the room'),
-    tr('Premi {act} su una casella libera e posa la poltrona: una stanza curata ti fa dormire meglio.', 'Press {act} on an empty tile and put down the armchair: a well kept room gives you a better sleep.')],
+    tr('Premi {act} su una casella libera e posa la poltrona: una stanza curata ti fa dormire meglio.', 'Press {act} on an empty tile and put down the armchair: a well-kept room helps you sleep better.')],
   out: () => [tr('Esci di casa', 'Head outside'),
     tr('Cammina verso la porta in basso: il mondo è tutto da scavare.', 'Walk to the door below: the whole world is there to dig.')],
   pick: () => [tr('Raccogli ciò che luccica', 'Pick up what sparkles'),
