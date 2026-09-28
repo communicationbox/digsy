@@ -2,7 +2,7 @@
    l'osservatore, con la profondità resa da tre toni. È la stessa immagine usata ovunque:
    miniature dello zaino, teche del museo, pagina del Libro, tavolo di preparazione, e come
    ripiego quando WebGL non c'è. Stava dentro ui.js, ma non ha nulla a che fare con l'interfaccia. */
-import { shadeHex } from './bones.js';
+import { spriteDaVoxel } from './voxsprite.js';
 
 /* proiezione laterale di una lista di voxel qualsiasi (usata anche per i PEZZI nello zaino).
    lit = pezzi consegnati al museo: gli altri restano oscurati */
@@ -14,26 +14,32 @@ export function projectVox(cv, vox, silhouette, lit, bg, maxS) {
   if (bg !== false) { c2.fillStyle = bg || '#15120d'; c2.fillRect(0, 0, cv.width, cv.height); }
   else c2.clearRect(0, 0, cv.width, cv.height);
   if (!vox.length) return;
-  let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
-  for (const v of vox) {
-    mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x);
-    mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y);
-    mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z);
-  }
-  const spanX = mxx - mnx + 1, spanY = mxy - mny + 1;
-  let s = Math.max(1, Math.floor(Math.min(cv.width / (spanX + 2), cv.height / (spanY + 2))));
+  /* LO STESSO DISEGNO DELLE CREATURE (voxsprite.js): vista 3/4 dall'alto, luce dal modello,
+     quattro toni e contorno. Era una proiezione di lato con tre toni di profondità: ossa bianche
+     piatte a blocchi, «proprio TANTO brutte». Qui si dà a ogni voxel il suo colore (osso, ombra,
+     occhio, pezzo non ancora consegnato) e il resto lo fa il disegno. La SAGOMA resta piatta: è
+     un'ombra, non un oggetto. */
+  const col = v => {
+    if (silhouette) return '#4a4438';
+    if (v.col) return v.col;
+    if (v.k === 'eye') return '#15120d';
+    if (lit && v.p && !lit.includes(v.p)) return v.k === 'shade' || v.k === 'dark' ? '#2c283a' : '#3a3450';   // pezzo non consegnato
+    return v.k === 'dark' ? '#a89c84' : v.k === 'shade' ? '#d8cdb4' : '#f0eadb';
+  };
+  const colorati = vox.map(v => ({ x: v.x, y: v.y, z: v.z, col: col(v), k: v.k === 'eye' && !silhouette ? 'eye' : undefined }));
+  return disegnaSu(c2, cv, colorati, silhouette, maxS);
+}
+/* ossa e carne con i colori del disegno (usato anche dalle teche e dallo scheletro del museo) */
+export function ossaColorate(vox) {
+  return vox.map(v => ({ x: v.x, y: v.y, z: v.z, k: v.k === 'eye' ? 'eye' : undefined,
+    col: v.col || (v.k === 'eye' ? '#15120d' : v.k === 'dark' ? '#a89c84' : v.k === 'shade' ? '#d8cdb4' : '#f0eadb') }));
+}
+function disegnaSu(c2, cv, colorati, silhouette, maxS) {
+  let sp;
+  try { sp = spriteDaVoxel(colorati, 'side', { piatto: !!silhouette }, '', 1); } catch (e) { sp = null; }
+  if (!sp) return;
+  let s = Math.max(1, Math.floor(Math.min(cv.width / (sp.width + 2), cv.height / (sp.height + 2))));
   if (maxS) s = Math.min(s, maxS);   // tavolo di preparazione: voxel piccoli = forma leggibile
-  const ox = Math.floor((cv.width - spanX * s) / 2), oy = Math.floor((cv.height - spanY * s) / 2);
-  const zr = Math.max(1, mxz - mnz);
-  for (const v of vox.slice().sort((a, b) => a.z - b.z)) { // lontano→vicino
-    let col;
-    const zt = (v.z - mnz) / zr;
-    if (silhouette) col = '#4a4438';
-    else if (v.col) col = zt < 0.34 ? shadeHex(v.col, 0.72) : zt < 0.67 ? v.col : shadeHex(v.col, 1.18);
-    else if (v.k === 'eye') col = '#15120d';
-    else if (lit && v.p && !lit.includes(v.p)) col = zt < 0.34 ? '#262231' : zt < 0.67 ? '#332e42' : '#403a55'; // pezzo non consegnato
-    else col = zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
-    c2.fillStyle = col;
-    c2.fillRect(ox + (v.x - mnx) * s, oy + (mxy - v.y) * s, s, s);
-  }
+  const ox = Math.floor((cv.width - sp.width * s) / 2), oy = Math.floor((cv.height - sp.height * s) / 2);
+  c2.drawImage(sp, ox, oy, sp.width * s, sp.height * s);
 }

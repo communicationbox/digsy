@@ -27,10 +27,12 @@ function windowText(sp) {
 
 
 /* ---------- Libro dei Fossili: scheletri ricostruiti, sfogliabile ---------- */
-/* proiezione 2D STATICA dello STESSO modello voxel del 3D: vista laterale,
-   ossa bianche (3 toni per profondità z) su fondo scuro. Coerenza garantita. */
+/* proiezione 2D STATICA dello STESSO modello voxel del 3D, disegnata come le creature
+   (voxsprite.js). Sulle tele grandi del Libro il modello è a risoluzione doppia, come nel 3D;
+   sulle miniature (lo schizzo) basta quella normale. */
 export function drawVoxel2D(cv, spec, silhouette, flesh, lit) {
-  projectVox(cv, flesh ? buildFleshVoxels(spec) : buildVoxels(spec), silhouette, lit);
+  const o = cv.width >= 200 ? { res: 4 } : undefined;
+  projectVox(cv, flesh ? buildFleshVoxels(spec, o) : buildVoxels(spec, o), silhouette, lit);
 }
 let bookPage = 0;
 let liveViews = []; // viste 3D attive (libro/anteprime): da smontare a ogni cambio
@@ -136,7 +138,7 @@ function bookPageHtml(sp, pageNo) {
       <div class="bk-zone">${z.icon} ${zoneName(z.id)}</div>
     </div>
     <div class="bk-cvwrap">
-      <canvas class="bp-cv" data-sp="${sp.id}" width="220" height="165" title="Trascina per ruotare"></canvas>
+      <canvas class="bp-cv" data-sp="${sp.id}" width="440" height="330" title="Trascina per ruotare"></canvas>
       ${known && awake ? `<button class="bk-flip3d" data-fs="${sp.id}">▶ ${tr('Vivo', 'Alive')}</button>` : ''}
     </div>
     <div class="bk-name">${known ? sp.name : '? ? ?'} ${rarSpan(sp.r)}</div>

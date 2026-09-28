@@ -1,6 +1,17 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.44', it: [
+      'LE CREATURE RIDISEGNATE: vista dall\'alto come il resto del gioco, luce vera che ne fa vedere il volume, ombra nelle pieghe e contorno del loro colore — erano sagome piatte a blocchi',
+      'OGNI SPECIE HA IL SUO ASPETTO: un colore scelto a mano, un mantello (dorso scuro, strisce, macchie, pancia chiara, zampe e coda scure, anelli), e forme sue — i palchi del cervo, le corna ricurve del toro, le spirali della pecora, le orecchie a punta del lupo e tonde dell\'orso, la proboscide del mammut, la lontra di palude. Tanti animali prima si somigliavano',
+      'IL LIBRO A RISOLUZIONE DOPPIA: lo scheletro e l\'animale vivo in 3D hanno il doppio del dettaglio, e lo stesso vale per lo scheletro al centro del Museo e per il disegno di riserva quando il 3D non c\'è',
+    ], en: [
+      'THE CREATURES REDRAWN: seen from above like the rest of the game, with real light that shows their volume, shade in the folds and an outline in their own colour — they were flat blocky shapes',
+      'EVERY SPECIES HAS ITS OWN LOOK: a hand-picked colour, a coat (dark back, stripes, spots, light belly, dark legs and tail, rings), and shapes of its own — deer antlers, bull horns, sheep curls, pointed wolf ears and round bear ears, the mammoth trunk, the swamp otter. Many animals used to look alike',
+      'THE BOOK AT DOUBLE RESOLUTION: the 3D skeleton and living animal have twice the detail, and so do the skeleton in the middle of the Museum and the fallback drawing when 3D is not available',
+    ],
+  },
+  {
     v: 'v0.99.43', it: [
       'IL VIALETTO DI CASA È TORNATO, ed è più bello: parte dal cancello, è largo quanto il cancello fino alla città e ha i bordi morbidi contro l\'erba invece che a righello. Nelle ultime versioni era sparito il tratto fuori dal recinto',
       'Sul vialetto non si scava, né tu né il compagno, e le buche che c\'erano sono sparite',

@@ -3,6 +3,8 @@
    idea (una stanza a tile con arredi solidi e un NPC che pattuglia dietro il bancone) e
    nessuna di loro serve al mondo aperto. */
 import { TS, spById, PARTS, ZONES, MUSEUM_ZONES, zonePools, FURN_BY_ID, PEDESTAL_ID, furnIsSolid, furnSize, furnPlace } from './data.js';
+import { spriteDaVoxel } from './voxsprite.js';
+import { ossaColorate } from './voxview.js';
 import { drawFurnPiece, drawGroundTile, drawPaperBand, furnRise, roomDefault, furnRotatable } from './furnArt.js';
 import { drawReturnPortal, peersQui, drawPeerLocal } from './render.js'; // ciclo sicuro: chiamata solo a runtime, come drawInteriorScene(render.js→interiors.js)
 import { S, P } from './state.js';
@@ -48,19 +50,10 @@ export function exhibitSprite(spId, parts) {
   let cv = exCache.get(key); if (cv !== undefined) return cv;
   cv = null;
   try {
+    /* lo stesso disegno delle creature e del Libro (voxsprite.js): 3/4, luce, contorno d'osso */
+    const sp2 = spriteDaVoxel(ossaColorate(composedPartsVox(spId, parts)), 'side', {}, '', 1);
     cv = document.createElement('canvas'); cv.width = 72; cv.height = 64;
-    const c2 = cv.getContext('2d');
-    const vox = composedPartsVox(spId, parts);
-    let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
-    for (const v of vox) { mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z); }
-    const ox = Math.floor((cv.width - (mxx - mnx + 1)) / 2), oy = Math.floor((cv.height - (mxy - mny + 1)) / 2);
-    const zr = Math.max(1, mxz - mnz);
-    for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
-      const zt = (v.z - mnz) / zr;
-      c2.fillStyle = v.k === 'eye' ? '#3a352c' : zt < 0.34 ? '#8f887a' : zt < 0.67 ? '#d6d0c2' : '#ffffff';
-      c2.fillRect(ox + (v.x - mnx), oy + (mxy - v.y), 1, 1); // un pixel per voxel: il modello è già a risoluzione doppia (R in bones.js)
-    }
-    outlineSprite(cv, '#5e574a');                              // contorno d'osso scuro, non nero
+    cv.getContext('2d').drawImage(sp2, Math.floor((72 - sp2.width) / 2), Math.floor((64 - sp2.height) / 2));
   } catch (e) { cv = null; /* stub nei test */ }
   exCache.set(key, cv); return cv;
 }
@@ -79,21 +72,12 @@ export function centrepieceSprite() {
   let cv = cpCache.get(sp.id); if (cv !== undefined) return cv;
   cv = null;
   try {
-    const vox = buildVoxels(baseSpec(sp)), S2 = 2;
-    let mnx = 9e9, mxx = -9e9, mny = 9e9, mxy = -9e9, mnz = 9e9, mxz = -9e9;
-    for (const v of vox) { mnx = Math.min(mnx, v.x); mxx = Math.max(mxx, v.x); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnz = Math.min(mnz, v.z); mxz = Math.max(mxz, v.z); }
-    cv = document.createElement('canvas');
-    cv.width = (mxx - mnx + 1) * S2 + 8; cv.height = (mxy - mny + 1) * S2 + 8;
-    const c2 = cv.getContext('2d'); const zr = Math.max(1, mxz - mnz);
-    for (const v of vox.slice().sort((a, b) => a.z - b.z)) {
-      const zt = (v.z - mnz) / zr;
-      c2.fillStyle = v.k === 'eye' ? '#3a352c' : zt < 0.34 ? '#9a9283' : zt < 0.67 ? '#ded7c7' : '#fffdf5';
-      c2.fillRect(4 + (v.x - mnx) * S2, 4 + (mxy - v.y) * S2, S2, S2);
-    }
-    /* contorno D'OSSO, non nero, e una passata sola: due passate di nero davano una crosta
-       scura tutt'attorno alla montatura, la prima cosa che si vedeva entrando (segnalato con
-       foto). Un bruno caldo scuro stacca lo stesso dal marmo e non sembra un ritaglio. */
-    outlineSprite(cv, '#57503f');
+    /* il modello a RISOLUZIONE DOPPIA, un pixel per voxel: è grande quanto prima (erano i voxel
+       normali raddoppiati) ma con il dettaglio vero — costole, vertebre, dita — e disegnato come
+       tutto il resto (voxsprite.js). Quattro pixel di margine come prima. */
+    const sp2 = spriteDaVoxel(ossaColorate(buildVoxels(baseSpec(sp), { res: 4 })), 'side', {}, '', 1);
+    cv = document.createElement('canvas'); cv.width = sp2.width + 8; cv.height = sp2.height + 8;
+    cv.getContext('2d').drawImage(sp2, 4, 4);
   } catch (e) { cv = null; /* stub nei test */ }
   cpCache.set(sp.id, cv); return cv;
 }

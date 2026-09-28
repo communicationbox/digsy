@@ -173,6 +173,7 @@ function fleshHead(sp, horns, nx, ny, nz, out) {
     for (let dy = 0; dy < R; dy++) for (let dx = 0; dx < R; dx++) P(-U(1) + dx, cy + dy, s * U(1.3), '#1b1420');
     P(-U(1), cy + R - 1, s * U(1.3) + s, '#ffffff');
   }
+  if (bp.orecchie) orecchie(P, bp.orecchie, cy, col);
   if (bp.ears) {
     /* ORECCHIE lunghe (lepri): due falde del colore della pelle con l'interno rosa, all'indietro */
     for (const z of [-U(0.8), U(0.8)]) for (let i = 0; i < U(3.5); i++) for (let d = 0; d < R; d++)
@@ -184,10 +185,58 @@ function fleshHead(sp, horns, nx, ny, nz, out) {
   const nh = Math.min(horns || 0, bp.horns || 0);
   if (!nh) return;
   const hz = nh === 2 ? [-U(1), U(1)] : [0], hlen = U(2 + pp.size);
+  if (bp.corna && bp.corna !== 'dritte') { corna(P, bp.corna, cy, hz, hlen, w, pp); return; }
   for (const z of hz) for (let i = 0; i < hlen; i++) {
     const th = i < hlen * 0.35 ? 2 : i < hlen * 0.7 ? 1 : 0;
     for (let d = 0; d <= th; d++) for (let e = 0; e <= th; e++)
       P(-U(0.5) + Math.floor(i / 2) + e, cy + U(1.4) + i, z + d * Math.sign(z || 1), i >= hlen - 2 ? '#b8ad96' : '#ece4cf');
+  }
+}
+/* LE CORNA HANNO FORME DIVERSE, come in natura: il cervo ha i palchi ramificati, il toro le corna
+   ricurve in fuori e in avanti, il muflone le spirali ai lati, il rinoceronte un corno sul muso.
+   Prima erano tutte lo stesso cono dritto, e un toro e un cervo erano lo stesso animale. */
+function corna(P, tipo, cy, hz, hlen, w, pp) {
+  const OSSO = '#ece4cf', PUNTA = '#b8ad96';
+  const punto = (x, y, z, th, tip) => { for (let d = 0; d <= th; d++) for (let e = 0; e <= th; e++) P(Math.round(x) + e, Math.round(y), Math.round(z) + d * Math.sign(z || 1), tip ? PUNTA : OSSO); };
+  if (tipo === 'nasale') {                                     // un corno sul muso, piegato indietro
+    const x0 = -w + U(0.4), n = U(2 + pp.size * 0.6);
+    for (let i = 0; i < n; i++) punto(x0 + i * 0.35, cy + U(1) + i, 0, i < n * 0.4 ? 1 : 0, i >= n - 2);
+    return;
+  }
+  for (const z0 of hz) {
+    const s = Math.sign(z0) || 1;
+    if (tipo === 'ricurve') {                                  // toro: in fuori, poi su e in avanti
+      const n = Math.round(hlen * 1.3);
+      for (let i = 0; i < n; i++) { const t = i / n;
+        punto(-U(0.4) - U(1.6) * t * t, cy + U(1) + U(1.6) * t, s * (U(1) + U(2) * Math.sin(t * Math.PI / 2)), t < 0.45 ? 1 : 0, i >= n - 2); }
+    } else if (tipo === 'palchi') {                             // cervo: stanga all'indietro con le punte in avanti
+      const n = Math.round(hlen * 1.4);
+      for (let i = 0; i < n; i++) {
+        const x = U(0.2) + i * 0.45, y = cy + U(1.2) + i, z = s * (U(0.8) + i * 0.3);
+        punto(x, y, z, i < n * 0.3 ? 1 : 0, i >= n - 1);
+        if (i === Math.round(n * 0.4) || i === Math.round(n * 0.7) || i === n - 1)          // i rami
+          for (let j = 1; j <= U(1.2); j++) punto(x - j, y + Math.floor(j / 2), z, 0, j === U(1.2));
+      }
+    } else if (tipo === 'spirale') {                            // muflone: ricciolo sul fianco della testa
+      const rr = U(1.6), cx = U(0.6), cy2 = cy + U(0.4);
+      for (let i = 0; i < 26; i++) { const a = -Math.PI / 2 + i / 26 * Math.PI * 1.7, k = rr * (1 - i / 40);
+        punto(cx + Math.cos(a) * k, cy2 + U(0.9) + Math.sin(-a) * k * 0.9, s * (U(1.3) + i / 26 * U(0.4)), i < 12 ? 1 : 0, i >= 24); }
+    }
+  }
+}
+/* ORECCHIE A PUNTA (lupi, linci, volpi) e TONDE (orsi, topi): due forme che da sole cambiano l'animale */
+function orecchie(P, tipo, cy, col) {
+  const dentro = mixHex(col, '#f0a8b8', 0.35);
+  for (const s of [-1, 1]) {
+    if (tipo === 'punta') {
+      const n = U(1.8);
+      for (let i = 0; i < n; i++) { const larg = Math.max(0, Math.round((1 - i / n) * U(0.7)));
+        for (let d = -larg; d <= larg; d++) P(U(0.3) + d, cy + U(1.1) + i, s * U(1), d === 0 && i < n - 1 && i > 0 ? dentro : shadeHex(col, 0.92)); }
+    } else if (tipo === 'tonde') {
+      const rr = U(0.7);
+      for (let a = -rr; a <= rr; a++) for (let b = -rr; b <= rr; b++) if (a * a + b * b <= rr * rr + 1)
+        P(U(0.4) + a, cy + U(1.2) + rr + b, s * U(1.1), a * a + b * b <= (rr - 1) * (rr - 1) ? dentro : shadeHex(col, 0.9));
+    }
   }
 }
 
@@ -275,6 +324,98 @@ export const BP = {
   eternoglacio: { seg: [2, 2, 3], legs: [0], float: true, ant: true, tail: 'fin', head: 3, horns: 2 },
 };
 
+/* ================= I TRATTI DI OGNI SPECIE — il secondo passo della varietà =================
+   Le ricette qui sopra danno la SAGOMA; questi tratti danno il CARATTERE, e sono scelti a mano
+   per separare chi si somigliava (tanti quadrupedi con le corna, «tanti animali si assomigliano»):
+   il cervo ha i palchi e le macchie, il toro le corna ricurve e le zampe robuste, il bisonte anche
+   la criniera, il lupo le orecchie a punta e il dorso scuro, l'orso le orecchie tonde…
+   mantello: dorso · strisce · macchie · ventre · punte (zampe e coda) · anelli (coda) · testa
+   col2: il secondo colore (se manca: il colore del corpo scurito) · corna: dritte · ricurve ·
+   palchi · spirale · nasale · orecchie: punta · tonde · zampe: sottili · robuste · criniera: true */
+const TRATTI = {
+  /* GROTTE */
+  cavernide: { mantello: 'macchie', col2: '#7fe3e0', corna: 'nasale', orecchie: 'tonde' },
+  luceverme: { mantello: 'anelli', col2: '#bff5c9' },
+  stalattodonte: { mantello: 'punte', col2: '#3a3348', corna: 'ricurve', zampe: 'robuste' },
+  pipistrosso: { orecchie: 'punta', mantello: 'ventre', col2: '#e9d9b8' },
+  cristallugo: { mantello: 'macchie', col2: '#b8f0ff' },
+  /* PRATI */
+  /* la pecora: lana chiara, muso scuro, corna a spirale */
+  prato: { corna: 'spirale', mantello: 'testa', col2: '#4a3a34', zampe: 'sottili' },
+  lepre: { mantello: ['ventre', 'punte'], col2: '#f4efe4' },
+  erbadonte: { corna: 'nasale', zampe: 'robuste', mantello: 'dorso' },
+  rugiadino: { mantello: 'strisce', col2: '#3d3a2a' },
+  fienotauro: { corna: 'ricurve', criniera: true, zampe: 'robuste', mantello: 'punte', col2: '#4a3424' },
+  spigacervo: { corna: 'palchi', orecchie: 'punta', zampe: 'sottili', mantello: 'macchie', col2: '#f6eee0' },
+  grillosso: { mantello: 'strisce', col2: '#2f4a28' },
+  talpaurea: { orecchie: 'tonde', mantello: 'dorso', col2: '#e8c24a', zampe: 'robuste' },
+  falcedorso: { mantello: 'strisce', col2: '#6b3a2a' },
+  soleburo: { mantello: 'ventre', col2: '#f2b04a' },
+  /* DUNE */
+  gastro: { mantello: 'strisce', col2: '#e8d6a0' },
+  pinna: { mantello: ['dorso', 'ventre'], col2: '#f6f0dc' },
+  sabbiodonte: { mantello: 'macchie', col2: '#6a5236', zampe: 'robuste' },
+  conchigliante: { mantello: 'testa', col2: '#b89a5e' },
+  dunavespa: { mantello: 'strisce', col2: '#2a2218' },
+  scorpisabbia: { mantello: 'anelli', col2: '#5a3f22' },
+  miraggiolo: { mantello: 'ventre', col2: '#fff4d8' },
+  cactodonte: { mantello: 'punte', col2: '#2f5a34' },
+  ossidraco: { corna: 'ricurve', mantello: 'dorso', col2: '#e8dcc4' },
+  duneterno: { mantello: 'anelli', col2: '#c89a52' },
+  /* BOSCHI */
+  alce: { corna: 'palchi', zampe: 'robuste', criniera: true, mantello: 'punte', col2: '#3e2e22' },
+  muschio: { mantello: 'anelli', col2: '#9ac27a' },
+  corteccino: { mantello: 'strisce', col2: '#5a4430' },
+  /* l'orso-fungo: il guscio sul dorso è un cappello rosso a pois */
+  fungorso: { orecchie: 'tonde', zampe: 'robuste', mantello: ['dorso', 'macchie'], col2: '#c43c34' },
+  gufo: { mantello: 'ventre', col2: '#f0e4c8' },
+  cinervo: { corna: 'palchi', orecchie: 'punta', zampe: 'sottili', mantello: 'dorso', col2: '#4a4458' },
+  radicante: { mantello: 'anelli', col2: '#4a3020' },
+  brumavolpe: { orecchie: 'punta', mantello: ['ventre', 'punte'], col2: '#f5ede0', zampe: 'sottili' },
+  ramarrospino: { mantello: 'macchie', col2: '#2e4a2a' },
+  cinerarca: { mantello: 'dorso', col2: '#5a5a66' },
+  /* TERRE */
+  cristallo: { mantello: 'punte', col2: '#f0e6ff' },
+  scorpio: { mantello: 'anelli', col2: '#3a1e14' },
+  gessolino: { orecchie: 'tonde', mantello: 'ventre', col2: '#fbf6ec' },
+  /* la lince ha la coda CORTA: col codone era il lupo delle terre */
+  ocralince: { orecchie: 'punta', mantello: 'macchie', col2: '#5a3218', zampe: 'sottili', tail: 'short' },
+  magma: { corna: 'nasale', zampe: 'robuste', mantello: 'strisce', col2: '#f2a23a' },
+  ferrodonte: { mantello: 'anelli', col2: '#5a5048', zampe: 'robuste' },
+  bronzotauro: { corna: 'ricurve', zampe: 'robuste', mantello: 'dorso', col2: '#6a3e1e' },
+  lavalupo: { orecchie: 'punta', mantello: 'dorso', col2: '#3a1c14', zampe: 'sottili' },
+  vulcanide: { mantello: 'punte', col2: '#f2c43a' },
+  magmarex: { mantello: 'strisce', col2: '#4a1a12' },
+  /* PALUDE */
+  /* l'ippopotamo: testa larga, non il muso lungo della talpa */
+  fangodonte: { head: 0, orecchie: 'tonde', zampe: 'robuste', mantello: 'ventre', col2: '#e8b4b0' },
+  girinosso: { mantello: 'ventre', col2: '#d8e8c8' },
+  limosalta: { mantello: 'macchie', col2: '#2e4a22' },
+  salicervo: { corna: 'palchi', mantello: ['dorso', 'macchie'], col2: '#3e5236' },
+  ninfeasauro: { mantello: 'macchie', col2: '#e6f0d0' },
+  torbalupo: { orecchie: 'punta', criniera: true, mantello: 'punte', col2: '#2a3a26' },
+  zanzarone: { mantello: 'strisce', col2: '#2a2a30' },
+  /* la LONTRA di palude: corpo lungo, zampe corte e coda piatta — era un'altra lince */
+  melmalince: { seg: [2, 2, 1], legs: [4, 0], tail: 'fin', head: 1, orecchie: 'tonde', mantello: 'ventre', col2: '#efe2c4', extra: null },
+  brontorana: { mantello: ['ventre', 'macchie'], col2: '#f0e0a0' },
+  pantanarca: { mantello: 'anelli', col2: '#3a4a2a' },
+  /* GHIACCI */
+  /* il MAMMUT: proboscide, zanne ricurve, orecchie tonde e il pelo lungo — era un toro */
+  gelodonte: { head: 1, prob: true, horns: 2, corna: 'ricurve', orecchie: 'tonde', criniera: true, zampe: 'robuste', mantello: 'dorso', col2: '#5a3e30', extra: null },
+  brinalepre: { mantello: 'punte', col2: '#3a3a44' },
+  nevosauro: { mantello: 'strisce', col2: '#e8f4fa' },
+  slavinotto: { orecchie: 'tonde', mantello: 'ventre', col2: '#ffffff' },
+  ghiacciolupo: { orecchie: 'punta', mantello: ['ventre', 'dorso'], col2: '#f4f8fa', zampe: 'sottili' },
+  boreacervo: { corna: 'palchi', criniera: true, mantello: 'ventre', col2: '#f2eee6' },
+  /* il gufo delle nevi ha la cresta e sta eretto: col solo colore era il gufo dei boschi imbiancato */
+  cristalgufo: { mantello: 'macchie', col2: '#8cb8d8', head: 3, tall: true, seg: [1, 2] },
+  permafrosso: { mantello: 'anelli', col2: '#d8e8f0' },
+  /* l'orice dell'aurora: corna lunghe e dritte, collo alto e zampe sottili — l'alce resta quello robusto */
+  auroralce: { corna: 'dritte', neck: 2, zampe: 'sottili', mantello: 'dorso', col2: '#8a5ac8' },
+  eternoglacio: { mantello: 'anelli', col2: '#e8fbff', seg: [1, 2, 3], extra: 'spikes' },
+};
+for (const [id, t] of Object.entries(TRATTI)) if (BP[id]) Object.assign(BP[id], t);
+
 /* ================= assemblatore: UNA pipeline per scheletro e carne =================
    REGOLA D'ORO: ogni pezzo si RACCORDA — segmenti sovrapposti, giunzioni esplicite per
    collo/zampe/ali/code. Le chimere restano sempre attaccate.
@@ -307,7 +448,7 @@ function segRing(cx, cy, cz, r, mode, colT, out) {
 }
 /* ZAMPA: si assottiglia dall'anca al piede, e il piede appoggia largo. A un voxel di spessore
    (com'era) una zampa a scala doppia sembrerebbe un filo di ferro. */
-function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck) {
+function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse = 0) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, k === 'dark' ? 0.7 : 0.88) });
   const spesso = (x, y, z, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x + d, y, z + e * side, k); };
   /* ZAMPA RACCOLTA, in volo: coscia corta verso il basso, ginocchio, stinco RIPIEGATO
@@ -343,7 +484,7 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck) {
     spesso(lx, attachY, cz, 'bone', R);                                  // giunzione al ventre
     for (let y = attachY; y >= 0; y--) {
       /* nella carne la coscia è piena e si assottiglia verso la caviglia; lo scheletro resta osso */
-      const th = mode === 'flesh' ? (y > attachY * 0.55 ? R + 2 : R + 1) : R;   // gambe piene: con un voxel e mezzo erano stecchi
+      const th = mode === 'flesh' ? Math.max(R, (y > attachY * 0.55 ? R + 2 : R + 1) + grosse) : R;   // gambe piene (robuste +1, sottili -1)
       spesso(lx - (mode === 'flesh' && y > attachY * 0.55 ? 1 : 0), y, zz, y === Math.floor(attachY / 2) && mode !== 'flesh' ? 'dark' : 'bone', th);
     }
     for (let d = -1; d < R + 2; d++) for (let e = 0; e < R; e++) P(lx + d, 0, zz + e * side, mode === 'flesh' ? 'dark' : 'shade');   // piede largo
@@ -470,6 +611,58 @@ function headExtras(r, hx, hy, mode, colT, out) {
   if (r.prob) for (let i = 1; i <= U(5); i++) P(hx - i, hy - Math.floor(i / 2), 0, i > U(4) ? 'dark' : 'shade');
 }
 
+/* ---------- IL MANTELLO: il secondo colore di una specie ----------
+   Ogni specie era di UN colore solo, e le sagome simili (i tanti quadrupedi con le corna) si
+   distinguevano solo per la tinta: «tanti animali si assomigliano». Un mantello — dorso scuro,
+   strisce, macchie, pancia di un altro colore, zampe e coda scure, anelli — è la prima cosa che
+   distingue un animale da un altro a colpo d'occhio, ed è scritto a mano nella ricetta.
+   Si ricolorano i voxel della carne che hanno il colore del corpo (o una sua sfumatura: le zampe
+   sono al 0.88, le dita al 0.7…) mantenendo la sfumatura: la luce la fa comunque il disegno. */
+function mantello(out, r, colT) {
+  const col2 = r.col2 || shadeHex(mixHex(colT, '#2b2230', 0.4), 0.85);
+  const fam = new Map([[colT, 1]]);
+  for (const k of [0.6, 0.62, 0.7, 0.85, 0.88, 1.12]) fam.set(shadeHex(colT, k), k);
+  const tipi = Array.isArray(r.mantello) ? r.mantello : [r.mantello];
+  /* la forma del corpo, colonna per colonna: dove sta il dorso e dove la pancia */
+  const top = new Map(), bot = new Map();
+  let yMax = -1e9, xMin = 1e9, xMax = -1e9;
+  for (const v of out) if (v.p === 'torace' && fam.has(v.col)) {
+    top.set(v.x, Math.max(top.get(v.x) ?? -1e9, v.y)); bot.set(v.x, Math.min(bot.get(v.x) ?? 1e9, v.y));
+    if (v.x < xMin) xMin = v.x; if (v.x > xMax) xMax = v.x;
+  }
+  for (const v of out) if (v.p === 'zampa' && v.y > yMax) yMax = v.y;
+  let tx0 = 1e9, tx1 = -1e9;
+  for (const v of out) if (v.p === 'coda') { if (v.x < tx0) tx0 = v.x; if (v.x > tx1) tx1 = v.x; }
+  const nz = (x, y, z) => { const a = Math.sin(x * 0.61 + z * 1.7) + Math.sin(y * 0.83 - x * 0.37) + Math.sin(z * 0.97 + y * 0.53); return a / 3; };
+  for (const v of out) {
+    const k = fam.get(v.col); if (k === undefined || v.wing) continue;
+    let due = false;
+    const t = top.get(v.x), b = bot.get(v.x), h = (t ?? 0) - (b ?? 0);
+    for (const tipo of tipi) {
+      if (tipo === 'dorso' && (v.p === 'torace') && t !== undefined && v.y >= t - Math.max(R, Math.round(h * 0.28))) due = true;
+      if (tipo === 'strisce' && v.p === 'torace' && t !== undefined && v.y > b + h * 0.35 && (Math.floor((v.x - xMin) / R) % 3) === 0) due = true;
+      if (tipo === 'macchie' && (v.p === 'torace' || v.p === 'coda') && nz(v.x * 1.6 / R, v.y * 1.6 / R, v.z * 1.6 / R) > 0.3) due = true;
+      if (tipo === 'ventre' && v.p === 'torace' && b !== undefined && v.y <= b + Math.max(R, Math.round(h * 0.36))) due = true;
+      if (tipo === 'punte' && ((v.p === 'zampa' && v.y <= Math.max(R, yMax * 0.5)) || (v.p === 'coda' && v.x >= tx0 + (tx1 - tx0) * 0.6))) due = true;
+      if (tipo === 'anelli' && v.p === 'coda' && (Math.floor((v.x - tx0) / R) % 2) === 1) due = true;
+      if (tipo === 'testa' && v.p === 'cranio') due = true;
+    }
+    if (due) v.col = shadeHex(col2, k);
+  }
+}
+/* CRINIERA: ciuffi sul collo e sulla spalla, del secondo colore — il leone, il cavallo, il bisonte */
+function criniera(segsX, segs, segCys, frontX, neck, r, colT, out) {
+  const col2 = r.col2 || shadeHex(mixHex(colT, '#2b2230', 0.4), 0.85);
+  const x0 = frontX - neck * R, x1 = segsX[0] + Math.round(segs[0] * 0.3);
+  for (let x = x0; x <= x1; x++) {
+    /* la cima del corpo o del collo in quella colonna, poi due o tre voxel di pelo a ciuffi */
+    let yTop = -1e9; for (const v of out) if (v.x === x && Math.abs(v.z) <= 1 && v.col && v.y > yTop) yTop = v.y;
+    if (yTop < -1e8) continue;
+    const alto = 1 + ((x * 7) % 3 === 0 ? 2 : 1) + (R > 2 ? 1 : 0);
+    for (let d = 1; d <= alto; d++) for (let z = -1; z <= 1; z++) out.push({ x, y: yTop + d, z, col: shadeHex(col2, d === alto ? 0.8 : 1) });
+  }
+}
+
 function buildFromRecipe(spec, mode, opts) {
   const out = [];
   const noLegs = !!(opts && opts.noLegs);   // cavalcatura in volo: corpo SENZA zampe (raccolte a parte)
@@ -530,7 +723,7 @@ function buildFromRecipe(spec, mode, opts) {
       /* i BIPEDI hanno le due gambe una avanti e una indietro: nella stessa colonna, di profilo se ne
          vedeva una sola, un trampolo */
       const stag = pairs === 1 ? U(1.2) : 0;
-      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, !!(r.ant || r.head === 'none' || legDef[0] >= 6), !!(opts && opts.tuckLegs));
+      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, !!(r.ant || r.head === 'none' || legDef[0] >= 6), !!(opts && opts.tuckLegs), r.zampe === 'robuste' ? 1 : r.zampe === 'sottili' ? -1 : 0);
     }
   } else if (!r.float && !noLegs) { // striscia: spuntoni ventrali attaccati al ventre
     segsX.forEach((sx, i) => { for (let d = 0; d < R; d++) {
@@ -602,6 +795,8 @@ function buildFromRecipe(spec, mode, opts) {
   tagFrom(tTail, 'coda');
   const tExtra = out.length;
   if (r.extra) { extraVox(maxR, segsX, topYs, r.extra, mode, colT, out); tagFrom(tExtra, 'torace'); }
+  if (mode === 'flesh' && r.criniera) { const t0 = out.length; criniera(segsX, segs, segCys, frontX, neck, r, colT, out); tagFrom(t0, 'torace'); }
+  if (mode === 'flesh' && r.mantello) mantello(out, r, colT);
   const seen = new Set(), ded = [];
   for (const v of out) { const k = v.x + ',' + v.y + ',' + v.z; if (!seen.has(k)) { seen.add(k); ded.push(v); } }
   return ded;

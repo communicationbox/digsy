@@ -130,6 +130,21 @@ zonePools[CAVE_ZONE.id] = CAVE_SPECIES;
 export const spColor = Object.fromEntries(SPECIES.concat(CAVE_SPECIES).map((s, i) => [s.id, hsl2hex((i * 137.5) % 360, 42, 64)]));
 /* il drago di cristallo delle grotte (la cavalcatura) ha il suo colore scelto: indaco notte, non il lilla del giro dei colori */
 spColor.abissodonte = '#4e64b4';
+/* IL COLORE DI OGNI SPECIE, SCELTO A MANO. Era il giro dei colori (137,5° a specie): uguale
+   saturazione e luce per tutte, e due bestie della stessa forma potevano uscire tutte e due
+   azzurre — la lince ocra e il lupo dei ghiacci erano lo stesso animale (misurato: la coppia più
+   simile di tutte). Qui ogni specie ha la tinta del suo animale e del suo bioma: la volpe arancio,
+   il bisonte bruno, la lepre delle nevi bianca, la rana verde, il granchio di roccia rosso.
+   Un test pretende che nessuna coppia di specie torni troppo simile (tests/run.mjs, somiglianza). */
+Object.assign(spColor, {
+  /* PRATI */ prato: '#efe6d6', lepre: '#c4a07c', erbadonte: '#9c958c', rugiadino: '#b8cc5c', fienotauro: '#8e5e3e', spigacervo: '#d9a95e', grillosso: '#7cbf5a', talpaurea: '#6e6290', falcedorso: '#da8c5c', soleburo: '#e6c04c',
+  /* DUNE */ gastro: '#c9a2c8', pinna: '#8ec8c2', sabbiodonte: '#c8b27e', conchigliante: '#a8ba7c', dunavespa: '#e8c43c', scorpisabbia: '#c88c4c', miraggiolo: '#e6d8b2', cactodonte: '#7cab6c', ossidraco: '#e4ddcb', duneterno: '#b2a27c',
+  /* BOSCHI */ alce: '#6e4e3a', muschio: '#5e8e4e', corteccino: '#8c6c4c', fungorso: '#7a5638', gufo: '#8c7c5c', cinervo: '#8e8e9e', radicante: '#6c4c3c', brumavolpe: '#d87a3c', ramarrospino: '#5ea25e', cinerarca: '#9c9caa',
+  /* TERRE */ cristallo: '#baa2da', scorpio: '#ac3e2e', gessolino: '#e8e0d2', ocralince: '#ca8a3c', magma: '#5e3e3e', ferrodonte: '#7c6c62', bronzotauro: '#b2723c', lavalupo: '#aa4c2c', vulcanide: '#ca4c2c', magmarex: '#8c3c2c',
+  /* PALUDE */ fangodonte: '#8c7c6c', girinosso: '#4e5e4e', limosalta: '#7cb24c', salicervo: '#7c9c6c', ninfeasauro: '#6caaa2', torbalupo: '#5e6e4e', zanzarone: '#6e6e5e', melmalince: '#9c8e5c', brontorana: '#4e8e5e', pantanarca: '#4e6e5e',
+  /* GHIACCI */ gelodonte: '#8c6c5c', brinalepre: '#eef2f6', nevosauro: '#8cbad8', slavinotto: '#c8dcea', ghiacciolupo: '#b8c4d2', boreacervo: '#aa927c', cristalgufo: '#e8f0f8', permafrosso: '#7c9cba', auroralce: '#5e6e9c', eternoglacio: '#aad8e8',
+  /* GROTTE */ cavernide: '#6e5e7e', luceverme: '#5e7e6e', stalattodonte: '#7c7c8c', pipistrosso: '#5e4e5e', cristallugo: '#6c8caa',
+});
 
 /* OGGETTI di superficie (NON fossili): si raccolgono a vista con E in overworld e si vendono
    al Negozio per pochi 🪙 (i primi soldi). Rarità implicita = valore. [id, it, en, val] */

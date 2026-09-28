@@ -5762,21 +5762,26 @@ sprites.applyLook();
     const sp = ALL_SPECIES[0];
     const cv = document.createElement('canvas'); cv.width = 220; cv.height = 165;
     const bctx = cv.getContext('2d');
-    const bones = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, false, null), bctx);
-    const sil = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), true, false, null), bctx);
-    const flesh = spy(() => bookui.drawVoxel2D(cv, baseSpec(sp), false, true, null), bctx);
-    check('libro: la proiezione 2D dipinge le ossa a tre toni', bones.has('#ffffff') && bones.has('#8f887a'));
-    check('libro: la specie non identificata resta una silhouette', sil.has('#4a4438') && !sil.has('#ffffff'));
-    check('libro: la vista VIVA usa i colori della specie, non le ossa', flesh.size > 1 && !flesh.has('#d6d0c2'));
+    /* i COLORI VERI della tela (il disegno arriva pronto da voxsprite.js e si incolla: spiare
+       fillRect sulla tela del Libro non vedrebbe niente) */
+    const colori = (c) => { const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data, out = new Set();
+      for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200) out.add('#' + ((1 << 24) | (d[i] << 16) | (d[i + 1] << 8) | d[i + 2]).toString(16).slice(1));
+      return out; };
+    const chiaro = set => [...set].some(h => { const n = parseInt(h.slice(1), 16); return ((n >> 16) & 255) + ((n >> 8) & 255) + (n & 255) > 600; });
+    bookui.drawVoxel2D(cv, baseSpec(sp), false, false, null); const bones = colori(cv);
+    bookui.drawVoxel2D(cv, baseSpec(sp), true, false, null); const sil = colori(cv);
+    bookui.drawVoxel2D(cv, baseSpec(sp), false, true, null); const flesh = colori(cv);
+    check('libro: la proiezione 2D dipinge le ossa con più toni (luce, ombra, contorno)', chiaro(bones) && bones.size >= 5, bones.size + ' colori');
+    check('libro: la specie non identificata resta una silhouette', sil.has('#4a4438') && !chiaro(sil));
+    check('libro: la vista VIVA usa i colori della specie, non le ossa', flesh.size > 1 && [...flesh].some(h => !bones.has(h)));
     /* remount3D → mount3D: l'import di Three riesce anche in Node, ma senza WebGL
        mountSkeleton esplode e va preso il ramo di ripiego. È asincrono: si aspetta. */
-    const painted = new Set();
-    bctx.fillRect = () => painted.add(String(bctx.fillStyle));
+    bctx.clearRect(0, 0, cv.width, cv.height);
     const target = bookui.remount3D(cv, baseSpec(sp), false, false, null);
-    for (let i = 0; i < 200 && !painted.size; i++) await new Promise(r => setTimeout(r, 10));
-    delete bctx.fillRect;
+    let painted = new Set();
+    for (let i = 0; i < 200 && !chiaro(painted); i++) { await new Promise(r => setTimeout(r, 10)); painted = colori(cv); }
     bookui.disposeViews();
-    check('libro: senza WebGL il 3D ripiega sulla proiezione 2D (e disegna)', painted.has('#ffffff'), [...painted].join(' '));
+    check('libro: senza WebGL il 3D ripiega sulla proiezione 2D (e disegna)', chiaro(painted), painted.size + ' colori');
     check('libro: il rimontaggio riusa la canvas quando non c\'è un genitore', target === cv);
 
     /* IL LIBRO APERTO PER DAVVERO. Lo stub restituisce sempre [] da querySelectorAll, quindi
@@ -5797,10 +5802,11 @@ sprites.applyLook();
     S.codex = ALL_SPECIES.slice(0, 4).map(x => x.id);   // 4 specie = 2 pagine: si può sfogliare
     S.museum[sp.id] = ['cranio'];              // un solo pezzo consegnato: il resto resta spento
     /* openBook dipinge sulle canvas della pagina: si spia QUELLA, non la tela del gioco */
-    const page = spy(() => bookui.openBook(0), cvSketch.getContext('2d'));
-    check('libro: aprendo una pagina lo schizzo della specie viene dipinto', page.has('#ffffff') || page.has('#d6d0c2'));
-    /* il senso dell'oscuramento: si accende solo ciò che hai davvero portato al Museo */
-    check('libro: i pezzi non ancora consegnati restano spenti', page.has('#403a55') || page.has('#332e42'));
+    bookui.openBook(0); const page = colori(cvSketch);
+    check('libro: aprendo una pagina lo schizzo della specie viene dipinto', chiaro(page));
+    /* il senso dell'oscuramento: si accende solo ciò che hai davvero portato al Museo (i pezzi
+       spenti sono violetti scuri: blu più forte del rosso, e scuri) */
+    check('libro: i pezzi non ancora consegnati restano spenti', [...page].some(h => { const n = parseInt(h.slice(1), 16), r = (n >> 16) & 255, b = n & 255; return b > r + 12 && r + ((n >> 8) & 255) + b < 260; }));
     /* SFOGLIATA: la pagina si piega e il contenuto cambia a metà giro, quindi il numero
        arriva dopo l'animazione — si aspetta invece di scavalcarla, perché è proprio il
        giro completo (piega, cambio, rientro) che deve finire senza incastrarsi */
@@ -12212,6 +12218,36 @@ sprites.applyLook();
   st.S.home = homePrima; wld.invalidateHouseDecoCache();
   P3.x = keepP.x; P3.y = keepP.y;
   cvx.width = W0; cvx.height = H0; Object.assign(scr.view, v0);
+}
+
+/* ---------- LE SPECIE NON SI ASSOMIGLIANO ----------
+   «Tanti animali si assomigliano»: sagome uguali di colori diversi (i quadrupedi con le corna) e
+   colori generati che mettevano due bestie simili tutte e due azzurre. Ora ogni specie ha colore,
+   mantello e tratti scelti a mano, e questa prova misura la somiglianza di OGNI coppia sul disegno
+   vero (sagoma + colori, src/somiglia.js): nessuna può tornare sopra la soglia. Per vedere le
+   coppie più vicine: node tests/coppie.mjs */
+{
+  const rr = await import('../src/render.js');
+  const dd = await import('../src/data.js');
+  const bo = await import('../src/bones.js');
+  const { firma, somiglianza } = await import('../src/somiglia.js');
+  const sp = dd.ALL_SPECIES;
+  const F = sp.map(s1 => firma(rr.creatureSprite({ c: { skull: s1.id, torso: s1.id, leg: s1.id, q: 'raro' } }, 'side')));
+  let peggiore = [0, '', ''];
+  for (let i = 0; i < sp.length; i++) for (let j = i + 1; j < sp.length; j++) { const v = somiglianza(F[i], F[j]); if (v > peggiore[0]) peggiore = [v, sp[i].id, sp[j].id]; }
+  check('nessuna coppia di specie si assomiglia troppo (somiglianza < 0,82)', peggiore[0] < 0.82, peggiore[0].toFixed(3) + ' ' + peggiore[1] + ' ~ ' + peggiore[2]);
+  const colori = sp.map(s1 => dd.spColor[s1.id]);
+  check('ogni specie ha un colore suo, e nessuna lo condivide', colori.every(c => /^#[0-9a-f]{6}$/i.test(c)) && new Set(colori).size === colori.length);
+  const VAL = { mantello: ['dorso', 'strisce', 'macchie', 'ventre', 'punte', 'anelli', 'testa'], corna: ['dritte', 'ricurve', 'palchi', 'spirale', 'nasale'], orecchie: ['punta', 'tonde'], zampe: ['sottili', 'robuste'] };
+  const male = [];
+  for (const [id, r2] of Object.entries(bo.BP)) for (const [k, ok] of Object.entries(VAL)) {
+    if (r2[k] == null) continue;
+    for (const v of [].concat(r2[k])) if (!ok.includes(v)) male.push(id + '.' + k + '=' + v);
+  }
+  check('i tratti delle specie usano solo valori che il modello sa disegnare', male.length === 0, male.join(' '));
+  /* il mantello si vede davvero: una specie col dorso scuro ha il secondo colore nel suo modello */
+  const vox = bo.buildFleshVoxels(bo.baseSpec(dd.spById.lavalupo));
+  check('il mantello finisce nel modello (il lupo delle terre ha il dorso scuro)', vox.some(v => v.col && v.col.toLowerCase() === '#3a1c14'));
 }
 
 failures += summary('digsy-world');

@@ -969,6 +969,25 @@ per il motore di Safari): una finestra che si apriva con la musica mentre Marco 
 passare da `step` (edifici) o tenerlo fuori dalla cache; il controllo «la cache del disegno non
 cambia un pixel» in run.mjs e il confronto in `npm run perf` lo scoprono.
 
+## Le creature: disegno, varietà, risoluzione (v0.99.44)
+- **Il disegno 2D** sta in `voxsprite.js` (`spriteDaVoxel`), per creature, cavalcatura, ossa di
+  zaino/teche/Libro (`projectVox` in voxview.js), scheletro della rotonda: vista **3/4 dall'alto**
+  (`INCLINA`), normale LISCIA dalla massa in raggio 3 (con i soli vicini veniva granulosa), luce e
+  «piega» MEDIATE sui pixel vicini della stessa superficie (senza: righe orizzontali, perché la
+  vista dall'alto pesca voxel di due profondità), 4 toni che virano al freddo/caldo, contorno del
+  colore della parte. Il modello sta in una griglia `Uint8Array` (le stringhe costavano 20 ms a
+  creatura). Supercampionamento (`ss` = 2: modello a risoluzione 4 ridotto) c'è ma nel mondo NON si
+  usa: 16 ms contro 4 per una differenza che a quella grandezza si vede appena.
+- **La varietà**: `spColor` è scelto a MANO per specie (data.js; il giro dei colori metteva due
+  bestie simili dello stesso colore) e `TRATTI` in bones.js aggiunge alla ricetta mantello (+`col2`),
+  corna, orecchie, zampe, criniera — e dove serve cambia la sagoma (mammut, lontra, orice, gufo delle
+  nevi). Una prova misura la somiglianza di OGNI coppia sul disegno vero (`somiglia.js`): sopra 0,82
+  fallisce. Per guardare: `node tests/specie.mjs [side|front|back|tutte] [scala]` (foglio di tutte le
+  specie in .shots/specie.png, in Node, meno di un secondo) e `node tests/coppie.mjs [n]`.
+- **Risoluzione doppia** nel Libro (`skeleton3d.js` costruisce a `res: 4`, tele 440×330), nella scheda
+  della teca, nel disegno di riserva del Libro e nello scheletro della rotonda. Nel mondo le creature
+  restano a 2: un pixel per voxel è la misura dei pixel del gioco.
+
 ## REGOLE FERREE (già sbagliate in passato — non ripeterle)
 1. **Animazioni: la fase viene SOLO dal tempo.** Mai da `sx`/`sy`/`cx` (coordinate schermo):
    con la camera in movimento l'animazione "corre" col personaggio. Se serve variare per

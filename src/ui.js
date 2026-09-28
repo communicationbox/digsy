@@ -2251,7 +2251,7 @@ export function openExhibit(spId) {
   /* la canvas è più grande e più chiara del francobollo di prima: qui dentro ora GIRA lo
      scheletro 3D, e un modello che ruota dentro 216×180 non si legge. Fondo carta come nel
      Libro (il 3D si disegna su sfondo chiaro), e si trascina per ruotarlo. */
-  let h = `<div class="center" style="padding:4px"><canvas id="exhCv" width="220" height="165" style="width:100%;max-width:320px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px;touch-action:none;cursor:grab" title="${tr('Trascina per ruotare', 'Drag to rotate')}"></canvas></div>`;
+  let h = `<div class="center" style="padding:4px"><canvas id="exhCv" width="440" height="330" style="width:100%;max-width:320px;height:auto;image-rendering:pixelated;background:#f6efdd;border:2px solid #6b5137;border-radius:8px;touch-action:none;cursor:grab" title="${tr('Trascina per ruotare', 'Drag to rotate')}"></canvas></div>`;
   h += `<div class="row"><div class="nm">${rarSpan(sp.r)} · ${zone ? zone.icon + ' ' + zoneName(zone.id) : ''}</div></div>`;
   h += `<div class="row"><div class="sub">${tr('Pezzi esposti', 'Pieces on display')}: ${parts.length}/${PARTS.length} — ${PARTS.map(pt => (parts.includes(pt.id) ? '✓ ' : '· ') + partName(pt.id)).join(' · ')}</div></div>`;
   if (parts.length === PARTS.length) h += `<div class="row" style="background:#f1e6cc"><div class="sub">🧬 ${tr('Teca completa: DNA al banco', 'Case complete: DNA at the desk')} ${dnaBadge(spId)}</div></div>`;

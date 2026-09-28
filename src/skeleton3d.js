@@ -14,13 +14,18 @@ export function mountSkeleton(canvas, spec, opts = {}) {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0xf6efdd);
 
-  const voxels = given || (flesh ? buildFleshVoxels(spec) : buildVoxels(spec)); // `given`: meraviglie e altri modelli non-scheletro
+  /* RISOLUZIONE DOPPIA nel Libro: il modello si costruisce a 4 (voxel grandi la metà) — costole
+     separate, dita, becchi, occhi veri. Nel mondo le creature restano a 2 (un pixel per voxel, la
+     misura dei pixel del gioco); qui si guarda da vicino, ed è qui che il modello si vede.
+     Chi passa un modello suo (`given`: meraviglie) lo porta alla sua risoluzione. */
+  const RES = given ? 1 : 2;
+  const voxels = given || (flesh ? buildFleshVoxels(spec, { res: 4 }) : buildVoxels(spec, { res: 4 }));
   /* bounding box per centrare e inquadrare */
   let mn = [9e9, 9e9, 9e9], mx = [-9e9, -9e9, -9e9];
   for (const v of voxels) { [v.x, v.y, v.z].forEach((c, i) => { mn[i] = Math.min(mn[i], c); mx[i] = Math.max(mx[i], c); }); }
   const cx = (mn[0] + mx[0]) / 2, cy = (mn[1] + mx[1]) / 2, cz = (mn[2] + mx[2]) / 2;
   /* inquadratura con minimo fisso: le creature piccole APPAIONO piccole (la taglia si legge) */
-  const span = Math.max(26, Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) + 4);
+  const span = Math.max(26 * RES, Math.max(mx[0] - mn[0], mx[1] - mn[1], mx[2] - mn[2]) + 4 * RES);
 
   const group = new THREE.Group();
   const geo = new THREE.BoxGeometry(1, 1, 1);

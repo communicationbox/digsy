@@ -4,6 +4,7 @@ import { FOOT_DY } from './body.js';
 import { partParams, composedPartsVox, buildFleshVoxels, clampSpec, BP } from './bones.js';
 import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH, dipingiIn, setStrati } from './brush.js';
+import { spriteDaVoxel } from './voxsprite.js';
 export { BRUSH };
 import { S, P, cam, dugSet, choppedSet, minedSet, pickedSet } from './state.js';
 import { DEEP, WATER, SAND, GRASS, FOREST, DIRT, MTN, FLOOR, PARK, ROAD, baseTerrain, diggable, decoAt, pickupAt, decoStaticAt, pickupBaseAt, townInfo, townForTile, siteAt, boneSiteAt, boneSitePitAt, wreckAt, caveEntranceAt, landmarkAt, harvestDecoAt, parkDeco, townForCell, TCELL, houseFootprint, yardInfo, yardRect, homeRoadAt, homePathAt } from './world.js';
@@ -617,96 +618,12 @@ export function creatureSprite(a, view, opts) {
   try {
     const c = spById[a.c.skull], t = spById[a.c.torso], z = spById[a.c.leg];
     const spec = { heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
+    /* il disegno vero sta in voxsprite.js: vista 3/4, luce dal modello, quattro toni.
+       (Il supercampionamento — modello a risoluzione doppia ridotto a metà — c'è, `ss` = 2, ma qui
+       non si usa: costava 16 ms a creatura contro 4, e la differenza a questa grandezza si vede
+       appena. Entrando in un cortile pieno di chimere diventava un fermo di un secondo.) */
     const vox = buildFleshVoxels(clampSpec(spec), opts);
-    /* asse orizzontale (h), profondità (d) per l'ordine pittore (far→near). La verticale è sempre y.
-       FRONT: la TESTA (x piccolo) deve stare DAVANTI (vicina) → si vede la FACCIA; con la profondità
-       non invertita il corpo copriva la testa e l'animale sembrava di spalle. BACK all'opposto. */
-    const proj = view === 'side' ? v => [v.x, v.z]
-      : view === 'front' ? v => [v.z, -v.x]         // testa vicina → faccia visibile
-        : v => [v.z, v.x];                          // back: testa lontana (si vede la schiena)
-    let mnh = 9e9, mxh = -9e9, mny = 9e9, mxy = -9e9, mnd = 9e9, mxd = -9e9;
-    for (const v of vox) { const [h, d] = proj(v); mnh = Math.min(mnh, h); mxh = Math.max(mxh, h); mny = Math.min(mny, v.y); mxy = Math.max(mxy, v.y); mnd = Math.min(mnd, d); mxd = Math.max(mxd, d); }
-    const spanH = mxh - mnh + 1, spanY = mxy - mny + 1, dr = Math.max(1, mxd - mnd);
-    const pad = 1, cw = spanH + pad * 2, ch = spanY + pad * 2;
-    /* UN pixel per voxel. Prima ne servivano due perché il modello era a risoluzione metà:
-       la creatura veniva su grande come serve, ma coi pixel grossi il doppio di tutto il resto
-       del gioco (segnalato con foto). Ora il modello stesso è a risoluzione doppia (`R` in
-       bones.js), quindi la taglia resta questa e i pixel sono quelli del mondo. */
-    const S2 = 1;
-    cv = document.createElement('canvas'); cv.width = cw * S2; cv.height = ch * S2;
-    const g = cv.getContext('2d');
-    /* BUFFER di profondità: per ogni pixel il voxel più VICINO (colore, profondità, tipo).
-       Da qui si ricava tutto il resto — prima ogni voxel veniva dipinto col suo tono a bande di
-       profondità, e la creatura usciva piatta: niente luce, ventre come la schiena, zampe e testa
-       fuse col corpo in un'unica macchia. */
-    const buf = new Map();
-    for (const v of vox) {
-      const [h, d] = proj(v);
-      const gx = pad + (h - mnh), gy = pad + (mxy - v.y), k = gx + ',' + gy;
-      const cur = buf.get(k);
-      if (!cur || d > cur.d) buf.set(k, { d, col: v.col || '#c8b078', eye: v.k === 'eye', nearWing: !!v.wing && view === 'side' && v.z > 0 });
-    }
-    const at = (x, y) => buf.get(x + ',' + y);
-    /* altezza del corpo per il ventre chiaro: dall'alto al basso della sagoma, per colonna */
-    const colTop = {}, colBot = {};
-    for (const k of buf.keys()) { const [x, y] = k.split(',').map(Number); colTop[x] = Math.min(colTop[x] ?? 9e9, y); colBot[x] = Math.max(colBot[x] ?? -9e9, y); }
-    const sid = String(a.c.torso || ''), hsh = [...sid].reduce((h, ch) => (h * 31 + ch.charCodeAt(0)) >>> 0, 7);
-    const pattern = hsh % 3;                                   // 0 niente · 1 macchie · 2 strisce sul dorso
-    const cells = [];
-    for (const [k, p] of buf) {
-      const [x, y] = k.split(',').map(Number);
-      if (p.eye) {
-        if (view === 'back') { cells.push([x, y, shade8(p.col, 0.9)]); continue; }
-        const up = at(x, y - 1), lf = at(x - 1, y);
-        cells.push([x, y, (up && up.eye) || (lf && lf.eye) ? '#1a1410' : '#f6f0e0']);   // punto di luce in alto a sinistra dell'occhio
-        continue;
-      }
-      const up = at(x, y - 1), dn = at(x, y + 1), lf = at(x - 1, y), rt = at(x + 1, y);
-      const DJ = (o.res || 2) + (view === 'side' ? 0 : 2);   // salto di profondità = parte davanti a un'altra (di fronte i segmenti del corpo fanno gradini, non parti)
-      let t = 0.5 + (p.d - mnd) / dr * 0.12;                   // le parti più vicine un filo più chiare
-      if (!up || up.d < p.d - DJ) t += 0.32;                   // bordo in alto: prende luce
-      if (!dn || dn.d < p.d - DJ) t -= 0.3;                    // bordo in basso: ombra
-      if (!lf) t += 0.1;
-      if (!rt) t -= 0.12;
-      let col = p.col;
-      const bh = Math.max(1, colBot[x] - colTop[x]), vy = (y - colTop[x]) / bh;
-      if (vy > 0.62 && bh > 6) col = mixHex(col, '#f4e8cc', 0.28);                 // ventre più chiaro
-      if (pattern === 1 && vy < 0.45 && ((x * 7 + y * 13 + hsh) % 11) === 0) t -= 0.28;   // macchie sul dorso
-      if (pattern === 2 && vy < 0.5 && ((x + (hsh & 7)) % 5) === 0) t -= 0.2;          // strisce
-      /* linea interna: il vicino DIETRO è molto più lontano → si scurisce il bordo di chi sta dietro */
-      for (const nb of [up, dn, lf, rt]) if (nb && nb.d > p.d + DJ + 1) { t = Math.min(t, 0.12); break; }
-      const f = t > 0.78 ? 1.2 : t > 0.52 ? 1.0 : t > 0.28 ? 0.82 : t > 0.08 ? 0.66 : 0.52;
-      cells.push([x, y, shade8(col, f)]);
-    }
-    /* contorno: scuro, ma del colore di chi lo tocca (non un nero uniforme) */
-    const seen = new Set();
-    for (const [x, y] of cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-      const nx = x + dx, ny = y + dy, nk = nx + ',' + ny;
-      if (buf.has(nk) || seen.has(nk)) continue; seen.add(nk);
-      g.fillStyle = shade8(buf.get(x + ',' + y).col, 0.3); g.fillRect(nx * S2, ny * S2, S2, S2);
-    }
-    for (const [x, y, col] of cells) { g.fillStyle = col; g.fillRect(x * S2, y * S2, S2, S2); }
-    /* ALA VICINA a parte (solo cavalcatura, di profilo): si ridisegna SOPRA il pilota, altrimenti l'ala
-       che sta dalla nostra parte sembrava dietro l'omino */
-    if (o.wingFlap != null && view === 'side') {
-      const fcv = document.createElement('canvas'); fcv.width = cw * S2; fcv.height = ch * S2;
-      const fg = fcv.getContext('2d'), near = new Set();
-      for (const [x, y] of cells) if (buf.get(x + ',' + y).nearWing) near.add(x + ',' + y);
-      for (const k of near) { const [x, y] = k.split(',').map(Number); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        const nk = (x + dx) + ',' + (y + dy); if (near.has(nk)) continue;
-        fg.fillStyle = shade8(buf.get(k).col, 0.3); fg.fillRect((x + dx) * S2, (y + dy) * S2, S2, S2);
-      } }
-      for (const [x, y, col] of cells) if (near.has(x + ',' + y)) { fg.fillStyle = col; fg.fillRect(x * S2, y * S2, S2, S2); }
-      cv._front = near.size ? fcv : null;
-    }
-    const grid = {}; for (const k of buf.keys()) grid[k] = 1;
-    const cellsXY = cells.map(([x, y]) => [x, y]);
-    cv._ax = (spanH / 2 + pad) * S2; // ancoraggio orizzontale (centro)
-    /* cima della schiena vicino al centro del corpo (per sella e cavaliere): si scartano teste e
-       colli, cercando la colonna più bassa fra le tre centrali */
-    let back = -1; const mid = Math.round(spanH / 2 + pad);
-    for (let dx = -2; dx <= 2; dx++) { const tpy = colTop[mid + dx]; if (tpy !== undefined && tpy > back) back = tpy; }
-    cv._back = back < 0 ? 0 : back;
+    cv = spriteDaVoxel(vox, view, o, a.c.torso, 1);
   } catch (e) { cv = null; /* stub nei test */ }
   creCache.set(key, cv); return cv;
 }
