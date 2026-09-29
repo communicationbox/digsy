@@ -1104,7 +1104,7 @@ function wonderBounds(type) {
   try {
     const cv2 = document.createElement('canvas');
     cv2.width = WO_PROBE_W; cv2.height = WO_PROBE_H;
-    const c2 = cv2.getContext('2d');
+    const c2 = cv2.getContext('2d', { willReadFrequently: true });   // tela di misura: si legge e basta
     if (c2 && c2.getImageData) {
       const g2 = {
         ctx: c2,

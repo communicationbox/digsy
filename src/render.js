@@ -298,7 +298,7 @@ function statueSprite() {
   statueCv = false;                                    // se qualcosa manca, si rinuncia una volta per tutte
   try {
     const cv = document.createElement('canvas'); cv.width = 32; cv.height = 34;
-    const c2 = cv.getContext('2d'); if (!c2 || !c2.getImageData) return statueCv;
+    const c2 = cv.getContext('2d', { willReadFrequently: true }); if (!c2 || !c2.getImageData) return statueCv;   // si rilegge per il contorno
     c2.imageSmoothingEnabled = false;
     const keep = S.look;
     S.look = STATUE_LOOK; applyLook();

@@ -273,7 +273,9 @@ function pickupSprite(id) {
   cv = null;
   try {
     cv = document.createElement('canvas'); cv.width = 32; cv.height = 32;
-    paintPickup(makeCanvasBrush(cv.getContext('2d')), id, 16, 24);
+    /* la tela nasce per essere LETTA (sagoma e tinta media): lo si dice a Chrome alla prima
+       getContext, o avvisa in console e legge i pixel dalla scheda grafica, più lentamente */
+    paintPickup(makeCanvasBrush(cv.getContext('2d', { willReadFrequently: true })), id, 16, 24);
     /* il contorno prende la tinta MEDIA dell'oggetto, non un grigio-nero fisso: una spiga
        dorata cerchiata di nero sembra un adesivo, e con venti oggetti diversi si vedeva */
     outlinePx(cv, tintaMedia(cv, 0.34));
