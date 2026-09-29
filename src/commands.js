@@ -53,6 +53,8 @@ import { zoneAt } from './regions.js';
 import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, caveEntranceAt, siteForCell, SCELL, wreckForCell, WCELL, landmarkAt, LCELL, boneSiteForCell, BCELL, isSolidTile, yardRect, hasMuseum } from './world.js';
 import { enterCave } from './cave.js';
 import { WEATHER_TYPES } from './weather.js';
+import { misuraFps } from './diag.js';
+import { cacheStat } from './world.js';
 import { playIntro } from './intro.js';
 
 /* ---- helper contenuti ---- */
@@ -688,6 +690,18 @@ export const COMMANDS = {
   fly: { type: 'action', cheat: true, help: H('fly', 'attraversa gli ostacoli (on/off)', 'walk through obstacles (on/off)'), run: OLD.fly.run },
   stress: { type: 'both', cheat: true, help: H('stress=1-5', 'riempie il gioco e misura i frame', 'fills the game and measures frames'), run: OLD.stress.run },
   info: { type: 'action', help: H('info', 'stato del compagno (debug)', 'companion state (debug)'), run: OLD.compinfo.run },
+  /* NON è un cheat: misura e basta (diag.js). Il resoconto arriva dopo 3 s nel pannello della
+     console e in un avviso, perché la misura va presa camminando, con la console magari chiusa. */
+  fps: { type: 'action', help: H('fps', 'misura la fluidità per 3 s (cammina mentre misura)', 'measures smoothness for 3 s (walk while it measures)'),
+    run: () => {
+      const ok = misuraFps(() => ({ moving: !!P.moving, cache: cacheStat() }), testo => {
+        if (typeof console !== 'undefined') console.log(testo);
+        const out = typeof document !== 'undefined' && document.getElementById('cmdout');
+        if (out) { out.textContent = testo; out.style.display = ''; }
+        toast(testo.split('\n').slice(1, 4).join(' · '));
+      }, tr);
+      return ok ? '🐞 ' + tr('Misuro per 3 secondi: cammina adesso', 'Measuring for 3 seconds: walk now') : tr('Misura già in corso', 'Already measuring');
+    } },
   intro: { type: 'action', help: H('intro', 'rivedi il filmato iniziale', 'replay the intro'), run: OLD.intro.run },
   vanilla: { type: 'action', help: H('vanilla', 'togli i cheat e torna alla partita di prima', 'remove cheats and restore your game'), run: OLD.vanilla.run },
   help: { type: 'action', help: H('help', 'questo elenco', 'this list'), run: () => tr('Comandi:\n', 'Commands:\n') + commandHelp().map(t => '  ' + t).join('\n') },

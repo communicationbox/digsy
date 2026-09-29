@@ -35,6 +35,7 @@ la partita com'era prima del primo cheat.
 | `fly` | ✔ | attraversa gli ostacoli (on/off) |
 | `stress=1-5` | ✔ | riempie il gioco e misura i frame |
 | `info` | | stato del compagno (debug) |
+| `fps` | | misura la fluidità per 3 s mentre cammini: fps, strappi, lavoro del gioco, memoria, cache (resoconto nel pannello e in console) |
 | `intro` | | rivedi il filmato iniziale |
 | `vanilla` | | toglie i cheat |
 

@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.51', it: [
+      'Nella console dei comandi c\'è `fps`: se il gioco ti sembra scattare, scrivilo e cammina per 3 secondi — misura fluidità, strappi e memoria sul tuo computer',
+    ], en: [
+      'The command console has `fps`: if the game feels choppy, type it and walk for 3 seconds — it measures smoothness, hitches and memory on your computer',
+    ],
+  },
+  {
     v: 'v0.99.50', it: [
       'Il gioco non accumula più memoria camminando: il mondo già visto si ricordava tutto, casella per casella, e dopo ore di esplorazione pesava sempre di più',
     ], en: [

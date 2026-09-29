@@ -17,6 +17,7 @@ import { checkWonderDiscovery, checkGateNotice } from './gameplay.js';
 import { wonderName } from './wonders.js';
 import { refreshVisParks, yardNear, updatePark, stepGateWalk } from './park.js';
 import { render, setTileCache } from './render.js';
+import { DIAG, diagLavoro } from './diag.js';
 import { guardia } from './ritmo.js';
 import { initSplash, splashActive, cloudEnabled, drawCornerAt } from './splash.js';
 import { keys, steerFollow, checkStatueArrival } from './input.js';
@@ -155,7 +156,13 @@ let invitoFermo = false;   // un link d'invito aperto a tutorial in corso: ferma
    tiene fermo al centro, quindi a scattare è tutto il resto — segnalato). Con le cache del
    disegno un fotogramma costa un millisecondo o poco più: il tetto non serve. */
 const GUARDIA = { on: true };
+DIAG.guardia = GUARDIA;
+/* il lavoro di ogni fotogramma, solo mentre il comando `fps` misura (diag.js) */
 function loop(ts) {
+  if (!DIAG.on) { loopCorpo(ts); return; }
+  const a = performance.now(); loopCorpo(ts); diagLavoro(performance.now() - a);
+}
+function loopCorpo(ts) {
   /* la guardia delle cache (ritmo.js): se col disegno in cache si va lenti, le prova spente */
   { const prima = GUARDIA.on; if (guardia(GUARDIA, ts - last, ts) !== prima) setTileCache(GUARDIA.on); }
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;

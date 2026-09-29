@@ -4889,6 +4889,22 @@ sprites.applyLook();
   S.companion = keep; comp9.resetCompanionTrail();
 }
 
+/* il comando `fps` misura sul computer di chi gioca: c'è, NON è un cheat (non tocca la partita),
+   e una seconda misura mentre la prima è in corso viene rifiutata invece di sovrapporsi */
+{
+  const cm = await import('../src/commands.js'), dg = await import('../src/diag.js');
+  check('comando fps: esiste e non è un cheat', !!cm.COMMANDS.fps && !cm.COMMANDS.fps.cheat);
+  dg.DIAG.on = true;
+  check('comando fps: una misura alla volta', dg.misuraFps(() => ({ moving: false }), () => {}, (a) => a) === false);
+  dg.DIAG.on = false;
+  /* e la misura intera, con un requestAnimationFrame finto: il resoconto dice quello che promette */
+  const rafVero = globalThis.requestAnimationFrame;
+  globalThis.requestAnimationFrame = cb => setTimeout(() => cb(performance.now()), 4);
+  const testo = await new Promise(ok => { dg.misuraFps(() => ({ moving: true, cache: { terr: 1, deco: 2 } }), ok, (a) => a, 400); setTimeout(() => { dg.diagLavoro(2); dg.diagLavoro(40); }, 50); });
+  globalThis.requestAnimationFrame = rafVero;
+  check('comando fps: il resoconto ha fps, strappi, lavoro, memoria e caselle', /fps \d+/.test(testo) && /strappi/.test(testo) && /lavoro del gioco/.test(testo) && /memoria/.test(testo) && /caselle in memoria: 1\/2/.test(testo) && /in movimento 100%/.test(testo), testo);
+}
+
 /* ---------- LE CACHE PER CASELLA HANNO UN TETTO ----------
    «Dopo un po' che sta acceso non va più fluido quando mi muovo»: terreno, decorazioni e imbocchi
    di grotta tenevano ogni casella mai vista, senza limite (tests/durata.mjs: +20 000 voci al minuto
