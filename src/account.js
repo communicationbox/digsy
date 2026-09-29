@@ -9,7 +9,7 @@
  */
 import { S, save as saveLocal, snapshotState, setSaveHook, setSlotSaveHook,
   slotRaw, setSlotRaw, SLOTS } from './state.js';
-import { cloud, fetchMe, loginWithGoogle, logout, deleteAccount, pullSave, pushSave,
+import { cloud, setConflictHandler, fetchMe, loginWithGoogle, logout, deleteAccount, pullSave, pushSave,
   scheduleSync, flushSync, describeSave, compareSaves, deviceName, setKickedHandler,
   pullAllSaves } from './cloud.js';
 import { tr } from './i18n.js';
@@ -149,6 +149,11 @@ export function wireSync() {
   setKickedHandler(() => {
     toast('☁️ ' + tr('Hai fatto l\'accesso da un\'altra parte: questa partita resta solo qui.', 'You signed in somewhere else: this game stays only here.'));
   });
+  /* partita online diversa da questa, scoperta mentre si gioca: lo si dice UNA volta e si
+     indica dove scegliere. Fino alla scelta non si sovrascrive niente, né qui né là. */
+  setConflictHandler(() => {
+    toast('☁️ ' + tr('La partita online è diversa da questa (hai giocato da un altro dispositivo?). Scegli quale tenere: Menu → Salvataggi → il tuo account.', 'The online game differs from this one (did you play on another device?). Choose which to keep: Menu → Saves → your account.'));
+  });
   /* Chiudendo la scheda l'ultimo salvataggio è ancora in attesa dei 4 secondi di quiete:
      `pagehide` è l'unico evento affidabile anche su iOS, dove `beforeunload` spesso non
      scatta e la scheda viene congelata senza preavviso. */
@@ -253,6 +258,23 @@ export function applyRemote(remote, reload = true) {
     if (reload && typeof location !== 'undefined' && location.reload) location.reload();
     return true;
   } catch (e) { return false; }
+}
+
+/* IL CONFLITTO IN CORSO, per la schermata della scelta: la partita del server e i riassunti delle
+   due, con quello che il giocatore riconosce (giorno, monete, reperti) e da dove viene quella online.
+   null se non c'è niente da scegliere. */
+export function conflittoInCorso() {
+  if (cloud.status !== 'conflict' || !cloud.conflict || !cloud.conflict.server || !cloud.conflict.server.data) return null;
+  const server = cloud.conflict.server;
+  let remoto = null; try { remoto = JSON.parse(server.data); } catch (e) { /* illeggibile */ }
+  return { server, localSum: riassuntoLeggibile(S), remoteSum: riassuntoLeggibile(remoto) + (server.device ? ' · ' + tr('da ', 'from ') + server.device : '') };
+}
+/* «giorno 14 · 812 monete · 37 reperti»: quello che il giocatore riconosce, in parole — il
+   riassunto corto del server (g14 · 812c · 37r) in un pulsante si leggeva come un codice */
+export function riassuntoLeggibile(st) {
+  if (!st) return tr('illeggibile', 'unreadable');
+  const finds = (st.items || []).length + (st.raw || []).length;
+  return tr('giorno ', 'day ') + (st.day || 1) + ' · ' + (st.coins || 0) + tr(' monete', ' coins') + ' · ' + finds + tr(' reperti', ' finds');
 }
 
 /* manda la partita locale, sovrascrivendo quella del server (scelta esplicita del giocatore) */

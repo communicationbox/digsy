@@ -233,12 +233,18 @@ export async function openAccount() {
   }
 }
 
+/* il conflitto da mostrare: quello del login (acc.conflict) o quello scoperto MENTRE si gioca,
+   che sta nello stato del collegamento. Il secondo prima non compariva da nessuna parte. */
+function conflitto() {
+  if (acc.conflict && acc.conflict.data) return { server: acc.conflict, localSum: acc.localSum, remoteSum: acc.remoteSum };
+  return acc.mod && acc.mod.conflittoInCorso ? acc.mod.conflittoInCorso() : null;
+}
 /* i pulsanti della schermata: si ricollegano a ogni ridisegno del menu */
 export function wireAccountButtons(redraw) {
   const kl = document.getElementById('sp-keeplocal');
   if (kl) kl.onclick = async () => { await acc.mod.keepLocal(); acc.conflict = null; redraw(); };
   const kr = document.getElementById('sp-keepremote');
-  if (kr) kr.onclick = () => { acc.mod.applyRemote(acc.conflict); };
+  if (kr) kr.onclick = () => { const cf = conflitto(); if (cf) acc.mod.applyRemote(cf.server); };
   const so = document.getElementById('sp-signout');
   if (so) so.onclick = async () => { await acc.mod.signOut(); acc.user = null; redraw(); };
   const da = document.getElementById('sp-delacc');
@@ -801,12 +807,15 @@ function buildMenu(inGame) {
     if (acc.user) {
       h += `<p class="sp-acc-who">${esc(acc.user.email || acc.user.name || '')}</p>`;
       h += `<p class="sp-acc-st">${accountStatus()}</p>`;
-      if (acc.conflict) {
+      const cf = conflitto();
+      if (cf) {
         /* DUE PARTITE DIVERSE: non si sceglie per lui. Si mostrano le due con quello che
            riconosce (giorno, monete, reperti) e decide. */
         h += `<p class="sp-acc-warn">${tr('La partita qui e quella online sono diverse. Quale vuoi tenere?', 'The game here and the online one are different. Which do you want to keep?')}</p>`;
-        h += `<button class="sp-btn" id="sp-keeplocal">${tr('questa', 'this one')} · ${acc.localSum}</button>`;
-        h += `<button class="sp-btn" id="sp-keepremote">${tr('quella salvata', 'the saved one')} · ${acc.remoteSum}</button>`;
+        /* due righe: la scelta, e sotto in piccolo cosa c'è dentro. Su una riga sola il testo
+           usciva dal pulsante ed era tagliato ai lati */
+        h += `<button class="sp-btn sp-scelta" id="sp-keeplocal"><b>${tr('Tieni questa', 'Keep this one')}</b><small>${esc(cf.localSum)}</small></button>`;
+        h += `<button class="sp-btn sp-scelta" id="sp-keepremote"><b>${tr('Tieni quella online', 'Keep the online one')}</b><small>${esc(cf.remoteSum)}</small></button>`;
       } else {
         h += `<button class="sp-btn" id="sp-signout">${tr('Esci dall\'account', 'Sign out')}</button>`;
         h += `<button class="sp-btn danger" id="sp-delacc">${tr('Cancella account e partite', 'Delete account and games')}</button>`;

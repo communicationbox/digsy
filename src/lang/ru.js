@@ -822,8 +822,6 @@ export const RU = {
   'Your game': 'Твоя игра',
 
 
-  'this one': 'эту',
-  'the saved one': 'сохранённую',
   'Sign out': 'Выйти из аккаунта',
   'Delete account and games': 'Удалить аккаунт и игры',
 
@@ -892,6 +890,14 @@ export const RU = {
   'about ': 'примерно ',
   ' common finds': ' обычных находок',
   ' common find': ' обычная находка',
+  'The online game differs from this one (did you play on another device?). Choose which to keep: Menu → Saves → your account.': 'Игра онлайн отличается от этой (вы играли на другом устройстве?). Выберите, какую оставить: Меню → Сохранения → ваш аккаунт.',
+  'Keep this one': 'Оставить эту',
+  'Keep the online one': 'Оставить онлайн-игру',
+  'from ': 'с ',
+  'unreadable': 'нечитаемо',
+  'day ': 'день ',
+  ' coins': ' монет',
+  ' finds': ' находок',
   'Measuring for 3 seconds: walk now': 'Замер 3 секунды: двигайтесь',
   'Already measuring': 'Замер уже идёт',
   'Measured over ': 'Замер за ',

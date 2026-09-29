@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.53', it: [
+      'Se giochi con lo stesso account su due dispositivi e le partite divergono, il gioco te lo dice subito e ti fa scegliere quale tenere (giorno, monete, reperti e da dove viene). Prima riprovava a salvare online ogni cinque secondi senza riuscirci e senza dirlo',
+    ], en: [
+      'If you play with the same account on two devices and the games diverge, the game tells you right away and lets you choose which one to keep (day, coins, finds and where it comes from). Before, it kept retrying the online save every five seconds without succeeding and without saying so',
+    ],
+  },
+  {
     v: 'v0.99.51', it: [
       'Nella console dei comandi c\'è `fps`: se il gioco ti sembra scattare, scrivilo e cammina per 3 secondi — misura fluidità, strappi e memoria sul tuo computer',
     ], en: [

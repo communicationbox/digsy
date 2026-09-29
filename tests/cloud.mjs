@@ -154,6 +154,39 @@ export async function runCloudTests(check) {
       forced.ok === true && srv.save.data.includes('"day":9') && cl.cloud.conflict === null);
   }
 
+  /* ---------- IL CONFLITTO A PARTITA IN CORSO ----------
+     Visto nella console: un 409 ogni cinque secondi, per sempre. Il conflitto veniva registrato
+     ma l'autosalvataggio continuava a mandare, e nessuno lo diceva al giocatore — la scelta
+     compariva solo all'accesso. Ora: avviso UNA volta, niente invii finché non si sceglie. */
+  {
+    const srv = makeServer(); reset();
+    let richieste = 0;
+    cl.setFetch((u, o) => { if (o && o.method === 'POST' && String(u).includes('save.php')) richieste++; return srv.fetch(u, o); });
+    await cl.loginWithGoogle('buono');
+    await cl.pushSave('{"day":4}', 'g4', 'Windows');
+    let avvisi = 0; cl.setConflictHandler(() => { avvisi++; });
+    cl.cloud.version = 0;                                   // un altro dispositivo è andato avanti
+    await cl.pushSave('{"day":6}', 'g6', 'Mac');
+    await cl.pushSave('{"day":6}', 'g6', 'Mac');
+    check('cloud: il conflitto si segnala al giocatore una volta sola', avvisi === 1 && cl.cloud.status === 'conflict');
+    const prima = richieste;
+    const programmato = cl.scheduleSync(() => ({ json: '{"day":7}', summary: 'g7', device: 'Mac' }), 1);
+    await new Promise(r => setTimeout(r, 20));
+    const svuotato = await cl.flushSync();
+    check('cloud: in conflitto l\'autosalvataggio NON rimanda la partita (niente 409 a ripetizione)',
+      programmato === false && svuotato.conflict === true && richieste === prima && cl.cloud.pending === true);
+    /* la schermata della scelta ha le due partite da confrontare, e dice da dove viene quella online */
+    const acct = await import('../src/account.js');
+    const cf = acct.conflittoInCorso();
+    check('cloud: il conflitto a partita in corso arriva alla schermata della scelta (due riassunti e il dispositivo)',
+      !!cf && /giorno 4 · /.test(cf.remoteSum) && cf.remoteSum.includes('Windows') && typeof cf.localSum === 'string' && !!cf.server.data, JSON.stringify(cf && { l: cf.localSum, r: cf.remoteSum }));
+    cl.cloud.version = srv.save.version;                    // scelta esplicita: tengo questa
+    const forzato = await cl.pushSave('{"day":7}', 'g7', 'Mac', true);
+    check('cloud: dopo la scelta si torna a sincronizzare', forzato.ok === true && cl.cloud.status === 'ok' && cl.cloud.conflict === null
+      && cl.scheduleSync(() => ({ json: '{"day":8}', summary: 'g8', device: 'Mac' }), 1) === true);
+    cl.setConflictHandler(null); cl.cancelSync();
+  }
+
   /* ---------- ritmo: non una richiesta per ogni salvataggio ---------- */
   {
     const srv = makeServer(); cl.setFetch(srv.fetch); reset();

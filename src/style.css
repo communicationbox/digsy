@@ -1284,6 +1284,9 @@ body.introing #hud,body.introing #tutbox,body.introing #exitbtn,body.introing #t
 .sp-acc{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:10px}
 .sp-acc-who{color:#e6d3b3;font-weight:800;font-size:13px;margin:0}
 .sp-acc-st{color:#c9bfa6;font-size:12px;margin:0;line-height:1.5;max-width:34em}
+/* la scelta fra due partite: il titolo e sotto il contenuto, che va a capo invece di uscire dal pulsante */
+.sp-scelta{display:flex;flex-direction:column;align-items:center;gap:2px;white-space:normal;height:auto;line-height:1.3}
+.sp-scelta small{font-size:var(--fs-note);opacity:.8;font-weight:normal}
 .sp-acc-warn{color:var(--c-gold-2);font-size:12px;margin:0;line-height:1.5;max-width:34em}
 .sp-acc-note{color:var(--c-ink-dim);font-size:11px;margin:2px 0 0}
 .sp-acc-note a{color:var(--c-gold);text-decoration:underline;text-underline-offset:3px}

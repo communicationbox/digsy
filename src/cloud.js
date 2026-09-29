@@ -55,6 +55,10 @@ export function setFetch(fn) { doFetch = fn; }
 /* Avvisato quando il server ci scollega perché si è entrati da un altro dispositivo. */
 let onKicked = null;
 export function setKickedHandler(fn) { onKicked = fn; }
+/* LE DUE PARTITE SONO DIVERSE mentre si gioca (lo stesso account su due dispositivi): chi disegna
+   l'interfaccia lo deve dire al giocatore — si registra qui */
+let onConflict = null;
+export function setConflictHandler(fn) { onConflict = fn; }
 
 async function api(path, opts = {}) {
   const ctl = typeof AbortController === 'function' ? new AbortController() : null;
@@ -163,8 +167,10 @@ export async function pushSave(json, summary, device, force = false, slot = CUR_
   if (r.status === 409) {
     /* QUI si decide se un giocatore perde mezz'ora di gioco: non si tocca niente, si
        registra il conflitto e si aspetta la sua risposta */
+    const prima = !!cloud.conflict;                  // lo stato è già 'syncing' qui: vale il conflitto registrato
     cloud.status = 'conflict';
     cloud.conflict = { server: r.data.server || null };
+    if (!prima && onConflict) { try { onConflict(cloud.conflict); } catch (e) { /* mai bloccare il gioco */ } }
     return { ok: false, conflict: true, server: r.data.server || null };
   }
   if (!r.ok) {
@@ -191,6 +197,10 @@ export function scheduleSync(getPayload, delay = SYNC_DEBOUNCE) {
   if (!cloud.user) return false;
   lastPayload = getPayload;
   cloud.pending = true;
+  /* IN CONFLITTO NON SI RIMANDA NIENTE finché il giocatore non sceglie: ogni invio prendeva un
+     altro 409, ogni cinque secondi, per sempre (visto nella console: decine di fila) — e intanto
+     il server non si aggiornava e nessuno lo diceva. La partita resta «in attesa». */
+  if (cloud.status === 'conflict') return false;
   if (timer) return true;                       // già in coda: si manderà lo stato più fresco
   timer = setTimeout(async () => {
     timer = null;
@@ -205,6 +215,7 @@ export function scheduleSync(getPayload, delay = SYNC_DEBOUNCE) {
 export async function flushSync() {
   if (timer) { clearTimeout(timer); timer = null; }
   if (!cloud.user || !lastPayload) return { ok: false, error: 'nothing' };
+  if (cloud.status === 'conflict') return { ok: false, conflict: true };   // si aspetta la scelta
   const p = lastPayload();
   if (!p) return { ok: false, error: 'nothing' };
   return pushSave(p.json, p.summary, p.device);

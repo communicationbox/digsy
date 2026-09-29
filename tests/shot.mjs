@@ -628,6 +628,21 @@ async function main() {
       if(G.mpFinta) { var finta=function(){ G.mpFinta(['Luca','Ada'], true).then(function(){ if(G.splashView) G.splashView('amici'); }); };
         finta(); setInterval(finta, 200); }
     }
+    /* 'conflitto' = la partita online diversa da quella di qui, scoperta mentre si gioca: il
+       pannello dell'account deve mostrare le due partite e la scelta (prima non compariva mai) */
+    else if (${JSON.stringify(vista)} === 'conflitto') {
+      if(sp) sp.classList.remove('off');
+      Promise.all([G.mod('cloud'), G.mod('splash'), G.mod('account')]).then(function(m){
+        var cl = m[0], spm = m[1];
+        var remoto = JSON.stringify({ day: 14, coins: 812, items: new Array(37), raw: [] });
+        var metti = function(){
+          cl.cloud.user = { email: 'marco@example.com' }; cl.cloud.status = 'conflict';
+          cl.cloud.conflict = { server: { version: 9, data: remoto, summary: 'g14', device: 'iPhone' } };
+          spm.acc.user = cl.cloud.user; spm.acc.mod = m[2];
+        };
+        metti(); G.splashView('account'); setInterval(function(){ metti(); }, 150);
+      });
+    }
     else {
       if(sp) sp.classList.remove('off');
       if(G.splashView) G.splashView(${JSON.stringify(vista)});
