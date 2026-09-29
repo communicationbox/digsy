@@ -4889,6 +4889,18 @@ sprites.applyLook();
   S.companion = keep; comp9.resetCompanionTrail();
 }
 
+/* ---------- LE CACHE PER CASELLA HANNO UN TETTO ----------
+   «Dopo un po' che sta acceso non va più fluido quando mi muovo»: terreno, decorazioni e imbocchi
+   di grotta tenevano ogni casella mai vista, senza limite (tests/durata.mjs: +20 000 voci al minuto
+   in bici, memoria in salita continua). Si visita più mondo del tetto: nessuna cache lo supera. */
+{
+  const wd = await import('../src/world.js');
+  for (let i = 0; i < wd.CACHE_TETTO + 5000; i++) { const x = 900000 + (i % 400), y = 900000 + Math.floor(i / 400); wd.baseTerrain(x, y); wd.decoStaticAt(x, y); wd.caveEntranceAt(x, y); }
+  const c = wd.cacheStat();
+  check('cache del mondo col tetto: terreno, decorazioni e grotte non crescono senza limite (' + c.terr + '/' + c.deco + '/' + c.cave + ')',
+    c.terr <= wd.CACHE_TETTO + 1 && c.deco <= wd.CACHE_TETTO + 1 && c.cave <= wd.CACHE_TETTO + 1);
+}
+
 /* ---------- il compagno non resta incastrato ----------
    il passo che finisce in un solido viene rifiutato, e senza uno sblocco il compagno restava lì
    per sempre: il bersaglio si allontanava ma ogni passo continuava a sbattere («il buddy si

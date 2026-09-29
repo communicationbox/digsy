@@ -9,9 +9,17 @@ import { choppedSet, minedSet, pickedSet, S } from './state.js';
 /* ---------- terreni ---------- */
 export const DEEP = 0, WATER = 1, SAND = 2, GRASS = 3, FOREST = 4, DIRT = 5, MTN = 6, FLOOR = 7, PARK = 8, ROAD = 9;
 
+/* TETTO ALLE CACHE PER CASELLA. Ogni casella vista resta in memoria, e camminando se ne vedono
+   centinaia al secondo (in bici il triplo): terreno, decorazioni e imbocchi di grotta non avevano
+   un tetto, a differenza di tiCache/pickupCache — dopo ore di gioco erano milioni di voci, memoria
+   che sale e pause del raccoglitore sempre più lunghe proprio mentre ci si muove («dopo un po' non
+   va più fluido quando mi muovo»; misurato con tests/durata.mjs: +20 000 voci al minuto in bici).
+   Si svuotano come le sorelle: sono deterministiche, ricalcolarle costa solo le caselle in vista. */
+export const CACHE_TETTO = 60000;
 const terrCache = new Map();
 export function baseTerrain(tx, ty) {
   const key = tx + ',' + ty; let c = terrCache.get(key); if (c !== undefined) return c;
+  if (terrCache.size > CACHE_TETTO) terrCache.clear();
   const e = fbm(tx * 0.055, ty * 0.055, 1);
   /* IL BORDO DEL BOSCO ONDEGGIA. L'umidità è un noise liscio e la soglia ci taglia dentro una
      curva altrettanto liscia: per venti o trenta caselle di fila viene una linea dritta, e fra
@@ -83,6 +91,8 @@ export function nearHouseZone(tx, ty, margin) {
  * mondo ospitante mostrerebbe l'albero della casella 3,4 del proprio — un mondo fatto a pezzi
  * di due mondi diversi, e nessun errore da nessuna parte.
  * Vale anche per i test, che così possono cambiare seme e ricominciare da capo. */
+/* quante voci tiene ogni cache del mondo: per la prova di durata (tests/durata.mjs) */
+export function cacheStat() { return { terr: terrCache.size, deco: decoCache.size, ti: tiCache.size, cave: caveCache.size, pick: pickupCache.size }; }
 export function resetWorldCaches() {
   terrCache.clear(); decoCache.clear(); townCache.clear(); tiCache.clear();
   caveCache.clear(); siteCache.clear(); boneSiteCache.clear(); landmarkCache.clear(); wreckCache.clear();
@@ -108,6 +118,7 @@ export function decoNatural(tx, ty) {
   if (choppedSet.has(key) || minedSet.has(key)) return null;
   const c = decoCache.get(key); if (c !== undefined) return c;
   const r = decoCompute(tx, ty);
+  if (decoCache.size > CACHE_TETTO) decoCache.clear();
   decoCache.set(key, r); return r;
 }
 /* la parte FISSA di decoAt (masso della grotta, spiazzo, decorazione naturale), senza guardare
@@ -119,6 +130,7 @@ export function decoStaticAt(tx, ty) {
   const key = tx + ',' + ty;
   const c = decoCache.get(key); if (c !== undefined) return c;
   const r = decoCompute(tx, ty);
+  if (decoCache.size > CACHE_TETTO) decoCache.clear();
   decoCache.set(key, r); return r;
 }
 export function decoAt(tx, ty) {
@@ -561,6 +573,7 @@ export function caveEntranceAt(tx, ty) {
   const key = tx + ',' + ty;
   const c = caveCache.get(key); if (c !== undefined) return c;
   const r = caveCompute(tx, ty);
+  if (caveCache.size > CACHE_TETTO) caveCache.clear();
   caveCache.set(key, r); return r;
 }
 function caveCompute(tx, ty) {

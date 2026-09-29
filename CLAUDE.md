@@ -959,6 +959,11 @@ CPU al 101%). Dopo: 1,7 e 2,9 ms, CPU 14-25%, 60 fps, zero strappi. Cosa c'è or
 - **NESSUN tetto ai fotogrammi.** Ce n'era uno a 60 fps per il calore: sugli schermi a 120 Hz lo
   SFONDO scattava (il personaggio no, la camera lo tiene al centro — segnalato). Non rimetterlo.
 - Niente DOM riscritto a vuoto: pulsante Esci, bussola, `hudPad` (misura al più 2 volte al secondo).
+**Le cache PER CASELLA hanno un tetto** (`CACHE_TETTO` in world.js, 60 000 voci: terreno, decorazioni,
+imbocchi, raccoglibili, zone): una cache nuova indicizzata per casella DEVE averlo, o camminando cresce
+per sempre. `npm run durata` (tests/durata.mjs) fa girare il gioco vero per minuti viaggiando attraverso
+il mondo (`DURATA_MIN`, `DURATA_V` px/s, `DURATA_CPU`, `DURATA_SFONDO=1`, `DURATA_ORA`, `DURATA_METEO`) e
+stampa per tratti fps, lavoro per fotogramma, strappi, salvataggi, memoria e dimensione delle cache.
 **La v0.99.35 andava a 3 fps** su una GPU vera, e le misure non lo vedevano perché Chrome headless
 disegna in software. Tre errori: (1) scrivere nell'archivio e leggerne subito, casella per casella,
 ferma la GPU a ogni casella → ora le caselle nuove si dipingono DAL VIVO e l'archivio si scrive in

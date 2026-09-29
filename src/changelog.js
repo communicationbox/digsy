@@ -1,6 +1,13 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.50', it: [
+      'Il gioco non accumula più memoria camminando: il mondo già visto si ricordava tutto, casella per casella, e dopo ore di esplorazione pesava sempre di più',
+    ], en: [
+      'The game no longer piles up memory as you walk: it remembered every tile it had ever shown, and after hours of exploring it kept getting heavier',
+    ],
+  },
+  {
     v: 'v0.99.49', it: [
       'Chi striscia ondeggia davvero: l\'onda scorre lungo il corpo dal muso alla coda, invece dello sprite stirato di sbieco',
       'Di fronte e di spalle il passo si vede: le zampe si alzano a turno',

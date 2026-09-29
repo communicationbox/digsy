@@ -25,7 +25,8 @@
     "pacing": "node tests/pacing.mjs",
     "partita": "node tests/partita.mjs",
     "lineart": "node tests/lineart.mjs",
-    "relay": "cd server/relay && (test -d node_modules || npm install --no-audit --no-fund) && node relay.js"
+    "relay": "cd server/relay && (test -d node_modules || npm install --no-audit --no-fund) && node relay.js",
+    "durata": "node tests/durata.mjs"
   },
   "devDependencies": {
     "vite": "^6.0.0"

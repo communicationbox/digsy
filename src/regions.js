@@ -68,7 +68,7 @@ export function resetZoneCache() { fcache.clear(); }
 function campoBlocco(bx, by) {
   const key = bx + ',' + by;
   let f = fcache.get(key);
-  if (f === undefined) { f = campo(bx * 4 + 2, by * 4 + 2); fcache.set(key, f); }
+  if (f === undefined) { f = campo(bx * 4 + 2, by * 4 + 2); if (fcache.size > 60000) fcache.clear(); fcache.set(key, f); }   // tetto: vedi CACHE_TETTO in world.js
   return f;
 }
 /* il campo in un punto QUALSIASI: interpolato fra i quattro blocchi attorno. Prendere di
