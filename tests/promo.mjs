@@ -72,77 +72,89 @@ const PARTITA = `
   S.maps = [];
 `;
 
+/* FERMA: dopo l'ultimo fotogramma scelto il ciclo del gioco si ferma (window.__digsyFreeze). Lo
+   scatto avviene alla fine del tempo virtuale, ~18 s dopo la scena: senza, le creature del cortile
+   se ne andavano per conto loro dalle posizioni composte, e la foto non era quella decisa. */
+const FERMA = t => `window.__digsyFreeze = ${t};`;
+/* IL CORTILE COMPOSTO: Digsy sul prato fra la casa (tutta in vista, in alto) e il cancello, fino a
+   nove bestie attorno in due file sfalsate, su caselle SENZA arredo (un cespuglio o un sasso sotto
+   una bestia la spezzava in due) e fuori dalla casa. Poi qualche passo vero a fotogrammi alterni,
+   così le zampe sono a metà passo, e si ferma. `quante` bestie, `dy` di quanto stare sotto la casa. */
+const CORTILE = (quante, dy, sx, daX, yDa, yA) => `
+    var yr = await G.yard(), pk = await G.mod('park'), wd = await G.mod('world'), rr = await G.mod('render'), P = G.player();
+    var S = G.state(), ck = S.companion && S.companion.key;
+    P.x = yr.cx * 32 + 16 + ${sx || 0}; P.y = (yr.y1 - ${dy}) * 32; P.dir = 'down'; P.moving = false;
+    S.house.yard = pk.parkPopulation().filter(function(c){ return c.key !== ck; }).slice(0, ${quante}).map(function(c){ return c.key; });
+    pk.yardAnimals.length = 0; pk.yardList();
+    ${''/* il cortile si disegna solo se è "in vista" (yardNear), e a deciderlo è il ciclo del gioco:
+          col ciclo fermo va detto a mano, o le bestie ci sono ma non si vedono */}
+    pk.refreshVisParks();
+    var ko = pk.houseKeepOut(), n = pk.yardAnimals.length;
+    var libera = function(x, y){
+      var tx = Math.floor(x / 32), ty = Math.floor(y / 32);
+      for (var ddx = -1; ddx <= 1; ddx++) for (var ddy = -1; ddy <= 0; ddy++) if (wd.parkDeco(yr, yr.cx, tx + ddx, ty + ddy, n)) return false;
+      if (ko && x > ko.x0 - 40 && x < ko.x1 + 40 && y > ko.y0 && y < ko.y1 + 30) return false;
+      if (Math.abs(x - P.x) < 110 && Math.abs(y - P.y) < 90) return false;
+      return tx > yr.x0 + 1 && tx < yr.x1 - 1 && ty > yr.y0 + 1 && ty < yr.y1 - 1;
+    };
+    var posti = [];
+    for (var yy = P.y + (${yDa == null ? -200 : yDa}); yy <= P.y + (${yA == null ? 170 : yA}); yy += 26) for (var xx = P.x + (${daX == null ? -780 : daX}); xx <= P.x + 780; xx += 40) if (libera(xx, yy)) posti.push([xx, yy]);
+    ${''/* si pesca lontano da chi è già stato messo: sparse, mai una sopra l'altra */}
+    var messi = [];
+    pk.yardAnimals.forEach(function(a, i){
+      var best = null, bd = -1;
+      posti.forEach(function(q){ var d = messi.reduce(function(m, r){ return Math.min(m, Math.hypot(q[0] - r[0], (q[1] - r[1]) * 1.6)); }, 1e9); d = Math.min(d, Math.hypot(q[0] - P.x, (q[1] - P.y) * 1.6) + 60); if (d > bd) { bd = d; best = q; } });
+      messi.push(best); a.x = best[0]; a.y = best[1];
+      a.tx = a.x + (i % 2 ? -60 : 60); a.ty = a.y; a.pause = 0;
+    });
+    pk.yardAnimals.forEach(function(a){ ['side', 'front', 'back'].forEach(function(v){ for (var g = 0; g < 4; g++) rr.creatureSprite(a, v, { gait: g, gaitFB: v !== 'side' }); }); });
+    for (var i = 0; i < 40; i++) { pk.updatePark(1 / 30); G.frame(4000 + i * 33); }
+    if (G.updateHUD) G.updateHUD();
+    ${FERMA(4000 + 39 * 33)}
+`;
+
 const SCENE = [
-  /* La piazza. Ci si mette accanto alla STATUA e non in mezzo al viale: da lì entra in
-     inquadratura il Museo, l'unico edificio con una sagoma sua (frontone e colonne) e il posto
-     attorno a cui gira tutto il gioco. Piantati sul viale si fotografano sempre le stesse tre
-     botteghe di fila, e il Museo resta fuori campo. */
-  { nome: '01-citta', size: WIDE, seed: 12, passi: `
+  /* LA PIAZZA vista dal centro, nei Prati (seme 37: città vera col Museo, quasi niente acqua attorno):
+     la fontana, le due file di botteghe e il Museo riempiono la foto. Prima: goto=city lasciava
+     Digsy dove capitava e mezza foto era palude fuori città. */
+  { nome: '01-citta', size: WIDE, seed: 37, passi: `
     ${PARTITA}
-    ${''/* IL SEME SCEGLIE LA CITTÀ, non un `goto=prati` messo prima. Col seme 12 la più vicina
-          all'origine è una CITTÀ vera (sette edifici, quindi col Museo: l'unico con frontone e
-          colonne) nelle Terre Rosse, dove il lastricato chiaro stacca dal terreno. Andare prima
-          nei Prati e poi cercare la città portava dove capitava — con la generazione dei biomi
-          rifatta, nelle Lande Gelide: tutto bianco su bianco. */}
-    ${''/* al CENTRO della piazza, non alla statua: da quando la statua sta per conto suo in un
-          angolo, di lì l'inquadratura prendeva mezza foto di prato fuori città */}
     await G.cmd('goto=city');
+    var wd = await G.mod('world'), P = G.player();
+    var t = wd.townForTile(Math.floor(P.x / 32), Math.floor(P.y / 32));
+    P.x = (t.C.x + 2) * 32 + 16; P.y = t.C.y * 32; P.dir = 'down'; P.moving = false;
     ${ANIMA}
+    ${FERMA(4000 + 39 * 150)}
   ` },
-  /* Il recinto ABITATO. Il post promette che le creature "vivono nel parco": se la foto mostra
-     un prato vuoto la promessa si smonta da sola. Chimere vere, assemblate dal gioco. */
+  /* Il cortile ABITATO, di giorno: la casa intera in alto, le bestie sparse attorno a Digsy. */
   { nome: '02-parco', size: WIDE, passi: `
     ${PARTITA}
     for (var c = 0; c < 9; c++) await G.cmd('chimera');
     await G.cmd('gotopark');
-    ${''/* DENTRO il recinto, con la casa in alto e le bestie ATTORNO: nascono in punti a caso di un
-          cortile di 17 caselle e nella foto ne entravano due. E si alternano un passo e un
-          fotogramma: facendo prima tutti i passi e poi i fotogrammi, le bestie venivano scattate
-          ferme — e le zampe che camminano sono proprio quello che la foto deve mostrare. */}
-    var yr = await G.yard(), pk = await G.mod('park'), P = G.player();
-    P.x = yr.cx * 32 + 16; P.y = (yr.y1 - 3) * 32; P.dir = 'down'; P.moving = false;
-    var S = G.state(), ck = S.companion && S.companion.key;
-    S.house.yard = pk.parkPopulation().filter(function(c){ return c.key !== ck; }).slice(0, 9).map(function(c){ return c.key; });
-    pk.yardAnimals.length = 0; pk.yardList();
-    ${''/* due file nel prato libero fra la casa e il cancello, DENTRO i bordi del recinto (un
-          margine di due caselle), e mai addosso a Digsy */}
-    var xmin = (yr.x0 + 2) * 32, xmax = (yr.x1 - 1) * 32;
-    pk.yardAnimals.forEach(function(a, i){
-      var riga = i % 2, col = Math.floor(i / 2), n = Math.ceil(pk.yardAnimals.length / 2);
-      a.x = xmin + (col + 0.5 + riga * 0.5) * (xmax - xmin) / (n + 0.5);
-      a.y = P.y + (riga ? 90 : -130);
-      if (Math.abs(a.x - P.x) < 90) a.x += 150;
-      a.tx = Math.max(xmin, Math.min(xmax, a.x + (i % 2 ? -90 : 90))); a.ty = a.y; a.pause = 0;
-    });
-    ${''/* le pose del passo si preparano TUTTE prima (in gioco si fanno a rate, un passo per
-          fotogramma: servirebbero centinaia di fotogrammi, e a 1920×1080 senza GPU lo scatto
-          partiva prima che finissero) */}
-    var rr = await G.mod('render');
-    pk.yardAnimals.forEach(function(a){ ['side', 'front', 'back'].forEach(function(v){ for (var g = 0; g < 4; g++) rr.creatureSprite(a, v, { gait: g, gaitFB: v !== 'side' }); }); });
-    for (var i = 0; i < 60; i++) { pk.updatePark(1 / 30); G.frame(4000 + i * 33); }
-    if (G.updateHUD) G.updateHUD();
+    ${CORTILE(9, 5)}
   ` },
-  /* Il Libro con lo scheletro 3D: è la cosa che nessun altro gioco cozy ha, e nelle immagini
-     pubblicate finora non compariva mai. */
+  /* Il Libro con le creature VIVE, colorate (Terre Rosse: vulcanide e magmarex). Gli scheletri
+     stanno già in 10-scheletri: qui si mostra cosa tornano a essere. */
   { nome: '03-libro', size: WIDE, passi: `
     ${PARTITA}
     await G.cmd('goto=city');
     ${ANIMA}
-    await G.openBook();
+    var S2 = G.state(); ['vulcanide', 'magmarex'].forEach(function(id){ if (S2.awakened.indexOf(id) < 0) S2.awakened.push(id); });
+    await G.openBook(19);
+    await new Promise(function(r){ setTimeout(r, 1500); });
+    document.querySelectorAll('.bk-flip3d').forEach(function(b){ b.click(); });
     await new Promise(function(r){ setTimeout(r, 2500); });
   ` },
-  /* Le sale del museo piene: l'unico traguardo lungo del gioco, quello che dà un motivo per
-     continuare a scavare. Ci si mette in MEZZO alla prima sala: si entra dall'atrio in fondo e
-     da lì dei piedistalli non si vede niente. */
+  /* Una sala del museo PIENA, e di un bioma diverso dalle altre foto: le Dune (sala 1 = a destra del
+     corridoio, fila più lontana dall'atrio: centro attorno a 32,35). Digsy un po' sotto il centro,
+     così il nome della sala sul muro non finisce sotto la barra in alto. */
   { nome: '04-museo', size: WIDE, passi: `
     ${PARTITA}
     await G.cmd('goto=city');
     await G.enterRoom('museum');
-    ${''/* DENTRO UNA SALA, non nel corridoio: la novità è il museo camminabile con le teche
-          piene e il nome della sala sul muro. Sala 0 = ROOM_W 16 a sinistra dello spine
-          (SPINE_X0 17, ROW_Y[0] 10): il centro sta attorno a (9, 15). */}
-    await G.intPos(9, 15);
+    await G.intPos(32, 35);
     ${ANIMA}
+    ${FERMA(4000 + 39 * 150)}
   ` },
   /* Le teche d'AMBRA accanto a quelle d'oro: la seconda collezione della v0.98, copertina del devlog */
   { nome: '04b-ambra', size: WIDE, passi: `
@@ -164,19 +176,21 @@ const SCENE = [
     await G.cmd('goto=palude');
     ${ANIMA}
   ` },
-  /* La notte con i lampioni accesi: il gioco ha un ciclo giorno/notte e nelle immagini non si
-     era mai visto. È anche l'inquadratura più "cozy" che il gioco sappia produrre. */
-  { nome: '07-notte', size: WIDE, seed: 4, passi: `
+  /* LA NOTTE vista dal bordo di una città delle Lande Gelide (seme 29): in alto l'abitato con le
+     finestre accese e l'alone, attorno il buio con la neve, Digsy col suo cono di luce che guarda
+     verso casa. Dentro le mura la notte non si vede (le città restano illuminate apposta), e in
+     mezzo a un bosco era solo verde scuro: nessuna delle due diceva "sera accogliente". */
+  { nome: '07-notte', size: WIDE, seed: 29, passi: `
     ${PARTITA}
-    ${''/* FUORI dalla città: dentro le mura la notte non si vede, perché le città restano
-          illuminate apposta (alone graduale attorno all'abitato). In piazza la foto notturna
-          veniva quasi diurna — con la luna nell'HUD e nient'altro. */}
-    await G.cmd('goto=prati');
-    await G.cmd('goto=site');
+    await G.cmd('goto=city');
+    var wd = await G.mod('world'), P = G.player();
+    var t = wd.townForTile(Math.floor(P.x / 32), Math.floor(P.y / 32));
+    P.x = t.C.x * 32 + 16; P.y = (t.C.y + 1) * 32; P.dir = 'down'; P.moving = false;
     ${''/* l'ora si sposta a mano e non col comando `night`: quello accende anche la missione
           delle lucciole, e il contatore "0/6" resta piantato in mezzo alla foto */}
     G.state().tod = 0.9;
     ${ANIMA}
+    ${FERMA(4000 + 39 * 150)}
   ` },
   /* La mappa a pergamena. Serve anche da verifica: la stellina "sei qui" e la legenda senza i
      nomi dei biomi si giudicano solo guardandole. `stress=1` è l'unico modo di avere una mappa
@@ -194,7 +208,9 @@ const SCENE = [
   /* La teca di cova nel Laboratorio, per il devlog dell'allevamento: l'uovo dentro il vetro,
      non un pannello di testo. Due chimere finte bastano da genitori, l'uovo si pianta a mano
      già pronto (stesso trucco usato dai test — vedi tests/shot.mjs vista 'uovo'). */
-  { nome: '09-covata', size: WIDE, passi: `
+  /* 1280×720: la stanza è di 10×7 caselle a scala intera, e a 1920×1080 restava in mezzo a
+     una cornice nera larga metà foto */
+  { nome: '09-covata', size: '1280,720', passi: `
     ${PARTITA}
     await G.cmd('chimera');
     await G.cmd('chimera');
@@ -204,6 +220,7 @@ const SCENE = [
     S.egg = { uid: 99999, skull: cs[0].skull, torso: cs[0].torso, leg: cs[0].leg, q: 'raro',
       p1: cs[0].name, p2: cs[1].name, laidDay: S.day, readyDay: S.day };
     ${ANIMA}
+    ${FERMA(4000 + 39 * 150)}
   ` },
   /* LA SCHIUSA in corso: è la scena dell'aggiornamento, e si vede solo dopo due giorni di cova.
      Il comando `anim=hatch` la fa partire subito; si aspetta il momento in cui il guscio si è
@@ -224,8 +241,31 @@ const SCENE = [
   { nome: '10-scheletri', size: WIDE, passi: `
     ${PARTITA}
     await G.cmd('goto=prati');
-    await G.openBook(9);
+    ${''/* pagina 14: ramarrospino e cinerarca dei Boschi Cinerei — sagome che non somigliano a
+          niente delle altre foto. (La 24 no: il rospo gigante usciva dalla cornice coi piedi.) */}
+    await G.openBook(14);
     await new Promise(function(r){ setTimeout(r, 2500); });
+  ` },
+  /* LA TESTATA della pagina itch: una striscia larga di cortile con le bestie in cammino e il
+     titolo del gioco (lo stesso della splash, `.sp-title`) sopra. Senza la barra dell'HUD: qui
+     non si mostra come si gioca, si dice cos'è. */
+  /* scattata a 1920×1080 perché il gioco sceglie la scala dal lato corto (a 560 di altezza i
+     pixel restavano piccoli e si vedeva mezzo mondo); la banda della testata si ritaglia dopo */
+  { nome: 'testata', size: WIDE, passi: `
+    ${PARTITA}
+    for (var c = 0; c < 9; c++) await G.cmd('chimera');
+    await G.cmd('gotopark');
+    ${CORTILE(7, 5, 0, -60, -150, 60)}
+    var st = document.createElement('style');
+    st.textContent = '#hud,#bagbtn,#joy,#abtn,#exitbtn,.hudbar,#compass{display:none!important}' +
+      '#testata{position:fixed;left:6%;top:50%;transform:translateY(-50%);z-index:50;text-align:center;' +
+      'padding:26px 44px 30px;background:rgba(20,16,12,.55);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,.35)}' +
+      '#testata .sp-title{animation:none;font-size:96px;margin:0}' +
+      '#testata .sp-sub{margin:18px 0 0;font-size:15px;color:#f2e6cc}';
+    document.head.appendChild(st);
+    var box = document.createElement('div'); box.id = 'testata';
+    box.innerHTML = '<h1 class="sp-title">DIGSY<em>WORLD</em></h1><div class="sp-sub">dig · discover · bring them back</div>';
+    document.body.appendChild(box);
   ` },
 ];
 

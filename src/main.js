@@ -160,7 +160,9 @@ function loop(ts) {
   { const prima = GUARDIA.on; if (guardia(GUARDIA, ts - last, ts) !== prima) setTileCache(GUARDIA.on); }
   const dt = Math.min(0.05, (ts - last) / 1000 || 0); last = ts;
   if (introActive()) { requestAnimationFrame(loop); return; } // l'intro disegna la sua scena
-  if (typeof window !== 'undefined' && window.__digsyFreeze) { requestAnimationFrame(loop); return; } // solo le foto di prova: tela ferma
+  /* solo le foto di prova: tela ferma. Con un NUMERO si continua a disegnare sempre a quell'istante
+     (niente si muove, ma se la finestra cambia misura la tela si ridisegna invece di restare nera) */
+  if (typeof window !== 'undefined' && window.__digsyFreeze) { if (typeof window.__digsyFreeze === 'number') render(window.__digsyFreeze); requestAnimationFrame(loop); return; }
   /* IN VOLO non si cammina: si è seduti in aereo. Il mondo attorno continua ad andare (regola
      5: il tempo non si ferma quando c'è gente), ma i comandi restano a terra. */
   if (!isModalOpen() && !splashActive() && !isTossOpen() && !voloAttivo()) {
@@ -592,7 +594,7 @@ if (typeof window !== 'undefined') {
       /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
          vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
       mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'), ui: () => import('./ui.js'),
-        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js'), volo: () => import('./volo.js'), prefs: () => import('./prefs.js'), park: () => import('./park.js'), tutorial: () => import('./tutorial.js'), render: () => import('./render.js') }[n] || (() => Promise.resolve(null)))(),
+        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js'), volo: () => import('./volo.js'), prefs: () => import('./prefs.js'), park: () => import('./park.js'), tutorial: () => import('./tutorial.js'), render: () => import('./render.js'), world: () => import('./world.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
