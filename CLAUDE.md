@@ -74,7 +74,6 @@ src/splash.js       splash screen (splashActive/initSplash)
 src/input.js        tastiera + touch
 src/main.js         boot (migrazione save, flow splash→editor→gioco) + game loop
 tests/              suite Node con stub DOM (stub.mjs, run.mjs)
-legacy/             vecchio prototipo single-file (riferimento)
 ```
 Attenzione ai cicli import ui↔gameplay: sono ok solo perché le chiamate incrociate
 avvengono a runtime dentro le funzioni, mai a top-level.

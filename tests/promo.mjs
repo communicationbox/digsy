@@ -95,7 +95,32 @@ const SCENE = [
     ${PARTITA}
     for (var c = 0; c < 9; c++) await G.cmd('chimera');
     await G.cmd('gotopark');
-    ${ANIMA}
+    ${''/* DENTRO il recinto, con la casa in alto e le bestie ATTORNO: nascono in punti a caso di un
+          cortile di 17 caselle e nella foto ne entravano due. E si alternano un passo e un
+          fotogramma: facendo prima tutti i passi e poi i fotogrammi, le bestie venivano scattate
+          ferme — e le zampe che camminano sono proprio quello che la foto deve mostrare. */}
+    var yr = await G.yard(), pk = await G.mod('park'), P = G.player();
+    P.x = yr.cx * 32 + 16; P.y = (yr.y1 - 3) * 32; P.dir = 'down'; P.moving = false;
+    var S = G.state(), ck = S.companion && S.companion.key;
+    S.house.yard = pk.parkPopulation().filter(function(c){ return c.key !== ck; }).slice(0, 9).map(function(c){ return c.key; });
+    pk.yardAnimals.length = 0; pk.yardList();
+    ${''/* due file nel prato libero fra la casa e il cancello, DENTRO i bordi del recinto (un
+          margine di due caselle), e mai addosso a Digsy */}
+    var xmin = (yr.x0 + 2) * 32, xmax = (yr.x1 - 1) * 32;
+    pk.yardAnimals.forEach(function(a, i){
+      var riga = i % 2, col = Math.floor(i / 2), n = Math.ceil(pk.yardAnimals.length / 2);
+      a.x = xmin + (col + 0.5 + riga * 0.5) * (xmax - xmin) / (n + 0.5);
+      a.y = P.y + (riga ? 90 : -130);
+      if (Math.abs(a.x - P.x) < 90) a.x += 150;
+      a.tx = Math.max(xmin, Math.min(xmax, a.x + (i % 2 ? -90 : 90))); a.ty = a.y; a.pause = 0;
+    });
+    ${''/* le pose del passo si preparano TUTTE prima (in gioco si fanno a rate, un passo per
+          fotogramma: servirebbero centinaia di fotogrammi, e a 1920×1080 senza GPU lo scatto
+          partiva prima che finissero) */}
+    var rr = await G.mod('render');
+    pk.yardAnimals.forEach(function(a){ ['side', 'front', 'back'].forEach(function(v){ for (var g = 0; g < 4; g++) rr.creatureSprite(a, v, { gait: g, gaitFB: v !== 'side' }); }); });
+    for (var i = 0; i < 60; i++) { pk.updatePark(1 / 30); G.frame(4000 + i * 33); }
+    if (G.updateHUD) G.updateHUD();
   ` },
   /* Il Libro con lo scheletro 3D: è la cosa che nessun altro gioco cozy ha, e nelle immagini
      pubblicate finora non compariva mai. */

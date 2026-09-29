@@ -592,7 +592,7 @@ if (typeof window !== 'undefined') {
       /* un modulo qualsiasi, per le foto e le prove: la sonda è già nel bundle (debito noto,
          vedi MULTIPLAYER.md) e questo non apre niente che non fosse già aperto */
       mod: (n) => ({ cloud: () => import('./cloud.js'), amici: () => import('./amici.js'), ui: () => import('./ui.js'),
-        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js'), volo: () => import('./volo.js'), prefs: () => import('./prefs.js'), park: () => import('./park.js'), tutorial: () => import('./tutorial.js') }[n] || (() => Promise.resolve(null)))(),
+        posta: () => import('./posta.js'), chat: () => import('./chat.js'), mp: () => import('./mp.js'), interior: () => import('./interior.js'), gameplay: () => import('./gameplay.js'), volo: () => import('./volo.js'), prefs: () => import('./prefs.js'), park: () => import('./park.js'), tutorial: () => import('./tutorial.js'), render: () => import('./render.js') }[n] || (() => Promise.resolve(null)))(),
       /* LA STANZA IN COMPAGNIA, per poterla FOTOGRAFARE con dentro qualcuno: senza compagni
          la schermata è una riga di testo, e le due cose che vanno guardate (chi c'è, e il
          «manda via» accanto al nome) non compaiono mai. Non apre nessuna socket — mette a
