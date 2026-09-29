@@ -54,6 +54,7 @@ import { baseTerrain, walkableGround, townInfo, townForCell, openArea, TCELL, ca
 import { enterCave } from './cave.js';
 import { WEATHER_TYPES } from './weather.js';
 import { misuraFps } from './diag.js';
+import { VERSION } from './version.js';
 import { cacheStat } from './world.js';
 import { playIntro } from './intro.js';
 
@@ -695,7 +696,9 @@ export const COMMANDS = {
   fps: { type: 'action', help: H('fps', 'misura la fluidità per 3 s (cammina mentre misura)', 'measures smoothness for 3 s (walk while it measures)'),
     run: () => {
       const ok = misuraFps(() => ({ moving: !!P.moving, cache: cacheStat() }), testo => {
-        if (typeof console !== 'undefined') console.log(testo);
+        /* nella console del browser con un'intestazione che si trova subito fra gli altri messaggi,
+           con versione e ora (chi manda il resoconto lo copia da lì) */
+        if (typeof console !== 'undefined') console.log('%c Digsy fps · ' + VERSION + ' · ' + new Date().toLocaleTimeString() + ' ', 'background:#d8973c;color:#1a1410;font-weight:bold;padding:2px 4px;border-radius:3px', '\n' + testo);
         const out = typeof document !== 'undefined' && document.getElementById('cmdout');
         if (out) { out.textContent = testo; out.style.display = ''; }
         toast(testo.split('\n').slice(1, 4).join(' · '));
