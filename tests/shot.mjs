@@ -285,7 +285,9 @@ async function main() {
           var P2 = G.player(); P2.dir = 'down';
           m.COMP.x = P2.x + 64; m.COMP.y = P2.y; m.COMP.init = true; m.COMP.face = fw > 0 ? 'right' : 'left';
           m.COMP.job = { type: tw, phase: 'work', t: 999, wx: m.COMP.x + fw * 32, wy: m.COMP.y, hit: -1 };
-          if(G.updateHUD) G.updateHUD(); if(G.frame) G.frame(1500);
+          if(G.updateHUD) G.updateHUD();
+          /* più fotogrammi: le pose delle zampe che grattano/remano si preparano una per fotogramma */
+          if(G.frame) for (var k = 0; k < 12; k++) G.frame(1500 + k * 90);
         }); }
     /* 'pesca' = in barca sull'acqua: il prompt dice QUANDO si pesca in quella zona (ora=… per l'ora) */
     else if (${JSON.stringify(vista)} === 'pesca') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
@@ -584,6 +586,24 @@ async function main() {
         osp(); setInterval(osp, 200); } }
     /* 'compagnia' = il mondo CON qualcun altro dentro: serve a guardare il cartellino del
        nome, che sta sopra la testa e non deve coprirla */
+    /* 'cortile' = il recinto di casa con qualche creatura IN CAMMINO attorno a Digsy: le mette in
+       vista (nascono in punti a caso del cortile), salta il tutorial che le copriva e fa fare loro
+       qualche passo vero (updatePark + un fotogramma alla volta) prima dello scatto, così le pose
+       del passo sono già pronte. "passi=N" quanti fotogrammi (di serie 160). */
+    else if (${JSON.stringify(vista)} === 'cortile') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
+      var qc = new URLSearchParams(location.search), nPassi = +(qc.get('passi') || 160);
+      G.mod('tutorial').then(function(tu){ if(tu) tu.tutSkip(); })
+        .then(function(){ return G.cmd('chimera'); }).then(function(){ return G.cmd('chimera'); })
+        .then(function(){ return G.cmd('chimera'); }).then(function(){ return G.cmd('chimera'); })
+        .then(function(){ return G.cmd('gotopark'); }).then(function(){ return Promise.all([G.yard(), G.mod('park')]); })
+        .then(function(r){ var y = r[0], pk = r[1], P2 = G.player();
+          P2.x = y.cx * 32 + 16; P2.y = (y.y1 - 3) * 32; P2.dir = 'down'; P2.moving = false;
+          pk.yardList(); var i = 0;
+          pk.yardAnimals.forEach(function(a){ a.x = P2.x - 130 + (i % 4) * 90; a.y = P2.y - 30 + Math.floor(i / 4) * 70 + (i % 2) * 30; a.tx = a.x + (i % 2 ? -120 : 120); a.ty = a.y + 10; a.pause = 0; i++; });
+          if(G.updateHUD) G.updateHUD();
+          var t = 1000;
+          for (var k = 0; k < nPassi; k++) { pk.updatePark(1 / 30); t += 33; if (G.frame) G.frame(t); }
+        }); }
     else if (${JSON.stringify(vista)} === 'compagnia') { if(sp){ sp.classList.add('off'); sp.style.display='none'; }
       /* con un compagno addosso: la foto serve anche a controllare che la bestia degli ALTRI
          si veda, e senza sceglierne uno non ne ha nessuno */

@@ -55,6 +55,14 @@ export function spriteDaVoxel(vox, view, o, seme, ss = 1) {
 
   let mnh = 1e9, mxh = -1e9, mny = 1e9, mxy = -1e9, mnd = 1e9, mxd = -1e9;
   for (const v of vox) { const [h, d] = proj(v); if (h < mnh) mnh = h; if (h > mxh) mxh = h; if (v.y < mny) mny = v.y; if (v.y > mxy) mxy = v.y; if (d < mnd) mnd = d; if (d > mxd) mxd = d; }
+  /* IN CAMMINO il riquadro deve restare quello della bestia ferma: se un piede che va avanti o
+     indietro allargasse la sagoma, centrarla o appoggiarla al fondo la farebbe scattare di lato a
+     ogni passo. Con `o.base` (i limiti della posa ferma) l'origine resta quella, e `ox/oy` dicono
+     di quanto questa posa sborda a sinistra e in alto rispetto alla ferma. */
+  const base = o.base;
+  /* la profondità di riferimento resta ESATTAMENTE quella della ferma: l'inclinazione si arrotonda
+     riga per riga, e spostarla anche di un voxel faceva scattare di un pixel mezza bestia */
+  if (base) { mnh = Math.min(mnh, base.mnh); mxy = Math.max(mxy, base.mxy); mnd = base.mnd; }
   const pad = 1;
   const sx = h => pad + (h - mnh);
   const sy = (y, d) => pad + (mxy - y) + Math.round((d - mnd) * INCLINA);
@@ -153,6 +161,9 @@ export function spriteDaVoxel(vox, view, o, seme, ss = 1) {
     for (const k of buf.keys()) { const i = k.indexOf(','), x = +k.slice(0, i), y = +k.slice(i + 1); colTop[x] = Math.min(colTop[x] ?? 1e9, y); }
   }
   const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+  cv.bnd = { mnh, mxy, mnd };
+  cv.ox = base ? Math.round((base.mnh - mnh) / ss) : 0;
+  cv.oy = base ? Math.round((mxy - base.mxy) / ss) : 0;
   const g = cv.getContext('2d');
   /* contorno: il colore di chi tocca, molto scurito e un filo freddo — mai un nero uniforme */
   const fatti = new Set();

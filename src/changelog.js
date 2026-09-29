@@ -1,6 +1,41 @@
 /* Note di versione, dalla più recente. Mostrate nel menu (voce "Novità") per i tester. */
 export const CHANGELOG = [
   {
+    v: 'v0.99.49', it: [
+      'Chi striscia ondeggia davvero: l\'onda scorre lungo il corpo dal muso alla coda, invece dello sprite stirato di sbieco',
+      'Di fronte e di spalle il passo si vede: le zampe si alzano a turno',
+      'Il compagno che scava gratta con le zampe, e quando pesca rema',
+      'Il compagno ti segue alla solita distanza anche in bici, invece di starti appiccicato',
+    ], en: [
+      'Crawlers really undulate: the wave runs along the body from snout to tail, instead of a sheared sprite',
+      'Walking towards or away from you, the stride shows: the legs lift in turn',
+      'Your companion scratches with its paws while digging, and paddles while fishing',
+      'Your companion keeps its usual distance on the bike too, instead of sticking to you',
+    ],
+  },
+  {
+    v: 'v0.99.48', it: [
+      'In bici il compagno non trema più: ti segue con passi regolari invece di alternare uno lento e uno veloce',
+    ], en: [
+      'On the bike your companion no longer jitters: it follows with even steps instead of alternating a slow one and a fast one',
+    ],
+  },
+  {
+    v: 'v0.99.47', it: [
+      'IN BICI SI PEDALA DAVVERO: Digsy siede sulla sella (prima sembrava seduto sui pedali) e le gambe girano coi pedali, di profilo, di fronte e di spalle',
+      'Il compagno tiene il passo della bici: uscendo di casa il cancello si chiude subito, invece di aspettarlo per secondi',
+      'Maestro scavatore: la velocità di scavo si legge come velocità (×3.0 = tre volte più svelto) invece di «scavo ×0.50», che sembrava un peggioramento',
+      'LE CREATURE CAMMINANO DAVVERO: le zampe fanno il passo (a coppie, come un trotto; gli insetti a treppiede), il piede si alza mentre torna avanti e il passo va col terreno fatto, così non scivolano più sul prato. Chi vola batte le ali e tiene le zampe raccolte',
+      'Le creature del cortile non attraversano più la casa',
+    ], en: [
+      'THE BIKE IS REALLY PEDALLED: Digsy sits on the saddle (it used to look like sitting on the pedals) and the legs turn with the pedals, from the side, the front and the back',
+      'Your companion keeps up with the bike: leaving home, the gate closes right away instead of waiting for it for seconds',
+      'Master Digger: dig speed now reads as a speed (×3.0 = three times faster) instead of "dig ×0.50", which looked like a downgrade',
+      'CREATURES REALLY WALK: their legs step (in pairs, like a trot; insects in tripods), each foot lifts as it swings forward and the stride follows the ground covered, so they no longer slide over the grass. Flyers flap their wings and keep their legs tucked',
+      'Yard creatures no longer walk through the house',
+    ],
+  },
+  {
     v: 'v0.99.46', it: [
       'Le creature del cortile non compaiono più di colpo: ci sono già quando il recinto entra nello schermo, e quelle grandi non spuntano né spariscono al bordo',
     ], en: [

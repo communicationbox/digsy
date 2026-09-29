@@ -447,9 +447,21 @@ function segRing(cx, cy, cz, r, mode, colT, out) {
         out.push({ x: cx + a, y: cy + dy, z: cz + dz, col: colT });   // tinta unica: luce e ventre li fa il disegno (creatureSprite)
   }
 }
+/* il passo in voxel: di quanto si sposta il piede (dx, negativo = avanti) e di quanto si alza */
+function passoVox(passo, H, amp, alza) {
+  if (!passo) return { dx: 0, lift: 0 };
+  /* DI FRONTE O DI SPALLE l'avanti-indietro va in profondità e quasi non si vede: il passo lo dice
+     il piede che si alza, quindi lì si alza di più e oscilla di meno (`gaitFB`) */
+  if (passo.fb) { amp = Math.max(1, Math.round(amp * 0.6)); alza = Math.max(1, Math.round(alza * 1.8)); }
+  return { dx: Math.round(-passo.sw * amp), lift: Math.min(Math.max(0, H - 1), Math.round(Math.max(0, passo.up) * alza)) };
+}
 /* ZAMPA: si assottiglia dall'anca al piede, e il piede appoggia largo. A un voxel di spessore
    (com'era) una zampa a scala doppia sembrerebbe un filo di ferro. */
-function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse = 0, forma = { kind: 'zampa', hind: true }) {
+/* `passo` (opzionale, {sw, up}): la zampa in cammino. `sw` da -1 a 1 porta il piede avanti (verso
+   il muso, x basse) o indietro, `up` da 0 a 1 lo alza mentre torna avanti. Si piega tutta la
+   zampa in proporzione all'altezza (l'anca resta attaccata, il piede si sposta di più): a questa
+   grandezza una rotazione vera e una piega così non si distinguono, e la giunzione non si stacca. */
+function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse = 0, forma = { kind: 'zampa', hind: true }, passo = null) {
   const P = (x, y, z, k) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, k === 'dark' ? 0.7 : 0.88) });
   const spesso = (x, y, z, k, th) => { for (let d = 0; d < Math.max(1, th); d++) for (let e = 0; e < Math.max(1, th); e++) P(x + d, y, z + e * side, k); };
   /* ZAMPA RACCOLTA, in volo: coscia corta verso il basso, ginocchio, stinco RIPIEGATO
@@ -481,11 +493,12 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse
     spesso(lx, cy, z, 'bone', th);                                       // anca sul fianco
     for (let j = 1; j <= U(2); j++) { z = cz + side * (sr + j); spesso(lx, cy + j, z, 'bone', th); }
     if (mode !== 'flesh') spesso(lx, cy + U(2), z, 'dark', th);          // il ginocchio in alto
-    for (let y = cy + U(2) - 1; y >= 0; y--) {                          // scende e si apre appena verso terra
-      const zz = z + (y < U(1) ? side : 0);
-      spesso(lx, y, zz, y % U(2) ? 'shade' : 'bone', th);
+    const top = cy + U(2) - 1, pa = passoVox(passo, top + 1, U(1), U(1));
+    for (let y = top; y >= pa.lift; y--) {                              // scende e si apre appena verso terra
+      const zz = z + (y < U(1) + pa.lift ? side : 0), f = 1 - y / (top + 1);
+      spesso(lx + Math.round(pa.dx * f), y, zz, y % U(2) ? 'shade' : 'bone', th);
     }
-    P(lx - 1, 0, z + side, 'dark');                                      // l'unghia
+    P(lx - 1 + pa.dx, pa.lift, z + side, 'dark');                        // l'unghia
     return;
   }
   /* ZAMPETTA D'INSETTO: sottile, a tre pezzi. Esce dal fianco, sale di poco al ginocchio e scende
@@ -499,10 +512,11 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse
       const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), Math.abs(b[2] - a[2]), 1);
       for (let i = 0; i <= n; i++) { const t = i / n; spesso(Math.round(a[0] + (b[0] - a[0]) * t), Math.round(a[1] + (b[1] - a[1]) * t), Math.round(a[2] + (b[2] - a[2]) * t), k, th); }
     };
-    linea([lx, hipY, hipZ], [lx, kneeY, kneeZ], 'bone');              // femore: di lato, appena in su
-    linea([lx, kneeY, kneeZ], [lx, 0, footZ], 'shade');                // tibia: giù, aperta
-    if (mode !== 'flesh') spesso(lx, kneeY, kneeZ, 'dark', th);        // il ginocchio
-    P(lx - 1, 0, footZ, 'dark');                                       // l'unghia
+    const pa = passoVox(passo, kneeY + 1, U(1), U(1)), kx = lx + Math.round(pa.dx / 2);
+    linea([lx, hipY, hipZ], [kx, kneeY, kneeZ], 'bone');              // femore: di lato, appena in su
+    linea([kx, kneeY, kneeZ], [lx + pa.dx, pa.lift, footZ], 'shade'); // tibia: giù, aperta
+    if (mode !== 'flesh') spesso(kx, kneeY, kneeZ, 'dark', th);        // il ginocchio
+    P(lx - 1 + pa.dx, pa.lift, footZ, 'dark');                         // l'unghia
     return;
   }
   /* ZAMPA DA VERTEBRATO: ossa con i GIUNTI, non una colonna. Erano pilastri dritti col piede a
@@ -524,7 +538,11 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse
     salto: [[-0.28, 0.66, 0], [0.34, 0.16, 0], [0.3, 0, 0]],
     uccello: [[-0.24, 0.64, 0], [0.18, 0.34, 0], [0.04, 0, 0]],
   }[kind === 'tozza' ? 'tozza' : kind === 'salto' ? (hind ? 'salto' : 'davanti') : kind === 'uccello' ? 'uccello' : (hind ? 'dietro' : 'davanti')];
-  const pts = [[lx, H, zz], ...J.map(([dx, fy, dz]) => [lx + Math.round(dx * H), Math.round(fy * H), zz + side * dz])];
+  const pa = passoVox(passo, H, Math.max(1, Math.round(H * 0.32)), Math.max(1, Math.round(H * 0.2)));
+  const pts = [[lx, H, zz], ...J.map(([dx, fy, dz]) => {
+    const f = 1 - fy;                                                     // quanto il giunto segue il piede
+    return [lx + Math.round(dx * H + pa.dx * f), Math.round(fy * H + pa.lift * f), zz + side * dz];
+  })];
   const tratto = (a, b, t0, t1, k) => {
     const n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1]), Math.abs(b[2] - a[2]), 1);
     for (let i = 0; i <= n; i++) {
@@ -539,27 +557,38 @@ function legVox(lx, cy, cz, sr, side, len, mode, colT, out, arthro, tuck, grosse
   /* nello scheletro i giunti si vedono: un nodo più scuro, appena più grosso dell'osso */
   if (!carne) for (const g of [pts[1], pts[2]]) spesso(g[0], g[1], g[2], 'shade', osso + (R > 1 ? 1 : 0));
   /* IL PIEDE */
-  const [fx, , fz] = pts[3];
+  const [fx, fy, fz] = pts[3];                                            // fy > 0: il piede è alzato
   const dita = (n, lung, artiglio) => {
     for (let d = 0; d < n; d++) {
       const z = fz + side * d;
-      for (let i = 0; i <= lung; i++) P(fx - i, 0, z, i === lung && artiglio ? 'dark' : 'bone');
+      for (let i = 0; i <= lung; i++) P(fx - i, fy, z, i === lung && artiglio ? 'dark' : 'bone');
     }
   };
   if (kind === 'zoccolo') {
-    for (let y = 0; y < Math.max(1, R); y++) for (let d = -1; d < osso; d++) for (let e = 0; e < osso; e++) P(fx + d, y, fz + e * side, 'dark');
+    for (let y = 0; y < Math.max(1, R); y++) for (let d = -1; d < osso; d++) for (let e = 0; e < osso; e++) P(fx + d, fy + y, fz + e * side, 'dark');
   } else if (kind === 'uccello') {
     dita(Math.max(1, osso), U(2.5), true);                                // tre dita lunghe avanti…
-    for (let i = 1; i <= U(1); i++) P(fx + osso - 1 + i, 0, fz, i === U(1) ? 'dark' : 'bone');   // …e il pollice dietro
+    for (let i = 1; i <= U(1); i++) P(fx + osso - 1 + i, fy, fz, i === U(1) ? 'dark' : 'bone');   // …e il pollice dietro
   } else if (kind === 'salto') {
-    if (hind) for (let i = 0; i <= U(3); i++) for (let e = 0; e < osso; e++) P(fx - i, 0, fz + e * side, i === U(3) ? 'dark' : 'bone');   // piede lungo e piatto
+    if (hind) for (let i = 0; i <= U(3); i++) for (let e = 0; e < osso; e++) P(fx - i, fy, fz + e * side, i === U(3) ? 'dark' : 'bone');   // piede lungo e piatto
     else dita(osso, U(1), true);
   } else if (kind === 'tozza') {
-    for (let d = -1; d < osso + 1; d++) for (let e = 0; e < osso + 1; e++) P(fx + d, 0, fz + e * side, 'bone');   // pianta larga
+    for (let d = -1; d < osso + 1; d++) for (let e = 0; e < osso + 1; e++) P(fx + d, fy, fz + e * side, 'bone');   // pianta larga
     dita(osso + 1, U(1.5), true);                                         // artigli da scavo
   } else {
     dita(osso, U(1.5), true);                                             // zampa con le dita e le unghie
   }
+}
+/* IL CAMMINO: `opts.gait` (0..3) è il fotogramma del passo. Le zampe si muovono a coppie
+   DIAGONALI come nel trotto (davanti-sinistra con dietro-destra), i bipedi alternano, gli insetti
+   vanno a treppiede (una zampa sì e una no, e dall'altro lato il contrario). Mentre il piede torna
+   avanti si alza; mentre spinge indietro sta a terra. */
+export const GAIT_FRAMES = 4;
+function passoZampa(opts, i, side, pairs, arthro) {
+  const g = opts && opts.gait; if (g == null || (opts && opts.tuckLegs)) return null;
+  const off = (side > 0 ? Math.PI : 0) + (i % 2 ? Math.PI : 0);          // diagonali in fase (anche a treppiede)
+  const th = (g % GAIT_FRAMES) * 2 * Math.PI / GAIT_FRAMES + off;
+  return { sw: Math.cos(th), up: -Math.sin(th), fb: !!opts.gaitFB };      // il piede torna avanti (sw che cresce) sollevato
 }
 /* IL PIEDE DI UNA SPECIE, dalla sua ricetta: zampette e zampone d'insetto restano com'erano
    ('ragno'); le corte sono tozze e da scavo; i bipedi saltano (orecchie lunghe) o camminano
@@ -575,17 +604,24 @@ export function tipoZampa(bp, pairs) {
 /* `flap` (opzionale, 0..3: su, metà, giù, metà) alza o abbassa le punte delle ali a membrana: la
    cavalcatura in volo le batte costruendo quattro pose dello STESSO modello */
 const FLAP_LIFT = [3, 1, -2, 1];
+const FLAP_SOFT = [0.5, 0, -2, -1];
 function wingVox(x0, topY, n, type, mode, colT, out, flap) {
   const P = (x, y, z, k, cmul) => mode === 'skel' ? out.push({ x, y, z, k }) : out.push({ x, y, z, col: shadeHex(colT, cmul || 1.12), wing: 1 });
   const pairs = Math.max(1, Math.round(n / 2));
   for (let w = 0; w < pairs; w++) for (const dir of [-1, 1]) {
     const wx = x0 + w * U(3), span = type === 'm' ? U(10 - w * 3) : U(5 - w);   // la membrana è un'ala VERA: più larga del corpo
     for (let d = 0; d < R; d++) P(wx + d, topY, dir, 'bone', 1);          // radice dell'ala sul dorso
+    /* battito anche per piume e insetti: le punte salgono e scendono come la membrana (a riposo 0) */
+    /* piume e insetti salgono poco e scendono di più: di profilo l'ala sta già alta sul dorso, e
+       alzandola ancora diventava un pennacchio dritto */
+    const fl = flap == null ? 0 : FLAP_SOFT[((flap % 4) + 4) % 4];
     for (let i = 1; i <= span; i++) {
-      const y = topY + Math.min(U(3), Math.round(i / 2));
+      const k2 = i / span;
+      const y = topY + Math.min(U(3), Math.round(i / 2)) + Math.round(k2 * k2 * U(fl));
       if (type === 'i') {                                                 // ala da insetto: ovale sottile
-        P(wx, topY + 1, dir * i, i > span - R ? 'dark' : 'shade', 1.3);
-        if (i > R && i < span) for (let d = 1; d <= R; d++) P(wx + d, topY + 1, dir * i, 'shade', 1.3);
+        const yi = topY + 1 + Math.round(k2 * U(fl));
+        P(wx, yi, dir * i, i > span - R ? 'dark' : 'shade', 1.3);
+        if (i > R && i < span) for (let d = 1; d <= R; d++) P(wx + d, yi, dir * i, 'shade', 1.3);
       } else if (type === 'f') {                                          // piume: penne di lunghezze diverse
         const pen = U(1) + (i % (R * 2) === 0 ? U(1) : 0);
         for (let j = 0; j <= pen; j++) P(wx + j, y - Math.floor(j / 2), dir * i, j ? 'shade' : 'bone', j % 2 ? 0.9 : 1.12);
@@ -768,12 +804,18 @@ function buildFromRecipe(spec, mode, opts) {
   const segsX = [], segCys = [], segCzs = [], topYs = [];
   const tSeg = out.length;
   let prevCx = null, prevR = 0;
+  /* STRISCIANDO il corpo ondeggia: l'onda scorre dal muso verso la coda (fase dal `gait`), come
+     un serpente che avanza. Prima c'era lo sprite fermo stirato di sbieco a scala frazionaria.
+     Chi non ha zampe e non fluttua ondeggia appena anche se a riposo sta dritto. */
+  const gaitOnda = opts && opts.gait != null ? (opts.gait % GAIT_FRAMES) * 2 * Math.PI / GAIT_FRAMES : 0;
+  const striscia = !r.wave && nLegs === 0 && !r.float && opts && opts.gait != null;
+  const onda = r.wave || striscia;
   segs.forEach((sr, i) => {
     const cx = prevCx === null ? sr : prevCx + prevR + sr - R;
-    const cz = r.wave ? Math.round(Math.sin(i * 1.4) * U(2)) : 0;
+    const cz = r.wave ? Math.round(Math.sin(i * 1.4 - gaitOnda) * U(2)) : striscia ? Math.round(Math.sin(i * 1.4 - gaitOnda) * U(1)) : 0;
     const cy = baseY + maxR + (r.tall ? Math.round((segs.length - 1 - i) * U(1.5)) : 0);
     segRing(cx, cy, cz, sr, mode, colT, out);
-    if (i > 0 && (r.wave || r.tall)) { // giunzione esplicita tra segmenti spostati
+    if (i > 0 && (onda || r.tall)) { // giunzione esplicita tra segmenti spostati
       const px2 = prevCx + prevR;
       for (let d = 0; d < R; d++) {
         const jy = Math.round((segCys[i - 1] + cy) / 2), jz = Math.round((segCzs[i - 1] + cz) / 2);
@@ -815,7 +857,7 @@ function buildFromRecipe(spec, mode, opts) {
       const lr = BP[legSp.id] || r, ld = lr.legs || [4, 1];
       const arthro = !!(lr.ant || lr.head === 'none' || ld[0] >= 6);
       const forma = { kind: tipoZampa(lr, isBase ? pairs : Math.max(1, Math.round(ld[0] / 2))), hind: pairs === 1 || i >= pairs / 2 };
-      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, arthro, !!(opts && opts.tuckLegs), lr.zampe === 'robuste' ? 1 : lr.zampe === 'sottili' ? -1 : 0, forma);
+      for (const side of [-1, 1]) legVox(lx + side * stag, segCys[si], segCzs[si], segs[si], side, legLen, mode, colT, out, arthro, !!(opts && opts.tuckLegs), lr.zampe === 'robuste' ? 1 : lr.zampe === 'sottili' ? -1 : 0, forma, passoZampa(opts, i, side, pairs, arthro));
     }
   } else if (!r.float && !noLegs) { // striscia: spuntoni ventrali attaccati al ventre
     segsX.forEach((sx, i) => { for (let d = 0; d < R; d++) {

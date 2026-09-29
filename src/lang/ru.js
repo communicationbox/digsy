@@ -891,9 +891,11 @@ export const RU = {
   ' for level ': ' до уровня ',
   'about ': 'примерно ',
   ' common finds': ' обычных находок',
+  ' common find': ' обычная находка',
+  'dig speed': 'скорость копки',
+  ' (maxed)': ' (максимум)',
   'At level ': 'На уровне ',
   'max energy': 'макс. энергия',
-  'dig': 'копка',
   'rares': 'редкости',
 
   'Master Digger': 'Мастер раскопок',

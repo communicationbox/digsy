@@ -1375,8 +1375,13 @@ export function openMentor() {
   const lv = playerLevel(), xp = playerXp(), nx = xpToNext(), pct = Math.max(3, Math.min(100, Math.round(xp / nx * 100)));
   const need = Math.max(0, nx - xp);
   let h = `<div class="xpwrap"><div class="xphead"><b>${tr('Livello', 'Level')} ${lv}</b><span>XP ${xp}/${nx}</span></div><div class="xpbar"><i style="width:${pct}%"></i></div></div>`;
-  h += `<div class="row" style="background:#f1e6cc"><span class="em">🎯</span><div><div class="nm">${tr('Ti mancano ', 'You need ')}<b>${need} XP</b>${tr(' per il livello ', ' for level ')}${lv + 1}</div><div class="sub">${tr('circa ', 'about ')}${Math.max(1, Math.ceil(need / 5))}${tr(' reperti comuni', ' common finds')}</div></div></div>`;
-  h += `<div class="row"><span class="em">🎁</span><div><div class="nm">${tr('Al livello ', 'At level ')}${lv + 1}</div><div class="sub">+5 ⚡ ${tr('energia max', 'max energy')} · ${tr('scavo', 'dig')} ×${digDurationMul(lv + 1).toFixed(2)} · ${tr('rari', 'rares')} ×${rareBonus(lv + 1).toFixed(2)}</div></div></div>`;
+  const nFinds = Math.max(1, Math.ceil(need / 5));
+  h += `<div class="row" style="background:#f1e6cc"><span class="em">🎯</span><div><div class="nm">${tr('Ti mancano ', 'You need ')}<b>${need} XP</b>${tr(' per il livello ', ' for level ')}${lv + 1}</div><div class="sub">${tr('circa ', 'about ')}${nFinds}${nFinds === 1 ? tr(' reperto comune', ' common find') : tr(' reperti comuni', ' common finds')}</div></div></div>`;
+  /* la velocità si dice come VELOCITÀ (più alto = meglio), rispetto al livello 1: «scavo ×0.50»
+     era la DURATA e si leggeva come un peggioramento. Al tetto lo si dice, invece di ripetere il numero. */
+  const digSpd = digDurationMul(1) / digDurationMul(lv + 1), digMax = digDurationMul(lv + 1) >= digDurationMul(lv);
+  const digTxt = tr('velocità di scavo', 'dig speed') + ' ×' + digSpd.toFixed(1) + (digMax ? tr(' (al massimo)', ' (maxed)') : '');
+  h += `<div class="row"><span class="em">🎁</span><div><div class="nm">${tr('Al livello ', 'At level ')}${lv + 1}</div><div class="sub">+5 ⚡ ${tr('energia max', 'max energy')} · ${digTxt} · ${tr('rari', 'rares')} ×${rareBonus(lv + 1).toFixed(2)}</div></div></div>`;
   mTitle.innerHTML = withIcons('🎓 ' + tr('Maestro Scavatore', 'Master Digger'));
   mBody.innerHTML = withIcons(h); openModal();
 }

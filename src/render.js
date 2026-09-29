@@ -1,7 +1,7 @@
 /* Rendering: tile, decorazioni, edifici, parco, eroe, indicatore bussola */
 import { TS, spColor, spById } from './data.js';
 import { FOOT_DY } from './body.js';
-import { partParams, composedPartsVox, buildFleshVoxels, clampSpec, BP } from './bones.js';
+import { partParams, composedPartsVox, buildFleshVoxels, clampSpec, BP, tipoZampa, GAIT_FRAMES } from './bones.js';
 import { ctx, view } from './screen.js';
 import { snap, px, rect, shadow, shade8, BRUSH, dipingiIn, setStrati } from './brush.js';
 import { spriteDaVoxel } from './voxsprite.js';
@@ -13,7 +13,7 @@ import { COMP, companionDrawObj, companionHelps, companionLightBonus } from './c
 import { weatherAt, weatherStep } from './weather.js';
 import { siteRemaining, onBoat, footGear, waterTile, isMounted, boneSiteDug } from './gameplay.js';
 import { SEED, vhash } from './noise.js';
-import { drawHero, setHeroTime } from './sprites.js';
+import { drawHero, setHeroTime, PAL } from './sprites.js';
 import { GRIP } from './bodyArt.js';
 import { yardAnimals, yardNear, gateClosingProgress, gateHeldOpen } from './park.js';
 import { compass, playerInTown, octant } from './compass.js';
@@ -383,10 +383,14 @@ export function drawMailbox(sx, sy) {
    `clipY` sparisce — nella buca o sott'acqua. Prima qui c'era una goccia di colore piatto a
    blocchi 2×2 senza contorno: la vecchia grafica, l'unica rimasta nel gioco («il sedere dei buddy
    che scavano è rimasto con la grafica vecchia»). Restituisce false se lo sprite non c'è. */
-function drawCreatureTilted(a, cx, base, dir, drop, clipY, nod) {
-  const cv = creatureSprite(a, 'side');
-  if (!cv) return false;
-  const W = cv.width, H = cv.height, x0 = cx - Math.round(W / 2);
+/* `zampe` (0..3 o null): la posa delle zampe mentre lavora — grattano la terra o remano. È una posa
+   del passo, nel riquadro della bestia ferma (ox/oy), quindi il taglio obliquo resta lo stesso. */
+function drawCreatureTilted(a, cx, base, dir, drop, clipY, nod, zampe) {
+  const ref = creatureSprite(a, 'side');
+  if (!ref) return false;
+  const cv = zampe != null ? (creatureSprite(a, 'side', { gait: zampe, lazy: true }) || ref) : ref;
+  const ox = cv === ref ? 0 : (cv.ox || 0), oy = cv === ref ? 0 : (cv.oy || 0);
+  const W = ref.width, H = ref.height, x0 = cx - Math.round(W / 2);
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
   ctx.save(); ctx.beginPath(); ctx.rect(x0 - 4, clipY - 200, W + 8, 200); ctx.clip();
   for (let i = 0; i < W; i++) {
@@ -394,7 +398,7 @@ function drawCreatureTilted(a, cx, base, dir, drop, clipY, nod) {
     const src = dir > 0 ? W - 1 - i : i;
     const t = dir > 0 ? i / (W - 1) : 1 - i / (W - 1);           // 0 = coda, 1 = muso
     const off = Math.round(t * drop) + (t > 0.5 ? nod : 0);
-    ctx.drawImage(cv, src, 0, 1, H, x0 + i, base - H + off, 1, H);
+    ctx.drawImage(cv, src + ox, 0, 1, cv.height, x0 + i, base - H - oy + off, 1, cv.height);
   }
   ctx.restore(); ctx.imageSmoothingEnabled = sm;
   return true;
@@ -404,7 +408,7 @@ function drawCreatureTilted(a, cx, base, dir, drop, clipY, nod) {
 function drawCompanionDabble(cx, cyBase, time, obj, dir) {
   const wy = cyBase - 6;                                    // pelo dell'acqua
   const bob = Math.round(Math.sin(time / 260) * 2);         // il sedere si tuffa e riemerge
-  const drew = obj && drawCreatureTilted(obj, cx, wy + 6 + bob, dir, 20, wy, 0);
+  const drew = obj && drawCreatureTilted(obj, cx, wy + 6 + bob, dir, 20, wy, 0, Math.floor(time / 160) % 4);   // le zampe remano
   if (!drew) { const b = (obj && spColor[obj.c.torso]) || '#c8b078'; rect(cx - 6, wy - 12 + bob, 12, 12, b); }
   const pad = Math.floor(time / 160) % 2;                   // schizzi delle zampe che remano
   px(cx - dir * 12, wy - 2 - pad * 2, '#e8f6fb'); px(cx - dir * 16, wy - pad, '#bfe9f4');
@@ -424,7 +428,7 @@ function drawCompanionDig(cx, cyBase, time, obj, dir) {
   for (let x = -4; x <= 4; x += 2) { const h = Math.max(0, 6 - Math.abs(x)); for (let k = 0; k < h; k += 2) px(cx + back * 20 + x, gy - k, k >= h - 2 ? '#8a6a42' : '#6d4f30'); } // mucchietto dietro
   shadow(cx - dir * 6, gy, 8);
   const nod = Math.floor(time / 70) % 2;                    // zampe davanti che grattano: il muso fa su e giù
-  const drew = obj && drawCreatureTilted(obj, cx, gy, dir, 16, gy - 1, nod);
+  const drew = obj && drawCreatureTilted(obj, cx, gy, dir, 16, gy - 1, nod, Math.floor(time / 90) % 4);   // le zampe grattano
   if (!drew) { const b = (obj && spColor[obj.c.torso]) || '#c8b078'; rect(cx - 6, gy - 12, 12, 11, b); }
   rect(hx - 9, gy - 2, 18, 2, '#5a4326'); rect(hx - 8, gy - 2, 16, 1, '#8a6a42'); // il bordo della buca DAVANTI al muso
   const beat = (time / 70) % 1;                             // TERRA a ondate indietro
@@ -609,21 +613,48 @@ const creCache = new Map();
 /* sprite della creatura in una VISTA: 'side' (di profilo, X orizzontale · Z profondità),
    'front'/'back' (di fronte/spalle, Z orizzontale · X profondità → head-on, più stretto).
    Front mostra gli occhi, back no: così muovendosi in su/giù il compagno "gira". */
+function creKey(a, view, o) {
+  return a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.tuckLegs ? '|tl' : '') + (o.res ? '|r' + o.res : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap != null ? '|f' + o.wingFlap : '') + (o.gait != null ? '|g' + o.gait : '') + (o.gaitFB ? 'fb' : '');
+}
+/* LE POSE D'ANIMAZIONE SI FANNO A RATE. Una posa costa un modello (~3 ms) e un disegno (~3 ms);
+   su un telefono lento sono 25 ms, cioè un fotogramma saltato a posa, e un cortile pieno ne chiede
+   decine insieme. Allora: UN SOLO passo per fotogramma, e ogni posa in due passi (prima il
+   modello, al fotogramma dopo il disegno). Finché non è pronta si usa la bestia ferma. */
+let creBudgetT = -1, creBudget = 0;
+const CRE_BUDGET = 1;
+const creJobs = new Map();                                   // chiave → modello già costruito, in attesa del disegno
+function creSpec(a) {
+  const c = spById[a.c.skull], t = spById[a.c.torso], z = spById[a.c.leg];
+  return clampSpec({ heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] });
+}
 export function creatureSprite(a, view, opts) {
   view = view || 'side';
   const o = opts || {};
-  const key = a.c.skull + '|' + a.c.torso + '|' + a.c.leg + '|' + view + (o.noLegs ? '|nl' : '') + (o.tuckLegs ? '|tl' : '') + (o.res ? '|r' + o.res : '') + (o.addWings ? '|w' + o.addWings.join('') : '') + (o.wingFlap ? '|f' + o.wingFlap : '');
+  const key = creKey(a, view, o);
   let cv = creCache.get(key); if (cv !== undefined) return cv;
+  const posa = o.gait != null || o.wingFlap != null;
+  /* le pose del passo (e del battito) stanno nel riquadro della bestia FERMA: vedi `base` in voxsprite */
+  const ferma = posa ? creatureSprite(a, view, { ...o, gait: null, wingFlap: null, lazy: false }) : null;
+  const disegna = vox => spriteDaVoxel(vox, view, ferma && ferma.bnd ? { ...o, base: ferma.bnd } : o, a.c.torso, 1);
+  if (posa && o.lazy) {
+    if (creBudgetT !== frameTime) { creBudgetT = frameTime; creBudget = 0; }
+    if (creBudget >= CRE_BUDGET) return ferma;
+    creBudget++;
+    try {
+      const vox = creJobs.get(key);
+      if (!vox) { creJobs.set(key, buildFleshVoxels(creSpec(a), o)); return ferma; }   // passo 1: il modello
+      creJobs.delete(key);
+      cv = disegna(vox);                                                                // passo 2: il disegno
+    } catch (e) { cv = null; creJobs.delete(key); }
+    creCache.set(key, cv); return cv;
+  }
   cv = null;
   try {
-    const c = spById[a.c.skull], t = spById[a.c.torso], z = spById[a.c.leg];
-    const spec = { heads: [{ sp: c, horns: partParams(c).horns }], chest: t, arms: [z, z], legs: [z, z], tails: [t] };
     /* il disegno vero sta in voxsprite.js: vista 3/4, luce dal modello, quattro toni.
        (Il supercampionamento — modello a risoluzione doppia ridotto a metà — c'è, `ss` = 2, ma qui
        non si usa: costava 16 ms a creatura contro 4, e la differenza a questa grandezza si vede
        appena. Entrando in un cortile pieno di chimere diventava un fermo di un secondo.) */
-    const vox = buildFleshVoxels(clampSpec(spec), opts);
-    cv = spriteDaVoxel(vox, view, o, a.c.torso, 1);
+    cv = disegna(buildFleshVoxels(creSpec(a), o));
   } catch (e) { cv = null; /* stub nei test */ }
   creCache.set(key, cv); return cv;
 }
@@ -632,8 +663,29 @@ function creatureArch(a) {
   const bp = BP[a.c.leg] || BP[a.c.torso] || {};
   if (bp.wings) return 'fly';
   if ((bp.legs && bp.legs[0] === 0) || bp.wave || bp.float) return 'snake';
-  if (bp.tall || (bp.legs && bp.legs[0] <= 2)) return 'hop';
+  /* saltella solo chi ha le zampe da salto (lepre, rana): gli uccelli e i bipedi camminano */
+  if (tipoZampa(bp, Math.max(1, Math.round(((bp.legs || [4])[0]) / 2))) === 'salto') return 'hop';
   return 'walk';
+}
+/* IL PASSO SI CONTA SULLA STRADA FATTA, non sul tempo: una posa ogni `PASSO_PX` pixel percorsi,
+   così i piedi non scivolano sul prato né pestano sul posto; con un tetto di cadenza (dieci pose
+   al secondo) perché alla velocità della bici le zampe non diventino un frullo. Lo stato sta
+   sull'oggetto stesso (le creature del cortile) o in una mappa per chi viene ricreato a ogni
+   fotogramma (compagno, bestie degli altri: `who`). */
+const PASSO_PX = 3, PASSO_MAX = 10;
+const BATTITO = [1, 2, 3, 2];
+const passiDi = new Map();
+function passoCreatura(a) {
+  const st = a.who ? (passiDi.get(a.who) || (passiDi.set(a.who, {}), passiDi.get(a.who))) : a;
+  const now = frameTime, dtf = st._t != null ? Math.max(0, (now - st._t) / 1000) : 0;
+  st._t = now;
+  if (a.x != null && st._x != null) {
+    const d = Math.hypot(a.x - st._x, a.y - st._y);
+    if (d > 0.05 && d < 64) { st._g = (st._g || 0) + Math.min(d / PASSO_PX, dtf * PASSO_MAX); st._mv = now; }
+  }
+  if (a.x != null) { st._x = a.x; st._y = a.y; }
+  const moving = st._mv != null && now - st._mv < 160;
+  return moving ? Math.floor(st._g || 0) % GAIT_FRAMES : null;
 }
 function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
   /* FASE 2: nativa — creatureSprite ora produce già una canvas a risoluzione doppia (vedi
@@ -641,37 +693,48 @@ function drawCreature(a, sx, sy, swim, noShadow, spriteOpts) {
   ctx.save(); ctx.translate(sx, sy); sx = 0; sy = 0;
   const face = a.face || (a.dir < 0 ? 'left' : 'right');
   const view = face === 'up' ? 'back' : face === 'down' ? 'front' : 'side';
-  const cv = creatureSprite(a, view, spriteOpts);
   const arch = creatureArch(a);
-  const ph = (a.anim || 0) * 7;              // fase (avanza col movimento)
-  const idle = frameTime / 600;
-  let hop = 0, sqX = 1, sqY = 1, skew = 0, lift = 0, sh = 10;
-  if (arch === 'fly') {                       // VOLA: fluttua sempre, ali che sbattono (scaleY pulsante veloce)
-    lift = 12 + Math.round(Math.sin(idle * 3) * 4);
-    sqY = 1 + Math.sin(frameTime / 90) * 0.10; sqX = 1 - Math.sin(frameTime / 90) * 0.06;
-    sh = 8;
-  } else if (arch === 'snake') {              // STRISCIA: ondeggia orizzontale, quasi niente saltello
-    skew = Math.sin(ph) * 0.22; sqY = 1 + Math.sin(idle * 2) * 0.03; hop = 0; sh = 12;
-  } else if (arch === 'hop') {                // SALTELLA: salto ampio + schiacciata all'atterraggio
-    const s = Math.abs(Math.sin(ph)); hop = -Math.round(s * 8); sqY = 1 - (1 - s) * 0.14; sqX = 1 + (1 - s) * 0.10;
-    sh = Math.max(6, Math.round(12 - s * 6));
-  } else {                                    // CAMMINA: trotto morbido + respiro
-    const step = Math.sin(ph); hop = Math.round(-Math.abs(step) * 4);
-    sqX = 1 - step * 0.05; sqY = 1 + step * 0.05 + Math.sin(idle) * 0.03;
+  const gait = swim ? null : passoCreatura(a);
+  /* SI MUOVONO DAVVERO: zampe che fanno il passo (pose del modello, `gait`), ali che battono
+     (`wingFlap`), zampe raccolte in volo. Prima era lo sprite fermo schiacciato e stirato a scala
+     frazionaria (regola 3: i pixel si spaccano) con un saltello: sembravano scivolare. */
+  let o = spriteOpts;
+  if (!o) {
+    /* battito: riposo → giù → mezzo → giù. La posa "su" (0) è della cavalcatura: da terra, di
+       profilo, l'ala alzata ancora superava la sagoma e diventava un pennacchio dritto */
+    if (arch === 'fly' && !swim) o = { tuckLegs: true, wingFlap: BATTITO[Math.floor(frameTime / 140) % 4], lazy: true };
+    else if ((arch === 'walk' || arch === 'snake') && gait != null) o = { gait, gaitFB: view !== 'side', lazy: true };
   }
-  if (swim || noShadow) { hop = 0; lift = 0; skew = 0; sqX = 1; sqY = 1; }
+  const cv = creatureSprite(a, view, o);
+  const ferma = o && (o.gait != null || o.wingFlap != null) ? creatureSprite(a, view, { ...o, gait: null, wingFlap: null }) : cv;
+  const idle = frameTime / 600;
+  let hop = 0, lift = 0, sh = 10;
+  if (arch === 'fly') {                       // VOLA: fluttua piano mentre le ali battono
+    lift = 12 + Math.round(Math.sin(idle * 3) * 3);
+    sh = 8;
+  } else if (arch === 'snake') {              // STRISCIA: il corpo ondeggia nel modello (gait), niente saltello
+    sh = 12;
+  } else if (arch === 'hop') {                // SALTELLA: salto a pixel interi quando si sposta
+    const s2 = gait != null ? Math.abs(Math.sin(((passiDi.get(a.who) || a)._g || 0) * Math.PI / 4)) : 0;
+    hop = -Math.round(s2 * 7); sh = Math.max(6, Math.round(12 - s2 * 6));
+  } else if (gait != null) {                  // CAMMINA: il corpo sale di un pixel quando le zampe passano sotto
+    hop = gait % 2 ? -1 : 0;
+  }
+  if (swim || noShadow) { hop = 0; lift = 0; }
   const bob = swim ? Math.round(Math.sin(frameTime / 520) * 2) : 0;
   if (!swim && !noShadow) shadow(sx + 16, sy + 26, sh);
   if (!cv) { const b = spColor[a.c.torso] || '#c8b078'; rect(sx + 8, sy + 10 + hop - lift + bob, 18, 12, b); ctx.restore(); return; }
   const d = face === 'left' ? -1 : 1;   // specchio solo di profilo
-  const w = cv.width * sqX, h = cv.height * sqY;
-  const dx = sx + 16 - w / 2, dy = sy + 28 - h + hop - lift + bob;
+  /* posizione dal riquadro della bestia FERMA: una posa che sborda (ox/oy) non sposta il corpo */
+  const ref = ferma || cv, w = ref.width, h = ref.height;
+  const dx = sx + 16 - Math.round(w / 2), dy = sy + 28 - h + hop - lift + bob;
+  const ox = cv === ref ? 0 : (cv.ox || 0), oy = cv === ref ? 0 : (cv.oy || 0);
   const sm = ctx.imageSmoothingEnabled; ctx.imageSmoothingEnabled = false;
   const paint = () => {
     ctx.save();
-    if (d < 0) { ctx.transform(sqX, 0, skew, sqY, dx, dy); }
-    else { ctx.transform(-sqX, 0, skew, sqY, dx + w, dy); }
-    ctx.drawImage(cv, 0, 0);
+    if (d < 0) ctx.transform(1, 0, 0, 1, dx, dy);
+    else ctx.transform(-1, 0, 0, 1, dx + w, dy);
+    ctx.drawImage(cv, -ox, -oy);
     ctx.restore();
   };
   if (swim) {
@@ -936,14 +999,97 @@ export function drawPlayerAt(sx, sy) {
   const gear = footGear();
   /* la bici è sempre quella costruita attorno all'omino seduto: lo sprite a mano era fatto per il corpo vecchio */
   const bank = gear === 'skates';                                     // pattini nativi agganciati alle scarpe
-  const fb = gear === 'bike' && (P.dir === 'up' || P.dir === 'down'); // vista fronte/retro
   const ride = gear === 'bike';
-  if (ride && !fb) drawBike(sx, sy + bob, P.moving);                  // profilo: tutta DIETRO l'omino seduto
-  if (ride && fb) drawBikeFB(sx, sy + bob, P.moving, P.dir, 'behind');
-  drawHero(null, sx - 16, sy + bob, P.dir, fr, false, ride ? 'ride' : undefined);
+  if (ride) { drawRider(sx, sy + bob, P.dir, P.moving, fr); return; }
+  drawHero(null, sx - 16, sy + bob, P.dir, fr, false);
   if (bank && gear === 'skates') drawBankSkates(sx, sy + bob, fr);    // pattini a mano ANIMATI, ATTACCATI ai piedi (bob incluso; l'animazione è orizzontale, non si annulla col bob)
   else if (gear === 'skates') drawSkates(sx, sy + bob, fr);           // rotelle ai piedi DAVANTI
-  else if (fb) drawBikeFB(sx, sy + bob, P.moving, P.dir);             // fronte/retro: manubrio e ruota DAVANTI
+}
+/* IN BICI: bici, ciclista seduto (posa 'pedal', solo bacino e braccia) e GAMBE disegnate qui, coi
+   piedi SUI PEDALI che girano. Prima le gambe erano ferme nello sprite mentre i pedali giravano da
+   soli, e di profilo il sedere stava all'altezza della corona ("sembra seduto sui pedali").
+   Ordine di profilo: gamba lontana, bici, ciclista, gamba vicina. Di fronte/spalle: parte dietro
+   della bici, ciclista, gambe, parte davanti. */
+function drawRider(sx, sy, dir, moving, fr) {
+  const fb = dir === 'up' || dir === 'down', cr = crankAngle(moving);
+  if (!fb) {
+    drawPedalLeg(sx, sy, dir === 'left', cr + Math.PI, true);
+    drawBike(sx, sy, moving);
+    drawHero(null, sx - 16, sy - BIKE_LIFT, dir, fr, false, 'pedal');
+    drawPedalLeg(sx, sy, dir === 'left', cr, false);
+    return;
+  }
+  drawBikeFB(sx, sy, moving, dir, 'behind');
+  drawHero(null, sx - 16, sy - BIKE_LIFT_FB, dir, fr, false, 'pedal');
+  drawPedalLegsFB(sx, sy, dir, cr);
+  drawBikeFB(sx, sy, moving, dir);
+}
+/* angolo della pedivella: lo stesso per il disegno della bici e per le gambe */
+function crankAngle(moving) { return moving ? frameTime / 130 : -0.6; }
+/* colori della gamba dal look (PAL è già vestita da applyLook); pantaloncini e gonna scoprono lo
+   stinco. La gamba lontana è un tono più scura: così le due gambe restano due. */
+function legInk(far) {
+  const bare = S.look && (S.look.pantsStyle === 'shorts' || S.look.pantsStyle === 'skirt');
+  const pants = far ? [PAL.p, PAL.p, PAL.P] : [PAL.U, PAL.P, PAL.p];         // luce, base, ombra
+  const skin = far ? [PAL.f, PAL.f, PAL.f] : [PAL.F, PAL.F, PAL.f];
+  return { pants, shin: bare ? skin : pants, shoe: far ? [PAL.b, PAL.b] : [PAL.B, PAL.b], out: PAL.z, shoeOut: PAL.w, skinOut: PAL.x };
+}
+/* celle con il loro contorno: ogni cella porta il colore del bordo che le spetta */
+function paintOutlined(ox, oy, flip, cells) {
+  const has = new Map(cells.map(c => [c[0] + ',' + c[1], c]));
+  const X = x => ox + (flip ? 31 - x : x);
+  for (const [x, y, , o] of cells) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]])
+    if (!has.has((x + dx) + ',' + (y + dy))) rect(X(x + dx), oy + y + dy, 1, 1, o);
+  for (const [x, y, c] of cells) rect(X(x), oy + y, 1, 1, c);
+}
+/* gamba di PROFILO: anca → ginocchio → pedale, a due segmenti (il ginocchio piega sempre in avanti) */
+const PEDAL_HIP = [15, 21], CRANK = [18, 27.5], CRANK_R = 3.5, THIGH = 5.5, SHIN = 5.5;
+/* geometria pura della gamba (coordinate della bici, ciclista già alzato): esportata per i test */
+export function pedalLeg(ang) {
+  const [hx, hy] = PEDAL_HIP, px2 = CRANK[0] + Math.cos(ang) * CRANK_R, py2 = CRANK[1] + Math.sin(ang) * CRANK_R;
+  const d = Math.min(THIGH + SHIN - 0.01, Math.hypot(px2 - hx, py2 - hy)), th = Math.atan2(py2 - hy, px2 - hx);
+  const a = Math.acos(Math.max(-1, Math.min(1, (THIGH * THIGH + d * d - SHIN * SHIN) / (2 * THIGH * d))));
+  const kx = hx + Math.cos(th - a) * THIGH, ky = hy + Math.sin(th - a) * THIGH;
+  return { hip: [hx, hy], knee: [kx, ky], pedal: [px2, py2], shin: Math.hypot(px2 - kx, py2 - ky), crank: CRANK };
+}
+function drawPedalLeg(sx, sy, flip, ang, far) {
+  const ink = legInk(far), m = new Map();
+  const put = (x, y, c, o) => { const k = Math.round(x) + ',' + Math.round(y); m.set(k, [Math.round(x), Math.round(y), c, o]); };
+  const { hip: [hx, hy], knee: [kx, ky], pedal: [px2, py2] } = pedalLeg(ang);
+  const seg = (x0, y0, x1, y1, w, tones, o) => {
+    const L = Math.hypot(x1 - x0, y1 - y0) || 1, n = Math.max(1, Math.ceil(L * 2));
+    const nx = -(y1 - y0) / L, ny = (x1 - x0) / L, lit = ny > 0 ? -1 : 1;      // normale: la luce viene dall'alto
+    for (let i = 0; i <= n; i++) {
+      const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
+      for (let dy = -w; dy <= w; dy++) for (let dx = -w; dx <= w; dx++) {    // pennello quadrato: largo uguale in ogni verso
+        const t = (dx * nx + dy * ny) * lit;
+        put(x + dx, y + dy, t > 0.5 ? tones[0] : t < -0.5 ? tones[2] : tones[1], o);
+      }
+    }
+  };
+  seg(hx, hy, kx, ky, 1, ink.pants, ink.out);                                   // coscia
+  seg(kx, ky, px2, py2 - 1, 1, ink.shin, ink.shin === ink.pants ? ink.out : ink.skinOut);   // stinco
+  for (let x = -1; x <= 2; x++) { put(px2 + x, py2 - 1, ink.shoe[0], ink.shoeOut); put(px2 + x, py2, ink.shoe[1], ink.shoeOut); }   // scarpa sul pedale
+  paintOutlined(sx - 16, sy, flip, [...m.values()]);
+}
+/* gambe di FRONTE / di SPALLE: stanno ai due lati della ruota, il piede sul pedale che sale e scende
+   (sfasati di mezzo giro). La gamba col pedale in alto ha il ginocchio avanti: più corta, luce sul ginocchio. */
+function drawPedalLegsFB(sx, sy, dir, ang) {
+  const ink = legInk(false);
+  for (const [side, x0] of [[0, 9], [1, 19]]) {
+    const m = new Map(), put = (x, y, c, o) => m.set(x + ',' + y, [x, y, c, o]);
+    const py2 = Math.round(28 + Math.sin(ang + side * Math.PI) * 2.5);          // pedale: 25..31
+    const top = 23, up = py2 < 28;
+    for (let y = top; y < py2 - 1; y++) for (let x = x0; x < x0 + 4; x++) {
+      const knee = up && y <= top + 1 && x > x0 && x < x0 + 3;                  // ginocchio alzato: la luce ci batte sopra
+      const tones = y >= top + 3 ? ink.shin : ink.pants;
+      const outer = side ? x === x0 + 3 : x === x0;                            // lato esterno in ombra
+      put(x, y, knee ? tones[0] : outer ? tones[2] : tones[1], tones === ink.pants ? ink.out : ink.skinOut);
+    }
+    for (let x = x0 - (side ? 0 : 1); x < x0 + 4 + (side ? 1 : 0); x++) { put(x, py2 - 1, ink.shoe[0], ink.shoeOut); put(x, py2, ink.shoe[dir === 'up' ? 1 : 0], ink.shoeOut); }
+    paintOutlined(sx - 16, sy, false, [...m.values()]);
+    rect(sx - 16 + x0 + (side ? 4 : -2), sy + py2, 2, 1, BK.metal);          // il pedale che spunta di lato
+  }
 }
 /* PATTINI disegnati in nativo e AGGANCIATI ALLE SCARPE del corpo (bodyArt: piedi alle righe 30-31).
    Erano il disegno a mano del corpo vecchio raddoppiato a blocchi: grossi, staccati dai piedi
@@ -985,7 +1131,7 @@ export function drawVehiclePreview(kind, sx, sy, dir) {
     if (kind === 'boat') { hero(sx - 16, sy - 10); drawBoat(sx, sy, true); }
     else if (kind === 'motorboat') { hero(sx - 16, sy - 8); drawMotorboat(sx, sy, true); }
     else if (kind === 'mount') { try { drawFlyingMount(sx, sy); } catch (e) { /* preview */ } }
-    else if (kind === 'bike') { if (!fb) drawBike(sx, sy, false); else drawBikeFB(sx, sy, false, dir, 'behind'); try { drawHero(null, sx - 16, sy, dir, 0, false, 'ride'); } catch (e) { /* preview */ } if (fb) drawBikeFB(sx, sy, false, dir); }
+    else if (kind === 'bike') { try { drawRider(sx, sy, dir, false, 0); } catch (e) { if (!fb) drawBike(sx, sy, false); else drawBikeFB(sx, sy, false, dir); } }
     else if (kind === 'skates') { hero(sx - 16, sy); drawSkates(sx, sy, 0); }
   } finally { P.dir = sd; P.moving = sm; P.digging = sg; }
 }
@@ -1021,6 +1167,7 @@ export function drawSkates(sx, sy, fr) {
    indietro"). Coordinate dello sprite (0..31, stesso spazio di drawHero); `flip` per la sinistra. */
 const BK = { tire: '#2a2622', tread: '#4d463e', rim: '#c3cad0', spoke: '#8f989e', hub: '#6d757b', red: '#c94f4a', redHi: '#e27a70', redDk: '#8e3530',
   seat: '#2f2722', seatHi: '#4a4038', metal: '#9aa2a8', chain: '#5a5550', grip: '#3a2f28', bask: '#c89b5a', baskDk: '#9a7040', baskHi: '#e2bf82', out: '#40211d' };   // contorno: il rosso del telaio scurito, non il nero
+export const BIKE_LIFT = 6, BIKE_LIFT_FB = 3;                           // il ciclista siede sulla sella, non sulla corona
 function bikePaint(ox, oy, flip, cells) {
   const has = new Set(cells.map(([x, y]) => x + ',' + y));
   const X = x => ox + (flip ? 31 - x : x);
@@ -1046,29 +1193,33 @@ function bikeCellsSide(moving) {
     const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0)));
     for (let i = 0; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, y = y0 + (y1 - y0) * i / n; put(x, y, BK.redHi); put(x, y + 1, BK.red); put(x + 0.5, y + 1.5, BK.redDk); }
   };
+  /* il ciclista di profilo sta BIKE_LIFT px più in alto: il bacino (righe 26-27 del corpo) cade
+     sulla sella e i piedi sul pedale davanti. Prima la sella era a y 17, nascosta dietro la maglia,
+     e il sedere all'altezza della corona: "sembra seduto sui pedali". */
   wheel(5, 27); wheel(27, 27);
   /* catena dalla corona al mozzo dietro */
-  for (let x = 6; x <= 16; x += 2) { put(x, 26, BK.chain); put(x + 1, 29, BK.chain); }
-  tube(5, 26, 17, 27);                                  // fodero basso
-  tube(5, 26, 13, 21);                                  // fodero alto
-  tube(13, 20, 17, 27);                                 // piantone
-  tube(13, 20, 24, 18);                                 // canna
-  tube(17, 27, 24, 19);                                 // obliquo
-  for (let y = 18; y <= 27; y++) { put(24 + (y - 18) * 0.33, y, BK.metal); }   // forcella
+  for (let x = 6; x <= 17; x += 2) { put(x, 26, BK.chain); put(x + 1, 29, BK.chain); }
+  tube(5, 26, 18, 27);                                  // fodero basso
+  tube(5, 26, 11, 23);                                  // fodero alto
+  tube(11, 23, 18, 27);                                 // piantone
+  tube(11, 22, 24, 20);                                 // canna
+  tube(18, 27, 24, 21);                                 // obliquo
+  for (let y = 20; y <= 27; y++) { put(24 + (y - 20) * 0.4, y, BK.metal); }   // forcella
   /* corona e pedivella che gira col pedale */
-  for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; put(17 + Math.cos(t) * 2, 27.5 + Math.sin(t) * 2, BK.metal); }
-  const cr = moving ? frameTime / 130 : 1.2, px2 = 17 + Math.cos(cr) * 3.5, py2 = 27.5 + Math.sin(cr) * 3.5;
-  for (let i = 0; i <= 3; i++) put(17 + (px2 - 17) * i / 3, 27.5 + (py2 - 27.5) * i / 3, BK.metal);
+  for (let a = 0; a < 16; a++) { const t = a * Math.PI / 8; put(18 + Math.cos(t) * 2, 27.5 + Math.sin(t) * 2, BK.metal); }
+  const cr = crankAngle(moving), px2 = 18 + Math.cos(cr) * 3.5, py2 = 27.5 + Math.sin(cr) * 3.5;
+  for (let i = 0; i <= 3; i++) put(18 + (px2 - 18) * i / 3, 27.5 + (py2 - 27.5) * i / 3, BK.metal);
   put(px2 - 1, py2, BK.grip); put(px2, py2, BK.grip); put(px2 + 1, py2, BK.grip);
-  /* sella sul piantone */
-  put(13, 19, BK.metal);
-  for (let x = 10; x <= 15; x++) { put(x, 18, x < 12 ? BK.seatHi : BK.seat); put(x, 17, x > 10 && x < 15 ? BK.seat : BK.seat); }
-  /* attacco, manubrio e manopola */
-  put(24, 17, BK.metal); put(24, 16, BK.metal); put(25, 15, BK.metal); put(26, 15, BK.grip); put(27, 15, BK.grip);
+  /* sella SOTTO il sedere: si vede fra i pantaloni e il telaio */
+  for (let x = 8; x <= 14; x++) put(x, 21, x < 11 ? BK.seatHi : BK.seat);
+  for (let x = 9; x <= 13; x++) put(x, 22, BK.seat);
+  /* attacco, manubrio e manopola, all'altezza delle mani */
+  for (let y = 13; y <= 19; y++) put(24, y, BK.metal);
+  put(25, 12, BK.metal); put(26, 12, BK.grip); put(27, 12, BK.grip);
   /* cestino di vimini davanti al manubrio, con una margherita */
-  for (let y = 17; y <= 21; y++) for (let x = 27; x <= 31; x++) put(x, y, (x + y) % 2 ? BK.bask : BK.baskDk);
-  for (let x = 26; x <= 31; x++) put(x, 16, BK.baskHi);
-  put(29, 15, '#f6f2e4'); put(30, 14, '#f6f2e4'); put(28, 14, '#f6f2e4'); put(29, 13, '#f6f2e4'); put(29, 14, '#f2c53d');
+  for (let y = 16; y <= 20; y++) for (let x = 27; x <= 31; x++) put(x, y, (x + y) % 2 ? BK.bask : BK.baskDk);
+  for (let x = 26; x <= 31; x++) put(x, 15, BK.baskHi);
+  put(29, 14, '#f6f2e4'); put(30, 13, '#f6f2e4'); put(28, 13, '#f6f2e4'); put(29, 12, '#f6f2e4'); put(29, 13, '#f2c53d');
   return [...m.values()];
 }
 export function drawBike(sx, sy, moving) {
@@ -1087,23 +1238,26 @@ export function drawBikeFB(sx, sy, moving, dir, layer) {
     }
     for (let y = top + 1; y < bottom; y++) put(15, y, y % 2 ? BK.rim : BK.spoke);
   };
+  /* ciclista alzato di BIKE_LIFT_FB: manubrio all'altezza delle mani (riga 15), sella sotto il
+     bacino (riga 24), ruota fra le due gambe fino a terra. Le gambe e i pedali li mette drawPedalLegsFB. */
   if (dir === 'down') {
-    if (layer === 'behind') { for (const gx of [3, 25]) for (let x = gx; x < gx + 4; x++) for (let y = 17; y <= 18; y++) put(x, y, BK.grip); bikePaint(ox, oy, false, [...m.values()]); return; }
-    for (let x = 6; x <= 25; x++) { put(x, 18, BK.metal); put(x, 19, x > 6 && x < 25 ? BK.hub : BK.metal); }
-    for (let y = 19; y <= 25; y++) { put(15, y, BK.red); put(16, y, BK.redDk); }
+    if (layer === 'behind') { for (const gx of [3, 25]) for (let x = gx; x < gx + 4; x++) for (let y = 14; y <= 15; y++) put(x, y, BK.grip); bikePaint(ox, oy, false, [...m.values()]); return; }
+    for (let x = 6; x <= 25; x++) { put(x, 15, BK.metal); put(x, 16, x > 6 && x < 25 ? BK.hub : BK.metal); }
+    for (let y = 16; y <= 24; y++) { put(15, y, BK.red); put(16, y, BK.redDk); }
     tire(24, 32);
+    for (let x = 13; x <= 18; x++) put(x, 24, x < 15 ? BK.redHi : BK.red);             // parafango davanti
     /* cestino davanti, sotto il manubrio */
-    for (let y = 20; y <= 24; y++) for (let x = 11; x <= 20; x++) put(x, y, (x + y) % 2 ? BK.bask : BK.baskDk);
-    for (let x = 10; x <= 21; x++) put(x, 20, BK.baskHi);
-    put(13, 19, '#f6f2e4'); put(14, 18, '#f6f2e4'); put(12, 18, '#f6f2e4'); put(13, 17, '#f6f2e4'); put(13, 18, '#f2c53d');
+    for (let y = 17; y <= 21; y++) for (let x = 11; x <= 20; x++) put(x, y, (x + y) % 2 ? BK.bask : BK.baskDk);
+    for (let x = 10; x <= 21; x++) put(x, 17, BK.baskHi);
+    put(13, 16, '#f6f2e4'); put(14, 15, '#f6f2e4'); put(12, 15, '#f6f2e4'); put(13, 14, '#f6f2e4'); put(13, 15, '#f2c53d');
     bikePaint(ox, oy, false, [...m.values()]);
-    for (const [x, y] of [[10, 30], [20, 30]]) { rect(ox + x, oy + y, 3, 2, BK.out); rect(ox + x, oy + y, 3, 1, BK.grip); }   // pedali
     return;
   }
-  if (layer === 'behind') { for (let x = 4; x <= 27; x++) { put(x, 17, BK.metal); put(x, 18, BK.hub); } bikePaint(ox, oy, false, [...m.values()]); return; }
-  tire(23, 32);
-  for (let y = 21; y <= 24; y++) for (let x = 13; x <= 18; x++) put(x, y, y === 21 ? BK.redHi : y === 24 ? BK.redDk : BK.red);   // parafango
-  put(15, 25, '#f2c53d'); put(16, 25, '#f2c53d'); put(15, 26, '#e0873a'); put(16, 26, '#e0873a');               // catarifrangente
+  if (layer === 'behind') { for (let x = 4; x <= 27; x++) { put(x, 14, BK.metal); put(x, 15, BK.hub); } bikePaint(ox, oy, false, [...m.values()]); return; }
+  tire(26, 32);
+  for (let x = 12; x <= 19; x++) { put(x, 24, x < 14 ? BK.seatHi : BK.seat); put(x, 25, BK.seat); }   // sella sotto il bacino
+  for (let y = 26; y <= 28; y++) for (let x = 13; x <= 18; x++) put(x, y, y === 26 ? BK.redHi : y === 28 ? BK.redDk : BK.red);   // parafango
+  put(15, 27, '#f2c53d'); put(16, 27, '#f2c53d'); put(15, 28, '#e0873a'); put(16, 28, '#e0873a');               // catarifrangente
   bikePaint(ox, oy, false, [...m.values()]);
 }
 /* in barca: scafo che ondeggia, NIENTE camminata, scia quando ti muovi; pesca con lenza */
@@ -2206,7 +2360,7 @@ function pushPeers(ents, camx, camy, time, scena) {
       const cxs = snap(c.x - camx), cys = snap(c.y + FOOT_DY - camy);
       const cswim = waterTile(Math.floor(c.x / TS), Math.floor((c.y + FOOT_DY) / TS));
       const obj = { c: { skull: c.skull, torso: c.torso, leg: c.leg, q: c.q }, anim: c.anim || 0,
-        dir: c.dir === 'left' ? -1 : 1, face: c.dir };
+        dir: c.dir === 'left' ? -1 : 1, face: c.dir, x: c.x, y: c.y, who: 'altrui:' + q.id };
       ents.push({ y: c.y - camy + TS, f: () => drawCreature(obj, cxs - 16, cys - 26, cswim) });
     }
     n++;

@@ -3065,6 +3065,52 @@ sprites.applyLook();
   check(`connettività minima base: ${(minConn * 100).toFixed(0)}%`, minConn >= 0.9);
   const chim = bones.buildFleshVoxels({ heads: [{ sp: SPECIES[4], horns: 2 }, { sp: SPECIES[15], horns: 1 }], chest: SPECIES[44], arms: [SPECIES[8], SPECIES[8]], legs: [SPECIES[26], SPECIES[26], SPECIES[26], SPECIES[26]], tails: [SPECIES[15], SPECIES[55]] });
   check(`chimera raccordata: ${(connected(chim) * 100).toFixed(0)}%`, connected(chim) >= 0.85);
+  /* IL CAMMINO: le creature fanno il passo con le zampe del modello (4 pose di `gait`). Il corpo
+     non si muove fra una posa e l'altra (si muovono solo le zampe), la bestia resta tutta d'un
+     pezzo a ogni posa, le zampe cambiano davvero e a ogni giro almeno un piede si alza. */
+  {
+    const serV = v => v.map(x => `${x.x},${x.y},${x.z}`).sort().join('|');
+    let corpoFermo = 0, pezzo = 1, cambiano = 0, alzano = 0, conZampe = 0;
+    const striscianti = SPECIES.filter(sp => { const b = bones.BP[sp.id] || {}; return b.wave || (b.legs && b.legs[0] === 0) || b.float; });
+    for (const sp of SPECIES) {
+      const spec = bones.baseSpec(sp), ferma = bones.buildFleshVoxels(spec);
+      const zampeF = ferma.filter(v => v.p === 'zampa');
+      if (!zampeF.length || striscianti.includes(sp)) continue;   // chi striscia muove il corpo apposta (vedi sotto)
+      conZampe++;
+      const terraF = zampeF.filter(v => v.y === 0).length;
+      let diversa = false, alzata = false, fermo = true;
+      for (let g = 0; g < bones.GAIT_FRAMES; g++) {
+        const vg = bones.buildFleshVoxels(spec, { gait: g });
+        if (serV(vg.filter(v => v.p !== 'zampa')) !== serV(ferma.filter(v => v.p !== 'zampa'))) fermo = false;
+        const zg = vg.filter(v => v.p === 'zampa');
+        if (serV(zg) !== serV(zampeF)) diversa = true;
+        if (zg.filter(v => v.y === 0).length < terraF) alzata = true;
+        pezzo = Math.min(pezzo, connected(vg));
+      }
+      if (fermo) corpoFermo++; if (diversa) cambiano++; if (alzata) alzano++;
+    }
+    check(`cammino: il corpo resta fermo, si muovono solo le zampe (${corpoFermo}/${conZampe})`, corpoFermo === conZampe);
+    check(`cammino: la bestia resta tutta d'un pezzo a ogni posa (minimo ${(pezzo * 100).toFixed(0)}%)`, pezzo >= 0.9);
+    check(`cammino: le zampe cambiano davvero posa (${cambiano}/${conZampe})`, cambiano === conZampe);
+    check(`cammino: a ogni giro almeno un piede si alza da terra (${alzano}/${conZampe})`, alzano >= conZampe * 0.9);
+    /* CHI STRISCIA ONDEGGIA: il corpo cambia fra le pose (l'onda scorre verso la coda) e resta
+       d'un pezzo. Prima era lo sprite fermo stirato di sbieco, a scala frazionaria (regola 3). */
+    let ondeggiano = 0, pezzoS = 1, fluttuanti = 0;
+    for (const sp of striscianti) {
+      const b = bones.BP[sp.id] || {}, spec = bones.baseSpec(sp);
+      if (b.float && !b.wave) { fluttuanti++; continue; }
+      const corpo = v => serV(v.filter(x => x.p !== 'zampa'));
+      const pose = [0, 1, 2, 3].map(g => bones.buildFleshVoxels(spec, { gait: g }));
+      if (new Set(pose.map(corpo)).size >= 3) ondeggiano++;
+      for (const v of pose) pezzoS = Math.min(pezzoS, connected(v));
+    }
+    check(`cammino: chi striscia ondeggia col corpo (${ondeggiano}/${striscianti.length - fluttuanti})`, ondeggiano === striscianti.length - fluttuanti && ondeggiano > 0);
+    check(`cammino: e ondeggiando resta tutto d'un pezzo (minimo ${(pezzoS * 100).toFixed(0)}%)`, pezzoS >= 0.9);
+    /* DI FRONTE il piede si alza di più: l'avanti-indietro lì va in profondità e non si vede */
+    const s0 = SPECIES.find(sp => !striscianti.includes(sp) && bones.buildFleshVoxels(bones.baseSpec(sp)).some(v => v.p === 'zampa'));
+    const alt = o => { const z = bones.buildFleshVoxels(bones.baseSpec(s0), o).filter(v => v.p === 'zampa'); return z.reduce((a, v) => a + v.y, 0) / z.length; };   // altezza media delle zampe
+    check('cammino: di fronte e di spalle il piede si alza di più che di profilo', alt({ gait: 3, gaitFB: true }) > alt({ gait: 3 }));
+  }
   // versione RIANIMATA: volumetrica, colorata, deterministica, diversa per specie
   const f0 = bones.buildFleshVoxels(bones.baseSpec(sp0));
   const f1 = bones.buildFleshVoxels(bones.baseSpec(sp1));
@@ -4811,6 +4857,35 @@ sprites.applyLook();
   comp9.updateCompanion(1 / 30, false);
   for (let i = 0; i < 150; i++) { P.y -= 1.2; comp9.updateCompanion(1 / 30, false); }
   check('camminando in su il compagno segue di lato, non in colonna (' + Math.round(COMP.x - P.x) + 'px)', Math.abs(COMP.x - P.x) >= 14);
+  /* IN BICI (×3) il compagno restava indietro di mezzo schermo e il cancello di casa, che lo
+     aspetta, ci metteva secondi a chiudersi. Su una striscia libera lunga, a 276 px/s per 2 s:
+     deve restare a portata, e CAMMINANDO (nessun salto). */
+  let pista = null;
+  for (let r = 0; r < 400 && !pista; r++) for (let x = -r; x <= r && !pista; x++) {
+    let free = true;
+    for (let dx = -1; dx <= 24 && free; dx++) for (let dy = -1; dy <= 1 && free; dy++) { const tx = x + dx, ty = r + dy; if (world.isSolidTile(tx, ty) || world.townInfo(tx, ty) || world.baseTerrain(tx, ty) === world.WATER || world.baseTerrain(tx, ty) === world.DEEP) free = false; }
+    if (free) pista = [x, r];
+  }
+  if (pista) {
+    comp9.resetCompanionTrail(); COMP.job = null;
+    P.x = pista[0] * TS + 16; P.y = pista[1] * TS - 13;
+    comp9.updateCompanion(1 / 30, false);
+    let salti = 0, maxD = 0, minD = 1e9, trema = 0, prev = null;
+    for (let i = 0; i < 60; i++) {
+      const cx0 = COMP.x, cy0 = COMP.y;
+      P.x += 276 / 30; comp9.updateCompanion(1 / 30, false);
+      const passo = Math.hypot(COMP.x - cx0, COMP.y - cy0);
+      if (passo > 40) salti++;
+      if (i > 20) { maxD = Math.max(maxD, Math.hypot(COMP.x - P.x, COMP.y - P.y)); minD = Math.min(minD, Math.hypot(COMP.x - P.x, COMP.y - P.y)); if (prev != null) trema = Math.max(trema, Math.abs(passo - prev)); prev = passo; }
+    }
+    check('in bici il compagno tiene il passo camminando (' + Math.round(maxD) + 'px dietro, ' + salti + ' salti)', maxD < TS * 2.5 && salti === 0);
+    /* e senza TREMARE: con la rincorsa a soglia alternava un passo lento e uno veloce a ogni
+       fotogramma (1,5 e 5,3 px contro i 4,6 di Digsy) — «il compagno sembra un po' tremare» */
+    /* …ma non INCOLLATO: con la rincorsa piena stava fisso a 40 px («troppo attaccato»), mentre al
+       passo è sempre rimasto a ~60 */
+    check('in bici il compagno non sta incollato a Digsy (' + Math.round(minD) + 'px al minimo)', minD >= 50);
+    check('in bici il compagno va liscio: passi uguali fra un fotogramma e l\'altro (sbalzo massimo ' + trema.toFixed(2) + 'px su passi da 9)', trema < 1);
+  } else check('in bici il compagno tiene il passo', false, 'nessuna pista libera per la prova');
   S.companion = keep; comp9.resetCompanionTrail();
 }
 
@@ -5620,6 +5695,15 @@ sprites.applyLook();
     check('bici di spalle: disegno a mano (sella rossa)', only(bikeBack, plain, '#c94f4a'));
     check('pattini: quattro rotelle sotto i piedi', only(skate, plain, '#e0b040'));
     S.gear = null; P.moving = false;
+    /* IN BICI si siede sulla sella e i piedi girano coi pedali: prima il sedere stava all'altezza
+       della corona ("sembra seduto sui pedali") e le gambe erano ferme mentre i pedali giravano */
+    const { pedalLeg, BIKE_LIFT } = await import('../src/render.js');
+    const legs = Array.from({ length: 16 }, (_, i) => pedalLeg(i * Math.PI / 8));
+    check('bici: il piede sta SUL pedale a ogni angolo della pedivella', legs.every(l => Math.abs(l.shin - 5.5) < 0.05));
+    check('bici: il ginocchio si muove col pedale', new Set(legs.map(l => Math.round(l.knee[0]) + ',' + Math.round(l.knee[1]))).size >= 4);
+    check('bici: il bacino sta ben sopra la corona (seduti in sella, non sui pedali)', legs[0].crank[1] - legs[0].hip[1] >= 5 && 27 - BIKE_LIFT === legs[0].hip[1] + 0);
+    const { POSES } = await import('../src/sprites.js');
+    check('bici: la posa pedal non ha gambe sotto il bacino (le disegna chi segue i pedali)', POSES.pedal.side[0].slice(28).every(r => !/[PpUB]/.test(r)));
   }
 
   /* ---- BARCA E MOTOSCAFO: l'acqua è mezzo mondo, e la barca ci si spawna da sola ---- */
@@ -5706,6 +5790,24 @@ sprites.applyLook();
     const full = spy(() => render(2000));
     S.creatures = keepCre; S.awakened = keepAwk; S.house.yard = keepYard; park.yardAnimals.length = 0;
     check('cortile: la chimera assemblata passeggia davvero dentro', full.size > empty.size);
+    /* le creature del cortile NON attraversano la casa: prima la meta evitava la casa ma il
+       tragitto in linea retta ci passava in mezzo («ci passano attraverso», con foto) */
+    {
+      const keepC2 = S.creatures, keepY2 = S.house.yard, rnd = Math.random;
+      let seed = 7; Math.random = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      S.creatures = Array.from({ length: 10 }, (_, i) => ({ uid: 900 + i, name: 'Giro' + i, skull: SPECIES[i].id, torso: SPECIES[i].id, leg: SPECIES[i].id, q: 'comune' }));
+      S.house.yard = S.creatures.map(c => 'chi' + c.uid);
+      park.yardAnimals.length = 0; park.yardList();
+      const hf = world.houseFootprint(), muri = { x0: hf.x0 * TS - 8, x1: (hf.x1 + 1) * TS + 8, y0: hf.y0 * TS, y1: (hf.y1 + 1) * TS + 8 };
+      let dentro = 0;
+      for (let i = 0; i < 6000; i++) {
+        park.updatePark(0.1);
+        for (const a of park.yardAnimals) if (a.x > muri.x0 && a.x < muri.x1 && a.y > muri.y0 && a.y < muri.y1) dentro++;
+      }
+      Math.random = rnd;
+      check('cortile: in 10 minuti nessuna creatura passa dentro la casa (' + dentro + ' passi dentro)', park.yardAnimals.length === 10 && dentro === 0);
+      S.creatures = keepC2; S.house.yard = keepY2; park.yardAnimals.length = 0;
+    }
   }
 
   /* ---- MERAVIGLIA OLTRE IL BORDO: sono alte 9 caselle, se si disegnano solo "dentro"
@@ -12169,7 +12271,7 @@ sprites.applyLook();
   const corpo = n => { const i = rsrc.indexOf('function ' + n + '('); return i < 0 ? '' : rsrc.slice(i, rsrc.indexOf('\n}', i)); };
   for (const n of ['drawCompanionDig', 'drawCompanionDabble'])
     check(n + ' disegna lo sprite della creatura, chinato', corpo(n).includes('drawCreatureTilted('), corpo(n) ? 'no' : 'funzione sparita');
-  check('e il chinato usa lo sprite di profilo, colonna per colonna', /creatureSprite\(a, 'side'\)/.test(corpo('drawCreatureTilted')) && /drawImage\(cv, src, 0, 1, H/.test(corpo('drawCreatureTilted')));
+  check('e il chinato usa lo sprite di profilo, colonna per colonna', /creatureSprite\(a, 'side'\)/.test(corpo('drawCreatureTilted')) && /drawImage\(cv, src \+ ox, 0, 1, cv\.height/.test(corpo('drawCreatureTilted')));
 }
 
 /* ---------- «FAMMI ENTRARE» E LA CORTESIA DOPO UN NO ----------
@@ -12445,6 +12547,31 @@ sprites.applyLook();
   /* il mantello si vede davvero: una specie col dorso scuro ha il secondo colore nel suo modello */
   const vox = bo.buildFleshVoxels(bo.baseSpec(dd.spById.lavalupo));
   check('il mantello finisce nel modello (il lupo delle terre ha il dorso scuro)', vox.some(v => v.col && v.col.toLowerCase() === '#3a1c14'));
+  /* CAMMINANDO LA BESTIA NON SCATTA DI LATO: ogni posa del passo è disegnata nel riquadro di
+     quella ferma (ox/oy dicono quanto sborda), quindi la metà alta — testa e dorso, che non si
+     muovono — cade negli stessi pixel. Centrare ogni posa per conto suo la faceva ballare. */
+  let fuori = 0, prove = 0;
+  for (const s1 of sp.slice(0, 24)) for (const v of ['side', 'front', 'back']) {
+    const b1 = bo.BP[s1.id] || {};
+    if (b1.wave || (b1.legs && b1.legs[0] === 0) || b1.float) continue;   // chi striscia ondeggia tutto, apposta
+    const a1 = { c: { skull: s1.id, torso: s1.id, leg: s1.id, q: 'raro' } };
+    const f = rr.creatureSprite(a1, v); if (!f) continue;
+    const fd = f.getContext('2d').getImageData(0, 0, f.width, f.height).data;
+    for (let g = 0; g < bo.GAIT_FRAMES; g++) {
+      const c1 = rr.creatureSprite(a1, v, { gait: g }); prove++;
+      const cd = c1.getContext('2d').getImageData(0, 0, c1.width, c1.height).data, ox = c1.ox || 0, oy = c1.oy || 0;
+      /* qualche pixel può cambiare tono (la luce guarda la massa attorno, e le zampe ne fanno
+         parte): conta lo SPOSTAMENTO, che rimescola una buona parte della metà alta */
+      let pieni = 0, diversi = 0;
+      for (let y = 0; y < Math.floor(f.height * 0.4); y++) for (let x = 0; x < f.width; x++) {
+        const i = (y * f.width + x) * 4, j = ((y + oy) * c1.width + x + ox) * 4;
+        if (!fd[i + 3]) continue;
+        pieni++; if (fd[i] !== cd[j] || fd[i + 1] !== cd[j + 1] || fd[i + 2] !== cd[j + 2]) diversi++;
+      }
+      if (diversi > pieni * 0.1) fuori++;
+    }
+  }
+  check(`cammino: testa e dorso restano negli stessi pixel a ogni posa (${fuori} pose su ${prove} si spostano)`, prove > 0 && fuori === 0);
 }
 
 /* IL CORTILE SI ACCENDE PRIMA DI ENTRARE IN VISTA: le creature non devono comparire di colpo

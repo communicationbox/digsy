@@ -1,7 +1,8 @@
 /* IL FOGLIO DELLE SPECIE — tutte le creature disegnate come nel gioco, ingrandite, in un PNG.
    Serve a guardare la varietà e la resa delle 60 (+6 di grotta) senza aprire il gioco:
      node tests/specie.mjs [vista] [scala] [file]
-   vista: side (di serie) · front · back · tutte; scala: 4 di serie. Esce in .shots/specie.png */
+   vista: side (di serie) · front · back · tutte · passo (le 4 pose del cammino di profilo, in fila) · passofronte (le stesse di fronte) · volo (le 4 del battito, solo le alate);
+   scala: 4 di serie. Esce in .shots/specie.png */
 import { installStubs } from './stub.mjs';
 installStubs();
 import { deflateSync } from 'node:zlib';
@@ -11,9 +12,10 @@ const r = await import('../src/render.js');
 const d = await import('../src/data.js');
 const vista = process.argv[2] || 'side', SC = +(process.argv[3] || 4);
 const out = process.argv[4] || new URL('../.shots/specie.png', import.meta.url).pathname;
-const viste = vista === 'tutte' ? ['side', 'front', 'back'] : [vista];
-const specie = d.ALL_SPECIES || d.SPECIES;
-const CELL = 72, COLS = vista === 'tutte' ? 6 : 10;
+const viste = vista === 'tutte' ? ['side', 'front', 'back'] : vista === 'passo' || vista === 'passofronte' ? [0, 1, 2, 3] : vista === 'volo' ? ['f0', 'f1', 'f2', 'f3'] : [vista];
+const bo = await import('../src/bones.js');
+const specie = vista === 'volo' ? (d.ALL_SPECIES || d.SPECIES).filter(s => (bo.BP[s.id] || {}).wings) : (d.ALL_SPECIES || d.SPECIES);
+const CELL = 72, COLS = vista === 'tutte' ? 6 : vista === 'passo' || vista === 'passofronte' || vista === 'volo' ? 8 : 10;
 const n = specie.length * viste.length;
 const Wp = COLS * CELL, Hp = Math.ceil(n / COLS) * CELL;
 const W = Wp * SC, H = Hp * SC;
@@ -21,7 +23,9 @@ const img = new Uint8Array(W * H * 4);
 for (let i = 0; i < W * H; i++) { img[i * 4] = 0x8f; img[i * 4 + 1] = 0xbf; img[i * 4 + 2] = 0x6a; img[i * 4 + 3] = 255; }
 let k = 0;
 for (const s of specie) for (const v of viste) {
-  const cv = r.creatureSprite({ c: { skull: s.id, torso: s.id, leg: s.id, q: 'raro' } }, v);
+  const cv = typeof v === 'string' && v[0] === 'f' ? r.creatureSprite({ c: { skull: s.id, torso: s.id, leg: s.id, q: 'raro' } }, 'side', { tuckLegs: true, wingFlap: +v[1] })
+    : typeof v === 'number' ? r.creatureSprite({ c: { skull: s.id, torso: s.id, leg: s.id, q: 'raro' } }, vista === 'passofronte' ? 'front' : 'side', vista === 'passofronte' ? { gait: v, gaitFB: true } : { gait: v })
+    : r.creatureSprite({ c: { skull: s.id, torso: s.id, leg: s.id, q: 'raro' } }, v);
   const x0 = (k % COLS) * CELL + 4, y0 = Math.floor(k / COLS) * CELL + 4; k++;
   if (!cv) continue;
   const dd = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;

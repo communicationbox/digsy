@@ -101,6 +101,10 @@ export function updateCompanion(dt, mounted) {
      scavare si teletrasportano se io mi muovo» — segnalato). Scrivere la scia non muove
      nessuno: dice solo dove sei passato. */
   const d0 = trail.length ? Math.hypot(P.x - trail[trail.length - 1].x, P.y - trail[trail.length - 1].y) : 0;
+  /* velocità di Digsy, smorzata: un salto (porta, teletrasporto) non conta, lo gestisce `salto` */
+  const pv = lastP && dt > 0 ? Math.hypot(P.x - lastP.x, P.y - lastP.y) / dt : 0;
+  velDigsy = pv > COMP_MAX_V * 2 ? velDigsy : velDigsy * 0.8 + pv * 0.2;
+  lastP = { x: P.x, y: P.y };
   const salto = !COMP.init || d0 > TS * 2;
   if (salto) {
     /* SALTO VERO (appena scelto, uscito da un edificio, teletrasporto): la scia vecchia non
@@ -151,7 +155,16 @@ export function updateCompanion(dt, mounted) {
      posizione oscillava e lo snap la faceva TREMARE. Ora è morbido (regola: niente tremolii).
      Più veloce quando resta indietro, così non perde la scia. */
   if (d > 0.01) {
-    const sp = Math.min(d, (d > TS * 3 ? 180 : 90) * dt);
+    /* IN BICI (×3) O IN PATTINI si va più veloci del suo passo: restava indietro di mezzo schermo,
+       e il cancello di casa — che aspetta che esca anche lui — ci metteva secondi a chiudersi
+       (segnalato). Tiene la velocità VERA di Digsy, misurata sulla scia, SEMPRE: con una soglia
+       (rincorsa solo oltre 20 px) a ogni fotogramma alternava un passo lento e uno veloce, e in
+       bici tremava (segnalato). Ma a velocità piena si incollava al punto della scia (40 px) e
+       stava «troppo attaccato»: prima, al passo, era un filo più lento di te e restava a ~60 px.
+       Allora la rincorsa CRESCE con la distanza dal punto — sotto `STACCO` va più piano di te,
+       sopra più svelto — e l'equilibrio torna lì, a piedi come in bici, senza gradini. */
+    const tieni = Math.min(COMP_MAX_V, velDigsy) * Math.max(0.6, Math.min(1.6, 0.75 + d / (STACCO * 4)));
+    const sp = Math.min(d, Math.max(d > TS * 3 ? 180 : 90, tieni) * dt);
     const nx = COMP.x + dx / d * sp, ny = COMP.y + dy / d * sp;
     const px0 = COMP.x, py0 = COMP.y;
     /* un passo che finirebbe in un solido non si fa (può succedere solo tagliando un angolo
@@ -184,10 +197,13 @@ export function updateCompanion(dt, mounted) {
 /* ---------- la scia ---------- */
 const trail = [];
 const TRAIL_MAX = 80;
+const COMP_MAX_V = 600;
+const STACCO = 22;                      // quanto resta dietro al punto della scia mentre cammini (≈ 60 px da Digsy)                 // tetto alla rincorsa (px/s): oltre è un salto, non un passo
+let velDigsy = 0, lastP = null;
 /* a che distanza (di cammino, non in linea d'aria) sta il compagno: poco più di una casella,
    così non si sovrappone a Digsy ma resta vicino */
 export const FOLLOW_PX = 40;
-export function resetCompanionTrail() { trail.length = 0; COMP.init = false; COMP.stuck = 0; }
+export function resetCompanionTrail() { trail.length = 0; COMP.init = false; COMP.stuck = 0; velDigsy = 0; lastP = null; }
 /* il punto della scia più recente dove il compagno ci sta: è dove Digsy è passato davvero,
    quindi è raggiungibile, ed è vicino a lui */
 function puntoLiberoSullaScia() {
@@ -233,5 +249,5 @@ function freeSpotNear(x, y) {
 /* spec per drawCreature: { c:{skull,torso,leg,q}, anim, dir, face } */
 export function companionDrawObj() {
   const c = S.companion; if (!c) return null;
-  return { c: { skull: c.skull, torso: c.torso, leg: c.leg, q: c.q }, anim: COMP.anim, dir: COMP.dir, face: COMP.face };
+  return { c: { skull: c.skull, torso: c.torso, leg: c.leg, q: c.q }, anim: COMP.anim, dir: COMP.dir, face: COMP.face, x: COMP.x, y: COMP.y, who: 'compagno' };
 }

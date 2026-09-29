@@ -990,6 +990,21 @@ cambia un pixel» in run.mjs e il confronto in `npm run perf` lo scoprono.
   nevi). Una prova misura la somiglianza di OGNI coppia sul disegno vero (`somiglia.js`): sopra 0,82
   fallisce. Per guardare: `node tests/specie.mjs [side|front|back|tutte] [scala]` (foglio di tutte le
   specie in .shots/specie.png, in Node, meno di un secondo) e `node tests/coppie.mjs [n]`.
+- **Il cammino** (`gait` 0..3 in bones.js → `passoZampa`/`passoVox` in `legVox`): le zampe del
+  MODELLO fanno il passo — coppie diagonali come un trotto, bipedi alternati, insetti a treppiede,
+  il piede si alza mentre torna avanti. Chi vola batte le ali (`wingFlap`, anche piume e insetti,
+  `FLAP_SOFT`; nel cortile solo le pose da riposo in giù, `BATTITO`) e raccoglie le zampe. La posa
+  si conta sulla STRADA fatta (`passoCreatura` in render.js: una ogni 3 px, al più 10 al secondo),
+  non sul tempo: così non scivolano. Ogni posa sta nel riquadro della bestia ferma (`base` in
+  spriteDaVoxel, `ox/oy`), o centrandola da sola scattava di lato. Niente più schiacciamenti a scala
+  frazionaria. Le pose si costruiscono A RATE (`creJobs`: un passo per fotogramma, modello e disegno
+  in due fotogrammi diversi): una posa intera su un telefono lento era un fotogramma saltato.
+  Chi STRISCIA (wave, niente zampe) muove il corpo: l'onda dei segmenti scorre verso la coda con la
+  stessa fase (`gaitOnda` in buildFromRecipe) — niente più sprite stirato di sbieco. Di fronte e di
+  spalle (`gaitFB`) il piede si alza di più e oscilla di meno: l'avanti-indietro lì non si vede. Il
+  compagno al lavoro usa le stesse pose a ritmo veloce (`zampe` in drawCreatureTilted: gratta, rema).
+  Foto: `node tests/specie.mjs passo|passofronte|volo` · `npm run shot -- cortile` (bestie in cammino
+  attorno a Digsy, tutorial saltato).
 - **Risoluzione doppia** nel Libro (`skeleton3d.js` costruisce a `res: 4`, tele 440×330), nella scheda
   della teca, nel disegno di riserva del Libro e nello scheletro della rotonda. Nel mondo le creature
   restano a 2: un pixel per voxel è la misura dei pixel del gioco.

@@ -30,8 +30,9 @@ const ARMS = {
   lift:   { down: [[[8, 20], [19, 19]], [[23, 20], [23, 16]]], side: [[[15, 19], [22, 16]]] },   // attrezzo alzato
   strike: { down: [[[8, 20], [13, 23]], [[23, 20], [18, 23]]], side: [[[16, 20], [25, 22]]] },   // colpo in avanti
   ride:   { down: [[[8, 20], [5, 18]], [[23, 20], [26, 18]]], side: [[[16, 20], [24, 17]]] },    // mani sul manubrio
+  pedal:  { down: [[[8, 20], [5, 18]], [[23, 20], [26, 18]]], side: [[[16, 20], [24, 17]]] },    // in bici: come 'ride', ma le gambe le disegna render (seguono i pedali)
 };
-export const GRIP = { lift: { down: [23, 16], side: [23, 15] }, strike: { down: [15.5, 23], side: [26, 22] }, ride: { down: [5, 18], side: [25, 17] } };
+export const GRIP = { lift: { down: [23, 16], side: [23, 15] }, strike: { down: [15.5, 23], side: [26, 22] }, ride: { down: [5, 18], side: [25, 17] }, pedal: { down: [5, 18], side: [25, 17] } };
 /* `sleeve` = quanta parte del braccio copre la manica (0 canottiera, .45 maglietta, 1 maniche lunghe);
    `cuff` = colore del polsino in fondo alla manica lunga */
 function arm(g, [x0, y0], [x1, y1], sl = SLEEVE.tshirt) {
@@ -189,6 +190,7 @@ function torsoSide(g, fr, pose, shirt = 'tshirt') {
 
 /* ---------------- GAMBE ---------------- */
 function legsFront(g, fr, pose) {
+  if (pose === 'pedal') { row(g, 26, 10, 'P'); return; }  // solo il bacino: le gambe vanno sui pedali (render.drawPedalLegs)
   if (pose === 'ride') {
     /* A CAVALCIONI, visto di fronte o di spalle: il bacino resta al suo posto, le cosce escono
        IN FUORI e gli stinchi scendono lungo i fianchi della bestia. Con le gambe dritte di
@@ -212,6 +214,7 @@ function legsFront(g, fr, pose) {
   if (fr) { g.span(27, 10, 14, 'P'); g.span(27, 17, 21, 'P'); }
 }
 function legsSide(g, fr, pose) {
+  if (pose === 'pedal') { g.span(26, 12, 20, 'P'); g.span(27, 11, 17, 'P', { t: 2 }); return; }   // sedere sulla sella: le gambe seguono i pedali (render)
   if (pose === 'ride') {                                   // seduto in sella: coscia in avanti, stinco giù sul pedale
     g.span(26, 12, 20, 'P');
     for (let y = 26; y <= 27; y++) g.span(y, 14, 21, 'P', { lit: 0.2, dark: 0.85 });

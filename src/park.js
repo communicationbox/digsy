@@ -12,16 +12,39 @@ import { COMP } from './companion.js';
 /* la casa ora sta DENTRO il recinto (M6: cortile tutto attorno): le creature non devono
    scegliere un bersaglio sopra il suo footprint, o ci camminerebbero sopra. Margine di 1
    tile tutto attorno alla casa, così non le sfiorano nemmeno. */
-function pickSpot(yr) {
-  const hf = houseFootprint();
-  for (let i = 0; i < 20; i++) {
+/* LA CASA NON SI ATTRAVERSA. Prima si scartava solo la META sopra la casa, ma il tragitto
+   andava in linea retta e passava in mezzo ai muri; e il margine era misurato sull'ancora (i
+   piedi), mentre una creatura grande sfora di quasi una casella per lato: stava "dentro" il muro
+   pur avendo i piedi fuori (segnalato con foto: «si compenetrano con la casa e ci passano
+   attraverso»). Ora c'è una zona vietata in pixel, allargata di lato quanto una bestia grande e
+   sotto quanto serve perché nessuna stia sulla soglia, e la meta si accetta solo se il tragitto
+   da dove si è non la tocca. */
+export function houseKeepOut() {
+  const hf = houseFootprint(); if (!hf) return null;
+  return { x0: hf.x0 * TS - TS * 1.2, x1: (hf.x1 + 1) * TS + TS * 1.2, y0: hf.y0 * TS - TS * 0.5, y1: (hf.y1 + 1) * TS + TS * 1.1 };
+}
+const dentro = (k, x, y) => x > k.x0 && x < k.x1 && y > k.y0 && y < k.y1;
+/* il tratto da (x0,y0) a (x1,y1) entra nella zona vietata? (a passi di 6 px: meno di un piede) */
+export function crossesHouse(k, x0, y0, x1, y1) {
+  if (!k) return false;
+  const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / 6));
+  for (let i = 0; i <= n; i++) if (dentro(k, x0 + (x1 - x0) * i / n, y0 + (y1 - y0) * i / n)) return true;
+  return false;
+}
+function pickSpot(yr, from) {
+  const k = houseKeepOut();
+  /* chi si ritrova già nella zona (salvataggio vecchio, casa appena spostata) deve poterne uscire:
+     per lui conta solo che la meta sia fuori */
+  const libero = from && k && !dentro(k, from.x, from.y);
+  for (let i = 0; i < 30; i++) {
     const x = (yr.x0 + 1) * TS + 4 + Math.random() * ((yr.x1 - yr.x0 - 1) * TS - 8);
     const y = (yr.y0 + 1) * TS + 4 + Math.random() * ((yr.y1 - yr.y0 - 1) * TS - 8);
-    if (!hf) return { x, y };
-    const tx = x / TS, ty = y / TS;
-    if (tx < hf.x0 - 1 || tx > hf.x1 + 1 || ty < hf.y0 - 1 || ty > hf.y1 + 1) return { x, y };
+    if (!k) return { x, y };
+    if (dentro(k, x, y)) continue;
+    if (libero && crossesHouse(k, from.x, from.y, x, y)) continue;
+    return { x, y };
   }
-  return { x: (yr.x0 + 1) * TS + 4, y: (yr.y0 + 1) * TS + 4 };
+  return from && !(k && dentro(k, from.x, from.y)) ? { x: from.x, y: from.y } : { x: (yr.x0 + 1) * TS + 4, y: (yr.y0 + 1) * TS + 4 };
 }
 
 export const yardAnimals = []; // lista persistente di {c,x,y,tx,ty,pause,dir,anim}
@@ -99,7 +122,7 @@ function checkGateClose(yr) {
   const inside = ptx >= yr.x0 && ptx <= yr.x1 && pty >= yr.y0 && pty <= yr.y1;
   /* il cancello aspetta il COMPAGNO: segue a 40px di scia, e chiudendo appena usciva Digsy lui
      era ancora dentro e passava attraverso il cancello chiuso (segnalato con foto). Si chiude
-     quando anche lui è fuori; se resta indietro troppo a lungo (incastrato) si chiude lo stesso. */
+     quando anche lui è fuori; se resta indietro troppo a lungo (incastrato: 1,5 s) si chiude lo stesso. */
   if (wasInsideYard === true && inside === false) closePending = Date.now();
   if (inside) { closePending = 0; P.gateWalk = null; }
   const compIn = () => {
@@ -107,7 +130,7 @@ function checkGateClose(yr) {
     const cx = Math.floor(COMP.x / TS), cy = Math.floor((COMP.y + FOOT_DY) / TS);
     return cx >= yr.x0 && cx <= yr.x1 && cy >= yr.y0 && cy <= yr.y1;
   };
-  if (closePending && !P.gateWalk && (!compIn() || Date.now() - closePending > 3000)) {
+  if (closePending && !P.gateWalk && (!compIn() || Date.now() - closePending > 1500)) {
     /* "animiamo l'omino che torna verso la porta": prima si RITORNA al cancello camminando (fino
        alla casella del vialetto appena sotto), poi ci si gira e lo si chiude. Da troppo lontano
        (compagno rimasto indietro a lungo) si chiude da dove si è, senza una camminata lunga. */
@@ -168,7 +191,7 @@ export function updatePark(dt) {
     if (a.pause > 0) { a.pause -= dt; continue; }
     const dx = a.tx - a.x, dy = a.ty - a.y, d = Math.hypot(dx, dy);
     if (d < 1.5) { // nuovo bersaglio dentro il recinto (interno, margine 4px, mai sopra la casa)
-      const spot = pickSpot(yr);
+      const spot = pickSpot(yr, a);
       a.tx = spot.x; a.ty = spot.y;
       a.pause = 0.6 + Math.random() * 2.2;
     } else {
